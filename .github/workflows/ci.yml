@@ -35,6 +35,34 @@ jobs:
           BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
           BETTER_AUTH_URL: http://localhost:3000
 
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    env:
+      # The smoke pages never query the database; these only pass validation.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
+      BETTER_AUTH_URL: http://localhost:3100
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Smoke tests with axe, phone and desktop
+        run: npm run test:e2e
+      - name: Upload the report when something fails
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   migrations:
     name: Migrations
     runs-on: ubuntu-latest
