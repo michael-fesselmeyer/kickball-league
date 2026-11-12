@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db, txDb } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { scoreReminderLog } from "@/db/queries/score-reminders";
 import { finalizeDueScores, scoresNeedingAttention } from "@/db/queries/scores";
+import type { GameId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
 
 export const metadata: Metadata = { title: "Scores" };
@@ -34,6 +36,10 @@ async function Scores({
   // Settle anything past its 24 hours before listing what is left.
   await txDb.transaction((tx) => finalizeDueScores(tx, now));
   const games = await scoresNeedingAttention(db, season.id, now);
+  const reminders = await scoreReminderLog(
+    db,
+    games.filter((g) => g.state.state === "none").map((g) => g.id),
+  );
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -43,6 +49,22 @@ async function Scores({
       minute: "2-digit",
       timeZone: season.timeZone,
     }).format(d);
+  const time = (d: Date) =>
+    new Intl.DateTimeFormat("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: season.timeZone,
+    }).format(d);
+  /** Who has been emailed about a missing score so far. */
+  const reminded = (id: GameId) => {
+    const log = reminders.get(id);
+    if (!log) return null;
+    const parts = [
+      log.referee && `ref reminded ${time(log.referee)}`,
+      log.captains && `captains reminded ${time(log.captains)}`,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : "no reminders sent yet";
+  };
   const groups = [
     {
       id: "disputed",
@@ -53,7 +75,7 @@ async function Scores({
     {
       id: "missing",
       title: "Missing scores",
-      hint: "The game has started and nobody has reported a score.",
+      hint: "The game has started and nobody has reported a score. The ref is emailed 30 minutes after the slot ends, both captains after 2 hours.",
       games: games.filter((g) => g.state.state === "none"),
     },
     {
@@ -101,6 +123,11 @@ async function Scores({
                         {" "}
                         · {when(g.startsAt)}
                       </span>
+                      {group.id === "missing" && (
+                        <span className="block text-small text-text-muted">
+                          {reminded(g.id)}
+                        </span>
+                      )}
                     </span>
                     <Link
                       href={`/app/games/${g.id}/score`}
