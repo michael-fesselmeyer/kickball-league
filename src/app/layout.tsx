@@ -12,12 +12,12 @@ const inter = Inter({
   display: "swap",
 });
 
-// Playful display face (ADR 0002). The width axis gives a condensed face
-// for scoreboards later; optical size keeps small headings crisp.
+// Playful display face (ADR 0002). Weight axis only: the width axis (for the
+// condensed scoreboard face) is added with the scoreboard, so pages don't pay
+// for it before it is used. Fonts are budgeted at 120 kB in total.
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
   subsets: ["latin"],
-  axes: ["wdth", "opsz"],
   display: "swap",
 });
 
