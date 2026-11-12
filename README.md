@@ -17,6 +17,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 **Scheduling**
 
 - A season scheduler that turns permit windows into game slots, builds round-robin rounds, places games with a min-cost assignment and improves them with local search. It checks ten hard constraints and reports fairness metrics, and property tests cover it ([how it works](docs/scheduling-algorithm.md)).
+- Before the schedule is made, captains send the dates their team can't play and the game times it would rather have or avoid. Conflicts are never broken; preferences are weighed, and the schedule screen shows the share honored.
 - Admins generate a draft, see why any game could not be placed, move or swap games by form, and publish. Each publish saves a version with a diff.
 - Schedule board (desktop): drag a game to an open slot, or onto another game to swap them. While a game is held, the board shows the hard-rule problems and the change in each fairness metric that dropping it there would cause, from the scheduler's own checks. Arrow keys, Enter and Escape do the same without a mouse, and several changes save together as one new draft.
 - Rain-outs: pick a scope, preview the affected games and proposed makeups, and confirm. Each affected player is emailed their own game's new time, and nobody else hears about it.
