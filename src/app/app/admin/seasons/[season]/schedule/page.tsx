@@ -11,7 +11,7 @@ import {
 import { measure, type Metric, type Status } from "@/domain/scheduler/measure";
 import { validate } from "@/domain/scheduler/validate";
 import { requirePermission } from "@/lib/auth/permission";
-import { generateDraft, publishDraft } from "./actions";
+import { editGame, generateDraft, publishDraft } from "./actions";
 
 export const metadata: Metadata = { title: "Schedule" };
 
@@ -29,20 +29,28 @@ export default function SchedulePage(
 
 const ERRORS: Record<string, string> = {
   bad_input: "Rounds, makeup reserve and seed must be whole numbers in range.",
+  slot_taken: "That slot already holds a game.",
+  unknown_game: "That game is not in this version.",
+  unknown_slot: "That slot does not exist.",
   has_violations: "This version breaks a hard rule, so it cannot be published.",
   not_draft: "Only a draft can be published.",
   unknown_version: "That version no longer exists.",
 };
 
-/** Game keys (`r3:<team id>:<team id>`) in the scheduler's notes, as team names. */
+/**
+ * The scheduler names games by key (`r3:<team id>:<team id>`) and teams by
+ * id; this shows team names instead.
+ */
 function readable(note: string, teams: ReadonlyMap<string, string>) {
-  return note.replace(
-    /r(\d+):([0-9a-f-]{36}):([0-9a-f-]{36})/g,
-    (key, round: string, a: string, b: string) =>
-      teams.has(a) && teams.has(b)
-        ? `${teams.get(a)} vs ${teams.get(b)} (round ${round})`
-        : key,
-  );
+  return note
+    .replace(
+      /r(\d+):([0-9a-f-]{36}):([0-9a-f-]{36})/g,
+      (key, round: string, a: string, b: string) =>
+        teams.has(a) && teams.has(b)
+          ? `${teams.get(a)} vs ${teams.get(b)} (round ${round})`
+          : key,
+    )
+    .replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, (id) => teams.get(id) ?? id);
 }
 
 /** "1 game", "3 games", from a search parameter. */
@@ -87,6 +95,11 @@ async function Schedule({
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
           {error}
+        </p>
+      )}
+      {query.edited && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          Saved as a new draft. Check its problems before publishing.
         </p>
       )}
       {query.published && (
@@ -247,11 +260,78 @@ async function Schedule({
             <ul className="flex list-disc flex-col gap-1 pl-5 text-danger">
               {violations.map((v) => (
                 <li key={`${v.rule}:${v.message}`}>
-                  {v.rule}: {v.message}
+                  {v.rule}: {readable(v.message, labels.teams)}
                 </li>
               ))}
             </ul>
           )}
+
+          <form
+            action={editGame.bind(null, slug, latest.id)}
+            aria-labelledby="edit"
+            className="flex flex-col gap-3 rounded-lg border border-border p-4"
+          >
+            <h3 id="edit" className="text-h3">
+              Move or swap a game
+            </h3>
+            <p className="text-text-muted">
+              Pick a game and where it should go. If that slot holds a game, the
+              two swap. The change is saved as a new draft.
+            </p>
+            <label className="flex flex-col gap-1">
+              Game
+              <select
+                name="game"
+                required
+                className="rounded-md border border-border bg-surface px-2 py-1"
+              >
+                {[...latest.schedule.games]
+                  .sort(
+                    (a, b) => a.round - b.round || a.key.localeCompare(b.key),
+                  )
+                  .map((g) => (
+                    <option key={g.key} value={g.key}>
+                      Round {g.round}: {labels.teams.get(g.teamA) ?? g.teamA} vs{" "}
+                      {labels.teams.get(g.teamB) ?? g.teamB}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              To
+              <select
+                name="slot"
+                required
+                className="rounded-md border border-border bg-surface px-2 py-1"
+              >
+                {[...labels.slots]
+                  .sort(
+                    ([, a], [, b]) =>
+                      a.startsAt.getTime() - b.startsAt.getTime(),
+                  )
+                  .map(([id, where]) => {
+                    const taken = latest.schedule.games.find(
+                      (g) => g.slotId === id,
+                    );
+                    return (
+                      <option key={id} value={id}>
+                        {where.day}, {where.time}, {where.field}
+                        {taken
+                          ? ` (${labels.teams.get(taken.teamA) ?? ""} vs ${labels.teams.get(taken.teamB) ?? ""})`
+                          : " (empty)"}
+                      </option>
+                    );
+                  })}
+              </select>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" name="pin" defaultChecked />
+              Pin it there, so regenerating keeps it
+            </label>
+            <button type="submit" className="btn self-start btn-secondary">
+              Save as a new draft
+            </button>
+          </form>
 
           <table className="w-full text-left">
             <caption className="sr-only">
