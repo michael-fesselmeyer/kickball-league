@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -29,15 +29,23 @@ import { teamShare } from "@/db/queries/team-share";
 import { cardVersion } from "@/domain/share/cards";
 import { teamShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
-import { calendarLinks, requestOrigin } from "@/lib/calendar-links";
+import { calendarLinks } from "@/lib/calendar-links";
+import { PUBLIC_PAGE_LIFE, seasonTag, teamTag } from "@/lib/public-cache";
 import { shareMetadata } from "@/lib/share/metadata";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 
-export async function generateMetadata({
-  params,
-}: PageProps<"/teams/[team]">): Promise<Metadata> {
+type Props = PageProps<"/teams/[team]/[[...season]]">;
+
+async function cachedTeamShare(slug: string) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
+  cacheTag(teamTag(slug));
+  return teamShare(db, slug);
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { team: slug } = await params;
-  const found = await teamShare(db, slug);
+  const found = await cachedTeamShare(slug);
   if (!found) return { title: "Team" };
   const { team, card } = found;
   const description = `${team.name}: schedule, results, roster and a calendar feed.`;
@@ -57,7 +65,7 @@ export async function generateMetadata({
   };
 }
 
-export default function TeamPage(props: PageProps<"/teams/[team]">) {
+export default function TeamPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 md:px-6">
       <Suspense fallback={<PageLoading>Loading the team…</PageLoading>}>
@@ -75,18 +83,41 @@ const ordinal = (n: number) => {
 
 const PLAYING = new Set(["in_progress", "playoffs"]);
 
-async function Team({ params, searchParams }: PageProps<"/teams/[team]">) {
-  const { team: slug } = await params;
-  const { season: seasonParam } = await searchParams;
+/**
+ * Another season arrives as `?season=<slug>`. src/proxy.ts rewrites it to
+ * the optional `[[...season]]` segment, so every view depends only on the
+ * route and can be served as static HTML.
+ */
+async function Team({ params }: Props) {
+  const { team: slug, season } = await params;
+  return <TeamView slug={slug} seasonSlug={season?.[0] ?? null} />;
+}
+
+/**
+ * Cached, so after the first visit the page is served as static HTML with
+ * the team in the first paint (docs/architecture.md, section 3). "Next game"
+ * is worked out when the page is rendered, which happens at least once a
+ * minute while people are looking at it.
+ */
+async function TeamView({
+  slug,
+  seasonSlug,
+}: {
+  slug: string;
+  seasonSlug: string | null;
+}) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
+  cacheTag(teamTag(slug));
   const team = await teamBySlug(db, slug);
   if (!team) notFound();
   const entry =
-    team.entries.find((e) => e.seasonSlug === seasonParam) ??
+    team.entries.find((e) => e.seasonSlug === seasonSlug) ??
     // The season being played, else the newest one.
     team.entries.find((e) => PLAYING.has(e.seasonStatus)) ??
     team.entries[0];
-  const origin = requestOrigin(await headers());
-  const links = calendarLinks(origin, team.slug);
+  if (entry) cacheTag(seasonTag(entry.seasonId));
+  const links = calendarLinks(siteOrigin(env.BETTER_AUTH_URL), team.slug);
 
   const [games, roster, standings] = entry
     ? await Promise.all([

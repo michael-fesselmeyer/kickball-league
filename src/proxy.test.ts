@@ -25,7 +25,29 @@ describe("proxy", () => {
     expect(response.headers.get("x-middleware-next")).toBe("1");
   });
 
-  it("only runs on /app and below", () => {
-    expect(config.matcher).toEqual(["/app", "/app/:path*"]);
+  it("renders a team-filtered schedule from its path segment, keeping the address", () => {
+    const response = proxy(
+      request("/seasons/fall-2026/schedule?team=the-big-kicks"),
+    );
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:3000/seasons/fall-2026/schedule/the-big-kicks",
+    );
+  });
+
+  it("lets a public page with no view through untouched, without a session", () => {
+    const response = proxy(request("/teams/the-big-kicks"));
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("runs only on /app and the public pages that pick a view", () => {
+    expect(config.matcher).toEqual([
+      "/app",
+      "/app/:path*",
+      "/seasons/:season/schedule",
+      "/teams/:team",
+    ]);
   });
 });

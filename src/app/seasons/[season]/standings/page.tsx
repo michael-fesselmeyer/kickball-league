@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cacheLife, cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { StandingsStats } from "@/components/stats/standings-stats";
@@ -8,6 +9,7 @@ import { db } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { seasonStandings } from "@/db/queries/standings";
 import type { Tiebreaker } from "@/domain/standings/standings";
+import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 
 export const metadata: Metadata = { title: "Standings" };
 
@@ -37,9 +39,20 @@ const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 async function Standings({ params }: PageProps<"/seasons/[season]/standings">) {
   const { season: slug } = await params;
+  return <SeasonStandings slug={slug} />;
+}
+
+/**
+ * Cached, so after the first visit the page is served as static HTML with the
+ * table in the first paint (docs/architecture.md, section 3).
+ */
+async function SeasonStandings({ slug }: { slug: string }) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
   const season = await seasonBySlug(db, slug);
   // Drafts are the league's work in progress, not public.
   if (!season || season.status === "draft") notFound();
+  cacheTag(seasonTag(season.id));
   const { rows, teams } = await seasonStandings(db, season.id);
   // Rows a tiebreaker (not just win percentage) placed below the row above.
   const notes = rows.flatMap((r) =>

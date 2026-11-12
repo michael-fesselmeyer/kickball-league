@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -13,12 +14,21 @@ import {
   type PublicGame,
   type PublicTeam,
 } from "@/domain/schedule/public-game";
+import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 
-export async function generateMetadata({
-  params,
-}: PageProps<"/seasons/[season]/schedule">): Promise<Metadata> {
-  const { season: slug } = await params;
+type Props = PageProps<"/seasons/[season]/schedule/[[...team]]">;
+
+async function cachedSeason(slug: string) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
   const season = await seasonBySlug(db, slug);
+  if (season) cacheTag(seasonTag(season.id));
+  return season;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { season: slug } = await params;
+  const season = await cachedSeason(slug);
   return {
     title:
       season && season.status !== "draft"
@@ -27,9 +37,7 @@ export async function generateMetadata({
   };
 }
 
-export default function SchedulePage(
-  props: PageProps<"/seasons/[season]/schedule">,
-) {
+export default function SchedulePage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 md:px-6">
       <Suspense fallback={<PageLoading>Loading the schedule…</PageLoading>}>
@@ -48,21 +56,38 @@ function teamsOf(games: PublicGame[]): PublicTeam[] {
   return [...teams.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-async function Schedule({
-  params,
-  searchParams,
-}: PageProps<"/seasons/[season]/schedule">) {
-  const { season: slug } = await params;
-  const { team: teamParam } = await searchParams;
+/**
+ * The team filter arrives as `?team=<slug>`. src/proxy.ts rewrites it to the
+ * optional `[[...team]]` segment, so every view depends only on the route
+ * and can be served as static HTML.
+ */
+async function Schedule({ params }: Props) {
+  const { season: slug, team } = await params;
+  return <SeasonSchedule slug={slug} teamSlug={team?.[0] ?? null} />;
+}
+
+/**
+ * Cached, so after the first visit the page is served as static HTML with
+ * the games in the first paint (docs/architecture.md, section 3).
+ */
+async function SeasonSchedule({
+  slug,
+  teamSlug,
+}: {
+  slug: string;
+  teamSlug: string | null;
+}) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
   const season = await seasonBySlug(db, slug);
   // Drafts are the league's work in progress, not public.
   if (!season || season.status === "draft") notFound();
+  cacheTag(seasonTag(season.id));
   const all = await publishedSchedule(db, season.id);
   const teams = teamsOf(all);
-  const picked =
-    typeof teamParam === "string"
-      ? (teams.find((t) => t.slug === teamParam) ?? null)
-      : null;
+  const picked = teamSlug
+    ? (teams.find((t) => t.slug === teamSlug) ?? null)
+    : null;
   const games = picked
     ? all.filter((g) => g.teamA.id === picked.id || g.teamB.id === picked.id)
     : all;
@@ -102,6 +127,7 @@ async function Schedule({
         <>
           <form
             method="get"
+            action={`/seasons/${season.slug}/schedule`}
             className="sticky top-0 z-10 -mx-4 flex flex-wrap items-end gap-3 border-b border-border bg-bg px-4 py-3 md:mx-0 md:rounded-card md:border md:px-4"
           >
             <label className="flex flex-col gap-1 text-small font-bold">
