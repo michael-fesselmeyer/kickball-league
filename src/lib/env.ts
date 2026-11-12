@@ -41,9 +41,23 @@ export const envSchema = z.object({
       error: 'must be an address, like "League <hello@example.com>"',
     })
     .optional(),
+  // Optional until payments are set up: without them, checkout is off.
+  // Test keys (sk_test_) charge nothing; live keys belong in production only.
+  STRIPE_SECRET_KEY: z
+    .string()
+    .regex(/^[sr]k_(test|live)_[A-Za-z0-9]+$/, {
+      error: "must be a Stripe secret key (starts with sk_test_ or sk_live_)",
+    })
+    .optional(),
+  STRIPE_WEBHOOK_SECRET: z
+    .string()
+    .startsWith("whsec_", {
+      error: "must be a Stripe webhook signing secret (starts with whsec_)",
+    })
+    .optional(),
 });
 
-/** Google and email each need both values; one without the other is a mistake. */
+/** Google, email and Stripe each need both values; one without the other is a mistake. */
 const pairs = envSchema
   .refine(
     (env) =>
@@ -56,7 +70,15 @@ const pairs = envSchema
   .refine((env) => Boolean(env.RESEND_API_KEY) === Boolean(env.EMAIL_FROM), {
     error: "set both RESEND_API_KEY and EMAIL_FROM, or neither",
     path: ["EMAIL_FROM"],
-  });
+  })
+  .refine(
+    (env) =>
+      Boolean(env.STRIPE_SECRET_KEY) === Boolean(env.STRIPE_WEBHOOK_SECRET),
+    {
+      error: "set both STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET, or neither",
+      path: ["STRIPE_WEBHOOK_SECRET"],
+    },
+  );
 
 export type Env = z.infer<typeof envSchema>;
 

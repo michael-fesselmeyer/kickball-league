@@ -85,6 +85,31 @@ describe("parseEnv", () => {
     if (!result.ok) expect(result.error).toContain(hint);
   });
 
+  it("accepts a Stripe test key with its webhook secret, and refuses half or malformed", () => {
+    const stripe = {
+      STRIPE_SECRET_KEY: "sk_test_abc123",
+      STRIPE_WEBHOOK_SECRET: "whsec_abc123",
+    };
+    expect(parseEnv({ ...valid, ...stripe }).ok).toBe(true);
+    const half = parseEnv({ ...valid, STRIPE_SECRET_KEY: "sk_test_abc123" });
+    expect(half.ok).toBe(false);
+    if (!half.ok) expect(half.error).toContain("STRIPE_WEBHOOK_SECRET");
+    const wrong = parseEnv({
+      ...valid,
+      ...stripe,
+      STRIPE_SECRET_KEY: "pk_test_abc",
+    });
+    expect(wrong.ok).toBe(false);
+    if (!wrong.ok) expect(wrong.error).toContain("starts with sk_test_");
+    const secret = parseEnv({
+      ...valid,
+      ...stripe,
+      STRIPE_WEBHOOK_SECRET: "abc",
+    });
+    expect(secret.ok).toBe(false);
+    if (!secret.ok) expect(secret.error).toContain("starts with whsec_");
+  });
+
   it.each(["League <hello@example.test>", "hello@example.test"])(
     "accepts email configured as %s",
     (from) => {
