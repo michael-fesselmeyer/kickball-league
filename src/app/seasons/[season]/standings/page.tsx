@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { StandingsStats } from "@/components/stats/standings-stats";
 import { db } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { seasonStandings } from "@/db/queries/standings";
@@ -172,6 +173,7 @@ async function Standings({ params }: PageProps<"/seasons/[season]/standings">) {
           </ul>
         </section>
       )}
+      <StandingsStats season={season} teams={[...teams.values()]} />
       <p className="text-small text-text-muted">
         A tie counts as half a win. Ties in the table are broken by
         head-to-head, then run difference (capped at 10 a game), then runs
