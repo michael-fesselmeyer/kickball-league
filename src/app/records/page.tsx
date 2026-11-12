@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { allPublishedGames } from "@/db/queries/public-schedule";
 import { currentLeague } from "@/db/queries/seasons";
@@ -35,7 +36,7 @@ export default function RecordsPage() {
           .
         </p>
       </header>
-      <Suspense fallback={<p>Loading the record book…</p>}>
+      <Suspense fallback={<PageLoading>Loading the record book…</PageLoading>}>
         <Records />
       </Suspense>
     </main>

@@ -8,6 +8,7 @@ import { AllTimeRecord } from "@/components/history/all-time-record";
 import { LogoBadge } from "@/components/logo-badge";
 import { ShareButtons } from "@/components/share";
 import { TeamStats } from "@/components/stats/team-stats";
+import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import {
   publicRoster,
@@ -59,7 +60,7 @@ export async function generateMetadata({
 export default function TeamPage(props: PageProps<"/teams/[team]">) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 md:px-6">
-      <Suspense fallback={<p>Loading the team…</p>}>
+      <Suspense fallback={<PageLoading>Loading the team…</PageLoading>}>
         <Team {...props} />
       </Suspense>
     </main>
