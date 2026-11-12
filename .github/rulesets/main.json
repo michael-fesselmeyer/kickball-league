@@ -43,6 +43,9 @@
           },
           {
             "context": "End-to-end"
+          },
+          {
+            "context": "Lighthouse"
           }
         ]
       }
