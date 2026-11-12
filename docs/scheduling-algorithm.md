@@ -279,6 +279,7 @@ reschedule(input, schedule, cancelledSlotIds, policy):
 - **Squeeze day.** If reserve slots run out, the admin can re-cut a date into shorter games (for example three 90-minute slots become four 65-minute slots of 5 innings). That is `generateSlots` with a different format, followed by `reschedule`. This matches how the league already handles lost weeks.
 - **Unplaced games** count toward the season's rebate threshold (see [product-spec.md](product-spec.md)).
 - The result is a draft version. Nothing is published or sent until the admin confirms.
+- **Makeup rules.** A rain-out version switches the season to makeup rules: a team may play two games on a date, and the makeup reserve is no longer required, because makeups exist to spend it (H6, H10). The rules are stored in the version's input, so edits that start from it are judged the same way; a fresh generation starts from the season's own settings.
 
 ## 8. Playoffs
 
