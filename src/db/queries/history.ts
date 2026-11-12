@@ -1,4 +1,4 @@
-import { and, asc, eq, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, ne } from "drizzle-orm";
 import {
   type AllTimeRecord,
   allTimeRecordOf,
@@ -8,6 +8,7 @@ import {
 } from "@/domain/history/history";
 import type { LeagueId, SeasonId, TeamId } from "@/domain/ids";
 import type { StandingsRow } from "@/domain/standings/standings";
+import { bracket } from "../schema/playoffs";
 import { season } from "../schema/season";
 import { teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
@@ -43,6 +44,30 @@ const SEASON_COLUMNS = {
  */
 async function seasonResults(db: Db, seasons: readonly SeasonInfo[]) {
   const teams = new Map<string, StandingsTeam>();
+  // A finished bracket names the champion; seasons without one fall back to
+  // the top of the standings.
+  const champions = new Map(
+    seasons.length === 0
+      ? []
+      : (
+          await db
+            .select({
+              seasonId: bracket.seasonId,
+              championId: bracket.championId,
+            })
+            .from(bracket)
+            .where(
+              and(
+                inArray(
+                  bracket.seasonId,
+                  seasons.map((s) => s.id),
+                ),
+                eq(bracket.status, "complete"),
+                isNotNull(bracket.championId),
+              ),
+            )
+        ).map((b) => [b.seasonId as string, b.championId]),
+  );
   const results: (Omit<SeasonResult, "rows"> & { rows: StandingsRow[] })[] = [];
   for (const s of seasons) {
     const { rows, teams: entries } = await seasonStandings(db, s.id);
@@ -52,12 +77,14 @@ async function seasonResults(db: Db, seasons: readonly SeasonInfo[]) {
       teams.set(t.slug, t);
       return [{ ...r, teamId: t.slug }];
     });
+    const championId = champions.get(s.id);
     results.push({
       seasonId: s.id,
       completed: s.status === "completed",
       rows: bySlug,
-      // The playoff bracket's winner arrives with the playoff tables.
-      bracketChampion: null,
+      bracketChampion: championId
+        ? (entries.get(championId)?.slug ?? null)
+        : null,
     });
   }
   return { results, teams };
