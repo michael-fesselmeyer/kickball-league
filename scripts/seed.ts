@@ -16,6 +16,7 @@ import {
   SEED_LEAGUE_SLUG,
 } from "../src/seed/generate";
 import { canSeed } from "../src/seed/guard";
+import { seedPublishedSchedule } from "../src/seed/published-schedule";
 
 if (!process.env.DATABASE_URL && existsSync(".env.local"))
   process.loadEnvFile(".env.local");
@@ -196,6 +197,7 @@ async function main(): Promise<void> {
       await tx.insert(rosterMembership).values(data.rosterMemberships);
       await tx.insert(slot).values(data.slots);
       await tx.insert(game).values(data.games);
+      await seedPublishedSchedule(tx, data.season.id);
       await tx.insert(season).values(data.nextSeason);
       await tx.insert(teamSeason).values(data.nextTeamSeasons);
       await tx.insert(permitWindow).values(data.permitWindows);
