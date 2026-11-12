@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { LogoBadge } from "@/components/logo-badge";
+import { ShareButtons } from "@/components/share";
 import { db } from "@/db/client";
 import { publishedGame } from "@/db/queries/public-schedule";
 import type { Hex } from "@/domain/color/contrast";
@@ -17,6 +18,11 @@ import {
   resultLine,
   statusLabel,
 } from "@/domain/schedule/public-game";
+import { cardVersion, gameCard } from "@/domain/share/cards";
+import { gameShareText } from "@/domain/share/share-text";
+import { env } from "@/env";
+import { shareMetadata } from "@/lib/share/metadata";
+import { absoluteUrl, siteOrigin } from "@/lib/site";
 
 async function load(param: string) {
   const id = parseId<GameId>(param);
@@ -29,13 +35,26 @@ export async function generateMetadata({
   const found = await load((await params).game);
   if (!found) return { title: "Game" };
   const { game } = found;
+  const title = `${game.teamA.name} vs ${game.teamB.name}`;
+  const description =
+    resultLine(game) ??
+    (game.startsAt
+      ? `${game.seasonName}: ${fullWhen(game.startsAt, found.timeZone)}`
+      : `${game.seasonName}: time to be announced`);
+  const card = gameCard(game, found.timeZone);
+  const path = `/games/${game.id}`;
   return {
-    title: `${game.teamA.name} vs ${game.teamB.name}`,
-    description:
-      resultLine(game) ??
-      (game.startsAt
-        ? `${game.seasonName}: ${fullWhen(game.startsAt, found.timeZone)}`
-        : `${game.seasonName}: time to be announced`),
+    title,
+    description,
+    ...shareMetadata({
+      title: resultLine(game) ?? title,
+      description,
+      path,
+      image: {
+        path: `${path}/share.png?v=${cardVersion(card)}`,
+        alt: card.alt,
+      },
+    }),
   };
 }
 
@@ -171,6 +190,22 @@ async function Game({ params }: PageProps<"/games/[game]">) {
           )}
         </div>
       </dl>
+
+      <section aria-labelledby="share" className="flex flex-col gap-2">
+        <h2 id="share" className="text-h3">
+          {done ? "Tell the group chat" : "Share this game"}
+        </h2>
+        <ShareButtons
+          title={`${game.teamA.name} vs ${game.teamB.name}`}
+          text={gameShareText(game, {
+            url: absoluteUrl(
+              siteOrigin(env.BETTER_AUTH_URL),
+              `/games/${game.id}`,
+            ),
+            timeZone,
+          })}
+        />
+      </section>
 
       <section aria-labelledby="follow" className="flex flex-col gap-2">
         <h2 id="follow" className="text-h3">
