@@ -39,13 +39,13 @@ Tokens are semantic. Components never use a raw color. A league re-brands by cha
 | `--border-strong` | `#8C8672` | Input and control outlines | 3.4:1 on `--bg` |
 | `--brand` | `#1F3A8A` | Primary buttons, links, active navigation | 9.8:1 on `--bg` |
 | `--on-brand` | `#FFFFFF` | Text on brand | 10.3:1 |
-| `--accent` | `#B3261E` | Emphasis, live indicators, destructive actions | 6.2:1 on `--bg` |
-| `--on-accent` | `#FFFFFF` | Text on accent | 6.5:1 |
+| `--accent` | `#8F1A1C` | The league's brick red, sampled from its logo: emphasis, live indicators, the kickball | 8.5:1 on `--bg` |
+| `--on-accent` | `#FFFFFF` | Text on accent | 9.0:1 |
 | `--highlight` | `#F5B301` | The "golden" moments: winners, team of the week, badges | Background only |
 | `--on-highlight` | `#14182B` | Text on highlight | 9.5:1 |
 | `--success` | `#1A7B49` | Paid, confirmed, "in" | 5.0:1 on `--bg`, 4.5:1 on `--surface-2` |
 | `--warning` | `#9F5B00` | Due soon, weather watch | 5.0:1 on `--bg`, 4.5:1 on `--surface-2` |
-| `--danger` | `#B3261E` | Errors, forfeits, rain-out | 6.2:1 on `--bg` |
+| `--danger` | `#B3261E` | Errors, forfeits, rain-out, destructive actions. Deliberately brighter than `--accent` so an error never looks like branding | 6.2:1 on `--bg` |
 | `--info` | `#1F5FBF` | Neutral notices | 5.7:1 on `--bg` |
 | `--focus` | `#1F3A8A` | Focus ring, 3px with a 2px offset | 9.8:1 on `--bg` |
 
