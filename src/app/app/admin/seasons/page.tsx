@@ -87,6 +87,12 @@ async function Seasons() {
                 >
                   Scores
                 </Link>
+                <Link
+                  href={`/app/admin/seasons/${s.slug}/referees`}
+                  className="underline"
+                >
+                  Referees
+                </Link>
               </p>
             </li>
           ))}
