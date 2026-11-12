@@ -115,6 +115,42 @@ describe("rendererFor", () => {
     );
   });
 
+  it("alerts admins to rain, linking the rain-out screen with the day chosen", () => {
+    const alert = (level: "watch" | "likely", thunder: boolean) => {
+      const result = render("rain_alert", {
+        seasonName: "Fall 2026",
+        seasonSlug: "fall-2026",
+        date: "2026-09-13",
+        day: "Sun, Sep 13",
+        firstPitch: "1:00 PM",
+        games: 6,
+        level,
+        peakChance: level === "likely" ? 78 : 52,
+        thunder,
+      });
+      if (!result.ok) throw new Error(result.error);
+      return result.value;
+    };
+    const likely = alert("likely", true);
+    expect(likely.subject).toBe("Rain likely Sun, Sep 13: Fall 2026");
+    expect(likely.text).toContain(
+      "Fall 2026 has 6 games on Sun, Sep 13, from 1:00 PM. Up to a 78% chance of rain while games are on, with thunderstorms in the forecast",
+    );
+    expect(likely.text).toContain(
+      "Open the rain-out screen: https://league.example.test/app/admin/seasons/fall-2026/rainout?date=2026-09-13",
+    );
+    expect(likely.html).toContain("rainout?date=2026-09-13");
+    const watch = alert("watch", false);
+    expect(watch.subject).toBe("Rain watch Sun, Sep 13: Fall 2026");
+    expect(watch.text).toContain(
+      "Up to a 52% chance of rain while games are on, according",
+    );
+    expect(watch.text).toContain("you will get a second alert");
+    expect(
+      render("rain_alert", { seasonName: "Fall 2026", level: "low" }).ok,
+    ).toBe(false);
+  });
+
   it("refuses an unknown template", () => {
     expect(render("nope", {})).toEqual({
       ok: false,

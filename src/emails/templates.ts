@@ -4,6 +4,7 @@ import { announcementEmail } from "./announcement";
 import type { Template } from "./define";
 import type { RenderContext } from "./layout";
 import { paymentReminderEmail } from "./payment-reminder";
+import { rainAlertEmail } from "./rain-alert";
 import { rainoutNoticeEmail } from "./rainout-notice";
 import { scoreReminderEmail } from "./score-reminder";
 
@@ -14,6 +15,7 @@ import { scoreReminderEmail } from "./score-reminder";
 const TEMPLATES: Readonly<Record<string, Template>> = {
   announcement: announcementEmail,
   payment_reminder: paymentReminderEmail,
+  rain_alert: rainAlertEmail,
   rainout_notice: rainoutNoticeEmail,
   score_reminder: scoreReminderEmail,
 };
