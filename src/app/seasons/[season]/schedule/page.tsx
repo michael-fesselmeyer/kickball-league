@@ -80,6 +80,12 @@ async function Schedule({
           >
             Standings
           </Link>
+          <Link
+            href={`/seasons/${season.slug}/bracket`}
+            className="inline-flex min-h-11 items-center text-brand underline"
+          >
+            Playoffs
+          </Link>
         </nav>
       </header>
 
