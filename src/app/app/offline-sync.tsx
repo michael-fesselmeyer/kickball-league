@@ -1,0 +1,29 @@
+"use client";
+
+import { useEffect } from "react";
+import type { OfflineGame } from "@/domain/pwa/offline";
+import { tellWorker } from "@/lib/pwa/offline-cache";
+
+/**
+ * Tells the service worker which game to keep for offline use: this
+ * person's next one, or none. Renders nothing.
+ */
+export function OfflineSync({ game }: { game: OfflineGame | null }) {
+  const path = game?.path ?? null;
+  const label = game?.label ?? "";
+  useEffect(() => {
+    void tellWorker({ type: "next-game", path, label });
+  }, [path, label]);
+  return null;
+}
+
+/** Signing out also forgets the game saved on this device. */
+export function SignOutForm({ action }: { action: () => Promise<void> }) {
+  return (
+    <form action={action} onSubmit={() => void tellWorker({ type: "forget" })}>
+      <button type="submit" className="btn btn-secondary">
+        Sign out
+      </button>
+    </form>
+  );
+}
