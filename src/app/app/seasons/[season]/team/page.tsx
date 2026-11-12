@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { openTeamInvite, rosterBoard } from "@/db/queries/invites";
+import { teamGames } from "@/db/queries/scores";
 import {
   myRegistration,
   seasonForRegistration,
@@ -74,6 +75,26 @@ async function Team({
     targetRole: "player",
   });
   const board = await rosterBoard(db, teamSeasonId);
+  const games = await teamGames(db, teamSeasonId);
+  const now = new Date();
+  const day = (d: Date) =>
+    new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: league?.timeZone ?? "America/New_York",
+    }).format(d);
+  /** "W 7–4", "L 2–5", "T 3–3", "W (forfeit)", or empty before a result. */
+  const result = (g: (typeof games)[number]) => {
+    if (g.status === "forfeit")
+      return g.forfeitBy === teamSeasonId ? "L (forfeit)" : "W (forfeit)";
+    if (g.status !== "final" || g.scoreA === null || g.scoreB === null)
+      return "";
+    const [us, them] = g.home ? [g.scoreA, g.scoreB] : [g.scoreB, g.scoreA];
+    return `${us > them ? "W" : us < them ? "L" : "T"} ${us}–${them}`;
+  };
   const link = manages
     ? await openTeamInvite(db, teamSeasonId, new Date())
     : null;
@@ -208,6 +229,48 @@ async function Team({
             })}
           </tbody>
         </table>
+      </section>
+
+      <section aria-labelledby="games" className="flex flex-col gap-3">
+        <h2 id="games" className="text-h2">
+          Games
+        </h2>
+        {games.length === 0 ? (
+          <p className="text-text-muted">The schedule is not out yet.</p>
+        ) : (
+          <ul className="flex flex-col">
+            {games.map((g) => {
+              const started = g.startsAt !== null && g.startsAt <= now;
+              const done = g.status === "final" || g.status === "forfeit";
+              return (
+                <li
+                  key={g.id}
+                  className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2"
+                >
+                  <span>
+                    {g.startsAt ? day(g.startsAt) : "Not placed yet"}
+                    <span className="text-text-muted">
+                      {" "}
+                      · vs {g.opponent}
+                      {g.fieldName && ` · ${g.fieldName}`}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <strong className="tabular-nums">{result(g)}</strong>
+                    {manages && started && (
+                      <Link
+                        href={`/app/games/${g.id}/score`}
+                        className="underline"
+                      >
+                        {done ? "See score" : "Enter score"}
+                      </Link>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </section>
     </>
   );
