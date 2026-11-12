@@ -28,7 +28,11 @@ export default function RecordsPage() {
         </h1>
         <p className="text-body-lg text-text-muted">
           The marks every team is chasing. A record stands until someone beats
-          it; matching it gets you a nod, not the crown.
+          it; matching it gets you a nod, not the crown. Past champions are in{" "}
+          <Link href="/history" className="underline">
+            the league history
+          </Link>
+          .
         </p>
       </header>
       <Suspense fallback={<p>Loading the record book…</p>}>

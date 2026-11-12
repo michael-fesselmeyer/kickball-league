@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { GameCard } from "@/components/game-card";
+import { AllTimeRecord } from "@/components/history/all-time-record";
 import { LogoBadge } from "@/components/logo-badge";
 import { ShareButtons } from "@/components/share";
 import { TeamStats } from "@/components/stats/team-stats";
@@ -282,6 +283,8 @@ async function Team({ params, searchParams }: PageProps<"/teams/[team]">) {
               />
             </label>
           </section>
+
+          <AllTimeRecord team={team} />
 
           <section aria-labelledby="roster" className="flex flex-col gap-3">
             <h2 id="roster" className="text-h2">
