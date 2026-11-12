@@ -38,6 +38,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── join                            Landing page for the text-to-join keyword and QR codes (P3)
 ├── legal/terms, legal/privacy, legal/sms-terms
 ├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
+├── offline                         Shown by the service worker when a page needs the network; links the saved next game
 └── sign-in, sign-up
 
 /app                                Signed-in home: next game, RSVP, what you owe, alerts
