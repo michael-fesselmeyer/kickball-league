@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import type { LeagueId, SeasonId, TeamId, TeamSeasonId } from "@/domain/ids";
 import { game } from "../schema/game";
 import { league } from "../schema/league";
+import { bracket } from "../schema/playoffs";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
@@ -125,7 +126,7 @@ async function history(db: Db) {
     // A draft season is not public.
     final(winter, e(w, "aces"), 30, e(w, "bees"), 0),
   ]);
-  return { leagueId: lg.id, spring, teams };
+  return { leagueId: lg.id, spring, springEntries: s, teams };
 }
 
 describe("leagueHistory", () => {
@@ -188,6 +189,48 @@ describe("leagueHistory", () => {
         pastSeasons: [],
         allTime: [],
       });
+    });
+  });
+});
+
+describe("a season with a playoff bracket", () => {
+  it("crowns the bracket's champion over the top of the standings", async () => {
+    await inRolledBackDb(async (db) => {
+      const { leagueId, spring, springEntries, teams } = await history(db);
+      const cats = springEntries.get("cats") as TeamSeasonId;
+      await db.insert(bracket).values({
+        seasonId: spring,
+        status: "complete",
+        size: 2,
+        seeds: [
+          { seed: 1, teamSeasonId: springEntries.get("aces") as string },
+          { seed: 2, teamSeasonId: cats },
+        ],
+        championId: cats,
+      });
+      const { pastSeasons, allTime } = await leagueHistory(db, leagueId);
+      expect(pastSeasons[0]?.champion?.name).toBe("Cats");
+      expect(allTime.find((r) => r.team === "cats")?.titles).toBe(1);
+      expect(allTime.find((r) => r.team === "aces")?.titles).toBe(0);
+      const won = await teamHistory(db, teams.get("cats") as TeamId, "cats");
+      expect(won.titles).toEqual([{ name: "Spring", slug: "spring" }]);
+    });
+  });
+
+  it("ignores a bracket that is not finished", async () => {
+    await inRolledBackDb(async (db) => {
+      const { leagueId, spring, springEntries } = await history(db);
+      await db.insert(bracket).values({
+        seasonId: spring,
+        status: "published",
+        size: 2,
+        seeds: [
+          { seed: 1, teamSeasonId: springEntries.get("aces") as string },
+          { seed: 2, teamSeasonId: springEntries.get("cats") as string },
+        ],
+      });
+      const { pastSeasons } = await leagueHistory(db, leagueId);
+      expect(pastSeasons[0]?.champion?.name).toBe("Aces");
     });
   });
 });
