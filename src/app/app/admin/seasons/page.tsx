@@ -34,6 +34,9 @@ async function Seasons() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-h1">Seasons</h1>
         <div className="flex flex-wrap gap-3">
+          <Link href="/app/admin" className="btn btn-secondary">
+            Admin home
+          </Link>
           <Link href="/app/admin/waivers" className="btn btn-secondary">
             Waivers
           </Link>
