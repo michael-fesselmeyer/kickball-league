@@ -237,7 +237,10 @@ function rematchGap(
       if (gap === null || between < gap) {
         gap = between;
         const [game] = games;
-        target = Math.max(0, (poolSize.get(game?.teamA ?? "") ?? 0) - 2);
+        target = Math.max(
+          0,
+          (poolSize.get((game as ScheduledGame).teamA) as number) - 2,
+        );
       }
     }
   }

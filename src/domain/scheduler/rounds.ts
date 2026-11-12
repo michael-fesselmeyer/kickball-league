@@ -82,14 +82,14 @@ export function assignRoundsToDates(
     if (slot.kind !== "regular") continue;
     regularByDate.set(slot.date, (regularByDate.get(slot.date) ?? 0) + 1);
   }
-  const dates = [...regularByDate.keys()].sort();
+  const dates = [...regularByDate].sort(([a], [b]) => a.localeCompare(b));
   const gamesPerRound = Math.max(1, ...rounds.map((r) => r.games.length));
 
   const days: RoundDays["days"] = [];
   let next = 0;
-  for (const date of dates) {
+  for (const [date, regularSlots] of dates) {
     if (next === rounds.length) break;
-    const capacity = (regularByDate.get(date) ?? 0) - input.reservePerDay;
+    const capacity = regularSlots - input.reservePerDay;
     const today = Math.min(
       input.gamesPerTeamPerDay,
       Math.floor(capacity / gamesPerRound),
