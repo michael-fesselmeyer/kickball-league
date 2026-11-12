@@ -117,8 +117,7 @@ export function validate(
     (a) => `${a.team}\u0000${a.slot.date}`,
   );
   for (const day of byDay.values()) {
-    const [first] = day;
-    if (!first) continue;
+    const first = day[0] as Appearance;
     const regular = day.filter((a) => a.slot.kind !== "makeup_reserve");
     if (regular.length > input.gamesPerTeamPerDay || day.length > 2)
       report(
@@ -274,8 +273,8 @@ function checkReserve(input: SchedulerInput, placed: Placed[], report: Report) {
     const [best] = [...perDate].sort(
       ([dateA, a], [dateB, b]) =>
         b.length - a.length || dateA.localeCompare(dateB),
-    );
-    if (best) homeDate.set(round, best[0]);
+    ) as [[string, Placed[]]];
+    homeDate.set(round, best[0]);
   }
 
   const regularSlots = Map.groupBy(

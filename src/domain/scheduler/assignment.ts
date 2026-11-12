@@ -12,7 +12,7 @@ export function minCostAssignment(
 ): number[] | null {
   const n = cost.length;
   if (n === 0) return [];
-  const m = cost[0]?.length ?? 0;
+  const m = (cost[0] as readonly number[]).length;
   if (cost.some((row) => row.length !== m))
     throw new Error("Every row needs the same number of columns");
   if (n > m) return null;

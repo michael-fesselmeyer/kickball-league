@@ -7,7 +7,7 @@ import {
   teamCostAt,
   type Position,
 } from "./cost";
-import type { Schedule, SchedulerInput, Slot } from "./types";
+import type { Schedule, SchedulerInput, Slot, TeamConstraint } from "./types";
 
 export type SearchOptions = {
   /** Default: 5,000 per game day, so run time is predictable. */
@@ -74,7 +74,7 @@ export function localSearch(
   );
   const regularByDay: Position[][] = ctx.dates.map(() => []);
   for (const p of ctx.position.values())
-    if (p.slot.kind === "regular") regularByDay[p.day]?.push(p);
+    if (p.slot.kind === "regular") (regularByDay[p.day] as Position[]).push(p);
 
   const gameDays = new Set(movable.map((i) => (at[i] as Position).day)).size;
   const iterations =
@@ -87,7 +87,7 @@ export function localSearch(
     ),
   );
   const canPlay = (team: number, slot: Slot) =>
-    !(unavailable[team] ?? []).some(
+    !(unavailable[team] as TeamConstraint[]).some(
       (c) =>
         (c.date === undefined || c.date === slot.date) &&
         (c.timeIndex === undefined || c.timeIndex === slot.timeIndex),
@@ -109,14 +109,14 @@ export function localSearch(
   const positions: Position[] = [];
   const priceTeam = (team: number) => {
     positions.length = 0;
-    for (const i of teamGames[team] ?? []) {
+    for (const i of teamGames[team] as number[]) {
       const p = at[i];
       if (p) positions.push(p);
     }
-    return teamCostAt(ctx, input.teams[team]?.id ?? "", positions);
+    return teamCostAt(ctx, (input.teams[team] as { id: string }).id, positions);
   };
   const priceFieldDay = (key: string) =>
-    fieldDayCost(ctx, fieldDaySlots.get(key) ?? [], occupied);
+    fieldDayCost(ctx, fieldDaySlots.get(key) as Slot[], occupied);
 
   const teamCosts = input.teams.map((_, t) => priceTeam(t));
   const fieldDayCosts = new Map(
@@ -169,7 +169,7 @@ export function localSearch(
       if (worst < 0 || (teamCosts[t] as number) > (teamCosts[worst] as number))
         worst = t;
     }
-    const own = teamMovable[worst] ?? [];
+    const own = teamMovable[worst] as number[];
     return own.length === 0
       ? -1
       : (own[Math.floor(random.next() * own.length)] as number);
@@ -254,7 +254,8 @@ export function localSearch(
     }
 
     const teams = new Set<number>();
-    for (const [i] of moves) for (const t of teamsOf[i] ?? []) teams.add(t);
+    for (const [i] of moves)
+      for (const t of teamsOf[i] as readonly number[]) teams.add(t);
     teams.delete(-1);
     const keys = new Set<string>();
     moves.forEach(([, to], m) => {
@@ -273,7 +274,7 @@ export function localSearch(
     for (const key of keys) {
       const c = priceFieldDay(key);
       newFieldDayCosts.push([key, c]);
-      delta += c - (fieldDayCosts.get(key) ?? 0);
+      delta += c - (fieldDayCosts.get(key) as number);
     }
 
     if (delta <= 0 || random.next() < Math.exp(-delta / temperature)) {
