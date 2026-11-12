@@ -6,6 +6,7 @@ import { db } from "@/db/client";
 import * as schema from "@/db/schema";
 import type { UserId } from "@/domain/ids";
 import { env } from "@/env";
+import { resendSender } from "@/services/email";
 import {
   MAGIC_LINK_EXPIRES_IN_SECONDS,
   SESSION_EXPIRES_IN_SECONDS,
@@ -15,6 +16,12 @@ import {
 import { accountLinking, socialProviders } from "./google";
 import { deliverMagicLink } from "./magic-link";
 import { createProfileForUser } from "./profile";
+
+/** Real email when Resend is configured; see deliverMagicLink otherwise. */
+const send =
+  env.RESEND_API_KEY && env.EMAIL_FROM
+    ? resendSender({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM })
+    : undefined;
 
 export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
@@ -41,9 +48,9 @@ export const auth = betterAuth({
     magicLink({
       expiresIn: MAGIC_LINK_EXPIRES_IN_SECONDS,
       sendMagicLink: async ({ email, url }) => {
-        deliverMagicLink(
+        await deliverMagicLink(
           { email, url },
-          { nodeEnv: process.env.NODE_ENV, log: console.info },
+          { nodeEnv: process.env.NODE_ENV, log: console.info, send },
         );
       },
     }),
