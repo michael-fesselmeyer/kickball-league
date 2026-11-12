@@ -33,9 +33,14 @@ async function Seasons() {
     <>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-h1">Seasons</h1>
-        <Link href="/app/admin/seasons/new" className="btn btn-primary">
-          New season
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link href="/app/admin/waivers" className="btn btn-secondary">
+            Waivers
+          </Link>
+          <Link href="/app/admin/seasons/new" className="btn btn-primary">
+            New season
+          </Link>
+        </div>
       </header>
       {seasons.length === 0 ? (
         <p>No seasons yet.</p>
