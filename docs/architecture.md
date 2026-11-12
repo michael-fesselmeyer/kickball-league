@@ -211,7 +211,7 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Weather check | Two days and one day before each game day at 9:00 and 18:00; hourly on game day until the last slot | Fetches the forecast for each venue with games, stores a snapshot, alerts admins on "watch" or "likely" |
 | Game reminders | Two days before game day, 18:00 | Reminds players of their next game and asks for an RSVP |
 | RSVP nudge | The day before game day, 12:00 | Nudges players who have not answered; tells captains where they stand |
-| Missing scores | Game days, every 30 minutes from the first slot until midnight | Reminds the ref 30 minutes after a slot ends, both captains after 2 hours |
+| Missing scores | Game days, every 30 minutes from the first slot until midnight | Reminds the ref 30 minutes after a slot ends, both captains (and co-captains) after 2 hours, once each. Games that ended more than two days ago stay on the admin scores list but are not emailed about |
 | Score auto-confirm | Hourly | Finalizes reported scores that have gone 24 hours without a dispute |
 | Payment reminders | Daily 10:00 | Reminds unpaid players at 7, 3 and 1 days before the deadline. A missed day still sends the closest milestone; each is queued once per registration and deadline |
 | Balance charge (P2) | Daily 10:00 | Warns captains 72 hours ahead, then charges the saved card for any unpaid balance |
