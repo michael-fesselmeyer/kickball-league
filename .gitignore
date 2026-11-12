@@ -49,3 +49,6 @@ docs/BKC_Rulebook_2023.pdf
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Lighthouse CI
+/.lighthouseci/
