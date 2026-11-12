@@ -1,10 +1,15 @@
 import { and, eq, inArray, lte, or, sql } from "drizzle-orm";
 import type { MessageId, UserId } from "@/domain/ids";
+import { type Topic, wantsEmail } from "@/domain/notifications/topics";
 import { afterFailure, CLAIM_MS } from "@/domain/outbox/retry";
 import type { Result } from "@/domain/result";
 import type { EmailSender } from "@/services/email";
 import { user } from "../schema/auth";
-import { message, type NewMessage } from "../schema/message";
+import {
+  message,
+  type NewMessage,
+  notificationPreference,
+} from "../schema/message";
 import type { Db } from "./schedule";
 
 /**
@@ -22,7 +27,13 @@ import type { Db } from "./schedule";
 
 export type OutboxMessage = Pick<
   NewMessage,
-  "userId" | "topic" | "template" | "payload" | "dedupeKey" | "sendAfter"
+  | "userId"
+  | "topic"
+  | "template"
+  | "payload"
+  | "dedupeKey"
+  | "sendAfter"
+  | "announcementId"
 >;
 
 /**
@@ -54,6 +65,7 @@ export type Renderer = (
 export type ClaimedMessage = {
   id: MessageId;
   userId: UserId;
+  topic: Topic;
   template: string;
   payload: Record<string, unknown>;
   attempts: number;
@@ -92,6 +104,7 @@ export async function claimDueMessages(
     .returning({
       id: message.id,
       userId: message.userId,
+      topic: message.topic,
       template: message.template,
       payload: message.payload,
       attempts: message.attempts,
@@ -121,12 +134,22 @@ export type DrainResult = {
   sent: number;
   retrying: number;
   failed: number;
+  /** Not sent because the person turned that topic off. */
+  suppressed: number;
 };
+
+export const emptyDrain = (): DrainResult => ({
+  sent: 0,
+  retrying: 0,
+  failed: 0,
+  suppressed: 0,
+});
 
 /**
  * Sends every due message, up to `limit`. Safe to run twice or at the same
  * time as another drain: each row is claimed once, and a resend after a
- * lapsed claim reuses the idempotency key.
+ * lapsed claim reuses the idempotency key. Preferences are read at send
+ * time, so turning a topic off also stops messages already queued.
  */
 export async function drainOutbox(
   db: Db,
@@ -137,21 +160,39 @@ export async function drainOutbox(
     limit = 50,
   }: { send: EmailSender; render: Renderer; now: Date; limit?: number },
 ): Promise<DrainResult> {
-  const result: DrainResult = { sent: 0, retrying: 0, failed: 0 };
+  const result = emptyDrain();
   const claimed = await claimDueMessages(db, now, limit);
   if (claimed.length === 0) return result;
+  const userIds = [...new Set(claimed.map((m) => m.userId))];
   const recipients = await db
     .select({ id: user.id, email: user.email })
     .from(user)
+    .where(inArray(user.id, userIds));
+  const emailOf = new Map(recipients.map((r) => [r.id, r.email]));
+  const choices = await db
+    .select({
+      userId: notificationPreference.userId,
+      topic: notificationPreference.topic,
+      enabled: notificationPreference.enabled,
+    })
+    .from(notificationPreference)
     .where(
-      inArray(
-        user.id,
-        claimed.map((m) => m.userId),
+      and(
+        inArray(notificationPreference.userId, userIds),
+        eq(notificationPreference.channel, "email"),
       ),
     );
-  const emailOf = new Map(recipients.map((r) => [r.id, r.email]));
 
   for (const m of claimed) {
+    const mine = choices.filter((c) => c.userId === m.userId);
+    if (!wantsEmail(mine, m.topic)) {
+      await settle(db, m, {
+        status: "suppressed",
+        suppressReason: "opted_out",
+      });
+      result.suppressed++;
+      continue;
+    }
     const rendered = render(m.template, m.payload);
     const to = emailOf.get(m.userId);
     if (!rendered.ok || !to) {

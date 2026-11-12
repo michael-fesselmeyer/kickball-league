@@ -1,6 +1,6 @@
 import { after } from "next/server";
 import { txDb } from "@/db/client";
-import { type DrainResult, drainOutbox } from "@/db/queries/outbox";
+import { type DrainResult, drainOutbox, emptyDrain } from "@/db/queries/outbox";
 import { ok } from "@/domain/result";
 import { rendererFor } from "@/emails/templates";
 import { env } from "@/env";
@@ -54,13 +54,12 @@ export async function drainOutboxNow(
 ): Promise<DrainResult | null> {
   if (!sender) return null;
   const render = rendererFor({ siteUrl: env.BETTER_AUTH_URL });
-  const total: DrainResult = { sent: 0, retrying: 0, failed: 0 };
+  const total = emptyDrain();
   for (let batch = 0; batch < maxBatches; batch++) {
     const r = await drainOutbox(txDb, { send: sender, render, now });
-    total.sent += r.sent;
-    total.retrying += r.retrying;
-    total.failed += r.failed;
-    if (r.sent + r.retrying + r.failed === 0) break;
+    for (const key of Object.keys(total) as (keyof DrainResult)[])
+      total[key] += r[key];
+    if (Object.values(r).every((n) => n === 0)) break;
   }
   return total;
 }
