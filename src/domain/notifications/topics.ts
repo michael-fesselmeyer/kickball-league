@@ -49,6 +49,11 @@ export const SETTINGS_TOPICS: readonly {
     label: "Payment reminders",
     hint: "7, 3 and 1 days before the deadline, until you have paid.",
   },
+  {
+    topic: "score",
+    label: "Score reminders",
+    hint: "For refs and captains, when a game you were in has no score yet.",
+  },
 ];
 
 export type Choice = { topic: Topic; enabled: boolean };
