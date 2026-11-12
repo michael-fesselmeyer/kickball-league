@@ -128,24 +128,25 @@ export function leagueRecords(games: readonly StatGame[]): LeagueRecord[] {
       if (run.outcome === "W") winStreaks.push(mark);
       if (run.outcome === "L") lossStreaks.push(mark);
     }
-    const last = sides.at(-1);
-    if (!last) continue;
-    const season = {
-      team,
-      opponent: null,
-      seasonId,
-      gameId: last.game.id,
-      playedAt: last.game.playedAt,
+    // A season total is set by the game that reached it, not the latest one.
+    const total = (counts: (s: (typeof sides)[number]) => boolean) => {
+      const hits = sides.filter(counts);
+      const reached = hits.at(-1);
+      return reached
+        ? [
+            {
+              value: hits.length,
+              team,
+              opponent: null,
+              seasonId,
+              gameId: reached.game.id,
+              playedAt: reached.game.playedAt,
+            },
+          ]
+        : [];
     };
-    seasonWins.push({
-      ...season,
-      value: sides.filter((s) => s.outcome === "W").length,
-    });
-    shutouts.push({
-      ...season,
-      value: sides.filter((s) => s.outcome === "W" && s.runsAgainst === 0)
-        .length,
-    });
+    seasonWins.push(...total((s) => s.outcome === "W"));
+    shutouts.push(...total((s) => s.outcome === "W" && s.runsAgainst === 0));
   }
   // Streaks and season totals are compared in the order they were set.
   const bySet = (list: Candidate[]) =>

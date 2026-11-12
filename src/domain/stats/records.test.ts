@@ -59,6 +59,19 @@ describe("league records", () => {
     });
   });
 
+  it("dates a season total by the game that reached it", () => {
+    const season = byKey(
+      leagueRecords([
+        played("A", 4, "B", 0, 0),
+        played("A", 1, "C", 2, 1),
+        played("A", 3, "D", 3, 2),
+      ]),
+    );
+    const firstGame = "g-0-A-B-";
+    expect(season.get("most_shutouts_season")?.gameId).toBe(firstGame);
+    expect(season.get("most_wins_season")?.gameId).toBe(firstGame);
+  });
+
   it("keeps the first mark when a later one equals it", () => {
     const tied = byKey(
       leagueRecords([played("A", 10, "B", 0, 0), played("C", 10, "D", 0, 1)]),
