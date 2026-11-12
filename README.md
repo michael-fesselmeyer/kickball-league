@@ -42,6 +42,7 @@ Requires Node 24 (`nvm use` reads `.nvmrc`).
 npm install
 cp .env.example .env.local   # fill in values; DATABASE_URL is your own Neon branch
 npm run db:migrate           # apply migrations to that branch
+npm run seed                 # a demo league: 8 teams, invented players, a season half played
 npm run dev
 ```
 
@@ -49,19 +50,21 @@ Environment variables are validated with Zod in [`src/lib/env.ts`](src/lib/env.t
 
 ## Scripts
 
-| Command                 | What it does                                               |
-| ----------------------- | ---------------------------------------------------------- |
-| `npm run dev`           | Start the development server                               |
-| `npm test`              | Run unit tests once                                        |
-| `npm run test:coverage` | Run unit tests with coverage of `src/domain` and `src/lib` |
-| `npm run db:generate`   | Generate a SQL migration from `src/db/schema`              |
-| `npm run db:migrate`    | Apply pending migrations to `DATABASE_URL`                 |
-| `npm run db:check`      | Check migration files are consistent                       |
-| `npm run db:studio`     | Browse the database in Drizzle Studio                      |
-| `npm run lint`          | ESLint, failing on any warning                             |
-| `npm run typecheck`     | Generate route types and run `tsc`                         |
-| `npm run format:check`  | Check Prettier formatting                                  |
-| `npm run build`         | Production build                                           |
+| Command                 | What it does                                                     |
+| ----------------------- | ---------------------------------------------------------------- |
+| `npm run dev`           | Start the development server                                     |
+| `npm test`              | Run unit tests once                                              |
+| `npm run test:coverage` | Run unit tests with coverage of `src/domain` and `src/lib`       |
+| `npm run db:generate`   | Generate a SQL migration from `src/db/schema`                    |
+| `npm run db:migrate`    | Apply pending migrations to `DATABASE_URL`                       |
+| `npm run db:check`      | Check migration files are consistent                             |
+| `npm run db:studio`     | Browse the database in Drizzle Studio                            |
+| `npm run test:db`       | Database constraint tests (each rolls back)                      |
+| `npm run seed`          | Replace the demo league with fresh seed data; refuses production |
+| `npm run lint`          | ESLint, failing on any warning                                   |
+| `npm run typecheck`     | Generate route types and run `tsc`                               |
+| `npm run format:check`  | Check Prettier formatting                                        |
+| `npm run build`         | Production build                                                 |
 
 ## How changes land
 
