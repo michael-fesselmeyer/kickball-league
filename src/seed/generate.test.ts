@@ -69,7 +69,7 @@ describe("generateSeed", () => {
     expect(generateSeed(99).league.id).not.toBe(data.league.id);
   });
 
-  it("creates 8 teams with full rosters and exactly one captain each", () => {
+  it("creates 8 teams with full rosters, one main captain and 1 to 3 co-captains each", () => {
     expect(data.teams.map((t) => t.name)).toEqual(TEAMS.map((t) => t.name));
     for (const entry of data.teamSeasons) {
       const roster = data.rosterMemberships.filter(
@@ -77,6 +77,9 @@ describe("generateSeed", () => {
       );
       expect(roster).toHaveLength(ROSTER_SIZE);
       expect(roster.filter((m) => m.role === "captain")).toHaveLength(1);
+      const coCaptains = roster.filter((m) => m.role === "co_captain").length;
+      expect(coCaptains).toBeGreaterThanOrEqual(1);
+      expect(coCaptains).toBeLessThanOrEqual(3);
     }
     expect(ROSTER_SIZE).toBeGreaterThanOrEqual(data.season.rosterMin);
     expect(ROSTER_SIZE).toBeLessThanOrEqual(data.season.rosterMax);
