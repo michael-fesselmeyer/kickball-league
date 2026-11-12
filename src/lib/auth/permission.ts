@@ -8,14 +8,20 @@ import {
   can,
   type Subject,
 } from "@/domain/authz/permissions";
-import type { UserId } from "@/domain/ids";
+import { parseId, type UserId } from "@/domain/ids";
 import { auth } from "./index";
 
 /** The signed-in person as a permissions subject; a visitor when signed out. */
 export async function currentSubject(): Promise<Subject> {
   const session = await auth.api.getSession({ headers: await headers() });
-  return loadSubject(db, (session?.user.id ?? null) as UserId | null);
+  // Account ids are UUIDs; anything else is treated as signed out.
+  return loadSubject(db, parseId<UserId>(session?.user.id));
 }
+
+export type SignedInSubject = Subject & { userId: UserId };
+
+const isSignedIn = (subject: Subject): subject is SignedInSubject =>
+  subject.userId !== null;
 
 /**
  * Stops unless the signed-in person may do `action`. Signed-out visitors go
@@ -25,12 +31,12 @@ export async function currentSubject(): Promise<Subject> {
 export async function requirePermission(
   action: Action,
   { next, ...context }: Context & { next: string },
-): Promise<Subject & { userId: UserId }> {
+): Promise<SignedInSubject> {
   const subject = await currentSubject();
-  if (subject.userId === null)
+  if (!isSignedIn(subject))
     redirect(`/sign-in?next=${encodeURIComponent(next)}`);
   if (!can(subject, action, context)) notFound();
-  return subject as Subject & { userId: UserId };
+  return subject;
 }
 
 /**
@@ -40,10 +46,10 @@ export async function requirePermission(
 export async function requireSelf(
   action: Action,
   next: string,
-): Promise<Subject & { userId: UserId }> {
+): Promise<SignedInSubject> {
   const subject = await currentSubject();
-  if (subject.userId === null)
+  if (!isSignedIn(subject))
     redirect(`/sign-in?next=${encodeURIComponent(next)}`);
   if (!can(subject, action, { targetUserId: subject.userId })) notFound();
-  return subject as Subject & { userId: UserId };
+  return subject;
 }

@@ -6,7 +6,6 @@ import {
   createSeason,
   currentLeague,
   SEASON_STATUSES,
-  type SeasonStatus,
   seasonSettings,
   updateSeason,
 } from "@/db/queries/seasons";
@@ -16,7 +15,9 @@ import {
   type SeasonErrors,
   type SeasonForm,
 } from "@/domain/season/settings";
+import { isOneOf } from "@/domain/guards";
 import { requirePermission } from "@/lib/auth/permission";
+import { formStrings } from "@/lib/form";
 
 export type SeasonFormState = {
   values: SeasonForm;
@@ -25,13 +26,8 @@ export type SeasonFormState = {
   message?: string;
 };
 
-const valuesOf = (form: FormData) =>
-  Object.fromEntries(
-    SEASON_FIELDS.map((k) => {
-      const v = form.get(k);
-      return [k, typeof v === "string" ? v : ""];
-    }),
-  ) as SeasonForm;
+const valuesOf = (form: FormData): SeasonForm =>
+  formStrings(form, SEASON_FIELDS);
 
 const CHECK = "Check the fields marked below.";
 const DUPLICATE = "Another season already has that name.";
@@ -75,7 +71,7 @@ export async function updateSeasonAction(
   const values = valuesOf(form);
   const status = String(form.get("status") ?? "");
   const parsed = parseSeasonForm(values, league.timeZone);
-  const statusOk = (SEASON_STATUSES as readonly string[]).includes(status);
+  const statusOk = isOneOf(SEASON_STATUSES, status);
   if (!parsed.ok || !statusOk)
     return {
       values,
@@ -90,7 +86,7 @@ export async function updateSeasonAction(
         leagueId: league.id,
         seasonId: existing.id,
         settings: parsed.value,
-        status: status as SeasonStatus,
+        status,
       },
       subject.userId,
     ),

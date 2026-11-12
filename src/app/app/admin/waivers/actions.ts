@@ -5,7 +5,7 @@ import { db, txDb } from "@/db/client";
 import { currentLeague } from "@/db/queries/seasons";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { assignWaiver, publishWaiver } from "@/db/queries/waivers";
-import type { WaiverId } from "@/domain/ids";
+import { parseId, type WaiverId } from "@/domain/ids";
 import type { WaiverDraftErrors } from "@/domain/waiver/waiver";
 import { requirePermission } from "@/lib/auth/permission";
 
@@ -45,14 +45,17 @@ export async function assignWaiverAction(slug: string, form: FormData) {
   const league = await currentLeague(db);
   const season = await seasonBySlug(db, slug);
   if (!league || !season) notFound();
+  // Empty means no waiver yet; anything else must be a waiver ID.
   const chosen = text(form, "waiverId");
+  const waiverId = chosen ? parseId<WaiverId>(chosen) : null;
+  if (chosen && !waiverId) redirect(`${PAGE}?error=unknown_waiver`);
   const result = await txDb.transaction((tx) =>
     assignWaiver(
       tx,
       {
         leagueId: league.id,
         seasonId: season.id,
-        waiverId: chosen ? (chosen as WaiverId) : null,
+        waiverId,
       },
       subject.userId,
     ),

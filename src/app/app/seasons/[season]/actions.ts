@@ -15,7 +15,6 @@ import {
 } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { hasSignedSeasonWaiver } from "@/db/queries/waivers";
-import type { RegistrationId } from "@/domain/ids";
 import { checkoutItems } from "@/domain/registration/checkout";
 import { env } from "@/env";
 import { requireSelf } from "@/lib/auth/permission";
@@ -44,7 +43,7 @@ export async function startCheckout(slug: string): Promise<void> {
   if (!stripe) redirect(`${page}?payment=off`);
 
   // A second "Pay" expires the first checkout, so nobody can pay twice.
-  const registrationId = mine.id as RegistrationId;
+  const registrationId = mine.id;
   const stale = await openCheckoutsFor(db, registrationId);
   for (const s of stale)
     if (s.sessionId)

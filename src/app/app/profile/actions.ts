@@ -12,6 +12,7 @@ import {
 } from "@/domain/profile/profile-form";
 import { localDate } from "@/domain/scheduler/slots";
 import { requireSelf } from "@/lib/auth/permission";
+import { formStrings } from "@/lib/form";
 
 export type ProfileFormState = {
   values: ProfileForm;
@@ -27,12 +28,7 @@ export async function saveProfileAction(
   const subject = await requireSelf("profile.edit", "/app/profile");
   const league = await currentLeague(db);
   if (!league) notFound();
-  const values = Object.fromEntries(
-    PROFILE_FIELDS.map((k) => {
-      const v = form.get(k);
-      return [k, typeof v === "string" ? v : ""];
-    }),
-  ) as ProfileForm;
+  const values: ProfileForm = formStrings(form, PROFILE_FIELDS);
   // Ages are checked against today in the league's time zone.
   const today = localDate(new Date(), league.timeZone);
   const parsed = parseProfileForm(values, today);

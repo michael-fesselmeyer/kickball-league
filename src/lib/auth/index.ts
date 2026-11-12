@@ -4,7 +4,7 @@ import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { db } from "@/db/client";
 import * as schema from "@/db/schema";
-import type { UserId } from "@/domain/ids";
+import { parseId, type UserId } from "@/domain/ids";
 import { env } from "@/env";
 import { resendSender } from "@/services/email";
 import {
@@ -39,7 +39,9 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          await createProfileForUser(db, user.id as UserId);
+          const id = parseId<UserId>(user.id);
+          if (!id) throw new Error("Expected a UUID account id");
+          await createProfileForUser(db, id);
         },
       },
     },

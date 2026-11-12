@@ -1,3 +1,5 @@
+import { isOneOf, recordOf } from "../guards";
+
 /**
  * The player profile form (product-spec.md, "Accounts and profile"): name,
  * phone, gender, shirt size, birth date with an 18+ check, and an emergency
@@ -46,9 +48,6 @@ export const PROFILE_FIELDS = [
 export type ProfileField = (typeof PROFILE_FIELDS)[number];
 export type ProfileForm = Record<ProfileField, string>;
 export type ProfileErrors = Partial<Record<ProfileField, string>>;
-
-const includes = <T extends string>(list: readonly T[], value: string) =>
-  (list as readonly string[]).includes(value);
 
 /**
  * A phone number in E.164, or null. Ten digits (or eleven starting with 1)
@@ -101,9 +100,7 @@ export function parseProfileForm(
   form: ProfileForm,
   today: string,
 ): { ok: true; value: ProfileSettings } | { ok: false; errors: ProfileErrors } {
-  const f = Object.fromEntries(
-    PROFILE_FIELDS.map((k) => [k, (form[k] ?? "").trim()]),
-  ) as ProfileForm;
+  const f = recordOf(PROFILE_FIELDS, (k) => form[k].trim());
   const errors: ProfileErrors = {};
 
   for (const key of ["firstName", "lastName"] as const)
@@ -113,15 +110,17 @@ export function parseProfileForm(
   const phone = normalizePhone(f.phone);
   if (!phone) errors.phone = "Enter a phone number, such as (718) 555-0123.";
 
-  if (!includes(GENDERS, f.gender)) errors.gender = "Choose an option.";
+  const gender = isOneOf(GENDERS, f.gender) ? f.gender : null;
+  if (!gender) errors.gender = "Choose an option.";
   // The fielding rule counts two groups; a player outside them picks one.
-  const lineup =
-    f.gender === "woman" || f.gender === "man" ? f.gender : f.lineupGender;
-  if (!errors.gender && !includes(LINEUP_GENDERS, lineup))
+  const chosen =
+    gender === "woman" || gender === "man" ? gender : f.lineupGender;
+  const lineup = isOneOf(LINEUP_GENDERS, chosen) ? chosen : null;
+  if (gender && !lineup)
     errors.lineupGender = "Choose which group the fielding rule counts you in.";
 
-  if (!includes(SHIRT_SIZES, f.shirtSize))
-    errors.shirtSize = "Choose a shirt size.";
+  const shirtSize = isOneOf(SHIRT_SIZES, f.shirtSize) ? f.shirtSize : null;
+  if (!shirtSize) errors.shirtSize = "Choose a shirt size.";
 
   if (!validDate(f.birthDate) || f.birthDate > today)
     errors.birthDate = "Enter your birth date.";
@@ -138,19 +137,28 @@ export function parseProfileForm(
     errors.emergencyContactPhone =
       "Use someone else's number, so we can reach them if you are hurt.";
 
-  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  // Every null below has an error above; the checks narrow the types.
+  if (
+    Object.keys(errors).length > 0 ||
+    !phone ||
+    !gender ||
+    !lineup ||
+    !shirtSize ||
+    !emergency
+  )
+    return { ok: false, errors };
   return {
     ok: true,
     value: {
       firstName: f.firstName,
       lastName: f.lastName,
-      phoneE164: phone as string,
-      gender: f.gender as Gender,
-      lineupGender: lineup as LineupGender,
-      shirtSize: f.shirtSize as ShirtSize,
+      phoneE164: phone,
+      gender,
+      lineupGender: lineup,
+      shirtSize,
       birthDate: f.birthDate,
       emergencyContactName: f.emergencyContactName,
-      emergencyContactPhone: emergency as string,
+      emergencyContactPhone: emergency,
     },
   };
 }

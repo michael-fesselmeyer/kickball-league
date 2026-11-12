@@ -52,7 +52,7 @@ describe("auth instance", () => {
     expect(after).toBeTypeOf("function");
     const user = { id: "8a3c1f9e-0b1d-4c2e-9f3a-5d6e7f8a9b0c" as UserId };
     // The hook only reads the user's id.
-    await after!(user as never);
+    await after(user as never);
     expect(createProfileForUser).toHaveBeenCalledWith(
       expect.anything(),
       user.id,
