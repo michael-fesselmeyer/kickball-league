@@ -232,3 +232,15 @@ describe("reschedule edge cases", () => {
     ).toEqual([]);
   });
 });
+
+describe("reschedule metrics", () => {
+  it("does not count cancelled slots as makeup reserve", () => {
+    const [input, schedule] = workedExample();
+    const result = reschedule(input, schedule, weekThree);
+    // Week 3's six slots are gone; weeks 1, 2 keep 2 each, weeks 4 to 7 keep 4 in all.
+    expect(result.metrics.reserveRemaining.value).toBe(2 + 2 + 4);
+    expect(
+      result.metrics.reserveRemaining.byDate.some((d) => d.date === SUNDAYS[2]),
+    ).toBe(false);
+  });
+});
