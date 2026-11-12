@@ -7,7 +7,8 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import type { LeagueId } from "@/domain/ids";
+import type { LeagueId, UserId } from "@/domain/ids";
+import { user } from "./auth";
 
 /** Shapes of the league's flexible settings. Validated with Zod where they are edited. */
 export type LeagueBranding = { primaryColor?: string; logoAssetId?: string };
@@ -22,8 +23,6 @@ export type LeagueContact = {
  * One row per league. A deployment serves one league (docs/architecture.md),
  * but every league-owned table carries league_id so a second league fits later.
  * See docs/data-model.md, section 2.1.
- *
- * created_by arrives with the auth tables (issue #6), since it references user.
  */
 export const league = pgTable(
   "league",
@@ -40,6 +39,9 @@ export const league = pgTable(
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
+    createdBy: uuid()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "set null" }),
   },
   (table) => [
     check(
