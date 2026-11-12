@@ -17,8 +17,8 @@ type Counts = {
   lastTimeIndex: Map<string, number>;
 };
 
-const bump = (map: Map<string, number>, key: string) =>
-  map.set(key, (map.get(key) ?? 0) + 1);
+const bump = (map: Map<string, number>, key: string, by = 1) =>
+  map.set(key, (map.get(key) ?? 0) + by);
 
 /**
  * How much putting a game in a slot would worsen the season so far
@@ -103,19 +103,33 @@ export function constructPlacement(
     if (game && slot && !used.has(slot.id)) place(game, slot);
   }
 
-  for (const day of days) {
-    const daySlots = input.slots
-      .filter((s) => s.date === day.date && s.kind === "regular")
-      .sort(
-        (a, b) =>
-          a.timeIndex - b.timeIndex || a.fieldId.localeCompare(b.fieldId),
-      );
-    for (const round of day.rounds) {
+  const unplace = (game: ScheduledGame, slot: Slot) => {
+    game.slotId = null;
+    used.delete(slot.id);
+    for (const team of [game.teamA, game.teamB]) {
+      bump(counts.time, `${team}@${slot.timeIndex}`, -1);
+      bump(counts.field, `${team}@${slot.fieldId}`, -1);
+      busy.delete(`${team}@${slot.date}@${slot.timeIndex}`);
+    }
+  };
+
+  /**
+   * Places one day's rounds in order. `allowed` can confine a round to some
+   * of the day's slots. Returns what it placed and what it could not.
+   */
+  const placeDay = (
+    day: RoundDays["days"][number],
+    daySlots: Slot[],
+    allowed: (roundIndex: number, slot: Slot) => boolean,
+  ) => {
+    const placed: [ScheduledGame, Slot][] = [];
+    const stranded: ScheduledGame[] = [];
+    day.rounds.forEach((round, r) => {
       const pending = games.filter(
         (g) => g.round === round && g.slotId === null,
       );
-      const free = daySlots.filter((s) => !used.has(s.id));
-      if (pending.length === 0) continue;
+      const free = daySlots.filter((s) => !used.has(s.id) && allowed(r, s));
+      if (pending.length === 0) return;
       // One column per free slot, then one "unplaced" column per game.
       const cost = pending.map((g, i) => [
         ...free.map((slot) =>
@@ -129,13 +143,60 @@ export function constructPlacement(
       const columns = minCostAssignment(cost) as number[];
       pending.forEach((game, i) => {
         const slot = free[columns[i] as number];
-        if (slot) place(game, slot);
-        else
-          diagnostics.push(
-            `Game ${game.key} could not be placed on ${day.date}: no free slot suits both teams.`,
-          );
+        if (slot) {
+          place(game, slot);
+          placed.push([game, slot]);
+        } else stranded.push(game);
       });
+    });
+    return { placed, stranded };
+  };
+
+  for (const day of days) {
+    const daySlots = input.slots
+      .filter((s) => s.date === day.date && s.kind === "regular")
+      .sort(
+        (a, b) =>
+          a.timeIndex - b.timeIndex || a.fieldId.localeCompare(b.fieldId),
+      );
+    let attempt = placeDay(day, daySlots, () => true);
+    if (attempt.stranded.length > 0 && day.rounds.length === 2) {
+      // Placing round by round can strand a doubleheader game: the first
+      // round takes the only times a later game's teams could both make.
+      // Retry with the day's times split between the two rounds, which
+      // cannot double-book a team, trying every split and keeping the one
+      // that strands the fewest games.
+      for (const [game, slot] of attempt.placed) unplace(game, slot);
+      const times = [
+        ...new Set(
+          daySlots.filter((s) => !used.has(s.id)).map((s) => s.timeIndex),
+        ),
+      ].sort((a, b) => a - b);
+      let best = { stranded: attempt.stranded.length, mask: -1 };
+      for (let mask = 1; mask < (1 << times.length) - 1; mask++) {
+        const inFirst = (t: number) => (mask & (1 << times.indexOf(t))) !== 0;
+        const split = placeDay(day, daySlots, (r, s) =>
+          r === 0 ? inFirst(s.timeIndex) : !inFirst(s.timeIndex),
+        );
+        for (const [game, slot] of split.placed) unplace(game, slot);
+        if (split.stranded.length < best.stranded)
+          best = { stranded: split.stranded.length, mask };
+        if (best.stranded === 0) break;
+      }
+      if (best.mask < 0) {
+        for (const [game, slot] of attempt.placed) place(game, slot);
+      } else {
+        const inFirst = (t: number) =>
+          (best.mask & (1 << times.indexOf(t))) !== 0;
+        attempt = placeDay(day, daySlots, (r, s) =>
+          r === 0 ? inFirst(s.timeIndex) : !inFirst(s.timeIndex),
+        );
+      }
     }
+    for (const game of attempt.stranded)
+      diagnostics.push(
+        `Game ${game.key} could not be placed on ${day.date}: no free slot suits both teams.`,
+      );
     // The streak cost compares with a team's time on its latest game day.
     const today = new Map<string, number>();
     for (const g of games) {
