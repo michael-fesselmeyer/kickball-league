@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   integer,
@@ -11,8 +12,17 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
-import type { MessageId, UserId } from "@/domain/ids";
+import type {
+  AnnouncementId,
+  MessageId,
+  NotificationPreferenceId,
+  SeasonId,
+  TeamSeasonId,
+  UserId,
+} from "@/domain/ids";
 import { user } from "./auth";
+import { season } from "./season";
+import { teamSeason } from "./team";
 
 /** What a message is about; people choose per topic what they receive. */
 export const messageTopic = pgEnum("message_topic", [
@@ -77,10 +87,15 @@ export const message = pgTable(
     dedupeKey: text().notNull(),
     providerMessageId: text(),
     sentAt: timestamp({ withTimezone: true }),
+    /** Set when the message is one copy of an announcement. */
+    announcementId: uuid()
+      .$type<AnnouncementId>()
+      .references(() => announcement.id, { onDelete: "set null" }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     unique("message_dedupe_key_unique").on(t.dedupeKey),
+    index("message_announcement_idx").on(t.announcementId),
     index("message_due_idx")
       .on(t.sendAfter)
       .where(sql`${t.status} = 'queued'`),
@@ -93,6 +108,65 @@ export const message = pgTable(
     check(
       "message_suppressed_has_reason",
       sql`${t.status} <> 'suppressed' or ${t.suppressReason} is not null`,
+    ),
+  ],
+);
+
+/**
+ * A person's choice for one topic and channel. No row means the topic's
+ * default, which is on for everything except marketing.
+ */
+export const notificationPreference = pgTable(
+  "notification_preference",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<NotificationPreferenceId>(),
+    userId: uuid()
+      .notNull()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "cascade" }),
+    topic: messageTopic().notNull(),
+    channel: messageChannel().notNull(),
+    enabled: boolean().notNull(),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    unique("notification_preference_once").on(t.userId, t.topic, t.channel),
+  ],
+);
+
+/**
+ * A message an admin sent to the league, or an admin or captain sent to one
+ * team. Each recipient gets a message row pointing back here.
+ */
+export const announcement = pgTable(
+  "announcement",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<AnnouncementId>(),
+    authorId: uuid()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "set null" }),
+    seasonId: uuid()
+      .notNull()
+      .$type<SeasonId>()
+      .references(() => season.id, { onDelete: "restrict" }),
+    /** Null means the whole league for the season. */
+    teamSeasonId: uuid()
+      .$type<TeamSeasonId>()
+      .references(() => teamSeason.id, { onDelete: "restrict" }),
+    subject: text().notNull(),
+    body: text().notNull(),
+    recipientCount: integer().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("announcement_season_idx").on(t.seasonId, t.createdAt.desc()),
+    index("announcement_author_idx").on(t.authorId, t.createdAt.desc()),
+    check(
+      "announcement_text_lengths",
+      sql`char_length(${t.subject}) between 1 and 120 and char_length(${t.body}) between 1 and 5000`,
     ),
   ],
 );
