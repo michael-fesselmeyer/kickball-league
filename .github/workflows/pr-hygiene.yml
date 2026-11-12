@@ -1,0 +1,32 @@
+name: Pull request hygiene
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+concurrency:
+  group: pr-hygiene-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    name: Branch, commits and text
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # Pull request fields are passed through the environment, never
+      # interpolated into the script, so their text cannot run as shell.
+      - name: Check against the contribution rules in AGENTS.md
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BRANCH: ${{ github.head_ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BLOCKED_TERMS: ${{ vars.BLOCKED_TERMS }}
+        run: scripts/check-pr-hygiene.sh
