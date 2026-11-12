@@ -1,0 +1,53 @@
+import { sql } from "drizzle-orm";
+import {
+  check,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
+import type { LeagueId } from "@/domain/ids";
+
+/** Shapes of the league's flexible settings. Validated with Zod where they are edited. */
+export type LeagueBranding = { primaryColor?: string; logoAssetId?: string };
+export type LeagueContact = {
+  email?: string;
+  phone?: string;
+  whatsappUrl?: string;
+  social?: Record<string, string>;
+};
+
+/**
+ * One row per league. A deployment serves one league (docs/architecture.md),
+ * but every league-owned table carries league_id so a second league fits later.
+ * See docs/data-model.md, section 2.1.
+ *
+ * created_by arrives with the auth tables (issue #6), since it references user.
+ */
+export const league = pgTable(
+  "league",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<LeagueId>(),
+    name: text().notNull(),
+    slug: text().notNull().unique(),
+    sport: text().notNull().default("kickball"),
+    timezone: text().notNull().default("America/New_York"),
+    branding: jsonb().$type<LeagueBranding>().notNull().default({}),
+    contact: jsonb().$type<LeagueContact>().notNull().default({}),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    check(
+      "league_slug_format",
+      sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`,
+    ),
+  ],
+);
+
+export type League = typeof league.$inferSelect;
+export type NewLeague = typeof league.$inferInsert;
