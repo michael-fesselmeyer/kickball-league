@@ -39,7 +39,7 @@ export const light: Theme = {
   "border-strong": "#8C8672",
   brand: "#1F3A8A",
   "on-brand": "#FFFFFF",
-  accent: "#B3261E",
+  accent: "#8F1A1C",
   "on-accent": "#FFFFFF",
   highlight: "#F5B301",
   "on-highlight": "#14182B",
