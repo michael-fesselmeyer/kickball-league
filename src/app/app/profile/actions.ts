@@ -2,6 +2,7 @@
 
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
+import { saveEmailSettings } from "@/db/queries/notifications";
 import { saveProfile } from "@/db/queries/profile";
 import { currentLeague } from "@/db/queries/seasons";
 import {
@@ -40,4 +41,16 @@ export async function saveProfileAction(
     };
   await txDb.transaction((tx) => saveProfile(tx, subject.userId, parsed.value));
   redirect("/app/profile?saved=1");
+}
+
+/** Saves which topics the signed-in person gets email about. */
+export async function saveEmailSettingsAction(form: FormData): Promise<void> {
+  const subject = await requireSelf("profile.edit", "/app/profile");
+  const enabled = new Set(
+    form.getAll("topic").filter((v): v is string => typeof v === "string"),
+  );
+  await txDb.transaction((tx) =>
+    saveEmailSettings(tx, subject.userId, enabled),
+  );
+  redirect("/app/profile?emails=saved#notifications");
 }
