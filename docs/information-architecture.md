@@ -12,7 +12,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │   └── [season]/                   Season overview and register button
 │       ├── schedule                Full schedule, filter by team or date
 │       ├── standings               Standings, tiebreaker notes, power rankings and the game of the week
-│       ├── bracket                 Playoff bracket (P2)
+│       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list)
 │       └── register                Register a team, join by invite, or free agent
 ├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries
 │   ├── calendar.ics                Team calendar feed: every published game, in the league's time zone
@@ -57,7 +57,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── rainout                 Call a rain-out and review makeups
     │   ├── announcements           Email the season or one team
     │   ├── recap                   Weekly recap drafted from the scores; edit, then send as an announcement
-    │   └── playoffs                Seeding and bracket (P2)
+    │   └── playoffs                Seed from standings, place on fields, publish the bracket
     ├── games                       Scores, forfeits, corrections
     ├── people                      Players, roles, suspensions
     ├── refs                        Referee pool and assignments
@@ -203,6 +203,14 @@ Rules:
 3. Admins review. On approval the current captain is notified, a team is created in "forming" status, and the founder gets an invite link.
 4. The team becomes "confirmed" when it meets the roster minimum and the fee is covered. Admins can fill it from the free-agent pool.
 
+### 2.8 Playoffs
+
+1. When the regular season is done, an admin opens the season's Playoffs screen. It shows the standings with the season's tiebreakers applied and the seeds they give.
+2. The admin picks how many teams make it (default: the top 8, or every team if fewer) and the playoff day (dates with free slots after the last regular-season game).
+3. The app seeds the bracket, gives the top seeds byes when the field is not a power of two, and places every match on fields and times with the scheduler's bracket placement. It is saved as a draft schedule version; the admin checks it and publishes it like the regular season. The season moves to "playoffs".
+4. As each playoff score becomes final, the winner moves on. When both teams of the next match are known, its game is put on the published schedule in the slot reserved for it. A corrected score swaps the team in the next game while that game is still to be played.
+5. A playoff game cannot end in a tie; the score screen says so. The final's winner is shown as champion on the bracket page.
+
 ## 3. Key screens
 
 | Screen | Phone | Desktop |
@@ -211,6 +219,7 @@ Rules:
 | Season page | Price, dates, format, what's included, three join choices as cards | Cards in a row; schedule preview beside them |
 | Schedule | List grouped by date and time; team filter sticks to the top; "my team" highlighted | Grid of fields across and times down, one date per section |
 | Standings | Compact table: rank, team, W-L-T, run difference; tap a row for the rest. Below it, the game of the week and the power rankings with movement since the last game day | Full table with streak, last five, runs for and against |
+| Bracket | Board scrolls sideways inside the page, later rounds slide in as they scroll into view; a List view reads the same bracket round by round | Whole board at once; winners' lines draw out round by round. Motion is off under reduced motion |
 | Team page | Badge, record, next game card, results list, power rank and streaks, rivalries, roster | Two columns: results and stats left, roster right |
 | Game page | Teams and score large; time, field, map link, weather; share button | Same, with the inning line score across the full width |
 | Rulebook | Search box at top; collapsible sections; each rule has a copy-link button | Section list in a sticky side column |
@@ -222,6 +231,7 @@ Rules:
 | Admin: schedule | Read-only list, metrics, and move-by-form; full editing is a desktop job | Board: fields by time per date, drag to move, metrics panel, version list, violations list |
 | Admin: registrations | Team list with paid and waiver counts; tap for roster | Table with filters and CSV export |
 | Admin: rain-out | Three steps: scope, preview, confirm | Same on one screen |
+| Admin: playoffs | Draft or published bracket first; then teams, playoff day and the seeding table | Same, with the whole board |
 | Ref home | Today's assignments with accept and decline; "enter score" on each | Same |
 | Sponsor report (P3) | Three numbers and a weekly bar chart | Adds a table by week and deal |
 

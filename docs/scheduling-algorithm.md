@@ -293,7 +293,9 @@ placeBracket(seeds, playoffSlots):
   if a round does not fit on the date: continue on the next playoff date and report it
 ```
 
-Eight teams on two fields need four time indexes on one day: quarterfinals fill two, semifinals one, the final one. Seeds come from the standings and tiebreakers at the moment the admin locks the regular season. Playoff games cannot tie, and sub requests are disabled for them, as the rulebook requires.
+Eight teams on two fields need four time indexes on one day: quarterfinals fill two, semifinals one, the final one. Seeds come from the standings and tiebreakers at the moment the admin makes the bracket. Playoff games cannot tie, and sub requests are disabled for them, as the rulebook requires.
+
+In the app (`src/db/queries/playoffs.ts`), the playoff slots are the open slots from the chosen playoff day on that no published game holds. Every match is placed at once, so later rounds have their slots reserved before their teams are known. The bracket is saved as a `playoffs` version made from the published one, and its games are kept apart from the round robin so rules H5 and H7 never judge it. As results become final, `src/domain/playoffs` moves each winner on; a match whose two teams are now known gets its game, published in its reserved slot by a new version.
 
 ## 9. Worked example: 8 teams, 2 fields, 3 time slots
 

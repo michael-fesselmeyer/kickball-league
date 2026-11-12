@@ -19,7 +19,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - A season scheduler that turns permit windows into game slots, builds round-robin rounds, places games with a min-cost assignment and improves them with local search. It checks ten hard constraints and reports fairness metrics, and property tests cover it ([how it works](docs/scheduling-algorithm.md)).
 - Admins generate a draft, see why any game could not be placed, move or swap games by form, and publish. Each publish saves a version with a diff.
 - Rain-outs: pick a scope, preview the affected games and proposed makeups, and confirm. Each affected player is emailed their own game's new time, and nobody else hears about it.
-- Playoff bracket placement.
+- Playoffs: an admin seeds the bracket from the final standings with the configured tiebreakers, and the scheduler places every round on fields and times, top seeds getting byes when the field is uneven. It publishes as a schedule version like the regular season. Winners move on as soon as a playoff score is final, and the next game appears on the schedule in its reserved slot.
 
 **Registration and payment**
 
@@ -54,6 +54,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 **Public site**
 
 - Public schedule, team and game pages. Anyone can see the season schedule (filter by team), each team's record, next game, results and roster (first name and last initial), and each game's time, field and score. Pages read only the published schedule version, never a draft.
+- A playoff bracket page that draws winners' lines as it loads (still under reduced motion), with a plain list view of the same bracket.
 - Team calendar feeds: every team has an `.ics` feed that Apple Calendar, Google Calendar and Outlook can subscribe to. Moved or rained-out games update in place.
 - Home, About, FAQ and a park page, with a generated sitemap, robots file and structured data for the league, teams and games.
 - Sharing to WhatsApp: every game and team has a generated share image (1200 × 630, in the league's colors) for link previews, with the score on a final. One tap on a game or team page opens WhatsApp with a ready-made message and the link; a second button opens the phone's share sheet or copies the message. Admins can copy a rain-out notice, with every makeup, and any sent announcement as one message for the group chat.
