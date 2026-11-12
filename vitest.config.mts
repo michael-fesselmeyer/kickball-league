@@ -13,7 +13,21 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/domain/**", "src/lib/**"],
-      thresholds: { lines: 90, branches: 90, functions: 90, statements: 90 },
+      exclude: ["**/*.bench.ts"],
+      thresholds: {
+        lines: 90,
+        branches: 90,
+        functions: 90,
+        statements: 90,
+        // The scheduler is the module the most depends on
+        // (docs/scheduling-algorithm.md, section 11).
+        "src/domain/scheduler/**": {
+          lines: 100,
+          branches: 100,
+          functions: 100,
+          statements: 100,
+        },
+      },
     },
   },
 });
