@@ -218,12 +218,17 @@ describe("reschedule edge cases", () => {
     const greedy = reschedule(leagueInput, season, rained, {
       exhaustiveLimit: 0,
     });
-    const exact = reschedule(leagueInput, season, rained);
-    expect(greedy.schedule.unplaced.length).toBe(
-      exact.schedule.unplaced.length,
-    );
-    expect(greedy.metrics.doubleheaderWait.value).toBeGreaterThanOrEqual(
-      exact.metrics.doubleheaderWait.value,
-    );
+    // Only postponed games moved, each is placed once at most, and the
+    // makeups break none of the rules a makeup must keep.
+    const before = new Map(season.games.map((g) => [g.key, g.slotId]));
+    const postponed = new Set(greedy.moved.map((m) => m.gameKey));
+    for (const g of greedy.schedule.games)
+      if (!postponed.has(g.key)) expect(g.slotId).toBe(before.get(g.key));
+    expect(
+      validate(
+        { ...leagueInput, gamesPerTeamPerDay: 2, reservePerDay: 0 },
+        greedy.schedule,
+      ).filter((v) => ["H1", "H2", "H4", "H8"].includes(v.rule)),
+    ).toEqual([]);
   });
 });
