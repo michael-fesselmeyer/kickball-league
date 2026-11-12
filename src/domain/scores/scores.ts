@@ -18,6 +18,7 @@ export type Outcome = (typeof OUTCOMES)[number];
 export const MIN_CALLED_INNINGS = 4;
 export const MAX_RUNS = 99;
 export const AUTO_FINAL_HOURS = 24;
+export const PLAYOFF_TIE = "Playoff games can't end in a tie. Play it out.";
 
 export type ScoreInput = {
   outcome: Outcome;
@@ -34,8 +35,14 @@ export type ScoreErrors = {
 
 const validRuns = (n: number) => Number.isInteger(n) && n >= 0 && n <= MAX_RUNS;
 
-/** Checks a reported score; forfeits ignore the runs. */
-export function checkScore(input: ScoreInput): ScoreErrors {
+/**
+ * Checks a reported score; forfeits ignore the runs. Playoff games cannot
+ * end in a tie (rulebook 3.1.2), so the caller turns ties off for them.
+ */
+export function checkScore(
+  input: ScoreInput,
+  { tiesAllowed = true }: { tiesAllowed?: boolean } = {},
+): ScoreErrors {
   const errors: ScoreErrors = {};
   if (input.outcome === "forfeit_a" || input.outcome === "forfeit_b")
     return errors;
@@ -53,6 +60,8 @@ export function checkScore(input: ScoreInput): ScoreErrors {
     )
       errors.inningsPlayed = `A called game counts after ${MIN_CALLED_INNINGS} complete innings or more.`;
   }
+  if (!tiesAllowed && !errors.scoreB && input.scoreA === input.scoreB)
+    errors.scoreB = PLAYOFF_TIE;
   return errors;
 }
 
