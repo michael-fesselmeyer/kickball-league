@@ -193,7 +193,11 @@ function teamMetrics(
   let doubleheaderWait = 0;
   for (const day of days)
     for (let i = 1; i < day.length; i++)
-      doubleheaderWait += (day[i] as number) - (day[i - 1] as number) - 1;
+      // Two games at one time (a broken schedule) is no wait, not a negative one.
+      doubleheaderWait += Math.max(
+        0,
+        (day[i] as number) - (day[i - 1] as number) - 1,
+      );
 
   const first = timeIndexes[0];
   return {

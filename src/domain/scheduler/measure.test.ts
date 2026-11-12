@@ -306,3 +306,22 @@ describe("measure: preferences met", () => {
     });
   });
 });
+
+describe("measure on a broken schedule", () => {
+  it("never reports a negative doubleheader wait", () => {
+    const [base] = workedExample();
+    const date = SUNDAYS[0];
+    const input = {
+      ...base,
+      teams: [{ id: "A" }, { id: "B" }, { id: "C" }],
+      slots: [slot("s0", date, "F1", 0), slot("s1", date, "F2", 0)],
+      gamesPerTeamPerDay: 2 as const,
+    };
+    // A plays two games at the same time.
+    const m = measure(
+      input,
+      scheduleOf([game(1, "A", "B", "s0"), game(2, "A", "C", "s1")]),
+    );
+    expect(m.doubleheaderWait.value).toBe(0);
+  });
+});
