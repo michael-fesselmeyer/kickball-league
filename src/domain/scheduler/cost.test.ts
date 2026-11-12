@@ -156,3 +156,37 @@ describe("scheduleCost", () => {
     ).toBeCloseTo(scheduleCost(input, schedule), 9);
   });
 });
+
+describe("cost edge cases", () => {
+  it("prices nothing for a league with no slots", () => {
+    const empty = costContext({ ...base, slots: [] });
+    expect(teamCost(empty, "A", [])).toBe(0);
+  });
+
+  it("ignores slots outside the season, such as playoffs", () => {
+    const ctx = costContext(base);
+    const playoff = { ...at(0, 0, 0), id: "final", kind: "playoff" as const };
+    expect(teamCost(ctx, "A", [playoff])).toBe(0);
+  });
+
+  it("counts a met date preference as met", () => {
+    const games = [at(0, 0, 0), at(1, 1, 1), at(2, 0, 2)];
+    const ctx = costContext({
+      ...base,
+      constraints: [
+        { teamId: "A", kind: "prefer", date: SUNDAYS[0] },
+        { teamId: "A", kind: "avoid", date: SUNDAYS[4] },
+      ],
+    });
+    expect(teamCost(ctx, "A", games)).toBe(0);
+  });
+
+  it("refuses more than 30 game slots a day on a field", () => {
+    const slots = Array.from({ length: 31 }, (_, t) =>
+      slot(`s${t}`, SUNDAYS[0], "F1", t),
+    );
+    expect(() => costContext({ ...base, slots })).toThrow(
+      "At most 30 game slots a day per field",
+    );
+  });
+});

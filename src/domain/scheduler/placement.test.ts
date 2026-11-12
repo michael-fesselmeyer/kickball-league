@@ -149,3 +149,31 @@ describe("constructPlacement properties", () => {
     );
   });
 });
+
+describe("constructPlacement edge cases", () => {
+  const [input] = workedExample();
+
+  it("ignores a lock for a game or slot that does not exist", () => {
+    const locked = [
+      { gameKey: "r9:X:Y", slotId: `${SUNDAYS[0]}/F1/0` },
+      { gameKey: "r1:A:H", slotId: "nowhere" },
+    ];
+    const schedule = place({ ...input, locked }, inOrder);
+    expect(schedule.unplaced).toEqual([]);
+    expect(validate(input, schedule)).toEqual([]);
+  });
+
+  it("skips a round whose games are all locked in place", () => {
+    const round1 = ["r1:A:H", "r1:B:G", "r1:C:F", "r1:D:E"];
+    const locked = round1.map((gameKey, i) => ({
+      gameKey,
+      slotId: `${SUNDAYS[0]}/F${(i % 2) + 1}/${Math.floor(i / 2)}`,
+    }));
+    const schedule = place({ ...input, locked }, inOrder);
+    for (const lock of locked)
+      expect(schedule.games.find((g) => g.key === lock.gameKey)?.slotId).toBe(
+        lock.slotId,
+      );
+    expect(validate({ ...input, locked }, schedule)).toEqual([]);
+  });
+});

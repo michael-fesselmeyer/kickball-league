@@ -259,3 +259,50 @@ describe("measure properties", () => {
     );
   });
 });
+
+describe("measure statuses", () => {
+  const [base] = workedExample();
+  const date = SUNDAYS[0];
+
+  it("grades a long doubleheader wait as poor", () => {
+    const slots = [0, 1, 2, 3, 4].map((t) => slot(`s${t}`, date, "F1", t));
+    const input = {
+      ...base,
+      teams: [{ id: "A" }, { id: "B" }],
+      slots,
+      gamesPerTeamPerDay: 2 as const,
+    };
+    // A and B wait 3 slots each: 6 in total, more than one per team.
+    const m = measure(
+      input,
+      scheduleOf([game(1, "A", "B", "s0"), game(2, "A", "B", "s4")]),
+    );
+    expect(m.doubleheaderWait).toEqual({ value: 6, status: "poor" });
+  });
+
+  it("grades a middling preference share for review", () => {
+    const [input, schedule] = workedExample({
+      constraints: [
+        // A plays 3 of 7 games at 11:30; B plays in week 2.
+        { teamId: "A", kind: "prefer", timeIndex: 1 },
+        { teamId: "B", kind: "prefer", date: SUNDAYS[1] },
+      ],
+    });
+    expect(measure(input, schedule).preferencesHonored).toEqual({
+      value: 4 / 8,
+      status: "review",
+    });
+  });
+});
+
+describe("measure: preferences met", () => {
+  it("grades a high preference share as good", () => {
+    const [input, schedule] = workedExample({
+      constraints: [{ teamId: "B", kind: "prefer", date: SUNDAYS[0] }],
+    });
+    expect(measure(input, schedule).preferencesHonored).toEqual({
+      value: 1,
+      status: "good",
+    });
+  });
+});

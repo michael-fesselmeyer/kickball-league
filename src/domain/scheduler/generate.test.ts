@@ -123,3 +123,22 @@ describe("generate properties", () => {
     );
   });
 });
+
+describe("generate edge cases", () => {
+  it("has nothing to schedule for a single team", () => {
+    const input = league({
+      teams: 1,
+      fields: 1,
+      times: 2,
+      dates: 2,
+      gamesPerTeamPerDay: 1,
+      reservePerDay: 0,
+    });
+    expect(generate(input)).toEqual({
+      games: [],
+      byes: [],
+      unplaced: [],
+      diagnostics: [],
+    });
+  });
+});

@@ -98,3 +98,64 @@ describe("localSearch properties", () => {
     },
   );
 });
+
+describe("localSearch edge cases", () => {
+  it("never moves a game into a makeup slot", () => {
+    const [base, naive] = workedExample({}, NAIVE);
+    const makeup = {
+      ...(base.slots[0] as (typeof base.slots)[number]),
+      id: "makeup",
+      fieldId: "F3",
+      kind: "makeup_reserve" as const,
+    };
+    const input = { ...base, slots: [...base.slots, makeup] };
+    const searched = localSearch(naive, input, seededRandom(4), {
+      iterations: 5_000,
+    });
+    expect(searched.games.some((g) => g.slotId === "makeup")).toBe(false);
+  });
+
+  it("works when fields have different time slots on a day", () => {
+    // Field 2 has no 1:00 slot in any week.
+    const [base, naive] = workedExample({}, NAIVE);
+    const input = {
+      ...base,
+      slots: base.slots.filter(
+        (s) => !(s.fieldId === "F2" && s.timeIndex === 2),
+      ),
+    };
+    const searched = localSearch(naive, input, seededRandom(5), {
+      iterations: 10_000,
+    });
+    expect(validate(input, searched)).toEqual([]);
+  });
+
+  it("tolerates games with unknown teams or a shared slot, and breaks nothing new", () => {
+    const [input, schedule] = workedExample();
+    const odd = {
+      ...schedule,
+      games: [
+        ...schedule.games,
+        {
+          key: "r1:X:Z",
+          round: 1,
+          teamA: "X",
+          teamB: "Z",
+          slotId: slotId(0, 1, 0),
+        },
+        {
+          key: "r1:Y:Z",
+          round: 1,
+          teamA: "Y",
+          teamB: "Z",
+          slotId: slotId(0, 1, 0),
+        },
+      ],
+    };
+    const before = validate(input, odd).map((v) => v.rule);
+    const searched = localSearch(odd, input, seededRandom(6), {
+      iterations: 5_000,
+    });
+    for (const v of validate(input, searched)) expect(before).toContain(v.rule);
+  });
+});
