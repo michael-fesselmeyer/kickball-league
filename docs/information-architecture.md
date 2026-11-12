@@ -11,14 +11,15 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/                        Open and upcoming seasons
 │   └── [season]/                   Season overview and register button
 │       ├── schedule                Full schedule, filter by team or date
-│       ├── standings               Standings and tiebreaker notes
+│       ├── standings               Standings, tiebreaker notes, power rankings and the game of the week
 │       ├── bracket                 Playoff bracket (P2)
 │       └── register                Register a team, join by invite, or free agent
-├── teams/[team]                    Team page: roster (first name, last initial), results, next game
+├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries
 │   ├── calendar.ics                Team calendar feed: every published game, in the league's time zone
 │   └── share.png                   Team share image: record, place, last five results
-├── games/[game]                    Game page: time, field, weather, score, share buttons
+├── games/[game]                    Game page: time, field, weather, score, head-to-head history, share buttons
 │   └── share.png                   Game share image: score on a final, or the matchup and its state
+├── records                         League records across every season: most runs, biggest win, longest streaks
 ├── rules/                          Searchable rulebook with a link for every rule number
 ├── parks/[park]                    Park page: map, fields, directions, nearby home bar
 ├── events/                         Calendar of social events (P2)
@@ -54,6 +55,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── fields                  Fields, permit windows, blackout dates, slots
     │   ├── schedule                Generate, metrics, edit, versions, publish
     │   ├── rainout                 Call a rain-out and review makeups
+    │   ├── announcements           Email the season or one team
+    │   ├── recap                   Weekly recap drafted from the scores; edit, then send as an announcement
     │   └── playoffs                Seeding and bracket (P2)
     ├── games                       Scores, forfeits, corrections
     ├── people                      Players, roles, suspensions
@@ -207,8 +210,8 @@ Rules:
 | Home (public) | Hero with next-season dates and a Join button; the next game day's games; standings preview; home-bar strip | Same content in two columns; larger hero with motion |
 | Season page | Price, dates, format, what's included, three join choices as cards | Cards in a row; schedule preview beside them |
 | Schedule | List grouped by date and time; team filter sticks to the top; "my team" highlighted | Grid of fields across and times down, one date per section |
-| Standings | Compact table: rank, team, W-L-T, run difference; tap a row for the rest | Full table with streak, last five, runs for and against |
-| Team page | Badge, record, next game card, results list, roster | Two columns: results left, roster right |
+| Standings | Compact table: rank, team, W-L-T, run difference; tap a row for the rest. Below it, the game of the week and the power rankings with movement since the last game day | Full table with streak, last five, runs for and against |
+| Team page | Badge, record, next game card, results list, power rank and streaks, rivalries, roster | Two columns: results and stats left, roster right |
 | Game page | Teams and score large; time, field, map link, weather; share button | Same, with the inning line score across the full width |
 | Rulebook | Search box at top; collapsible sections; each rule has a copy-link button | Section list in a sticky side column |
 | Signed-in Home | Next game card with RSVP buttons; "you owe" card; alerts; quick links by role | Dashboard grid of the same cards |
