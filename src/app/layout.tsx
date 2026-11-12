@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Archivo, Inter } from "next/font/google";
+import { Bricolage_Grotesque, Inter } from "next/font/google";
 import Link from "next/link";
+import { Kickball } from "@/components/kickball";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { applySavedThemeScript } from "@/lib/theme";
 import "./globals.css";
@@ -11,11 +12,12 @@ const inter = Inter({
   display: "swap",
 });
 
-// Width axis: wide athletic headings now, condensed scoreboard numbers later.
-const archivo = Archivo({
-  variable: "--font-archivo",
+// Playful display face (ADR 0002). The width axis gives a condensed face
+// for scoreboards later; optical size keeps small headings crisp.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
-  axes: ["wdth"],
+  axes: ["wdth", "opsz"],
   display: "swap",
 });
 
@@ -31,19 +33,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     // warn that the server-rendered attribute differs.
     <html
       lang="en"
-      className={`${inter.variable} ${archivo.variable} h-full antialiased`}
+      className={`${inter.variable} ${bricolage.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: applySavedThemeScript }} />
       </head>
       <body className="flex min-h-full flex-col">
-        <header className="border-b border-border bg-surface">
+        <header className="border-b-2 border-text bg-surface">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-2 md:px-6">
             <Link
               href="/"
-              className="font-display text-h3 font-extrabold text-text"
+              className="flex items-center gap-2 font-display text-h3 font-extrabold text-text"
             >
+              <Kickball className="size-8 -rotate-12" />
               Kickball League
             </Link>
             <ThemeSwitch />
