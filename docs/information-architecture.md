@@ -42,10 +42,11 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 /app                                Signed-in home: next game, RSVP, what you owe, alerts
 ├── account                         Profile, notification settings, waivers, payments, credit
 ├── team/[teamSeason]               Roster, RSVPs, payments, invites, subs, announcements (captain view adds controls)
-├── subs                            Open sub requests I can claim (P2)
+├── subs                            Sub requests I can claim, and games I'm subbing in
 ├── vote                            Awards voting (P2)
 ├── check-in/[code]                 Bar check-in landing from a QR code (P2)
-├── games/[game]/score              Score entry (ref, captain, admin)
+├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
+├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups
 ├── ref/                            Assignments, availability, earnings
 ├── sponsor/                        Sponsor portal: page editor, deals, report (P3)
 └── admin/
@@ -192,10 +193,11 @@ Rules:
 
 1. On the team page the captain sees "Tuesday: 8 in, 3 out, 5 no reply. You can field 8. You have 3 women in; you need 4 to field 9."
 2. Captain taps "Find subs", picks how many and whether a specific gender is needed, and adds a note.
-3. Eligible players are notified: registered this season, waiver signed, not suspended, not playing at that time, and opted in to sub alerts. Free agents in the pool come first.
-4. A player taps "I'm in". The captain approves or passes. First approved claims fill the request.
-5. The sub sees game details. The opposing captain and ref see that the team has pickups, as the rulebook requires.
-6. The request closes when filled or at game time. Sub requests are not offered for playoff games.
+3. Eligible players are notified by email: registered this season, waiver signed, not on either team in the game, not playing or refereeing at that time, and with sub alerts on (the default). Free agents in the pool come first. When every spot is reserved for one fielding group, only players in it are told. (Suspensions are not modelled yet.)
+4. A player taps "I'm in" on the sub page, which holds a spot; the captain is emailed. A spot reserved for women or men can only be held by a player in that group. When every spot is held, others see "full".
+5. The captain approves (the player is emailed that they're playing) or declines (the spot opens again). The request is filled when approved subs take every spot. A sub can drop out until game time, which reopens it.
+6. The sub sees game details on the sub page. Both captains and the ref see each team's pickups, by first name and last initial, on the team page, the score page and the ref's home, as the rulebook requires.
+7. The request closes at game time, or when the captain takes it down (anyone holding a spot is told). Sub requests are not offered for playoff games.
 
 ### 2.7 Start a new team (P2)
 

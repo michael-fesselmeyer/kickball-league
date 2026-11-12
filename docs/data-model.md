@@ -376,19 +376,24 @@ erDiagram
   sub_request {
     uuid id PK
     uuid game_id FK
-    uuid team_season_id FK
+    uuid team_season_id FK "the team asking"
     uuid requested_by FK
-    int needed
-    enum lineup_gender_needed "nullable"
+    int needed "1 to 11"
+    int women_needed "spots only a woman can take"
+    int men_needed "spots only a man can take"
     text note
-    enum status "open, filled, closed"
-    timestamptz closes_at
+    enum status "open, filled, cancelled"
+    timestamptz closes_at "game time"
   }
   sub_claim {
     uuid id PK
     uuid sub_request_id FK
     uuid user_id FK
-    enum status "offered, approved, passed, withdrawn"
+    enum status "pending, approved, declined, withdrawn"
+    enum lineup_gender "copied from the profile when claimed"
+    timestamptz claimed_at
+    timestamptz decided_at
+    uuid decided_by FK
   }
   bracket {
     uuid id PK
@@ -446,6 +451,7 @@ Notes:
 - A playoff `game` (`kind = playoff`, `round_no` null) exists only once both its teams are known, so a game never has an empty side. Until then its `bracket_match` holds the slot the bracket placement reserved, and that slot's kind becomes `playoff` so rain-out makeups and new regular-season schedules leave it alone. Divisions, when they arrive, add a `division_id` to `bracket`.
 - Schedule versions keep playoff placements apart from the round robin: the round-robin rules never judge a bracket, and a version made from another (an edit or a rain-out) carries the parent's playoff placements over. When a result fills both sides of the next match, its game is created and a new `playoffs` version with it is published by the league itself (`published_by` null).
 - `team_season.seed` is written when the bracket is made, from the standings with the season's tiebreakers.
+- Sub requests ([ADR 0006](adr/0006-sub-claims-hold-spots.md)): a team has at most one live (`open` or `filled`) request per game, and none for playoff games. `women_needed` and `men_needed` reserve spots for the fielding rule; the rest of `needed` is open to anyone eligible. A `pending` or `approved` claim holds a spot, so a request never has more of those than `needed`; the request is `filled` once approved claims take every spot, and opens again if an approved sub withdraws. A request past `closes_at` (the game's start) is closed whatever its status, so no job sweeps it. Claims are written under a lock on the request row, which is what stops two players taking the last spot.
 - League history is computed on demand like the standings: a completed season's champion is its complete bracket's `champion_id`, or the top of its final standings when it had no bracket, and a team's all-time record adds up its seasons' regular-season standings. Nothing about history is stored.
 
 ### 2.3 Money
@@ -945,6 +951,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `game_rsvp` | unique `(game_id, user_id)` | One RSVP per game |
 | `game_period` | unique `(game_id, period_no, half)` | One row per half-inning |
 | `sub_claim` | unique `(sub_request_id, user_id)` | One claim per person |
+| `sub_request` | unique `(game_id, team_season_id)` where `status in ('open', 'filled')` | One live request per team per game |
+| `sub_request` | check `needed` between 1 and 11; check `women_needed + men_needed <= needed` | Reserved spots fit in the request |
 | `checkin` | unique `(sponsor_id, user_id, on_date)` | One check-in per bar per day |
 | `award_vote` | unique `(award_poll_id, voter_id)` | One vote per poll |
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
@@ -968,6 +976,8 @@ Indexes for the common reads:
 | `checkin` | `(sponsor_id, on_date)` | Sponsor report |
 | `sms_consent_event` | `(phone_e164, occurred_at desc)` | Current consent |
 | `game_rsvp` | `(game_id, team_season_id)` | Captain's RSVP board |
+| `sub_request` | `(team_season_id, status)`; `(closes_at)` where `status = 'open'` | A team's requests; open requests for the sub page |
+| `sub_claim` | `(user_id, status)` | A player's offers |
 | `event` | `(league_id, starts_at)` | Calendar |
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
 
@@ -978,7 +988,8 @@ Indexes for the common reads:
 | Email, name | `user`, `profile` | The person, their captain, admins |
 | Phone | `profile`, `sms_consent_event` | The person, admins, their captain; teammates only if `shares_contact` |
 | Birth date | `profile` | The person and owners. Everyone else sees only "18+ confirmed" |
-| Gender and lineup gender | `profile` | The person, their captain (for lineups), admins |
+| Gender and lineup gender | `profile` | The person, their captain (for lineups), admins. A sub's lineup gender is copied to `sub_claim`, which the asking team's captains see |
+| Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
 | Emergency contact | `profile` | The person, their captain, admins |
 | Waiver signature, IP address | `waiver_signature` | The person, owners |
 | Payment card | Never stored. Stripe holds it; we keep brand and last four digits | The person |
