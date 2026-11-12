@@ -47,6 +47,14 @@ async function Account() {
 
   const { name, email } = session.user;
   const subject = await currentSubject();
+  // Started now so it runs alongside the queries below: the next game is
+  // kept on the device for when the field has no signal.
+  const myGames = publishedGamesFor(db, {
+    teamSeasonIds: subject.roster.flatMap(
+      (m) => parseId<TeamSeasonId>(m.teamSeasonId) ?? [],
+    ),
+    gameIds: subject.refereeGameIds.flatMap((id) => parseId<GameId>(id) ?? []),
+  });
   const isAdmin = can(subject, "season.manage", {});
   const league = await currentLeague(db);
   const now = new Date();
@@ -63,18 +71,7 @@ async function Account() {
     db,
     refereeing.map((g) => g.id),
   );
-  // The next game is kept on the device for when the field has no signal.
-  const nextGame = pickNextGame(
-    await publishedGamesFor(db, {
-      teamSeasonIds: subject.roster.flatMap(
-        (m) => parseId<TeamSeasonId>(m.teamSeasonId) ?? [],
-      ),
-      gameIds: subject.refereeGameIds.flatMap(
-        (id) => parseId<GameId>(id) ?? [],
-      ),
-    }),
-    now,
-  );
+  const nextGame = pickNextGame(await myGames, now);
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",
