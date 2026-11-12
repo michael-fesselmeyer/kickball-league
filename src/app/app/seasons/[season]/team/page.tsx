@@ -276,6 +276,26 @@ async function Team({
             {signed} signed the waiver, {paid} paid.
           </p>
         )}
+        {can(subject, "roster.export", { teamSeasonId }) && (
+          <p className="flex flex-wrap gap-4">
+            <a
+              href={`/app/seasons/${slug}/export/roster.csv?team=${teamSeasonId}`}
+              download
+              className="underline"
+            >
+              Download the roster (CSV)
+            </a>
+            {can(subject, "payments.export", { teamSeasonId }) && (
+              <a
+                href={`/app/seasons/${slug}/export/payments.csv?team=${teamSeasonId}`}
+                download
+                className="underline"
+              >
+                Download payments (CSV)
+              </a>
+            )}
+          </p>
+        )}
         <table className="w-full text-left">
           <thead className="text-text-muted">
             <tr>

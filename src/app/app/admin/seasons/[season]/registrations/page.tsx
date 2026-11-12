@@ -154,6 +154,22 @@ async function Registrations({
           {board.freeAgents.length}{" "}
           {board.freeAgents.length === 1 ? "free agent" : "free agents"}
         </p>
+        <p className="flex flex-wrap gap-4">
+          <a
+            href={`/app/seasons/${slug}/export/roster.csv`}
+            download
+            className="underline"
+          >
+            Download rosters (CSV)
+          </a>
+          <a
+            href={`/app/seasons/${slug}/export/payments.csv`}
+            download
+            className="underline"
+          >
+            Download payments (CSV)
+          </a>
+        </p>
       </header>
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
