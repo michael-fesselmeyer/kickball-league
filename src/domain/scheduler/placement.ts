@@ -11,6 +11,13 @@ import {
 /** Finite, so a game can always fall back to "unplaced" instead of failing the day. */
 const UNPLACED_COST = 1e9;
 
+/**
+ * Search steps the exact day search may take before giving up and keeping
+ * the best greedy result. A league day is a few dozen games at most, and the
+ * search runs only when the greedy passes strand a game.
+ */
+export const EXACT_DAY_BUDGET = 200_000;
+
 type Counts = {
   time: Map<string, number>;
   field: Map<string, number>;
@@ -63,6 +70,7 @@ export function constructPlacement(
   rounds: readonly Round[],
   days: RoundDays["days"],
   input: SchedulerInput,
+  { exactBudget = EXACT_DAY_BUDGET }: { exactBudget?: number } = {},
 ): Schedule {
   const games: ScheduledGame[] = rounds.flatMap((r) =>
     r.games.map(([teamA, teamB]) => ({
@@ -152,6 +160,72 @@ export function constructPlacement(
     return { placed, stranded };
   };
 
+  const busyAt = (game: ScheduledGame, slot: Slot) =>
+    busy.has(`${game.teamA}@${slot.date}@${slot.timeIndex}`) ||
+    busy.has(`${game.teamB}@${slot.date}@${slot.timeIndex}`);
+
+  /**
+   * Places every unplaced game of a multi-round day, or returns null and
+   * leaves the day as it was. Backtracking with H2 (a team plays once per
+   * time) and availability as hard limits, within `exactBudget` steps.
+   */
+  const exactDay = (
+    day: RoundDays["days"][number],
+    daySlots: Slot[],
+    current: [ScheduledGame, Slot][],
+  ): [ScheduledGame, Slot][] | null => {
+    for (const [game, slot] of current) unplace(game, slot);
+    const pending = games.filter(
+      (g) => day.rounds.includes(g.round) && g.slotId === null,
+    );
+    const free = daySlots.filter((s) => !used.has(s.id));
+    const choices = new Map(
+      pending.map((g) => [
+        g,
+        free
+          .map((slot) => ({
+            slot,
+            cost: placementCost([g.teamA, g.teamB], slot, counts, input),
+          }))
+          .filter((c) => c.cost !== Infinity)
+          .sort((a, b) => a.cost - b.cost)
+          .map((c) => c.slot),
+      ]),
+    );
+    const chosen: [ScheduledGame, Slot][] = [];
+    let steps = 0;
+    const search = (left: ScheduledGame[]): boolean => {
+      if (left.length === 0) return true;
+      if (++steps > exactBudget) return false;
+      let next: ScheduledGame | undefined;
+      let options: Slot[] = [];
+      for (const g of left) {
+        // Every pending game has its list of choices.
+        const open = (choices.get(g) as Slot[]).filter(
+          (slot) => !used.has(slot.id) && !busyAt(g, slot),
+        );
+        if (open.length === 0) return false;
+        if (next === undefined || open.length < options.length) {
+          next = g;
+          options = open;
+        }
+      }
+      const game = next as ScheduledGame;
+      const rest = left.filter((g) => g !== game);
+      for (const slot of options) {
+        place(game, slot);
+        chosen.push([game, slot]);
+        if (search(rest)) return true;
+        chosen.pop();
+        unplace(game, slot);
+      }
+      return false;
+    };
+    if (search(pending)) return chosen;
+    for (const [game, slot] of current) place(game, slot);
+    return null;
+  };
+
   for (const day of days) {
     const daySlots = input.slots
       .filter((s) => s.date === day.date && s.kind === "regular")
@@ -192,6 +266,14 @@ export function constructPlacement(
           r === 0 ? inFirst(s.timeIndex) : !inFirst(s.timeIndex),
         );
       }
+    }
+    if (attempt.stranded.length > 0 && day.rounds.length > 1) {
+      // Both greedy passes can miss a day that fits: two rounds may need to
+      // share a time (3 games a round on 2 fields need 2 of 3 times), which
+      // the split cannot express. Search the whole day exactly, most
+      // constrained game first and cheapest slot first.
+      const exact = exactDay(day, daySlots, attempt.placed);
+      if (exact) attempt = { placed: exact, stranded: [] };
     }
     for (const game of attempt.stranded)
       diagnostics.push(
