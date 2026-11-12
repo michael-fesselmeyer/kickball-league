@@ -12,6 +12,7 @@ describe("buildSitemap", () => {
       `${ORIGIN}/faq`,
       `${ORIGIN}/about`,
       `${ORIGIN}/records`,
+      `${ORIGIN}/history`,
     ]);
     expect(urls).toHaveLength(CONTENT_PAGES.length);
   });
