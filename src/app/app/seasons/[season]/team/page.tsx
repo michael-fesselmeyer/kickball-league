@@ -221,6 +221,14 @@ async function Team({
             Everyone pays a fixed {formatCents(mine.team.shareCents)}.
           </p>
         )}
+        {can(subject, "announcement.send", { scope: "team", teamSeasonId }) && (
+          <Link
+            href={`/app/seasons/${slug}/team/announcements`}
+            className="self-start underline"
+          >
+            Message your team
+          </Link>
+        )}
       </header>
 
       {manages && (
