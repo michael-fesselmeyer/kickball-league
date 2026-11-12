@@ -368,7 +368,10 @@ describe("approving and declining", () => {
       const told = await messagesLike(db, `sub_approved/${a.value}/`);
       expect(told.map((m) => m.userId)).toEqual([w.catWoman.userId]);
       const pickups = await pickupsFor(db, [w.gameId]);
-      expect(pickups.get(w.gameId)).toEqual([
+      // Both claims share one timestamp, so their order is not defined.
+      const byName = (a: { name: string }, b: { name: string }) =>
+        a.name.localeCompare(b.name);
+      expect([...(pickups.get(w.gameId) ?? [])].sort(byName)).toEqual([
         { teamSeasonId: w.aces.id, name: "Cara S." },
         { teamSeasonId: w.aces.id, name: "Fran S." },
       ]);
