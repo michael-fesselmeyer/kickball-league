@@ -11,6 +11,7 @@ import type {
 } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { generateSlots } from "@/domain/scheduler/slots";
+import { slugify } from "@/domain/slug";
 import { zonedInstant } from "@/domain/time/zoned";
 import { field, game, slot, venue } from "../schema/game";
 import { blackout, gamePlacement, permitWindow } from "../schema/schedule";
@@ -25,15 +26,7 @@ import type { Db } from "./schedule";
 
 export type PermitStatus = "requested" | "confirmed" | "lost";
 
-/** "Field 2 at McCarren Park" → "field-2-at-mccarren-park". */
-export function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+export { slugify };
 
 export async function fieldsScreen(
   db: Db,

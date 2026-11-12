@@ -18,7 +18,6 @@ import {
   removeBlackout,
   removePermitWindow,
   setPermitStatus,
-  slugify,
   syncSlots,
 } from "./fields";
 import type { Db } from "./schedule";
@@ -102,15 +101,6 @@ const sync = (db: Db, w: { seasonId: SeasonId; actor: UserId }, minutes = 60) =>
     { seasonId: w.seasonId, slotMinutes: minutes, timeZone: NY },
     w.actor,
   );
-
-describe("slugify", () => {
-  it("makes a URL-safe slug", () => {
-    expect(slugify("  McCarren Park — Field Ñ 2 ")).toBe(
-      "mccarren-park-field-n-2",
-    );
-    expect(slugify("!!!")).toBe("");
-  });
-});
 
 describe("venues and fields", () => {
   it("adds a venue and fields, rejecting duplicates and other leagues' venues", async () => {
