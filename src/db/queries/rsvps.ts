@@ -73,11 +73,13 @@ export type TeamRsvps = {
   maybe: number;
   out: number;
   noAnswer: number;
+  /** Those "in", by fielding group. */
+  coming: { women: number; men: number; unknown: number };
   fielding: FieldingCheck;
 };
 
 /** The season's fielding numbers, falling back to the rulebook's. */
-async function rulesFor(db: Db, gameId: GameId): Promise<FieldingRules> {
+export async function rulesFor(db: Db, gameId: GameId): Promise<FieldingRules> {
   const [found] = await db
     .select({ rules: season.fieldingRules })
     .from(game)
@@ -138,19 +140,18 @@ export async function teamRsvps(
         .map((a) => [a.userId, a.status]),
     );
     const coming = members.filter((m) => said.get(m.userId) === "in");
+    const counts = {
+      women: coming.filter((m) => m.lineupGender === "woman").length,
+      men: coming.filter((m) => m.lineupGender === "man").length,
+      unknown: coming.filter((m) => m.lineupGender === null).length,
+    };
     result.set(gameId, {
       in: coming.length,
       maybe: members.filter((m) => said.get(m.userId) === "maybe").length,
       out: members.filter((m) => said.get(m.userId) === "out").length,
       noAnswer: members.filter((m) => !said.has(m.userId)).length,
-      fielding: checkFielding(
-        {
-          women: coming.filter((m) => m.lineupGender === "woman").length,
-          men: coming.filter((m) => m.lineupGender === "man").length,
-          unknown: coming.filter((m) => m.lineupGender === null).length,
-        },
-        rules,
-      ),
+      coming: counts,
+      fielding: checkFielding(counts, rules),
     });
   }
   return result;

@@ -55,6 +55,11 @@ export const SETTINGS_TOPICS: readonly {
     hint: "7, 3 and 1 days before the deadline, until you have paid.",
   },
   {
+    topic: "sub_request",
+    label: "Sub requests",
+    hint: "When a team needs a sub at a time you're free, and answers to your offers.",
+  },
+  {
     topic: "score",
     label: "Score reminders",
     hint: "For refs and captains, when a game you were in has no score yet.",

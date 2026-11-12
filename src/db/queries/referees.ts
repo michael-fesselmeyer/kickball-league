@@ -148,6 +148,8 @@ export async function gamesToReferee(db: Db, userId: UserId) {
       status: game.status,
       startsAt: slot.startsAt,
       fieldName: field.name,
+      teamAId: game.teamAId,
+      teamBId: game.teamBId,
       teamAName: teamA.name,
       teamBName: teamB.name,
       seasonName: season.name,

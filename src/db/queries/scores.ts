@@ -366,8 +366,10 @@ export async function teamGames(db: Db, teamSeasonId: TeamSeasonId) {
   const rows = await db
     .select({
       id: game.id,
+      kind: game.kind,
       status: game.status,
       teamAId: game.teamAId,
+      teamBId: game.teamBId,
       teamAName: teamA.name,
       teamBName: teamB.name,
       scoreA: game.scoreA,
