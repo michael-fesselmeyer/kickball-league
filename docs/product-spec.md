@@ -145,6 +145,8 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | See team RSVPs | — | own team | own team | — | — | ✓ | ✓ |
 | Post a sub request | — | — | own | — | — | ✓ | ✓ |
 | Claim a sub request | — | ✓ (registered, waiver signed, not suspended) | ✓ | ✓ if also a player | — | — | — |
+| Approve or decline sub claims; take a request down | — | — | own | — | — | ✓ | ✓ |
+| See a game's pickups (approved subs) | — | — | own team's games | assigned | — | ✓ | ✓ |
 | Enter a score | — | — | own team's games | assigned | — | ✓ | ✓ |
 | Confirm or dispute a score | — | — | own team's games | — | — | ✓ | ✓ |
 | Override a final score, record a forfeit | — | — | — | — | — | ✓ | ✓ |

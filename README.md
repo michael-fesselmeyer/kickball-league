@@ -33,6 +33,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 - Refs see their assigned games and enter scores from their phone. Captains confirm or dispute, and undisputed scores become final.
 - Players answer in, out or maybe, and captains see a warning when the fielding rule is at risk.
+- A sub finder: a short-handed captain asks for subs for a game, with spots reserved for women or men when the fielding rule needs them. Registered players with a signed waiver who are free at that time hear about it by email (free agents first, and only if sub alerts are on). A player's "I'm in" holds a spot until the captain approves or declines, so two players can never take the last spot at once. Both captains and the ref see who is playing as a pickup. Not offered for playoff games.
 - Public standings with the configured tiebreakers.
 
 **Score stats**

@@ -218,11 +218,12 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Payment reminders | Daily 10:00 | Reminds unpaid players at 7, 3 and 1 days before the deadline. A missed day still sends the closest milestone; each is queued once per registration and deadline |
 | Balance charge (P2) | Daily 10:00 | Warns captains 72 hours ahead, then charges the saved card for any unpaid balance |
 | Waitlist offers (P2) | Hourly | Expires stale offers and offers the spot to the next entry |
-| Sub request expiry (P2) | Every 15 minutes on game days | Closes requests at game time |
 | Sponsor stats rollup (P2) | Daily 3:00 | Aggregates impressions and clicks into `sponsor_stat_daily` |
 | Instagram sync (P2) | Every 3 hours | Fetches recent posts from the connected account and copies new images to storage |
 | Instagram token refresh (P2) | Weekly | Extends the access token; alerts admins if it fails |
 | Demo reset | Daily 4:00, demo deployment only | Restores seed data |
+
+Sub requests need no expiry job: a request closes when its game starts (`sub_request.closes_at`), and every query compares that with the current time ([ADR 0006](adr/0006-sub-claims-hold-spots.md)).
 
 Every job is a route handler under `/api/jobs/*` that checks an `Authorization: Bearer ${CRON_SECRET}` header ✔, is safe to run twice, and logs a heartbeat.
 
