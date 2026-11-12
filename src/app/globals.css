@@ -1,26 +1,219 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Design tokens from docs/design-system.md. Color values must match
+ * src/design/tokens.ts exactly; a unit test compares them.
+ *
+ * Theme: follows the system setting; <html data-theme="light|dark"> (set by
+ * the theme switch, stored per device) overrides it.
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* `dark:` utilities follow the same rule as the tokens. */
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(
+      :root:not([data-theme="light"]),
+      :root:not([data-theme="light"]) *
+    ) {
+      @slot;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* tokens:light */
+:root {
+  --bg: #fbf8f1;
+  --surface: #ffffff;
+  --surface-2: #f2ede1;
+  --text: #14182b;
+  --text-muted: #4a5068;
+  --border: #d9d2c0;
+  --border-strong: #8c8672;
+  --brand: #1f3a8a;
+  --on-brand: #ffffff;
+  --accent: #b3261e;
+  --on-accent: #ffffff;
+  --highlight: #f5b301;
+  --on-highlight: #14182b;
+  --success: #1a7b49;
+  --warning: #9f5b00;
+  --danger: #b3261e;
+  --info: #1f5fbf;
+  --focus: #1f3a8a;
+}
+
+/* tokens:dark */
+:root[data-theme="dark"] {
+  --bg: #0e1220;
+  --surface: #161b2e;
+  --surface-2: #1f2640;
+  --text: #f3efe6;
+  --text-muted: #a9b0c7;
+  --border: #2e3757;
+  --border-strong: #656f97;
+  --brand: #8fa8ff;
+  --on-brand: #0e1220;
+  --accent: #ff7a6e;
+  --on-accent: #0e1220;
+  --highlight: #ffc93c;
+  --on-highlight: #0e1220;
+  --success: #4cc38a;
+  --warning: #f0a840;
+  --danger: #ff7a6e;
+  --info: #7fb0ff;
+  --focus: #ffc93c;
+}
+
+/* The system dark setting repeats the dark values (CSS cannot share a block
+   between a selector and a media query). A test keeps the copies identical. */
+@media (prefers-color-scheme: dark) {
+  /* tokens:dark-system */
+  :root:not([data-theme="light"]) {
+    --bg: #0e1220;
+    --surface: #161b2e;
+    --surface-2: #1f2640;
+    --text: #f3efe6;
+    --text-muted: #a9b0c7;
+    --border: #2e3757;
+    --border-strong: #656f97;
+    --brand: #8fa8ff;
+    --on-brand: #0e1220;
+    --accent: #ff7a6e;
+    --on-accent: #0e1220;
+    --highlight: #ffc93c;
+    --on-highlight: #0e1220;
+    --success: #4cc38a;
+    --warning: #f0a840;
+    --danger: #ff7a6e;
+    --info: #7fb0ff;
+    --focus: #ffc93c;
+  }
+}
+
+:root {
+  color-scheme: light dark;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+@theme inline {
+  /* Only semantic colors exist: components cannot reach for a raw palette. */
+  --color-*: initial;
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-brand: var(--brand);
+  --color-on-brand: var(--on-brand);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-highlight: var(--highlight);
+  --color-on-highlight: var(--on-highlight);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-focus: var(--focus);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    var(--font-archivo), var(--font-inter), ui-sans-serif, sans-serif;
+}
+
+@theme {
+  /* Type scale: fluid between 360px and 1280px viewports (design-system.md §3). */
+  --text-display: clamp(2.5rem, 1.7174rem + 3.4783vw, 4.5rem);
+  --text-display--line-height: 1;
+  --text-h1: clamp(2rem, 1.6087rem + 1.7391vw, 3rem);
+  --text-h1--line-height: 1.1;
+  --text-h2: clamp(1.5rem, 1.3043rem + 0.8696vw, 2rem);
+  --text-h2--line-height: 1.2;
+  --text-h3: clamp(1.25rem, 1.1522rem + 0.4348vw, 1.5rem);
+  --text-h3--line-height: 1.25;
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.5;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5;
+  --text-small: 0.875rem;
+  --text-small--line-height: 1.45;
+  --text-micro: 0.75rem;
+  --text-micro--line-height: 1.4;
+
+  /* Spacing keeps Tailwind's 4px base (0.25rem): 1, 2, 3, 4, 6, 8, 12, 16, 24. */
+
+  --radius-input: 6px;
+  --radius-card: 12px;
+  --radius-sheet: 20px;
+
+  --shadow-card: 0 1px 2px rgb(20 24 43 / 0.06), 0 2px 8px rgb(20 24 43 / 0.06);
+  --shadow-sheet: 0 8px 32px rgb(20 24 43 / 0.16);
+
+  --breakpoint-sm: 30rem;
+  --breakpoint-md: 48rem;
+  --breakpoint-lg: 64rem;
+  --breakpoint-xl: 80rem;
+
+  /* Motion (design-system.md §6). Use inside prefers-reduced-motion: no-preference. */
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --dur-4: 600ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-spring: linear(
+    0,
+    0.25 8%,
+    0.6 18%,
+    0.9 30%,
+    1.04 42%,
+    1.06 50%,
+    1.02 62%,
+    0.99 76%,
+    1
+  );
+}
+
+@layer base {
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-stretch: 112%;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+}
+
+/* With reduced motion, nothing moves: state changes are instant. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
