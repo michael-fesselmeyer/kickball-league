@@ -44,7 +44,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── ref/                            Assignments, availability, earnings
 ├── sponsor/                        Sponsor portal: page editor, deals, report (P3)
 └── admin/
-    ├── (dashboard)                 This Sunday: weather, games, missing scores, alerts
+    ├── (dashboard)                 Next game day: weather, games, missing scores, alerts
     ├── seasons/[season]/           Setup, pricing, divisions, rule set, waiver
     │   ├── registrations           Teams, players, payments, waivers
     │   ├── free-agents             Pool and matcher (P2)
@@ -162,7 +162,7 @@ Rules:
 
 ```mermaid
 flowchart TD
-  A[Saturday morning: weather job runs] --> B{Risk for Sunday's game window}
+  A[The day before game day: weather job runs] --> B{Risk for the game window}
   B -- Low --> Z[No action]
   B -- Watch or Likely --> C[Admin alert with forecast and a link]
   C --> D[Admin opens Rain-out screen]
@@ -183,7 +183,7 @@ Rules:
 
 ### 2.6 Sub request (P2)
 
-1. On the team page the captain sees "Sunday: 8 in, 3 out, 5 no reply. You can field 8. You have 3 women in; you need 4 to field 9."
+1. On the team page the captain sees "Tuesday: 8 in, 3 out, 5 no reply. You can field 8. You have 3 women in; you need 4 to field 9."
 2. Captain taps "Find subs", picks how many and whether a specific gender is needed, and adds a note.
 3. Eligible players are notified: registered this season, waiver signed, not suspended, not playing at that time, and opted in to sub alerts. Free agents in the pool come first.
 4. A player taps "I'm in". The captain approves or passes. First approved claims fill the request.
@@ -201,7 +201,7 @@ Rules:
 
 | Screen | Phone | Desktop |
 |---|---|---|
-| Home (public) | Hero with next-season dates and a Join button; this Sunday's games; standings preview; home-bar strip | Same content in two columns; larger hero with motion |
+| Home (public) | Hero with next-season dates and a Join button; the next game day's games; standings preview; home-bar strip | Same content in two columns; larger hero with motion |
 | Season page | Price, dates, format, what's included, three join choices as cards | Cards in a row; schedule preview beside them |
 | Schedule | List grouped by date and time; team filter sticks to the top; "my team" highlighted | Grid of fields across and times down, one date per section |
 | Standings | Compact table: rank, team, W-L-T, run difference; tap a row for the rest | Full table with streak, last five, runs for and against |
@@ -212,7 +212,7 @@ Rules:
 | Team (captain) | Tabs: Roster, RSVPs, Payments, Subs. Remind and invite buttons pinned to the bottom | All four as panels on one screen |
 | Score entry | One screen; two large counters; inning stepper (P2); submit pinned to the bottom | Same layout, centered, no wider than a phone |
 | Checkout | Stripe's hosted page | Stripe's hosted page |
-| Admin: this Sunday | Weather risk, game list with status dots, missing scores, rain-out button | Same with the field grid |
+| Admin: next game day | Weather risk, game list with status dots, missing scores, rain-out button | Same with the field grid |
 | Admin: schedule | Read-only list, metrics, and move-by-form; full editing is a desktop job | Board: fields by time per date, drag to move, metrics panel, version list, violations list |
 | Admin: registrations | Team list with paid and waiver counts; tap for roster | Table with filters and CSV export |
 | Admin: rain-out | Three steps: scope, preview, confirm | Same on one screen |
@@ -224,6 +224,6 @@ Rules:
 Every list screen defines all three. Examples of the copy style:
 
 - Schedule before publishing: "The schedule comes out about a week before opening day. Register now and we'll email you when it's up."
-- Standings before any game: "No games played yet. First pitch is Sunday, April 11."
+- Standings before any game: "No games played yet. First pitch is Monday, April 12."
 - No open sub requests: "Nobody needs a sub right now. Turn on sub alerts to hear first."
 - Payment failed: "Your card was declined, so your spot isn't confirmed yet. Try again or use a different card."

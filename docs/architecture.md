@@ -188,15 +188,15 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Job | When | Does |
 |---|---|---|
 | Outbox sweep | Every minute | Sends due messages, retries failures |
-| Weather check | Thu, Fri 9:00; Sat 9:00 and 18:00; Sun hourly 6:00–14:00 | Fetches the forecast for each venue with games, stores a snapshot, alerts admins on "watch" or "likely" |
-| Game reminders | Fri 18:00 | Reminds players of Sunday's game and asks for an RSVP |
-| RSVP nudge | Sat 12:00 | Nudges players who have not answered; tells captains where they stand |
-| Missing scores | Sun, every 30 minutes 12:00–22:00 | Reminds the ref 30 minutes after a slot ends, both captains after 2 hours |
+| Weather check | Two days and one day before each game day at 9:00 and 18:00; hourly on game day until the last slot | Fetches the forecast for each venue with games, stores a snapshot, alerts admins on "watch" or "likely" |
+| Game reminders | Two days before game day, 18:00 | Reminds players of their next game and asks for an RSVP |
+| RSVP nudge | The day before game day, 12:00 | Nudges players who have not answered; tells captains where they stand |
+| Missing scores | Game days, every 30 minutes from the first slot until midnight | Reminds the ref 30 minutes after a slot ends, both captains after 2 hours |
 | Score auto-confirm | Hourly | Finalizes reported scores that have gone 24 hours without a dispute |
 | Payment reminders | Daily 10:00 | Reminds unpaid players at 7, 3 and 1 days before the deadline |
 | Balance charge (P2) | Daily 10:00 | Warns captains 72 hours ahead, then charges the saved card for any unpaid balance |
 | Waitlist offers (P2) | Hourly | Expires stale offers and offers the spot to the next entry |
-| Sub request expiry (P2) | Every 15 minutes on Sundays | Closes requests at game time |
+| Sub request expiry (P2) | Every 15 minutes on game days | Closes requests at game time |
 | Sponsor stats rollup (P2) | Daily 3:00 | Aggregates impressions and clicks into `sponsor_stat_daily` |
 | Instagram sync (P2) | Every 3 hours | Fetches recent posts from the connected account and copies new images to storage |
 | Instagram token refresh (P2) | Weekly | Extends the access token; alerts admins if it fails |

@@ -89,7 +89,7 @@ Building this first, before any screen depends on it, is deliberate: it is the r
 | Announcements | Admin to league, captain to team, by email, respecting preferences |
 | Rulebook | The 2025 rulebook as searchable HTML with a link per rule; the old PDF URL redirects to it |
 | Content and SEO | Home, About, FAQ, McCarren Park page, sitemap, robots, structured data for the league, teams and games |
-| Admin dashboard | This Sunday at a glance; registrations, payments and waivers by team |
+| Admin dashboard | The next game day at a glance; registrations, payments and waivers by team |
 | Demo | The demo deployment has seed data, a banner, one-tap "view as" for player, captain, ref and admin, and resets nightly |
 | Quality gate | Lighthouse mobile: performance ≥ 95 on public pages, accessibility 100 everywhere. Axe finds no violations on key screens. All JavaScript budgets met |
 | End-to-end tests | Playwright covers: team registration with split pay, free-agent signup, generate and publish a schedule, enter and confirm a score, rain-out |
@@ -127,7 +127,7 @@ Done means: **the demo makes the owners say yes.** Listed in build order; if tim
 
 | Item | Detail |
 |---|---|
-| What they see | The demo deployment, on a phone, as each role in turn: a player's Sunday, a captain collecting money without Venmo, a ref entering a score, a commissioner calling a rain-out |
+| What they see | The demo deployment, on a phone, as each role in turn: a player's game day, a captain collecting money without Venmo, a ref entering a score, a commissioner calling a rain-out |
 | The three things to land | 1. Captains stop chasing payments. 2. Scores are never missing and standings are always right. 3. The schedule is provably fair, and a rain-out takes one tap |
 | Leave-behind | A one-page summary and the open questions that need their answer |
 | Decisions needed that day | Those marked "pitch" in [open-questions.md](open-questions.md) |
@@ -157,7 +157,7 @@ In rough priority order: SMS with the full compliance design; offline score entr
 | Incentive | Amount | Fixes |
 |---|---|---|
 | On-time score bonus | +$2 when the final score is entered within 15 minutes of the game ending | Missing scores |
-| Last-minute fill-in | +$10 for accepting a game within 24 hours of first pitch | Sunday-morning scrambles |
+| Last-minute fill-in | +$10 for accepting a game within 24 hours of first pitch | day-of scrambles |
 | Full-day bonus | +$5 a game when working three or more games in a day | Coverage with fewer refs |
 | Reliability tier | Base rises to $25 after 10 games with no no-shows | Retention |
 | Season completion | $40 for working at least 80% of game days | Late-season drop-off |

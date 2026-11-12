@@ -49,7 +49,7 @@ Each question lists what the design assumes until it is answered, so nothing her
 
 | # | Question | Assumed until answered | Who | When |
 |---|---|---|---|---|
-| 18 | What are the real permit windows at McCarren: which fields, which hours, which dates? How far ahead are they known? | 3 fields in spring and fall, 2 in summer, 10:00 to 3:00 | Owners | launch |
+| 18 | What are the real permit windows at McCarren: which fields, which hours, which dates? How far ahead are they known? | Partly answered (2026-11-12): play days change by season with the permits. Summer Sundays about 2 to 6 pm, spring Mondays about 8 to 10 pm, fall Tuesdays, usually evenings. Still to confirm: field counts and permit dates | Owners | launch |
 | 19 | How many weeks is each season, and is there a set playoff Sunday? | 8 weeks of regular play plus one playoff Sunday | You | now |
 | 20 | How does the league want makeup time reserved: spare slots each Sunday, a rain date at the end, or shortened games on a later Sunday? | All three are supported; the default is spare slots first, then a rain date, then a squeeze day | Owners | pitch |
 | 21 | Do teams currently ask for early or late slots, or have known conflicts? | Captains can submit conflicts and preferences (Phase 2) | You | later |
