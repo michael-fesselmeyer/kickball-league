@@ -155,7 +155,11 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "admin",
       "owner",
     ]);
-    for (const action of ["sub_request.post", "conflicts.submit"] as const)
+    for (const action of [
+      "sub_request.post",
+      "conflicts.submit",
+      "payment.record_offline",
+    ] as const)
       expect(allowed(action, { teamSeasonId: "A" })).toEqual([
         "captain",
         "coCaptain",
