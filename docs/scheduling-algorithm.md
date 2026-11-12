@@ -132,13 +132,13 @@ buildRounds(teams, roundsWanted, rng):
   result = []
   c = 0
   while result.length < roundsWanted:
-    roundsThisCycle = (c is even) ? cycle : reverse(cycle)       // mirror alternate cycles
+    roundsThisCycle = (c is even) ? cycle : swapHomeAndAway(cycle)  // mirror alternate cycles
     result.append(first (roundsWanted − result.length) rounds of roundsThisCycle)
     c += 1
   return result
 ```
 
-Why this satisfies H5: every cycle is a complete round-robin, and cycles are played one after another, so no pair meets a second time until every pair has met once. Stopping part-way through a cycle keeps the property. Reversing alternate cycles pushes a pair's rematch as far from its first meeting as possible (S7).
+Why this satisfies H5: every cycle is a complete round-robin, and cycles are played one after another, so no pair meets a second time until every pair has met once. Stopping part-way through a cycle keeps the property. Repeating the cycle in the same order puts every rematch exactly one full cycle after the first meeting, the largest gap every pair can have at once (S7); alternate cycles swap home and away. Reversing alternate cycles would be wrong: the last round of one cycle would be replayed as the first round of the next, a rematch the following week, and on a doubleheader day the same pairs could meet twice on one date (H8).
 
 Why H7 holds: with the dummy BYE team, each real team meets BYE exactly once per cycle, so after any number of rounds bye counts differ by at most 1.
 
@@ -219,7 +219,7 @@ localSearch(schedule, input, rng):
 | Doubleheaders (summer) | Two rounds per date. S4 keeps a team's two games adjacent. H8 holds because the two rounds are different rounds of a round-robin |
 | Divisions | Each division is its own pool with its own rounds; all pools share the slot pool in Stage C, so fairness is balanced across the whole league. Crossover rounds (P3) are extra rounds built from a bipartite pairing between two pools |
 | Fewer rounds than a full cycle | Stage A simply stops early. H5 holds trivially |
-| More than one cycle | Alternate cycles are mirrored |
+| More than one cycle | The cycle repeats in the same order with home and away swapped, so each rematch is a full cycle after the first meeting |
 | A field lost mid-season | Its slots are marked cancelled and `reschedule` treats the games in them as postponed |
 | Summer with only 2 fields | No special case. Fewer slots per day means a longer day or fewer rounds; Stage B reports any shortfall |
 
