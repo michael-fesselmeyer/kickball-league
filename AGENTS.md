@@ -51,6 +51,17 @@ A pull request updates the docs its change makes stale, in the same pull request
 
 The roadmap's acceptance criteria change only when the plan changes, not to match what was built.
 
+## Keep it fast
+
+Players mostly use the app on phones, and a slow page is one they stop opening. Speed is part of every change, not a later pass:
+
+- Stay within the budgets in `docs/design-system.md` (Performance budgets). Lighthouse CI enforces them on the pages in `lighthouserc.json`; add every new public page there.
+- A budget miss is a bug to fix in the same pull request. Never raise a budget or turn an assertion into a warning to get a change through. If the fix belongs elsewhere, open its issue and say so in the pull request.
+- Public pages are served as static HTML (`docs/architecture.md`, section 3). Read their data inside `use cache` with a `cacheTag` and `PUBLIC_PAGE_LIFE` from `src/lib/public-cache.ts`, and expire the tag from the actions that change that data. A public page never reads cookies, headers or the query string; pick a view from the path instead.
+- Server components by default. Keep client JavaScript within its route budget, and load heavy client code only where it is used, as the schedule board does.
+- Fetch a page's data in as few queries as it needs, in parallel where they are independent; never one query per row.
+- A loading state holds the space its content will take, so nothing jumps when the content arrives.
+
 ## Working in parallel
 
 Several changes are often in progress at once. These rules keep them from colliding.
