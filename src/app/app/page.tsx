@@ -7,6 +7,8 @@ import { db } from "@/db/client";
 import { gamesToReferee } from "@/db/queries/referees";
 import { openSeasons } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
+import { pickupsFor } from "@/db/queries/subs";
+import { Pickups } from "@/components/pickups";
 import { can } from "@/domain/authz/permissions";
 import { parseId, type UserId } from "@/domain/ids";
 import { auth } from "@/lib/auth";
@@ -44,6 +46,10 @@ async function Account() {
           (g) => g.status !== "final" && g.status !== "forfeit",
         )
       : [];
+  const pickups = await pickupsFor(
+    db,
+    refereeing.map((g) => g.id),
+  );
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -78,6 +84,13 @@ async function Account() {
                   <span className="block text-small text-text-muted">
                     {when(g.startsAt)} · {g.fieldName}
                   </span>
+                  <Pickups
+                    pickups={pickups.get(g.id)}
+                    teams={[
+                      { id: g.teamAId, name: g.teamAName },
+                      { id: g.teamBId, name: g.teamBName },
+                    ]}
+                  />
                 </span>
                 {g.startsAt <= now && (
                   <Link
@@ -101,6 +114,9 @@ async function Account() {
           {s.name}: register or check your spot
         </Link>
       ))}
+      <Link href="/app/subs" className="btn btn-secondary">
+        Sub for a team
+      </Link>
       <Link href="/app/profile" className="btn btn-secondary">
         Your profile
       </Link>
