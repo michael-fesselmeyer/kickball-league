@@ -75,6 +75,12 @@ async function Seasons() {
                 >
                   Schedule
                 </Link>
+                <Link
+                  href={`/app/admin/seasons/${s.slug}/registrations`}
+                  className="underline"
+                >
+                  Registrations
+                </Link>
               </p>
             </li>
           ))}

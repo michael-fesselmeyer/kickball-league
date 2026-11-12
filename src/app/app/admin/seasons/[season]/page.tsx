@@ -56,6 +56,12 @@ async function Season({
           >
             Schedule
           </Link>
+          <Link
+            href={`/app/admin/seasons/${slug}/registrations`}
+            className="underline"
+          >
+            Registrations
+          </Link>
         </p>
       </header>
       {(query.created || query.saved) && (
