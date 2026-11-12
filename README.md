@@ -71,6 +71,17 @@ npm run test:db
 
 It starts the server if it is stopped, creates the `ci` role and `ci` database only when they are missing, and runs `npm run db:migrate`, so it is safe to run again after pulling new migrations. It connects as the `postgres` superuser (through `sudo` when you are not root); set `PG_SUPERUSER_URL` to connect another way, for example to a Postgres in Docker. Nothing here is a secret: the database is local and holds only test data.
 
+### Demo mode
+
+The demo deployment lets anyone view the league as a player, captain, ref or admin in one tap, with a banner on every page. It is off unless `DEMO_MODE=true` **and** the database's name contains `demo` **and**, on a Vercel production deployment, the project's address contains `demo`; see [ADR 0004](docs/adr/0004-demo-mode.md). To try it locally against a throwaway database:
+
+```bash
+PGDATABASE_NAME=kb_demo scripts/setup-local-postgres.sh
+export DATABASE_URL=postgresql://ci:ci@localhost:5432/kb_demo DEMO_MODE=true
+npm run demo:reset
+npm run dev
+```
+
 ## Scripts
 
 | Command                 | What it does                                                     |
@@ -84,6 +95,7 @@ It starts the server if it is stopped, creates the `ci` role and `ci` database o
 | `npm run db:studio`     | Browse the database in Drizzle Studio                            |
 | `npm run test:db`       | Database constraint tests (each rolls back)                      |
 | `npm run seed`          | Replace the demo league with fresh seed data; refuses production |
+| `npm run demo:reset`    | Reseed the demo deployment; refuses unless demo mode is on       |
 | `npm run lint`          | ESLint, failing on any warning                                   |
 | `npm run typecheck`     | Generate route types and run `tsc`                               |
 | `npm run format:check`  | Check Prettier formatting                                        |

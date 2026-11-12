@@ -291,7 +291,7 @@ No Redis in the MVP. Rate limits that need a counter use a small Postgres table.
 |---|---|---|---|
 | Local | `next dev` | A personal Neon branch | Stripe test mode with the Stripe CLI forwarding webhooks; emails rendered to the console |
 | Preview (every pull request) | Vercel preview deployment | A Neon branch created for the preview by the Neon–Vercel integration, migrated and seeded | Stripe test mode; email to a sandbox inbox; scheduled jobs off |
-| Demo | A second Vercel project from the same repository, `DEMO_MODE=true` | Its own Neon database, reseeded nightly | Stripe test mode with test cards; no real email or SMS; a banner and one-tap "view as" role switching |
+| Demo | A second Vercel project from the same repository, `DEMO_MODE=true` ([ADR 0004](adr/0004-demo-mode.md)) | Its own Neon database, reseeded nightly | Stripe test mode with test cards; no real email or SMS; a banner and one-tap "view as" role switching |
 | Production | Vercel Pro, custom domain | Neon main branch with point-in-time restore | Stripe live; Resend; Twilio |
 
 - Environment variables are validated with a Zod schema at build and at boot; a missing variable fails the build.
