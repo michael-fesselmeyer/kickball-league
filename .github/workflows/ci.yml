@@ -74,3 +74,5 @@ jobs:
         run: npm run db:migrate
       - name: Database constraints hold
         run: npm run test:db
+      - name: Seed data loads into a fresh database, twice
+        run: npm run seed && npm run seed
