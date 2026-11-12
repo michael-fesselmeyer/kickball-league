@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { safeNextPath } from "@/lib/safe-next";
@@ -39,4 +40,14 @@ export async function sendSignInLink(
     };
   }
   return { status: "sent", email: parsed.data.email };
+}
+
+/** Starts Google sign-in on the server and sends the browser to Google. */
+export async function signInWithGoogle(form: FormData): Promise<void> {
+  const { url } = await auth.api.signInSocial({
+    body: { provider: "google", callbackURL: safeNextPath(form.get("next")) },
+    headers: await headers(),
+  });
+  if (!url) throw new Error("Google sign-in did not return a URL.");
+  redirect(url);
 }
