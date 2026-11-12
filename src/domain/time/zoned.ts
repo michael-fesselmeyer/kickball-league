@@ -6,7 +6,7 @@
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** Minutes the zone is ahead of UTC at an instant (negative west of UTC). */
-function offsetMinutes(instant: Date, timeZone: string): number {
+export function offsetMinutes(instant: Date, timeZone: string): number {
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat("en-US", {
       timeZone,
