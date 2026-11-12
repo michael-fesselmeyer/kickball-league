@@ -18,7 +18,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 - A season scheduler that turns permit windows into game slots, builds round-robin rounds, places games with a min-cost assignment and improves them with local search. It checks ten hard constraints and reports fairness metrics, and property tests cover it ([how it works](docs/scheduling-algorithm.md)).
 - Admins generate a draft, see why any game could not be placed, move or swap games by form, and publish. Each publish saves a version with a diff.
-- Rain-outs: pick a scope, preview the affected games and proposed makeups, and save them.
+- Rain-outs: pick a scope, preview the affected games and proposed makeups, and confirm. Each affected player is emailed their own game's new time, and nobody else hears about it.
 - Playoff bracket placement.
 
 **Registration and payment**
@@ -47,7 +47,13 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 **Public site**
 
+- Public schedule, team and game pages. Anyone can see the season schedule (filter by team), each team's record, next game, results and roster (first name and last initial), and each game's time, field and score. Pages read only the published schedule version, never a draft.
+- Team calendar feeds: every team has an `.ics` feed that Apple Calendar, Google Calendar and Outlook can subscribe to. Moved or rained-out games update in place.
 - Home, About, FAQ and a park page, with a generated sitemap, robots file and structured data for the league, teams and games.
+
+**Demo mode**
+
+- Turned on only by a server environment flag and refused in production: a banner on every page and one-tap "view as" a player, captain, ref or admin, plus a reset script that reseeds the demo database.
 
 **Sign-in**
 
