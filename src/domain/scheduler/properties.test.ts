@@ -252,6 +252,50 @@ describe("regressions found by these properties", () => {
     }
   });
 
+  it("P10: a single-round date moves its round when a pair shares no time there", () => {
+    // Each date fits one round until the extra slot lets the first date take
+    // two; that shifts round 6, with T3 against T4, onto 2027-06-05, where
+    // T4 cannot play the first time and T3 cannot play the second.
+    const input = {
+      ...league({
+        teams: 6,
+        fields: 3,
+        times: 2,
+        dates: 7,
+        gamesPerTeamPerDay: 2,
+        reservePerDay: 1,
+        rounds: 6,
+        seed: 0,
+      }),
+      constraints: [
+        {
+          teamId: "T4",
+          kind: "unavailable" as const,
+          date: "2027-06-05",
+          timeIndex: 0,
+        },
+        {
+          teamId: "T3",
+          kind: "unavailable" as const,
+          date: "2027-06-05",
+          timeIndex: 1,
+        },
+      ],
+    };
+    const roomier = {
+      ...input,
+      slots: [
+        ...input.slots,
+        slot("2027-06-01/extra", "2027-06-01", "Fextra", 0),
+      ],
+    };
+    for (const each of [input, roomier]) {
+      const schedule = generate(each, options);
+      expect(schedule.unplaced).toEqual([]);
+      expect(validate(each, schedule)).toEqual([]);
+    }
+  });
+
   it("P8: regenerating around pins rebuilds the same days for pinned rounds", () => {
     const input = league({
       teams: 6,
