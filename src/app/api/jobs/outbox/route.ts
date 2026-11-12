@@ -1,0 +1,21 @@
+import { env } from "@/env";
+import { refuseUnlessCron } from "@/lib/jobs";
+import { drainOutboxNow } from "@/services/outbox";
+
+/**
+ * The outbox sweep: sends queued messages that are due, retries failures
+ * whose backoff has passed, and picks up claims a stopped worker left
+ * behind. Safe to run twice or alongside an immediate send. Vercel Cron
+ * calls it with `Authorization: Bearer $CRON_SECRET`.
+ */
+export async function GET(request: Request): Promise<Response> {
+  const refused = refuseUnlessCron(request, env.CRON_SECRET);
+  if (refused) return refused;
+  const result = await drainOutboxNow();
+  if (!result)
+    return Response.json(
+      { error: "Email is not configured; messages stay queued" },
+      { status: 503 },
+    );
+  return Response.json(result);
+}
