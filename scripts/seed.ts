@@ -43,6 +43,7 @@ async function main(): Promise<void> {
     slot,
     game,
     scoreReport,
+    scoreResponse,
     scheduleVersion,
     permitWindow,
     blackout,
@@ -98,10 +99,21 @@ async function main(): Promise<void> {
               .from(game)
               .where(inArray(game.seasonId, seasonIds))
           ).map((r) => r.id);
-          if (gameIds.length)
+          if (gameIds.length) {
+            const reportIds = (
+              await tx
+                .select({ id: scoreReport.id })
+                .from(scoreReport)
+                .where(inArray(scoreReport.gameId, gameIds))
+            ).map((r) => r.id);
+            if (reportIds.length)
+              await tx
+                .delete(scoreResponse)
+                .where(inArray(scoreResponse.scoreReportId, reportIds));
             await tx
               .delete(scoreReport)
               .where(inArray(scoreReport.gameId, gameIds));
+          }
           await tx.delete(game).where(inArray(game.seasonId, seasonIds));
           await tx.delete(slot).where(inArray(slot.seasonId, seasonIds));
           await tx
