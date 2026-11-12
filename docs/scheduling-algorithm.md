@@ -163,7 +163,7 @@ assignRoundsToDates(rounds, input):
 
 The scheduler reports a shortfall with a reason. It never drops games silently.
 
-On a doubleheader day two rounds share a date. Rounds within one cycle may be reordered without breaking H5, and Stage C2 uses that freedom to pair rounds that give short waits (S4).
+On a doubleheader day two rounds share a date. Rounds within one cycle may be reordered without breaking H5; a later Stage C2 move can use that freedom to pair rounds that give short waits (S4).
 
 ### Stage C1: a good first placement
 
@@ -191,21 +191,27 @@ localSearch(schedule, input, rng):
   for i in 0 .. ITERATIONS − 1:
     temperature = T0 * (1 − i / ITERATIONS) + T_MIN
     move = pick one at random:
-      - swap the slots of two games on the same date
-      - move a game to an empty slot on the same date
-      - swap two rounds within the same cycle (changes which date each is played)
+      - (80%) take a game, and swap it with the game in another slot on the
+        same date, or move it there if the slot is empty. Half of these take
+        a random game; half take a game of the costliest of 4 sampled teams
+      - (10%) swap two whole time rows on one date (every 10:00 game trades
+        places with every 11:30 game, field for field)
+      - (10%) swap two whole fields on one date
     if move touches a locked game or breaks a hard constraint: continue
-    delta = costAfter(move) − cost(current)            // computed incrementally
+    delta = costAfter(move) − cost(current)            // re-price only what moved
     if delta <= 0 or rng() < exp(−delta / temperature):
       apply move
       if cost(current) < cost(best): best = current
   return best
 ```
 
-- Moves are filtered so every intermediate schedule satisfies the hard constraints. The search never has to repair anything.
-- The cost is a sum of per-team counters, so a move changes only the counters of the two to four teams involved. `delta` is computed in constant time.
-- `ITERATIONS` is fixed (default 20,000 times the number of game days), so run time is predictable and results are repeatable.
-- The best schedule seen is returned, so C2 never returns something worse than C1.
+- Moves stay on one date, so the round-robin order, games per day, doubleheader opponents and the makeup reserve cannot change. A move is undone when it would put a team in two games at once (H2) or in a slot it cannot make (H4). Every schedule the search holds satisfies the hard constraints, so it never has to repair anything.
+- The cost is a sum of per-team parts (S1, S2, S3, S4, S6, S9) and per-field-day parts (S5); S7 and S8 depend only on rounds and do not change. A move re-prices only the teams and field-days it touches.
+- Single-game moves alone stall on larger leagues. Fixing one team's time balance moves its opponent too, so it takes several coordinated moves. Row and field swaps make those big rearrangements in one step. Aiming half the single moves at the costliest teams spends the effort where the penalties are.
+- `T0` is the S1 weight (100), and `T_MIN` is 0.5.
+- `ITERATIONS` is fixed (default 5,000 times the number of game days), so run time is predictable and results are repeatable. On a corpus of seven realistic leagues (8 to 16 teams, 2 to 4 fields, 2 to 4 times, single games and doubleheaders, odd team counts), five seeds each, this budget brings the total of time and field spreads to 57 against a lower bound of 55. Quadrupling it gained almost nothing.
+- The best schedule seen is returned, so C2 never returns something worse than C1 (P7).
+- Not yet built: swapping two rounds within a cycle, which would change which date each is played and help pair doubleheader rounds with short waits (S4).
 
 ### Stage D: independent validation
 
