@@ -19,6 +19,7 @@ import { season } from "../schema/season";
 import { registration } from "../schema/team";
 import { waiver, waiverSignature } from "../schema/waiver";
 import { recordAudit } from "./audit";
+import { settleCoveredRegistrations, teamOfRegistration } from "./payments";
 import type { Db } from "./schedule";
 
 /** The league's waiver versions, newest first. */
@@ -206,7 +207,7 @@ export async function signWaiver(
     .onConflictDoNothing()
     .returning({ id: waiverSignature.id });
   if (!created) return err("already_signed");
-  await db
+  const moved = await db
     .update(registration)
     .set({ waiverSignatureId: created.id, status: "pending_payment" })
     .where(
@@ -215,7 +216,13 @@ export async function signWaiver(
         eq(registration.userId, input.userId),
         eq(registration.status, "pending_waiver"),
       ),
-    );
+    )
+    .returning({ id: registration.id });
+  // On a team whose captain paid the whole fee, signing is the last step.
+  for (const r of moved) {
+    const team = await teamOfRegistration(db, r.id);
+    if (team) await settleCoveredRegistrations(db, team);
+  }
   return ok(created.id);
 }
 
