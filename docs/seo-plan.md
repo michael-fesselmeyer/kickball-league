@@ -50,7 +50,7 @@ Rules for landing pages: each must hold information that exists nowhere else on 
 | Robots | `robots.ts` allows public pages and disallows `/app`, `/api` and preview deployments. Preview and demo deployments send `noindex` |
 | Redirects | Every URL on the current site maps to its replacement with a 301: `/Home` to `/`, `/Join` to `/seasons`, `/Account/Registration` to `/sign-up`, `/Account/Login` to `/sign-in`, and the rulebook PDF to `/rules` |
 | Domain | Keep `brooklynkickballclub.com` so existing links and brand searches carry over; choose one host (with or without `www`) and redirect the other |
-| Open Graph and share cards | An image for every game result and team, plus a default; titles written for sharing in WhatsApp |
+| Open Graph and share cards | An image for every game and team (built: `/games/[game]/share.png` and `/teams/[team]/share.png`), plus a default (to come); titles written for sharing in WhatsApp, such as "Foul Play 8, The Big Kicks 6". Each page links its image with a version of the data it shows, so a link preview changes only when the score, status, time, place or record does. Images stay under 300 kB, the size above which WhatsApp drops the preview |
 | Internal links | Game pages link to both teams and the park; team pages link to games and the season; every page reaches Join in one tap |
 | Headings and landmarks | One `h1` per page, ordered headings, real lists and tables; this serves accessibility and search equally |
 | Images | Descriptive `alt` text, explicit dimensions, modern formats |

@@ -246,4 +246,6 @@ Initials always pass contrast: the badge computes whether dark or light text rea
 
 ## 8. Share images
 
-Generated per game result and per team with `next/og`, 1200 × 630, using the same tokens: both team badges, the final score in the scoreboard face, date and field, and the league mark. A second square variant (1080 × 1080) is offered for Instagram. They are cached and regenerate only when the underlying data changes.
+Generated per game and per team with `next/og`, 1200 × 630, using the light theme's tokens (src/lib/share/image.tsx): both team badges, the final score in the display face, a sticker for the game's state (Final, Rained out, Live, Game day), date, field and park on a navy band, and the league mark. A team's image shows its record and place as a sticker and its last five results. The fonts are the static Latin subsets of Bricolage Grotesque 800 and Inter 600 in `assets/fonts/`, with their open-font licences, because the image engine cannot read the variable `woff2` files the pages use.
+
+Each page links its image with a short hash of the data drawn (`?v=`). While that hash is current the image is cached for a year, so it is drawn once per change of score, status, time, place or record; any other request is cached for five minutes. Budgets, checked in `src/lib/share/image.test.tsx`: under 300 kB per image, the size above which WhatsApp drops a link preview, and a warm render under 1.5 seconds (about 75 ms measured locally). A square 1080 × 1080 variant for Instagram is still to come.
