@@ -1,0 +1,227 @@
+/*
+ * The playoff bracket board (design-system.md, section 6: "Bracket line
+ * draw"). Winners' lines draw out round by round and later rounds rise in
+ * as they scroll into view. Only transform and opacity animate, once, and
+ * only when motion is welcome; with reduced motion the board is drawn in
+ * its final state.
+ */
+
+.bracket-scroller {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-block: 0.5rem 1rem;
+  /* The board scrolls inside the page; the page itself never scrolls sideways. */
+  max-width: 100%;
+}
+
+.bracket-scroller:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.bracket-board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(13.5rem, 1fr);
+  gap: 1.75rem;
+  min-width: min-content;
+}
+
+.bracket-round {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.bracket-round-name {
+  font-size: var(--text-small);
+  line-height: var(--text-small--line-height);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.bracket-places {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0.75rem;
+}
+
+.bracket-place {
+  position: relative;
+}
+
+/* The stub out to the next round, and in from the last. */
+.bracket-place.bracket-out::after,
+.bracket-place.bracket-in::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 0.875rem;
+  border-top: 2px solid var(--border-strong);
+}
+
+.bracket-place.bracket-out::after {
+  right: -0.875rem;
+  transform-origin: left;
+}
+
+.bracket-place.bracket-in::before {
+  left: -0.875rem;
+  transform-origin: left;
+}
+
+.bracket-place.bracket-won::after {
+  border-color: var(--brand);
+}
+
+.bracket-match {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--border-strong);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.bracket-final .bracket-match {
+  border-color: var(--text);
+  box-shadow: var(--shadow-sticker);
+}
+
+.bracket-side {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1.5rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding-inline: 0.625rem;
+}
+
+.bracket-side + .bracket-side {
+  border-top: 1px solid var(--border);
+}
+
+/* The winner's band. It never animates on page load (design-system.md, "Winner moment"). */
+.bracket-side.bracket-winner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--highlight);
+  z-index: 0;
+}
+
+.bracket-side.bracket-winner > * {
+  position: relative;
+  z-index: 1;
+  color: var(--on-highlight);
+  font-weight: 700;
+}
+
+.bracket-side.bracket-loser {
+  color: var(--text-muted);
+}
+
+.bracket-seed {
+  font-size: var(--text-small);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.bracket-team {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bracket-team > span:last-child,
+.bracket-team > a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bracket-dot {
+  flex-shrink: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+}
+
+.bracket-tbd {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.bracket-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.bracket-when {
+  border-top: 1px solid var(--border);
+  padding: 0.375rem 0.625rem;
+  font-size: var(--text-small);
+  line-height: var(--text-small--line-height);
+  color: var(--text-muted);
+}
+
+.bracket-bye {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  border: 2px dashed var(--border);
+  border-radius: 0.75rem;
+  padding-inline: 0.625rem;
+  font-size: var(--text-small);
+  color: var(--text-muted);
+}
+
+.bracket-champion {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Lines draw out to the next round, one round after another. */
+  .bracket-place.bracket-won::after {
+    animation: draw var(--dur-4) var(--ease-out) both;
+    animation-delay: calc(200ms + var(--round, 1) * 150ms);
+  }
+
+  /* On a phone, later rounds rise in as they scroll into view. */
+  @supports (animation-timeline: view()) {
+    .bracket-round {
+      animation: rise linear both;
+      animation-timeline: view(inline);
+      animation-range: entry 0% entry 60%;
+    }
+  }
+}
+
+@keyframes draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Transform only: text keeps full contrast at every step. */
+@keyframes rise {
+  from {
+    transform: translateY(16px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

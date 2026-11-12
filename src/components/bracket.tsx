@@ -7,7 +7,33 @@ import {
   sourceLabel,
 } from "@/domain/playoffs/playoffs";
 import { kickoff, shortDay } from "@/domain/schedule/format";
-import styles from "./bracket.module.css";
+import "./bracket.css";
+
+/** Class names from bracket.css. */
+const styles = {
+  board: "bracket-board",
+  bye: "bracket-bye",
+  champion: "bracket-champion",
+  dot: "bracket-dot",
+  final: "bracket-final",
+  in: "bracket-in",
+  loser: "bracket-loser",
+  match: "bracket-match",
+  out: "bracket-out",
+  place: "bracket-place",
+  places: "bracket-places",
+  round: "bracket-round",
+  roundName: "bracket-round-name",
+  score: "bracket-score",
+  scroller: "bracket-scroller",
+  seed: "bracket-seed",
+  side: "bracket-side",
+  tbd: "bracket-tbd",
+  team: "bracket-team",
+  when: "bracket-when",
+  winner: "bracket-winner",
+  won: "bracket-won",
+} as const;
 
 /**
  * The playoff bracket, drawn as a board or read as a plain list. Both are
@@ -85,10 +111,14 @@ function MatchSide({
 export function BracketBoard({
   bracket,
   link = true,
+  headingLevel = 2,
 }: {
   bracket: BracketView;
   link?: boolean;
+  /** The round names' heading level, below the page's own headings. */
+  headingLevel?: 2 | 3;
 }) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   const columns = boardColumns(bracket.size, bracket.matches);
   const seedTeam = new Map(bracket.seeds.map((s) => [s.seed, s.team]));
   return (
@@ -99,7 +129,6 @@ export function BracketBoard({
       // A scrolling region must be reachable by keyboard, even with no links.
       // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
       tabIndex={0}
-      style={{ "--rounds": bracket.rounds } as CSSProperties}
     >
       <ol className={styles.board}>
         {columns.map(({ round, cells }) => {
@@ -110,9 +139,9 @@ export function BracketBoard({
               className={`${styles.round} ${last ? styles.final : ""}`}
               style={{ "--round": round } as CSSProperties}
             >
-              <h3 className={styles.roundName}>
+              <Heading className={styles.roundName}>
                 {roundName(round, bracket.rounds)}
-              </h3>
+              </Heading>
               <ol className={styles.places}>
                 {cells.map((cell, i) => {
                   if (cell.kind === "bye") {
@@ -244,10 +273,7 @@ export function BracketList({ bracket }: { bracket: BracketView }) {
 export function Champion({ bracket }: { bracket: BracketView }) {
   if (!bracket.champion) return null;
   return (
-    <p
-      className={`sticker ${styles.champion}`}
-      style={{ "--rounds": bracket.rounds } as CSSProperties}
-    >
+    <p className={`sticker ${styles.champion}`}>
       <span aria-hidden="true">🏆</span>
       {bracket.champion.name}: champions
     </p>

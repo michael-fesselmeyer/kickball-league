@@ -66,7 +66,11 @@ async function Playoffs({
       ? "Bracket published. Winners move on as scores become final."
       : null;
   const canSeed = !bracket || bracket.status === "draft";
-  const defaultTeams = Math.max(MIN_PLAYOFF_TEAMS, preview.defaultTeams);
+  // Re-seeding starts from the draft's size, or the league's default.
+  const defaultTeams = Math.max(
+    MIN_PLAYOFF_TEAMS,
+    bracket?.size ?? preview.defaultTeams,
+  );
 
   return (
     <>
@@ -92,6 +96,45 @@ async function Playoffs({
         </p>
       )}
 
+      {bracket && (
+        <section aria-labelledby="bracket" className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h2 id="bracket" className="text-h2">
+              {bracket.status === "draft" ? "Draft bracket" : "Bracket"}
+            </h2>
+            {bracket.status === "draft" ? (
+              <form action={publishDraftBracket.bind(null, slug)}>
+                <button type="submit" className="btn btn-primary">
+                  Publish the bracket
+                </button>
+              </form>
+            ) : (
+              <Link
+                href={`/seasons/${slug}/bracket`}
+                className="btn btn-secondary"
+              >
+                See the public bracket
+              </Link>
+            )}
+          </div>
+          <Champion bracket={bracket} />
+          {bracket.diagnostics.length > 0 && (
+            <ul className="list-disc pl-5 text-small">
+              {bracket.diagnostics.map((d) => (
+                <li key={d}>{d}</li>
+              ))}
+            </ul>
+          )}
+          <BracketBoard bracket={bracket} link={false} headingLevel={3} />
+          {bracket.status === "draft" && (
+            <p className="text-small text-text-muted">
+              Publishing puts the first games on the schedule and moves the
+              season into playoffs. Later games are added in their reserved
+              slots as soon as both teams are known.
+            </p>
+          )}
+        </section>
+      )}
       {canSeed && (
         <section aria-labelledby="seed" className="flex flex-col gap-4">
           <h2 id="seed" className="text-h2">
@@ -195,46 +238,6 @@ async function Playoffs({
               })()}
             </tbody>
           </table>
-        </section>
-      )}
-
-      {bracket && (
-        <section aria-labelledby="bracket" className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 id="bracket" className="text-h2">
-              {bracket.status === "draft" ? "Draft bracket" : "Bracket"}
-            </h2>
-            {bracket.status === "draft" ? (
-              <form action={publishDraftBracket.bind(null, slug)}>
-                <button type="submit" className="btn btn-primary">
-                  Publish the bracket
-                </button>
-              </form>
-            ) : (
-              <Link
-                href={`/seasons/${slug}/bracket`}
-                className="btn btn-secondary"
-              >
-                See the public bracket
-              </Link>
-            )}
-          </div>
-          <Champion bracket={bracket} />
-          {bracket.diagnostics.length > 0 && (
-            <ul className="list-disc pl-5 text-small">
-              {bracket.diagnostics.map((d) => (
-                <li key={d}>{d}</li>
-              ))}
-            </ul>
-          )}
-          <BracketBoard bracket={bracket} link={false} />
-          {bracket.status === "draft" && (
-            <p className="text-small text-text-muted">
-              Publishing puts the first games on the schedule and moves the
-              season into playoffs. Later games are added in their reserved
-              slots as soon as both teams are known.
-            </p>
-          )}
         </section>
       )}
     </>
