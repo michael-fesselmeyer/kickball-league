@@ -33,6 +33,12 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - Players answer in, out or maybe, and captains see a warning when the fielding rule is at risk.
 - Public standings with the configured tiebreakers.
 
+**Score stats**
+
+- Power rankings from record, recent form, run difference and strength of schedule, with each team's movement since the last game day.
+- Win and loss streaks, the all-time series between any two teams, a game of the week for the next game day, and a league records page. All of it is computed on demand by pure, property-tested functions in `src/domain/stats`.
+- A weekly recap drafted from templates (results, rankings, streaks, new records, next week's big game) that an admin edits and sends as an announcement through the outbox.
+
 **Messaging**
 
 - A transactional outbox: messages are written with the change that caused them, failed sends retry, and nothing sends twice.
