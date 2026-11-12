@@ -221,6 +221,36 @@ export function faqJsonLd(questions: readonly Question[]): JsonLd {
   };
 }
 
+export type ArticleInfo = {
+  headline: string;
+  description: string;
+  /** The article's page. */
+  url: string;
+  datePublished: Date;
+  dateModified?: Date | undefined;
+};
+
+/** A guide or news post, written and published by the league. */
+export function articleJsonLd(
+  article: ArticleInfo,
+  league: LeagueInfo,
+): JsonLd {
+  return compact({
+    "@context": CONTEXT,
+    "@type": "Article",
+    headline: article.headline,
+    description: article.description,
+    url: article.url,
+    mainEntityOfPage: article.url,
+    datePublished: article.datePublished.toISOString(),
+    dateModified: article.dateModified?.toISOString(),
+    inLanguage: "en-US",
+    about: { "@type": "Thing", name: league.sport },
+    author: leagueRef(league),
+    publisher: leagueRef(league),
+  });
+}
+
 /** The path to a page, from the home page down. */
 export function breadcrumbJsonLd(
   trail: readonly { name: string; url: string }[],

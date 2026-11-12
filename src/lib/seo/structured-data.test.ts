@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  articleJsonLd,
   breadcrumbJsonLd,
   faqJsonLd,
   gameJsonLd,
@@ -44,6 +45,8 @@ const REQUIRED: Record<string, readonly string[]> = {
   Answer: ["text"],
   BreadcrumbList: ["itemListElement"],
   ListItem: ["position", "name", "item"],
+  Article: ["headline", "url", "datePublished", "author", "publisher"],
+  Thing: ["name"],
 };
 
 const EVENT_STATUSES = new Set(
@@ -56,8 +59,22 @@ const EVENT_STATUSES = new Set(
   ].map((s) => `https://schema.org/${s}`),
 );
 
-const URL_KEYS = new Set(["url", "@id", "item", "hasMap", "logo", "sameAs"]);
-const DATE_KEYS = new Set(["startDate", "endDate", "previousStartDate"]);
+const URL_KEYS = new Set([
+  "url",
+  "@id",
+  "item",
+  "hasMap",
+  "logo",
+  "sameAs",
+  "mainEntityOfPage",
+]);
+const DATE_KEYS = new Set([
+  "startDate",
+  "endDate",
+  "previousStartDate",
+  "datePublished",
+  "dateModified",
+]);
 const ISO_WITH_ZONE =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
 
@@ -193,9 +210,9 @@ describe("the validator", () => {
 
   it("rejects unknown types, empty values and made-up event statuses", () => {
     expect(
-      validate({ "@type": "Thing", name: "", eventStatus: "Happening" }),
+      validate({ "@type": "Widget", name: "", eventStatus: "Happening" }),
     ).toEqual([
-      "$: unexpected @type Thing",
+      "$: unexpected @type Widget",
       "$.name: empty value",
       "$.eventStatus: unknown event status Happening",
     ]);
@@ -441,6 +458,39 @@ describe("breadcrumbJsonLd", () => {
         item: park.url,
       },
     ]);
+  });
+});
+
+describe("articleJsonLd", () => {
+  const guide = {
+    headline: "How to play kickball",
+    description: "The basics, in plain words.",
+    url: `${ORIGIN}/news/how-to-play-kickball`,
+    datePublished: new Date("2026-11-12T12:00:00Z"),
+  };
+
+  it("credits the league as author and publisher, with dated, absolute links", () => {
+    const data = articleJsonLd(guide, league);
+    expectValid(data);
+    expect(data).toMatchObject({
+      "@type": "Article",
+      headline: guide.headline,
+      mainEntityOfPage: guide.url,
+      datePublished: "2026-11-12T12:00:00.000Z",
+      about: { "@type": "Thing", name: "Kickball" },
+      author: { "@id": leagueId(league) },
+      publisher: { "@id": leagueId(league) },
+    });
+  });
+
+  it("leaves out dateModified until the article changes", () => {
+    expect(articleJsonLd(guide, league)).not.toHaveProperty("dateModified");
+    const edited = articleJsonLd(
+      { ...guide, dateModified: new Date("2027-03-01T12:00:00Z") },
+      league,
+    );
+    expectValid(edited);
+    expect(edited.dateModified).toBe("2027-03-01T12:00:00.000Z");
   });
 });
 
