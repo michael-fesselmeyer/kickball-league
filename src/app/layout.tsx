@@ -5,6 +5,7 @@ import { DemoBanner } from "@/components/demo-banner";
 import { Kickball } from "@/components/kickball";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { env } from "@/env";
+import { registerWorkerScript } from "@/lib/pwa/install";
 import { appIconPath } from "@/lib/pwa/icons";
 import { THEME_COLORS } from "@/lib/pwa/theme-colors";
 import { isIndexable, SITE, siteOrigin } from "@/lib/site";
@@ -64,6 +65,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: applySavedThemeScript }} />
+        {process.env.NODE_ENV === "production" && (
+          // The service worker runs in production builds only, so it never
+          // serves a stale file during development.
+          <script dangerouslySetInnerHTML={{ __html: registerWorkerScript }} />
+        )}
       </head>
       <body className="flex min-h-full flex-col">
         <DemoBanner />
