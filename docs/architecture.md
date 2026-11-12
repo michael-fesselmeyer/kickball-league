@@ -210,7 +210,7 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Job | When | Does |
 |---|---|---|
 | Outbox sweep | Every minute | Sends due messages, retries failures |
-| Weather check | Two days and one day before each game day at 9:00 and 18:00; hourly on game day until the last slot | Fetches the forecast for each venue with games, stores a snapshot, alerts admins on "watch" or "likely" |
+| Rain alerts ✔ | Daily 18:00 (`/api/jobs/rain-alerts`); more often on Pro | Checks the forecast for each game day whose first game starts in the next 30 hours and alerts every admin on "watch" or "likely", once per level per game day |
 | Game reminders | Two days before game day, 18:00 | Reminds players of their next game and asks for an RSVP |
 | RSVP nudge | The day before game day, 12:00 | Nudges players who have not answered; tells captains where they stand |
 | Missing scores | Game days, every 30 minutes from the first slot until midnight | Reminds the ref 30 minutes after a slot ends, both captains (and co-captains) after 2 hours, once each. Games that ended more than two days ago stay on the admin scores list but are not emailed about |
@@ -254,7 +254,14 @@ Rules for every webhook:
 | Coverage | United States only | Global |
 | Weak spot | Occasional errors and slow responses; two-step lookup (point, then grid) | Not an official source; licensing |
 
-**Decision: NWS primary, Open-Meteo fallback**, both behind one `WeatherProvider` interface. NWS is free for a commercial league and is the source local news quotes; the fallback covers its outages. Responses are stored as `weather_snapshot` rows so pages never call the API directly.
+**Decision: NWS primary, Open-Meteo fallback.** NWS is free for a commercial league and is the source local news quotes; the fallback covers its outages. Built so far ✔ ([ADR 0005](adr/0005-weather-forecast-source.md)): NWS only, with responses held in the data cache rather than `weather_snapshot` rows, so pages still never call the API directly.
+
+How it is built:
+
+- **Client** (`src/services/weather.ts`): the point lookup, then the grid square's hourly forecast, with a `User-Agent` naming the site, a four-second timeout and schema checks. Failures are values.
+- **Cache** (`src/lib/weather.ts`): `'use cache'` functions, the grid square for weeks and the hourly forecast with the `hours` profile. A failure is thrown inside the cached function so it is not stored, and comes out as "no forecast".
+- **Game page chip** (`src/components/forecast-chip.tsx`): on scheduled games with a pinned park, the temperature at kickoff and the highest chance of rain during the game, streamed in its own Suspense boundary so the rest of the page never waits. Nothing shows when the forecast does not reach the game.
+- **Rain alerts** (`src/db/queries/rain-alerts.ts`, `/api/jobs/rain-alerts`): game days come from each season's published schedule. The forecast is read before the transaction, then one message per admin is queued with the dedupe key `rain-alert/<season>/<date>/<level>/<admin>`, so a watch can be followed by a likely alert but neither repeats, and a watch after a likely alert is skipped. The email links to `/app/admin/seasons/<season>/rainout?date=<date>`, which opens with that day's preview. The topic is `rainout`. Tested in `rain-alerts.db.test.ts` against a fixture; no test reaches the network.
 
 **Risk rule** (a pure function in `domain/weather`, evaluated over the hours when games are scheduled):
 
@@ -264,7 +271,7 @@ Rules for every webhook:
 | Watch | Any game hour with probability 40–69%, or at least half an inch of rain in the 12 hours before first pitch (wet fields) |
 | Low | Otherwise |
 
-Thresholds are season settings. The rule only recommends; an admin decides.
+Thresholds are season settings. The rule only recommends; an admin decides. Built so far ✔: the probability and thunderstorm parts, with the thresholds as constants in `src/domain/weather/forecast.ts`. The wet-field rule, severe-weather alerts and per-season thresholds come later.
 
 ## 8. Caching summary
 
@@ -272,6 +279,7 @@ Thresholds are season settings. The rule only recommends; an admin decides.
 |---|---|---|
 | CDN | Prerendered shells, images, fonts, OG images, ICS feeds | Until the tag is invalidated |
 | Data cache | Query functions marked `'use cache'` with tags | Minutes to days by `cacheLife`, and on demand by tag |
+| Forecasts ✔ | NWS grid square and hourly forecast, `'use cache'` | Grid square for weeks; forecast refreshed in the background after an hour |
 | Standings | Computed from games inside a cached function | Invalidated when any game in the season is finalized |
 | Live score JSON | CDN | About 5 seconds |
 | Browser | Service worker precache of the app shell and last-seen schedule (P2) | Updated on each visit |

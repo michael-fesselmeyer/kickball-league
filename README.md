@@ -19,6 +19,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - A season scheduler that turns permit windows into game slots, builds round-robin rounds, places games with a min-cost assignment and improves them with local search. It checks ten hard constraints and reports fairness metrics, and property tests cover it ([how it works](docs/scheduling-algorithm.md)).
 - Admins generate a draft, see why any game could not be placed, move or swap games by form, and publish. Each publish saves a version with a diff.
 - Rain-outs: pick a scope, preview the affected games and proposed makeups, and confirm. Each affected player is emailed their own game's new time, and nobody else hears about it.
+- Weather: upcoming game pages show the temperature at kickoff and the chance of rain from the National Weather Service, cached so pages never wait on it. About a day before each game day, admins get a "watch" or "likely" rain alert linking to the rain-out screen with that day chosen, once per level.
 - Playoffs: an admin seeds the bracket from the final standings with the configured tiebreakers, and the scheduler places every round on fields and times, top seeds getting byes when the field is uneven. It publishes as a schedule version like the regular season. Winners move on as soon as a playoff score is final, and the next game appears on the schedule in its reserved slot.
 
 **Registration and payment**
