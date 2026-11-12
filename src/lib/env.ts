@@ -55,6 +55,12 @@ export const envSchema = z.object({
       error: "must be a Stripe webhook signing secret (starts with whsec_)",
     })
     .optional(),
+  // Optional: Vercel Cron sends it as a bearer token. Without it the job
+  // routes refuse every call.
+  CRON_SECRET: z
+    .string()
+    .min(16, { error: "must be at least 16 characters" })
+    .optional(),
 });
 
 /** Google, email and Stripe each need both values; one without the other is a mistake. */
