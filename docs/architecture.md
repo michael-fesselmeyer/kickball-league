@@ -192,6 +192,15 @@ Anything that should happen after a change (an email, a text, a push) is a row i
 4. The worker claims rows with `select … for update skip locked`, applies consent, quiet hours, the monthly budget and the per-user cap, sends, and records the provider's ID, segments and cost.
 5. Failures retry with backoff up to five attempts, then stay `failed` and appear on the admin health card.
 
+How a message is never sent twice (`src/db/queries/outbox.ts`, tested in `outbox.db.test.ts`):
+
+- **Writing twice is a no-op.** Every row has a `dedupe_key` that names the notice (for example `payment-reminder/<registration>/7d`); a second insert with the same key is skipped.
+- **Claiming is one statement.** `update … where id in (select … for update skip locked)` moves due rows to `sending` with a five-minute claim and bumps `attempts`, so two workers running at once never claim the same row.
+- **Only the claim holder records the outcome.** The update that marks a row `sent` or schedules a retry matches on `status = 'sending'` and the `attempts` it claimed with.
+- **A stopped worker's rows are retried with the same key.** When a claim lapses, the next sweep claims the row again and sends it with the same `Idempotency-Key: message/<id>`, and the provider delivers it once.
+- Retries wait 1, 4, 16 and 64 minutes. A message that cannot be built (unknown template, payload that fails its schema) fails at once.
+- Without an email provider, development prints each email to the console; production leaves messages queued until one is configured.
+
 ### Scheduled jobs
 
 Times are Eastern. Schedules are written in UTC, so jobs that care about local time run at both candidate UTC hours and exit early when the local hour does not match; that survives daylight-saving changes.
@@ -214,6 +223,8 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Demo reset | Daily 4:00, demo deployment only | Restores seed data |
 
 Every job is a route handler under `/api/jobs/*` that checks an `Authorization: Bearer ${CRON_SECRET}` header ✔, is safe to run twice, and logs a heartbeat.
+
+While the project is on Vercel's Hobby plan, `vercel.json` schedules each job once a day, because Hobby refuses to deploy anything more frequent. Each job works out what is due from the data whenever it runs, so moving to Pro only means changing the schedules in `vercel.json` to the frequencies above; no code changes. Until then the outbox relies on `after()` for immediate sends and the daily sweep for retries.
 
 If orchestration grows beyond this (multi-step flows with waits), Vercel's Workflow and Queues products exist ✔ and Inngest is a common alternative. Nothing in the MVP or P2 needs them.
 
