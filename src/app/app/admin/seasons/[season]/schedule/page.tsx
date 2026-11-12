@@ -91,6 +91,9 @@ async function Schedule({
       <header className="flex flex-col gap-1">
         <p className="text-text-muted">{season.name}</p>
         <h1 className="text-h1">Schedule</h1>
+        <Link href={`/app/admin/seasons/${slug}/fields`} className="underline">
+          Fields, permits and slots
+        </Link>
         {versions.some((v) => v.status === "published") && (
           <Link
             href={`/app/admin/seasons/${slug}/rainout`}
