@@ -8,7 +8,7 @@ import {
   SEED_EMAIL_DOMAIN,
   TEAMS,
 } from "./generate";
-import { seededRandom } from "./random";
+import { seededRandom } from "@/domain/random";
 
 describe("seededRandom", () => {
   it("repeats exactly for the same seed and differs for another", () => {
