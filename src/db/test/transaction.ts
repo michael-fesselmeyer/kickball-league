@@ -1,4 +1,8 @@
+import { TransactionRollbackError } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool, type PoolClient } from "pg";
+import type { Db } from "../queries/schedule";
+import * as schema from "../schema";
 
 /** Raw SQL with positional parameters, inside the test's transaction. */
 export type Sql = (
@@ -59,6 +63,27 @@ export async function insert(
     Object.values(row),
   );
   return String(created?.id);
+}
+
+/**
+ * Runs `body` with a Drizzle transaction that is always rolled back. Query
+ * functions that open their own transaction get a savepoint inside it.
+ */
+export async function inRolledBackDb(
+  body: (db: Db) => Promise<void>,
+): Promise<void> {
+  const client: PoolClient = await pool.connect();
+  const db = drizzle({ client, schema, casing: "snake_case" });
+  try {
+    await db.transaction(async (tx) => {
+      await body(tx);
+      tx.rollback();
+    });
+  } catch (error) {
+    if (!(error instanceof TransactionRollbackError)) throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export const closePool = () => pool.end();
