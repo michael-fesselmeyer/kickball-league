@@ -1,4 +1,4 @@
-import { and, eq, inArray, max, sql } from "drizzle-orm";
+import { and, eq, inArray, max, ne, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type {
   GameId,
@@ -152,6 +152,7 @@ export async function saveVersion(
     origin,
     parentVersionId,
     createdBy,
+    playoffs,
   }: {
     seasonId: SeasonId;
     input: SchedulerInput;
@@ -159,6 +160,13 @@ export async function saveVersion(
     origin: "generated" | "manual_edit" | "rainout" | "playoffs";
     parentVersionId?: ScheduleVersionId;
     createdBy?: UserId;
+    /**
+     * Where the playoff games sit. Left out, they are carried over from the
+     * parent version, so editing the regular season never drops the
+     * bracket; a playoff game whose slot a regular game now takes is left
+     * unplaced.
+     */
+    playoffs?: PlayoffPlacement[];
   },
 ): Promise<ScheduleVersionId> {
   const rules: SchedulerInput =
@@ -189,6 +197,7 @@ export async function saveVersion(
       .returning({ id: scheduleVersion.id });
     const versionId = required(version, "schedule version").id;
 
+    // Playoff games are found through their bracket match, never by key.
     const existing = await tx
       .select({
         id: game.id,
@@ -197,7 +206,7 @@ export async function saveVersion(
         teamBId: game.teamBId,
       })
       .from(game)
-      .where(eq(game.seasonId, seasonId));
+      .where(and(eq(game.seasonId, seasonId), ne(game.kind, "playoff")));
     const byKey = new Map<string, GameId>();
     const remember = (g: (typeof existing)[number]) => {
       if (g.roundNo !== null)
@@ -236,6 +245,18 @@ export async function saveVersion(
           locked: g.slotId !== null && pins.get(g.key) === g.slotId,
         })),
       );
+    const taken = new Set(schedule.games.map((g) => g.slotId));
+    const carried =
+      playoffs ??
+      (parentVersionId ? await playoffPlacements(tx, parentVersionId) : []);
+    if (carried.length > 0)
+      await tx.insert(gamePlacement).values(
+        carried.map((p) => ({
+          scheduleVersionId: versionId,
+          gameId: p.gameId,
+          slotId: p.slotId !== null && taken.has(p.slotId) ? null : p.slotId,
+        })),
+      );
     await recordAudit(tx, {
       actorId: createdBy ?? null,
       action: "schedule.save_version",
@@ -258,10 +279,37 @@ export type StoredVersion = {
   versionNo: number;
   status: "draft" | "published" | "superseded";
   input: SchedulerInput;
+  /** The regular season; playoff games are in `playoffs`. */
   schedule: Schedule;
+  playoffs: PlayoffPlacement[];
 };
 
-/** Loads a version and rebuilds its schedule; byes are the teams without a game in a round. */
+/** Where a playoff game sits in a version. */
+export type PlayoffPlacement = { gameId: GameId; slotId: SlotId | null };
+
+/** The playoff games a version places, kept apart from the round robin. */
+export async function playoffPlacements(
+  db: Db,
+  versionId: ScheduleVersionId,
+): Promise<PlayoffPlacement[]> {
+  return db
+    .select({ gameId: gamePlacement.gameId, slotId: gamePlacement.slotId })
+    .from(gamePlacement)
+    .innerJoin(game, eq(gamePlacement.gameId, game.id))
+    .where(
+      and(
+        eq(gamePlacement.scheduleVersionId, versionId),
+        eq(game.kind, "playoff"),
+      ),
+    )
+    .orderBy(gamePlacement.gameId);
+}
+
+/**
+ * Loads a version and rebuilds its schedule; byes are the teams without a
+ * game in a round. Playoff games are listed apart, so the round-robin rules
+ * never judge a bracket.
+ */
 export async function loadVersion(
   db: Db,
   versionId: ScheduleVersionId,
@@ -280,7 +328,12 @@ export async function loadVersion(
     })
     .from(gamePlacement)
     .innerJoin(game, eq(gamePlacement.gameId, game.id))
-    .where(eq(gamePlacement.scheduleVersionId, versionId));
+    .where(
+      and(
+        eq(gamePlacement.scheduleVersionId, versionId),
+        ne(game.kind, "playoff"),
+      ),
+    );
 
   const input = version.inputSnapshot;
   const games = rows
@@ -316,6 +369,7 @@ export async function loadVersion(
       unplaced: games.filter((g) => g.slotId === null).map((g) => g.key),
       diagnostics: version.diagnostics,
     },
+    playoffs: await playoffPlacements(db, versionId),
   };
 }
 
@@ -335,7 +389,8 @@ export type Published = ScheduleDiff & { notified: number };
 export async function publishVersion(
   db: Db,
   versionId: ScheduleVersionId,
-  publishedBy: UserId,
+  /** Null when the league publishes on its own, as when a bracket advances. */
+  publishedBy: UserId | null,
   now: Date = new Date(),
 ): Promise<Result<Published, PublishError>> {
   return db.transaction(async (tx) => {
