@@ -108,10 +108,13 @@ generate(input):
   rng        = seededRng(input.seed)
   pools      = groupByDivision(input.teams)              // one pool if no divisions
   rounds     = for each pool: buildRounds(pool, input.rounds, rng)      // Stage A
-  days       = assignRoundsToDates(rounds, input)                        // Stage B
-  schedule   = constructPlacement(days, input)                           // Stage C1
+  repeat:                                                                // Stages B and C1
+    days     = assignRoundsToDates(rounds, input, caps, pinnedRounds)
+    schedule = constructPlacement(days, input)
+    if a multi-round date stranded a game: cap that date at one round fewer
+  until no cap changes; keep the attempt that placed the most games
   schedule   = localSearch(schedule, input, rng)                         // Stage C2
-  assert validate(input, schedule) is empty                              // Stage D
+  report validate(input, schedule) in diagnostics                        // Stage D
   return schedule
 ```
 
@@ -153,7 +156,9 @@ assignRoundsToDates(rounds, input):
   for date in dates:
     capacity = regularSlots(date).count − input.reservePerDay
     gamesPerRound = floor(teamCount / 2)
-    roundsToday = min(input.gamesPerTeamPerDay, floor(capacity / gamesPerRound))
+    roundsToday = min(input.gamesPerTeamPerDay, caps[date], floor(capacity / gamesPerRound))
+    while roundsToday > 1 and some team cannot make a different time for each
+          of its games that day: roundsToday −= 1
     assign rounds r .. r + roundsToday − 1 to date
     r += roundsToday
     if r == rounds.length: break
@@ -162,6 +167,8 @@ assignRoundsToDates(rounds, input):
 ```
 
 The scheduler reports a shortfall with a reason. It never drops games silently.
+
+A round with a pinned game is played on the pin's date, and the other rounds fill the room left, so regenerating around an admin's pins rebuilds the same days for those rounds. `generate` also passes per-date caps: if a doubleheader date still strands a game in C1 (whether a day fits depends on every team's games together, which Stage B's per-team check cannot see), that date is capped at one round fewer and stages B and C1 run again. Caps only shrink, so this ends, and the attempt that placed the most games is kept. The property test P10 (more room never hurts) found both cases.
 
 On a doubleheader day two rounds share a date. Rounds within one cycle may be reordered without breaking H5; a later Stage C2 move can use that freedom to pair rounds that give short waits (S4).
 
@@ -179,7 +186,7 @@ placementCost(game, slot, countsSoFar):
   return cost
 ```
 
-Slots outnumber games, so the matrix is padded with zero-cost dummy games; whichever slots receive dummies stay empty and become that day's reserve. With one game per team per day, the per-day assignment is optimal for these costs. With doubleheaders, a team's two games must not share a time index (H2), which the assignment cannot express, so C1 places the first round by assignment, then the second round by assignment over the remaining slots with conflicting slots priced at infinity.
+Slots outnumber games, so the matrix is padded with zero-cost dummy games; whichever slots receive dummies stay empty and become that day's reserve. With one game per team per day, the per-day assignment is optimal for these costs. With doubleheaders, a team's two games must not share a time index (H2), which the assignment cannot express, so C1 places the first round by assignment, then the second round by assignment over the remaining slots with conflicting slots priced at infinity. That can strand a game: the first round may take the only times a later game's teams could both make. When it does, C1 retries the day with its times split between the two rounds (every split, keeping the one that strands the fewest games), which cannot double-book a team.
 
 ### Stage C2: local search over the whole season
 
