@@ -27,7 +27,7 @@ Each question lists what the design assumes until it is answered, so nothing her
 | 3 | How are nonbinary players counted under the "at most 6 of any gender on the field" and "no more than 2 of the same gender kick in a row" rules? | The player chooses which group they count with; the choice is visible only to their captain and admins | Owners | pitch |
 | 4 | Is a 6-and-1 lineup legal? The rulebook lists 4-and-5 and 4-and-3 as the short-handed options but states only "at most 6 of any gender" and "at least 7 total" | Legal. The warning says "check with the ref" for anything outside the listed combinations | Owners | pitch |
 | 5 | Summer doubleheaders: does every team play two games back to back each Sunday? How long is a summer slot? | Yes; 5 innings in a 60-minute slot | You | now |
-| 6 | What are the standings tiebreakers and the playoff format (how many teams qualify, one day or two)? | Win percentage with a tie as half a win; then head-to-head; then run difference capped at 10 a game; then runs allowed; then coin flip. Top 8 (or all teams if fewer), single elimination, one day | Owners | pitch |
+| 6 | What are the standings tiebreakers and the playoff format (how many teams qualify, one day or two)? | Win percentage with a tie as half a win; then head-to-head; then run difference capped at 10 a game; then runs allowed; then coin flip. A forfeit counts as a win and a loss with no runs. Top 8 (or all teams if fewer), single elimination, one day | Owners | pitch |
 | 7 | Who are the decision-makers, and when can you get a meeting? | A pitch the week of February 8, 2027 | You | now |
 
 ## 2. Money and legal (owners)
