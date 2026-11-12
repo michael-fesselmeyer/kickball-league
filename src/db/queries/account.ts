@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import type { UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { auditLog } from "../schema/audit";
@@ -17,6 +17,7 @@ import {
 import { payment, purchase, purchaseItem } from "../schema/money";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
+import { subClaim, subRequest } from "../schema/subs";
 import {
   invite,
   registration,
@@ -26,6 +27,7 @@ import {
 } from "../schema/team";
 import { waiver, waiverSignature } from "../schema/waiver";
 import { recordAudit } from "./audit";
+import { withdrawSubClaim } from "./subs";
 import type { Db } from "./schedule";
 
 /**
@@ -238,6 +240,30 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .where(eq(refereeAssignment.userId, userId))
     .orderBy(asc(refereeAssignment.offeredAt));
 
+  const subClaims = await db
+    .select({
+      gameId: subRequest.gameId,
+      status: subClaim.status,
+      lineupGender: subClaim.lineupGender,
+      claimedAt: subClaim.claimedAt,
+      decidedAt: subClaim.decidedAt,
+    })
+    .from(subClaim)
+    .innerJoin(subRequest, eq(subClaim.subRequestId, subRequest.id))
+    .where(eq(subClaim.userId, userId))
+    .orderBy(asc(subClaim.claimedAt));
+  const subRequestsPosted = await db
+    .select({
+      gameId: subRequest.gameId,
+      needed: subRequest.needed,
+      note: subRequest.note,
+      status: subRequest.status,
+      createdAt: subRequest.createdAt,
+    })
+    .from(subRequest)
+    .where(eq(subRequest.requestedBy, userId))
+    .orderBy(asc(subRequest.createdAt));
+
   const emailSettings = await db
     .select({
       topic: notificationPreference.topic,
@@ -311,6 +337,8 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     scoresReported,
     scoreAnswers,
     refereeAssignments: refereeing,
+    subClaims,
+    subRequestsPosted,
     emailSettings,
     messages,
     announcementsSent,
@@ -380,6 +408,9 @@ export type DeleteError = "not_found" | DeleteBlocker["reason"];
  * Removed: the profile (name, phone, gender, shirt size, birth date,
  * emergency contact), every session and sign-in method, pending sign-in
  * links, RSVPs, email settings and messages, and their address on invites.
+ * Sub claims for games still to come are withdrawn, which reopens the spot
+ * and tells the captains; past claims stay as history without the copied
+ * lineup gender.
  * The user row stays, renamed and with an address that cannot receive
  * mail, so registrations, rosters, scores, payments, waiver signatures and
  * the audit log keep pointing at it.
@@ -387,6 +418,7 @@ export type DeleteError = "not_found" | DeleteBlocker["reason"];
 export async function deleteAccount(
   db: Db,
   userId: UserId,
+  now: Date,
 ): Promise<Result<void, DeleteError>> {
   const [person] = await db
     .select({ email: user.email })
@@ -395,6 +427,27 @@ export async function deleteAccount(
   if (!person) return err("not_found");
   const blocker = await deleteBlocker(db, userId);
   if (blocker) return err(blocker.reason);
+
+  // Withdraw live claims first, while the captains' notice can still name
+  // the player.
+  const live = await db
+    .select({ requestId: subClaim.subRequestId })
+    .from(subClaim)
+    .innerJoin(subRequest, eq(subClaim.subRequestId, subRequest.id))
+    .where(
+      and(
+        eq(subClaim.userId, userId),
+        inArray(subClaim.status, ["pending", "approved"]),
+        ne(subRequest.status, "cancelled"),
+        gt(subRequest.closesAt, now),
+      ),
+    );
+  for (const { requestId } of live)
+    await withdrawSubClaim(db, { requestId, userId, now });
+  await db
+    .update(subClaim)
+    .set({ lineupGender: null })
+    .where(eq(subClaim.userId, userId));
 
   await db.delete(session).where(eq(session.userId, userId));
   await db.delete(account).where(eq(account.userId, userId));
