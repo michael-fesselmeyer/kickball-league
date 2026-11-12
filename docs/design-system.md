@@ -18,7 +18,9 @@ Three directions were considered:
 
 **Decision: A, Sunday League.** Navy and red are already the league's colors, so the owners will recognize their league in the demo; cream and navy hold contrast in full sun on a phone at the field; and the scoreboard motif gives the animations a reason to exist. Option B's dark-first look survives as the dark theme. Option C's warmth is borrowed for event and sponsor pages through photography.
 
-**Voice.** Plain, warm, brief. Say what happens next. "Your spot isn't confirmed until you pay your share" is better than "Payment pending". A joke is welcome in an empty state and never in an error.
+**Personality (updated 2026-11-12, [ADR 0002](adr/0002-playful-brand-personality.md)).** The first build of direction A read as corporate. This is a social league: fun, meeting people, maybe a drink after. The system above stays (tokens, contrast, the league's navy and red); the personality loosens: a friendlier display face, pill buttons, tilted "stickers" on the golden highlight with a hard offset shadow, and highlighter swipes on key words. The dark theme leans into Option B's night-game feel.
+
+**Voice.** Casual, warm, brief. Say what happens next. "Your spot isn't confirmed until you pay your share" is better than "Payment pending". A joke is welcome on happy paths, confirmations and empty states, and never in an error, a payment, a waiver or anything legal. Nothing implies drinking is expected: "a drink (or a seltzer)" is the tone.
 
 ## 2. Color
 
@@ -82,7 +84,7 @@ Two families, both variable fonts, self-hosted through `next/font` with `display
 
 | Role | Family | Why |
 |---|---|---|
-| Display | **Archivo** (variable weight and width) | The width axis gives one family both a wide, athletic headline and a condensed scoreboard face |
+| Display | **Bricolage Grotesque** (variable optical size, width and weight) | Friendly and a little quirky without hurting legibility; the width axis still gives a condensed scoreboard face. Replaced Archivo, which read too corporate ([ADR 0002](adr/0002-playful-brand-personality.md)) |
 | Text and UI | **Inter** | Highly legible at small sizes on phones; tabular numerals for scores and tables |
 
 ### Scale
@@ -100,7 +102,7 @@ Fluid between a 360px and a 1280px viewport using `clamp()`. Sizes in rem.
 | `small` | 0.875 | 0.875 | 1.45 | Captions, table cells |
 | `micro` | 0.75 | 0.75 | 1.4 | Labels in uppercase with letter spacing; never for sentences |
 
-- Display and headings: Archivo at weight 800, width 110–125. Scores: Archivo at width 75 with tabular numerals.
+- Display and headings: Bricolage Grotesque at weight 800, slightly tight letter spacing. Scores: Bricolage at width 75 with tabular numerals.
 - Line length is capped at about 70 characters for prose.
 - Text can be zoomed to 200% without loss of content, and layouts reflow at a 320px width.
 
@@ -109,9 +111,9 @@ Fluid between a 360px and a 1280px viewport using `clamp()`. Sizes in rem.
 | Token group | Values |
 |---|---|
 | Spacing | A 4px base: 4, 8, 12, 16, 24, 32, 48, 64, 96 |
-| Radius | 6px for inputs and chips, 12px for cards, 20px for sheets, full for badges and pills |
+| Radius | 6px for inputs and chips, 12px for cards, 20px for sheets, full for buttons, badges and stickers |
 | Border | 1px by default; 2px for selected or active |
-| Shadow | Two levels only: a soft card shadow and a sheet shadow. Dark theme replaces shadow with a lighter surface |
+| Shadow | A soft card shadow, a sheet shadow, and a hard offset "sticker" shadow (3px, no blur, in `--text`) for stickers and primary buttons. Dark theme replaces soft shadows with a lighter surface; the sticker shadow stays |
 | Breakpoints | `sm` 480, `md` 768, `lg` 1024, `xl` 1280. Styles are written for phones first and widened |
 | Grid | 4 columns under `md`, 8 at `md`, 12 at `lg`; a 16px gutter on phones and 24px above |
 | Touch targets | At least 44 by 44 CSS pixels (WCAG 2.2 asks for 24); 8px minimum between adjacent targets |
@@ -233,10 +235,10 @@ Until a real logo is uploaded, each slot renders a generated badge, as an inline
 
 | Slot | Placeholder |
 |---|---|
-| League mark | A pennant shape in `--brand` with the league's initials (up to 3 letters) in `--on-brand`, Archivo wide |
-| League wordmark | The league name set in Archivo wide, with the pennant mark to its left |
+| League mark | A pennant shape in `--brand` with the league's initials (up to 3 letters) in `--on-brand`, in the display face |
+| League wordmark | The league name in the display face, with the pennant mark to its left |
 | Team logo | A circle filled with the team color, initials from the team name (first letters of up to two words), and a thin inner ring. If the team has no color, one is picked from a set of 12 curated hues by hashing the team name, so it is stable |
-| Sponsor logo | A rounded rectangle in `--surface-2` with the sponsor's name in Archivo and a small "Sponsor" label |
+| Sponsor logo | A rounded rectangle in `--surface-2` with the sponsor's name in the display face and a small "Sponsor" label |
 | Avatar | A circle with the person's initials on a neutral tint |
 | Cover image | A subtle diagonal chalk-stripe pattern in the brand color with the title set over it |
 
