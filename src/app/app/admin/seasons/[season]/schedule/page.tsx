@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
@@ -90,11 +91,25 @@ async function Schedule({
       <header className="flex flex-col gap-1">
         <p className="text-text-muted">{season.name}</p>
         <h1 className="text-h1">Schedule</h1>
+        {versions.some((v) => v.status === "published") && (
+          <Link
+            href={`/app/admin/seasons/${slug}/rainout`}
+            className="underline"
+          >
+            Call a rain-out
+          </Link>
+        )}
       </header>
 
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
           {error}
+        </p>
+      )}
+      {query.rainout && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          Rain-out saved as a draft with the makeups. Publish it to make it
+          live.
         </p>
       )}
       {query.edited && (
@@ -305,6 +320,7 @@ async function Schedule({
                 className="rounded-md border border-border bg-surface px-2 py-1"
               >
                 {[...labels.slots]
+                  .filter(([, where]) => !where.cancelled)
                   .sort(
                     ([, a], [, b]) =>
                       a.startsAt.getTime() - b.startsAt.getTime(),
