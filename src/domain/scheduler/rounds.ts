@@ -17,9 +17,10 @@ type Seat = string | typeof BYE;
  *
  * One cycle is a complete round-robin, so playing cycles in order means no
  * pair meets twice before every pair has met once (H5). A BYE seat gives odd
- * team counts one bye per round, spread evenly (H7). Alternate cycles are
- * mirrored to space rematches as far apart as possible (S7). The seed only
- * decides who sits where.
+ * team counts one bye per round, spread evenly (H7). Later cycles repeat the
+ * first in the same order, so every rematch is a full cycle after the first
+ * meeting (S7); alternate cycles swap home and away. The seed only decides
+ * who sits where.
  */
 export function buildRounds(
   teamIds: readonly string[],
@@ -49,12 +50,11 @@ export function buildRounds(
 
   const result: Round[] = [];
   for (let c = 0; result.length < roundsWanted; c++) {
-    const thisCycle = c % 2 === 0 ? cycle : [...cycle].reverse();
-    for (const round of thisCycle) {
+    for (const round of cycle) {
       if (result.length === roundsWanted) break;
       result.push({
         round: result.length + 1,
-        games: round.games,
+        games: c % 2 === 0 ? round.games : round.games.map(([a, b]) => [b, a]),
         bye: round.bye,
       });
     }
