@@ -105,8 +105,8 @@ async function Account() {
         Your profile
       </Link>
       {isAdmin && (
-        <Link href="/app/admin/seasons" className="btn btn-primary">
-          Manage seasons
+        <Link href="/app/admin" className="btn btn-primary">
+          League admin
         </Link>
       )}
       <form action={signOut}>
