@@ -224,6 +224,7 @@ export async function acceptInvite(
 export async function rosterBoard(db: Db, teamSeasonId: TeamSeasonId) {
   const rows = await db
     .select({
+      registrationId: registration.id,
       userId: registration.userId,
       firstName: profile.firstName,
       lastName: profile.lastName,
@@ -249,6 +250,7 @@ export async function rosterBoard(db: Db, teamSeasonId: TeamSeasonId) {
   const order = { captain: 0, co_captain: 1, player: 2 };
   return rows
     .map((r) => ({
+      registrationId: r.registrationId,
       userId: r.userId,
       name:
         r.firstName && r.lastName

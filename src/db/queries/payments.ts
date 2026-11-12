@@ -9,6 +9,7 @@ import type {
 } from "@/domain/ids";
 import type { CheckoutItem } from "@/domain/registration/checkout";
 import { payment, purchase, purchaseItem, webhookEvent } from "../schema/money";
+import { recordAudit } from "./audit";
 import { registration, rosterMembership, teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
 import { required } from "./rows";
@@ -190,23 +191,50 @@ async function markPaid(
   session: z.infer<typeof sessionEvent>["data"]["object"],
   now: Date,
 ) {
-  await db
-    .update(purchase)
-    .set({ status: "paid" })
-    .where(eq(purchase.id, purchaseId));
   const intent =
     typeof session.payment_intent === "string"
       ? session.payment_intent
       : (session.payment_intent?.id ?? `session:${session.id}`);
+  await settlePurchase(db, purchaseId, {
+    method: "stripe",
+    stripePaymentIntentId: intent,
+    amountCents: session.amount_total ?? 0,
+    paidAt: now,
+  });
+}
+
+type PaymentRecord =
+  | {
+      method: "stripe";
+      stripePaymentIntentId: string;
+      amountCents: number;
+      paidAt: Date;
+    }
+  | {
+      method: OffAppMethod;
+      note: string | null;
+      recordedBy: UserId;
+      amountCents: number;
+      paidAt: Date;
+    };
+
+/**
+ * Marks a purchase paid, records the payment, activates the registrations it
+ * paid for, and confirms a team whose whole fee was paid. Stripe payments and
+ * off-app payments settle the same way.
+ */
+async function settlePurchase(
+  db: Db,
+  purchaseId: PurchaseId,
+  record: PaymentRecord,
+) {
+  await db
+    .update(purchase)
+    .set({ status: "paid" })
+    .where(eq(purchase.id, purchaseId));
   await db
     .insert(payment)
-    .values({
-      purchaseId,
-      stripePaymentIntentId: intent,
-      amountCents: session.amount_total ?? 0,
-      status: "succeeded",
-      paidAt: now,
-    })
+    .values({ purchaseId, status: "succeeded", ...record })
     .onConflictDoNothing();
   const items = await db
     .select({
@@ -303,4 +331,49 @@ export async function purchaseStatus(db: Db, id: PurchaseId) {
     .from(purchase)
     .where(eq(purchase.id, id));
   return found ?? null;
+}
+
+export const OFF_APP_METHODS = ["cash", "venmo", "other"] as const;
+export type OffAppMethod = (typeof OFF_APP_METHODS)[number];
+
+/**
+ * Records money paid outside the app, such as cash at the field or Venmo to
+ * the captain (product-spec.md, section 9). It settles exactly like a Stripe
+ * payment, so the registration is paid up and nobody is chased twice.
+ */
+export async function recordOffAppPayment(
+  db: Db,
+  input: {
+    userId: UserId;
+    seasonId: SeasonId;
+    registrationId: RegistrationId;
+    items: CheckoutItem[];
+    method: OffAppMethod;
+    note: string;
+    actorId: UserId;
+    now: Date;
+  },
+): Promise<PurchaseId> {
+  const purchaseId = await createPurchase(db, {
+    userId: input.userId,
+    seasonId: input.seasonId,
+    items: input.items,
+  });
+  const amountCents = input.items.reduce((sum, i) => sum + i.amountCents, 0);
+  const note = input.note.trim().slice(0, 200) || null;
+  await settlePurchase(db, purchaseId, {
+    method: input.method,
+    note,
+    recordedBy: input.actorId,
+    amountCents,
+    paidAt: input.now,
+  });
+  await recordAudit(db, {
+    actorId: input.actorId,
+    action: "payment.record_offline",
+    entityType: "registration",
+    entityId: input.registrationId,
+    after: { purchaseId, method: input.method, amountCents, note },
+  });
+  return purchaseId;
 }
