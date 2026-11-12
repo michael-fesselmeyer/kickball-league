@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { GameId, SeasonId, TeamSeasonId, UserId } from "@/domain/ids";
+import type { GameId } from "@/domain/ids";
 import { generate } from "@/domain/scheduler/generate";
 import { user } from "../schema/auth";
 import { field, game, slot, venue } from "../schema/game";
@@ -100,15 +100,13 @@ async function world(db: Db, n = 8) {
       })),
     )
     .returning({ id: team.id });
-  await db
-    .insert(teamSeason)
-    .values(
-      teams.map((t) => ({
-        teamId: t.id,
-        seasonId,
-        status: "confirmed" as const,
-      })),
-    );
+  await db.insert(teamSeason).values(
+    teams.map((t) => ({
+      teamId: t.id,
+      seasonId,
+      status: "confirmed" as const,
+    })),
+  );
 
   // One regular round on the first Sunday, published and played.
   const input = await loadSchedulerInput(db, seasonId, {
@@ -141,7 +139,7 @@ async function world(db: Db, n = 8) {
         finalizedAt: new Date("2027-04-04T20:00:00Z"),
       })
       .where(eq(game.id, g.id));
-  return { adminId: admin!.id as UserId, seasonId: seasonId as SeasonId };
+  return { adminId: admin!.id, seasonId };
 }
 
 type World = Awaited<ReturnType<typeof world>>;
@@ -491,7 +489,7 @@ describe("advancing winners", () => {
         .select({ teamBId: game.teamBId })
         .from(game)
         .where(eq(game.id, semi.gameId!));
-      expect(semiGame!.teamBId).toBe(first.teamB!.id as TeamSeasonId);
+      expect(semiGame!.teamBId).toBe(first.teamB!.id);
     }));
 
   it("ignores games outside a bracket", () =>
