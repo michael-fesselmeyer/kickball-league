@@ -112,11 +112,13 @@ async function Season({
   return (
     <>
       {header}
-      {query.registered && (
+      {(query.registered || query.joined) && (
         <p role="status" className="rounded-lg border border-success p-3">
-          {query.registered === "team"
-            ? "Your team is registered. Next, sign the waiver."
-            : "You're in the free-agent pool. Next, sign the waiver."}
+          {query.joined
+            ? `You're on ${mine.team?.teamName ?? "the team"}. Next, sign the waiver.`
+            : query.registered === "team"
+              ? "Your team is registered. Next, invite your players and sign the waiver."
+              : "You're in the free-agent pool. Next, sign the waiver."}
         </p>
       )}
       <ol className="flex flex-col">
@@ -128,14 +130,18 @@ async function Season({
               : "Registered as a free agent"
           }
         >
-          {mine.team?.role === "captain" &&
-            mine.team.paymentMode === "split" && (
-              <p className="text-text-muted">
-                Each player pays a fixed{" "}
-                {formatCents(mine.team.shareCents ?? 0)}. Inviting players comes
-                next.
-              </p>
-            )}
+          {mine.team?.paymentMode === "split" && (
+            <p className="text-text-muted">
+              Each player pays a fixed {formatCents(mine.team.shareCents ?? 0)}.
+            </p>
+          )}
+          {mine.team && (
+            <Link href={`/app/seasons/${slug}/team`} className="underline">
+              {mine.team.role === "player"
+                ? "See your team"
+                : "Invite players and see your roster"}
+            </Link>
+          )}
         </Step>
         <Step done={signed} title="Sign the waiver">
           {!signed && (
