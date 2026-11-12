@@ -7,7 +7,9 @@
 #
 # Inputs (environment): BASE_SHA, HEAD_SHA, BRANCH, PR_TITLE, PR_BODY, and
 # optionally BLOCKED_TERMS, an extended regular expression (for example
-# `one|two|three`) kept in a repository variable rather than in this file.
+# `one|two|three`). It is kept in a repository secret, not in this file and
+# not in a repository variable: Actions prints a step's environment in its
+# log, and only secrets are masked there.
 set -euo pipefail
 
 : "${BASE_SHA:?BASE_SHA is required}"
@@ -52,7 +54,9 @@ while IFS= read -r email; do
 done < <(git log --format='%ae' "$range")
 
 # No attribution lines in commits or pull request text.
-attribution='^[[:space:]]*co-authored-by:|generated with'
+# Match whole attribution lines, not prose that mentions them: a trailer, or
+# a line that opens with "generated with" after any emoji or punctuation.
+attribution='^[[:space:]]*co-authored-by:|^[^[:alnum:]]*generated with'
 if grep -qiE "$attribution" <<<"$messages"; then
   fail "A commit message contains a co-author trailer or a 'generated with' line."
 fi
@@ -60,11 +64,11 @@ if grep -qiE "$attribution" <<<"$pr_text"; then
   fail "The pull request title or description contains a co-author trailer or a 'generated with' line."
 fi
 
-# Blocked terms, from a repository variable so this file does not list them.
+# Blocked terms, from a repository secret so this file does not list them.
 if [ "$dependabot" = true ]; then
   :
 elif [ -z "${BLOCKED_TERMS:-}" ]; then
-  echo "::warning::The BLOCKED_TERMS repository variable is not set, so blocked terms were not checked."
+  echo "::warning::The BLOCKED_TERMS secret is not available, so blocked terms were not checked."
 else
   if grep -qiE "$BLOCKED_TERMS" <<<"$BRANCH"; then
     fail "The branch name contains a blocked term."
