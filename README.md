@@ -2,20 +2,52 @@
 
 > Software to run a recreational adult kickball league: registration and payment, waivers, a fair season schedule, game-day scores and rain-outs, built first for a Brooklyn league of 8 to 12 teams.
 
-**Live:** [kickball-league.vercel.app](https://kickball-league.vercel.app) · **Status:** Phase 0, foundation (free-tier hosting, see [ADR 0003](docs/adr/0003-free-hosting-and-secrets.md))
+**Live:** [kickball-league.vercel.app](https://kickball-league.vercel.app) · **Status:** season core in progress. Scheduling, registration, game day and the admin tools work; card payments and email are built but stay off until their accounts are configured (free-tier hosting, see [ADR 0003](docs/adr/0003-free-hosting-and-secrets.md))
 
 ## Why this exists
 
 Adult rec leagues run on a patchwork: a registration form, a payment link, a PDF rulebook, a spreadsheet schedule and a group chat. Captains chase teammates for money, admins rebuild the schedule by hand every time it rains, and nobody can find the standings. This project replaces that patchwork with one site a player can use from their phone at the field.
 
-The first deployment targets a real Brooklyn league that plays in McCarren Park: weeknight evenings in spring and fall, Sunday afternoons in summer. It is also a portfolio project, so the design decisions, tests and history are written to be read.
+The first deployment targets a real Brooklyn league that plays in McCarren Park: weeknight evenings in spring and fall, Sunday afternoons in summer. The design decisions, tests and history are written to be read.
 
 ## Features
 
-The build is under way; see the [roadmap](docs/roadmap.md) for what comes next.
+What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next.
 
-- **Public schedule, team and game pages.** Anyone can see the season schedule (filter by team), each team's record, next game, results and roster (first name and last initial), and each game's time, field and score. Pages read only the published schedule version, never a draft.
-- **Team calendar feeds.** Every team has an `.ics` feed that Apple Calendar, Google Calendar and Outlook can subscribe to. Times carry the league's time zone, and moved or rained-out games update in place.
+**Scheduling**
+
+- A season scheduler that turns permit windows into game slots, builds round-robin rounds, places games with a min-cost assignment and improves them with local search. It checks ten hard constraints and reports fairness metrics, and property tests cover it ([how it works](docs/scheduling-algorithm.md)).
+- Admins generate a draft, see why any game could not be placed, move or swap games by form, and publish. Each publish saves a version with a diff.
+- Rain-outs: pick a scope, preview the affected games and proposed makeups, and save them.
+- Playoff bracket placement.
+
+**Registration and payment**
+
+- Player profiles with an 18+ check, and versioned waivers signed before payment.
+- Team registration with full or split pay, invite links, and a roster board showing who has joined, signed and paid. Free agents register solo and admins place them on teams.
+- Stripe Checkout with an idempotent webhook (test mode, on once keys are set), plus cash or Venmo payments recorded by admins and captains.
+
+**Game day**
+
+- Refs see their assigned games and enter scores from their phone. Captains confirm or dispute, and undisputed scores become final.
+- Players answer in, out or maybe, and captains see a warning when the fielding rule is at risk.
+- Public standings with the configured tiebreakers.
+
+**Messaging**
+
+- A transactional outbox: messages are written with the change that caused them, failed sends retry, and nothing sends twice.
+- League and team announcements, with per-person email settings.
+- Payment reminders 7, 3 and 1 days before the deadline, and missing-score reminders to the ref and then the captains.
+
+**Admin**
+
+- Season setup, fields, permits and blackout dates.
+- A dashboard for the next game day: games, refs, RSVP warnings, missing scores, and registrations, payments and waivers by team.
+- An audit log of admin actions, and a permissions matrix enforced by one tested function.
+
+**Sign-in**
+
+- Email links and, when configured, Google.
 
 ## Design documents
 
@@ -33,9 +65,9 @@ The build is under way; see the [roadmap](docs/roadmap.md) for what comes next.
 
 ## Tech stack
 
-Next.js 16 (App Router, Cache Components) · React 19 · TypeScript (strict) · Tailwind CSS v4 · Vitest · GitHub Actions
+Next.js 16 (App Router, Cache Components) · React 19 · TypeScript (strict) · Tailwind CSS v4 · Drizzle on Neon Postgres · Better Auth · Stripe · Resend · Vercel (with cron jobs)
 
-Planned in Phase 0: Drizzle on Neon Postgres, Better Auth, Playwright, Lighthouse CI, Vercel.
+Quality: Vitest (unit, property and database tests) · Playwright with axe · Lighthouse CI · gitleaks secret scanning · GitHub Actions
 
 ## Getting started
 
@@ -103,7 +135,7 @@ npm run dev
 
 ## How changes land
 
-Every change starts as an issue sized to 30–60 minutes, gets its own branch (`<issue>-<slug>`) and reaches `main` through a pull request that is rebase-merged, so each small commit stays in the history. `main` is protected by the ruleset in [`.github/rulesets/main.json`](.github/rulesets/main.json): pull request required, CI must pass on an up-to-date branch, linear history, no force-pushes or deletion. To apply a change to it:
+Every change starts as an issue sized to 30–60 minutes, gets its own branch (`<issue>-<slug>`) and reaches `main` through a pull request that is rebase-merged, so each small commit stays in the history. Several changes are often built at once, each in its own worktree; the rules that keep them from colliding are in [`AGENTS.md`](AGENTS.md#working-in-parallel). `main` is protected by the ruleset in [`.github/rulesets/main.json`](.github/rulesets/main.json): pull request required, CI must pass on an up-to-date branch, linear history, no force-pushes or deletion. To apply a change to it:
 
 ```bash
 gh api -X PUT repos/michael-fesselmeyer/kickball-league/rulesets/<id> --input .github/rulesets/main.json
