@@ -47,11 +47,27 @@ export function metricRows(metrics: Metrics): MetricRow[] {
       best: null,
     },
     { label: "Bye balance", metric: metrics.byeBalance, best: null },
+    ...preferencesRow(metrics.preferencesHonored),
     { label: "Unplaced games", metric: metrics.unplaced, best: null },
     {
       label: "Makeup slots left",
       metric: metrics.reserveRemaining,
       best: null,
+    },
+  ];
+}
+
+/** Shown only when teams sent preferences: the share met, as a whole percent. */
+function preferencesRow(honored: Metrics["preferencesHonored"]): MetricRow[] {
+  if (honored.value === null) return [];
+  return [
+    {
+      label: "Preferences honored (%)",
+      metric: {
+        value: Math.round(honored.value * 100),
+        status: honored.status,
+      },
+      best: 100,
     },
   ];
 }
