@@ -26,7 +26,18 @@ export type CostContext = {
   dates: string[];
   position: Map<string, Position>;
   preferences: Map<string, TeamConstraint[]>;
+  /** Reused between calls, so pricing a team allocates nothing. */
+  scratch: {
+    byTime: Int32Array;
+    byField: Int32Array;
+    run: Int32Array;
+    /** Per date, a bit for each time index the team plays at. */
+    dayMask: Int32Array;
+  };
 };
+
+/** Time indexes per date are kept as bits in a 32-bit mask. */
+const MAX_TIME_INDEXES = 30;
 
 export function costContext(input: SchedulerInput): CostContext {
   const season = input.slots.filter((s) => s.kind !== "playoff");
@@ -51,7 +62,22 @@ export function costContext(input: SchedulerInput): CostContext {
     if (c.kind === "unavailable") continue;
     preferences.set(c.teamId, [...(preferences.get(c.teamId) ?? []), c]);
   }
-  return { input, timeIndexes, fields, dates, position, preferences };
+  if (timeIndexes.length > MAX_TIME_INDEXES)
+    throw new Error(`At most ${MAX_TIME_INDEXES} game slots a day per field`);
+  return {
+    input,
+    timeIndexes,
+    fields,
+    dates,
+    position,
+    preferences,
+    scratch: {
+      byTime: new Int32Array(timeIndexes.length),
+      byField: new Int32Array(fields.length),
+      run: new Int32Array(timeIndexes.length),
+      dayMask: new Int32Array(dates.length),
+    },
+  };
 }
 
 function balancePenalty(counts: Int32Array): number {
@@ -66,9 +92,6 @@ function balancePenalty(counts: Int32Array): number {
   return excess > 0 ? excess * excess : 0;
 }
 
-const byDayThenTime = (a: Position, b: Position) =>
-  a.day - b.day || a.time - b.time;
-
 /** S1, S2, S3, S4, S6 and S9 for one team, given where it plays. */
 export function teamCostAt(
   ctx: CostContext,
@@ -77,11 +100,15 @@ export function teamCostAt(
 ): number {
   const w = ctx.input.weights;
   const k = ctx.timeIndexes.length;
-  const byTime = new Int32Array(k);
-  const byField = new Int32Array(ctx.fields.length);
+  const { byTime, byField, run, dayMask } = ctx.scratch;
+  byTime.fill(0);
+  byField.fill(0);
+  run.fill(0);
+  dayMask.fill(0);
   for (const p of games) {
     byTime[p.time] = (byTime[p.time] as number) + 1;
     byField[p.field] = (byField[p.field] as number) + 1;
+    dayMask[p.day] = (dayMask[p.day] as number) | (1 << p.time);
   }
   let cost =
     w.timeBalance * balancePenalty(byTime) +
@@ -93,29 +120,26 @@ export function teamCostAt(
     for (const count of byTime) cost += w.fineBalance * (count - ideal) ** 2;
   }
 
-  const ordered = games.length > 1 ? [...games].sort(byDayThenTime) : games;
-
-  // S3: each game day beyond 2 in a row at the same time index.
-  // S4: idle slots between a team's games on one day.
-  const run = new Int32Array(k);
-  for (let i = 0; i < ordered.length;) {
-    const day = (ordered[i] as Position).day;
-    let j = i;
-    const today = new Uint8Array(k);
-    while (j < ordered.length && (ordered[j] as Position).day === day) {
-      const p = ordered[j] as Position;
-      today[p.time] = 1;
-      if (j > i)
-        cost +=
-          w.doubleheaderWait *
-          (p.slot.timeIndex - (ordered[j - 1] as Position).slot.timeIndex - 1);
-      j++;
-    }
+  // Game days in date order. S3: each game day beyond 2 in a row at the
+  // same time index. S4: idle slots between a team's games on one day.
+  for (const mask of dayMask) {
+    if (mask === 0) continue;
+    let previous = -1;
     for (let t = 0; t < k; t++) {
-      run[t] = today[t] ? (run[t] as number) + 1 : 0;
-      if ((run[t] as number) > 2) cost += w.streaks;
+      if (mask & (1 << t)) {
+        run[t] = (run[t] as number) + 1;
+        if ((run[t] as number) > 2) cost += w.streaks;
+        if (previous >= 0)
+          cost +=
+            w.doubleheaderWait *
+            ((ctx.timeIndexes[t] as number) -
+              (ctx.timeIndexes[previous] as number) -
+              1);
+        previous = t;
+      } else {
+        run[t] = 0;
+      }
     }
-    i = j;
   }
 
   // S6: preferences not met, times their weight.
