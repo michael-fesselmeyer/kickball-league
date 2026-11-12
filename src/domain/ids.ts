@@ -25,3 +25,4 @@ export type BlackoutId = Brand<string, "BlackoutId">;
 export type TeamConstraintId = Brand<string, "TeamConstraintId">;
 export type ScheduleVersionId = Brand<string, "ScheduleVersionId">;
 export type GamePlacementId = Brand<string, "GamePlacementId">;
+export type AuditLogId = Brand<string, "AuditLogId">;
