@@ -1,0 +1,240 @@
+import { sql } from "drizzle-orm";
+import {
+  check,
+  index,
+  integer,
+  numeric,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  uuid,
+} from "drizzle-orm/pg-core";
+import type {
+  FieldId,
+  GameId,
+  LeagueId,
+  ScoreReportId,
+  SeasonId,
+  SlotId,
+  TeamSeasonId,
+  UserId,
+  VenueId,
+} from "@/domain/ids";
+import { user } from "./auth";
+import { league } from "./league";
+import { season } from "./season";
+import { teamSeason } from "./team";
+
+const audit = () => ({
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp({ withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+  createdBy: uuid()
+    .$type<UserId>()
+    .references(() => user.id, { onDelete: "set null" }),
+});
+
+/** A park or complex, such as McCarren Park. See docs/data-model.md, section 2.2. */
+export const venue = pgTable(
+  "venue",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<VenueId>(),
+    leagueId: uuid()
+      .notNull()
+      .$type<LeagueId>()
+      .references(() => league.id, { onDelete: "restrict" }),
+    name: text().notNull(),
+    slug: text().notNull(),
+    address: text(),
+    lat: numeric({ precision: 9, scale: 6 }),
+    lng: numeric({ precision: 9, scale: 6 }),
+    neighborhood: text(),
+    ...audit(),
+  },
+  (t) => [
+    unique("venue_league_slug_unique").on(t.leagueId, t.slug),
+    check("venue_slug_format", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
+  ],
+);
+
+/** One playable field at a venue. */
+export const field = pgTable(
+  "field",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<FieldId>(),
+    venueId: uuid()
+      .notNull()
+      .$type<VenueId>()
+      .references(() => venue.id, { onDelete: "restrict" }),
+    name: text().notNull(),
+    sortOrder: integer().notNull().default(0),
+    notes: text(),
+    ...audit(),
+  },
+  (t) => [unique("field_venue_name_unique").on(t.venueId, t.name)],
+);
+
+export const slotKind = pgEnum("slot_kind", [
+  "regular",
+  "makeup_reserve",
+  "playoff",
+]);
+export const slotStatus = pgEnum("slot_status", ["open", "cancelled"]);
+
+/**
+ * A field at a time that a game can be placed in. permit_window_id arrives
+ * with permit windows, alongside the scheduler.
+ */
+export const slot = pgTable(
+  "slot",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<SlotId>(),
+    seasonId: uuid()
+      .notNull()
+      .$type<SeasonId>()
+      .references(() => season.id, { onDelete: "restrict" }),
+    fieldId: uuid()
+      .notNull()
+      .$type<FieldId>()
+      .references(() => field.id, { onDelete: "restrict" }),
+    startsAt: timestamp({ withTimezone: true }).notNull(),
+    endsAt: timestamp({ withTimezone: true }).notNull(),
+    /** 0 is the earliest slot of the day. */
+    timeIndex: integer().notNull(),
+    kind: slotKind().notNull().default("regular"),
+    status: slotStatus().notNull().default("open"),
+    ...audit(),
+  },
+  (t) => [
+    unique("slot_field_start_unique").on(t.fieldId, t.startsAt),
+    index("slot_season_starts_idx").on(t.seasonId, t.startsAt),
+    check("slot_times_order", sql`${t.endsAt} > ${t.startsAt}`),
+    check("slot_time_index_non_negative", sql`${t.timeIndex} >= 0`),
+  ],
+);
+
+export const gameKind = pgEnum("game_kind", [
+  "regular",
+  "playoff",
+  "exhibition",
+]);
+export const gameStatus = pgEnum("game_status", [
+  "scheduled",
+  "in_progress",
+  "final",
+  "postponed",
+  "cancelled",
+  "forfeit",
+]);
+
+/**
+ * A matchup between two team entries. slot_id is its place in the published
+ * schedule; division_id arrives with divisions.
+ */
+export const game = pgTable(
+  "game",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<GameId>(),
+    seasonId: uuid()
+      .notNull()
+      .$type<SeasonId>()
+      .references(() => season.id, { onDelete: "restrict" }),
+    roundNo: integer(),
+    teamAId: uuid()
+      .notNull()
+      .$type<TeamSeasonId>()
+      .references(() => teamSeason.id, { onDelete: "restrict" }),
+    teamBId: uuid()
+      .notNull()
+      .$type<TeamSeasonId>()
+      .references(() => teamSeason.id, { onDelete: "restrict" }),
+    kind: gameKind().notNull().default("regular"),
+    status: gameStatus().notNull().default("scheduled"),
+    slotId: uuid()
+      .$type<SlotId>()
+      .references(() => slot.id, { onDelete: "set null" }),
+    scoreA: integer(),
+    scoreB: integer(),
+    inningsPlayed: integer(),
+    forfeitBy: uuid()
+      .$type<TeamSeasonId>()
+      .references(() => teamSeason.id, { onDelete: "restrict" }),
+    finalizedAt: timestamp({ withTimezone: true }),
+    ...audit(),
+  },
+  (t) => [
+    index("game_season_status_idx").on(t.seasonId, t.status),
+    index("game_team_a_idx").on(t.teamAId),
+    index("game_team_b_idx").on(t.teamBId),
+    index("game_slot_idx").on(t.slotId),
+    check("game_distinct_teams", sql`${t.teamAId} <> ${t.teamBId}`),
+    check(
+      "game_scores_non_negative",
+      sql`coalesce(${t.scoreA}, 0) >= 0 and coalesce(${t.scoreB}, 0) >= 0`,
+    ),
+    check(
+      "game_final_has_score",
+      sql`${t.status} <> 'final' or (${t.scoreA} is not null and ${t.scoreB} is not null and ${t.finalizedAt} is not null)`,
+    ),
+    check(
+      "game_forfeit_by_a_team",
+      sql`(${t.status} = 'forfeit') = (${t.forfeitBy} is not null) and (${t.forfeitBy} is null or ${t.forfeitBy} in (${t.teamAId}, ${t.teamBId}))`,
+    ),
+  ],
+);
+
+export const scoreReporterRole = pgEnum("score_report_reporter_role", [
+  "referee",
+  "captain",
+  "admin",
+]);
+export const scoreOutcome = pgEnum("score_report_outcome", [
+  "normal",
+  "forfeit_a",
+  "forfeit_b",
+  "called",
+]);
+
+/**
+ * A score as entered from someone's phone. Append-only: reports are history;
+ * the game row holds the result. client_id makes a retried submit a no-op.
+ */
+export const scoreReport = pgTable(
+  "score_report",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<ScoreReportId>(),
+    gameId: uuid()
+      .notNull()
+      .$type<GameId>()
+      .references(() => game.id, { onDelete: "restrict" }),
+    reportedBy: uuid()
+      .notNull()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "restrict" }),
+    reporterRole: scoreReporterRole().notNull(),
+    scoreA: integer().notNull(),
+    scoreB: integer().notNull(),
+    inningsPlayed: integer(),
+    outcome: scoreOutcome().notNull().default("normal"),
+    clientId: text().notNull(),
+    reportedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("score_report_client_id_unique").on(t.clientId),
+    index("score_report_game_idx").on(t.gameId, t.reportedAt),
+    check(
+      "score_report_scores_non_negative",
+      sql`${t.scoreA} >= 0 and ${t.scoreB} >= 0`,
+    ),
+  ],
+);
+
+export type Venue = typeof venue.$inferSelect;
+export type Field = typeof field.$inferSelect;
+export type Slot = typeof slot.$inferSelect;
+export type Game = typeof game.$inferSelect;
+export type ScoreReport = typeof scoreReport.$inferSelect;
