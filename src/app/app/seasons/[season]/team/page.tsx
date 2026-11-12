@@ -245,6 +245,14 @@ async function Team({
             Find subs
           </Link>
         )}
+        {can(subject, "conflicts.submit", { teamSeasonId }) && (
+          <Link
+            href={`/app/seasons/${slug}/team/requests`}
+            className="self-start underline"
+          >
+            Scheduling requests
+          </Link>
+        )}
       </header>
 
       {manages && (
