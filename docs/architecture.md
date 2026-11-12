@@ -29,6 +29,17 @@ Status: draft v1, 2026-11-11. Library facts marked ✔ were checked against curr
 | Lint and format | ESLint (flat config) with `jsx-a11y`, Prettier | Accessibility lint rules matter for the WCAG target |
 | Package manager | npm (see [ADR 0001](adr/0001-stack-and-tooling.md)) | No extra setup on CI, Vercel or a reviewer's machine; one app, no workspaces |
 
+### Type assertions
+
+An `as` tells the compiler to stop checking, so the code avoids them and lint enforces the worst cases:
+
+- **Untrusted input** (form fields, query strings, headers, stored JSON) is parsed, never asserted. `parseId` turns a string into a branded ID only if it is a UUID; `isOneOf` narrows a string to a union; Zod validates webhook payloads and the environment.
+- **Rows that must exist**, such as an insert's `returning`, go through `required()`, which throws instead of pretending.
+- **JSON columns** declare their shape with Drizzle's `$type<T>()`, so reading them needs no cast.
+- **Validation narrows types itself**: a parser keeps each checked value in a typed variable (null when invalid) rather than re-reading the raw string with `as` at the end.
+- **The few deliberate assertions** live inside small, tested helpers (`parseId`, `recordOf`) with a comment saying why. The scheduler's hot loops read arrays by index with `as number` where the loop bounds prove the index is valid; `noUncheckedIndexedAccess` cannot see that, and those paths run under 100% coverage and property tests.
+- **Lint rules:** `no-unnecessary-type-assertion` (type-aware) removes assertions the compiler can already prove, and assertions through `unknown` (`x as unknown as T`) are an error everywhere, tests included.
+
 ### Flags and changes to the original plan
 
 | Flag | Why it matters | Recommendation |
