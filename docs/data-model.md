@@ -392,19 +392,28 @@ erDiagram
   }
   bracket {
     uuid id PK
-    uuid season_id FK
-    uuid division_id FK
+    uuid season_id FK "one per season"
     enum format "single_elimination"
-    int size
+    enum status "draft, published, complete"
+    int size "teams, 2 to 32"
+    jsonb seeds "seed number and team entry, frozen from the standings"
+    uuid schedule_version_id FK "the version that placed it"
+    uuid champion_id FK
+    jsonb diagnostics
   }
   bracket_match {
     uuid id PK
     uuid bracket_id FK
+    text code UK "r{round}m{position}"
     int round_no
     int position
-    uuid game_id FK
     jsonb source_a "seed number or winner of a match"
     jsonb source_b
+    uuid team_a_id FK "null until known"
+    uuid team_b_id FK
+    uuid slot_id FK "reserved by the bracket placement"
+    uuid game_id FK "set once both teams are known"
+    uuid winner_id FK
   }
   weather_snapshot {
     uuid id PK
@@ -434,6 +443,9 @@ Notes:
 - Team A and team B are neutral names because home and away are decided at the field.
 - `game_period` is named for periods, not innings, so a second sport can reuse it.
 - Standings are computed from `game` rows on demand and cached (see [architecture.md](architecture.md)). There is no standings table to drift out of date.
+- A playoff `game` (`kind = playoff`, `round_no` null) exists only once both its teams are known, so a game never has an empty side. Until then its `bracket_match` holds the slot the bracket placement reserved, and that slot's kind becomes `playoff` so rain-out makeups and new regular-season schedules leave it alone. Divisions, when they arrive, add a `division_id` to `bracket`.
+- Schedule versions keep playoff placements apart from the round robin: the round-robin rules never judge a bracket, and a version made from another (an edit or a rain-out) carries the parent's playoff placements over. When a result fills both sides of the next match, its game is created and a new `playoffs` version with it is published by the league itself (`published_by` null).
+- `team_season.seed` is written when the bracket is made, from the standings with the season's tiebreakers.
 
 ### 2.3 Money
 
