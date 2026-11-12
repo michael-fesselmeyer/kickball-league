@@ -114,6 +114,18 @@ export const paymentStatus = pgEnum("payment_status", [
   "disputed",
 ]);
 
+export const paymentMethod = pgEnum("payment_method", [
+  "stripe",
+  "cash",
+  "venmo",
+  "other",
+]);
+
+/**
+ * Money that arrived for a purchase. Stripe payments carry their
+ * PaymentIntent; cash, Venmo and other payments made outside the app carry a
+ * note and who recorded them, so the team still reaches its total.
+ */
 export const payment = pgTable(
   "payment",
   {
@@ -122,7 +134,12 @@ export const payment = pgTable(
       .notNull()
       .$type<PurchaseId>()
       .references(() => purchase.id, { onDelete: "restrict" }),
-    stripePaymentIntentId: text().notNull(),
+    method: paymentMethod().notNull().default("stripe"),
+    stripePaymentIntentId: text(),
+    note: text(),
+    recordedBy: uuid()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "set null" }),
     stripeChargeId: text(),
     amountCents: integer().notNull(),
     stripeFeeCents: integer(),
@@ -133,6 +150,13 @@ export const payment = pgTable(
   (t) => [
     unique("payment_payment_intent_unique").on(t.stripePaymentIntentId),
     index("payment_purchase_idx").on(t.purchaseId),
+    // Stripe payments have a PaymentIntent and off-app ones do not. Who
+    // recorded an off-app payment is set in code; it may later be nulled
+    // when that account is deleted.
+    check(
+      "payment_method_fields",
+      sql`(${t.method} = 'stripe') = (${t.stripePaymentIntentId} is not null)`,
+    ),
   ],
 );
 
