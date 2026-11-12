@@ -53,3 +53,9 @@ export async function requireSelf(
   if (!can(subject, action, { targetUserId: subject.userId })) notFound();
   return subject;
 }
+
+/** When the current session was signed in, or null when signed out. */
+export async function sessionSignedInAt(): Promise<Date | null> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  return session ? new Date(session.session.createdAt) : null;
+}

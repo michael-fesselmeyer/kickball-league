@@ -13,3 +13,13 @@ export const SESSION_UPDATE_AGE_SECONDS = 1 * DAY;
 export const SESSION_FRESH_AGE_SECONDS = 15 * MINUTE;
 /** Magic links are single use and short-lived. */
 export const MAGIC_LINK_EXPIRES_IN_SECONDS = 15 * MINUTE;
+
+/**
+ * Whether a session was signed in recently enough for a sensitive action,
+ * such as deleting the account. Renewing a session does not make it fresh:
+ * only a new sign-in does.
+ */
+export function isFreshSession(signedInAt: Date, now: Date): boolean {
+  const age = now.getTime() - signedInAt.getTime();
+  return age >= 0 && age <= SESSION_FRESH_AGE_SECONDS * 1000;
+}
