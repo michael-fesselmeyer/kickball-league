@@ -1,4 +1,9 @@
-import type { RegistrationId, TeamSeasonId, UserId } from "@/domain/ids";
+import type {
+  FieldId,
+  RegistrationId,
+  TeamSeasonId,
+  UserId,
+} from "@/domain/ids";
 import { required } from "../queries/rows";
 import type { Db } from "../queries/schedule";
 import { user } from "../schema/auth";
@@ -145,36 +150,50 @@ export async function messagingWorld(
   const freeAgent = await person("free", "pending_payment");
   const cancelled = await person("gone", "cancelled");
 
-  const fieldId = required(
+  const venueId = required(
     (
       await db
-        .insert(field)
-        .values({
-          venueId: required(
-            (
-              await db
-                .insert(venue)
-                .values({ leagueId: lg.id, name: "Park", slug: "park" })
-                .returning({ id: venue.id })
-            )[0],
-            "venue",
-          ).id,
-          name: "Field 2",
-        })
-        .returning({ id: field.id })
+        .insert(venue)
+        .values({ leagueId: lg.id, name: "Park", slug: "park" })
+        .returning({ id: venue.id })
     )[0],
-    "field",
+    "venue",
   ).id;
+  async function addField(name: string) {
+    return required(
+      (
+        await db
+          .insert(field)
+          .values({ venueId, name })
+          .returning({ id: field.id })
+      )[0],
+      "field",
+    ).id;
+  }
+  const fieldId = await addField("Field 2");
 
   /** Aces vs Bees in an hour-long slot ending at `endsAt`, with an optional ref. */
   async function gameEnding(endsAt: Date, refereeId?: UserId) {
+    return gameBetween(aces, bees, endsAt, { refereeId });
+  }
+
+  /** Any two teams in an hour-long slot ending at `endsAt`, on `onField`. */
+  async function gameBetween(
+    teamAId: TeamSeasonId,
+    teamBId: TeamSeasonId,
+    endsAt: Date,
+    {
+      refereeId,
+      onField = fieldId,
+    }: { refereeId?: UserId | undefined; onField?: FieldId } = {},
+  ) {
     const s = required(
       (
         await db
           .insert(slot)
           .values({
             seasonId: sn.id,
-            fieldId,
+            fieldId: onField,
             startsAt: new Date(endsAt.getTime() - 3_600_000),
             endsAt,
             timeIndex: 0,
@@ -189,8 +208,8 @@ export async function messagingWorld(
           .insert(game)
           .values({
             seasonId: sn.id,
-            teamAId: aces,
-            teamBId: bees,
+            teamAId,
+            teamBId,
             slotId: s.id,
           })
           .returning({ id: game.id })
@@ -226,5 +245,7 @@ export async function messagingWorld(
     entry,
     join,
     gameEnding,
+    gameBetween,
+    addField,
   };
 }

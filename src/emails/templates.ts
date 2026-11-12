@@ -7,6 +7,7 @@ import { paymentReminderEmail } from "./payment-reminder";
 import { rainAlertEmail } from "./rain-alert";
 import { rainoutNoticeEmail } from "./rainout-notice";
 import { scoreReminderEmail } from "./score-reminder";
+import { subRequestEmail, subUpdateEmail } from "./sub-request";
 
 /**
  * Every email the outbox can send, by the template name stored on the
@@ -18,6 +19,8 @@ const TEMPLATES: Readonly<Record<string, Template>> = {
   rain_alert: rainAlertEmail,
   rainout_notice: rainoutNoticeEmail,
   score_reminder: scoreReminderEmail,
+  sub_request: subRequestEmail,
+  sub_update: subUpdateEmail,
 };
 
 /** The outbox's renderer for this site. */

@@ -151,6 +151,69 @@ describe("rendererFor", () => {
     ).toBe(false);
   });
 
+  const subGame = {
+    seasonName: "Fall 2026",
+    seasonSlug: "fall-2026",
+    team: "Aces",
+    teams: "Aces vs Bees",
+    when: "Mon, Sep 14, 7:00 PM, Field 2",
+  };
+
+  it("renders a call for subs, saying why this player got it", () => {
+    const call = (freeAgent: boolean) => {
+      const result = render("sub_request", {
+        ...subGame,
+        spots: "2 subs, at least 1 woman",
+        note: "Wear red",
+        freeAgent,
+      });
+      if (!result.ok) throw new Error(result.error);
+      return result.value;
+    };
+    expect(call(true).subject).toBe(
+      "Aces needs 2 subs, at least 1 woman: Mon, Sep 14, 7:00 PM, Field 2",
+    );
+    expect(call(true).text).toContain("From the captain: Wear red");
+    expect(call(true).text).toContain(
+      "See sub requests: https://league.example.test/app/subs",
+    );
+    expect(call(true).text).toContain("you are a free agent in Fall 2026");
+    expect(call(false).text).toContain("your team is not playing at that time");
+  });
+
+  it("renders each answer to a sub offer", () => {
+    const subjects = (
+      ["claimed", "withdrawn", "approved", "declined", "cancelled"] as const
+    ).map((kind) => {
+      const result = render("sub_update", {
+        ...subGame,
+        kind,
+        player: "Jo S.",
+      });
+      if (!result.ok) throw new Error(result.error);
+      return result.value.subject;
+    });
+    expect(subjects).toEqual([
+      "Jo S. wants to sub: Mon, Sep 14, 7:00 PM, Field 2",
+      "Jo S. can't sub after all: Mon, Sep 14, 7:00 PM, Field 2",
+      "You're subbing for Aces: Mon, Sep 14, 7:00 PM, Field 2",
+      "Aces is covered: Mon, Sep 14, 7:00 PM, Field 2",
+      "Aces no longer needs subs: Mon, Sep 14, 7:00 PM, Field 2",
+    ]);
+    const claimed = render("sub_update", {
+      ...subGame,
+      kind: "claimed",
+      player: "Jo S.",
+    });
+    expect(claimed.ok && claimed.value.text).toContain(
+      "https://league.example.test/app/seasons/fall-2026/team/subs",
+    );
+    // A claim notice without the player's name cannot be built.
+    expect(render("sub_update", { ...subGame, kind: "claimed" }).ok).toBe(
+      false,
+    );
+  });
+
   it("refuses an unknown template", () => {
     expect(render("nope", {})).toEqual({
       ok: false,
