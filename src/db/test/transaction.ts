@@ -40,7 +40,13 @@ export async function expectViolation(
   try {
     await statement();
   } catch (error) {
-    violated = (error as { constraint?: string }).constraint;
+    // pg errors carry the violated constraint's name.
+    if (
+      error instanceof Error &&
+      "constraint" in error &&
+      typeof error.constraint === "string"
+    )
+      violated = error.constraint;
   }
   await sql("rollback to savepoint expect_violation");
   if (violated !== constraint) {

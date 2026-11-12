@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { LeagueId, UserId } from "@/domain/ids";
 import {
   EMPTY_SEASON_FORM,
   parseSeasonForm,
@@ -47,7 +46,7 @@ async function world(db: Db) {
     .insert(league)
     .values({ name: "Test League", slug: `seasons-${tag}` })
     .returning({ id: league.id });
-  return { actor: admin!.id as UserId, leagueId: lg!.id as LeagueId };
+  return { actor: admin!.id, leagueId: lg!.id };
 }
 
 describe("seasons", () => {

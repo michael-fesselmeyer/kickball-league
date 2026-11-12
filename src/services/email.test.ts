@@ -11,7 +11,7 @@ const message = {
 };
 
 const respond = (status: number, body: unknown) =>
-  vi.fn(
+  vi.fn<typeof globalThis.fetch>(
     async () =>
       new Response(typeof body === "string" ? body : JSON.stringify(body), {
         status,
@@ -28,14 +28,14 @@ describe("resendSender", () => {
       fetch,
     });
     expect(await send(message)).toEqual({ ok: true, value: { id: "email-1" } });
-    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    const [url, init] = fetch.mock.calls[0] ?? [];
     expect(url).toBe("https://api.resend.com/emails");
-    expect(init.headers).toEqual({
+    expect(init?.headers).toEqual({
       Authorization: `Bearer ${KEY}`,
       "Content-Type": "application/json",
       "Idempotency-Key": "magic-link/abc",
     });
-    expect(JSON.parse(init.body as string)).toEqual({
+    expect(JSON.parse(String(init?.body))).toEqual({
       from: "League <hi@example.test>",
       to: ["player@example.test"],
       subject: "Hi",
@@ -53,8 +53,8 @@ describe("resendSender", () => {
       text: message.text,
     };
     await resendSender({ apiKey: KEY, from: "hi@example.test", fetch })(plain);
-    const [, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
-    expect(init.headers).not.toHaveProperty("Idempotency-Key");
+    const [, init] = fetch.mock.calls[0] ?? [];
+    expect(init?.headers).not.toHaveProperty("Idempotency-Key");
   });
 
   it("reports Resend's reason, without the API key", async () => {

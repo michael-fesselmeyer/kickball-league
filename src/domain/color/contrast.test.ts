@@ -4,7 +4,7 @@ import { contrastRatio, relativeLuminance, type Hex } from "./contrast";
 
 const hex = fc
   .integer({ min: 0, max: 0xffffff })
-  .map((n) => `#${n.toString(16).padStart(6, "0")}` as Hex);
+  .map((n): Hex => `#${n.toString(16).padStart(6, "0")}`);
 
 describe("contrastRatio", () => {
   it("matches known WCAG values", () => {
@@ -25,7 +25,7 @@ describe("contrastRatio", () => {
   });
 
   it("rejects anything that is not #rrggbb", () => {
-    expect(() => relativeLuminance("#fff" as Hex)).toThrow(/#rrggbb/);
-    expect(() => relativeLuminance("#gggggg" as Hex)).toThrow(/#rrggbb/);
+    expect(() => relativeLuminance("#fff")).toThrow(/#rrggbb/);
+    expect(() => relativeLuminance("#gggggg")).toThrow(/#rrggbb/);
   });
 });

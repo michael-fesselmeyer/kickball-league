@@ -13,7 +13,7 @@ import {
 
 const hex = fc
   .integer({ min: 0, max: 0xffffff })
-  .map((n) => `#${n.toString(16).padStart(6, "0")}` as Hex);
+  .map((n): Hex => `#${n.toString(16).padStart(6, "0")}`);
 
 describe("initials", () => {
   it.each([

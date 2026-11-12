@@ -1,11 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type {
-  LeagueId,
-  RegistrationId,
-  TeamSeasonId,
-  UserId,
-} from "@/domain/ids";
+import type { UserId } from "@/domain/ids";
 import { checkoutItems } from "@/domain/registration/checkout";
 import { user } from "../schema/auth";
 import { league } from "../schema/league";
@@ -63,13 +58,13 @@ async function world(db: Db) {
     rosterMin: 1,
     rosterMax: 20,
   });
-  const leagueId = lg!.id as LeagueId;
+  const leagueId = lg!.id;
   const s = (await seasonForRegistration(
     db,
     leagueId,
     "spring",
   )) as SeasonForRegistration;
-  const userId = captain!.id as UserId;
+  const userId = captain!.id;
   const team = await registerTeam(db, {
     leagueId,
     season: s,
@@ -111,8 +106,9 @@ async function world(db: Db) {
   return {
     sessionId: `cs_test_${tag}`,
     purchaseId,
-    registrationId: mine.id as RegistrationId,
-    teamSeasonId: team.value.teamSeasonId as TeamSeasonId,
+    registrationId: mine.id,
+    teamSeasonId: team.value.teamSeasonId,
+    captain: userId,
     tag,
   };
 }
@@ -254,13 +250,13 @@ describe("payments", () => {
       const v = await publishWaiver(
         db,
         { leagueId: lg!.leagueId, title: "Release", body },
-        null as unknown as UserId,
+        w.captain,
       );
       if (!v.ok) throw new Error();
       await assignWaiver(
         db,
         { leagueId: lg!.leagueId, seasonId: lg!.id, waiverId: v.value.id },
-        null as unknown as UserId,
+        w.captain,
       );
       const people = await db
         .insert(user)
@@ -278,7 +274,7 @@ describe("payments", () => {
           lastName: "Example",
         })),
       );
-      const [sam, alex] = people.map((p) => p.id as UserId) as [UserId, UserId];
+      const [sam, alex] = people.map((p) => p.id) as [UserId, UserId];
       const link = await createTeamInvite(db, {
         teamSeasonId: w.teamSeasonId,
         actorId: sam,
