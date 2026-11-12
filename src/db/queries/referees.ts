@@ -22,7 +22,10 @@ export async function refereeBoard(db: Db, seasonId: SeasonId) {
       id: game.id,
       status: game.status,
       startsAt: slot.startsAt,
+      slotStatus: slot.status,
       fieldName: field.name,
+      teamAId: game.teamAId,
+      teamBId: game.teamBId,
       teamAName: teamA.name,
       teamBName: teamB.name,
     })
