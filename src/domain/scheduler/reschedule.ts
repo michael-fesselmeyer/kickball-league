@@ -187,7 +187,9 @@ export function reschedule(
         waitDays.add(`${team}\u0000${slot.date}`);
     });
     for (const key of waitDays) {
-      const times = [...(dayOf.get(key)?.times ?? [])].sort((a, b) => a - b);
+      const times = [...(dayOf.get(key) as { times: number[] }).times].sort(
+        (a, b) => a - b,
+      );
       for (let t = 1; t < times.length; t++)
         wait += (times[t] as number) - (times[t - 1] as number) - 1;
     }
@@ -207,9 +209,9 @@ export function reschedule(
         time[t] = (time[t] as number) + 1;
         field[f] = (field[f] as number) + 1;
       });
+      // Empty lists give max − min = −Infinity, which counts as no overflow.
       for (const c of [time, field])
-        if (c.length > 0)
-          overflow += Math.max(0, Math.max(...c) - Math.min(...c) - 1);
+        overflow += Math.max(0, Math.max(...c) - Math.min(...c) - 1);
     }
     return [unplaced, wait, overflow, finish];
   };
@@ -268,7 +270,7 @@ export function reschedule(
     for (let improved = true; improved;) {
       improved = false;
       postponed.forEach((game, i) => {
-        const from = choice[i] ?? null;
+        const from = choice[i] as Slot | null;
         if (from) {
           take(game, from, -1);
           used.delete(from.id);
