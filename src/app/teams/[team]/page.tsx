@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { GameCard } from "@/components/game-card";
 import { LogoBadge } from "@/components/logo-badge";
 import { ShareButtons } from "@/components/share";
+import { TeamStats } from "@/components/stats/team-stats";
 import { db } from "@/db/client";
 import {
   publicRoster,
@@ -240,6 +241,10 @@ async function Team({ params, searchParams }: PageProps<"/teams/[team]">) {
               </>
             )}
           </section>
+
+          {entry && (
+            <TeamStats team={team} schedule={games} timeZone={team.timeZone} />
+          )}
         </div>
 
         <div className="flex flex-col gap-8">
