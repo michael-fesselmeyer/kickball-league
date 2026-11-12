@@ -1,4 +1,4 @@
-import { eq, like } from "drizzle-orm";
+import { eq, inArray, like } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import type { SchedulerInput } from "@/domain/scheduler/types";
 import { ok } from "@/domain/result";
@@ -81,7 +81,14 @@ async function rainWorld(db: Db, sundayKickoffs: number[]) {
     });
     games.push(g);
   }
-  return { ...w, admin, owner, games };
+  // Alerts go to every admin, including any a seeded database already has.
+  const admins = (
+    await db
+      .select({ id: profile.userId })
+      .from(profile)
+      .where(inArray(profile.globalRole, ["admin", "owner"]))
+  ).length;
+  return { ...w, admin, owner, admins, games };
 }
 
 const alertKeys = async (db: Db, seasonId: string) =>
@@ -107,13 +114,15 @@ describe("rain alerts", () => {
       expect(checks.map((c) => [c.day.date, c.risk.level])).toEqual([
         ["2026-09-13", "watch"],
       ]);
-      expect(queued).toBe(2);
+      expect(queued).toBe(w.admins);
       expect((await runJob(db, edt(12, 21))).queued).toBe(0);
-      expect(await alertKeys(db, w.season.id)).toEqual(
-        [
+      const keys = await alertKeys(db, w.season.id);
+      expect(keys).toHaveLength(w.admins);
+      expect(keys).toEqual(
+        expect.arrayContaining([
           `rain-alert/${w.season.id}/2026-09-13/watch/${w.admin.userId}`,
           `rain-alert/${w.season.id}/2026-09-13/watch/${w.owner.userId}`,
-        ].sort(),
+        ]),
       );
 
       const sent: Email[] = [];
@@ -121,13 +130,16 @@ describe("rain alerts", () => {
         sent.push(email);
         return ok({ id: `provider-${sent.length}` });
       };
-      await drainOutbox(db, { send, render, now: SAT_EVENING });
-      expect(sent.map((e) => e.to).sort()).toEqual(
+      await drainOutbox(db, { send, render, now: SAT_EVENING, limit: 500 });
+      const ours = sent.filter((e) =>
+        [w.admin.email, w.owner.email].includes(e.to),
+      );
+      expect(ours.map((e) => e.to).sort()).toEqual(
         [w.admin.email, w.owner.email].sort(),
       );
-      expect(sent[0]?.subject).toBe("Rain watch Sun, Sep 13: Fall 2026");
-      expect(sent[0]?.text).toContain("2 games on Sun, Sep 13, from 1:00 PM");
-      expect(sent[0]?.text).toContain(
+      expect(ours[0]?.subject).toBe("Rain watch Sun, Sep 13: Fall 2026");
+      expect(ours[0]?.text).toContain("2 games on Sun, Sep 13, from 1:00 PM");
+      expect(ours[0]?.text).toContain(
         `/app/admin/seasons/${w.season.slug}/rainout?date=2026-09-13`,
       );
     });
@@ -136,7 +148,7 @@ describe("rain alerts", () => {
   it("follows a watch with one likely alert when storms are on, then nothing more", async () => {
     await inRolledBackDb(async (db) => {
       const w = await rainWorld(db, [15]);
-      expect((await runJob(db, SAT_EVENING)).queued).toBe(2);
+      expect((await runJob(db, SAT_EVENING)).queued).toBe(w.admins);
 
       // A night game is added under the storms.
       const late = await w.gameEnding(edt(13, 20));
@@ -156,7 +168,7 @@ describe("rain alerts", () => {
         thunder: true,
         covered: 2,
       });
-      expect(queued).toBe(2);
+      expect(queued).toBe(w.admins);
 
       // The night game is called off; the day is back to watch, which was sent.
       await db
@@ -164,14 +176,14 @@ describe("rain alerts", () => {
         .set({ status: "cancelled" })
         .where(eq(slot.id, late.slotId));
       expect((await runJob(db, edt(12, 22))).queued).toBe(0);
-      expect(await alertKeys(db, w.season.id)).toHaveLength(4);
+      expect(await alertKeys(db, w.season.id)).toHaveLength(2 * w.admins);
     });
   });
 
   it("does not repeat a watch after a likely alert for the same day", async () => {
     await inRolledBackDb(async (db) => {
       const w = await rainWorld(db, [15, 19]);
-      expect((await runJob(db, SAT_EVENING)).queued).toBe(2);
+      expect((await runJob(db, SAT_EVENING)).queued).toBe(w.admins);
       await db
         .update(slot)
         .set({ status: "cancelled" })
