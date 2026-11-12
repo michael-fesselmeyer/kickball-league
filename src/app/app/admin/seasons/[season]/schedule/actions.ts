@@ -13,6 +13,7 @@ import type { ScheduleVersionId } from "@/domain/ids";
 import { applyEdit } from "@/domain/scheduler/edits";
 import { generate } from "@/domain/scheduler/generate";
 import { requirePermission } from "@/lib/auth/permission";
+import { sendQueuedSoon } from "@/services/outbox";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/schedule`;
 
@@ -56,7 +57,7 @@ export async function generateDraft(
   redirect(`${page}?generated=1`);
 }
 
-/** Publishes a draft version. */
+/** Publishes a draft version and sends any rain-out notices it queued. */
 export async function publishDraft(
   slug: string,
   versionId: ScheduleVersionId,
@@ -65,9 +66,10 @@ export async function publishDraft(
   const subject = await requirePermission("schedule.manage", { next: page });
   const result = await publishVersion(txDb, versionId, subject.userId);
   if (!result.ok) redirect(`${page}?error=${result.error}`);
-  const { moved, added, removed, teams } = result.value;
+  const { moved, added, removed, teams, notified } = result.value;
+  if (notified > 0) sendQueuedSoon();
   redirect(
-    `${page}?published=1&moved=${moved.length}&added=${added.length}&removed=${removed.length}&teams=${teams.length}`,
+    `${page}?published=1&moved=${moved.length}&added=${added.length}&removed=${removed.length}&teams=${teams.length}&notified=${notified}`,
   );
 }
 

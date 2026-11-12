@@ -190,7 +190,8 @@ async function Rainout({
         </form>
         <p className="text-text-muted">
           Nothing is published or sent until you publish the draft on the
-          schedule screen.
+          schedule screen. Publishing emails each player on a moved team their
+          game&apos;s makeup time.
         </p>
       </section>
     );

@@ -125,6 +125,8 @@ async function Schedule({
           Published. {count(query.moved, "game")} moved,{" "}
           {count(query.added, "game")} added and {count(query.removed, "game")}{" "}
           removed; {count(query.teams, "team")} affected.
+          {Number(query.notified) > 0 &&
+            ` ${count(query.notified, "rain-out email")} queued for players.`}
         </p>
       )}
 
