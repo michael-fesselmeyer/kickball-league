@@ -423,7 +423,13 @@ describe("audit trail", () => {
         {
           actorId: w.adminId,
           action: "schedule.publish",
-          after: { moved: 0, added: 28, removed: 0, teamsAffected: 8 },
+          after: {
+            moved: 0,
+            added: 28,
+            removed: 0,
+            teamsAffected: 8,
+            rainoutNotices: 0,
+          },
         },
         {
           actorId: w.adminId,

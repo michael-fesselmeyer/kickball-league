@@ -33,6 +33,7 @@ import {
 import { season } from "../schema/season";
 import { teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
+import { queueRainoutNotices } from "./rainout-notices";
 import { required } from "./rows";
 
 /**
@@ -320,17 +321,23 @@ export async function loadVersion(
 
 export type PublishError = "unknown_version" | "not_draft" | "has_violations";
 
+/** What changed since the previous published version, and how many rain-out notices were queued. */
+export type Published = ScheduleDiff & { notified: number };
+
 /**
  * Publishes a draft version in one transaction: the season's published
  * version is superseded, this one is published, and every game's slot is
- * copied from this version so public pages need one join. Returns what
- * changed since the previous published version.
+ * copied from this version so public pages need one join. Players whose
+ * games moved out of rained-out slots are sent their makeup times through
+ * the outbox, in the same transaction. Returns what changed since the
+ * previous published version.
  */
 export async function publishVersion(
   db: Db,
   versionId: ScheduleVersionId,
   publishedBy: UserId,
-): Promise<Result<ScheduleDiff, PublishError>> {
+  now: Date = new Date(),
+): Promise<Result<Published, PublishError>> {
   return db.transaction(async (tx) => {
     const [version] = await tx
       .select({
@@ -393,6 +400,12 @@ export async function publishVersion(
       diagnostics: [],
     };
     const diff = diffSchedules(before?.schedule ?? empty, after.schedule);
+    const notified = await queueRainoutNotices(
+      tx,
+      version.seasonId,
+      diff.moved,
+      now,
+    );
     await recordAudit(tx, {
       actorId: publishedBy,
       action: "schedule.publish",
@@ -404,8 +417,9 @@ export async function publishVersion(
         added: diff.added.length,
         removed: diff.removed.length,
         teamsAffected: diff.teams.length,
+        rainoutNotices: notified,
       },
     });
-    return ok(diff);
+    return ok({ ...diff, notified });
   });
 }
