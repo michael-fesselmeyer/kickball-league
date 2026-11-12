@@ -76,7 +76,12 @@ export async function scheduleLabels(
     .innerJoin(team, eq(teamSeason.teamId, team.id))
     .where(eq(teamSeason.seasonId, seasonId));
   const slots = await db
-    .select({ id: slot.id, startsAt: slot.startsAt, field: field.name })
+    .select({
+      id: slot.id,
+      startsAt: slot.startsAt,
+      field: field.name,
+      status: slot.status,
+    })
     .from(slot)
     .innerJoin(field, eq(slot.fieldId, field.id))
     .where(eq(slot.seasonId, seasonId));
@@ -101,6 +106,7 @@ export async function scheduleLabels(
           day: day.format(s.startsAt),
           time: time.format(s.startsAt),
           field: s.field,
+          cancelled: s.status === "cancelled",
         },
       ]),
     ),
