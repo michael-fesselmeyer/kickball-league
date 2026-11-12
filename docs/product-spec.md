@@ -1,6 +1,6 @@
 # Product spec
 
-Status: draft v1, 2026-11-11. Design only; no code exists yet.
+Status: draft v1, 2026-11-11; goals added 2026-11-12 (section 9).
 Items marked **(A)** are assumptions waiting on an answer in [open-questions.md](open-questions.md).
 
 ## 1. What this is
@@ -335,7 +335,44 @@ Both are capped at $5 a month by default and have no subscription. Details and c
 
 ## 8. Out of scope
 
-- Native mobile apps (see the PWA decision in [architecture.md](architecture.md)).
+- Native mobile apps built separately from the web app (see the PWA decision in [architecture.md](architecture.md)). Store listings that wrap the same app are a P3 option (section 9).
 - Posting into WhatsApp groups automatically. WhatsApp's business API messages individuals, not existing group chats, so sharing stays a tap by a person.
 - Play-by-play or individual player statistics.
 - A multi-tenant product for leagues we do not know.
+
+## 9. Goals added 2026-11-12
+
+New goals from the owner of this project. Each row says what it means for the product, its tag, and how it changes the plan above. Where a goal was already planned, the row says so and adds only what is new. The guiding rule for all of them: **useful features without overloading people**. Anything that sends a message is opt-in or easy to turn off, and nobody sees a feature their role does not need.
+
+### Members and sign-up
+| Goal | What we will build | Tag |
+|---|---|---|
+| Signing up is as easy as possible, on any device | Sign-up to paid in under two minutes on a phone: email link or Google, a profile only when registering, Apple Pay or Google Pay at checkout. Measured in the end-to-end tests on a phone viewport | MVP (a target for work already planned) |
+| One account in the browser and in an app for Android and Apple | The installable app (PWA) shares the browser's sign-in and works on both platforms. Store listings, if wanted later, wrap the same app and keep the same accounts | PWA moves from P2 to MVP; store apps P3 |
+| Opt out of texts and news | Every email has a one-click unsubscribe for its topic; news and promotions are off until a member turns them on; texts follow STOP. Game-critical notices (rain-outs, schedule changes) stay on by default but can be switched to email only | MVP for email, with SMS when it ships |
+| Alerts that fit each role, without too many | Default topics per role (owner, admin, ref, captain, player, sponsor). A daily cap per person, a digest for non-urgent news, and quiet hours. Each message says why the person got it and how to change it | MVP defaults; caps and digest P2 |
+| More transparency, without oversharing | Team members see their own team's payment and waiver progress (already planned). New: an optional season summary of where the money goes, by category totals only, which the owners choose to publish. Never another person's amounts, birth date or contact details unless the privacy rules in data-model.md section 4 allow it | P2 |
+
+### Payments
+| Goal | What we will build | Tag |
+|---|---|---|
+| Flexible, easy payment: Apple Pay, cards, PayPal and others | Stripe Checkout with cards, Apple Pay, Google Pay and Link turned on, plus any wallet Stripe offers in the US (PayPal, Cash App Pay) where available. One payment provider keeps refunds, credit and webhooks in one place | MVP |
+| The league fee splits automatically between signed-up players | Already planned as split pay with a fixed share. New: an "off-app payment" a captain or admin records for a member who pays cash or Venmo, with a note and who recorded it, so the team still reaches its total and nobody is chased twice | MVP |
+
+### Events, content and community
+| Goal | What we will build | Tag |
+|---|---|---|
+| An events page for prom, parties and more, with Partiful invites | Events with a date, place, description and an optional external invite link (Partiful or any URL; Partiful has no public API, so the link is shown and shared, not synced). The admin picks who sees and is told about it: all members, or chosen teams from the active season, any season or all seasons | P2 (extends the planned events calendar) |
+| WhatsApp | Already planned: share buttons and "Copy for WhatsApp" text. New option: alerts to individuals by WhatsApp for members who opt in, using WhatsApp's business messaging, which charges per conversation. Posting into existing group chats is not possible with WhatsApp's API, so that stays a tap by a person | Share P2; individual alerts **Pending** cost approval |
+| Members upload photos and videos that could go on the league's socials | Uploads from players and teams with a checkbox that the league may repost them. An admin review queue approves, rejects, or downloads a file for Instagram. Size limits and storage costs are set before launch | P2 (moves up from P3 photo galleries) |
+| A simple, free AI helper | Extends "Ask the rulebook" into a helper that answers from the league's own data: rules, kickball tips, team history and playoff records, upcoming season dates, and the forecast for the next game day with the chance of a rain-out. It answers only from those sources and links them. Free to members; the league's cost stays capped (architecture.md, section 16) | P2 |
+| Drink specials from the sponsor bars stay current | The bar updates its specials on its sponsor page. Before each game day it gets a one-tap "same as last week?" email, and the game-day page shows the current specials with the date they were confirmed | P2 (with the home-bar page) |
+
+### Running the league
+| Goal | What we will build | Tag |
+|---|---|---|
+| Owners track money in and money out | Income comes from Stripe automatically. Expenses are entered with a category and a photo of the receipt, taken on a phone. A ledger by season, with a CSV export for taxes | P2 |
+| A dashboard for owners | Membership (new, returning, retention by season), revenue and expenses by season, payment completion, waiver completion, event turnout and sponsor check-ins | P2 (extends the MVP admin dashboard) |
+| More league revenue, and a link to park permits | Revenue features already planned (early bird, sponsorship tiers, events, merch) are grouped on the dashboard with their results. New: permits are tracked with their cost, document and renewal date, with a reminder before renewals. NYC Parks has no public permit API, so permits are entered by hand | P2 |
+| Better design: sleek, fun, easy, responsive, good colors | A redesign from a chosen direction and references, applied through the design tokens in design-system.md so every screen changes together | MVP (waiting on the design direction) |
+| Use the league as a base for more | Already designed for: one league per deployment with a `league` record on every season, so a second sport or league can run on the same code | P3 |

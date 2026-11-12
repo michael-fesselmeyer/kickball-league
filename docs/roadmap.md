@@ -140,11 +140,13 @@ Done means: **the demo makes the owners say yes.** Listed in build order; if tim
 | Stripe live | The league's Stripe account connected; a real $1 payment and refund succeed end to end |
 | Production hardening | Vercel Pro, paid email tier, Sentry alerts, a restore test from backup, rate limits verified |
 | Data | Spring season, fields and permit windows entered; returning teams created with their names and colors |
-| Domain | Cut over `brooklynkickballclub.com` with every old URL redirected; Search Console verified; Google Business Profile claimed |
+| Domain | Old DNS records saved first, so switching back is one change; cut over `brooklynkickballclub.com` with every old URL redirected; Search Console verified; Google Business Profile claimed |
 | Dry run | One commissioner and two captains complete registration, payment, a mock game and a mock rain-out on production |
 | SMS registration started | Brand and campaign submitted to Twilio with the league's details |
 
 ## 7. Phase 3 and later
+
+Goals added on 2026-11-12 are in [product-spec.md](product-spec.md), section 9. Their tags decide which phase they land in. The installable app (PWA) moves into the MVP.
 
 In rough priority order: SMS with the full compliance design; offline score entry; sponsor portal and reports; paid event tickets; lineup and kicking-order builder; incident reports and suspensions; photo galleries; merch and jerseys; divisions with crossover games; a second park; the affiliated football league on the same deployment; corporate leagues; charity tie-in; a "friends of the league" directory.
 
