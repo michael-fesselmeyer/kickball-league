@@ -115,6 +115,10 @@ const RULES = {
     return !(mine?.role === "co_captain" && c.targetRole === "captain");
   }),
   "sub_request.post": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
+  // Approve or decline claims, or take the request down.
+  "sub_request.decide": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
+  // Who is playing as a pickup: both captains and the ref, as the rulebook asks.
+  "sub_request.view_pickups": any(isAdmin, captainsGame, refereesGame),
   "conflicts.submit": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   // Cash or Venmo paid outside the app (product-spec.md, section 9).
   "payment.record_offline": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
