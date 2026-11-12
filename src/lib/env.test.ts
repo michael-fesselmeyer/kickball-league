@@ -1,0 +1,91 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { envSchema, loadEnv, parseEnv } from "./env";
+
+const valid = {
+  DATABASE_URL:
+    "postgresql://user:pass@ep-example.us-east-2.aws.neon.tech/kickball?sslmode=require",
+  BETTER_AUTH_SECRET: "a".repeat(32),
+  BETTER_AUTH_URL: "http://localhost:3000",
+};
+
+describe("parseEnv", () => {
+  it("accepts a complete environment", () => {
+    const result = parseEnv(valid);
+    expect(result.ok).toBe(true);
+  });
+
+  it("ignores variables it does not know", () => {
+    const result = parseEnv({ ...valid, PATH: "/usr/bin" });
+    expect(result.ok && "PATH" in result.value).toBe(false);
+  });
+
+  it("names every missing required variable", () => {
+    const result = parseEnv({});
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      for (const name of [
+        "DATABASE_URL",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+      ]) {
+        expect(result.error).toContain(name);
+      }
+      expect(result.error.match(/is required/g)).toHaveLength(3);
+    }
+  });
+
+  it("treats an empty string as missing", () => {
+    const result = parseEnv({ ...valid, DATABASE_URL: "" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("DATABASE_URL");
+  });
+
+  it.each([
+    ["DATABASE_URL", "mysql://user:pass@localhost/db", "postgres"],
+    ["DATABASE_URL", "not a url", "postgres"],
+    ["BETTER_AUTH_SECRET", "too-short", "32 characters"],
+    ["BETTER_AUTH_URL", "ftp://example.com", "http(s)"],
+  ])("rejects a malformed %s (%s)", (name, value, hint) => {
+    const result = parseEnv({ ...valid, [name]: value });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain(name);
+      expect(result.error).toContain(hint);
+    }
+  });
+
+  it("allows Google sign-in to be unset until it is configured", () => {
+    expect(parseEnv(valid).ok).toBe(true);
+    expect(
+      parseEnv({ ...valid, GOOGLE_CLIENT_ID: "id", GOOGLE_CLIENT_SECRET: "s" })
+        .ok,
+    ).toBe(true);
+  });
+});
+
+describe("loadEnv", () => {
+  it("returns typed values", () => {
+    expect(loadEnv(valid).BETTER_AUTH_URL).toBe("http://localhost:3000");
+  });
+
+  it("throws with a readable message naming the variable", () => {
+    expect(() => loadEnv({ ...valid, BETTER_AUTH_URL: undefined })).toThrow(
+      /Invalid environment variables:[\s\S]*BETTER_AUTH_URL/,
+    );
+  });
+});
+
+describe(".env.example", () => {
+  it("lists exactly the variables in the schema", () => {
+    const example = readFileSync(join(process.cwd(), ".env.example"), "utf8");
+    const names = example
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line !== "" && !line.startsWith("#"))
+      .map((line) => line.split("=")[0])
+      .sort();
+    expect(names).toEqual(Object.keys(envSchema.shape).sort());
+  });
+});
