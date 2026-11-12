@@ -430,6 +430,7 @@ erDiagram
 Notes:
 - A `game` is a matchup and keeps its identity for the whole season. Where it is played is a `game_placement` inside a `schedule_version`. Generating, editing or rescheduling creates a new version with its own placements, so any two versions can be compared row by row and nothing is overwritten.
 - `game.slot_id` copies the placement from the published version so public pages need one join. It is written only when a version is published, inside the same transaction.
+- Slots are cut from requested and confirmed permit windows, minus blackouts, when an admin asks (the fields screen). Cutting again keeps a slot's id when its field and start are unchanged, so versions that use it stay intact. A slot no permit covers any more is deleted, or set to `cancelled` when a version uses it. Slots entered without a permit are left alone. A cancelled slot stays cancelled, because a rain-out cancels slots the same way.
 - Team A and team B are neutral names because home and away are decided at the field.
 - `game_period` is named for periods, not innings, so a second sport can reuse it.
 - Standings are computed from `game` rows on demand and cached (see [architecture.md](architecture.md)). There is no standings table to drift out of date.
