@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { GameCard } from "@/components/game-card";
 import { LogoBadge } from "@/components/logo-badge";
+import { ShareButtons } from "@/components/share";
 import { db } from "@/db/client";
 import {
   publicRoster,
@@ -21,19 +22,36 @@ import {
   outcomeFor,
   type PublicGame,
 } from "@/domain/schedule/public-game";
+import { teamShare } from "@/db/queries/team-share";
+import { cardVersion } from "@/domain/share/cards";
+import { teamShareText } from "@/domain/share/share-text";
+import { env } from "@/env";
 import { calendarLinks, requestOrigin } from "@/lib/calendar-links";
+import { shareMetadata } from "@/lib/share/metadata";
+import { absoluteUrl, siteOrigin } from "@/lib/site";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/teams/[team]">): Promise<Metadata> {
   const { team: slug } = await params;
-  const team = await teamBySlug(db, slug);
-  return team
-    ? {
-        title: team.name,
-        description: `${team.name}: schedule, results, roster and a calendar feed.`,
-      }
-    : { title: "Team" };
+  const found = await teamShare(db, slug);
+  if (!found) return { title: "Team" };
+  const { team, card } = found;
+  const description = `${team.name}: schedule, results, roster and a calendar feed.`;
+  const path = `/teams/${team.slug}`;
+  return {
+    title: team.name,
+    description,
+    ...shareMetadata({
+      title: card.record ? `${team.name} · ${card.record}` : team.name,
+      description,
+      path,
+      image: {
+        path: `${path}/share.png?v=${cardVersion(card)}`,
+        alt: card.alt,
+      },
+    }),
+  };
 }
 
 export default function TeamPage(props: PageProps<"/teams/[team]">) {
@@ -113,6 +131,24 @@ async function Team({ params, searchParams }: PageProps<"/teams/[team]">) {
           {entry?.vibe && <p className="sticker self-start">{entry.vibe}</p>}
         </div>
       </header>
+
+      <section aria-labelledby="share" className="flex flex-col gap-2">
+        <h2 id="share" className="sr-only">
+          Share this team
+        </h2>
+        <ShareButtons
+          title={team.name}
+          text={teamShareText({
+            name: team.name,
+            seasonName: entry?.seasonName ?? null,
+            record: row ?? null,
+            url: absoluteUrl(
+              siteOrigin(env.BETTER_AUTH_URL),
+              `/teams/${team.slug}`,
+            ),
+          })}
+        />
+      </section>
 
       {team.entries.length > 1 && (
         <nav aria-label="Seasons" className="flex flex-wrap gap-2">
