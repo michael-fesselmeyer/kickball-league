@@ -133,9 +133,11 @@ export async function loadSchedulerInput(
  * violations. Games keep one row each for the whole season, found by their
  * stable key; the version holds where each is placed.
  *
- * A rain-out version is checked under makeup rules: makeups may give a team
- * two games on a date, and they spend the makeup reserve on purpose
- * (scheduling-algorithm.md, sections 2 and 7).
+ * A rain-out version switches the season to makeup rules: makeups may give
+ * a team two games on a date, and they spend the makeup reserve on purpose
+ * (scheduling-algorithm.md, sections 2 and 7). The rules are stored in the
+ * version's input, so edits that start from it are judged the same way,
+ * while a fresh generation starts from the season's own settings.
  */
 export async function saveVersion(
   db: Db,
@@ -155,6 +157,10 @@ export async function saveVersion(
     createdBy?: UserId;
   },
 ): Promise<ScheduleVersionId> {
+  const rules: SchedulerInput =
+    origin === "rainout"
+      ? { ...input, gamesPerTeamPerDay: 2, reservePerDay: 0 }
+      : input;
   return db.transaction(async (tx) => {
     const [latest] = await tx
       .select({ last: max(scheduleVersion.versionNo) })
@@ -167,15 +173,10 @@ export async function saveVersion(
         versionNo: (latest?.last ?? 0) + 1,
         parentVersionId: parentVersionId ?? null,
         origin,
-        seed: input.seed,
-        inputSnapshot: input,
-        metrics: measure(input, schedule),
-        violations: validate(
-          origin === "rainout"
-            ? { ...input, gamesPerTeamPerDay: 2, reservePerDay: 0 }
-            : input,
-          schedule,
-        ),
+        seed: rules.seed,
+        inputSnapshot: rules,
+        metrics: measure(rules, schedule),
+        violations: validate(rules, schedule),
         createdBy: createdBy ?? null,
       })
       .returning({ id: scheduleVersion.id });
@@ -218,7 +219,7 @@ export async function saveVersion(
       inserted.forEach(remember);
     }
 
-    const pins = new Map(input.locked.map((l) => [l.gameKey, l.slotId]));
+    const pins = new Map(rules.locked.map((l) => [l.gameKey, l.slotId]));
     if (schedule.games.length > 0)
       await tx.insert(gamePlacement).values(
         schedule.games.map((g) => ({
