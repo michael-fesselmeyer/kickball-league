@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { can } from "@/domain/authz/permissions";
 import { auth } from "@/lib/auth";
+import { currentSubject } from "@/lib/auth/permission";
 import { signOut } from "./actions";
 
 export const metadata: Metadata = { title: "Home" };
@@ -23,6 +26,7 @@ async function Account() {
   if (!session) redirect("/sign-in?next=/app");
 
   const { name, email } = session.user;
+  const isAdmin = can(await currentSubject(), "season.manage", {});
   return (
     <>
       <div className="flex flex-col gap-1">
@@ -32,6 +36,11 @@ async function Account() {
           Your season stuff will live here.
         </p>
       </div>
+      {isAdmin && (
+        <Link href="/app/admin/seasons" className="btn btn-primary">
+          Manage seasons
+        </Link>
+      )}
       <form action={signOut}>
         <button type="submit" className="btn btn-secondary">
           Sign out
