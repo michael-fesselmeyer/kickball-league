@@ -133,3 +133,13 @@ test("robots.txt keeps search engines off a non-production build", async ({
   expect(robots).toContain("Disallow: /");
   expect(robots).not.toContain("Sitemap:");
 });
+
+test("demo mode is off by default: no banner and no view-as", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page.getByRole("complementary", { name: "Demo" })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("button", { name: "Admin" })).toHaveCount(0);
+});
