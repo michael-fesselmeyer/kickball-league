@@ -53,12 +53,20 @@ async function Standings({ params }: PageProps<"/seasons/[season]/standings">) {
       <header className="flex flex-col gap-1">
         <p className="text-text-muted">{season.name}</p>
         <h1 className="text-h1">Standings</h1>
-        <Link
-          href={`/seasons/${season.slug}/schedule`}
-          className="inline-flex min-h-11 items-center self-start text-brand underline"
-        >
-          Schedule
-        </Link>
+        <nav aria-label="Season" className="flex flex-wrap gap-x-4 gap-y-1">
+          <Link
+            href={`/seasons/${season.slug}/schedule`}
+            className="inline-flex min-h-11 items-center text-brand underline"
+          >
+            Schedule
+          </Link>
+          <Link
+            href={`/seasons/${season.slug}/bracket`}
+            className="inline-flex min-h-11 items-center text-brand underline"
+          >
+            Playoffs
+          </Link>
+        </nav>
       </header>
       {!played && (
         <p className="text-text-muted">
