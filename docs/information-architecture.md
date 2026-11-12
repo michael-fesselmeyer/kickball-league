@@ -14,7 +14,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       ├── standings               Standings, tiebreaker notes, power rankings and the game of the week
 │       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list)
 │       └── register                Register a team, join by invite, or free agent
-├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries
+├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries, all-time record and titles
 │   ├── calendar.ics                Team calendar feed: every published game, in the league's time zone
 │   └── share.png                   Team share image: record, place, last five results
 ├── games/[game]                    Game page: time, field, weather, score, head-to-head history, share buttons
@@ -27,8 +27,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── sponsors/                       Sponsor list (logo slots)
 │   └── [sponsor]                   Sponsor page with deals (P2)
 ├── free-agents                     How solo signup works (P2: quiz)
-├── history/                        Past seasons, champions, records (P2)
-│   └── [season]
+├── history                         Past seasons: champions, final standings and the all-time table; each season links to its standings and schedule
 ├── news/[post]                     Season recaps and announcements (P2)
 ├── nyc-kickball-league             City-wide landing page (see seo-plan.md)
 ├── refs                            Become a referee
