@@ -13,7 +13,7 @@ import {
 } from "@/db/queries/scores";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
-import { respondingTeams } from "@/domain/scores/scores";
+import { PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
 import { respondAction, submitScoreAction } from "./actions";
 
@@ -33,6 +33,7 @@ const ERRORS: Record<string, string> = {
   invalid:
     "Check the score: runs from 0 to 99, and 4 or more innings for a called game.",
   not_started: "This game has not started yet.",
+  playoff_tie: PLAYOFF_TIE,
   already_final: "This score is final. Ask an admin to correct it.",
   not_yours: "Only the other team's captain can answer this score.",
   already_answered: "Your team has already answered this score.",

@@ -16,7 +16,7 @@ import {
   type ScoreReportId,
   type TeamSeasonId,
 } from "@/domain/ids";
-import { OUTCOMES, respondingTeams } from "@/domain/scores/scores";
+import { OUTCOMES, PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
 
 const pageFor = (gameId: string) => `/app/games/${gameId}/score`;
@@ -92,7 +92,7 @@ export async function submitScoreAction(
   );
   if (!result.ok)
     redirect(
-      `${page}?error=${typeof result.error === "string" ? result.error : "invalid"}`,
+      `${page}?error=${typeof result.error === "string" ? result.error : result.error.scoreB === PLAYOFF_TIE ? "playoff_tie" : "invalid"}`,
     );
   redirect(`${page}?saved=1`);
 }

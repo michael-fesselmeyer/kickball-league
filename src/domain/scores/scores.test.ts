@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { checkScore, type Report, respondingTeams, scoreState } from "./scores";
+import {
+  checkScore,
+  PLAYOFF_TIE,
+  type Report,
+  respondingTeams,
+  scoreState,
+} from "./scores";
 
 const T = ["home", "away"] as const;
 const at = (h: number) => new Date(Date.UTC(2027, 3, 5, h));
@@ -168,5 +174,34 @@ describe("respondingTeams", () => {
     expect(
       respondingTeams(report({ role: "admin", teamSeasonId: null }), T),
     ).toEqual([]);
+  });
+});
+
+describe("checkScore in the playoffs", () => {
+  const tie = {
+    outcome: "normal",
+    scoreA: 4,
+    scoreB: 4,
+    inningsPlayed: null,
+  } as const;
+  it("refuses a tie when ties are not allowed", () => {
+    expect(checkScore(tie, { tiesAllowed: false })).toEqual({
+      scoreB: PLAYOFF_TIE,
+    });
+    expect(
+      checkScore(
+        { ...tie, outcome: "called", inningsPlayed: 5 },
+        { tiesAllowed: false },
+      ),
+    ).toEqual({ scoreB: PLAYOFF_TIE });
+  });
+  it("still allows a tie in the regular season, and any forfeit", () => {
+    expect(checkScore(tie)).toEqual({});
+    expect(
+      checkScore({ ...tie, outcome: "forfeit_a" }, { tiesAllowed: false }),
+    ).toEqual({});
+    expect(checkScore({ ...tie, scoreB: 5 }, { tiesAllowed: false })).toEqual(
+      {},
+    );
   });
 });
