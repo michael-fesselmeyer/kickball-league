@@ -101,18 +101,19 @@ const LAST_NAMES = [
 const SHIRT_SIZES = ["xs", "s", "m", "l", "xl", "xxl"] as const;
 
 export const ROSTER_SIZE = 14;
-const SEASON_SUNDAYS = [
-  "2026-09-13",
-  "2026-09-20",
-  "2026-09-27",
-  "2026-10-04",
-  "2026-10-11",
-  "2026-10-18",
-  "2026-10-25",
+/** Fall plays Tuesday evenings (summer is Sunday afternoons, spring Monday evenings). */
+const GAME_DAYS = [
+  "2026-09-15",
+  "2026-09-22",
+  "2026-09-29",
+  "2026-10-06",
+  "2026-10-13",
+  "2026-10-20",
+  "2026-10-27",
 ];
 /** Rounds already played: the season is mid-way through. */
 export const PLAYED_ROUNDS = 4;
-const KICKOFF_HOURS = [10, 11] as const;
+const KICKOFF_HOURS = [20, 21] as const;
 const FIELD_NAMES = ["Field 1", "Field 2", "Field 3"] as const;
 
 /** A UUID v4 drawn from the seeded generator, so ids are stable across reseeds. */
@@ -176,8 +177,8 @@ export function generateSeed(seed = 2026) {
     name: "Fall 2026",
     slug: "fall-2026",
     status: "in_progress" as const,
-    startsOn: SEASON_SUNDAYS[0] as string,
-    endsOn: SEASON_SUNDAYS.at(-1) as string,
+    startsOn: GAME_DAYS[0] as string,
+    endsOn: GAME_DAYS.at(-1) as string,
     registrationOpensAt: new Date("2026-07-15T13:00:00Z"),
     registrationClosesAt: new Date("2026-09-06T03:59:00Z"),
     paymentDeadlineAt: new Date("2026-09-10T03:59:00Z"),
@@ -317,13 +318,17 @@ export function generateSeed(seed = 2026) {
     }
   }
 
-  // Slots: every Sunday, every field, at each kickoff hour.
-  const slots = SEASON_SUNDAYS.flatMap((date) =>
+  // Slots: every game day, every field, at each kickoff hour. Each slot's local
+  // game day is kept aside: a 9 pm New York kickoff is already the next day in UTC.
+  const gameDayOf = new Map<SlotId, string>();
+  const slots = GAME_DAYS.flatMap((date) =>
     KICKOFF_HOURS.flatMap((hour, timeIndex) =>
       fields.map((field) => {
         const startsAt = newYorkTime(date, hour);
+        const slotId = id<SlotId>();
+        gameDayOf.set(slotId, date);
         return {
-          id: id<SlotId>(),
+          id: slotId,
           seasonId: season.id,
           fieldId: field.id,
           startsAt,
@@ -334,11 +339,11 @@ export function generateSeed(seed = 2026) {
     ),
   );
 
-  // Games: one round per Sunday; the first rounds are already final.
+  // Games: one round per game day; the first rounds are already final.
   const games = roundRobin(teamSeasons.length).flatMap((pairs, round) => {
-    const date = SEASON_SUNDAYS[round] as string;
+    const date = GAME_DAYS[round] as string;
     const daySlots = random.shuffle(
-      slots.filter((s) => s.startsAt.toISOString().slice(0, 10) === date),
+      slots.filter((s) => gameDayOf.get(s.id) === date),
     );
     return pairs.map(([a, b], i) => {
       const slot = daySlots[i];
