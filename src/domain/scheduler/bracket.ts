@@ -57,10 +57,12 @@ export function placeBracket(
   for (let round = 1; previous.length > 1; round++) {
     const winners: (BracketSide | null)[] = [];
     for (let m = 0; m < previous.length / 2; m++) {
-      const home = previous[2 * m] ?? null;
-      const away = previous[2 * m + 1] ?? null;
-      if (!home || !away) {
-        winners.push(home ?? away);
+      // The better seed always sits first in a pairing and always exists, so
+      // a bye only ever leaves the away side empty.
+      const home = previous[2 * m] as BracketSide;
+      const away = previous[2 * m + 1] as BracketSide | null;
+      if (!away) {
+        winners.push(home);
         continue;
       }
       const id = `r${round}m${m + 1}`;
