@@ -122,6 +122,9 @@ const RULES = {
   "conflicts.submit": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   // Cash or Venmo paid outside the app (product-spec.md, section 9).
   "payment.record_offline": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
+  // CSV files of a roster or its payments. Without a team: the whole season.
+  "roster.export": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
+  "payments.export": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   "score.enter": any(isAdmin, captainsGame, refereesGame),
   "score.confirm": any(isAdmin, captainsGame),
   "announcement.send": any(
@@ -150,6 +153,7 @@ const RULES = {
   "player.suspend": isAdmin,
   "refund.issue": isAdmin,
   "audit.read": isAdmin,
+  "shirts.manage": isAdmin,
   // The owner alone
   "billing.manage": isOwner,
   "admins.manage": isOwner,
