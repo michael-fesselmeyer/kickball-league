@@ -29,7 +29,7 @@ describe("profile", () => {
         .insert(user)
         .values({ name: "", email: `profile-${tag}@example.test` })
         .returning({ id: user.id });
-      const id = person!.id as UserId;
+      const id = person!.id;
 
       // No profile row yet: saving creates it.
       expect(await profileOf(db, id)).toMatchObject({ firstName: null });

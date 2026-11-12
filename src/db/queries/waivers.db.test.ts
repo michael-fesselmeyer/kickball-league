@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { LeagueId, SeasonId, UserId, WaiverId } from "@/domain/ids";
+import type { SeasonId, UserId } from "@/domain/ids";
 import { hashWaiverBody } from "@/domain/waiver/waiver";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
@@ -56,10 +56,10 @@ async function world(db: Db) {
     })
     .returning({ id: season.id });
   return {
-    admin: admin!.id as UserId,
-    player: player!.id as UserId,
-    leagueId: lg!.id as LeagueId,
-    seasonId: sn!.id as SeasonId,
+    admin: admin!.id,
+    player: player!.id,
+    leagueId: lg!.id,
+    seasonId: sn!.id,
   };
 }
 
@@ -228,7 +228,7 @@ describe("waivers", () => {
           {
             leagueId: other.leagueId,
             seasonId: other.seasonId,
-            waiverId: published.value.id as WaiverId,
+            waiverId: published.value.id,
           },
           other.admin,
         ),

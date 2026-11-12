@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { LeagueId, UserId } from "@/domain/ids";
+import type { UserId } from "@/domain/ids";
 import { hashWaiverBody } from "@/domain/waiver/waiver";
 import { user } from "../schema/auth";
 import { league } from "../schema/league";
@@ -68,17 +68,13 @@ async function world(db: Db, change: Partial<typeof season.$inferInsert> = {}) {
     rosterMax: 20,
     ...change,
   });
-  const leagueId = lg!.id as LeagueId;
+  const leagueId = lg!.id;
   const s = (await seasonForRegistration(
     db,
     leagueId,
     "spring",
   )) as SeasonForRegistration;
-  const [a, b, c] = people.map((p) => p.id as UserId) as [
-    UserId,
-    UserId,
-    UserId,
-  ];
+  const [a, b, c] = people.map((p) => p.id) as [UserId, UserId, UserId];
   return { leagueId, season: s, a, b, c };
 }
 

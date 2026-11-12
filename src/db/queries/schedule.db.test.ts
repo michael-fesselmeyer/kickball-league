@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { SeasonId, UserId } from "@/domain/ids";
+import type { SeasonId } from "@/domain/ids";
 import { generate } from "@/domain/scheduler/generate";
 import { reschedule } from "@/domain/scheduler/reschedule";
 import { auditLog } from "../schema/audit";
@@ -97,8 +97,8 @@ async function world(db: Db) {
     .values(teams.map((t) => ({ teamId: t.id, seasonId: sn!.id })))
     .returning({ id: teamSeason.id });
   return {
-    adminId: admin!.id as UserId,
-    seasonId: sn!.id as SeasonId,
+    adminId: admin!.id,
+    seasonId: sn!.id,
     entries: entries.map((e) => e.id),
   };
 }

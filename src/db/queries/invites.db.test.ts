@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { LeagueId, TeamSeasonId, UserId } from "@/domain/ids";
+import type { UserId } from "@/domain/ids";
 import { user } from "../schema/auth";
 import { league } from "../schema/league";
 import { profile } from "../schema/profile";
@@ -60,13 +60,13 @@ async function world(db: Db, rosterMax = 20) {
     rosterMin: 1,
     rosterMax,
   });
-  const leagueId = lg!.id as LeagueId;
+  const leagueId = lg!.id;
   const s = (await seasonForRegistration(
     db,
     leagueId,
     "spring",
   )) as SeasonForRegistration;
-  const ids = people.map((p) => p.id as UserId);
+  const ids = people.map((p) => p.id);
   const team = async (captain: UserId, name: string) => {
     const r = await registerTeam(db, {
       leagueId,
@@ -82,7 +82,7 @@ async function world(db: Db, rosterMax = 20) {
       now: NOW,
     });
     if (!r.ok) throw new Error(r.error);
-    return r.value.teamSeasonId as TeamSeasonId;
+    return r.value.teamSeasonId;
   };
   return { leagueId, season: s, ids, team };
 }

@@ -60,7 +60,7 @@ async function world(db: Db) {
       .insert(profile)
       .values({ userId: u!.id, globalRole })
       .onConflictDoUpdate({ target: profile.userId, set: { globalRole } });
-    return u!.id as UserId;
+    return u!.id;
   };
   const join = async (
     userId: UserId,

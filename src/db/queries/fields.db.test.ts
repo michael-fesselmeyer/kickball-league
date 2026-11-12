@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { FieldId, LeagueId, SeasonId, UserId } from "@/domain/ids";
+import type { FieldId, SeasonId, UserId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
 import { game, slot } from "../schema/game";
@@ -52,9 +52,9 @@ async function world(db: Db) {
     })
     .returning({ id: season.id });
   return {
-    actor: admin!.id as UserId,
-    leagueId: lg!.id as LeagueId,
-    seasonId: sn!.id as SeasonId,
+    actor: admin!.id,
+    leagueId: lg!.id,
+    seasonId: sn!.id,
   };
 }
 
