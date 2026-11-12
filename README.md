@@ -38,6 +38,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - Players answer in, out or maybe, and captains see a warning when the fielding rule is at risk.
 - A sub finder: a short-handed captain asks for subs for a game, with spots reserved for women or men when the fielding rule needs them. Registered players with a signed waiver who are free at that time hear about it by email (free agents first, and only if sub alerts are on). A player's "I'm in" holds a spot until the captain approves or declines, so two players can never take the last spot at once. Both captains and the ref see who is playing as a pickup. Not offered for playoff games.
 - Public standings with the configured tiebreakers.
+- An installable app: a web app manifest with the league's icons and light and dark theme colors, and a service worker that keeps the app shell and each signed-in person's next game on the phone, so the game page opens with no signal (marked as a saved copy) and anything else shows an offline page. Signed-in screens, payments, waivers, admin and API responses are never cached. Captains, refs and admins are offered the install from their second visit on; "Not now" is remembered.
 
 **Score stats**
 

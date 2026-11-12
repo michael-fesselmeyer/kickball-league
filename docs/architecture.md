@@ -288,7 +288,7 @@ Thresholds are season settings. The rule only recommends; an admin decides. Buil
 | Forecasts ✔ | NWS grid square and hourly forecast, `'use cache'` | Grid square for weeks; forecast refreshed in the background after an hour |
 | Standings | Computed from games inside a cached function | Invalidated when any game in the season is finalized |
 | Live score JSON | CDN | About 5 seconds |
-| Browser | Service worker precache of the app shell and last-seen schedule (P2) | Updated on each visit |
+| Browser | Service worker: the app shell (offline page, manifest, icons and the versioned files they load) and one public page, the signed-in person's next game (section 14) | Refreshed on each visit to the signed-in home screen and whenever the saved game is opened online |
 
 No Redis in the MVP. Rate limits that need a counter use a small Postgres table.
 
@@ -422,6 +422,19 @@ Third-party material stays out of the public repository until the league agrees:
 **Recommendation: PWA.** The people who would install anything are about 30 captains, refs and admins, and what they need (score entry, RSVPs, subs, rain-out control) is forms and lists. The one real weakness is iPhone push, which requires installing first; the installed-app prompt explains that, and email covers anyone who skips it.
 
 Build it the way Next.js documents ✔: `app/manifest.ts`, a small hand-written service worker, and `web-push` for notifications. Add a precaching library only if the hand-written worker becomes a burden.
+
+### How the installable app works
+
+- **Manifest.** `src/app/manifest.ts` (name, `start_url` `/app`, standalone display, icons). The icons are drawn at build time by `src/app/icons/[icon]/route.ts` from the league placeholder that `LogoBadge` draws (a pennant with the league's initials), at 192 and 512 pixels, a maskable 512 with the art inside the safe circle, and a 180-pixel Apple touch icon. A manifest holds one theme color, so the root layout's `viewport` sets the header's surface color per color scheme for light and dark.
+- **Service worker.** `public/sw.js`, hand-written, registered by a tiny inline script in production builds only (development never runs it, so it never serves a stale file). It is served with `Cache-Control: no-cache` and a strict content security policy (`next.config.ts`). It handles only:
+  - versioned files under `/_next/static/` and the shell files: from its cache when saved, otherwise the network;
+  - page loads: always the network first. With no signal, the saved next game (with a note at the top saying it is a saved copy and when it was saved), or else the offline page.
+  Everything else is never intercepted: non-GET requests, other sites, `/api/*`, and the client router's data requests (Next.js retries those itself).
+- **The next game.** The signed-in home screen picks the person's next game (`pickNextGame` in `src/domain/pwa/offline.ts`: the soonest unfinished, not-called-off game of a team they are rostered on or a game they referee, kept until three hours after kickoff) and posts its path to the worker. The worker accepts only a `/games/<uuid>` path, fetches it **without cookies** so the saved copy is the public page anyone could see, keeps exactly one game, and drops the files no saved page uses any more. Signing out, or having no next game, deletes it.
+- **What is never cached.** Signed-in screens (`/app/*`, including payments, waivers and admin), API responses and Server Action calls. With no signal they show the offline page, never stale data.
+- **Install prompt.** Shown on the signed-in home screen to captains, co-captains, refs and admins only (`offeredInstall`), from their second browser session on, not when already installed, and never again after "Not now" (stored on the device). Chrome and Edge get an Install button that opens the browser's own prompt, which the inline script holds back on every page so players never see it; iPhone gets Safari's "Share, then Add to Home Screen" steps.
+- **Tests.** `src/lib/pwa/service-worker.test.ts` runs `public/sw.js` as written against an in-memory Cache Storage and a fake network. `e2e/installable.spec.ts` asks Chrome for installability errors (Lighthouse removed its installability audit in version 12) and checks the offline page and that nothing under `/app` is kept.
+- **Not yet.** Push notifications (a later issue), and offline score entry (P3).
 
 Revisit Expo only if, after a season, captains or refs report missed notifications, or the league wants a store presence.
 
