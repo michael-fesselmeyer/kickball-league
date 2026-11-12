@@ -38,9 +38,26 @@ jobs:
   e2e:
     name: End-to-end
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          # "demo" in the name lets the flows sign in with one-tap view-as.
+          POSTGRES_DB: kickball_e2e_demo
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci" --health-interval 5s --health-timeout 5s --health-retries 10
+      # Stripe's own mock API, so checkout runs without reaching Stripe.
+      stripe:
+        image: stripe/stripe-mock:v0.197.0
+        ports: ["12111:12111"]
     env:
-      # The smoke pages never query the database; these only pass validation.
-      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      # A throwaway database in the service container; playwright.config.ts
+      # adds demo mode and placeholder Stripe test values for the flows server.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/kickball_e2e_demo
       BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
       BETTER_AUTH_URL: http://localhost:3100
     steps:
@@ -51,7 +68,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - name: Smoke tests with axe, phone and desktop
+      - run: npm run db:migrate
+      - name: Smoke tests and core flows with axe (seeds the database first)
         run: npm run test:e2e
       - name: Upload the report when something fails
         if: failure()
@@ -66,8 +84,19 @@ jobs:
   lighthouse:
     name: Lighthouse
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      # The measured pages never query the database; these only pass validation.
+      # The seeded league behind the schedule, standings and team pages.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
       BETTER_AUTH_URL: http://localhost:3200
@@ -78,6 +107,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run seed
       - run: npm run build
       - name: Performance and accessibility budgets (throttled phone)
         run: npm run lighthouse
