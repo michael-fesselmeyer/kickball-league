@@ -43,6 +43,10 @@ async function main(): Promise<void> {
     slot,
     game,
     scoreReport,
+    scheduleVersion,
+    permitWindow,
+    blackout,
+    teamConstraint,
     team,
     teamSeason,
     registration,
@@ -66,6 +70,10 @@ async function main(): Promise<void> {
             .where(eq(season.leagueId, leagueId))
         ).map((r) => r.id);
         if (seasonIds.length) {
+          // Versions first: their placements hold slots.
+          await tx
+            .delete(scheduleVersion)
+            .where(inArray(scheduleVersion.seasonId, seasonIds));
           const gameIds = (
             await tx
               .select({ id: game.id })
@@ -78,6 +86,12 @@ async function main(): Promise<void> {
               .where(inArray(scoreReport.gameId, gameIds));
           await tx.delete(game).where(inArray(game.seasonId, seasonIds));
           await tx.delete(slot).where(inArray(slot.seasonId, seasonIds));
+          await tx
+            .delete(permitWindow)
+            .where(inArray(permitWindow.seasonId, seasonIds));
+          await tx
+            .delete(blackout)
+            .where(inArray(blackout.seasonId, seasonIds));
           const entryIds = (
             await tx
               .select({ id: teamSeason.id })
@@ -88,6 +102,10 @@ async function main(): Promise<void> {
             await tx
               .delete(rosterMembership)
               .where(inArray(rosterMembership.teamSeasonId, entryIds));
+          if (entryIds.length)
+            await tx
+              .delete(teamConstraint)
+              .where(inArray(teamConstraint.teamSeasonId, entryIds));
           await tx
             .delete(registration)
             .where(inArray(registration.seasonId, seasonIds));
@@ -123,10 +141,15 @@ async function main(): Promise<void> {
       await tx.insert(rosterMembership).values(data.rosterMemberships);
       await tx.insert(slot).values(data.slots);
       await tx.insert(game).values(data.games);
+      await tx.insert(season).values(data.nextSeason);
+      await tx.insert(teamSeason).values(data.nextTeamSeasons);
+      await tx.insert(permitWindow).values(data.permitWindows);
+      await tx.insert(slot).values(data.nextSlots);
+      await tx.insert(teamConstraint).values(data.teamConstraints);
     });
     const played = data.games.filter((g) => g.status === "final").length;
     console.info(
-      `Seeded "${data.league.name}": ${data.teams.length} teams, ${data.users.length} people, ${data.slots.length} slots, ${data.games.length} games (${played} played).`,
+      `Seeded "${data.league.name}": ${data.teams.length} teams, ${data.users.length} people, ${data.slots.length} slots, ${data.games.length} games (${played} played), and ${data.nextSeason.name} ready to schedule (${data.nextSlots.length} slots).`,
     );
   } finally {
     await pool.end();
