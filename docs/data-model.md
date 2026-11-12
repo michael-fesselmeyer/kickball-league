@@ -916,6 +916,11 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `game_placement` | unique `(schedule_version_id, game_id)` | A game is placed once per version |
 | `game_placement` | unique `(schedule_version_id, slot_id)` where `slot_id is not null` | A slot holds one game per version |
 | `schedule_version` | unique `(season_id, version_no)`; unique `(season_id)` where `status = 'published'` | One published version at a time |
+| `schedule_version` | check `version_no > 0`; check a non-draft version has `published_at` | Versions count from 1; publishing is timestamped |
+| `game_placement` | check `locked` only with a `slot_id` | Only a placed game can be pinned |
+| `permit_window` | check `ends_at > starts_at` | A permit has a length |
+| `blackout` | unique `(season_id, on_date, field_id)`, nulls not distinct | One blackout per date for all fields, and one per field |
+| `team_constraint` | check `on_date` or `time_index` is set; check `weight` between 1 and 10 | A constraint says when; weights stay comparable |
 | `waiver_signature` | unique `(waiver_id, user_id, season_id)` | One signature per waiver per season |
 | `score_report` | unique `(client_id)` | Retried offline submissions are ignored |
 | `score_confirmation` | unique `(game_id, team_season_id)` | One answer per team |
