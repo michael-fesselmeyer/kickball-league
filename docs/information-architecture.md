@@ -15,6 +15,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       ├── bracket                 Playoff bracket (P2)
 │       └── register                Register a team, join by invite, or free agent
 ├── teams/[team]                    Team page: roster (first name, last initial), results, next game
+│   └── calendar.ics                Team calendar feed: every published game, in the league's time zone
 ├── games/[game]                    Game page: time, field, weather, score, share image
 ├── rules/                          Searchable rulebook with a link for every rule number
 ├── parks/[park]                    Park page: map, fields, directions, nearby home bar
