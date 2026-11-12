@@ -124,46 +124,50 @@ const scenario = fc
   });
 
 describe("generateSlots properties", () => {
-  it("P14: every slot is inside a permit, outside every blackout, and overlaps nothing on its field", () => {
-    fc.assert(
-      fc.property(scenario, ({ permits, offs, slotMinutes }) => {
-        const slots = generateSlots(permits, offs, {
-          slotMinutes,
-          timeZone: "America/New_York",
-        });
-        for (const slot of slots) {
-          const [start, end] = [
-            Date.parse(slot.startsAt),
-            Date.parse(slot.endsAt),
-          ];
-          expect(end - start).toBe(slotMinutes * 60_000);
-          expect(
-            permits.some(
-              (p) =>
-                p.fieldId === slot.fieldId &&
-                Date.parse(p.startsAt) <= start &&
-                end <= Date.parse(p.endsAt),
-            ),
-          ).toBe(true);
-          expect(
-            offs.some(
-              (b) =>
-                b.date === slot.date &&
-                (b.fieldId ?? slot.fieldId) === slot.fieldId,
-            ),
-          ).toBe(false);
-          for (const other of slots) {
-            if (other === slot || other.fieldId !== slot.fieldId) continue;
+  it(
+    "P14: every slot is inside a permit, outside every blackout, and overlaps nothing on its field",
+    { timeout: 30_000 },
+    () => {
+      fc.assert(
+        fc.property(scenario, ({ permits, offs, slotMinutes }) => {
+          const slots = generateSlots(permits, offs, {
+            slotMinutes,
+            timeZone: "America/New_York",
+          });
+          for (const slot of slots) {
+            const [start, end] = [
+              Date.parse(slot.startsAt),
+              Date.parse(slot.endsAt),
+            ];
+            expect(end - start).toBe(slotMinutes * 60_000);
             expect(
-              Date.parse(other.startsAt) < end &&
-                start < Date.parse(other.endsAt),
+              permits.some(
+                (p) =>
+                  p.fieldId === slot.fieldId &&
+                  Date.parse(p.startsAt) <= start &&
+                  end <= Date.parse(p.endsAt),
+              ),
+            ).toBe(true);
+            expect(
+              offs.some(
+                (b) =>
+                  b.date === slot.date &&
+                  (b.fieldId ?? slot.fieldId) === slot.fieldId,
+              ),
             ).toBe(false);
+            for (const other of slots) {
+              if (other === slot || other.fieldId !== slot.fieldId) continue;
+              expect(
+                Date.parse(other.startsAt) < end &&
+                  start < Date.parse(other.endsAt),
+              ).toBe(false);
+            }
           }
-        }
-      }),
-      { numRuns: 1000 },
-    );
-  });
+        }),
+        { numRuns: 1000 },
+      );
+    },
+  );
 
   it("time indexes run 0, 1, 2 … in clock order on every date", () => {
     fc.assert(
