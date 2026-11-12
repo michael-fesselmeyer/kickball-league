@@ -6,3 +6,4 @@ export * from "./profile";
 export * from "./schedule";
 export * from "./season";
 export * from "./team";
+export * from "./waiver";

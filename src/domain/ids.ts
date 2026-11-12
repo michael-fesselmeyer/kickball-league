@@ -26,3 +26,5 @@ export type TeamConstraintId = Brand<string, "TeamConstraintId">;
 export type ScheduleVersionId = Brand<string, "ScheduleVersionId">;
 export type GamePlacementId = Brand<string, "GamePlacementId">;
 export type AuditLogId = Brand<string, "AuditLogId">;
+export type WaiverId = Brand<string, "WaiverId">;
+export type WaiverSignatureId = Brand<string, "WaiverSignatureId">;
