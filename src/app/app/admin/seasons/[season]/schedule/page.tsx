@@ -34,6 +34,17 @@ const ERRORS: Record<string, string> = {
   unknown_version: "That version no longer exists.",
 };
 
+/** Game keys (`r3:<team id>:<team id>`) in the scheduler's notes, as team names. */
+function readable(note: string, teams: ReadonlyMap<string, string>) {
+  return note.replace(
+    /r(\d+):([0-9a-f-]{36}):([0-9a-f-]{36})/g,
+    (key, round: string, a: string, b: string) =>
+      teams.has(a) && teams.has(b)
+        ? `${teams.get(a)} vs ${teams.get(b)} (round ${round})`
+        : key,
+  );
+}
+
 /** "1 game", "3 games", from a search parameter. */
 function count(value: string | string[] | undefined, noun: string) {
   const n = Number(value ?? 0);
@@ -220,6 +231,17 @@ async function Schedule({
               </div>
             ))}
           </dl>
+
+          {latest.schedule.diagnostics.length > 0 && (
+            <ul
+              aria-label="Notes from the scheduler"
+              className="flex list-disc flex-col gap-1 pl-5"
+            >
+              {latest.schedule.diagnostics.map((d) => (
+                <li key={d}>{readable(d, labels.teams)}</li>
+              ))}
+            </ul>
+          )}
 
           {violations.length > 0 && (
             <ul className="flex list-disc flex-col gap-1 pl-5 text-danger">
