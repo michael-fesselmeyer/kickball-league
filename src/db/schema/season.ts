@@ -14,6 +14,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import type { LeagueId, SeasonId, UserId, WaiverId } from "@/domain/ids";
+import type { Tiebreaker } from "@/domain/standings/standings";
 import { user } from "./auth";
 import { league } from "./league";
 import { waiver } from "./waiver";
@@ -39,8 +40,7 @@ export type FieldingRules = {
   minimumToPlay?: number;
   minimumOwnPlayers?: number;
 };
-export type Tiebreaker =
-  "win_pct" | "head_to_head" | "run_difference" | "runs_allowed" | "coin_flip";
+export type { Tiebreaker } from "@/domain/standings/standings";
 export type RebatePolicy = {
   thresholdPct?: number;
   method?: "credit" | "refund";
