@@ -22,6 +22,13 @@
       "when": 1794464750680,
       "tag": "0002_seasons_teams_rosters",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794465141950,
+      "tag": "0003_fields_games_scores",
+      "breakpoints": true
     }
   ]
 }
