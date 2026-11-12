@@ -45,6 +45,11 @@ export const SETTINGS_TOPICS: readonly {
     hint: "News from league admins and your captain.",
   },
   {
+    topic: "rainout",
+    label: "Rain-outs",
+    hint: "When your game is rained out, with its makeup time.",
+  },
+  {
     topic: "payment",
     label: "Payment reminders",
     hint: "7, 3 and 1 days before the deadline, until you have paid.",

@@ -37,6 +37,35 @@ describe("rendererFor", () => {
     );
   });
 
+  it("renders a rain-out notice with the makeup, or says it has none yet", () => {
+    const notice = {
+      seasonName: "Fall 2026",
+      seasonSlug: "fall-2026",
+      teams: "Aces vs Bees",
+      was: "Sun, Sep 6, 7:00 PM, Field 1",
+      makeup: "Sun, Sep 20, 8:00 PM, Field 1",
+    };
+    const moved = render("rainout_notice", notice);
+    if (!moved.ok) throw new Error(moved.error);
+    expect(moved.value.subject).toBe(
+      "Rained out: Aces vs Bees moves to Sun, Sep 20, 8:00 PM, Field 1",
+    );
+    expect(moved.value.text).toContain(
+      "Aces vs Bees (Sun, Sep 6, 7:00 PM, Field 1) is rained out.",
+    );
+    expect(moved.value.text).toContain(
+      "https://league.example.test/app/seasons/fall-2026",
+    );
+    expect(moved.value.text).toContain(
+      "because you play in this game in Fall 2026",
+    );
+
+    const waiting = render("rainout_notice", { ...notice, makeup: null });
+    if (!waiting.ok) throw new Error(waiting.error);
+    expect(waiting.value.subject).toBe("Rained out: Aces vs Bees is postponed");
+    expect(waiting.value.text).toContain("no makeup time yet");
+  });
+
   it("refuses a payload that does not match its template", () => {
     expect(render("announcement", { subject: "Hi" })).toEqual({
       ok: false,
