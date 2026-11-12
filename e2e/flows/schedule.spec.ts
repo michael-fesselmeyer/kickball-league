@@ -25,7 +25,10 @@ test("an admin generates and publishes a schedule", async ({
   await expectNoAxeViolations(page);
 
   await page.getByRole("button", { name: "Publish version 1" }).click();
-  await expect(page.getByRole("status")).toContainText("Published.");
+  // The schedule board has a status region of its own.
+  await expect(
+    page.getByRole("status").filter({ hasText: "Published." }),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Version 1 (published)" }),
   ).toBeVisible();
