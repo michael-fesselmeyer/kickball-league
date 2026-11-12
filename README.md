@@ -12,7 +12,10 @@ The first deployment targets a real Brooklyn league that plays in McCarren Park:
 
 ## Features
 
-None yet. The design is complete and the build has started; see the [roadmap](docs/roadmap.md).
+The build is under way; see the [roadmap](docs/roadmap.md) for what comes next.
+
+- **Public schedule, team and game pages.** Anyone can see the season schedule (filter by team), each team's record, next game, results and roster (first name and last initial), and each game's time, field and score. Pages read only the published schedule version, never a draft.
+- **Team calendar feeds.** Every team has an `.ics` feed that Apple Calendar, Google Calendar and Outlook can subscribe to. Times carry the league's time zone, and moved or rained-out games update in place.
 
 ## Design documents
 
