@@ -129,10 +129,11 @@ export function ShareButtons({
 /** A button that copies a ready-made message for a WhatsApp group chat. */
 export function CopyForWhatsApp({
   text,
-  label = "Copy for WhatsApp",
+  about,
 }: {
   text: string;
-  label?: string;
+  /** What is copied, for screen readers when several buttons share a page. */
+  about?: string;
 }) {
   const [copied, setCopied] = useState<Copied>("idle");
   return (
@@ -145,7 +146,8 @@ export function CopyForWhatsApp({
           }
           className="btn self-start btn-secondary"
         >
-          {label}
+          Copy for WhatsApp
+          {about && <span className="sr-only">: {about}</span>}
         </button>
         <span role="status" className="text-small text-text-muted">
           {copied === "copied" ? "Copied. Paste it into the group chat." : ""}

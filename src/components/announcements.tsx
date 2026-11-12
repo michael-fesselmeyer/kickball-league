@@ -1,5 +1,7 @@
 import type { AnnouncementSummary } from "@/db/queries/announcements";
 import { BODY_MAX, SUBJECT_MAX } from "@/db/queries/announcements";
+import { announcementShareText } from "@/domain/share/share-text";
+import { CopyForWhatsApp } from "./share";
 
 const field = "rounded-md border border-border bg-surface px-2 py-1";
 
@@ -112,6 +114,10 @@ export function AnnouncementList({
               .join(", ") || `${a.recipientCount} recipients`}
           </span>
           <p className="whitespace-pre-line">{a.body}</p>
+          <CopyForWhatsApp
+            about={a.subject}
+            text={announcementShareText({ subject: a.subject, body: a.body })}
+          />
         </li>
       ))}
     </ul>
