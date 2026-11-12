@@ -921,6 +921,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `permit_window` | check `ends_at > starts_at` | A permit has a length |
 | `blackout` | unique `(season_id, on_date, field_id)`, nulls not distinct | One blackout per date for all fields, and one per field |
 | `team_constraint` | check `on_date` or `time_index` is set; check `weight` between 1 and 10 | A constraint says when; weights stay comparable |
+| `audit_log` | check `action` matches `area.verb` | Actions stay searchable, such as every `schedule.*` |
 | `waiver_signature` | unique `(waiver_id, user_id, season_id)` | One signature per waiver per season |
 | `score_report` | unique `(client_id)` | Retried offline submissions are ignored |
 | `score_confirmation` | unique `(game_id, team_season_id)` | One answer per team |
