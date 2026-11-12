@@ -18,6 +18,7 @@ import {
 } from "@/domain/ids";
 import { OUTCOMES, PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
+import { refreshSeasonPages } from "@/lib/public-cache";
 
 const pageFor = (gameId: string) => `/app/games/${gameId}/score`;
 
@@ -94,6 +95,8 @@ export async function submitScoreAction(
     redirect(
       `${page}?error=${typeof result.error === "string" ? result.error : result.error.scoreB === PLAYOFF_TIE ? "playoff_tie" : "invalid"}`,
     );
+  // An admin's score is final at once; anyone's shows as reported.
+  refreshSeasonPages(g.seasonId);
   redirect(`${page}?saved=1`);
 }
 
@@ -139,5 +142,6 @@ export async function respondAction(
     }),
   );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
+  refreshSeasonPages(g.seasonId);
   redirect(`${page}?${status}=1`);
 }
