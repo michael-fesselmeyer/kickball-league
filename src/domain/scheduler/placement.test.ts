@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { seededRandom, type Random } from "../random";
 import { measure } from "./measure";
 import { constructPlacement, placementCost } from "./placement";
-import { assignRoundsToDates, buildRounds } from "./rounds";
+import { assignRoundsToDates, buildRounds, type Round } from "./rounds";
 import { DEFAULT_WEIGHTS, type SchedulerInput } from "./types";
 import { validate } from "./validate";
-import { arbitraryLeague } from "./league.fixture";
+import { arbitraryLeague, league as leagueOf } from "./league.fixture";
 import { slot, SUNDAYS, workedExample } from "./worked-example.fixture";
 
 const inOrder: Random = { ...seededRandom(0), shuffle: (items) => [...items] };
@@ -175,5 +175,84 @@ describe("constructPlacement edge cases", () => {
         lock.slotId,
       );
     expect(validate({ ...input, locked }, schedule)).toEqual([]);
+  });
+});
+
+describe("the exact day search", () => {
+  // Two rounds of three games on two fields and three times: each round
+  // needs two of the times, so the rounds must share one. T1 cannot play
+  // the middle time. The greedy passes miss the one way it fits.
+  const rounds: Round[] = [
+    {
+      round: 1,
+      games: [
+        ["T2", "T1"],
+        ["T4", "T0"],
+        ["T5", "T6"],
+      ],
+      bye: "T3",
+    },
+    {
+      round: 2,
+      games: [
+        ["T3", "T1"],
+        ["T2", "T6"],
+        ["T4", "T5"],
+      ],
+      bye: "T0",
+    },
+  ];
+  const day = (unavailable: number[]) => {
+    const base = leagueOf({
+      teams: 7,
+      fields: 2,
+      times: 3,
+      dates: 1,
+      gamesPerTeamPerDay: 2,
+      reservePerDay: 0,
+      rounds: 2,
+      seed: 0,
+    });
+    return {
+      ...base,
+      constraints: unavailable.map((timeIndex) => ({
+        teamId: "T1",
+        kind: "unavailable" as const,
+        date: "2027-06-01",
+        timeIndex,
+      })),
+    };
+  };
+  const days = [{ date: "2027-06-01", rounds: [1, 2] }];
+
+  it("finds a day where both rounds share a time", () => {
+    const input = day([1]);
+    const schedule = constructPlacement(rounds, days, input);
+    expect(schedule.unplaced).toEqual([]);
+    const slotOf = new Map(input.slots.map((x) => [x.id, x]));
+    const seen = new Set<string>();
+    for (const g of schedule.games) {
+      const at = slotOf.get(g.slotId as string)?.timeIndex;
+      for (const team of [g.teamA, g.teamB]) {
+        expect(seen.has(`${team}@${at}`)).toBe(false);
+        seen.add(`${team}@${at}`);
+      }
+      if (g.teamA === "T1" || g.teamB === "T1") expect(at).not.toBe(1);
+    }
+  });
+
+  it("gives up within its budget and keeps the greedy result", () => {
+    const schedule = constructPlacement(rounds, days, day([1]), {
+      exactBudget: 1,
+    });
+    expect(schedule.unplaced.length).toBeGreaterThan(0);
+    expect(schedule.diagnostics[0]).toContain("could not be placed");
+  });
+
+  it("leaves a day that cannot fit as it was, with a reason", () => {
+    // T1 plays twice but can make only the first time.
+    const schedule = constructPlacement(rounds, days, day([1, 2]));
+    expect(schedule.unplaced.length).toBeGreaterThan(0);
+    expect(schedule.diagnostics.length).toBe(schedule.unplaced.length);
   });
 });
