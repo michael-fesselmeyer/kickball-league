@@ -8,6 +8,9 @@
         "http://localhost:3200/about",
         "http://localhost:3200/faq",
         "http://localhost:3200/parks/mccarren-park",
+        "http://localhost:3200/nyc-kickball-league",
+        "http://localhost:3200/free-agents",
+        "http://localhost:3200/news/how-to-play-kickball",
         "http://localhost:3200/sign-in"
       ],
       "numberOfRuns": 3,

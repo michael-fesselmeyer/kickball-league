@@ -35,6 +35,9 @@ for (const colorScheme of ["light", "dark"] as const) {
       ["/about", "meeting people", "SportsOrganization"],
       ["/faq", "Questions, answered", "FAQPage"],
       ["/parks/mccarren-park", "McCarren Park", "Park"],
+      ["/nyc-kickball-league", "NYC kickball league", "SportsOrganization"],
+      ["/free-agents", "on your own", "FAQPage"],
+      ["/news/how-to-play-kickball", "How to play", "Article"],
     ] as const) {
       test(`${path} loads, carries structured data and is accessible`, async ({
         page,
@@ -113,6 +116,9 @@ test("the page fits a phone screen without sideways scrolling", async ({
     "/about",
     "/faq",
     "/parks/mccarren-park",
+    "/nyc-kickball-league",
+    "/free-agents",
+    "/news/how-to-play-kickball",
     "/sign-in",
     "/style",
   ]) {
