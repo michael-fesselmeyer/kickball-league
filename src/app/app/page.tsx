@@ -4,16 +4,29 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { publishedGamesFor } from "@/db/queries/public-schedule";
 import { gamesToReferee } from "@/db/queries/referees";
 import { openSeasons } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { pickupsFor } from "@/db/queries/subs";
 import { Pickups } from "@/components/pickups";
 import { can } from "@/domain/authz/permissions";
-import { parseId, type UserId } from "@/domain/ids";
+import {
+  type GameId,
+  parseId,
+  type TeamSeasonId,
+  type UserId,
+} from "@/domain/ids";
+import {
+  offeredInstall,
+  offlineGame,
+  pickNextGame,
+} from "@/domain/pwa/offline";
 import { auth } from "@/lib/auth";
 import { currentSubject } from "@/lib/auth/permission";
 import { signOut } from "./actions";
+import { InstallPrompt } from "./install-prompt";
+import { OfflineSync, SignOutForm } from "./offline-sync";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -49,6 +62,18 @@ async function Account() {
   const pickups = await pickupsFor(
     db,
     refereeing.map((g) => g.id),
+  );
+  // The next game is kept on the device for when the field has no signal.
+  const nextGame = pickNextGame(
+    await publishedGamesFor(db, {
+      teamSeasonIds: subject.roster.flatMap(
+        (m) => parseId<TeamSeasonId>(m.teamSeasonId) ?? [],
+      ),
+      gameIds: subject.refereeGameIds.flatMap(
+        (id) => parseId<GameId>(id) ?? [],
+      ),
+    }),
+    now,
   );
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
@@ -125,11 +150,21 @@ async function Account() {
           League admin
         </Link>
       )}
-      <form action={signOut}>
-        <button type="submit" className="btn btn-secondary">
-          Sign out
-        </button>
-      </form>
+      <SignOutForm action={signOut} />
+      <OfflineSync
+        game={
+          nextGame
+            ? offlineGame(nextGame, league?.timeZone ?? "America/New_York")
+            : null
+        }
+      />
+      {offeredInstall(subject) && (
+        <>
+          {/* Room to scroll past the floating offer, drawn with the page so nothing shifts. */}
+          <div aria-hidden="true" className="h-48" />
+          <InstallPrompt />
+        </>
+      )}
     </>
   );
 }
