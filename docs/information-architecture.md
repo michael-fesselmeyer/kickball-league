@@ -26,10 +26,12 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │   └── [event]                     Event page with RSVP
 ├── sponsors/                       Sponsor list (logo slots)
 │   └── [sponsor]                   Sponsor page with deals (P2)
-├── free-agents                     How solo signup works (P2: quiz)
+├── free-agents                     How solo signup works, with FAQ structured data (P2: quiz)
 ├── history                         Past seasons: champions, final standings and the all-time table; each season links to its standings and schedule
-├── news/[post]                     Season recaps and announcements (P2)
-├── nyc-kickball-league             City-wide landing page (see seo-plan.md)
+├── news/
+│   ├── how-to-play-kickball        Evergreen guide to the basics, with Article structured data
+│   └── [post]                      Season recaps and announcements (P2)
+├── nyc-kickball-league             City-wide landing page: subway routes and travel times by borough (see seo-plan.md)
 ├── refs                            Become a referee
 ├── faq
 ├── about                           The league, the commissioners, contact
