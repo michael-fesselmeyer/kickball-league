@@ -1,10 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import Link from "next/link";
 import { DemoBanner } from "@/components/demo-banner";
 import { Kickball } from "@/components/kickball";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { env } from "@/env";
+import { appIconPath } from "@/lib/pwa/icons";
+import { THEME_COLORS } from "@/lib/pwa/theme-colors";
 import { isIndexable, SITE, siteOrigin } from "@/lib/site";
 import { applySavedThemeScript } from "@/lib/theme";
 import "./globals.css";
@@ -32,6 +34,16 @@ export const metadata: Metadata = {
   openGraph: { siteName: SITE.name, type: "website", locale: "en_US" },
   // Previews and local builds stay out of search (docs/seo-plan.md).
   robots: isIndexable(process.env) ? undefined : { index: false },
+  // The installable app (docs/architecture.md, section 14).
+  icons: { apple: appIconPath("apple-touch-icon.png") },
+  appleWebApp: { capable: true, title: "Kickball", statusBarStyle: "default" },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light.theme },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark.theme },
+  ],
 };
 
 const FOOTER_LINKS = [
