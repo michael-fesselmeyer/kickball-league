@@ -12,8 +12,21 @@ import { currentLeague } from "@/db/queries/seasons";
 import { hasSignedSeasonWaiver } from "@/db/queries/waivers";
 import { formatCents, registrationWindow } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
+import { stripeClient } from "@/services/stripe";
+import { startCheckout } from "./actions";
+import { ConfirmingPayment } from "./confirming";
 
 export const metadata: Metadata = { title: "Your season" };
+
+const PAYMENT_MESSAGES: Record<string, string> = {
+  off: "Online payment is not set up yet.",
+  cancelled: "Payment cancelled. Nothing was charged.",
+  failed: "Stripe could not start the payment. Try again in a minute.",
+  waiver_first: "Sign the waiver before paying.",
+  already_paid: "You have already paid.",
+  captain_pays: "Your captain is paying the team fee.",
+  no_price: "The league has not set a price for this yet.",
+};
 
 export default function SeasonPage(props: PageProps<"/app/seasons/[season]">) {
   return (
@@ -109,9 +122,25 @@ async function Season({
         timeZone: league.timeZone,
       }).format(season.paymentDeadlineAt)
     : null;
+  const paid = mine.status === "active";
+  const captainPays =
+    mine.team?.paymentMode === "full" &&
+    mine.team.role !== "captain" &&
+    season.feeModel === "per_team";
+  const paymentsOn = stripeClient() !== null;
+  const paymentMessage =
+    typeof query.payment === "string"
+      ? PAYMENT_MESSAGES[query.payment]
+      : undefined;
   return (
     <>
       {header}
+      {query.paid && !paid && <ConfirmingPayment />}
+      {paymentMessage && (
+        <p role="alert" className="rounded-lg border border-warning p-3">
+          {paymentMessage}
+        </p>
+      )}
       {(query.registered || query.joined) && (
         <p role="status" className="rounded-lg border border-success p-3">
           {query.joined
@@ -151,19 +180,47 @@ async function Season({
           )}
         </Step>
         <Step
-          done={false}
+          done={paid}
           title={
-            owed.ok && owed.cents > 0
-              ? `Pay ${formatCents(owed.cents)}`
-              : "Payment"
+            paid
+              ? "Paid"
+              : owed.ok && owed.cents > 0 && !captainPays
+                ? `Pay ${formatCents(owed.cents)}`
+                : "Payment"
           }
         >
-          <p className="text-text-muted">
-            {!signed
-              ? "Payment opens once you have signed the waiver."
-              : "Online payment is coming soon."}
-            {deadline && ` Pay by ${deadline}.`}
-          </p>
+          {paid ? (
+            <p className="text-text-muted">
+              You&apos;re all set for {season.name}.
+            </p>
+          ) : !signed ? (
+            <p className="text-text-muted">
+              Payment opens once you have signed the waiver.
+            </p>
+          ) : captainPays ? (
+            <p className="text-text-muted">
+              Your captain is paying the team fee.
+            </p>
+          ) : !paymentsOn ? (
+            <p className="text-text-muted">
+              Online payment is not set up yet. The league will let you know
+              when it opens.
+            </p>
+          ) : (
+            <form
+              action={startCheckout.bind(null, slug)}
+              className="flex flex-col gap-2"
+            >
+              <button type="submit" className="btn self-start btn-primary">
+                Pay {owed.ok ? formatCents(owed.cents) : ""} securely with
+                Stripe
+              </button>
+              <span className="text-small text-text-muted">
+                Card, Apple Pay or Google Pay.
+                {deadline && ` Pay by ${deadline}.`}
+              </span>
+            </form>
+          )}
         </Step>
       </ol>
     </>
