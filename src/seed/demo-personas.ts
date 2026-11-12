@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import type { Db } from "@/db/queries/schedule";
 import {
   profile,
@@ -125,7 +125,13 @@ export async function removeDemoPersonas(db: Db): Promise<void> {
     await db
       .select({ id: user.id })
       .from(user)
-      .where(inArray(user.email, [...PERSONA_EMAILS]))
+      // By id too: a persona whose account was deleted has another address.
+      .where(
+        or(
+          inArray(user.email, [...PERSONA_EMAILS]),
+          inArray(user.id, Object.values(PERSONA_IDS)),
+        ),
+      )
   ).map((r) => r.id);
   if (!ids.length) return;
   await db
