@@ -292,6 +292,9 @@ export function generateSeed(seed = 2026) {
     sharesContact: boolean;
   }[] = [];
   for (const entry of teamSeasons) {
+    // One main captain (final calls, payment) and, as in the real league,
+    // usually one to three co-captains.
+    const coCaptains = random.int(1, 3);
     for (let spot = 0; spot < ROSTER_SIZE; spot++) {
       const registrationId = id<RegistrationId>();
       registrations.push({
@@ -305,7 +308,8 @@ export function generateSeed(seed = 2026) {
         id: id<RosterMembershipId>(),
         teamSeasonId: entry.id,
         registrationId,
-        role: spot === 0 ? "captain" : spot === 1 ? "co_captain" : "player",
+        role:
+          spot === 0 ? "captain" : spot <= coCaptains ? "co_captain" : "player",
         status: "active",
         startedAt: new Date("2026-08-20T16:00:00Z"),
         sharesContact: random.next() < 0.6,
