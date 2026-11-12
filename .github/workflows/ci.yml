@@ -72,3 +72,5 @@ jobs:
         run: npm run db:migrate
       - name: Migrations are idempotent on re-run
         run: npm run db:migrate
+      - name: Database constraints hold
+        run: npm run test:db
