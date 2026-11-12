@@ -5,7 +5,7 @@ Items marked **(A)** are assumptions waiting on an answer in [open-questions.md]
 
 ## 1. What this is
 
-A web platform that runs an adult kickball league end to end: registration and payment, waivers, a fair season schedule, game-day scores and standings, rain-outs, subs, events, and sponsor value. The first league is Brooklyn Kickball Club (BKC), which plays Sundays at McCarren Park. League name, colors and logos are configuration, not code.
+A web platform that runs an adult kickball league end to end: registration and payment, waivers, a fair season schedule, game-day scores and standings, rain-outs, subs, events, and sponsor value. The first league is Brooklyn Kickball Club (BKC), which plays at McCarren Park on a night or afternoon that changes by season. League name, colors and logos are configuration, not code.
 
 It replaces brooklynkickballclub.com, which today offers account registration, a season list, a rulebook PDF, a dead scores link, and social links that point to a different league (Golden State Kickball).
 
@@ -30,10 +30,10 @@ It replaces brooklynkickballclub.com, which today offers account registration, a
 
 | Fact | Source |
 |---|---|
-| One league, Sunday games, McCarren Park (Williamsburg/Greenpoint) | Owner of this project |
+| One league at McCarren Park (Williamsburg/Greenpoint). Play days follow the park permits and change by season: summer on Sunday afternoons (about 2 to 6 pm), spring on Monday evenings (about 8 to 10 pm), fall on Tuesday evenings; all subject to change | Owner of this project (updated 2026-11-12) |
 | About 8 teams in spring and fall, about 12 in summer | Owner of this project |
 | Usually 3 fields; often only 2 in summer | Owner of this project |
-| Spring and fall: 7 innings, one game per team per Sunday. Summer: 5 innings, usually two games per team per Sunday | Owner of this project |
+| Spring and fall: 7 innings, one game per team per game day. Summer: 5 innings, usually two games per team per game day | Owner of this project |
 | A game is 7 innings or 90 minutes, whichever comes first; no new inning in the last 10 minutes | Rulebook 3.1 |
 | Regular-season games can end in a tie; playoff games cannot | Rulebook 3.1.2 |
 | A game called after 4 complete innings counts, with the score at the last complete inning | Rulebook 3.1.5 |
@@ -54,12 +54,12 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 
 | Persona | Who they are | What they need most |
 |---|---|---|
-| **Newcomer Nia** (free agent) | New to Brooklyn, signs up alone or with one friend | A clear price, a team that fits, and to know where to be on Sunday |
+| **Newcomer Nia** (free agent) | New to Brooklyn, signs up alone or with one friend | A clear price, a team that fits, and to know where to be on game day |
 | **Regular Ray** (player) | Third season on the same team | One tap to see game time and field, RSVP, pay his share, and get rain-out news |
-| **Captain Cam** | Runs a 16-person roster and a team WhatsApp chat | To stop chasing Venmo payments, to know who is coming Sunday, and to find subs fast |
+| **Captain Cam** | Runs a 16-person roster and a team WhatsApp chat | To stop chasing Venmo payments, to know who is coming to the next game, and to find subs fast |
 | **Ump Uma** (referee) | Players or friends who ref for $20 a game | Her assignments, a 20-second score entry, and a record of what she is owed |
 | **Commissioner Chris** (admin/owner) | One of a few volunteers who run everything | A schedule nobody complains about, one-click rain-outs, and a view of who has paid |
-| **Bar owner Bo** (sponsor) | Owns the home bar | Proof that the league brings people in on Sunday afternoons |
+| **Bar owner Bo** (sponsor) | Owns the home bar | Proof that the league brings people in after games |
 | **Searcher Sam** (visitor) | Googles "Brooklyn kickball" | A fast page that answers what, where, when and how much, with a way to join |
 
 "Free agent" is a state, not a separate account type: a registered player who has no team this season.
@@ -99,7 +99,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - Give the league scheduling conflicts before the schedule is made.
 
 ### Referee
-- Set which Sundays and time slots I can work.
+- Set which game days and time slots I can work.
 - Accept or decline assignments and see where I need to be.
 - Enter the final score, or score inning by inning, including with poor signal at the field.
 - Flag forfeits, ejections and incidents.
@@ -109,7 +109,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - Set up a season: dates, price, early-bird window, roster limits, divisions, rule set and waiver.
 - Enter fields, permit windows and blackout dates.
 - Generate a schedule, read its fairness metrics, adjust it by hand with constraint checks, and publish it.
-- See the weather risk for Sunday, call a rain-out with one click, and let the system notify everyone and place makeups.
+- See the weather risk for the next game day, call a rain-out with one click, and let the system notify everyone and place makeups.
 - See registration, payment and waiver status for every team and player.
 - Place free agents on teams with suggestions from the matcher, and approve new-team requests.
 - Correct scores, record forfeits, suspend players, and issue refunds or league credit.

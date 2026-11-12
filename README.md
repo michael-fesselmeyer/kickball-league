@@ -8,7 +8,7 @@
 
 Adult rec leagues run on a patchwork: a registration form, a payment link, a PDF rulebook, a spreadsheet schedule and a group chat. Captains chase teammates for money, admins rebuild the schedule by hand every time it rains, and nobody can find the standings. This project replaces that patchwork with one site a player can use from their phone at the field.
 
-The first deployment targets a real Brooklyn league that plays Sundays in McCarren Park. It is also a portfolio project, so the design decisions, tests and history are written to be read.
+The first deployment targets a real Brooklyn league that plays in McCarren Park: weeknight evenings in spring and fall, Sunday afternoons in summer. It is also a portfolio project, so the design decisions, tests and history are written to be read.
 
 ## Features
 
