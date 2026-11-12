@@ -182,3 +182,54 @@ describe("generate with pins on a tight date", () => {
       );
   });
 });
+
+describe("generate retries tight dates", () => {
+  // Found by search: T0 can never play the first time, so some doubleheader
+  // dates strand a game until generate caps them and tries again.
+  const tight = (seed: number) => ({
+    ...league({
+      teams: 6,
+      fields: 2,
+      times: 3,
+      dates: 4,
+      gamesPerTeamPerDay: 2,
+      reservePerDay: 0,
+      rounds: 6,
+      seed,
+    }),
+    constraints: [{ teamId: "T0", kind: "unavailable" as const, timeIndex: 0 }],
+  });
+
+  it.each([
+    ["after one retry", 0],
+    ["after a retry that does not help and one that does", 2],
+  ])("places every game %s", (_, seed) => {
+    const input = tight(seed);
+    const schedule = generate(input, { iterations: 200 });
+    expect(schedule.unplaced).toEqual([]);
+    expect(validate(input, schedule)).toEqual([]);
+  });
+});
+
+describe("generate with pins that point nowhere", () => {
+  it("ignores a pin for a missing game or slot, and a second pin in one round", () => {
+    const [base] = workedExample();
+    const free = generate(base);
+    const [a, b] = free.games.filter((g) => g.round === 1) as [
+      (typeof free.games)[number],
+      (typeof free.games)[number],
+    ];
+    const input = {
+      ...base,
+      locked: [
+        { gameKey: "r9:X:Y", slotId: a.slotId as string },
+        { gameKey: a.key, slotId: "nowhere" },
+        { gameKey: b.key, slotId: b.slotId as string },
+        { gameKey: a.key, slotId: a.slotId as string },
+      ],
+    };
+    const schedule = generate(input);
+    expect(schedule.unplaced).toEqual([]);
+    expect(schedule.games.find((g) => g.key === b.key)?.slotId).toBe(b.slotId);
+  });
+});
