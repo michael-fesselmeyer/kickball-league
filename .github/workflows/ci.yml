@@ -34,3 +34,41 @@ jobs:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
           BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
           BETTER_AUTH_URL: http://localhost:3000
+
+  migrations:
+    name: Migrations
+    runs-on: ubuntu-latest
+    services:
+      # Same major version as the Neon project
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Migration files are consistent
+        run: npm run db:check
+      - name: Schema has no changes without a migration
+        run: |
+          npm run db:generate
+          if [ -n "$(git status --porcelain drizzle)" ]; then
+            echo "::error::src/db/schema changed without a migration. Run 'npm run db:generate' and commit the result."
+            git status --porcelain drizzle
+            exit 1
+          fi
+      - name: Every migration applies to an empty database
+        run: npm run db:migrate
+      - name: Migrations are idempotent on re-run
+        run: npm run db:migrate
