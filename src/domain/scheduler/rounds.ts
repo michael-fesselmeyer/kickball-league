@@ -70,41 +70,100 @@ export type RoundDays = {
 
 /**
  * Stage B: fills dates in order with up to `gamesPerTeamPerDay` rounds each,
- * leaving `reservePerDay` regular slots free for makeups. A shortfall is
- * reported, never dropped silently.
+ * leaving `reservePerDay` regular slots free for makeups. A date takes fewer
+ * rounds when a team could not make a different time for each of its games
+ * there. A shortfall is reported, never dropped silently.
  */
 export function assignRoundsToDates(
   rounds: readonly Round[],
-  input: Pick<SchedulerInput, "slots" | "gamesPerTeamPerDay" | "reservePerDay">,
+  input: Pick<
+    SchedulerInput,
+    "slots" | "gamesPerTeamPerDay" | "reservePerDay"
+  > &
+    Partial<Pick<SchedulerInput, "constraints">>,
+  /** Most rounds a date may take, for dates that proved too tight. */
+  roundCap: ReadonlyMap<string, number> = new Map(),
+  /** Rounds that must be played on a date, because a game in them is pinned. */
+  pinned: ReadonlyMap<number, string> = new Map(),
 ): RoundDays {
   const regularByDate = new Map<string, number>();
+  const timesByDate = new Map<string, Set<number>>();
   for (const slot of input.slots) {
     if (slot.kind !== "regular") continue;
     regularByDate.set(slot.date, (regularByDate.get(slot.date) ?? 0) + 1);
+    const times = timesByDate.get(slot.date) ?? new Set<number>();
+    timesByDate.set(slot.date, times.add(slot.timeIndex));
   }
+  const unavailable = (input.constraints ?? []).filter(
+    (c) => c.kind === "unavailable",
+  );
+  /**
+   * Several rounds fit on a date only if every team has a different time
+   * it can make for each game it plays there.
+   */
+  const everyoneFits = (date: string, todays: readonly Round[]) => {
+    const times = [...(timesByDate.get(date) as Set<number>)];
+    const plays = new Map<string, number>();
+    for (const round of todays)
+      for (const team of round.games.flat())
+        plays.set(team, (plays.get(team) ?? 0) + 1);
+    for (const [team, games] of plays) {
+      const free = times.filter(
+        (t) =>
+          !unavailable.some(
+            (c) =>
+              c.teamId === team &&
+              (c.date === undefined || c.date === date) &&
+              (c.timeIndex === undefined || c.timeIndex === t),
+          ),
+      ).length;
+      if (games > free) return false;
+    }
+    return true;
+  };
   const dates = [...regularByDate].sort(([a], [b]) => a.localeCompare(b));
   const gamesPerRound = Math.max(1, ...rounds.map((r) => r.games.length));
 
-  const days: RoundDays["days"] = [];
+  // Pinned rounds go on their dates first; the rest fill the room left, in
+  // order.
+  const byDate = new Map<string, Round[]>();
+  for (const round of rounds) {
+    const date = pinned.get(round.round);
+    if (date !== undefined && regularByDate.has(date))
+      byDate.set(date, [...(byDate.get(date) ?? []), round]);
+  }
+  const placedRounds = new Set([...byDate.values()].flat().map((r) => r.round));
+  const waiting = rounds.filter((r) => !placedRounds.has(r.round));
   let next = 0;
   for (const [date, regularSlots] of dates) {
-    if (next === rounds.length) break;
+    const already = byDate.get(date) ?? [];
     const capacity = regularSlots - input.reservePerDay;
-    const today = Math.min(
-      input.gamesPerTeamPerDay,
-      Math.floor(capacity / gamesPerRound),
-      rounds.length - next,
+    let today = Math.min(
+      input.gamesPerTeamPerDay - already.length,
+      (roundCap.get(date) ?? Infinity) - already.length,
+      Math.floor(capacity / gamesPerRound) - already.length,
+      waiting.length - next,
     );
-    if (today <= 0) continue;
-    days.push({
-      date,
-      rounds: rounds.slice(next, next + today).map((r) => r.round),
-    });
-    next += today;
+    while (
+      today > 0 &&
+      already.length + today > 1 &&
+      !everyoneFits(date, [...already, ...waiting.slice(next, next + today)])
+    )
+      today--;
+    if (today > 0) {
+      byDate.set(date, [...already, ...waiting.slice(next, next + today)]);
+      next += today;
+    }
   }
+  const days: RoundDays["days"] = dates.flatMap(([date]) => {
+    const todays = byDate.get(date);
+    return todays
+      ? [{ date, rounds: todays.map((r) => r.round).sort((a, b) => a - b) }]
+      : [];
+  });
 
   const diagnostics: string[] = [];
-  const missing = rounds.length - next;
+  const missing = waiting.length - next;
   if (missing > 0) {
     diagnostics.push(
       `Not enough slots: ${missing} round${missing === 1 ? "" : "s"} could not be given a date. Add dates or slots, or lower the makeup reserve.`,
