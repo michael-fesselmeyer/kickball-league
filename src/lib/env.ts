@@ -29,16 +29,34 @@ export const envSchema = z.object({
   // Optional until Google sign-in lands (issue #8).
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  // Optional until email is set up: without them, sign-in links are printed
+  // in development and refused in production.
+  RESEND_API_KEY: z
+    .string()
+    .startsWith("re_", { error: "must be a Resend API key (starts with re_)" })
+    .optional(),
+  EMAIL_FROM: z
+    .string()
+    .regex(/^(?:[^<>]+ <)?[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+>?$/, {
+      error: 'must be an address, like "League <hello@example.com>"',
+    })
+    .optional(),
 });
 
-/** Google needs both values; one without the other is a configuration mistake. */
-const googlePair = envSchema.refine(
-  (env) => Boolean(env.GOOGLE_CLIENT_ID) === Boolean(env.GOOGLE_CLIENT_SECRET),
-  {
-    error: "set both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or neither",
-    path: ["GOOGLE_CLIENT_SECRET"],
-  },
-);
+/** Google and email each need both values; one without the other is a mistake. */
+const pairs = envSchema
+  .refine(
+    (env) =>
+      Boolean(env.GOOGLE_CLIENT_ID) === Boolean(env.GOOGLE_CLIENT_SECRET),
+    {
+      error: "set both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or neither",
+      path: ["GOOGLE_CLIENT_SECRET"],
+    },
+  )
+  .refine((env) => Boolean(env.RESEND_API_KEY) === Boolean(env.EMAIL_FROM), {
+    error: "set both RESEND_API_KEY and EMAIL_FROM, or neither",
+    path: ["EMAIL_FROM"],
+  });
 
 export type Env = z.infer<typeof envSchema>;
 
@@ -67,9 +85,7 @@ export function withVercelDefaults(source: Source): Source {
 }
 
 export function parseEnv(source: Source): Result<Env, string> {
-  const parsed = googlePair.safeParse(
-    withVercelDefaults(withoutBlanks(source)),
-  );
+  const parsed = pairs.safeParse(withVercelDefaults(withoutBlanks(source)));
   return parsed.success ? ok(parsed.data) : err(z.prettifyError(parsed.error));
 }
 
