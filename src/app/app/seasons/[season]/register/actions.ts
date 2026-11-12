@@ -9,7 +9,8 @@ import {
   seasonForRegistration,
 } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
-import type { TeamId } from "@/domain/ids";
+import { recordOf } from "@/domain/guards";
+import { parseId, type TeamId } from "@/domain/ids";
 import { parseProfileForm, toProfileForm } from "@/domain/profile/profile-form";
 import { localDate } from "@/domain/scheduler/slots";
 import { requirePermission } from "@/lib/auth/permission";
@@ -49,6 +50,14 @@ async function context(slug: string) {
   return { subject, league, season, complete };
 }
 
+const TEAM_FIELDS = [
+  "teamId",
+  "name",
+  "colorHex",
+  "paymentMode",
+  "rosterSize",
+] as const;
+
 const text = (form: FormData, name: string) => {
   const v = form.get(name);
   return typeof v === "string" ? v.trim() : "";
@@ -60,21 +69,18 @@ export async function registerTeamAction(
   form: FormData,
 ): Promise<RegisterState> {
   const { subject, league, season, complete } = await context(slug);
-  const values = Object.fromEntries(
-    ["teamId", "name", "colorHex", "paymentMode", "rosterSize"].map((k) => [
-      k,
-      text(form, k),
-    ]),
-  );
+  const values = recordOf(TEAM_FIELDS, (k) => text(form, k));
   if (!complete) return { values, error: MESSAGES.profile_incomplete };
+  const teamId = values.teamId ? parseId<TeamId>(values.teamId) : null;
+  if (values.teamId && !teamId) return { values, error: MESSAGES.bad_name };
   const result = await txDb.transaction((tx) =>
     registerTeam(tx, {
       leagueId: league.id,
       season,
       userId: subject.userId,
       team: {
-        teamId: values.teamId ? (values.teamId as TeamId) : null,
-        name: values.name ?? "",
+        teamId,
+        name: values.name,
         colorHex: values.colorHex || null,
         paymentMode: values.paymentMode === "full" ? "full" : "split",
         rosterSize: Number(values.rosterSize),

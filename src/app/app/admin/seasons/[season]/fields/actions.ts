@@ -20,11 +20,17 @@ import type {
   PermitWindowId,
   VenueId,
 } from "@/domain/ids";
+import { isOneOf } from "@/domain/guards";
+import { parseId } from "@/domain/ids";
 import { weeklyDates } from "@/domain/time/zoned";
 import { requirePermission } from "@/lib/auth/permission";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/fields`;
-const STATUSES: readonly PermitStatus[] = ["requested", "confirmed", "lost"];
+const STATUSES = [
+  "requested",
+  "confirmed",
+  "lost",
+] as const satisfies readonly PermitStatus[];
 
 const text = (form: FormData, name: string) => {
   const value = form.get(name);
@@ -72,12 +78,14 @@ export async function createVenue(slug: string, form: FormData) {
 
 export async function createField(slug: string, form: FormData) {
   const { page, actor, season } = await context(slug);
+  const venueId = parseId<VenueId>(form.get("venueId"));
+  if (!venueId) back(page, "venues", { error: "field_unknown_venue" });
   const result = await txDb.transaction((tx) =>
     addField(
       tx,
       {
         leagueId: season.leagueId,
-        venueId: text(form, "venueId") as VenueId,
+        venueId,
         name: text(form, "name"),
       },
       actor,
@@ -91,7 +99,8 @@ export async function createPermits(slug: string, form: FormData) {
   const { page, actor, season } = await context(slug);
   const first = text(form, "firstDate");
   const weeks = Number(form.get("weeks"));
-  const status = text(form, "status") as PermitStatus;
+  const status = text(form, "status");
+  const fieldId = parseId<FieldId>(form.get("fieldId"));
   const startTime = text(form, "startTime");
   const endTime = text(form, "endTime");
   if (
@@ -99,7 +108,8 @@ export async function createPermits(slug: string, form: FormData) {
     !Number.isInteger(weeks) ||
     weeks < 1 ||
     weeks > 26 ||
-    !STATUSES.includes(status) ||
+    !isOneOf(STATUSES, status) ||
+    !fieldId ||
     !/^\d{2}:\d{2}$/.test(startTime) ||
     !/^\d{2}:\d{2}$/.test(endTime)
   )
@@ -110,7 +120,7 @@ export async function createPermits(slug: string, form: FormData) {
       {
         leagueId: season.leagueId,
         seasonId: season.id,
-        fieldId: text(form, "fieldId") as FieldId,
+        fieldId,
         dates: weeklyDates(first, weeks),
         startTime,
         endTime,
@@ -131,8 +141,8 @@ export async function changePermitStatus(
   form: FormData,
 ) {
   const { page, actor, season } = await context(slug);
-  const status = text(form, "status") as PermitStatus;
-  if (!STATUSES.includes(status))
+  const status = text(form, "status");
+  if (!isOneOf(STATUSES, status))
     back(page, "permits", { error: "permit_bad_input" });
   const result = await txDb.transaction((tx) =>
     setPermitStatus(tx, { seasonId: season.id, permitId, status }, actor),
@@ -152,7 +162,11 @@ export async function deletePermit(slug: string, permitId: PermitWindowId) {
 
 export async function createBlackout(slug: string, form: FormData) {
   const { page, actor, season } = await context(slug);
-  const fieldId = text(form, "fieldId");
+  // Empty means every field; anything else must be one of the league's.
+  const rawField = text(form, "fieldId");
+  const fieldId = rawField ? parseId<FieldId>(rawField) : null;
+  if (rawField && !fieldId)
+    back(page, "blackouts", { error: "blackout_unknown_field" });
   const result = await txDb.transaction((tx) =>
     addBlackout(
       tx,
@@ -160,7 +174,7 @@ export async function createBlackout(slug: string, form: FormData) {
         leagueId: season.leagueId,
         seasonId: season.id,
         onDate: text(form, "onDate"),
-        fieldId: fieldId ? (fieldId as FieldId) : null,
+        fieldId,
         reason: text(form, "reason"),
       },
       actor,

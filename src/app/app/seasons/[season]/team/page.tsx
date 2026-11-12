@@ -10,7 +10,6 @@ import {
 } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
-import type { TeamSeasonId } from "@/domain/ids";
 import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { createInviteAction } from "./actions";
@@ -59,7 +58,7 @@ async function Team({ params }: PageProps<"/app/seasons/[season]/team">) {
   if (!season) notFound();
   const mine = await myRegistration(db, season.id, subject.userId);
   if (!mine?.team) notFound();
-  const teamSeasonId = mine.team.teamSeasonId as TeamSeasonId;
+  const teamSeasonId = mine.team.teamSeasonId;
 
   const seesStatus = can(subject, "roster.view_status", { teamSeasonId });
   const manages = can(subject, "roster.manage", {

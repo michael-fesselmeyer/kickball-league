@@ -1,4 +1,11 @@
+import { z } from "zod";
 import { err, ok, type Result } from "@/domain/result";
+
+/** The parts of Resend's reply this sender reads; anything else is ignored. */
+const resendReply = z.object({
+  id: z.string().optional(),
+  message: z.string().optional(),
+});
 
 export type Email = {
   to: string;
@@ -41,13 +48,12 @@ export function resendSender({
     } catch {
       return err("Resend could not be reached.");
     }
-    const body = (await response.json().catch(() => ({}))) as {
-      id?: unknown;
-      message?: unknown;
-    };
-    if (response.ok && typeof body.id === "string") return ok({ id: body.id });
-    const reason =
-      typeof body.message === "string" ? body.message : response.statusText;
+    const parsed = resendReply.safeParse(
+      await response.json().catch(() => ({})),
+    );
+    const body = parsed.success ? parsed.data : {};
+    if (response.ok && body.id !== undefined) return ok({ id: body.id });
+    const reason = body.message ?? response.statusText;
     return err(`Resend refused the email (${response.status}): ${reason}`);
   };
 }

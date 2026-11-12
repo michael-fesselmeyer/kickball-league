@@ -9,7 +9,6 @@ import {
 } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
-import type { TeamSeasonId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
 
 export type InviteState = { token?: string; expiresAt?: string };
@@ -31,7 +30,7 @@ export async function createInviteAction(
     : null;
   if (!season) notFound();
   const mine = await myRegistration(db, season.id, subject.userId);
-  const teamSeasonId = mine?.team?.teamSeasonId as TeamSeasonId | undefined;
+  const teamSeasonId = mine?.team?.teamSeasonId;
   if (
     !teamSeasonId ||
     !can(subject, "roster.manage", { teamSeasonId, targetRole: "player" })

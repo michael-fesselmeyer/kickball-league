@@ -1,3 +1,4 @@
+import { isOneOf, recordOf } from "../guards";
 import { slugify } from "../slug";
 import { localDate } from "../scheduler/slots";
 import { zonedInstant } from "../time/zoned";
@@ -11,7 +12,8 @@ import { zonedInstant } from "../time/zoned";
  * the start of its day, and the other deadlines last until 11:59 pm.
  */
 
-export type FeeModel = "per_team" | "per_player";
+export const FEE_MODELS = ["per_team", "per_player"] as const;
+export type FeeModel = (typeof FEE_MODELS)[number];
 
 export type SeasonSettings = {
   name: string;
@@ -89,9 +91,7 @@ export function parseSeasonForm(
   timeZone: string,
 ): { ok: true; value: SeasonSettings } | { ok: false; errors: SeasonErrors } {
   const errors: SeasonErrors = {};
-  const f = Object.fromEntries(
-    SEASON_FIELDS.map((k) => [k, (form[k] ?? "").trim()]),
-  ) as SeasonForm;
+  const f = recordOf(SEASON_FIELDS, (k) => form[k].trim());
 
   const name = f.name;
   const slug = slugify(name);
@@ -105,9 +105,8 @@ export function parseSeasonForm(
   if (!errors.startsOn && !errors.endsOn && f.endsOn < f.startsOn)
     errors.endsOn = "The season must end on or after its first day.";
 
-  const feeModel = f.feeModel as FeeModel;
-  if (feeModel !== "per_team" && feeModel !== "per_player")
-    errors.feeModel = "Choose a price per team or per player.";
+  const feeModel = isOneOf(FEE_MODELS, f.feeModel) ? f.feeModel : null;
+  if (!feeModel) errors.feeModel = "Choose a price per team or per player.";
 
   const money = {
     teamFee: cents(f.teamFee),
@@ -176,7 +175,14 @@ export function parseSeasonForm(
   if (f.gamesPerTeamPerDay !== "1" && f.gamesPerTeamPerDay !== "2")
     errors.gamesPerTeamPerDay = "One game or a doubleheader.";
 
-  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  // Every null below has an error above; the checks narrow the types.
+  if (
+    Object.keys(errors).length > 0 ||
+    !feeModel ||
+    rosterMin === null ||
+    rosterMax === null
+  )
+    return { ok: false, errors };
 
   const startOfDay = (d: string) =>
     d ? zonedInstant(d, "00:00", timeZone) : null;
@@ -199,8 +205,8 @@ export function parseSeasonForm(
       registrationClosesAt: endOfDay(f.registrationClosesOn),
       paymentDeadlineAt: endOfDay(f.paymentDeadlineOn),
       maxTeams,
-      rosterMin: rosterMin as number,
-      rosterMax: rosterMax as number,
+      rosterMin,
+      rosterMax,
       gamesPerTeamPerDay: f.gamesPerTeamPerDay === "2" ? 2 : 1,
     },
   };

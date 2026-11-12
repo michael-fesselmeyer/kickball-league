@@ -6,7 +6,6 @@ import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { currentLeague } from "@/db/queries/seasons";
 import { signWaiver, waiverForSeason } from "@/db/queries/waivers";
-import type { SeasonId } from "@/domain/ids";
 import { requireSelf } from "@/lib/auth/permission";
 
 export type SignState = { signedName: string; error?: string | undefined };
@@ -50,7 +49,7 @@ export async function signWaiverAction(
   const result = await txDb.transaction(async (tx) =>
     signWaiver(tx, {
       userId: subject.userId,
-      seasonId: view.seasonId as SeasonId,
+      seasonId: view.seasonId,
       shownSha256: String(form.get("shownSha256") ?? ""),
       agreed: form.get("agree") === "yes",
       signedName,
