@@ -32,11 +32,10 @@ describe("buildRounds (stage A)", () => {
     expect(new Set(rounds.map((r) => r.bye)).size).toBe(5);
   });
 
-  it("mirrors the second cycle, so rematches are as far apart as possible", () => {
+  it("repeats the cycle in order with home and away swapped", () => {
     const rounds = buildRounds(teams(4), 6, inOrder);
-    expect(rounds.slice(3).map(pairs)).toEqual(
-      rounds.slice(0, 3).reverse().map(pairs),
-    );
+    const swapped = (round: Round) => round.games.map(([a, b]) => `${b}-${a}`);
+    expect(rounds.slice(3).map(pairs)).toEqual(rounds.slice(0, 3).map(swapped));
   });
 
   it("stops part-way through a cycle when fewer rounds are wanted", () => {
@@ -103,6 +102,29 @@ describe("buildRounds properties", () => {
           expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(
             1,
           );
+        }
+      }),
+      { numRuns: 1000 },
+    );
+  });
+
+  it("S7: every rematch comes exactly one cycle after the previous meeting", () => {
+    fc.assert(
+      fc.property(roundsInput, ({ teamCount, rounds, seed }) => {
+        const cycleLength = teamCount % 2 === 0 ? teamCount - 1 : teamCount;
+        const lastMet = new Map<string, number>();
+        for (const round of buildRounds(
+          teams(teamCount),
+          rounds,
+          seededRandom(seed),
+        )) {
+          for (const [a, b] of round.games) {
+            const key = [a, b].sort().join("-");
+            const previous = lastMet.get(key);
+            if (previous !== undefined)
+              expect(round.round - previous).toBe(cycleLength);
+            lastMet.set(key, round.round);
+          }
         }
       }),
       { numRuns: 1000 },
