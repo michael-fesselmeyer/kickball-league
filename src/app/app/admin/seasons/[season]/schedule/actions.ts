@@ -1,6 +1,7 @@
 "use server";
 
 import { notFound, redirect } from "next/navigation";
+import { z } from "zod";
 import { db, txDb } from "@/db/client";
 import {
   loadSchedulerInput,
@@ -14,6 +15,7 @@ import { applyEdit } from "@/domain/scheduler/edits";
 import { generate } from "@/domain/scheduler/generate";
 import { requirePermission } from "@/lib/auth/permission";
 import { sendQueuedSoon } from "@/services/outbox";
+import { applyAll, stateOf } from "./board-model";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/schedule`;
 
@@ -113,4 +115,60 @@ export async function editGame(
     createdBy: subject.userId,
   });
   redirect(`${page}?edited=1`);
+}
+
+const key = z.string().min(1).max(200);
+const boardEdits = z
+  .array(
+    z.discriminatedUnion("kind", [
+      z.object({ kind: z.literal("move"), gameKey: key, slotId: key }),
+      z.object({ kind: z.literal("swap"), gameKeys: z.tuple([key, key]) }),
+    ]),
+  )
+  .min(1)
+  .max(200);
+
+/** The board's edits from the form, or null when they do not parse. */
+function parseEdits(raw: FormDataEntryValue | null) {
+  if (typeof raw !== "string") return null;
+  try {
+    const parsed = boardEdits.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Saves the moves and swaps made on the schedule board as one new draft.
+ * The edits are applied again here, in order, with the same scheduler code
+ * the board used for its preview.
+ */
+export async function saveBoard(
+  slug: string,
+  versionId: ScheduleVersionId,
+  form: FormData,
+): Promise<void> {
+  const page = pageFor(slug);
+  const subject = await requirePermission("schedule.manage", { next: page });
+  const version = await loadVersion(db, versionId);
+  const edits = parseEdits(form.get("edits"));
+  if (!version || !edits) redirect(`${page}?error=bad_input`);
+
+  const result = applyAll(
+    stateOf(version.input, version.schedule),
+    edits,
+    form.get("pin") === "on",
+  );
+  if (!result.ok) redirect(`${page}?error=${result.error.code}`);
+
+  await saveVersion(txDb, {
+    seasonId: version.seasonId,
+    input: result.value.input,
+    schedule: result.value.schedule,
+    origin: "manual_edit",
+    parentVersionId: version.id,
+    createdBy: subject.userId,
+  });
+  redirect(`${page}?edited=${edits.length}`);
 }
