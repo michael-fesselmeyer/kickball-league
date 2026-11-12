@@ -66,9 +66,11 @@ test("a signed-out visitor to /app is sent to sign in, and comes back after", as
   await expect(page).toHaveURL(
     /\/sign-in\?next=%2Fapp%2Fteams%3Fseason%3Dspring$/,
   );
-  await expect(page.locator('input[name="next"]')).toHaveValue(
-    "/app/teams?season=spring",
-  );
+  // Scoped to main: while the form streams in, React holds the new copy in a
+  // hidden element outside it, next to the fallback's.
+  await expect(
+    page.getByRole("main").locator('input[name="next"]'),
+  ).toHaveValue("/app/teams?season=spring");
 });
 
 test("Google sign-in stays hidden until it is configured", async ({ page }) => {
