@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { LogoBadge } from "@/components/logo-badge";
+import { ForecastChip } from "@/components/forecast-chip";
 import { ShareButtons } from "@/components/share";
 import { GameStats } from "@/components/stats/game-stats";
 import { db } from "@/db/client";
@@ -158,6 +159,22 @@ async function Game({ params }: PageProps<"/games/[game]">) {
               This makeup is waiting for an open slot.
             </dd>
           )}
+          {game.status === "scheduled" &&
+            !calledOff &&
+            game.startsAt &&
+            game.endsAt &&
+            game.venue &&
+            game.venue.lat !== null &&
+            game.venue.lng !== null && (
+              <Suspense fallback={null}>
+                <ForecastChip
+                  lat={game.venue.lat}
+                  lng={game.venue.lng}
+                  startsAt={game.startsAt}
+                  endsAt={game.endsAt}
+                />
+              </Suspense>
+            )}
         </div>
         <div className="flex flex-col gap-1 rounded-card border border-border bg-surface p-4">
           <dt className="text-micro font-bold tracking-wide text-text-muted uppercase">
