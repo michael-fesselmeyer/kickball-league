@@ -4,7 +4,6 @@ import {
   isCalledOff,
   outcomeFor,
   type PublicGame,
-  placeLine,
   resultLine,
   statusLabel,
 } from "../schedule/public-game";
@@ -76,7 +75,8 @@ export function gameCard(g: PublicGame, timeZone: string): GameCard {
   const sticker = statusLabel(g) ?? "Game day";
   const footer = [
     g.startsAt ? shortDay(g.startsAt, timeZone) : "Time to be announced",
-    placeLine(g),
+    // Field and park only: a street address does not fit on one line.
+    [g.field, g.venue?.name].filter(Boolean).join(", "),
   ]
     .filter(Boolean)
     .join(" · ");
