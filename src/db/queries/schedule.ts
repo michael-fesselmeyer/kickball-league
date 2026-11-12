@@ -180,6 +180,7 @@ export async function saveVersion(
         inputSnapshot: rules,
         metrics: measure(rules, schedule),
         violations,
+        diagnostics: schedule.diagnostics,
         createdBy: createdBy ?? null,
       })
       .returning({ id: scheduleVersion.id });
@@ -310,7 +311,7 @@ export async function loadVersion(
       games,
       byes,
       unplaced: games.filter((g) => g.slotId === null).map((g) => g.key),
-      diagnostics: [],
+      diagnostics: version.diagnostics,
     },
   };
 }
