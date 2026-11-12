@@ -332,6 +332,8 @@ export async function scoresNeedingAttention(
       and(
         eq(game.seasonId, seasonId),
         eq(game.status, "scheduled"),
+        // A rained-out slot's game waits for a makeup, not a score.
+        eq(slot.status, "open"),
         lte(slot.startsAt, now),
       ),
     )
