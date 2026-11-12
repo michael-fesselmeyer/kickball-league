@@ -47,7 +47,7 @@ export const SETTINGS_TOPICS: readonly {
   {
     topic: "rainout",
     label: "Rain-outs",
-    hint: "When your game is rained out, with its makeup time.",
+    hint: "When your game is rained out, with its makeup time. Admins also get rain alerts the day before.",
   },
   {
     topic: "payment",
