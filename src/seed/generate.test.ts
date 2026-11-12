@@ -47,6 +47,14 @@ describe("newYorkTime", () => {
   });
 });
 
+describe("newYorkTime in the evening", () => {
+  it("puts a 9 pm kickoff on the next UTC day", () => {
+    expect(newYorkTime("2026-09-15", 21).toISOString()).toBe(
+      "2026-09-16T01:00:00.000Z",
+    );
+  });
+});
+
 describe("roundRobin", () => {
   it("pairs every team with every other exactly once, each team once per round", () => {
     const rounds = roundRobin(8);
@@ -114,6 +122,21 @@ describe("generateSeed", () => {
       expect(game.finalizedAt).not.toBeNull();
     }
     expect(data.games.every((g) => g.teamAId !== g.teamBId)).toBe(true);
+  });
+
+  it("plays the fall season on Tuesday evenings, 8 and 9 pm New York time", () => {
+    const local = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      weekday: "short",
+      hour: "numeric",
+      hourCycle: "h23",
+    });
+    const kickoffs = new Set(data.slots.map((s) => local.format(s.startsAt)));
+    expect([...kickoffs].sort()).toEqual(["Tue, 20", "Tue, 21"]);
+    for (const game of data.games) {
+      const slot = data.slots.find((s) => s.id === game.slotId);
+      expect(slot && local.format(slot.startsAt).startsWith("Tue")).toBe(true);
+    }
   });
 
   it("never double-books a slot", () => {
