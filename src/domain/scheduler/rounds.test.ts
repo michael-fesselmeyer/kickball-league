@@ -225,3 +225,63 @@ describe("assignRoundsToDates (stage B)", () => {
     ]);
   });
 });
+
+describe("assignRoundsToDates: caps and pins", () => {
+  const eight = buildRounds(teams(8), 4, inOrder);
+  const dates = ["2027-04-04", "2027-04-11", "2027-04-18"];
+  const input = {
+    slots: slotsOn(dates, 8),
+    gamesPerTeamPerDay: 2 as const,
+    reservePerDay: 0,
+  };
+
+  it("caps a date at fewer rounds", () => {
+    const { days } = assignRoundsToDates(
+      eight,
+      input,
+      new Map([["2027-04-04", 1]]),
+    );
+    expect(days.map((d) => d.rounds)).toEqual([[1], [2, 3], [4]]);
+  });
+
+  it("plays a pinned round on its date and fills the rest around it", () => {
+    const { days } = assignRoundsToDates(
+      eight,
+      input,
+      new Map(),
+      new Map([
+        [3, "2027-04-04"],
+        [4, "2099-01-01"], // not a playing date: ignored
+      ]),
+    );
+    expect(days.map((d) => [d.date, d.rounds])).toEqual([
+      ["2027-04-04", [1, 3]],
+      ["2027-04-11", [2, 4]],
+    ]);
+  });
+
+  it("takes one round on a date where a team could not make two different times", () => {
+    const constraints = [
+      {
+        teamId: "A",
+        kind: "unavailable" as const,
+        date: "2027-04-04",
+        timeIndex: 0,
+      },
+      {
+        teamId: "A",
+        kind: "unavailable" as const,
+        date: "2027-04-04",
+        timeIndex: 1,
+      },
+      {
+        teamId: "A",
+        kind: "unavailable" as const,
+        date: "2027-04-04",
+        timeIndex: 2,
+      },
+    ];
+    const { days } = assignRoundsToDates(eight, { ...input, constraints });
+    expect(days[0]).toEqual({ date: "2027-04-04", rounds: [1] });
+  });
+});
