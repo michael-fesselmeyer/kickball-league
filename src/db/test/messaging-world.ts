@@ -2,6 +2,7 @@ import type { RegistrationId, TeamSeasonId, UserId } from "@/domain/ids";
 import { required } from "../queries/rows";
 import type { Db } from "../queries/schedule";
 import { user } from "../schema/auth";
+import { field, game, refereeAssignment, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
 import { season } from "../schema/season";
 import {
@@ -144,6 +145,65 @@ export async function messagingWorld(
   const freeAgent = await person("free", "pending_payment");
   const cancelled = await person("gone", "cancelled");
 
+  const fieldId = required(
+    (
+      await db
+        .insert(field)
+        .values({
+          venueId: required(
+            (
+              await db
+                .insert(venue)
+                .values({ leagueId: lg.id, name: "Park", slug: "park" })
+                .returning({ id: venue.id })
+            )[0],
+            "venue",
+          ).id,
+          name: "Field 2",
+        })
+        .returning({ id: field.id })
+    )[0],
+    "field",
+  ).id;
+
+  /** Aces vs Bees in an hour-long slot ending at `endsAt`, with an optional ref. */
+  async function gameEnding(endsAt: Date, refereeId?: UserId) {
+    const s = required(
+      (
+        await db
+          .insert(slot)
+          .values({
+            seasonId: sn.id,
+            fieldId,
+            startsAt: new Date(endsAt.getTime() - 3_600_000),
+            endsAt,
+            timeIndex: 0,
+          })
+          .returning({ id: slot.id })
+      )[0],
+      "slot",
+    );
+    const g = required(
+      (
+        await db
+          .insert(game)
+          .values({
+            seasonId: sn.id,
+            teamAId: aces,
+            teamBId: bees,
+            slotId: s.id,
+          })
+          .returning({ id: game.id })
+      )[0],
+      "game",
+    );
+    if (refereeId)
+      await db
+        .insert(refereeAssignment)
+        .values({ gameId: g.id, userId: refereeId });
+    return { gameId: g.id, slotId: s.id };
+  }
+
   return {
     tag,
     leagueId: lg.id,
@@ -165,5 +225,6 @@ export async function messagingWorld(
     person,
     entry,
     join,
+    gameEnding,
   };
 }
