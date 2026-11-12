@@ -310,3 +310,15 @@ describe("applyEdit properties", () => {
     );
   });
 });
+
+describe("applyEdit: swapDates with unplaced games", () => {
+  it("leaves unplaced games where they are", () => {
+    const [input, schedule] = workedExample();
+    const withUnplaced = move(schedule, 3, "A-F", null);
+    const result = edited(input, withUnplaced, {
+      kind: "swapDates",
+      dates: [SUNDAYS[0], SUNDAYS[1]],
+    });
+    expect(slotOf(result.schedule, "r3:A:F")).toBeNull();
+  });
+});

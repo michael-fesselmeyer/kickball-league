@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { generate } from "./generate";
-import { arbitraryLeague } from "./league.fixture";
+import { arbitraryLeague, league } from "./league.fixture";
 import { reschedule } from "./reschedule";
 import { validate } from "./validate";
 import { slot, slotId, SUNDAYS, workedExample } from "./worked-example.fixture";
@@ -161,4 +161,69 @@ describe("reschedule properties", () => {
       );
     },
   );
+});
+
+describe("reschedule edge cases", () => {
+  const [input, schedule] = workedExample();
+
+  it("changes nothing when nothing is cancelled, and ignores unknown slots", () => {
+    for (const cancelled of [[], ["no-such-slot"]]) {
+      const result = reschedule(input, schedule, cancelled);
+      expect(result.moved).toEqual([]);
+      expect(result.schedule.games).toEqual(schedule.games);
+    }
+  });
+
+  it("leaves alone a game whose slot does not exist", () => {
+    const broken = {
+      ...schedule,
+      games: schedule.games.map((g) =>
+        g.key === "r7:A:B" ? { ...g, slotId: "gone" } : g,
+      ),
+    };
+    const result = reschedule(input, broken, weekThree);
+    expect(result.schedule.games.find((g) => g.key === "r7:A:B")?.slotId).toBe(
+      "gone",
+    );
+    expect(result.moved.every((m) => m.to !== null)).toBe(true);
+  });
+
+  it("greedy: reports games it cannot place", () => {
+    const lastWeek = [0, 1].flatMap((f) =>
+      [0, 1, 2].map((t) => slotId(6, f, t)),
+    );
+    const result = reschedule(input, schedule, lastWeek, {
+      exhaustiveLimit: 0,
+    });
+    expect(result.moved.every((m) => m.to === null)).toBe(true);
+  });
+
+  it("greedy: improves its first choices one game at a time", () => {
+    // Found by search: greedy's first placement here can be improved by
+    // moving one makeup, which exercises the improvement pass.
+    const shape = {
+      teams: 5,
+      fields: 2,
+      times: 4,
+      dates: 6,
+      gamesPerTeamPerDay: 2 as const,
+      reservePerDay: 1,
+      seed: 1,
+    };
+    const leagueInput = league(shape);
+    const season = generate(leagueInput, { iterations: 300 });
+    const rained = leagueInput.slots
+      .filter((s) => s.date === "2027-06-01")
+      .map((s) => s.id);
+    const greedy = reschedule(leagueInput, season, rained, {
+      exhaustiveLimit: 0,
+    });
+    const exact = reschedule(leagueInput, season, rained);
+    expect(greedy.schedule.unplaced.length).toBe(
+      exact.schedule.unplaced.length,
+    );
+    expect(greedy.metrics.doubleheaderWait.value).toBeGreaterThanOrEqual(
+      exact.metrics.doubleheaderWait.value,
+    );
+  });
 });
