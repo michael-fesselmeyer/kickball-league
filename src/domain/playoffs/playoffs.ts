@@ -201,3 +201,49 @@ export function championOf(matches: readonly MatchState[]): string | null {
   const final = matches.find((m) => m.round === last);
   return final?.winner ?? null;
 }
+
+/** One place in a round on the bracket board: a match, or a first-round bye. */
+export type BoardCell<M> =
+  { kind: "match"; match: M } | { kind: "bye"; seed: number };
+
+/**
+ * The bracket board's columns: every round with each of its places in
+ * order, so lines between rounds meet. A first-round place with no match is
+ * the bye of the better seed that would have played there.
+ */
+export function boardColumns<M extends { round: number; position: number }>(
+  teams: number,
+  matches: readonly M[],
+): { round: number; cells: BoardCell<M>[] }[] {
+  const rounds = roundCount(teams);
+  const order = seedOrder(bracketSize(teams));
+  return Array.from({ length: rounds }, (_, i) => {
+    const round = i + 1;
+    const places = bracketSize(teams) / 2 ** round;
+    const cells = Array.from({ length: places }, (_, p): BoardCell<M> => {
+      const match = matches.find(
+        (m) => m.round === round && m.position === p + 1,
+      );
+      if (match) return { kind: "match", match };
+      return { kind: "bye", seed: order[2 * p] as number };
+    });
+    return { round, cells };
+  });
+}
+
+/** "Winner of semifinal 2", for a side not decided yet. */
+export function sourceLabel(source: MatchSource, rounds: number): string {
+  if ("seed" in source) return `Seed ${source.seed}`;
+  const [round, position] = source.winnerOf.slice(1).split("m").map(Number) as [
+    number,
+    number,
+  ];
+  const name = roundName(round, rounds);
+  const game =
+    name === "Semifinals"
+      ? "semifinal"
+      : name === "Quarterfinals"
+        ? "quarterfinal"
+        : `round ${round} game`;
+  return `Winner of ${game} ${position}`;
+}

@@ -4,6 +4,7 @@ import type { Slot } from "@/domain/scheduler/types";
 import { standings } from "@/domain/standings/standings";
 import {
   advance,
+  boardColumns,
   bracketSize,
   byeSeeds,
   championOf,
@@ -16,6 +17,7 @@ import {
   pickSeeds,
   roundCount,
   roundName,
+  sourceLabel,
 } from "./playoffs";
 
 const teams = (n: number) =>
@@ -237,5 +239,29 @@ describe("gameWinner", () => {
     expect(
       gameWinner({ ...base, status: "final", scoreA: 4, scoreB: 4 }),
     ).toBeNull();
+  });
+});
+
+describe("the bracket board", () => {
+  it("lays out every round with first-round byes in place", () => {
+    const columns = boardColumns(6, bracketFor(6));
+    expect(columns.map((c) => c.cells.length)).toEqual([4, 2, 1]);
+    expect(
+      columns[0]!.cells.map((c) =>
+        c.kind === "bye" ? `bye ${c.seed}` : c.match.code,
+      ),
+    ).toEqual(["bye 1", "r1m2", "bye 2", "r1m4"]);
+    expect(columns[2]!.cells[0]).toMatchObject({ kind: "match" });
+  });
+
+  it("names undecided sides by the game they wait on", () => {
+    expect(sourceLabel({ seed: 3 }, 3)).toBe("Seed 3");
+    expect(sourceLabel({ winnerOf: "r1m2" }, 3)).toBe(
+      "Winner of quarterfinal 2",
+    );
+    expect(sourceLabel({ winnerOf: "r2m1" }, 3)).toBe("Winner of semifinal 1");
+    expect(sourceLabel({ winnerOf: "r1m7" }, 4)).toBe(
+      "Winner of round 1 game 7",
+    );
   });
 });
