@@ -51,6 +51,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── vote                            Awards voting (P2)
 ├── check-in/[code]                 Bar check-in landing from a QR code (P2)
 ├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
+├── seasons/[season]/team/requests  Captain: dates the team can't play and times it would rather have or avoid, until registration closes
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups
 ├── ref/                            Assignments, availability, earnings
 ├── sponsor/                        Sponsor portal: page editor, deals, report (P3)
@@ -61,6 +62,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── shirts                  Shirt sizes by team, what is still to order, and each player's shirt: not ordered, ordered or received
     │   ├── free-agents             Pool and matcher (P2)
     │   ├── fields                  Fields, permit windows, blackout dates, slots
+    │   ├── requests                Every team's conflicts and preferences, read before generating
     │   ├── schedule                Generate, metrics, versions, publish; board (desktop) and move-or-swap form
     │   ├── rainout                 Call a rain-out and review makeups
     │   ├── announcements           Email the season or one team

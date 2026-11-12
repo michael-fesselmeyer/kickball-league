@@ -28,6 +28,7 @@ type SchedulerInput = {
   reservePerDay: number             // slots to leave empty each day for makeups
   constraints: { teamId: string; kind: 'unavailable' | 'prefer' | 'avoid';
                  date?: string; timeIndex?: number; weight?: number }[]
+                                    // captains send these from their team page until registration closes
   locked: { gameKey: string; slotId: string }[]   // manual pins
   weights: Weights
   seed: number
