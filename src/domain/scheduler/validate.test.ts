@@ -1,108 +1,14 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import {
-  DEFAULT_WEIGHTS,
-  gameKey,
-  type Schedule,
-  type SchedulerInput,
-  type Slot,
-} from "./types";
+import { gameKey, type Schedule, type SchedulerInput } from "./types";
 import { validate, type Violation } from "./validate";
-
-const SUNDAYS = [
-  "2027-04-04",
-  "2027-04-11",
-  "2027-04-18",
-  "2027-04-25",
-  "2027-05-02",
-  "2027-05-09",
-  "2027-05-16",
-] as const;
-
-/**
- * The optimized schedule from scheduling-algorithm.md, section 9. Each row is
- * a week, each cell a time (10:00, 11:30, 1:00) as "field 1 / field 2", and
- * "·" an empty slot. Round k is played in week k.
- */
-const OPTIMIZED = [
-  ["B-G/·", "D-E/A-H", "·/C-F"],
-  ["B-E/A-G", "H-F/C-D", "·/·"],
-  ["H-D/·", "A-F/·", "B-C/G-E"],
-  ["·/F-D", "·/G-C", "A-E/H-B"],
-  ["·/F-B", "E-C/G-H", "·/A-D"],
-  ["·/A-C", "·/D-B", "F-G/E-H"],
-  ["C-H/E-F", "A-B/·", "D-G/·"],
-];
-
-const slotId = (week: number, field: number, time: number) =>
-  `${SUNDAYS[week]}/F${field + 1}/${time}`;
-
-function slot(id: string, date: string, fieldId: string, timeIndex: number) {
-  return {
-    id,
-    fieldId,
-    date,
-    timeIndex,
-    startsAt: `${date}T14:00:00.000Z`,
-    endsAt: `${date}T15:30:00.000Z`,
-    kind: "regular" as const,
-  } satisfies Slot;
-}
-
-function workedExample(
-  overrides: Partial<SchedulerInput> = {},
-): [SchedulerInput, Schedule] {
-  const slots: Slot[] = [];
-  const games: Schedule["games"] = [];
-  OPTIMIZED.forEach((times, week) =>
-    times.forEach((cell, time) =>
-      cell.split("/").forEach((game, field) => {
-        const id = slotId(week, field, time);
-        slots.push(slot(id, SUNDAYS[week] as string, `F${field + 1}`, time));
-        if (game === "·") return;
-        const [teamA, teamB] = game.split("-") as [string, string];
-        games.push({
-          key: gameKey(week + 1, teamA, teamB),
-          round: week + 1,
-          teamA,
-          teamB,
-          slotId: id,
-        });
-      }),
-    ),
-  );
-  const input: SchedulerInput = {
-    teams: "ABCDEFGH".split("").map((id) => ({ id })),
-    slots,
-    rounds: 7,
-    gamesPerTeamPerDay: 1,
-    reservePerDay: 2,
-    constraints: [],
-    locked: [],
-    weights: DEFAULT_WEIGHTS,
-    seed: 1,
-    ...overrides,
-  };
-  return [input, { games, byes: [], unplaced: [], diagnostics: [] }];
-}
-
-/** Moves the game between two teams in a round to another slot. */
-function move(
-  schedule: Schedule,
-  round: number,
-  pair: string,
-  to: string | null,
-) {
-  const [a, b] = pair.split("-") as [string, string];
-  const key = gameKey(round, a, b);
-  expect(schedule.games.some((g) => g.key === key)).toBe(true);
-  return {
-    ...schedule,
-    games: schedule.games.map((g) =>
-      g.key === key ? { ...g, slotId: to } : g,
-    ),
-  };
-}
+import {
+  move,
+  slot,
+  slotId,
+  SUNDAYS,
+  workedExample,
+} from "./worked-example.fixture";
 
 const rules = (violations: Violation[]) => [
   ...new Set(violations.map((v) => v.rule)),
