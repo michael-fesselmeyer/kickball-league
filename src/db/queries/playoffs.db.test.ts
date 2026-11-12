@@ -163,7 +163,12 @@ async function matches(db: Db, w: World) {
   return new Map(view.matches.map((m) => [m.code, m]));
 }
 
-/** An admin's score, final at once. */
+let reported = 0;
+
+/**
+ * An admin's score, final at once. Each report is a minute after the last,
+ * so a correction is always the latest report, as it is at the field.
+ */
 async function play(
   db: Db,
   w: World,
@@ -178,7 +183,7 @@ async function play(
     teamSeasonId: null,
     score: { outcome: "normal", scoreA, scoreB, inningsPlayed: null },
     clientId: `${gameId}-${scoreA}-${scoreB}-${Math.random()}`,
-    now: AFTER,
+    now: new Date(AFTER.getTime() + ++reported * 60_000),
   });
   if (!result.ok) throw new Error(JSON.stringify(result.error));
   return result.value;
