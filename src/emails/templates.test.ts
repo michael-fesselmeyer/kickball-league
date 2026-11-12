@@ -65,6 +65,27 @@ describe("rendererFor", () => {
     expect(remind(3, true).text).toContain("Sign the season waiver first");
   });
 
+  it("asks the ref, then the captains, for a missing score", () => {
+    const remind = (role: "referee" | "captain") => {
+      const result = render("score_reminder", {
+        gameId: "game-1",
+        teams: "Aces vs Bees",
+        when: "Sun, Sep 13, 7:00 PM, Field 2",
+        role,
+      });
+      if (!result.ok) throw new Error(result.error);
+      return result.value;
+    };
+    expect(remind("referee").subject).toBe("Score needed: Aces vs Bees");
+    expect(remind("referee").text).toContain("because you refereed this game");
+    expect(remind("captain").text).toContain(
+      "because you captain one of the teams in this game",
+    );
+    expect(remind("captain").text).toContain(
+      "Enter the score: https://league.example.test/app/games/game-1/score",
+    );
+  });
+
   it("refuses an unknown template", () => {
     expect(render("nope", {})).toEqual({
       ok: false,
