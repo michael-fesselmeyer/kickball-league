@@ -157,7 +157,11 @@ async function alreadyRegistered(db: Db, seasonId: SeasonId, userId: UserId) {
  * The new registration's starting state: if the person already signed the
  * season's waiver, it skips straight to payment.
  */
-async function startingState(db: Db, s: SeasonForRegistration, userId: UserId) {
+export async function startingState(
+  db: Db,
+  s: SeasonForRegistration,
+  userId: UserId,
+) {
   if (!s.waiverId)
     return { status: "pending_waiver" as const, waiverSignatureId: null };
   const [signed] = await db
@@ -356,6 +360,7 @@ export async function myRegistration(
   if (!found) return null;
   const [spot] = await db
     .select({
+      teamSeasonId: teamSeason.id,
       role: rosterMembership.role,
       teamName: team.name,
       teamColor: team.colorHex,
