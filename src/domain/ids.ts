@@ -36,6 +36,7 @@ export type PurchaseId = Brand<string, "PurchaseId">;
 export type PurchaseItemId = Brand<string, "PurchaseItemId">;
 export type PaymentId = Brand<string, "PaymentId">;
 export type WebhookEventId = Brand<string, "WebhookEventId">;
+export type MessageId = Brand<string, "MessageId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
