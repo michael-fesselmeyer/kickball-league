@@ -48,6 +48,7 @@ async function main(): Promise<void> {
     scoreReport,
     scoreResponse,
     scheduleVersion,
+    bracket,
     permitWindow,
     blackout,
     teamConstraint,
@@ -92,7 +93,9 @@ async function main(): Promise<void> {
               .where(inArray(payment.purchaseId, purchaseIds));
             await tx.delete(purchase).where(inArray(purchase.id, purchaseIds));
           }
-          // Versions first: their placements hold slots.
+          // Brackets first: their matches hold teams, games and slots.
+          await tx.delete(bracket).where(inArray(bracket.seasonId, seasonIds));
+          // Versions next: their placements hold slots.
           await tx
             .delete(scheduleVersion)
             .where(inArray(scheduleVersion.seasonId, seasonIds));
