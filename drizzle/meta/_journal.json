@@ -57,6 +57,13 @@
       "when": 1794498636909,
       "tag": "0007_waivers",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794500273120,
+      "tag": "0008_invites",
+      "breakpoints": true
     }
   ]
 }

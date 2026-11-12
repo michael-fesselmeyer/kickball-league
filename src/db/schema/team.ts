@@ -20,6 +20,7 @@ import type {
   SeasonId,
   TeamId,
   TeamSeasonId,
+  InviteId,
   UserId,
   WaiverSignatureId,
 } from "@/domain/ids";
@@ -216,7 +217,43 @@ export const rosterMembership = pgTable(
   ],
 );
 
+export const inviteStatus = pgEnum("invite_status", [
+  "open",
+  "accepted",
+  "revoked",
+  "expired",
+]);
+
+/**
+ * A link a captain shares to bring players onto the team. Only a hash of the
+ * token is stored, so a database leak does not leak working links. A team
+ * link (email null) can be used by many players until it is revoked or
+ * expires; an email invite is for one person.
+ */
+export const invite = pgTable(
+  "invite",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<InviteId>(),
+    teamSeasonId: uuid()
+      .notNull()
+      .$type<TeamSeasonId>()
+      .references(() => teamSeason.id, { onDelete: "restrict" }),
+    /** SHA-256 of the token in the link, hex. */
+    tokenHash: text().notNull(),
+    email: text(),
+    status: inviteStatus().notNull().default("open"),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    ...audit(),
+  },
+  (t) => [
+    unique("invite_token_hash_unique").on(t.tokenHash),
+    index("invite_team_status_idx").on(t.teamSeasonId, t.status),
+    check("invite_token_hash_format", sql`${t.tokenHash} ~ '^[0-9a-f]{64}$'`),
+  ],
+);
+
 export type Team = typeof team.$inferSelect;
 export type TeamSeason = typeof teamSeason.$inferSelect;
 export type Registration = typeof registration.$inferSelect;
 export type RosterMembership = typeof rosterMembership.$inferSelect;
+export type Invite = typeof invite.$inferSelect;
