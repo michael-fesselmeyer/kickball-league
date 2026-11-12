@@ -12,7 +12,8 @@ import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
-import { createInviteAction } from "./actions";
+import { RECORD_PAYMENT_MESSAGES } from "../record-payment";
+import { createInviteAction, recordTeamPaymentAction } from "./actions";
 import { InviteLink } from "./invite-link";
 
 export const metadata: Metadata = { title: "Your team" };
@@ -28,6 +29,9 @@ export default function TeamPage(
     </main>
   );
 }
+
+/** Messages by error code; an unknown code from the URL finds nothing. */
+const PAYMENT_ERRORS: Record<string, string> = RECORD_PAYMENT_MESSAGES;
 
 const ROLE: Record<string, string> = {
   captain: "Captain",
@@ -46,8 +50,12 @@ function Mark({ yes, label }: { yes: boolean; label: string }) {
   );
 }
 
-async function Team({ params }: PageProps<"/app/seasons/[season]/team">) {
+async function Team({
+  params,
+  searchParams,
+}: PageProps<"/app/seasons/[season]/team">) {
   const { season: slug } = await params;
+  const query = await searchParams;
   const subject = await requirePermission("registration.join", {
     next: `/app/seasons/${slug}/team`,
   });
@@ -69,11 +77,27 @@ async function Team({ params }: PageProps<"/app/seasons/[season]/team">) {
   const link = manages
     ? await openTeamInvite(db, teamSeasonId, new Date())
     : null;
+  // Cash or Venmo from a teammate on a split fee (payment.record_offline).
+  const records =
+    (season.feeModel === "per_player" || mine.team.paymentMode === "split") &&
+    can(subject, "payment.record_offline", { teamSeasonId });
+  const error =
+    typeof query.error === "string" ? PAYMENT_ERRORS[query.error] : undefined;
   const paid = board.filter((m) => m.paid).length;
   const signed = board.filter((m) => m.signed).length;
 
   return (
     <>
+      {error && (
+        <p role="alert" className="rounded-lg border border-danger p-3">
+          {error}
+        </p>
+      )}
+      {query.notice === "payment_recorded" && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          Payment recorded. They&apos;re paid up.
+        </p>
+      )}
       <header className="flex flex-col gap-1">
         <Link href={`/app/seasons/${slug}`} className="underline">
           {season.name}
@@ -149,7 +173,34 @@ async function Team({ params }: PageProps<"/app/seasons/[season]/team">) {
                       <td>
                         {visible && <Mark yes={m.signed} label="Waiver" />}
                       </td>
-                      <td>{visible && <Mark yes={m.paid} label="Paid" />}</td>
+                      <td>
+                        {visible && <Mark yes={m.paid} label="Paid" />}
+                        {records && m.signed && !m.paid && (
+                          <form
+                            action={recordTeamPaymentAction.bind(
+                              null,
+                              slug,
+                              m.registrationId,
+                            )}
+                            className="mt-1 flex flex-wrap items-center gap-2"
+                          >
+                            <select
+                              name="method"
+                              defaultValue="cash"
+                              aria-label={`How ${m.name} paid`}
+                              className="rounded-md border border-border bg-surface px-1"
+                            >
+                              <option value="cash">Cash</option>
+                              <option value="venmo">Venmo</option>
+                              <option value="other">Other</option>
+                            </select>
+                            <input type="hidden" name="note" value="" />
+                            <button type="submit" className="underline">
+                              Paid me
+                            </button>
+                          </form>
+                        )}
+                      </td>
                     </>
                   )}
                 </tr>
