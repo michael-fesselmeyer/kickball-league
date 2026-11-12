@@ -40,6 +40,9 @@
           },
           {
             "context": "Migrations"
+          },
+          {
+            "context": "End-to-end"
           }
         ]
       }
