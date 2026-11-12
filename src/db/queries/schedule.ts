@@ -15,6 +15,7 @@ import { localDate } from "@/domain/scheduler/slots";
 import {
   DEFAULT_WEIGHTS,
   gameKey,
+  type ScheduledGame,
   type Schedule,
   type SchedulerInput,
   type TeamConstraint,
@@ -32,6 +33,7 @@ import {
 import { season } from "../schema/season";
 import { teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
+import { required } from "./rows";
 
 /**
  * Any Postgres database or transaction: the app passes the WebSocket driver,
@@ -184,7 +186,7 @@ export async function saveVersion(
         createdBy: createdBy ?? null,
       })
       .returning({ id: scheduleVersion.id });
-    const versionId = (version as { id: ScheduleVersionId }).id;
+    const versionId = required(version, "schedule version").id;
 
     const existing = await tx
       .select({
@@ -279,16 +281,16 @@ export async function loadVersion(
     .innerJoin(game, eq(gamePlacement.gameId, game.id))
     .where(eq(gamePlacement.scheduleVersionId, versionId));
 
-  const input = version.inputSnapshot as SchedulerInput;
+  const input = version.inputSnapshot;
   const games = rows
-    .map((r) => {
+    .map((r): ScheduledGame => {
       const round = r.round ?? 0;
       return {
         key: gameKey(round, r.teamA, r.teamB),
         round,
-        teamA: r.teamA as string,
-        teamB: r.teamB as string,
-        slotId: r.slotId as string | null,
+        teamA: r.teamA,
+        teamB: r.teamB,
+        slotId: r.slotId,
       };
     })
     .sort((a, b) => a.key.localeCompare(b.key));
@@ -380,7 +382,10 @@ export async function publishVersion(
           select ${gamePlacement.gameId} from ${gamePlacement}
           where ${gamePlacement.scheduleVersionId} = ${versionId})`);
 
-    const after = (await loadVersion(tx, versionId)) as StoredVersion;
+    const after = required(
+      await loadVersion(tx, versionId),
+      "published version",
+    );
     const empty: Schedule = {
       games: [],
       byes: [],

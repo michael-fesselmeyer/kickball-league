@@ -21,6 +21,7 @@ import { waiver, waiverSignature } from "../schema/waiver";
 import { recordAudit } from "./audit";
 import { settleCoveredRegistrations, teamOfRegistration } from "./payments";
 import type { Db } from "./schedule";
+import { required } from "./rows";
 
 /** The league's waiver versions, newest first. */
 export async function waiversOf(db: Db, leagueId: LeagueId) {
@@ -62,7 +63,7 @@ export async function publishWaiver(
       createdBy: actorId,
     })
     .returning({ id: waiver.id });
-  const id = (created as { id: WaiverId }).id;
+  const id = required(created, "waiver").id;
   await recordAudit(db, {
     actorId,
     action: "waiver.publish",

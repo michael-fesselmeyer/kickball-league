@@ -17,6 +17,7 @@ import { field, game, slot, venue } from "../schema/game";
 import { blackout, gamePlacement, permitWindow } from "../schema/schedule";
 import { recordAudit } from "./audit";
 import type { Db } from "./schedule";
+import { required } from "./rows";
 
 /**
  * Venues, fields, permit windows and blackouts, and the slots cut from them
@@ -132,7 +133,7 @@ export async function addVenue(
       createdBy: actorId,
     })
     .returning({ id: venue.id });
-  const id = (created as { id: VenueId }).id;
+  const id = required(created, "venue").id;
   await recordAudit(db, {
     actorId,
     action: "venue.create",
@@ -172,7 +173,7 @@ export async function addField(
       createdBy: actorId,
     })
     .returning({ id: field.id });
-  const id = (created as { id: FieldId }).id;
+  const id = required(created, "field").id;
   await recordAudit(db, {
     actorId,
     action: "field.create",
@@ -348,7 +349,7 @@ export async function addBlackout(
       createdBy: actorId,
     })
     .returning({ id: blackout.id });
-  const id = (created as { id: BlackoutId }).id;
+  const id = required(created, "blackout").id;
   await recordAudit(db, {
     actorId,
     action: "blackout.create",

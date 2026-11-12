@@ -6,6 +6,7 @@ import { league } from "../schema/league";
 import { season } from "../schema/season";
 import { recordAudit } from "./audit";
 import type { Db } from "./schedule";
+import { required } from "./rows";
 
 /** Season setup (product-spec.md, "League admin"). Changes are audited. */
 
@@ -49,6 +50,9 @@ const SETTINGS = {
   gamesPerTeamPerDay: season.gamesPerTeamPerDay,
 };
 
+/** The column allows 1 or 2 (a check constraint); anything else reads as 1. */
+const gamesPerDay = (n: number): 1 | 2 => (n === 2 ? 2 : 1);
+
 export async function seasonSettings(db: Db, leagueId: LeagueId, slug: string) {
   const [found] = await db
     .select({ id: season.id, status: season.status, ...SETTINGS })
@@ -57,7 +61,7 @@ export async function seasonSettings(db: Db, leagueId: LeagueId, slug: string) {
   if (!found) return null;
   return {
     ...found,
-    gamesPerTeamPerDay: (found.gamesPerTeamPerDay === 2 ? 2 : 1) as 1 | 2,
+    gamesPerTeamPerDay: gamesPerDay(found.gamesPerTeamPerDay),
   };
 }
 
@@ -98,7 +102,7 @@ export async function createSeason(
       createdBy: actorId,
     })
     .returning({ id: season.id });
-  const id = (created as { id: SeasonId }).id;
+  const id = required(created, "season").id;
   await recordAudit(db, {
     actorId,
     action: "season.create",

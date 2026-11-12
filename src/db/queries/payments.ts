@@ -11,6 +11,7 @@ import type { CheckoutItem } from "@/domain/registration/checkout";
 import { payment, purchase, purchaseItem, webhookEvent } from "../schema/money";
 import { registration, rosterMembership, teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
+import { required } from "./rows";
 
 /**
  * Purchases and the Stripe webhook (docs/architecture.md, section 6). Only
@@ -32,7 +33,7 @@ export async function createPurchase(
       totalCents: total,
     })
     .returning({ id: purchase.id });
-  const id = (created as { id: PurchaseId }).id;
+  const id = required(created, "purchase").id;
   await db.insert(purchaseItem).values(
     input.items.map((i) => ({
       purchaseId: id,
@@ -134,7 +135,7 @@ export async function handleStripeEvent(
       provider: "stripe",
       eventId: event.id,
       type: event.type,
-      payload: event as unknown as Record<string, unknown>,
+      payload: event,
     })
     .onConflictDoNothing()
     .returning({ id: webhookEvent.id });
