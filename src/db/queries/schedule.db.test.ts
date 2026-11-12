@@ -3,6 +3,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import type { SeasonId, UserId } from "@/domain/ids";
 import { generate } from "@/domain/scheduler/generate";
 import { reschedule } from "@/domain/scheduler/reschedule";
+import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
 import { field, game, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
@@ -10,6 +11,7 @@ import { scheduleVersion, teamConstraint } from "../schema/schedule";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
+import { recordAudit } from "./audit";
 import {
   type Db,
   loadSchedulerInput,
@@ -360,5 +362,60 @@ describe("saving and publishing versions", () => {
       expect(
         await loadVersion(db, "00000000-0000-4000-8000-000000000000" as never),
       ).toBeNull();
+    }));
+});
+
+describe("audit trail", () => {
+  it("records saving and publishing, with who did it", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const loaded = await loadSchedulerInput(db, w.seasonId, options);
+      if (!loaded.ok) throw new Error(loaded.error);
+      const v1 = await saveVersion(db, {
+        seasonId: w.seasonId,
+        input: loaded.value,
+        schedule: generate(loaded.value),
+        origin: "generated",
+        createdBy: w.adminId,
+      });
+      await publishVersion(db, v1, w.adminId);
+      const rows = await db
+        .select({
+          actorId: auditLog.actorId,
+          action: auditLog.action,
+          after: auditLog.after,
+        })
+        .from(auditLog)
+        .where(eq(auditLog.entityId, v1))
+        .orderBy(auditLog.occurredAt, auditLog.action);
+      expect(rows).toEqual([
+        {
+          actorId: w.adminId,
+          action: "schedule.publish",
+          after: { moved: 0, added: 28, removed: 0, teamsAffected: 8 },
+        },
+        {
+          actorId: w.adminId,
+          action: "schedule.save_version",
+          after: {
+            versionNo: 1,
+            origin: "generated",
+            violations: 0,
+            unplaced: 0,
+          },
+        },
+      ]);
+    }));
+
+  it("rejects an action that is not area.verb", () =>
+    inRolledBackDb(async (db) => {
+      await expect(
+        recordAudit(db, {
+          actorId: null,
+          action: "Publish Schedule",
+          entityType: "schedule_version",
+          entityId: "00000000-0000-4000-8000-000000000000",
+        }),
+      ).rejects.toThrow();
     }));
 });
