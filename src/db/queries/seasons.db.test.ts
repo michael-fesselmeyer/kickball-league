@@ -130,7 +130,8 @@ describe("seasons", () => {
           after: auditLog.after,
         })
         .from(auditLog)
-        .where(eq(auditLog.entityId, seasonId));
+        .where(eq(auditLog.entityId, seasonId))
+        .orderBy(auditLog.action);
       expect(rows.map((r) => r.action)).toEqual([
         "season.create",
         "season.update",
