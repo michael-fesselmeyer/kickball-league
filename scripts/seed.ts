@@ -53,6 +53,8 @@ async function main(): Promise<void> {
     rosterMembership,
     user,
     profile,
+    waiver,
+    waiverSignature,
   } = schema;
 
   try {
@@ -110,10 +112,14 @@ async function main(): Promise<void> {
             .delete(registration)
             .where(inArray(registration.seasonId, seasonIds));
           await tx
+            .delete(waiverSignature)
+            .where(inArray(waiverSignature.seasonId, seasonIds));
+          await tx
             .delete(teamSeason)
             .where(inArray(teamSeason.seasonId, seasonIds));
           await tx.delete(season).where(inArray(season.id, seasonIds));
         }
+        await tx.delete(waiver).where(eq(waiver.leagueId, leagueId));
         await tx.delete(team).where(eq(team.leagueId, leagueId));
         const venueIds = (
           await tx
@@ -126,12 +132,29 @@ async function main(): Promise<void> {
         await tx.delete(venue).where(eq(venue.leagueId, leagueId));
         await tx.delete(league).where(eq(league.id, leagueId));
       }
+      // Seed users' signatures elsewhere would block deleting them.
+      const seedUsers = (
+        await tx
+          .select({ id: user.id })
+          .from(user)
+          .where(like(user.email, `%@${SEED_EMAIL_DOMAIN}`))
+      ).map((r) => r.id);
+      if (seedUsers.length) {
+        await tx
+          .update(registration)
+          .set({ waiverSignatureId: null })
+          .where(inArray(registration.userId, seedUsers));
+        await tx
+          .delete(waiverSignature)
+          .where(inArray(waiverSignature.userId, seedUsers));
+      }
       // Seed users only (profiles, sessions and accounts cascade).
       await tx.delete(user).where(like(user.email, `%@${SEED_EMAIL_DOMAIN}`));
 
       await tx.insert(league).values(data.league);
       await tx.insert(user).values(data.users);
       await tx.insert(profile).values(data.profiles);
+      await tx.insert(waiver).values(data.waiver);
       await tx.insert(season).values(data.season);
       await tx.insert(venue).values(data.venue);
       await tx.insert(field).values(data.fields);

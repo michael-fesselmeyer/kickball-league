@@ -12,9 +12,15 @@ import type {
   TeamId,
   TeamSeasonId,
   UserId,
+  WaiverId,
   VenueId,
 } from "@/domain/ids";
 import { seededRandom, type Random } from "@/domain/random";
+import {
+  SAMPLE_WAIVER_BODY,
+  SAMPLE_WAIVER_SHA256,
+  SAMPLE_WAIVER_TITLE,
+} from "./sample-waiver";
 import { generateSlots } from "@/domain/scheduler/slots";
 
 /**
@@ -459,9 +465,20 @@ export function generateSeed(seed = 2026) {
     },
   ];
 
+  // A sample waiver both seasons require. Last, so earlier ids stay the same.
+  const waiver = {
+    id: id<WaiverId>(),
+    leagueId: league.id,
+    version: 1,
+    title: SAMPLE_WAIVER_TITLE,
+    bodyMd: SAMPLE_WAIVER_BODY,
+    bodySha256: SAMPLE_WAIVER_SHA256,
+  };
+
   return {
     league,
-    season,
+    waiver,
+    season: { ...season, waiverId: waiver.id },
     venue,
     fields,
     users,
@@ -472,7 +489,7 @@ export function generateSeed(seed = 2026) {
     rosterMemberships,
     slots,
     games,
-    nextSeason,
+    nextSeason: { ...nextSeason, waiverId: waiver.id },
     nextTeamSeasons,
     permitWindows,
     nextSlots,
