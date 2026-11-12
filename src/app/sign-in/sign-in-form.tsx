@@ -14,7 +14,9 @@ export function SignInForm({ next }: { next: string }) {
         role="status"
         className="rounded-card border border-border bg-surface p-4 shadow-card dark:shadow-none"
       >
-        Check your inbox. We sent a sign-in link to{" "}
+        <span className="mb-3 sticker">Link sent!</span>
+        <br />
+        Check your inbox. Your sign-in link is on its way to{" "}
         <strong>{state.email}</strong>. It works once and expires in 15 minutes.
       </p>
     );
@@ -37,7 +39,7 @@ export function SignInForm({ next }: { next: string }) {
         defaultValue={state.status === "error" ? state.email : ""}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? "email-error" : undefined}
-        className="min-h-11 rounded-input border border-border-strong bg-surface px-3 py-2 text-body text-text"
+        className="min-h-11 rounded-input border-2 border-border-strong bg-surface px-3 py-2 text-body text-text"
       />
       {error && (
         <p id="email-error" role="alert" className="text-small text-danger">
@@ -47,9 +49,9 @@ export function SignInForm({ next }: { next: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="min-h-11 rounded-input bg-brand px-4 py-2 font-medium text-on-brand disabled:opacity-60"
+        className="btn btn-primary disabled:opacity-60"
       >
-        {pending ? "Sending…" : "Email me a sign-in link"}
+        {pending ? "Sending…" : "Email me a link"}
       </button>
     </form>
   );
