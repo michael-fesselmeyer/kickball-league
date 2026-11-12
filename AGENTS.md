@@ -41,6 +41,16 @@ Do not add co-author trailers, "generated with" lines, or the names of AI tools 
 - One pull request per issue, with `Closes #N`, what changed, why, and how it was tested.
 - Merge by rebase only, after every check passes.
 
+## Keep the docs current
+
+A pull request updates the docs its change makes stale, in the same pull request:
+
+- `README.md`: the Features list when a feature ships or changes, and Getting started or Scripts when setup or commands change.
+- `docs/data-model.md` for every schema change, `docs/architecture.md` for new jobs, integrations or flows, and `docs/information-architecture.md` for new routes or screens.
+- A new ADR in `docs/adr/` when the change makes a real decision with trade-offs.
+
+The roadmap's acceptance criteria change only when the plan changes, not to match what was built.
+
 ## Working in parallel
 
 Several changes are often in progress at once. These rules keep them from colliding.
