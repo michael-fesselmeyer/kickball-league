@@ -1,0 +1,6 @@
+package-lock.json
+.next
+coverage
+# Design docs are hand-formatted prose and tables
+docs/
+AGENTS.md
