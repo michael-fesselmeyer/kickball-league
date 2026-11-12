@@ -78,6 +78,13 @@
       "when": 1794504769409,
       "tag": "0010_offline_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794506237488,
+      "tag": "0011_score_responses",
+      "breakpoints": true
     }
   ]
 }

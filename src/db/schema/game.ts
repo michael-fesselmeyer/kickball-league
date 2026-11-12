@@ -17,6 +17,7 @@ import type {
   LeagueId,
   PermitWindowId,
   ScoreReportId,
+  ScoreResponseId,
   SeasonId,
   SlotId,
   TeamSeasonId,
@@ -218,6 +219,10 @@ export const scoreReport = pgTable(
       .$type<UserId>()
       .references(() => user.id, { onDelete: "restrict" }),
     reporterRole: scoreReporterRole().notNull(),
+    /** The reporting captain's team; null for refs and admins. */
+    teamSeasonId: uuid()
+      .$type<TeamSeasonId>()
+      .references(() => teamSeason.id, { onDelete: "restrict" }),
     scoreA: integer().notNull(),
     scoreB: integer().notNull(),
     inningsPlayed: integer(),
@@ -233,6 +238,38 @@ export const scoreReport = pgTable(
       sql`${t.scoreA} >= 0 and ${t.scoreB} >= 0`,
     ),
   ],
+);
+
+export const scoreResponseStatus = pgEnum("score_response_status", [
+  "confirmed",
+  "disputed",
+]);
+
+/**
+ * A captain's answer to a score report: confirm it, or dispute it with a
+ * note. Append-only, one answer per team per report.
+ */
+export const scoreResponse = pgTable(
+  "score_response",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<ScoreResponseId>(),
+    scoreReportId: uuid()
+      .notNull()
+      .$type<ScoreReportId>()
+      .references(() => scoreReport.id, { onDelete: "restrict" }),
+    teamSeasonId: uuid()
+      .notNull()
+      .$type<TeamSeasonId>()
+      .references(() => teamSeason.id, { onDelete: "restrict" }),
+    userId: uuid()
+      .notNull()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "restrict" }),
+    status: scoreResponseStatus().notNull(),
+    note: text(),
+    respondedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("score_response_once").on(t.scoreReportId, t.teamSeasonId)],
 );
 
 export type Venue = typeof venue.$inferSelect;
