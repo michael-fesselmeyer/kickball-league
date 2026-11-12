@@ -1,0 +1,40 @@
+name: Feature slice
+description: A 30–60 minute vertical slice of work from the roadmap
+labels: []
+body:
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: One sentence on the problem this solves.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Observable, testable checks. One per line, as a checklist.
+      value: |
+        - [ ]
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Relevant files, approach, gotchas, docs to check first, and `Depends on #N`.
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      options:
+        - ~30m
+        - ~45m
+        - ~60m
+    validations:
+      required: true
+  - type: input
+    id: learn
+    attributes:
+      label: Learn
+      description: The concept this slice teaches.
