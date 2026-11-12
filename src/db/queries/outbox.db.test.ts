@@ -8,11 +8,12 @@ import { err, ok } from "@/domain/result";
 import type { Email, EmailSender } from "@/services/email";
 import * as schema from "../schema";
 import { user } from "../schema/auth";
-import { message } from "../schema/message";
+import { message, notificationPreference } from "../schema/message";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import {
   claimDueMessages,
   drainOutbox,
+  emptyDrain,
   enqueueMessages,
   type OutboxMessage,
   type Renderer,
@@ -110,15 +111,12 @@ describe("drainOutbox", () => {
       ]);
       const { sent, send } = recorder();
       expect(await drainOutbox(db, { send, render, now: NOW })).toEqual({
+        ...emptyDrain(),
         sent: 1,
-        retrying: 0,
-        failed: 0,
       });
-      expect(await drainOutbox(db, { send, render, now: NOW })).toEqual({
-        sent: 0,
-        retrying: 0,
-        failed: 0,
-      });
+      expect(await drainOutbox(db, { send, render, now: NOW })).toEqual(
+        emptyDrain(),
+      );
       const rows = await rowsOf(db, pat);
       const done = required(
         rows.find((r) => r.dedupeKey === "now"),
@@ -227,6 +225,37 @@ describe("drainOutbox", () => {
       expect((await rowsOf(db, pat))[0]).toMatchObject({
         status: "sent",
         attempts: 2,
+      });
+    });
+  });
+});
+
+describe("preferences", () => {
+  it("does not email a topic the person turned off, and says why", async () => {
+    await inRolledBackDb(async (db) => {
+      const pat = await person(db);
+      await db.insert(notificationPreference).values({
+        userId: pat,
+        topic: "announcement",
+        channel: "email",
+        enabled: false,
+      });
+      await enqueueMessages(db, [
+        hello(pat, "muted"),
+        { ...hello(pat, "payment"), topic: "payment" },
+      ]);
+      const { sent, send } = recorder();
+      expect(await drainOutbox(db, { send, render, now: NOW })).toMatchObject({
+        sent: 1,
+        suppressed: 1,
+      });
+      expect(sent).toHaveLength(1);
+      const muted = (await rowsOf(db, pat)).find(
+        (r) => r.dedupeKey === "muted",
+      );
+      expect(muted).toMatchObject({
+        status: "suppressed",
+        suppressReason: "opted_out",
       });
     });
   });
