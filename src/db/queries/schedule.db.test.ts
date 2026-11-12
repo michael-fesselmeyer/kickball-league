@@ -251,6 +251,55 @@ describe("saving and publishing versions", () => {
       ).toHaveLength(28);
     }));
 
+  it("keeps makeup rules for edits made after a rain-out", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const loaded = await loadSchedulerInput(db, w.seasonId, options);
+      if (!loaded.ok) throw new Error(loaded.error);
+      const input = loaded.value;
+      const first = generate(input);
+      const v1 = await saveVersion(db, {
+        seasonId: w.seasonId,
+        input,
+        schedule: first,
+        origin: "generated",
+      });
+      const thirdSunday = input.slots
+        .filter((s) => s.date === "2027-04-18")
+        .map((s) => s.id);
+      const v2 = await saveVersion(db, {
+        seasonId: w.seasonId,
+        input,
+        schedule: reschedule(input, first, thirdSunday).schedule,
+        origin: "rainout",
+        parentVersionId: v1,
+      });
+      const rainout = (await loadVersion(db, v2))!;
+      expect(rainout.input).toMatchObject({
+        gamesPerTeamPerDay: 2,
+        reservePerDay: 0,
+      });
+
+      // An admin pins one game in place, starting from the rain-out version.
+      const [pinned] = rainout.schedule.games.filter((g) => g.slotId !== null);
+      const v3 = await saveVersion(db, {
+        seasonId: w.seasonId,
+        input: {
+          ...rainout.input,
+          locked: [{ gameKey: pinned!.key, slotId: pinned!.slotId! }],
+        },
+        schedule: rainout.schedule,
+        origin: "manual_edit",
+        parentVersionId: v2,
+      });
+      const [edit] = await db
+        .select({ violations: scheduleVersion.violations })
+        .from(scheduleVersion)
+        .where(eq(scheduleVersion.id, v3));
+      expect(edit?.violations).toEqual([]);
+      expect((await publishVersion(db, v3, w.adminId)).ok).toBe(true);
+    }));
+
   it("cannot store two games in one slot", () =>
     inRolledBackDb(async (db) => {
       const w = await world(db);
