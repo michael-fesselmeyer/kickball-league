@@ -33,3 +33,17 @@ export type PurchaseId = Brand<string, "PurchaseId">;
 export type PurchaseItemId = Brand<string, "PurchaseItemId">;
 export type PaymentId = Brand<string, "PaymentId">;
 export type WebhookEventId = Brand<string, "WebhookEventId">;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Reads an ID from untrusted input, such as a form field. Returns null
+ * unless it is a UUID, so a malformed value never reaches a query. This is
+ * the one place a plain string becomes a branded ID; the caller still checks
+ * the row exists and belongs to the league.
+ */
+export function parseId<Id extends Brand<string, string>>(
+  value: unknown,
+): Id | null {
+  return typeof value === "string" && UUID.test(value) ? (value as Id) : null;
+}
