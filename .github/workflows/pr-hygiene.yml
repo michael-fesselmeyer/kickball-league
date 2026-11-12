@@ -28,5 +28,7 @@ jobs:
           BRANCH: ${{ github.head_ref }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_BODY: ${{ github.event.pull_request.body }}
-          BLOCKED_TERMS: ${{ vars.BLOCKED_TERMS }}
+          # A secret, not a variable: Actions prints step environments in
+          # the public log and masks only secrets.
+          BLOCKED_TERMS: ${{ secrets.BLOCKED_TERMS }}
         run: scripts/check-pr-hygiene.sh
