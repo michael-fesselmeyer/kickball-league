@@ -12,6 +12,7 @@ import {
   SESSION_FRESH_AGE_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
 } from "./config";
+import { accountLinking, socialProviders } from "./google";
 import { deliverMagicLink } from "./magic-link";
 import { createProfileForUser } from "./profile";
 
@@ -20,6 +21,8 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, { provider: "pg", schema }),
   advanced: { database: { generateId: "uuid" } },
+  socialProviders: socialProviders(env),
+  account: { accountLinking },
   session: {
     expiresIn: SESSION_EXPIRES_IN_SECONDS,
     updateAge: SESSION_UPDATE_AGE_SECONDS,

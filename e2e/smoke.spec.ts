@@ -56,6 +56,15 @@ test("a signed-out visitor to /app is sent to sign in, and comes back after", as
   );
 });
 
+test("Google sign-in stays hidden until it is configured", async ({ page }) => {
+  // CI and local runs have no Google credentials, so only the email form shows.
+  await page.goto("/sign-in");
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Continue with Google" }),
+  ).toHaveCount(0);
+});
+
 test("the theme switch remembers a choice across page loads", async ({
   page,
 }) => {

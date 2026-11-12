@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { env } from "@/env";
+import { isGoogleEnabled } from "@/lib/auth/google";
 import { safeNextPath } from "@/lib/safe-next";
+import { signInWithGoogle } from "./actions";
 import { SignInForm } from "./sign-in-form";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -27,5 +30,24 @@ async function FormForRequest({
   searchParams,
 }: Pick<PageProps<"/sign-in">, "searchParams">) {
   const { next } = await searchParams;
-  return <SignInForm next={safeNextPath(next)} />;
+  const destination = safeNextPath(next);
+  return (
+    <>
+      <SignInForm next={destination} />
+      {isGoogleEnabled(env) && <GoogleSignIn next={destination} />}
+    </>
+  );
+}
+
+/** A plain form posting to a Server Action: works before JavaScript loads. */
+function GoogleSignIn({ next }: { next: string }) {
+  return (
+    <form action={signInWithGoogle} className="flex flex-col gap-3">
+      <p className="text-small text-text-muted">or</p>
+      <input type="hidden" name="next" value={next} />
+      <button type="submit" className="btn btn-secondary">
+        Continue with Google
+      </button>
+    </form>
+  );
 }
