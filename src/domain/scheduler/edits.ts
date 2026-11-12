@@ -163,6 +163,11 @@ export function applyEdit(
     ),
   };
   next.unplaced = next.games.filter((g) => g.slotId === null).map((g) => g.key);
+  // A note about a game the edit has now placed no longer applies.
+  const placed = next.games.filter((g) => g.slotId !== null).map((g) => g.key);
+  next.diagnostics = schedule.diagnostics.filter(
+    (note) => !placed.some((key) => note.includes(key)),
+  );
   const locked = [...locks].map(([gameKey, slotId]) => ({ gameKey, slotId }));
   const after = { ...input, locked };
   return ok({

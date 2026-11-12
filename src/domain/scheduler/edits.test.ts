@@ -322,3 +322,25 @@ describe("applyEdit: swapDates with unplaced games", () => {
     expect(slotOf(result.schedule, "r3:A:F")).toBeNull();
   });
 });
+
+describe("applyEdit and the scheduler's notes", () => {
+  it("drops a note about a game the edit places, and keeps the others", () => {
+    const [input, schedule] = workedExample();
+    const unplaced = move(schedule, 3, "A-F", null);
+    const notes = {
+      ...unplaced,
+      diagnostics: [
+        "Game r3:A:F could not be placed on 2027-04-18: no free slot suits both teams.",
+        "Not enough slots: 1 round could not be given a date.",
+      ],
+    };
+    const result = edited(input, notes, {
+      kind: "move",
+      gameKey: "r3:A:F",
+      slotId: slotId(2, 1, 0),
+    });
+    expect(result.schedule.diagnostics).toEqual([
+      "Not enough slots: 1 round could not be given a date.",
+    ]);
+  });
+});
