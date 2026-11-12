@@ -1,0 +1,1 @@
+ALTER TABLE "schedule_version" ADD COLUMN "diagnostics" jsonb DEFAULT '[]'::jsonb NOT NULL;

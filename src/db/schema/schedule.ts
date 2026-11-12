@@ -180,6 +180,8 @@ export const scheduleVersion = pgTable(
     metrics: jsonb(),
     /** Hard-constraint violations; empty when valid. */
     violations: jsonb().notNull().default([]),
+    /** The scheduler's reasons, such as why a game could not be placed. */
+    diagnostics: jsonb().$type<string[]>().notNull().default([]),
     publishedAt: timestamp({ withTimezone: true }),
     publishedBy: uuid()
       .$type<UserId>()
