@@ -24,9 +24,35 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expect(page.getByRole("heading", { level: 1 })).toContainText(
         "Kick a ball",
       );
+      await expect(
+        page.getByRole("link", { name: "Sign up for a season" }),
+      ).toBeVisible();
       await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
       await expectNoAxeViolations(page);
     });
+
+    for (const [path, heading, schemaType] of [
+      ["/about", "meeting people", "SportsOrganization"],
+      ["/faq", "Questions, answered", "FAQPage"],
+      ["/parks/mccarren-park", "McCarren Park", "Park"],
+    ] as const) {
+      test(`${path} loads, carries structured data and is accessible`, async ({
+        page,
+      }) => {
+        await page.goto(path);
+        await expect(page.getByRole("heading", { level: 1 })).toContainText(
+          heading,
+        );
+        const jsonLd = await page
+          .locator('script[type="application/ld+json"]')
+          .textContent();
+        const types = (JSON.parse(jsonLd ?? "[]") as { "@type": string }[]).map(
+          (node) => node["@type"],
+        );
+        expect(types).toContain(schemaType);
+        await expectNoAxeViolations(page);
+      });
+    }
 
     test("sign-in page is accessible", async ({ page }) => {
       await page.goto("/sign-in");
@@ -82,7 +108,14 @@ test("the page fits a phone screen without sideways scrolling", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 640 });
-  for (const path of ["/", "/sign-in", "/style"]) {
+  for (const path of [
+    "/",
+    "/about",
+    "/faq",
+    "/parks/mccarren-park",
+    "/sign-in",
+    "/style",
+  ]) {
     await page.goto(path);
     const overflow = await page.evaluate(
       () =>
@@ -91,4 +124,12 @@ test("the page fits a phone screen without sideways scrolling", async ({
     );
     expect(overflow, `${path} scrolls sideways`).toBeLessThanOrEqual(0);
   }
+});
+
+test("robots.txt keeps search engines off a non-production build", async ({
+  request,
+}) => {
+  const robots = await (await request.get("/robots.txt")).text();
+  expect(robots).toContain("Disallow: /");
+  expect(robots).not.toContain("Sitemap:");
 });

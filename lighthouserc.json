@@ -3,7 +3,13 @@
     "collect": {
       "startServerCommand": "npm run start -- --port 3200",
       "startServerReadyPattern": "Ready",
-      "url": ["http://localhost:3200/", "http://localhost:3200/sign-in"],
+      "url": [
+        "http://localhost:3200/",
+        "http://localhost:3200/about",
+        "http://localhost:3200/faq",
+        "http://localhost:3200/parks/mccarren-park",
+        "http://localhost:3200/sign-in"
+      ],
       "numberOfRuns": 3,
       "settings": {
         "onlyCategories": ["performance", "accessibility"],
