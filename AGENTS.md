@@ -41,6 +41,17 @@ Do not add co-author trailers, "generated with" lines, or the names of AI tools 
 - One pull request per issue, with `Closes #N`, what changed, why, and how it was tested.
 - Merge by rebase only, after every check passes.
 
+## Working in parallel
+
+Several changes are often in progress at once. These rules keep them from colliding.
+
+- **Claim the issue first.** Before starting, check that the issue has no `in progress` label, then add it. Leave issues that already carry it alone. Remove the label if you stop without a pull request.
+- **One working copy per change.** Every change gets its own `git worktree`. The main checkout stays on `main`; never switch branches in a working copy that another change is using.
+- **Stay in your area.** A pull request changes one feature area: its routes under `src/app`, its queries and its tests. Keep edits to shared files (`src/db/schema/index.ts`, layouts and navigation, `scripts/seed.ts`) small and additive. In the seed script, add your data in its own function instead of rewriting others'.
+- **One schema change at a time.** Only one open pull request at a time may add a migration under `drizzle/`, and it carries the `schema` label. If `main` gains a migration before yours merges, rebase, delete your generated SQL file, its snapshot and its `_journal.json` entry, and run `npm run db:generate` again. Never renumber a migration that has merged.
+- **Your own database and port.** Create a local test database named after your branch with `PGDATABASE_NAME=<slug> scripts/setup-local-postgres.sh`, and point `DATABASE_URL` at it. Run the dev server on a free port with `npm run dev -- --port <port>`, not the default 3000. Copy `.env.local` into a new worktree with `cp`; never print it.
+- **Rebase just before merging.** Rebase onto the latest `main`, rerun the checks, and merge only when they pass.
+
 ## Material that stays out of the repository
 
 The league's rulebook PDF and full rulebook text, the real waiver text and the league's logo stay out until the league agrees to publish them.
