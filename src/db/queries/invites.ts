@@ -19,6 +19,7 @@ import {
   teamSeason,
 } from "../schema/team";
 import { recordAudit } from "./audit";
+import { settleCoveredRegistrations } from "./payments";
 import { seasonForRegistration, startingState } from "./registration";
 import type { Db } from "./schedule";
 
@@ -211,6 +212,7 @@ export async function acceptInvite(
     startedAt: input.now,
     createdBy: input.userId,
   });
+  await settleCoveredRegistrations(db, found.teamSeasonId);
   return ok({ seasonSlug: found.seasonSlug, teamName: found.teamName });
 }
 

@@ -361,6 +361,7 @@ export async function myRegistration(
   const [spot] = await db
     .select({
       teamSeasonId: teamSeason.id,
+      teamStatus: teamSeason.status,
       role: rosterMembership.role,
       teamName: team.name,
       teamColor: team.colorHex,
