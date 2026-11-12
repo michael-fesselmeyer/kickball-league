@@ -44,6 +44,8 @@ cp .env.example .env.local   # fill in values
 npm run dev
 ```
 
+Environment variables are validated with Zod in [`src/lib/env.ts`](src/lib/env.ts) whenever Next loads its config, so `npm run dev`, `npm run build` and `npm start` stop immediately and name any variable that is missing or malformed. Server code reads them through `env` from `src/env.ts`, never `process.env` directly.
+
 ## Scripts
 
 | Command                 | What it does                                 |
