@@ -20,7 +20,7 @@ Status: draft v1, 2026-11-11. Library facts marked ✔ were checked against curr
 | UI | Tailwind CSS v4 with tokens in CSS; shadcn/ui components restyled to the design system | Accessible primitives without shipping a component library's runtime |
 | Validation | Zod at every boundary: forms, server actions, webhooks, environment variables | One schema per input, shared by client and server |
 | Payments | Stripe Checkout (hosted) and webhooks | Card data never touches our servers |
-| Email | Resend with React Email templates | Simple API, good deliverability, templates are components |
+| Email | Resend through its REST API, templates as functions returning HTML and text ✔ | Simple API, good deliverability. Next.js keeps `react-dom/server` out of server components, so templates build escaped strings; React Email can come back for the outbox's richer messages if a template outgrows that |
 | SMS (P3) | Twilio Messaging Service | Handles STOP and HELP at the carrier-facing layer, supports A2P 10DLC registration |
 | Weather | **National Weather Service API** first, Open-Meteo behind the same interface as a fallback | See section 7 |
 | Files | Vercel Blob | Same platform, signed client uploads |
@@ -112,7 +112,7 @@ src/
   db/                  Drizzle schema, migrations, query functions
   services/            I/O adapters: stripe, email, sms, weather, blob, push
   jobs/                job handlers called by route handlers
-  emails/              React Email templates
+  emails/              email templates (HTML and plain text)
 tests/  e2e/  scripts/seed.ts
 ```
 
