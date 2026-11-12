@@ -52,6 +52,8 @@ async function main(): Promise<void> {
     registration,
     rosterMembership,
     invite,
+    purchase,
+    payment,
     user,
     profile,
     waiver,
@@ -73,6 +75,19 @@ async function main(): Promise<void> {
             .where(eq(season.leagueId, leagueId))
         ).map((r) => r.id);
         if (seasonIds.length) {
+          // Money first: purchases point at registrations and teams.
+          const purchaseIds = (
+            await tx
+              .select({ id: purchase.id })
+              .from(purchase)
+              .where(inArray(purchase.seasonId, seasonIds))
+          ).map((r) => r.id);
+          if (purchaseIds.length) {
+            await tx
+              .delete(payment)
+              .where(inArray(payment.purchaseId, purchaseIds));
+            await tx.delete(purchase).where(inArray(purchase.id, purchaseIds));
+          }
           // Versions first: their placements hold slots.
           await tx
             .delete(scheduleVersion)
