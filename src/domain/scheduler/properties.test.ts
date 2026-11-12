@@ -208,6 +208,50 @@ describe("regressions found by these properties", () => {
     expect(validate(roomier, schedule)).toEqual([]);
   });
 
+  it("P10: two rounds can share a time on a tight doubleheader day", () => {
+    // Seven teams, two fields, three times: a round needs two of the times.
+    // The extra slot moved rounds 1 and 2 onto a date where T1 cannot play
+    // the middle time, and no split of the times between rounds fits.
+    const input = {
+      ...league({
+        teams: 7,
+        fields: 2,
+        times: 3,
+        dates: 4,
+        gamesPerTeamPerDay: 2,
+        reservePerDay: 0,
+        rounds: 7,
+        seed: 0,
+      }),
+      constraints: [
+        {
+          teamId: "T1",
+          kind: "unavailable" as const,
+          date: "2027-06-01",
+          timeIndex: 1,
+        },
+        {
+          teamId: "T0",
+          kind: "unavailable" as const,
+          date: "2027-06-04",
+          timeIndex: 0,
+        },
+      ],
+    };
+    const roomier = {
+      ...input,
+      slots: [
+        ...input.slots,
+        slot("2027-06-03/extra", "2027-06-03", "Fextra", 0),
+      ],
+    };
+    for (const each of [input, roomier]) {
+      const schedule = generate(each, options);
+      expect(schedule.unplaced).toEqual([]);
+      expect(validate(each, schedule)).toEqual([]);
+    }
+  });
+
   it("P8: regenerating around pins rebuilds the same days for pinned rounds", () => {
     const input = league({
       teams: 6,
