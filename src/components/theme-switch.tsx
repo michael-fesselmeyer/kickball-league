@@ -61,7 +61,7 @@ export function ThemeSwitch() {
           type="button"
           aria-pressed={current === value}
           onClick={() => choose(value)}
-          className="min-h-11 min-w-11 rounded-[4px] px-3 text-small font-medium text-text-muted aria-pressed:bg-brand aria-pressed:text-on-brand"
+          className="min-h-11 min-w-11 rounded-[4px] px-2 text-small font-medium text-text-muted aria-pressed:bg-brand aria-pressed:text-on-brand sm:px-3"
         >
           {label}
         </button>
