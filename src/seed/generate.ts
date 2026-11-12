@@ -3,16 +3,19 @@ import type {
   FieldId,
   GameId,
   LeagueId,
+  PermitWindowId,
   RegistrationId,
   RosterMembershipId,
   SeasonId,
   SlotId,
+  TeamConstraintId,
   TeamId,
   TeamSeasonId,
   UserId,
   VenueId,
 } from "@/domain/ids";
 import { seededRandom, type Random } from "@/domain/random";
+import { generateSlots } from "@/domain/scheduler/slots";
 
 /**
  * Demo data for local development, previews and the demo deployment.
@@ -114,6 +117,17 @@ const GAME_DAYS = [
 /** Rounds already played: the season is mid-way through. */
 export const PLAYED_ROUNDS = 4;
 const KICKOFF_HOURS = [20, 21] as const;
+
+/** Next spring: Monday evenings, as the league plays them. */
+const SPRING_DAYS = [
+  "2027-04-05",
+  "2027-04-12",
+  "2027-04-19",
+  "2027-04-26",
+  "2027-05-03",
+  "2027-05-10",
+  "2027-05-17",
+];
 const FIELD_NAMES = ["Field 1", "Field 2", "Field 3"] as const;
 
 /** A UUID v4 drawn from the seeded generator, so ids are stable across reseeds. */
@@ -368,6 +382,83 @@ export function generateSeed(seed = 2026) {
     });
   });
 
+  // Next spring, set up but not yet scheduled, for the schedule screens: the
+  // same teams entered, permits on Monday evenings, slots cut from them, and
+  // no games. Built after everything above, so earlier ids stay the same.
+  const nextSeason = {
+    id: id<SeasonId>(),
+    leagueId: league.id,
+    name: "Spring 2027",
+    slug: "spring-2027",
+    status: "registration_closed" as const,
+    startsOn: SPRING_DAYS[0] as string,
+    endsOn: SPRING_DAYS.at(-1) as string,
+    feeModel: "per_player" as const,
+    playerFeeCents: 8500,
+    freeAgentFeeCents: 8500,
+    rosterMin: 12,
+    rosterMax: 20,
+  };
+  const nextTeamSeasons = teams.map((t) => ({
+    id: id<TeamSeasonId>(),
+    teamId: t.id,
+    seasonId: nextSeason.id,
+    status: "confirmed" as const,
+    targetRosterSize: ROSTER_SIZE,
+  }));
+  const permitWindows = SPRING_DAYS.flatMap((date) =>
+    fields.map((field) => ({
+      id: id<PermitWindowId>(),
+      fieldId: field.id,
+      seasonId: nextSeason.id,
+      startsAt: newYorkTime(date, 20),
+      endsAt: newYorkTime(date, 22),
+      status: "confirmed" as const,
+    })),
+  );
+  const nextSlots = generateSlots(
+    permitWindows.map((w) => ({
+      fieldId: w.fieldId,
+      startsAt: w.startsAt.toISOString(),
+      endsAt: w.endsAt.toISOString(),
+    })),
+    [],
+    { slotMinutes: 60, timeZone: league.timezone },
+  ).map((s) => {
+    const startsAt = new Date(s.startsAt);
+    const window = permitWindows.find(
+      (w) =>
+        w.fieldId === s.fieldId &&
+        w.startsAt <= startsAt &&
+        startsAt < w.endsAt,
+    ) as (typeof permitWindows)[number];
+    return {
+      id: id<SlotId>(),
+      seasonId: nextSeason.id,
+      fieldId: s.fieldId as FieldId,
+      permitWindowId: window.id,
+      startsAt,
+      endsAt: new Date(s.endsAt),
+      timeIndex: s.timeIndex,
+    };
+  });
+  const teamConstraints = [
+    {
+      id: id<TeamConstraintId>(),
+      teamSeasonId: (nextTeamSeasons[2] as (typeof nextTeamSeasons)[number]).id,
+      kind: "unavailable" as const,
+      onDate: SPRING_DAYS[2] as string,
+      reason: "Team trip",
+    },
+    {
+      id: id<TeamConstraintId>(),
+      teamSeasonId: (nextTeamSeasons[5] as (typeof nextTeamSeasons)[number]).id,
+      kind: "prefer" as const,
+      timeIndex: 1,
+      reason: "Most of the team works late",
+    },
+  ];
+
   return {
     league,
     season,
@@ -381,5 +472,10 @@ export function generateSeed(seed = 2026) {
     rosterMemberships,
     slots,
     games,
+    nextSeason,
+    nextTeamSeasons,
+    permitWindows,
+    nextSlots,
+    teamConstraints,
   };
 }

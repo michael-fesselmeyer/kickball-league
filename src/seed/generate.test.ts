@@ -144,3 +144,44 @@ describe("generateSeed", () => {
     expect(new Set(used).size).toBe(used.length);
   });
 });
+
+describe("generateSeed: next spring", () => {
+  const data = generateSeed();
+
+  it("enters every team, with permits on Monday evenings and no games yet", () => {
+    expect(data.nextSeason).toMatchObject({
+      name: "Spring 2027",
+      status: "registration_closed",
+    });
+    expect(data.nextTeamSeasons).toHaveLength(8);
+    expect(data.permitWindows).toHaveLength(7 * 3);
+    // 8 to 10 pm New York time (EDT, UTC-4) is 00:00 to 02:00 UTC the next day.
+    expect(data.permitWindows[0]?.startsAt.toISOString()).toBe(
+      "2027-04-06T00:00:00.000Z",
+    );
+    expect(data.games.every((g) => g.seasonId === data.season.id)).toBe(true);
+  });
+
+  it("cuts two one-hour slots per field from each permit", () => {
+    expect(data.nextSlots).toHaveLength(7 * 3 * 2);
+    for (const slot of data.nextSlots) {
+      const window = data.permitWindows.find(
+        (w) => w.id === slot.permitWindowId,
+      );
+      expect(window?.fieldId).toBe(slot.fieldId);
+      expect(
+        slot.startsAt >= window!.startsAt && slot.endsAt <= window!.endsAt,
+      ).toBe(true);
+    }
+    expect(new Set(data.nextSlots.map((s) => s.timeIndex))).toEqual(
+      new Set([0, 1]),
+    );
+  });
+
+  it("gives two teams scheduling constraints", () => {
+    expect(data.teamConstraints.map((c) => c.kind)).toEqual([
+      "unavailable",
+      "prefer",
+    ]);
+  });
+});
