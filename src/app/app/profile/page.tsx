@@ -51,6 +51,23 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
         </p>
       )}
       <EmailSettings topics={await emailSettingsOf(db, subject.userId)} />
+      <section aria-labelledby="your-data" className="flex flex-col gap-3">
+        <h2 id="your-data" className="text-h2">
+          Your data
+        </h2>
+        <p>
+          Download everything the league holds about you as a JSON file, or
+          delete your account.
+        </p>
+        <p className="flex flex-wrap gap-4">
+          <a href="/app/profile/export" download className="underline">
+            Download your data (JSON)
+          </a>
+          <Link href="/app/profile/delete" className="underline">
+            Delete your account
+          </Link>
+        </p>
+      </section>
     </>
   );
 }
