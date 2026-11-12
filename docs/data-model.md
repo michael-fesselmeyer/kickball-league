@@ -541,6 +541,8 @@ erDiagram
 Notes:
 - `purchase` is our record of what was bought; `payment` mirrors what Stripe says happened. A purchase is marked paid only by the Stripe webhook, never by the browser returning from Checkout.
 - A team's balance is its fee minus the sum of paid `purchase_item` rows for that `team_season_id`. It is computed, not stored.
+- When a captain pays the whole team fee, every teammate who has signed the waiver is paid up: their registration becomes active when the fee is paid, or when they sign or join later.
+- Pressing "Pay" again expires the earlier Checkout session first, so one registration cannot be paid twice.
 - `credit_entry` is an append-only ledger. A balance is the sum of the deltas. Spending credit writes a negative row tied to the purchase.
 
 ### 2.4 Notifications and consent
