@@ -11,6 +11,8 @@ import {
   type ScoringGame,
   settleGame,
 } from "@/db/queries/scores";
+import { Pickups } from "@/components/pickups";
+import { pickupsFor } from "@/db/queries/subs";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
@@ -173,6 +175,9 @@ async function Score({
         : `${g.teamAName} ${r.scoreA}, ${g.teamBName} ${r.scoreB}${r.outcome === "called" ? ` (called after ${r.inningsPlayed} innings)` : ""}`;
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
+  const pickups = can(subject, "sub_request.view_pickups", ctx)
+    ? (await pickupsFor(db, [g.id])).get(g.id)
+    : undefined;
 
   return (
     <>
@@ -185,6 +190,13 @@ async function Score({
         <h1 className="text-h2">
           {g.teamAName} vs {g.teamBName}
         </h1>
+        <Pickups
+          pickups={pickups}
+          teams={[
+            { id: g.teamAId, name: g.teamAName },
+            { id: g.teamBId, name: g.teamBName },
+          ]}
+        />
       </header>
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">

@@ -11,8 +11,10 @@ import {
   seasonForRegistration,
 } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
+import { pickupsFor } from "@/db/queries/subs";
 import { can } from "@/domain/authz/permissions";
 import { formatCents } from "@/domain/registration/pricing";
+import { Pickups } from "@/components/pickups";
 import { requirePermission } from "@/lib/auth/permission";
 import { RECORD_PAYMENT_MESSAGES } from "../record-payment";
 import {
@@ -159,6 +161,12 @@ async function Team({
     )
     .map((g) => g.id);
   const rsvps = await teamRsvps(db, teamSeasonId, upcoming);
+  const findsSubs = can(subject, "sub_request.post", { teamSeasonId });
+  const pickups = await pickupsFor(db, upcoming);
+  const seesPickups = (g: (typeof games)[number]) =>
+    can(subject, "sub_request.view_pickups", {
+      game: { id: g.id, teamSeasonIds: [g.teamAId, g.teamBId] },
+    });
   const mineRsvps = await myRsvps(db, subject.userId, upcoming);
   const day = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
@@ -227,6 +235,14 @@ async function Team({
             className="self-start underline"
           >
             Message your team
+          </Link>
+        )}
+        {findsSubs && (
+          <Link
+            href={`/app/seasons/${slug}/team/subs`}
+            className="self-start underline"
+          >
+            Find subs
           </Link>
         )}
       </header>
@@ -363,6 +379,23 @@ async function Team({
                       action={rsvpAction.bind(null, slug, g.id)}
                       mine={mineRsvps.get(g.id) ?? null}
                       team={rsvps.get(g.id)}
+                    />
+                  )}
+                  {rsvps.has(g.id) && findsSubs && g.kind !== "playoff" && (
+                    <Link
+                      href={`/app/seasons/${slug}/team/subs?game=${g.id}#ask`}
+                      className="text-small underline"
+                    >
+                      Short? Find subs
+                    </Link>
+                  )}
+                  {seesPickups(g) && (
+                    <Pickups
+                      pickups={pickups.get(g.id)}
+                      teams={[
+                        { id: g.teamAId, name: g.teamAName },
+                        { id: g.teamBId, name: g.teamBName },
+                      ]}
                     />
                   )}
                 </li>
