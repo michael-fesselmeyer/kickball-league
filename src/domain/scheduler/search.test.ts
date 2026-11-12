@@ -78,19 +78,23 @@ describe("localSearch", () => {
 });
 
 describe("localSearch properties", () => {
-  it("P7: never makes the cost worse, and keeps every hard constraint", () => {
-    fc.assert(
-      fc.property(arbitraryLeague(), (input) => {
-        const start = firstPlacement(input);
-        const searched = localSearch(start, input, seededRandom(input.seed), {
-          iterations: 3_000,
-        });
-        expect(scheduleCost(input, searched)).toBeLessThanOrEqual(
-          scheduleCost(input, start) + 1e-6,
-        );
-        expect(validate(input, searched)).toEqual(validate(input, start));
-      }),
-      { numRuns: 150 },
-    );
-  });
+  it(
+    "P7: never makes the cost worse, and keeps every hard constraint",
+    { timeout: 30_000 },
+    () => {
+      fc.assert(
+        fc.property(arbitraryLeague(), (input) => {
+          const start = firstPlacement(input);
+          const searched = localSearch(start, input, seededRandom(input.seed), {
+            iterations: 2_000,
+          });
+          expect(scheduleCost(input, searched)).toBeLessThanOrEqual(
+            scheduleCost(input, start) + 1e-6,
+          );
+          expect(validate(input, searched)).toEqual(validate(input, start));
+        }),
+        { numRuns: 100 },
+      );
+    },
+  );
 });

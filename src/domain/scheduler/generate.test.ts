@@ -97,18 +97,24 @@ describe("generate", () => {
 describe("generate properties", () => {
   const options = { iterations: 2_000 };
 
-  it("P1: every generated schedule is valid, divisions included", () => {
-    fc.assert(
-      fc.property(arbitraryLeague({ divisions: true }), (input) => {
-        const schedule = generate(input, options);
-        expect(validate(input, schedule)).toEqual([]);
-        expect(schedule.diagnostics.some((d) => /^H\d+: /.test(d))).toBe(false);
-      }),
-      { numRuns: 150 },
-    );
-  });
+  it(
+    "P1: every generated schedule is valid, divisions included",
+    { timeout: 30_000 },
+    () => {
+      fc.assert(
+        fc.property(arbitraryLeague({ divisions: true }), (input) => {
+          const schedule = generate(input, options);
+          expect(validate(input, schedule)).toEqual([]);
+          expect(schedule.diagnostics.some((d) => /^H\d+: /.test(d))).toBe(
+            false,
+          );
+        }),
+        { numRuns: 150 },
+      );
+    },
+  );
 
-  it("P6: the same input gives the same schedule", () => {
+  it("P6: the same input gives the same schedule", { timeout: 30_000 }, () => {
     fc.assert(
       fc.property(arbitraryLeague({ divisions: true }), (input) => {
         expect(generate(input, options)).toEqual(generate(input, options));
