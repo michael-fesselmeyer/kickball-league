@@ -9,7 +9,10 @@
     "lint": "eslint --max-warnings 0",
     "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "next": "16.4.6",
@@ -18,9 +21,10 @@
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",
-    "@types/node": "^20",
+    "@types/node": "24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "5.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "eslint-config-prettier": "10.1.8",
@@ -28,9 +32,11 @@
     "prettier": "3.10.0",
     "prettier-plugin-tailwindcss": "0.8.1",
     "tailwindcss": "4.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-tsconfig-paths": "6.1.1",
+    "vitest": "5.1.0"
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   }
 }
