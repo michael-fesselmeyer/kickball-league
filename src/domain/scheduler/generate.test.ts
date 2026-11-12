@@ -142,3 +142,43 @@ describe("generate edge cases", () => {
     });
   });
 });
+
+describe("generate with pins on a tight date", () => {
+  it("keeps pinned rounds where they are even when a game cannot fit", () => {
+    // T0 can only play 1:00 on the first date, but pins put two of its
+    // rounds there: one T0 game must go unplaced, and the pins stay.
+    const base = league({
+      teams: 4,
+      fields: 1,
+      times: 3,
+      dates: 4,
+      gamesPerTeamPerDay: 2,
+      reservePerDay: 0,
+      rounds: 4,
+    });
+    const free = generate(base);
+    const without = (round: number) =>
+      free.games.find(
+        (g) => g.round === round && g.teamA !== "T0" && g.teamB !== "T0",
+      ) as { key: string };
+    const input = {
+      ...base,
+      constraints: [0, 1].map((timeIndex) => ({
+        teamId: "T0",
+        kind: "unavailable" as const,
+        date: "2027-06-01",
+        timeIndex,
+      })),
+      locked: [
+        { gameKey: without(1).key, slotId: "2027-06-01/F0/0" },
+        { gameKey: without(2).key, slotId: "2027-06-01/F0/1" },
+      ],
+    };
+    const schedule = generate(input);
+    expect(schedule.unplaced).toHaveLength(1);
+    for (const lock of input.locked)
+      expect(schedule.games.find((g) => g.key === lock.gameKey)?.slotId).toBe(
+        lock.slotId,
+      );
+  });
+});
