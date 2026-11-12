@@ -27,14 +27,14 @@ If time runs short, Phase 2 items drop in the order listed at the end of that se
 
 | Milestone | Acceptance criteria |
 |---|---|
-| Repository and tooling | Next.js 16, TypeScript strict, Tailwind v4, ESLint with accessibility rules, Prettier, pnpm. `pnpm dev`, `pnpm test`, `pnpm build` all work from a fresh clone |
+| Repository and tooling | Next.js 16, TypeScript strict, Tailwind v4, ESLint with accessibility rules, Prettier, npm. `npm run dev`, `npm test`, `npm run build` all work from a fresh clone |
 | Database | Drizzle connected to the existing Neon project; first migration creates auth tables, `profile`, `league`; migrations run in CI |
 | Auth | Sign in with Google and an email link works locally and on a preview; a session lasts 90 days and renews on use; a signed-out user visiting `/app` is redirected |
 | GitHub | Public repository under `michael-fesselmeyer` with labels, milestones, issue and pull-request templates, and branch protection on `main` (pull request, passing CI, linear history, rebase merges) |
 | Deploy | Production and demo projects on Vercel; every pull request gets a preview with its own database branch |
 | CI | Type check, lint, unit tests, build, Playwright smoke test and Lighthouse CI run on every pull request and block merging |
 | Design tokens | Colors, type and spacing from [design-system.md](design-system.md) in CSS; light and dark themes; the logo badge component renders placeholders |
-| Seed | `pnpm seed` creates a league, a season, 8 teams with rosters, fields and a few played games |
+| Seed | `npm run seed` creates a league, a season, 8 teams with rosters, fields and a few played games |
 
 ## 3. Phase 1: MVP, season core (weeks 2–6)
 

@@ -27,7 +27,7 @@ Status: draft v1, 2026-11-11. Library facts marked ✔ were checked against curr
 | Jobs | A Postgres outbox drained by scheduled invocations, plus `after()` ✔ for immediate sends | No extra vendor; the message is written in the same transaction as the change that caused it |
 | Tests | Vitest, fast-check, Playwright with axe, Lighthouse CI | Unit and property tests for domain logic, real-browser tests for flows and accessibility |
 | Lint and format | ESLint (flat config) with `jsx-a11y`, Prettier | Accessibility lint rules matter for the WCAG target |
-| Package manager | pnpm | Fast, strict |
+| Package manager | npm (see [ADR 0001](adr/0001-stack-and-tooling.md)) | No extra setup on CI, Vercel or a reviewer's machine; one app, no workspaces |
 
 ### Flags and changes to the original plan
 
@@ -337,7 +337,7 @@ Third-party material stays out of the public repository until the league agrees:
 | Audit | `audit_log` for every admin and captain change, with before and after |
 | Admin safety | Destructive actions need a typed confirmation; refunds over a set amount need an owner |
 | Backups | Neon point-in-time restore; a monthly restore test into a branch |
-| Dependencies | Dependabot and `pnpm audit` in CI |
+| Dependencies | Dependabot and `npm audit` in CI |
 | Demo | Separate database and keys; cannot reach production data |
 
 ### Rate limits
