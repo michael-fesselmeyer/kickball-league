@@ -7,7 +7,7 @@
  * database are never touched. Everything runs in one transaction.
  */
 import { existsSync } from "node:fs";
-import { eq, inArray, like } from "drizzle-orm";
+import { eq, inArray, like, or } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "../src/db/schema";
@@ -171,12 +171,18 @@ async function main(): Promise<void> {
         await tx.delete(venue).where(eq(venue.leagueId, leagueId));
         await tx.delete(league).where(eq(league.id, leagueId));
       }
+      // Seed users: on the seed domain, or with an id the seed assigns (a
+      // seed user who deleted their account has an anonymized address).
+      const isSeedUser = or(
+        like(user.email, `%@${SEED_EMAIL_DOMAIN}`),
+        inArray(
+          user.id,
+          data.users.map((u) => u.id),
+        ),
+      );
       // Seed users' signatures elsewhere would block deleting them.
       const seedUsers = (
-        await tx
-          .select({ id: user.id })
-          .from(user)
-          .where(like(user.email, `%@${SEED_EMAIL_DOMAIN}`))
+        await tx.select({ id: user.id }).from(user).where(isSeedUser)
       ).map((r) => r.id);
       if (seedUsers.length) {
         await tx
@@ -188,7 +194,7 @@ async function main(): Promise<void> {
           .where(inArray(waiverSignature.userId, seedUsers));
       }
       // Seed users only (profiles, sessions and accounts cascade).
-      await tx.delete(user).where(like(user.email, `%@${SEED_EMAIL_DOMAIN}`));
+      await tx.delete(user).where(isSeedUser);
       await removeDemoPersonas(tx);
 
       await tx.insert(league).values(data.league);
