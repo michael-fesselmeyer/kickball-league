@@ -38,6 +38,11 @@ const eslintConfig = defineConfig([
           message:
             "Do not assert through unknown. Narrow the value with a type guard, parseId or Zod instead.",
         },
+        {
+          selector: "TSAsExpression[typeAnnotation.type='TSNeverKeyword']",
+          message:
+            "Do not assert to never. Build a value of the right type, for example with parseId.",
+        },
       ],
     },
   },

@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { SeasonId } from "@/domain/ids";
+import { parseId, type ScheduleVersionId, type SeasonId } from "@/domain/ids";
 import { generate } from "@/domain/scheduler/generate";
 import { reschedule } from "@/domain/scheduler/reschedule";
 import { auditLog } from "../schema/audit";
@@ -12,6 +12,7 @@ import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { recordAudit } from "./audit";
+import { required } from "./rows";
 import {
   type Db,
   loadSchedulerInput,
@@ -384,7 +385,13 @@ describe("saving and publishing versions", () => {
         ),
       ).toEqual({ ok: false, error: "unknown_version" });
       expect(
-        await loadVersion(db, "00000000-0000-4000-8000-000000000000" as never),
+        await loadVersion(
+          db,
+          required(
+            parseId<ScheduleVersionId>("00000000-0000-4000-8000-000000000000"),
+            "version id",
+          ),
+        ),
       ).toBeNull();
     }));
 });

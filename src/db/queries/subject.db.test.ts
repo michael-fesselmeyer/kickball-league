@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { VISITOR } from "@/domain/authz/permissions";
-import type { UserId } from "@/domain/ids";
+import { parseId, type TeamSeasonId, type UserId } from "@/domain/ids";
 import { user } from "../schema/auth";
 import { league } from "../schema/league";
 import { profile } from "../schema/profile";
@@ -12,6 +12,7 @@ import {
   teamSeason,
 } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
+import { required } from "./rows";
 import type { Db } from "./schedule";
 import { loadSubject } from "./subject";
 
@@ -73,7 +74,7 @@ async function world(db: Db) {
       .values({ seasonId: sn!.id, userId, kind: "team_member" })
       .returning({ id: registration.id });
     await db.insert(rosterMembership).values({
-      teamSeasonId: teamSeasonId as never,
+      teamSeasonId: required(parseId<TeamSeasonId>(teamSeasonId), "team"),
       registrationId: r!.id,
       role,
       status,
