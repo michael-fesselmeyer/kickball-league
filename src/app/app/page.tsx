@@ -3,6 +3,9 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { db } from "@/db/client";
+import { openSeasons } from "@/db/queries/registration";
+import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { auth } from "@/lib/auth";
 import { currentSubject } from "@/lib/auth/permission";
@@ -27,6 +30,8 @@ async function Account() {
 
   const { name, email } = session.user;
   const isAdmin = can(await currentSubject(), "season.manage", {});
+  const league = await currentLeague(db);
+  const open = league ? await openSeasons(db, league.id, new Date()) : [];
   return (
     <>
       <div className="flex flex-col gap-1">
@@ -36,6 +41,15 @@ async function Account() {
           Your season stuff will live here.
         </p>
       </div>
+      {open.map((s) => (
+        <Link
+          key={s.slug}
+          href={`/app/seasons/${s.slug}`}
+          className="btn btn-primary"
+        >
+          {s.name}: register or check your spot
+        </Link>
+      ))}
       <Link href="/app/profile" className="btn btn-secondary">
         Your profile
       </Link>
