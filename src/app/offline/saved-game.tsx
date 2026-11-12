@@ -9,12 +9,13 @@ import { type SavedGame, savedGame } from "@/lib/pwa/offline-cache";
  * service worker answers the full page load from the saved copy.
  */
 export function SavedGameLink() {
-  const [game, setGame] = useState<SavedGame | null | undefined>(undefined);
+  const [game, setGame] = useState<SavedGame | null>(null);
   useEffect(() => {
     void savedGame().then(setGame);
   }, []);
 
-  if (game === undefined) return null;
+  // The hint is in the server-rendered page, so it paints with the first
+  // frame; the link replaces it only when a game is saved.
   if (game === null)
     return (
       <p className="text-text-muted">
