@@ -31,6 +31,15 @@ export const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
 });
 
+/** Google needs both values; one without the other is a configuration mistake. */
+const googlePair = envSchema.refine(
+  (env) => Boolean(env.GOOGLE_CLIENT_ID) === Boolean(env.GOOGLE_CLIENT_SECRET),
+  {
+    error: "set both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET, or neither",
+    path: ["GOOGLE_CLIENT_SECRET"],
+  },
+);
+
 export type Env = z.infer<typeof envSchema>;
 
 type Source = Readonly<Record<string, string | undefined>>;
@@ -58,7 +67,9 @@ export function withVercelDefaults(source: Source): Source {
 }
 
 export function parseEnv(source: Source): Result<Env, string> {
-  const parsed = envSchema.safeParse(withVercelDefaults(withoutBlanks(source)));
+  const parsed = googlePair.safeParse(
+    withVercelDefaults(withoutBlanks(source)),
+  );
   return parsed.success ? ok(parsed.data) : err(z.prettifyError(parsed.error));
 }
 
