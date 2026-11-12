@@ -216,6 +216,7 @@ Notes:
 - `registration` is one person's entry in one season and carries the waiver and payment state. `roster_membership` puts a registration on a team and keeps history when someone moves teams mid-season.
 - `profile.lineup_gender` exists because the fielding rule counts two groups. How nonbinary players are counted is the league's call; the default is that the player chooses **(A)**.
 - A captain is a `roster_membership` with `role = captain`. There is no captain column on `team_season`, so there is one source of truth.
+- A team has one main captain, who makes final decisions and handles payment, and commonly one to three co-captains (`role = co_captain`, no limit in the schema). How much say co-captains have varies by team, so it is a per-team permission setting chosen by the main captain (Phase 1), not a schema rule. Paying for and withdrawing the team stay with the main captain.
 
 ### 2.2 Fields, schedule, games, scores
 
