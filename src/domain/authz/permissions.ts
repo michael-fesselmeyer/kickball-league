@@ -116,6 +116,8 @@ const RULES = {
   }),
   "sub_request.post": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   "conflicts.submit": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
+  // Cash or Venmo paid outside the app (product-spec.md, section 9).
+  "payment.record_offline": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   "score.enter": any(isAdmin, captainsGame, refereesGame),
   "score.confirm": any(isAdmin, captainsGame),
   "announcement.send": any(
