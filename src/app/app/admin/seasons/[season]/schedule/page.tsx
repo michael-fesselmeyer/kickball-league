@@ -9,10 +9,13 @@ import {
   seasonBySlug,
   versionsOf,
 } from "@/db/queries/schedule-screen";
-import { measure, type Metric, type Status } from "@/domain/scheduler/measure";
+import { measure, type Status } from "@/domain/scheduler/measure";
 import { validate } from "@/domain/scheduler/validate";
 import { requirePermission } from "@/lib/auth/permission";
-import { editGame, generateDraft, publishDraft } from "./actions";
+import { editGame, generateDraft, publishDraft, saveBoard } from "./actions";
+import { BoardLoader } from "./board-loader";
+import type { BoardSlot } from "./board-model";
+import { metricRows, readable } from "./labels";
 
 export const metadata: Metadata = { title: "Schedule" };
 
@@ -20,7 +23,7 @@ export default function SchedulePage(
   props: PageProps<"/app/admin/seasons/[season]/schedule">,
 ) {
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10 lg:max-w-6xl">
       <Suspense fallback={<p>Loading the schedule…</p>}>
         <Schedule {...props} />
       </Suspense>
@@ -37,22 +40,6 @@ const ERRORS: Record<string, string> = {
   not_draft: "Only a draft can be published.",
   unknown_version: "That version no longer exists.",
 };
-
-/**
- * The scheduler names games by key (`r3:<team id>:<team id>`) and teams by
- * id; this shows team names instead.
- */
-function readable(note: string, teams: ReadonlyMap<string, string>) {
-  return note
-    .replace(
-      /r(\d+):([0-9a-f-]{36}):([0-9a-f-]{36})/g,
-      (key, round: string, a: string, b: string) =>
-        teams.has(a) && teams.has(b)
-          ? `${teams.get(a)} vs ${teams.get(b)} (round ${round})`
-          : key,
-    )
-    .replace(/[0-9a-f]{8}-[0-9a-f-]{27}/g, (id) => teams.get(id) ?? id);
-}
 
 /** "1 game", "3 games", from a search parameter. */
 function count(value: string | string[] | undefined, noun: string) {
@@ -83,6 +70,24 @@ async function Schedule({
   const metrics = latest ? measure(latest.input, latest.schedule) : null;
   const violations = latest ? validate(latest.input, latest.schedule) : [];
   const teamCount = labels.teams.size;
+  const boardSlots: BoardSlot[] = (latest?.input.slots ?? []).flatMap((s) => {
+    const where = labels.slots.get(s.id);
+    return where
+      ? [
+          {
+            id: s.id,
+            date: s.date,
+            timeIndex: s.timeIndex,
+            fieldId: s.fieldId,
+            day: where.day,
+            time: where.time,
+            field: where.field,
+            kind: s.kind,
+            cancelled: where.cancelled,
+          },
+        ]
+      : [];
+  });
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
 
@@ -227,25 +232,7 @@ async function Schedule({
           </div>
 
           <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
-            {(
-              [
-                [
-                  "Time-slot spread",
-                  metrics.timeSlotSpread,
-                  metrics.timeSlotSpread.bestPossible,
-                ],
-                [
-                  "Field spread",
-                  metrics.fieldSpread,
-                  metrics.fieldSpread.bestPossible,
-                ],
-                ["Longest same-slot streak", metrics.longestStreak, null],
-                ["Doubleheader wait", metrics.doubleheaderWait, null],
-                ["Bye balance", metrics.byeBalance, null],
-                ["Unplaced games", metrics.unplaced, null],
-                ["Makeup slots left", metrics.reserveRemaining, null],
-              ] as [string, Metric, number | null][]
-            ).map(([label, metric, best]) => (
+            {metricRows(metrics).map(({ label, metric, best }) => (
               <div
                 key={label}
                 className="flex justify-between gap-3 border-b border-border py-1"
@@ -285,6 +272,56 @@ async function Schedule({
               ))}
             </ul>
           )}
+
+          <BoardLoader
+            key={latest.id}
+            versionNo={latest.versionNo}
+            input={latest.input}
+            schedule={latest.schedule}
+            slots={boardSlots}
+            teams={Object.fromEntries(labels.teams)}
+            save={saveBoard.bind(null, slug, latest.id)}
+          >
+            <table className="w-full text-left">
+              <caption className="sr-only">
+                Games in version {latest.versionNo}
+              </caption>
+              <thead className="text-text-muted">
+                <tr>
+                  <th scope="col">When</th>
+                  <th scope="col">Field</th>
+                  <th scope="col">Game</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...latest.schedule.games]
+                  .sort(
+                    (a, b) =>
+                      (labels.slots.get(a.slotId ?? "")?.startsAt.getTime() ??
+                        Infinity) -
+                        (labels.slots.get(b.slotId ?? "")?.startsAt.getTime() ??
+                          Infinity) || a.key.localeCompare(b.key),
+                  )
+                  .map((g) => {
+                    const where = g.slotId
+                      ? labels.slots.get(g.slotId)
+                      : undefined;
+                    return (
+                      <tr key={g.key} className="border-t border-border">
+                        <td>
+                          {where ? `${where.day}, ${where.time}` : "Not placed"}
+                        </td>
+                        <td>{where?.field ?? "—"}</td>
+                        <td>
+                          {labels.teams.get(g.teamA) ?? g.teamA} vs{" "}
+                          {labels.teams.get(g.teamB) ?? g.teamB}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </BoardLoader>
 
           <form
             action={editGame.bind(null, slug, latest.id)}
@@ -353,46 +390,6 @@ async function Schedule({
               Save as a new draft
             </button>
           </form>
-
-          <table className="w-full text-left">
-            <caption className="sr-only">
-              Games in version {latest.versionNo}
-            </caption>
-            <thead className="text-text-muted">
-              <tr>
-                <th scope="col">When</th>
-                <th scope="col">Field</th>
-                <th scope="col">Game</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[...latest.schedule.games]
-                .sort(
-                  (a, b) =>
-                    (labels.slots.get(a.slotId ?? "")?.startsAt.getTime() ??
-                      Infinity) -
-                      (labels.slots.get(b.slotId ?? "")?.startsAt.getTime() ??
-                        Infinity) || a.key.localeCompare(b.key),
-                )
-                .map((g) => {
-                  const where = g.slotId
-                    ? labels.slots.get(g.slotId)
-                    : undefined;
-                  return (
-                    <tr key={g.key} className="border-t border-border">
-                      <td>
-                        {where ? `${where.day}, ${where.time}` : "Not placed"}
-                      </td>
-                      <td>{where?.field ?? "—"}</td>
-                      <td>
-                        {labels.teams.get(g.teamA) ?? g.teamA} vs{" "}
-                        {labels.teams.get(g.teamB) ?? g.teamB}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </table>
         </section>
       )}
     </>
