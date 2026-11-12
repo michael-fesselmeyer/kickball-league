@@ -180,6 +180,7 @@ describe("saving and publishing versions", () => {
       });
       const stored = await loadVersion(db, id);
       expect(stored).toMatchObject({ versionNo: 1, status: "draft" });
+      expect(stored?.schedule.diagnostics).toEqual(schedule.diagnostics);
       expect(stored?.schedule.games).toEqual(
         [...schedule.games].sort((a, b) => a.key.localeCompare(b.key)),
       );
@@ -300,6 +301,29 @@ describe("saving and publishing versions", () => {
         .where(eq(scheduleVersion.id, v3));
       expect(edit?.violations).toEqual([]);
       expect((await publishVersion(db, v3, w.adminId)).ok).toBe(true);
+    }));
+
+  it("keeps the scheduler's reasons for unplaced games", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db);
+      await db.insert(teamConstraint).values({
+        teamSeasonId: w.entries[0]!,
+        kind: "unavailable",
+        onDate: "2027-04-04",
+      });
+      const loaded = await loadSchedulerInput(db, w.seasonId, options);
+      if (!loaded.ok) throw new Error(loaded.error);
+      const schedule = generate(loaded.value);
+      expect(schedule.diagnostics.length).toBeGreaterThan(0);
+      const id = await saveVersion(db, {
+        seasonId: w.seasonId,
+        input: loaded.value,
+        schedule,
+        origin: "generated",
+      });
+      expect((await loadVersion(db, id))?.schedule.diagnostics).toEqual(
+        schedule.diagnostics,
+      );
     }));
 
   it("cannot store two games in one slot", () =>
