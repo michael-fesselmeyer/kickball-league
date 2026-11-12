@@ -24,6 +24,7 @@ import {
 import { waiverSignature } from "../schema/waiver";
 import { recordAudit } from "./audit";
 import type { Db } from "./schedule";
+import { required } from "./rows";
 
 /** Season registration (roadmap week 4): teams and free agents, up to payment. */
 
@@ -199,7 +200,7 @@ export async function registerFreeAgent(
       createdBy: userId,
     })
     .returning({ id: registration.id });
-  return ok((created as { id: RegistrationId }).id);
+  return ok(required(created, "registration").id);
 }
 
 export type TeamInput = {
@@ -286,7 +287,7 @@ export async function registerTeam(
         createdBy: userId,
       })
       .returning({ id: team.id });
-    teamId = (created as { id: TeamId }).id;
+    teamId = required(created, "team").id;
   }
 
   const [entry] = await db
@@ -301,7 +302,7 @@ export async function registerTeam(
       createdBy: userId,
     })
     .returning({ id: teamSeason.id });
-  const teamSeasonId = (entry as { id: TeamSeasonId }).id;
+  const teamSeasonId = required(entry, "team season").id;
   const [own] = await db
     .insert(registration)
     .values({
@@ -314,7 +315,7 @@ export async function registerTeam(
     .returning({ id: registration.id });
   await db.insert(rosterMembership).values({
     teamSeasonId,
-    registrationId: (own as { id: RegistrationId }).id,
+    registrationId: required(own, "registration").id,
     role: "captain",
     status: "active",
     startedAt: now,

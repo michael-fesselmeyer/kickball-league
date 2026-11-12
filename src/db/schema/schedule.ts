@@ -29,6 +29,9 @@ import type {
   TeamSeasonId,
   UserId,
 } from "@/domain/ids";
+import type { Metrics } from "@/domain/scheduler/measure";
+import type { SchedulerInput } from "@/domain/scheduler/types";
+import type { Violation } from "@/domain/scheduler/validate";
 import { user } from "./auth";
 import { field, game, slot } from "./game";
 import { season } from "./season";
@@ -176,10 +179,10 @@ export const scheduleVersion = pgTable(
     origin: scheduleVersionOrigin().notNull(),
     seed: bigint({ mode: "number" }),
     /** The exact scheduler input, so the version can be reproduced. */
-    inputSnapshot: jsonb().notNull(),
-    metrics: jsonb(),
+    inputSnapshot: jsonb().$type<SchedulerInput>().notNull(),
+    metrics: jsonb().$type<Metrics>(),
     /** Hard-constraint violations; empty when valid. */
-    violations: jsonb().notNull().default([]),
+    violations: jsonb().$type<Violation[]>().notNull().default([]),
     /** The scheduler's reasons, such as why a game could not be placed. */
     diagnostics: jsonb().$type<string[]>().notNull().default([]),
     publishedAt: timestamp({ withTimezone: true }),

@@ -22,6 +22,7 @@ import { recordAudit } from "./audit";
 import { settleCoveredRegistrations } from "./payments";
 import { seasonForRegistration, startingState } from "./registration";
 import type { Db } from "./schedule";
+import { required } from "./rows";
 
 /**
  * Makes a new team link and revokes the team's earlier ones, so a link
@@ -202,7 +203,7 @@ export async function acceptInvite(
         createdBy: input.userId,
       })
       .returning({ id: registration.id });
-    registrationId = (created as { id: RegistrationId }).id;
+    registrationId = required(created, "registration").id;
   }
   await db.insert(rosterMembership).values({
     teamSeasonId: found.teamSeasonId,
