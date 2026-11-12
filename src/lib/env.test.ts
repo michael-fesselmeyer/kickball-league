@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { envSchema, loadEnv, parseEnv } from "./env";
+import { envSchema, loadEnv, parseEnv, withVercelDefaults } from "./env";
 
 const valid = {
   DATABASE_URL:
@@ -87,5 +87,60 @@ describe(".env.example", () => {
       .map((line) => line.split("=")[0])
       .sort();
     expect(names).toEqual(Object.keys(envSchema.shape).sort());
+  });
+});
+
+describe("withVercelDefaults", () => {
+  const withoutUrl = {
+    DATABASE_URL: valid.DATABASE_URL,
+    BETTER_AUTH_SECRET: valid.BETTER_AUTH_SECRET,
+  };
+
+  it("uses the production domain in production", () => {
+    const env = withVercelDefaults({
+      ...withoutUrl,
+      VERCEL_ENV: "production",
+      VERCEL_PROJECT_PRODUCTION_URL: "kickball-league.vercel.app",
+      VERCEL_URL: "kickball-league-abc123.vercel.app",
+    });
+    expect(env.BETTER_AUTH_URL).toBe("https://kickball-league.vercel.app");
+  });
+
+  it("uses each preview's branch address, or its deployment address", () => {
+    expect(
+      withVercelDefaults({
+        ...withoutUrl,
+        VERCEL_ENV: "preview",
+        VERCEL_BRANCH_URL: "kl-git-15.vercel.app",
+      }).BETTER_AUTH_URL,
+    ).toBe("https://kl-git-15.vercel.app");
+    expect(
+      withVercelDefaults({
+        ...withoutUrl,
+        VERCEL_ENV: "preview",
+        VERCEL_URL: "kl-abc.vercel.app",
+      }).BETTER_AUTH_URL,
+    ).toBe("https://kl-abc.vercel.app");
+  });
+
+  it("never overrides an explicit value, and does nothing off Vercel", () => {
+    expect(
+      withVercelDefaults({
+        ...valid,
+        VERCEL_ENV: "production",
+        VERCEL_PROJECT_PRODUCTION_URL: "x.vercel.app",
+      }).BETTER_AUTH_URL,
+    ).toBe("http://localhost:3000");
+    expect(withVercelDefaults(withoutUrl).BETTER_AUTH_URL).toBeUndefined();
+  });
+
+  it("lets a Vercel deployment pass validation without BETTER_AUTH_URL", () => {
+    expect(
+      parseEnv({
+        ...withoutUrl,
+        VERCEL_ENV: "preview",
+        VERCEL_URL: "kl-abc.vercel.app",
+      }).ok,
+    ).toBe(true);
   });
 });
