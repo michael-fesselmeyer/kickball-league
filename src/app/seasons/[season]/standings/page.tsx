@@ -52,6 +52,12 @@ async function Standings({ params }: PageProps<"/seasons/[season]/standings">) {
       <header className="flex flex-col gap-1">
         <p className="text-text-muted">{season.name}</p>
         <h1 className="text-h1">Standings</h1>
+        <Link
+          href={`/seasons/${season.slug}/schedule`}
+          className="inline-flex min-h-11 items-center self-start text-brand underline"
+        >
+          Schedule
+        </Link>
       </header>
       {!played && (
         <p className="text-text-muted">
@@ -114,7 +120,16 @@ async function Standings({ params }: PageProps<"/seasons/[season]/standings">) {
                         className="inline-block size-3 shrink-0 rounded-full border border-border"
                         style={{ background: t?.colorHex ?? "transparent" }}
                       />
-                      {t?.name ?? "Team"}
+                      {t ? (
+                        <Link
+                          href={`/teams/${t.slug}`}
+                          className="inline-flex min-h-6 items-center underline"
+                        >
+                          {t.name}
+                        </Link>
+                      ) : (
+                        "Team"
+                      )}
                     </span>
                   </th>
                   <td className="text-right">{r.wins}</td>
