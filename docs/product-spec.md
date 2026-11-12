@@ -1,0 +1,341 @@
+# Product spec
+
+Status: draft v1, 2026-11-11. Design only; no code exists yet.
+Items marked **(A)** are assumptions waiting on an answer in [open-questions.md](open-questions.md).
+
+## 1. What this is
+
+A web platform that runs an adult kickball league end to end: registration and payment, waivers, a fair season schedule, game-day scores and standings, rain-outs, subs, events, and sponsor value. The first league is Brooklyn Kickball Club (BKC), which plays Sundays at McCarren Park. League name, colors and logos are configuration, not code.
+
+It replaces brooklynkickballclub.com, which today offers account registration, a season list, a rulebook PDF, a dead scores link, and social links that point to a different league (Golden State Kickball).
+
+### Goals
+
+1. Run a real season with less work for the commissioners and captains than the current mix of website, Venmo and WhatsApp.
+2. Win the owners over. They have not agreed to switch, so the first audience is a demo that makes the decision easy.
+3. Serve as a flagship portfolio piece: deployed, tested, fast, accessible, and documented.
+
+### How we will know it works
+
+| Measure | Target for the first real season |
+|---|---|
+| Players registered and paid through the site | 90% or more of rostered players |
+| Captain time spent collecting money | No manual Venmo requests needed |
+| Final scores recorded the same day | 100% (today umpires sometimes forget) |
+| Rain-out notice reaches players | Within 10 minutes of the admin's decision |
+| Schedule fairness | No team more than 1 game off an even split of time slots and fields |
+| Public pages | Lighthouse mobile performance 95+, accessibility 100 |
+
+## 2. What we know about the league
+
+| Fact | Source |
+|---|---|
+| One league, Sunday games, McCarren Park (Williamsburg/Greenpoint) | Owner of this project |
+| About 8 teams in spring and fall, about 12 in summer | Owner of this project |
+| Usually 3 fields; often only 2 in summer | Owner of this project |
+| Spring and fall: 7 innings, one game per team per Sunday. Summer: 5 innings, usually two games per team per Sunday | Owner of this project |
+| A game is 7 innings or 90 minutes, whichever comes first; no new inning in the last 10 minutes | Rulebook 3.1 |
+| Regular-season games can end in a tie; playoff games cannot | Rulebook 3.1.2 |
+| A game called after 4 complete innings counts, with the score at the last complete inning | Rulebook 3.1.5 |
+| Players must be 18+, registered, on a team, and must have signed the "Amateur Athletic and Release of Liability" | Rulebook 2.1 |
+| On defense: at most 11 fielders and at most 6 of any gender. Short-handed options: 9 (4 and 5) or 7 (4 and 3). Fewer than 7 is a forfeit | Rulebook 2.3 |
+| Kicking order: no more than 2 players of the same gender in a row | Rulebook 2.2.4 |
+| Short teams may pick up other registered players, who kick last. Not allowed in playoffs. A team needs at least 6 of its own players for the game to count | Rulebook 2.1.4, 2.1.6.1, 2.7 |
+| Home and away are decided by rock-paper-scissors at the field | Rulebook 3.1.6.2.2 |
+| Outside alcohol at the sponsor bar: 1-game suspension, then a season ban, then a permanent ban | Rulebook 4.0 |
+| Umpires report final scores to the commissioners; refs are paid about $20 a game | Owner of this project |
+| The league talks in one WhatsApp group; each team has its own | Owner of this project |
+| The old site advertised $85 per player | Current site |
+| Teams usually pay one team fee and the captain collects by Venmo **(A: exact fee and model unknown)** | Owner of this project |
+
+The rulebook I was given describes one rule set. The old site describes Fun and Competitive options. Divisions and rule sets are modeled as optional so either reality works **(A)**.
+
+## 3. Personas
+
+| Persona | Who they are | What they need most |
+|---|---|---|
+| **Newcomer Nia** (free agent) | New to Brooklyn, signs up alone or with one friend | A clear price, a team that fits, and to know where to be on Sunday |
+| **Regular Ray** (player) | Third season on the same team | One tap to see game time and field, RSVP, pay his share, and get rain-out news |
+| **Captain Cam** | Runs a 16-person roster and a team WhatsApp chat | To stop chasing Venmo payments, to know who is coming Sunday, and to find subs fast |
+| **Ump Uma** (referee) | Players or friends who ref for $20 a game | Her assignments, a 20-second score entry, and a record of what she is owed |
+| **Commissioner Chris** (admin/owner) | One of a few volunteers who run everything | A schedule nobody complains about, one-click rain-outs, and a view of who has paid |
+| **Bar owner Bo** (sponsor) | Owns the home bar | Proof that the league brings people in on Sunday afternoons |
+| **Searcher Sam** (visitor) | Googles "Brooklyn kickball" | A fast page that answers what, where, when and how much, with a way to join |
+
+"Free agent" is a state, not a separate account type: a registered player who has no team this season.
+
+## 4. User stories by role
+
+### Visitor
+- See what the league is, where and when it plays, what it costs, and how to join, without signing in.
+- Browse the schedule, standings, teams, rules, parks and events.
+- Join a waitlist or interest list with an email or phone number when registration is closed.
+
+### Player
+- Create an account with Google or an email link, and stay signed in on my own devices.
+- Register for a season, sign that season's waiver, and pay my share from my phone.
+- See my next game (time, field, opponent, weather) on my home screen after sign-in.
+- RSVP in or out for each game so my captain can plan.
+- Add my team's games to my calendar and share results to WhatsApp.
+- Choose which notifications I get and by which channel.
+- Claim an open sub spot on another team when I am free.
+- Check in at the home bar and use the day's deal.
+- Vote for weekly and season awards.
+- Ask the league to let me start a new team, with my current captain kept informed.
+
+### Free agent
+- Register alone or with a friend, take a short skill and vibe quiz, and get placed on a team.
+- Say whether I would help captain a new team made of free agents.
+- See my placement status and, once placed, everything a player sees.
+
+### Captain
+- Register a team and either pay in full or split the fee across players.
+- Invite players by link, see who has joined, signed the waiver and paid, and send reminders.
+- See RSVPs for the next game with a warning when I am short overall or short on one gender under the fielding rule.
+- Post a sub request and approve who claims it.
+- See the opposing captain's contact details and game-day information.
+- Enter or confirm the final score when the ref has not.
+- Message my team and copy any update into our WhatsApp chat.
+- Give the league scheduling conflicts before the schedule is made.
+
+### Referee
+- Set which Sundays and time slots I can work.
+- Accept or decline assignments and see where I need to be.
+- Enter the final score, or score inning by inning, including with poor signal at the field.
+- Flag forfeits, ejections and incidents.
+- See what I have earned and what has been paid.
+
+### League admin
+- Set up a season: dates, price, early-bird window, roster limits, divisions, rule set and waiver.
+- Enter fields, permit windows and blackout dates.
+- Generate a schedule, read its fairness metrics, adjust it by hand with constraint checks, and publish it.
+- See the weather risk for Sunday, call a rain-out with one click, and let the system notify everyone and place makeups.
+- See registration, payment and waiver status for every team and player.
+- Place free agents on teams with suggestions from the matcher, and approve new-team requests.
+- Correct scores, record forfeits, suspend players, and issue refunds or league credit.
+- Run events, manage sponsors, and send announcements.
+- See who changed what in an audit log.
+
+### League owner
+- Everything an admin can do, plus: manage admins, connect Stripe, set prices, decide refund and credit policy, export data, and approve pending features (referee marketplace, SMS program).
+
+### Sponsor
+- See my sponsor page as players see it and update my deals.
+- See a report of impressions, check-ins and deal redemptions by week.
+- Print or display my check-in QR code.
+
+## 5. Permissions matrix
+
+Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigned** = only games they are assigned to. — not allowed. Captain rights apply to the team and season they captain; a co-captain has the same rights except removing the captain.
+
+| Action | Visitor | Player | Captain | Referee | Sponsor | Admin | Owner |
+|---|---|---|---|---|---|---|---|
+| View schedule, standings, teams, rules, events, sponsors | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Create account, edit own profile and notification settings | ✓ | own | own | own | own | own | own |
+| Sign the season waiver | — | own | own | own | — | own | own |
+| Register as a free agent or join a team by invite | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |
+| Register a team | — | ✓ (becomes captain) | ✓ | ✓ | — | ✓ | ✓ |
+| Pay own share or fee | — | own | own | own | — | own | own |
+| Invite, remove and promote roster members | — | — | own | — | — | ✓ | ✓ |
+| See roster names | ✓ (first name, last initial) | ✓ | ✓ | ✓ | — | ✓ | ✓ |
+| See roster phone and email | — | own team, if the member opted in | own team | captains of assigned games | — | ✓ | ✓ |
+| See opposing captain's contact details | — | — | ✓ | assigned | — | ✓ | ✓ |
+| See roster payment and waiver status | — | own | own team | — | — | ✓ | ✓ |
+| RSVP for a game | — | own | own | — | — | — | — |
+| See team RSVPs | — | own team | own team | — | — | ✓ | ✓ |
+| Post a sub request | — | — | own | — | — | ✓ | ✓ |
+| Claim a sub request | — | ✓ (registered, waiver signed, not suspended) | ✓ | ✓ if also a player | — | — | — |
+| Enter a score | — | — | own team's games | assigned | — | ✓ | ✓ |
+| Confirm or dispute a score | — | — | own team's games | — | — | ✓ | ✓ |
+| Override a final score, record a forfeit | — | — | — | — | — | ✓ | ✓ |
+| Submit scheduling conflicts | — | — | own | — | — | ✓ | ✓ |
+| Create and edit seasons, divisions, fields, permits | — | — | — | — | — | ✓ | ✓ |
+| Generate, edit and publish schedules | — | — | — | — | — | ✓ | ✓ |
+| Declare a rain-out | — | — | — | — | — | ✓ | ✓ |
+| Place free agents; approve new-team requests | — | — | — | — | — | ✓ | ✓ |
+| Request to start a new team | — | ✓ | ✓ | — | — | — | — |
+| Send an announcement | — | — | own team | — | — | league-wide | league-wide |
+| Create and edit events | — | — | — | — | — | ✓ | ✓ |
+| RSVP or buy a ticket for an event | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |
+| Check in at a sponsor bar, redeem a deal | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |
+| Edit sponsor page and deals | — | — | — | — | own | ✓ | ✓ |
+| View sponsor report | — | — | — | — | own | ✓ | ✓ |
+| Set referee availability; accept or decline assignments | — | — | — | own | — | — | — |
+| Approve referees, assign games, record payouts | — | — | — | — | — | ✓ | ✓ |
+| View own referee earnings | — | — | — | own | — | — | — |
+| Vote in awards | — | ✓ (rostered) | ✓ | — | — | — | — |
+| Suspend a player, log an incident | — | — | — | log only, assigned | — | ✓ | ✓ |
+| Issue a refund or league credit | — | — | — | — | — | ✓ | ✓ |
+| Set prices, connect Stripe, change refund policy | — | — | — | — | — | — | ✓ |
+| Add or remove admins | — | — | — | — | — | — | ✓ |
+| Read the audit log | — | — | — | — | — | ✓ | ✓ |
+| Export or delete personal data | — | own | own | own | own | — | ✓ |
+
+One person can hold several roles at once: a captain who also refs and is a league admin is common. Permissions are the union of global role (player, admin, owner) and scoped memberships (captain of a team, referee for a season, member of a sponsor).
+
+## 6. Feature list
+
+Tags: **MVP** (weeks 1–6, enough to run a season), **P2** (weeks 7–12, the "wow pack" built before the owner pitch and spring launch), **P3** (after launch), **Pending** (needs an owner decision before any build).
+
+The goal is as many extras as possible in the first pass. A season cannot run without the MVP column, so that is built first; nearly every extra lands in P2, before the owners see it. See [roadmap.md](roadmap.md).
+
+### Accounts and profile
+| Feature | Tag |
+|---|---|
+| Sign-in with Google or an email link; no passwords; sessions last 90 days and renew on use | MVP |
+| Passkeys (Face ID, Touch ID, device PIN) and a list of signed-in devices | P2 |
+| Sign in with Apple, if the league wants it | P2 |
+| Profile: name, phone, gender, shirt size, birth date (18+ check), emergency contact | MVP |
+| Roles and scoped permissions as in the matrix | MVP |
+| Account deletion and data export on request | P2 |
+
+### Registration, waivers and payment
+| Feature | Tag |
+|---|---|
+| Season setup: price per team or per player, early-bird window, roster limits, deadlines | MVP |
+| Per-season e-signed liability waiver, versioned, required before roster activation | MVP |
+| Team registration; captain pays in full | MVP |
+| Split pay: each invited player pays a fixed share through their own link; captain sees who has paid | MVP |
+| Free-agent registration with individual payment | MVP |
+| Promo codes (Stripe promotion codes) | MVP |
+| Automatic payment reminders at 7, 3 and 1 days before the deadline | MVP |
+| Admin refunds, full or partial | MVP |
+| Waitlist for full seasons, with timed offers when a spot opens | P2 |
+| Captain guarantee: saved card charged for any unpaid balance at the deadline | P2 |
+| League credit ledger (rain-out rebates, referral credit, goodwill), usable at checkout | P2 |
+| Season rebate tool: pro-rata credit or refund when too many games are lost | P2 |
+| Referral credits | P2 |
+| Shirt tracking: sizes by team, "received" flag, late-joiner order list | P2 |
+| Merch and replacement jersey orders | P3 |
+
+### Scheduling
+| Feature | Tag |
+|---|---|
+| Fields, permit windows, blackout dates, slot generation from a game format | MVP |
+| Schedule generator with fairness metrics, seeded and repeatable | MVP |
+| Draft and published schedule versions with a diff | MVP |
+| Manual swap or move of a game, re-checked against every constraint | MVP |
+| Byes for odd team counts; makeup slots held in reserve | MVP |
+| Doubleheader days (summer format) | MVP |
+| Team conflicts and time preferences as inputs | P2 |
+| Drag-and-drop schedule board with a keyboard alternative | P2 |
+| Playoff bracket seeded from standings and placed on fields | P2 |
+| Divisions with crossover games | P3 |
+| Multiple parks | P3 |
+
+### Game day
+| Feature | Tag |
+|---|---|
+| Public schedule, team pages and standings with tiebreakers | MVP |
+| Final score entry by ref or captain; the other captain confirms, or it auto-confirms after 24 hours | MVP |
+| Forfeits, and games called after 4 innings | MVP |
+| Missing-score reminders to the ref, then captains, then an admin list | MVP |
+| Game-day RSVPs with a fielding-rule warning for captains | MVP |
+| Inning-by-inning live scoring | P2 |
+| Live playoff bracket | P2 |
+| Sub finder: captains post, eligible players claim, captain approves | P2 |
+| Fun with scores: power rankings, streaks, rivalry history, game of the week, records | P2 |
+| Awards voting (weekly MVP, season awards) | P2 |
+| Offline score entry that syncs when signal returns | P3 |
+| Lineup and kicking-order builder that enforces the two-in-a-row rule | P3 |
+| Sportsmanship ratings, incident reports and suspensions | P3 |
+
+### Free agents and teams
+| Feature | Tag |
+|---|---|
+| Free-agent pool visible to admins | MVP |
+| Skill and vibe quiz; "sign up with a friend" groups | P2 |
+| Matcher that suggests placements with reasons; admin confirms | P2 |
+| Build a new team from free agents with volunteer captains | P2 |
+| "Start a new team" request with league approval and captain notice | P2 |
+
+### Weather and rain-outs
+| Feature | Tag |
+|---|---|
+| One-click rain-out: cancel a date or selected fields, notify by email, place makeups | MVP |
+| Forecast on game pages and the admin dashboard | P2 |
+| Automatic "likely rain-out" flag about 24 hours ahead | P2 |
+| Squeeze day: re-cut a date into shorter games to fit makeups | P2 |
+
+### Notifications
+| Feature | Tag |
+|---|---|
+| Email for every transactional message; per-topic preferences | MVP |
+| Admin and captain announcements | MVP |
+| "Copy for WhatsApp" and share links on results, sub requests and rain-outs | P2 |
+| Web push for installed app users | P2 |
+| SMS with consent, quiet hours, STOP and HELP, cost caps | P3 (registration starts early; **Pending** the league's business details) |
+| Text-to-join keyword | P3 |
+
+### Community, events and content
+| Feature | Tag |
+|---|---|
+| Searchable HTML rulebook | MVP |
+| ICS calendar feed per team | MVP |
+| Events calendar with RSVPs (bar nights, BBQ, tournament, theme weeks) | P2 |
+| Share images for game results and teams | P2 |
+| Past seasons: champions, final standings, records | P2 |
+| Season recaps and news posts | P2 |
+| Instagram connection: an admin connects the league's Instagram once; new posts sync in, and admins pick which appear on the home page, team pages and event pages, or use one as a page's cover photo | P2 |
+| Paid event tickets | P3 |
+| Photo galleries uploaded by players and captains | P3 |
+| "Friends of the league" directory (softball, soccer, pool, and other local leagues) | P3 |
+| Corporate and private-event leagues | P3 |
+| Charity tie-in (round-up at checkout, charity game) | P3 |
+
+### Sponsors
+| Feature | Tag |
+|---|---|
+| Sponsor logo slots and a sponsors page | MVP |
+| Home-bar page with after-game deals | P2 |
+| QR check-in at the bar and deal redemption | P2 |
+| Team of the week with a bar tab | P2 |
+| Sponsor portal and weekly report | P3 |
+| Sponsorship tiers and pricing | Pending |
+
+### Referees
+| Feature | Tag |
+|---|---|
+| Referee role with score entry tied to assigned games | MVP |
+| Admin assigns refs to games by hand | MVP |
+| Availability, accept and decline, open-game board | Pending |
+| Compensation tracking and incentives | Pending |
+| Payouts through Stripe Connect | Pending |
+
+### Admin and platform
+| Feature | Tag |
+|---|---|
+| Admin dashboard: registrations, payments, waivers, missing scores | MVP |
+| Audit log of every admin and captain change | MVP |
+| Configurable league name, colors, logo slots, contact details, social links | MVP |
+| Demo deployment with seed data and one-tap role switching | MVP |
+| Installable app (PWA) for captains, refs and admins | P2 |
+| CSV export of rosters, payments and shirt sizes | P2 |
+| Second league or sport on the same deployment (for example the affiliated football league) | P3 |
+
+### AI (optional, off unless an API key is set)
+| Feature | Tag |
+|---|---|
+| Ask the rulebook: answers a rules question from the rulebook only, with linked rule numbers | P2 |
+| Recap draft: a weekly recap drafted from the scores for an admin to edit | P2 |
+
+Both are capped at $5 a month by default and have no subscription. Details and costs are in [architecture.md](architecture.md), section 16.
+
+## 7. Decisions worth calling out
+
+| Decision | Why |
+|---|---|
+| Support both per-team and per-player pricing with one model | The league uses a team fee today, the old site sold per player, and nobody has confirmed which they want |
+| Split pay uses a fixed per-player share set when the team registers | A share that changes as people join means refunds and confusion; a fixed share is predictable |
+| Money owed back goes to league credit by default, not card refunds | The league's history is "avoid refunds, make up the games"; credit is cheap to issue and keeps players for next season |
+| Subs must be registered players with a signed waiver, and sub requests are disabled for playoff games | This is what the rulebook already says |
+| The site warns about fielding-rule problems but never blocks a game | Forfeits are a referee's call under the rulebook |
+| WhatsApp is supported by sharing, not replaced | The league already lives there; fighting it would lose |
+| One league per deployment, with a `league` record on every season | Cheap now, and it keeps the door open for the football league later |
+
+## 8. Out of scope
+
+- Native mobile apps (see the PWA decision in [architecture.md](architecture.md)).
+- Posting into WhatsApp groups automatically. WhatsApp's business API messages individuals, not existing group chats, so sharing stays a tap by a person.
+- Play-by-play or individual player statistics.
+- A multi-tenant product for leagues we do not know.
