@@ -13,6 +13,7 @@ import {
   SESSION_FRESH_AGE_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
 } from "./config";
+import { demoViewAs } from "./demo-view-as";
 import { accountLinking, socialProviders } from "./google";
 import { deliverMagicLink } from "./magic-link";
 import { createProfileForUser } from "./profile";
@@ -56,6 +57,7 @@ export const auth = betterAuth({
         );
       },
     }),
+    demoViewAs(), // refuses everything unless demo mode is on
     nextCookies(), // must stay last
   ],
 });
