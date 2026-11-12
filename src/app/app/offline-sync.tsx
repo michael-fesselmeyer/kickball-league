@@ -27,3 +27,11 @@ export function SignOutForm({ action }: { action: () => Promise<void> }) {
     </form>
   );
 }
+
+/** Forgets the saved game when it mounts, as after an account is deleted. */
+export function ForgetSavedGame() {
+  useEffect(() => {
+    void tellWorker({ type: "forget" });
+  }, []);
+  return null;
+}
