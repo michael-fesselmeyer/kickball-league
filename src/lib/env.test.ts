@@ -65,6 +65,38 @@ describe("parseEnv", () => {
       );
   });
 
+  it("rejects half an email configuration", () => {
+    const result = parseEnv({ ...valid, RESEND_API_KEY: "re_test_123" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain("EMAIL_FROM");
+  });
+
+  it.each([
+    ["RESEND_API_KEY", "sk_live_123", "starts with re_"],
+    ["EMAIL_FROM", "not an address", "an address"],
+  ])("rejects a malformed %s", (name, value, hint) => {
+    const result = parseEnv({
+      ...valid,
+      RESEND_API_KEY: "re_test_123",
+      EMAIL_FROM: "League <hello@example.test>",
+      [name]: value,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain(hint);
+  });
+
+  it.each(["League <hello@example.test>", "hello@example.test"])(
+    "accepts email configured as %s",
+    (from) => {
+      const result = parseEnv({
+        ...valid,
+        RESEND_API_KEY: "re_test_123",
+        EMAIL_FROM: from,
+      });
+      expect(result.ok).toBe(true);
+    },
+  );
+
   it("allows Google sign-in to be unset until it is configured", () => {
     expect(parseEnv(valid).ok).toBe(true);
     expect(
