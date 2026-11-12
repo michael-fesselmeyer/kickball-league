@@ -29,6 +29,13 @@
       "when": 1794465141950,
       "tag": "0003_fields_games_scores",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794475690077,
+      "tag": "0004_schedule_versions",
+      "breakpoints": true
     }
   ]
 }
