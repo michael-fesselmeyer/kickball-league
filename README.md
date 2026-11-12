@@ -45,6 +45,10 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - A dashboard for the next game day: games, refs, RSVP warnings, missing scores, and registrations, payments and waivers by team.
 - An audit log of admin actions, and a permissions matrix enforced by one tested function.
 
+**Public site**
+
+- Home, About, FAQ and a park page, with a generated sitemap, robots file and structured data for the league, teams and games.
+
 **Sign-in**
 
 - Email links and, when configured, Google.
