@@ -148,13 +148,15 @@ describe("venues and fields", () => {
       const actions = await db
         .select({ action: auditLog.action })
         .from(auditLog)
-        .where(eq(auditLog.actorId, w.actor));
+        .where(eq(auditLog.actorId, w.actor))
+        // One transaction shares one timestamp, so order by name.
+        .orderBy(auditLog.action);
       expect(actions.map((a) => a.action)).toEqual([
+        "field.create",
+        "field.create",
+        "permit.create",
+        "permit.create",
         "venue.create",
-        "field.create",
-        "field.create",
-        "permit.create",
-        "permit.create",
       ]);
     });
   });
