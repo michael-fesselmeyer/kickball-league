@@ -350,3 +350,71 @@ describe("validate on arbitrary schedules", () => {
     );
   });
 });
+
+describe("validate edge cases", () => {
+  const [base] = workedExample();
+  const game = (
+    round: number,
+    a: string,
+    b: string,
+    slot: string | null = null,
+  ) => ({
+    key: gameKey(round, a, b),
+    round,
+    teamA: a,
+    teamB: b,
+    slotId: slot,
+  });
+  const scheduleOf = (games: Schedule["games"]): Schedule => ({
+    games,
+    byes: [],
+    unplaced: [],
+    diagnostics: [],
+  });
+
+  it("says when a locked game has lost its slot", () => {
+    const [input, schedule] = workedExample({
+      locked: [{ gameKey: "r1:A:H", slotId: slotId(0, 1, 1) }],
+    });
+    expect(validate(input, move(schedule, 1, "A-H", null))).toEqual([
+      {
+        rule: "H9",
+        message: `Locked game r1:A:H moved from ${slotId(0, 1, 1)} to no slot.`,
+        gameKeys: ["r1:A:H"],
+      },
+    ]);
+  });
+
+  it("skips a one-team division, and rounds a division does not play", () => {
+    const input = {
+      ...base,
+      teams: [
+        { id: "A", divisionId: "x" },
+        { id: "B", divisionId: "x" },
+        { id: "C", divisionId: "y" },
+        { id: "D", divisionId: "y" },
+        { id: "E", divisionId: "solo" },
+      ],
+    };
+    const schedule = scheduleOf([
+      game(1, "A", "B"),
+      game(1, "C", "D"),
+      game(2, "A", "B"),
+    ]);
+    expect(validate(input, schedule)).toEqual([]);
+  });
+
+  it("uses the plural for an empty reserve", () => {
+    const [input, schedule] = workedExample({ gamesPerTeamPerDay: 2 });
+    // One game each from rounds 2 and 3 fills week 1's two empty slots.
+    const full = move(
+      move(schedule, 2, "H-F", slotId(0, 1, 0)),
+      3,
+      "G-E",
+      slotId(0, 0, 2),
+    );
+    expect(validate(input, full).find((v) => v.rule === "H10")?.message).toBe(
+      "2027-04-04 keeps 0 empty slots for makeups; it should keep 2.",
+    );
+  });
+});
