@@ -18,6 +18,7 @@ import {
 } from "../src/seed/generate";
 import { addDemoPersonas, removeDemoPersonas } from "../src/seed/demo-personas";
 import { canSeed } from "../src/seed/guard";
+import { addPastSeasons } from "../src/seed/past-seasons";
 import { seedPublishedSchedule } from "../src/seed/published-schedule";
 
 if (!process.env.DATABASE_URL && existsSync(".env.local"))
@@ -210,6 +211,7 @@ async function main(): Promise<void> {
       await tx.insert(slot).values(data.nextSlots);
       await tx.insert(teamConstraint).values(data.teamConstraints);
       await addDemoPersonas(tx, data);
+      await addPastSeasons(tx, data);
     });
     const played = data.games.filter((g) => g.status === "final").length;
     console.info(
