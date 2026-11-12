@@ -89,6 +89,18 @@ jobs:
           path: .lighthouseci/
           retention-days: 14
 
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the whole history, not just this commit
+      - name: No tokens, keys or passwords anywhere in the history
+        run: >-
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1
+          git /repo --redact --no-banner --exit-code 1
+
   migrations:
     name: Migrations
     runs-on: ubuntu-latest
