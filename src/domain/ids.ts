@@ -42,6 +42,8 @@ export type NotificationPreferenceId = Brand<
   string,
   "NotificationPreferenceId"
 >;
+export type BracketId = Brand<string, "BracketId">;
+export type BracketMatchId = Brand<string, "BracketMatchId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
