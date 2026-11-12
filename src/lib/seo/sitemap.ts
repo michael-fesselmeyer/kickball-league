@@ -12,6 +12,7 @@ export const CONTENT_PAGES = [
   { path: "/parks/mccarren-park", changeFrequency: "monthly", priority: 0.8 },
   { path: "/faq", changeFrequency: "monthly", priority: 0.7 },
   { path: "/about", changeFrequency: "monthly", priority: 0.6 },
+  { path: "/records", changeFrequency: "weekly", priority: 0.5 },
 ] as const satisfies readonly {
   path: string;
   changeFrequency: "weekly" | "monthly";
