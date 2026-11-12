@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, ne, sql } from "drizzle-orm";
 import type {
   BlackoutId,
   FieldId,
@@ -468,7 +468,12 @@ export async function syncSlots(
     existing.map((s) => [key(s.fieldId, s.startsAt.toISOString()), s]),
   );
 
-  let kept = 0;
+  const refreshed: {
+    id: SlotId;
+    endsAt: string;
+    timeIndex: number;
+    permitWindowId: PermitWindowId | null;
+  }[] = [];
   const fresh = [];
   const matched = new Set<string>();
   for (const s of wanted) {
@@ -476,15 +481,12 @@ export async function syncSlots(
     const old = byKey.get(key(s.fieldId, s.startsAt));
     if (old) {
       matched.add(old.id);
-      kept++;
-      await db
-        .update(slot)
-        .set({
-          endsAt: new Date(s.endsAt),
-          timeIndex: s.timeIndex,
-          permitWindowId,
-        })
-        .where(eq(slot.id, old.id));
+      refreshed.push({
+        id: old.id,
+        endsAt: s.endsAt,
+        timeIndex: s.timeIndex,
+        permitWindowId,
+      });
     } else
       fresh.push({
         seasonId: input.seasonId,
@@ -496,6 +498,22 @@ export async function syncSlots(
         createdBy: actorId,
       });
   }
+  // One statement for every kept slot, not a round trip each.
+  if (refreshed.length > 0)
+    await db.execute(sql`
+      update slot set
+        ends_at = v.ends_at,
+        time_index = v.time_index,
+        permit_window_id = v.permit_window_id,
+        updated_at = now()
+      from (values ${sql.join(
+        refreshed.map(
+          (r) =>
+            sql`(${r.id}::uuid, ${r.endsAt}::timestamptz, ${r.timeIndex}::int, ${r.permitWindowId}::uuid)`,
+        ),
+        sql`, `,
+      )}) as v(id, ends_at, time_index, permit_window_id)
+      where slot.id = v.id`);
   if (fresh.length > 0) await db.insert(slot).values(fresh);
 
   const stale = existing
@@ -526,7 +544,7 @@ export async function syncSlots(
   }
   const result: SlotSync = {
     added: fresh.length,
-    kept,
+    kept: refreshed.length,
     removed: stale.length - retired.length,
     retired: retired.length,
   };
