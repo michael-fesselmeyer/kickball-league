@@ -11,6 +11,7 @@ describe("buildSitemap", () => {
       `${ORIGIN}/parks/mccarren-park`,
       `${ORIGIN}/faq`,
       `${ORIGIN}/about`,
+      `${ORIGIN}/records`,
     ]);
     expect(urls).toHaveLength(CONTENT_PAGES.length);
   });
