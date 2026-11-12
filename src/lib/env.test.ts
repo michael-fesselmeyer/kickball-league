@@ -56,6 +56,15 @@ describe("parseEnv", () => {
     }
   });
 
+  it("rejects half a Google configuration", () => {
+    const result = parseEnv({ ...valid, GOOGLE_CLIENT_ID: "id" });
+    expect(result.ok).toBe(false);
+    if (!result.ok)
+      expect(result.error).toContain(
+        "set both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET",
+      );
+  });
+
   it("allows Google sign-in to be unset until it is configured", () => {
     expect(parseEnv(valid).ok).toBe(true);
     expect(
