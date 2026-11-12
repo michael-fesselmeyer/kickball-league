@@ -44,6 +44,27 @@ describe("rendererFor", () => {
     });
   });
 
+  it("renders a payment reminder for the days left", () => {
+    const remind = (daysLeft: number, needsWaiver = false) => {
+      const result = render("payment_reminder", {
+        seasonName: "Fall 2026",
+        seasonSlug: "fall-2026",
+        deadline: "Friday, September 11 at 11:59 PM",
+        daysLeft,
+        needsWaiver,
+      });
+      if (!result.ok) throw new Error(result.error);
+      return result.value;
+    };
+    expect(remind(7).subject).toBe("Your Fall 2026 fee is due in 7 days");
+    expect(remind(1).subject).toBe("Your Fall 2026 fee is due tomorrow");
+    expect(remind(0).subject).toBe("Your Fall 2026 fee is due today");
+    expect(remind(3).text).toContain(
+      "Pay now: https://league.example.test/app/seasons/fall-2026",
+    );
+    expect(remind(3, true).text).toContain("Sign the season waiver first");
+  });
+
   it("refuses an unknown template", () => {
     expect(render("nope", {})).toEqual({
       ok: false,
