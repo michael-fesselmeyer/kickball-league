@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { CopyForWhatsApp } from "@/components/share";
 import { db } from "@/db/client";
 import { loadVersion } from "@/db/queries/schedule";
 import {
@@ -11,7 +12,10 @@ import {
 } from "@/db/queries/schedule-screen";
 import { measure } from "@/domain/scheduler/measure";
 import { reschedule } from "@/domain/scheduler/reschedule";
+import { rainoutShareText } from "@/domain/share/share-text";
+import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
+import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { declareRainout } from "./actions";
 
 export const metadata: Metadata = { title: "Rain-out" };
@@ -193,6 +197,30 @@ async function Rainout({
           schedule screen. Publishing emails each player on a moved team their
           game&apos;s makeup time.
         </p>
+        <div className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4">
+          <h3 className="text-h3">For the league chat</h3>
+          <p className="text-small text-text-muted">
+            Post it after you publish the draft, so the chat and the schedule
+            agree.
+          </p>
+          <CopyForWhatsApp
+            about={`rain-out notice for ${dayLabel(date)}`}
+            text={rainoutShareText({
+              day: dayLabel(date),
+              moves: result.moved.map((m) => {
+                const g = games.get(m.gameKey);
+                return {
+                  teams: g ? `${team(g.teamA)} vs ${team(g.teamB)}` : m.gameKey,
+                  makeup: m.to ? where(m.to) : null,
+                };
+              }),
+              url: absoluteUrl(
+                siteOrigin(env.BETTER_AUTH_URL),
+                `/seasons/${slug}/schedule`,
+              ),
+            })}
+          />
+        </div>
       </section>
     );
   }
