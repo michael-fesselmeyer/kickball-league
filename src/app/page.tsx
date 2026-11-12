@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-8 px-4 py-16 md:px-6">
       <p>
-        <span className="sticker">Sundays in the park ☀️</span>
+        <span className="sticker">McCarren Park, Brooklyn ☀️</span>
       </p>
       <h1 className="max-w-[14ch] text-display text-text">
         Kick a ball. Meet your new{" "}
