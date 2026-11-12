@@ -4,6 +4,7 @@ import {
   asc,
   desc,
   eq,
+  inArray,
   isNull,
   ne,
   or,
@@ -147,6 +148,32 @@ export function publishedGamesForTeam(
   teamId: TeamId,
 ): Promise<PublicGame[]> {
   return publishedGames(db, or(eq(teamA.id, teamId), eq(teamB.id, teamId)));
+}
+
+/**
+ * Published games one person is part of: those of the team entries they are
+ * rostered on and those they referee. Their home screen picks the next one
+ * from these to keep on the device for offline use.
+ */
+export function publishedGamesFor(
+  db: Db,
+  {
+    teamSeasonIds,
+    gameIds,
+  }: {
+    teamSeasonIds: readonly TeamSeasonId[];
+    gameIds: readonly GameId[];
+  },
+): Promise<PublicGame[]> {
+  if (teamSeasonIds.length === 0 && gameIds.length === 0)
+    return Promise.resolve([]);
+  const conditions: SQL[] = [];
+  if (teamSeasonIds.length > 0) {
+    conditions.push(inArray(entryA.id, [...teamSeasonIds]));
+    conditions.push(inArray(entryB.id, [...teamSeasonIds]));
+  }
+  if (gameIds.length > 0) conditions.push(inArray(game.id, [...gameIds]));
+  return publishedGames(db, or(...conditions));
 }
 
 /** Every published game in every public season, for the league records. */

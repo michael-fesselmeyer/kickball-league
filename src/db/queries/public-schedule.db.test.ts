@@ -20,6 +20,7 @@ import {
   publicRoster,
   publishedGame,
   publishedGamesBetween,
+  publishedGamesFor,
   publishedGamesForTeam,
   publishedSchedule,
   teamBySlug,
@@ -238,6 +239,15 @@ describe("published schedule queries", () => {
       const between = await publishedGamesBetween(db, beesSlug!, acesSlug!);
       expect(between.map((g) => g.teamA.name)).toEqual(["Aces"]);
       expect(await publishedGamesBetween(db, acesSlug!, catsSlug!)).toEqual([]);
+      // One person's games: their team entries' and the ones they referee.
+      const mine = await publishedGamesFor(db, {
+        teamSeasonIds: [a],
+        gameIds: [games[1]!.id as GameId],
+      });
+      expect(mine.map((g) => g.teamA.name)).toEqual(["Aces", "Cats"]);
+      expect(
+        await publishedGamesFor(db, { teamSeasonIds: [], gameIds: [] }),
+      ).toEqual([]);
       const everything = await allPublishedGames(db);
       expect(everything.filter((g) => g.seasonId === w.seasonId)).toHaveLength(
         2,
