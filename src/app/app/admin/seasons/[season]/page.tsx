@@ -89,6 +89,12 @@ async function Season({
           >
             Playoffs
           </Link>
+          <Link
+            href={`/app/admin/seasons/${slug}/shirts`}
+            className="underline"
+          >
+            Shirts
+          </Link>
         </p>
       </header>
       {(query.created || query.saved) && (
