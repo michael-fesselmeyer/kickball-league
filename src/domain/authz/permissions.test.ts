@@ -157,6 +157,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     ]);
     for (const action of [
       "sub_request.post",
+      "sub_request.decide",
       "conflicts.submit",
       "payment.record_offline",
     ] as const)
@@ -166,6 +167,24 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
         "admin",
         "owner",
       ]);
+  });
+
+  it("shows a game's pickups to both captains, its ref and admins", () => {
+    expect(allowed("sub_request.view_pickups", { game: g1 })).toEqual([
+      "captain",
+      "coCaptain",
+      "referee",
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("sub_request.view_pickups", { game: g2 })).toEqual([
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("sub_request.decide", { teamSeasonId: "B" })).toEqual([
+      "admin",
+      "owner",
+    ]);
   });
 
   it("lets the right people enter and confirm scores", () => {
