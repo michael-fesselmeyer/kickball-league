@@ -1,6 +1,6 @@
 "use server";
 
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { createTeamInvite } from "@/db/queries/invites";
 import {
@@ -10,6 +10,7 @@ import {
 import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { requirePermission } from "@/lib/auth/permission";
+import { recordPaymentFor } from "../record-payment";
 
 export type InviteState = { token?: string; expiresAt?: string };
 
@@ -45,4 +46,17 @@ export async function createInviteAction(
     token: created.token,
     expiresAt: created.expiresAt.toISOString(),
   };
+}
+
+/** A captain records a teammate's cash or Venmo payment. */
+export async function recordTeamPaymentAction(
+  slug: string,
+  registrationId: string,
+  form: FormData,
+): Promise<void> {
+  const page = `/app/seasons/${slug}/team`;
+  const subject = await requirePermission("registration.join", { next: page });
+  const result = await recordPaymentFor(subject, slug, registrationId, form);
+  if (!result.ok) redirect(`${page}?error=${result.error}`);
+  redirect(`${page}?notice=payment_recorded`);
 }
