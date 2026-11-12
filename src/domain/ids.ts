@@ -10,3 +10,8 @@ export type Brand<T, Name extends string> = T & { readonly [brand]: Name };
 
 export type LeagueId = Brand<string, "LeagueId">;
 export type UserId = Brand<string, "UserId">;
+export type SeasonId = Brand<string, "SeasonId">;
+export type TeamId = Brand<string, "TeamId">;
+export type TeamSeasonId = Brand<string, "TeamSeasonId">;
+export type RegistrationId = Brand<string, "RegistrationId">;
+export type RosterMembershipId = Brand<string, "RosterMembershipId">;
