@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ForgetSavedGame } from "@/app/app/offline-sync";
 
 export const metadata: Metadata = {
   title: "Account deleted",
@@ -11,6 +12,7 @@ export default function AccountDeletedPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-10">
       <h1 className="text-h1">Your account is deleted</h1>
+      <ForgetSavedGame />
       <p>
         Your profile, email address and sign-in methods are removed, and you are
         signed out. Past rosters and payments now show &ldquo;Deleted
