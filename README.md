@@ -28,6 +28,9 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - Player profiles with an 18+ check, and versioned waivers signed before payment.
 - Team registration with full or split pay, invite links, and a roster board showing who has joined, signed and paid. Free agents register solo and admins place them on teams.
 - Stripe Checkout with an idempotent webhook (test mode, on once keys are set), plus cash or Venmo payments recorded by admins and captains.
+- Shirt tracking: sizes by team from players' profiles, what is still to order for late joiners, and a received flag per player.
+- CSV downloads of rosters (with shirt sizes) and payments: the whole season for admins, one team for its captains. Cells that a spreadsheet would run as a formula are written as text, and every download is logged.
+- Players download everything the league holds about them as JSON, and can delete their account. Deleting anonymizes the person so past rosters, scores and payments stay correct, and needs a sign-in from the last 15 minutes plus their email address typed again.
 
 **Game day**
 

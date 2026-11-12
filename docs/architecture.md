@@ -167,6 +167,8 @@ Mutations are Server Actions. An action that changes public data calls `updateTa
 
 **Staying signed in.** Players use their own phone, tablet or laptop, so sessions last 90 days and renew each time the site is used (`expiresIn` of 90 days, `updateAge` of 1 day ✔). Anyone who opens the site once a season is never asked to sign in again on that device. Two safeguards balance that:
 - Sensitive actions (refunds, role changes, Stripe settings, account deletion) require a session that was confirmed in the last 15 minutes (`freshAge` ✔); otherwise the person re-confirms with a passkey or a new magic link.
+  Account deletion is the first to enforce it: `isFreshSession` (`src/lib/auth/config.ts`) checks when the session was signed in, and the delete page offers to email a new sign-in link that returns to it. Renewing a session does not make it fresh. Account deletion is turned off in demo mode, so a visitor cannot delete a shared persona.
+- File downloads (roster and payment CSVs, a person's own data as JSON) are Route Handlers that check the same permissions as pages, answer `Cache-Control: private, no-store`, and write an audit row for each CSV, since those files carry contact details.
 - The account page lists signed-in devices and can sign any of them out.
 
 **Roles.** Two layers, as described in [product-spec.md](product-spec.md):
