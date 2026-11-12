@@ -13,5 +13,7 @@ export default defineConfig({
     include: ["src/**/*.db.test.ts"],
     setupFiles: ["src/db/test/load-env.ts"],
     fileParallelism: false,
+    // Locally the database is remote, so a test's round trips add up.
+    testTimeout: 20_000,
   },
 });
