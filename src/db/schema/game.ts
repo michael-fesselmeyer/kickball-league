@@ -15,6 +15,7 @@ import {
 import type {
   FieldId,
   GameId,
+  GameRsvpId,
   LeagueId,
   PermitWindowId,
   ScoreReportId,
@@ -311,6 +312,37 @@ export const refereeAssignment = pgTable(
       .on(t.gameId)
       .where(sql`${t.status} in ('offered', 'accepted')`),
     index("referee_assignment_user_idx").on(t.userId, t.status),
+  ],
+);
+
+export const rsvpStatus = pgEnum("game_rsvp_status", ["in", "out", "maybe"]);
+
+/** A player's answer for one game, so the captain knows who is coming. */
+export const gameRsvp = pgTable(
+  "game_rsvp",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<GameRsvpId>(),
+    gameId: uuid()
+      .notNull()
+      .$type<GameId>()
+      .references(() => game.id, { onDelete: "cascade" }),
+    userId: uuid()
+      .notNull()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "cascade" }),
+    teamSeasonId: uuid()
+      .notNull()
+      .$type<TeamSeasonId>()
+      .references(() => teamSeason.id, { onDelete: "cascade" }),
+    status: rsvpStatus().notNull(),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    unique("game_rsvp_once").on(t.gameId, t.userId),
+    index("game_rsvp_team_idx").on(t.gameId, t.teamSeasonId),
   ],
 );
 

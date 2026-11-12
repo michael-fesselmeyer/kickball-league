@@ -22,6 +22,7 @@ export type GameId = Brand<string, "GameId">;
 export type ScoreReportId = Brand<string, "ScoreReportId">;
 export type ScoreResponseId = Brand<string, "ScoreResponseId">;
 export type RefereeAssignmentId = Brand<string, "RefereeAssignmentId">;
+export type GameRsvpId = Brand<string, "GameRsvpId">;
 export type PermitWindowId = Brand<string, "PermitWindowId">;
 export type BlackoutId = Brand<string, "BlackoutId">;
 export type TeamConstraintId = Brand<string, "TeamConstraintId">;
