@@ -140,6 +140,21 @@ npm run demo:reset
 npm run dev
 ```
 
+The app talks to Neon through its HTTP and WebSocket drivers, and to a Postgres on `localhost` through node-postgres, so a local database works for `npm run dev` too.
+
+### End-to-end and Lighthouse tests
+
+`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the core flows (registration with split pay up to Stripe Checkout, free-agent signup, generating and publishing a schedule, entering and confirming a score, a rain-out). Every key screen is checked with axe. It reseeds the database before each run and sends Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so it needs both running locally:
+
+```bash
+PGDATABASE_NAME=kb_e2e_demo scripts/setup-local-postgres.sh
+docker run -d --rm -p 12111:12111 stripe/stripe-mock:v0.197.0
+export DATABASE_URL=postgresql://ci:ci@localhost:5432/kb_e2e_demo
+npm run test:e2e
+```
+
+The database's name must contain `demo`, because the flows sign in with one-tap "view as". `npm run lighthouse` measures a production build (`npm run build` first) against the same seeded database, with the budgets in [design-system.md](docs/design-system.md#performance-budgets).
+
 ## Scripts
 
 | Command                 | What it does                                                     |
@@ -158,6 +173,8 @@ npm run dev
 | `npm run typecheck`     | Generate route types and run `tsc`                               |
 | `npm run format:check`  | Check Prettier formatting                                        |
 | `npm run build`         | Production build                                                 |
+| `npm run test:e2e`      | Build, reseed, then smoke tests and core flows with axe          |
+| `npm run lighthouse`    | Lighthouse budgets on the public pages of the last build         |
 
 ## How changes land
 

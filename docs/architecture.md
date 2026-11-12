@@ -10,7 +10,7 @@ Status: draft v1, 2026-11-11. Library facts marked ✔ were checked against curr
 | Rendering model | Cache Components (`cacheComponents: true`, `'use cache'`, `cacheTag`, `cacheLife`) ✔ | Public pages get a static shell and tagged data that is invalidated the moment a score or schedule changes |
 | Request interception | `proxy.ts` ✔ (Next 16 renamed `middleware.ts`) | Coarse "signed in or not" redirects only |
 | ORM | **Drizzle** | SQL-shaped and typed, no code generation step, tiny cold start, and it expresses partial unique indexes and check constraints that this model leans on. Prisma is friendlier but heavier and hides the SQL the scheduler and ledger need |
-| Database driver | `drizzle-orm/neon-http` for reads and single statements; `drizzle-orm/neon-serverless` (WebSocket pool) where an interactive transaction is needed ✔ | HTTP is fastest for one query; payments and schedule publishing need real transactions |
+| Database driver | `drizzle-orm/neon-http` for reads and single statements; `drizzle-orm/neon-serverless` (WebSocket pool) where an interactive transaction is needed ✔. A Postgres on `localhost` (local development, end-to-end tests in CI) uses `drizzle-orm/node-postgres` instead ([ADR 0006](adr/0006-end-to-end-tests-on-local-services.md)) | HTTP is fastest for one query; payments and schedule publishing need real transactions |
 | Auth | **Better Auth** with its Drizzle adapter, magic-link plugin, Google sign-in and (P2) passkeys ✔. No passwords | Sessions and users live in our own Postgres, it is the actively developed option for Next.js, and it has first-party plugins for what we need |
 | TypeScript | `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, no `any`; branded types for IDs | A `TeamId` cannot be passed where a `GameId` is expected; the compiler catches a class of bugs tests would miss |
 | Errors | Domain functions return a typed result (`ok`, or a named failure); only unexpected failures throw | Callers must handle "team is full" or "deadline passed" explicitly, and the UI can show the right message |
@@ -302,7 +302,7 @@ No Redis in the MVP. Rate limits that need a counter use a small Postgres table.
 
 | Environment | Hosting | Database | Payments and messages |
 |---|---|---|---|
-| Local | `next dev` | A personal Neon branch | Stripe test mode with the Stripe CLI forwarding webhooks; emails rendered to the console |
+| Local | `next dev` | A personal Neon branch, or a Postgres in Docker | Stripe test mode with the Stripe CLI forwarding webhooks; emails rendered to the console |
 | Preview (every pull request) | Vercel preview deployment | A Neon branch created for the preview by the Neon–Vercel integration, migrated and seeded | Stripe test mode; email to a sandbox inbox; scheduled jobs off |
 | Demo | A second Vercel project from the same repository, `DEMO_MODE=true` ([ADR 0004](adr/0004-demo-mode.md)) | Its own Neon database, reseeded nightly | Stripe test mode with test cards; no real email or SMS; a banner and one-tap "view as" role switching |
 | Production | Vercel Pro, custom domain | Neon main branch with point-in-time restore | Stripe live; Resend; Twilio |
@@ -319,8 +319,8 @@ Every pull request runs, in this order, and all must pass to merge:
 2. Unit and property tests (Vitest, fast-check) with coverage thresholds.
 3. Migration check: the schema and the migration files agree.
 4. Build.
-5. End-to-end tests (Playwright) against the preview deployment, including axe accessibility checks on every key screen.
-6. Lighthouse CI against the preview with the budgets in [design-system.md](design-system.md).
+5. End-to-end tests (Playwright) against a production build and a freshly seeded Postgres 18 service container, under a 10-minute job limit ([ADR 0006](adr/0006-end-to-end-tests-on-local-services.md)). Smoke tests cover the public pages at a phone size and a desktop size with demo mode off. The core flows run on a second server in demo mode and sign in with one-tap "view as": a captain registers a team with split pay and reaches Stripe Checkout (served by stripe-mock), a player joins as a free agent, an admin generates and publishes a schedule, a ref enters a score that a captain confirms, and an admin calls a rain-out and publishes the makeups. axe checks every key screen against WCAG 2.2 AA and fails on any violation.
+6. Lighthouse CI on a production build against the seeded database: home, sign-in, the content pages, the records page, the public schedule, standings and a team page, with the budgets in [design-system.md](design-system.md#performance-budgets).
 
 Mutation testing on the scheduler runs nightly, not per pull request, because it is slow.
 
