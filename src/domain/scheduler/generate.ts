@@ -46,10 +46,11 @@ export function generate(
       if (part.bye !== null) byes.push({ round: r, teamId: part.bye });
   }
 
-  // Stage B can give a date two rounds that no placement fits, for example
-  // when a team can make only some of the times. When a multi-round date
-  // strands a game, cap that date at one round fewer and try again; caps only
-  // shrink, so this ends. Keep the attempt that places the most games.
+  // Stage B can give a date rounds that no placement fits, for example two
+  // rounds when a team can make only some of the times, or one round with a
+  // game whose teams share no time that date. When a date strands a game,
+  // cap it at one round fewer (none, for a single round) and try again; caps
+  // only shrink, so this ends. Keep the attempt that places the most games.
   // A pinned game keeps its round on the pinned slot's date.
   const roundOf = new Map(
     rounds.flatMap((r) =>
@@ -78,8 +79,8 @@ export function generate(
     const stranded = new Set(
       placed.games.filter((g) => g.slotId === null).map((g) => g.round),
     );
-    const tight = dated.days.filter(
-      (d) => d.rounds.length > 1 && d.rounds.some((r) => stranded.has(r)),
+    const tight = dated.days.filter((d) =>
+      d.rounds.some((r) => stranded.has(r)),
     );
     // Cap only where that moves an unpinned round off the date; stop when
     // nothing more can change.
