@@ -54,7 +54,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── registrations           Teams, players, payments, waivers
     │   ├── free-agents             Pool and matcher (P2)
     │   ├── fields                  Fields, permit windows, blackout dates, slots
-    │   ├── schedule                Generate, metrics, edit, versions, publish
+    │   ├── schedule                Generate, metrics, versions, publish; board (desktop) and move-or-swap form
     │   ├── rainout                 Call a rain-out and review makeups
     │   ├── announcements           Email the season or one team
     │   ├── recap                   Weekly recap drafted from the scores; edit, then send as an announcement
@@ -229,7 +229,7 @@ Rules:
 | Score entry | One screen; two large counters; inning stepper (P2); submit pinned to the bottom | Same layout, centered, no wider than a phone |
 | Checkout | Stripe's hosted page | Stripe's hosted page |
 | Admin: next game day | Weather risk, game list with status dots, missing scores, rain-out button | Same with the field grid |
-| Admin: schedule | Read-only list, metrics, and move-by-form; full editing is a desktop job | Board: fields by time per date, drag to move, metrics panel, version list, violations list |
+| Admin: schedule | Read-only list, metrics, and move-by-form; full editing is a desktop job | Board from 1024px wide: one row per date and time, one column per field. Drag a game to move or swap it, or use the arrow keys, Enter and Escape; a side panel shows the new hard-rule problems and metric changes for the slot under the pointer or focus, then the unsaved changes with Undo, Discard and Save as one new draft. The board's code loads only at that width; the move-or-swap form stays below it |
 | Admin: registrations | Team list with paid and waiver counts; tap for roster | Table with filters and CSV export |
 | Admin: rain-out | Three steps: scope, preview, confirm | Same on one screen |
 | Admin: playoffs | Draft or published bracket first; then teams, playoff day and the seeding table | Same, with the whole board |
