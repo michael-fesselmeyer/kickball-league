@@ -18,6 +18,7 @@ import {
 import { isOneOf } from "@/domain/guards";
 import { requirePermission } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
+import { refreshSeasonPages } from "@/lib/public-cache";
 
 export type SeasonFormState = {
   values: SeasonForm;
@@ -95,5 +96,7 @@ export async function updateSeasonAction(
     if (updated.error === "unknown_season") notFound();
     return { values, status, errors: { name: DUPLICATE }, message: CHECK };
   }
+  // Its name and status show on the public pages.
+  refreshSeasonPages(existing.id);
   redirect(`/app/admin/seasons/${updated.value.slug}?saved=1`);
 }

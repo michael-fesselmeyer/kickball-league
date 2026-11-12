@@ -14,6 +14,7 @@ import type { ScheduleVersionId } from "@/domain/ids";
 import { applyEdit } from "@/domain/scheduler/edits";
 import { generate } from "@/domain/scheduler/generate";
 import { requirePermission } from "@/lib/auth/permission";
+import { refreshSeasonPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 import { applyAll, stateOf } from "./board-model";
 
@@ -70,6 +71,9 @@ export async function publishDraft(
   if (!result.ok) redirect(`${page}?error=${result.error}`);
   const { moved, added, removed, teams, notified } = result.value;
   if (notified > 0) sendQueuedSoon();
+  // The public schedule, standings and team pages show it right away.
+  const season = await seasonBySlug(db, slug);
+  if (season) refreshSeasonPages(season.id);
   redirect(
     `${page}?published=1&moved=${moved.length}&added=${added.length}&removed=${removed.length}&teams=${teams.length}&notified=${notified}`,
   );
