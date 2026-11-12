@@ -327,6 +327,14 @@ export function reschedule(
       from: g.slotId as string,
       to: placedAt.get(g.key) ?? null,
     })),
-    metrics: measure({ ...input, locked }, next),
+    // Cancelled slots are gone: not reserve, and not counted anywhere else.
+    metrics: measure(
+      {
+        ...input,
+        slots: input.slots.filter((s) => !cancelled.has(s.id)),
+        locked,
+      },
+      next,
+    ),
   };
 }
