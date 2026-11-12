@@ -149,6 +149,26 @@ export function publishedGamesForTeam(
   return publishedGames(db, or(eq(teamA.id, teamId), eq(teamB.id, teamId)));
 }
 
+/** Every published game in every public season, for the league records. */
+export function allPublishedGames(db: Db): Promise<PublicGame[]> {
+  return publishedGames(db, undefined);
+}
+
+/** Every published game between two teams, by team slug, across seasons. */
+export function publishedGamesBetween(
+  db: Db,
+  slugX: string,
+  slugY: string,
+): Promise<PublicGame[]> {
+  return publishedGames(
+    db,
+    or(
+      and(eq(teamA.slug, slugX), eq(teamB.slug, slugY)),
+      and(eq(teamA.slug, slugY), eq(teamB.slug, slugX)),
+    ),
+  );
+}
+
 /** One game, only if a published schedule includes it, with the league's zone. */
 export async function publishedGame(db: Db, gameId: GameId) {
   const [found] = await publishedGames(db, eq(game.id, gameId));

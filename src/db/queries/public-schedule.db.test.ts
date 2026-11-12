@@ -16,8 +16,10 @@ import {
 } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import {
+  allPublishedGames,
   publicRoster,
   publishedGame,
+  publishedGamesBetween,
   publishedGamesForTeam,
   publishedSchedule,
   teamBySlug,
@@ -230,6 +232,16 @@ describe("published schedule queries", () => {
       // A team's feed holds its own published games only.
       const aces = await publishedGamesForTeam(db, w.teams[0]!.id);
       expect(aces.map((g) => g.teamB.name)).toEqual(["Bees"]);
+
+      // Head-to-head reads either order of the two slugs.
+      const [acesSlug, beesSlug, catsSlug] = w.teams.map((t) => t.slug);
+      const between = await publishedGamesBetween(db, beesSlug!, acesSlug!);
+      expect(between.map((g) => g.teamA.name)).toEqual(["Aces"]);
+      expect(await publishedGamesBetween(db, acesSlug!, catsSlug!)).toEqual([]);
+      const everything = await allPublishedGames(db);
+      expect(everything.filter((g) => g.seasonId === w.seasonId)).toHaveLength(
+        2,
+      );
 
       // A season taken back to draft is not public at all.
       await db
