@@ -31,6 +31,7 @@ import {
 } from "../schema/schedule";
 import { season } from "../schema/season";
 import { teamSeason } from "../schema/team";
+import { recordAudit } from "./audit";
 
 /**
  * Any Postgres database or transaction: the app passes the WebSocket driver,
@@ -166,17 +167,19 @@ export async function saveVersion(
       .select({ last: max(scheduleVersion.versionNo) })
       .from(scheduleVersion)
       .where(eq(scheduleVersion.seasonId, seasonId));
+    const versionNo = (latest?.last ?? 0) + 1;
+    const violations = validate(rules, schedule);
     const [version] = await tx
       .insert(scheduleVersion)
       .values({
         seasonId,
-        versionNo: (latest?.last ?? 0) + 1,
+        versionNo,
         parentVersionId: parentVersionId ?? null,
         origin,
         seed: rules.seed,
         inputSnapshot: rules,
         metrics: measure(rules, schedule),
-        violations: validate(rules, schedule),
+        violations,
         createdBy: createdBy ?? null,
       })
       .returning({ id: scheduleVersion.id });
@@ -229,6 +232,18 @@ export async function saveVersion(
           locked: g.slotId !== null && pins.get(g.key) === g.slotId,
         })),
       );
+    await recordAudit(tx, {
+      actorId: createdBy ?? null,
+      action: "schedule.save_version",
+      entityType: "schedule_version",
+      entityId: versionId,
+      after: {
+        versionNo,
+        origin,
+        violations: violations.length,
+        unplaced: schedule.games.filter((g) => g.slotId === null).length,
+      },
+    });
     return versionId;
   });
 }
@@ -371,6 +386,20 @@ export async function publishVersion(
       unplaced: [],
       diagnostics: [],
     };
-    return ok(diffSchedules(before?.schedule ?? empty, after.schedule));
+    const diff = diffSchedules(before?.schedule ?? empty, after.schedule);
+    await recordAudit(tx, {
+      actorId: publishedBy,
+      action: "schedule.publish",
+      entityType: "schedule_version",
+      entityId: versionId,
+      before: { publishedVersionId: current?.id ?? null },
+      after: {
+        moved: diff.moved.length,
+        added: diff.added.length,
+        removed: diff.removed.length,
+        teamsAffected: diff.teams.length,
+      },
+    });
+    return ok(diff);
   });
 }
