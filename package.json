@@ -20,6 +20,7 @@
     "db:studio": "drizzle-kit studio",
     "test:db": "vitest run --config vitest.db.config.mts",
     "seed": "tsx scripts/seed.ts",
+    "demo:reset": "tsx scripts/reset-demo.ts",
     "test:e2e": "playwright test",
     "lighthouse": "lhci autorun"
   },
