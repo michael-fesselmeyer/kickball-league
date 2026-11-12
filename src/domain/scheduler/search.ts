@@ -106,8 +106,9 @@ export function localSearch(
   const fieldDaySlots = fieldDays(input);
   const fieldDayKey = (p: Position) => `${p.slot.fieldId}\u0000${p.slot.date}`;
   const occupied = (id: string) => occupant.has(id);
+  const positions: Position[] = [];
   const priceTeam = (team: number) => {
-    const positions: Position[] = [];
+    positions.length = 0;
     for (const i of teamGames[team] ?? []) {
       const p = at[i];
       if (p) positions.push(p);
