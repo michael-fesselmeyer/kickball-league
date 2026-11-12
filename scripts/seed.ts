@@ -51,6 +51,7 @@ async function main(): Promise<void> {
     teamSeason,
     registration,
     rosterMembership,
+    invite,
     user,
     profile,
     waiver,
@@ -100,6 +101,10 @@ async function main(): Promise<void> {
               .from(teamSeason)
               .where(inArray(teamSeason.seasonId, seasonIds))
           ).map((r) => r.id);
+          if (entryIds.length)
+            await tx
+              .delete(invite)
+              .where(inArray(invite.teamSeasonId, entryIds));
           if (entryIds.length)
             await tx
               .delete(rosterMembership)
