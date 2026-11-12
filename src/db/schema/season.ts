@@ -11,10 +11,12 @@ import {
   timestamp,
   unique,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import type { LeagueId, SeasonId, UserId } from "@/domain/ids";
+import type { LeagueId, SeasonId, UserId, WaiverId } from "@/domain/ids";
 import { user } from "./auth";
 import { league } from "./league";
+import { waiver } from "./waiver";
 
 export const seasonStatus = pgEnum("season_status", [
   "draft",
@@ -46,8 +48,8 @@ export type RebatePolicy = {
 
 /**
  * A season of play: dates, registration windows, pricing and roster limits.
- * See docs/data-model.md, section 2.1. waiver_id and default_rule_set_id
- * arrive with the waiver and rule-set tables in Phase 1.
+ * See docs/data-model.md, section 2.1. default_rule_set_id arrives with
+ * the rule-set table.
  */
 export const season = pgTable(
   "season",
@@ -75,6 +77,10 @@ export const season = pgTable(
     rosterMin: integer().notNull(),
     rosterMax: integer().notNull(),
     gamesPerTeamPerDay: integer().notNull().default(1),
+    /** The waiver version players sign for this season. */
+    waiverId: uuid()
+      .$type<WaiverId>()
+      .references((): AnyPgColumn => waiver.id, { onDelete: "restrict" }),
     fieldingRules: jsonb().$type<FieldingRules>().notNull().default({}),
     tiebreakers: jsonb()
       .$type<Tiebreaker[]>()

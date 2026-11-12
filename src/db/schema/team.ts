@@ -11,6 +11,7 @@ import {
   unique,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import type {
   LeagueId,
@@ -20,10 +21,12 @@ import type {
   TeamId,
   TeamSeasonId,
   UserId,
+  WaiverSignatureId,
 } from "@/domain/ids";
 import { user } from "./auth";
 import { league } from "./league";
 import { season } from "./season";
+import { waiverSignature } from "./waiver";
 
 const audit = () => ({
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -127,7 +130,7 @@ export const registrationShirtStatus = pgEnum("registration_shirt_status", [
 
 /**
  * One person's entry in one season; carries waiver and payment state.
- * friend_group_id and waiver_signature_id arrive with those tables.
+ * friend_group_id arrives with friend groups.
  */
 export const registration = pgTable(
   "registration",
@@ -143,6 +146,11 @@ export const registration = pgTable(
       .references(() => user.id, { onDelete: "restrict" }),
     kind: registrationKind().notNull(),
     status: registrationStatus().notNull().default("pending_waiver"),
+    waiverSignatureId: uuid()
+      .$type<WaiverSignatureId>()
+      .references((): AnyPgColumn => waiverSignature.id, {
+        onDelete: "restrict",
+      }),
     shirtStatus: registrationShirtStatus().notNull().default("none"),
     ...audit(),
   },
