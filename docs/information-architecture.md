@@ -37,11 +37,15 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── about                           The league, the commissioners, contact
 ├── join                            Landing page for the text-to-join keyword and QR codes (P3)
 ├── legal/terms, legal/privacy, legal/sms-terms
+├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
 └── sign-in, sign-up
 
 /app                                Signed-in home: next game, RSVP, what you owe, alerts
-├── account                         Profile, notification settings, waivers, payments, credit
-├── team/[teamSeason]               Roster, RSVPs, payments, invites, subs, announcements (captain view adds controls)
+├── account                         Profile, notification settings, waivers, payments, credit (built at /app/profile)
+│   ├── export                      Download your data: everything the league holds about you, as JSON
+│   └── delete                      Delete your account: what is deleted, what the league keeps; a fresh sign-in and your typed email address confirm it
+├── seasons/[season]/export/        CSV downloads: roster.csv (with shirt sizes) and payments.csv; the whole season for admins, ?team= for one team (its captains too)
+├── team/[teamSeason]               Roster, RSVPs, payments, invites, subs, announcements (captain view adds controls and roster and payment CSV downloads)
 ├── subs                            Sub requests I can claim, and games I'm subbing in
 ├── vote                            Awards voting (P2)
 ├── check-in/[code]                 Bar check-in landing from a QR code (P2)
@@ -52,7 +56,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 └── admin/
     ├── (dashboard)                 Next game day: weather, games, missing scores, alerts
     ├── seasons/[season]/           Setup, pricing, divisions, rule set, waiver
-    │   ├── registrations           Teams, players, payments, waivers
+    │   ├── registrations           Teams, players, payments, waivers; roster and payment CSV downloads
+    │   ├── shirts                  Shirt sizes by team, what is still to order, and each player's shirt: not ordered, ordered or received
     │   ├── free-agents             Pool and matcher (P2)
     │   ├── fields                  Fields, permit windows, blackout dates, slots
     │   ├── schedule                Generate, metrics, versions, publish; board (desktop) and move-or-swap form
