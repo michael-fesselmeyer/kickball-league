@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { LogoBadge } from "@/components/logo-badge";
 import { ShareButtons } from "@/components/share";
+import { GameStats } from "@/components/stats/game-stats";
 import { db } from "@/db/client";
 import { publishedGame } from "@/db/queries/public-schedule";
 import type { Hex } from "@/domain/color/contrast";
@@ -206,6 +207,8 @@ async function Game({ params }: PageProps<"/games/[game]">) {
           })}
         />
       </section>
+
+      <GameStats game={game} timeZone={timeZone} />
 
       <section aria-labelledby="follow" className="flex flex-col gap-2">
         <h2 id="follow" className="text-h3">
