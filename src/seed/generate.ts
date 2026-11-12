@@ -12,7 +12,7 @@ import type {
   UserId,
   VenueId,
 } from "@/domain/ids";
-import { seededRandom, type Random } from "./random";
+import { seededRandom, type Random } from "@/domain/random";
 
 /**
  * Demo data for local development, previews and the demo deployment.
