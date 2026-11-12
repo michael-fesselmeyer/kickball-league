@@ -31,15 +31,18 @@ test("an admin calls a rain-out and publishes the makeups", async ({
     })
     .click();
   await expect(page).toHaveURL(/\/schedule\?rainout=/);
-  await expect(page.getByRole("status")).toContainText(
-    "Rain-out saved as a draft",
-  );
+  // The schedule board has a status region of its own.
+  await expect(
+    page.getByRole("status").filter({ hasText: "Rain-out saved as a draft" }),
+  ).toBeVisible();
   await expectNoAxeViolations(page);
 
   await page.getByRole("button", { name: /^Publish version \d+$/ }).click();
-  await expect(page.getByRole("status")).toContainText("Published.");
-  await expect(page.getByRole("status")).toContainText(
-    /rain-out emails? queued for players/,
-  );
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Published." })
+      .filter({ hasText: /rain-out emails? queued for players/ }),
+  ).toBeVisible();
   await page.context().close();
 });
