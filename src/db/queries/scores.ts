@@ -30,6 +30,7 @@ import { field, game, scoreReport, scoreResponse, slot } from "../schema/game";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
+import { advanceBracket } from "./playoffs";
 import { required } from "./rows";
 import type { Db } from "./schedule";
 
@@ -186,6 +187,8 @@ export async function settleGame(
           },
     )
     .where(eq(game.id, gameId));
+  // A playoff winner moves on as soon as the result is final.
+  if (g.kind === "playoff") await advanceBracket(db, gameId, now);
   return state;
 }
 
@@ -215,7 +218,9 @@ export async function reportScore(
     input.role !== "admin"
   )
     return err("already_final");
-  const errors = checkScore(input.score);
+  const errors = checkScore(input.score, {
+    tiesAllowed: g.kind !== "playoff",
+  });
   if (Object.keys(errors).length > 0) return err(errors);
   const forfeit =
     input.score.outcome === "forfeit_a" || input.score.outcome === "forfeit_b";
