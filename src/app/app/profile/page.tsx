@@ -3,9 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { emailSettingsOf } from "@/db/queries/notifications";
 import { profileOf } from "@/db/queries/profile";
 import { toProfileForm } from "@/domain/profile/profile-form";
 import { requireSelf } from "@/lib/auth/permission";
+import { EmailSettings } from "./email-settings";
 import { ProfileSettingsForm } from "./profile-form";
 
 export const metadata: Metadata = { title: "Your profile" };
@@ -43,6 +45,12 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
         </p>
       )}
       <ProfileSettingsForm values={toProfileForm(profile)} />
+      {query.emails && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          Email settings saved.
+        </p>
+      )}
+      <EmailSettings topics={await emailSettingsOf(db, subject.userId)} />
     </>
   );
 }
