@@ -36,6 +36,9 @@ async function Account() {
           Your season stuff will live here.
         </p>
       </div>
+      <Link href="/app/profile" className="btn btn-secondary">
+        Your profile
+      </Link>
       {isAdmin && (
         <Link href="/app/admin/seasons" className="btn btn-primary">
           Manage seasons
