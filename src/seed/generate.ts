@@ -22,6 +22,7 @@ import {
   SAMPLE_WAIVER_TITLE,
 } from "./sample-waiver";
 import { generateSlots } from "@/domain/scheduler/slots";
+import { HOME_PARK } from "@/lib/site";
 
 /**
  * Demo data for local development, previews and the demo deployment.
@@ -216,6 +217,9 @@ export function generateSeed(seed = 2026) {
     slug: "mccarren-park",
     address: "Driggs Ave & Lorimer St, Brooklyn, NY",
     neighborhood: "Williamsburg / Greenpoint",
+    // The park's pin, for maps and the game-day forecast.
+    lat: String(HOME_PARK.geo.latitude),
+    lng: String(HOME_PARK.geo.longitude),
   };
   const fields = FIELD_NAMES.map((name, sortOrder) => ({
     id: id<FieldId>(),
