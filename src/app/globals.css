@@ -129,7 +129,7 @@
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display:
-    var(--font-archivo), var(--font-inter), ui-sans-serif, sans-serif;
+    var(--font-bricolage), var(--font-inter), ui-sans-serif, sans-serif;
 }
 
 @theme {
@@ -159,6 +159,8 @@
 
   --shadow-card: 0 1px 2px rgb(20 24 43 / 0.06), 0 2px 8px rgb(20 24 43 / 0.06);
   --shadow-sheet: 0 8px 32px rgb(20 24 43 / 0.16);
+  /* Hard offset, no blur: stickers and primary buttons (ADR 0002). */
+  --shadow-sticker: 3px 3px 0 var(--text);
 
   --breakpoint-sm: 30rem;
   --breakpoint-md: 48rem;
@@ -197,12 +199,76 @@
   h3 {
     font-family: var(--font-display);
     font-weight: 800;
-    font-stretch: 112%;
+    letter-spacing: -0.02em;
   }
 
   :focus-visible {
     outline: 3px solid var(--focus);
     outline-offset: 2px;
+  }
+}
+
+/*
+ * Playful primitives (ADR 0002). Colors come from tested token pairs:
+ * on-highlight on highlight, on-brand on brand, text on surface.
+ */
+@utility sticker {
+  display: inline-block;
+  rotate: -2deg;
+  border: 2px solid var(--text);
+  border-radius: 9999px;
+  background: var(--highlight);
+  color: var(--on-highlight);
+  box-shadow: var(--shadow-sticker);
+  padding: 0.25rem 0.75rem;
+  font-size: var(--text-small);
+  line-height: var(--text-small--line-height);
+  font-weight: 700;
+}
+
+/* A highlighter band behind words in a headline. Full height with
+   on-highlight text, so it is the tested highlight pair in both themes. */
+@utility swipe {
+  background: var(--highlight);
+  color: var(--on-highlight);
+  border-radius: 0.12em;
+  padding-inline: 0.12em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+@utility btn {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 2px solid var(--text);
+  border-radius: 9999px;
+  padding-inline: 1.25rem;
+  font-weight: 700;
+}
+
+@utility btn-primary {
+  background: var(--brand);
+  color: var(--on-brand);
+  box-shadow: var(--shadow-sticker);
+}
+
+@utility btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* Press feedback: transform only, and only when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  .btn {
+    /* Only translate animates (design-system.md §6); the shadow changes instantly. */
+    transition: translate var(--dur-1) var(--ease-out);
+  }
+  .btn-primary:active {
+    translate: 2px 2px;
+    box-shadow: 1px 1px 0 var(--text);
   }
 }
 
