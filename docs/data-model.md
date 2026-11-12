@@ -56,8 +56,8 @@ erDiagram
     text phone_e164
     timestamptz phone_verified_at
     enum gender "woman, man, nonbinary, self_described, undisclosed"
-    enum lineup_gender "which side of the fielding rule the player counts toward"
-    enum shirt_size
+    enum lineup_gender "woman, man: which side of the fielding rule the player counts toward"
+    enum shirt_size "xs, s, m, l, xl, xxl"
     date birth_date
     text emergency_contact_name
     text emergency_contact_phone
