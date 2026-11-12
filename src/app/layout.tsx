@@ -3,6 +3,8 @@ import { Bricolage_Grotesque, Inter } from "next/font/google";
 import Link from "next/link";
 import { Kickball } from "@/components/kickball";
 import { ThemeSwitch } from "@/components/theme-switch";
+import { env } from "@/env";
+import { isIndexable, SITE, siteOrigin } from "@/lib/site";
 import { applySavedThemeScript } from "@/lib/theme";
 import "./globals.css";
 
@@ -23,9 +25,20 @@ const bricolage = Bricolage_Grotesque({
 
 export const metadata: Metadata = {
   title: { default: "Kickball League", template: "%s · Kickball League" },
-  description:
-    "Sign up, pay, see the schedule and scores for a recreational adult kickball league.",
+  description: SITE.description,
+  // Relative canonical and share URLs resolve against this deployment.
+  metadataBase: new URL(siteOrigin(env.BETTER_AUTH_URL)),
+  openGraph: { siteName: SITE.name, type: "website", locale: "en_US" },
+  // Previews and local builds stay out of search (docs/seo-plan.md).
+  robots: isIndexable(process.env) ? undefined : { index: false },
 };
+
+const FOOTER_LINKS = [
+  { href: "/about", label: "About" },
+  { href: "/faq", label: "FAQ" },
+  { href: "/parks/mccarren-park", label: "McCarren Park" },
+  { href: "/sign-in", label: "Sign in" },
+] as const;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -53,6 +66,22 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </div>
         </header>
         <div className="flex flex-1 flex-col">{children}</div>
+        <footer className="border-t-2 border-text bg-surface">
+          <nav
+            aria-label="Site"
+            className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-4 md:px-6"
+          >
+            {FOOTER_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="inline-flex min-h-11 items-center font-bold text-text underline-offset-4 hover:underline"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </footer>
       </body>
     </html>
   );
