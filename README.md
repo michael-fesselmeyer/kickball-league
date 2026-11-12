@@ -56,6 +56,18 @@ Sign-in works by email link out of the box. Google is added when both `GOOGLE_CL
 2. Add the authorized redirect URIs `http://localhost:3000/api/auth/callback/google` and `https://kickball-league.vercel.app/api/auth/callback/google`.
 3. Put both values in `.env.local`, and in Vercel with `npx vercel env add GOOGLE_CLIENT_ID --environment production` (and the same for the secret). Values go straight from your terminal to Vercel and are never committed.
 
+### Run the database tests against a local Postgres
+
+`npm run test:db` needs a real database, but not a Neon branch. With PostgreSQL installed locally (CI uses 18, the same major version as Neon; 16 passes too), one script creates a throwaway database matching CI's and applies every migration:
+
+```bash
+scripts/setup-local-postgres.sh
+export DATABASE_URL=postgresql://ci:ci@localhost:5432/ci
+npm run test:db
+```
+
+It starts the server if it is stopped, creates the `ci` role and `ci` database only when they are missing, and runs `npm run db:migrate`, so it is safe to run again after pulling new migrations. It connects as the `postgres` superuser (through `sudo` when you are not root); set `PG_SUPERUSER_URL` to connect another way, for example to a Postgres in Docker. Nothing here is a secret: the database is local and holds only test data.
+
 ## Scripts
 
 | Command                 | What it does                                                     |
