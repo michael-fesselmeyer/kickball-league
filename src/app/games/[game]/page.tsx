@@ -6,6 +6,7 @@ import { LogoBadge } from "@/components/logo-badge";
 import { ForecastChip } from "@/components/forecast-chip";
 import { ShareButtons } from "@/components/share";
 import { GameStats } from "@/components/stats/game-stats";
+import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { publishedGame } from "@/db/queries/public-schedule";
 import type { Hex } from "@/domain/color/contrast";
@@ -63,7 +64,7 @@ export async function generateMetadata({
 export default function GamePage(props: PageProps<"/games/[game]">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:px-6">
-      <Suspense fallback={<p>Loading the game…</p>}>
+      <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>
         <Game {...props} />
       </Suspense>
     </main>

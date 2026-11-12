@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { GameCard } from "@/components/game-card";
+import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { publishedSchedule } from "@/db/queries/public-schedule";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
@@ -31,7 +32,7 @@ export default function SchedulePage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 md:px-6">
-      <Suspense fallback={<p>Loading the schedule…</p>}>
+      <Suspense fallback={<PageLoading>Loading the schedule…</PageLoading>}>
         <Schedule {...props} />
       </Suspense>
     </main>
