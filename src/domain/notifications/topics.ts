@@ -44,6 +44,11 @@ export const SETTINGS_TOPICS: readonly {
     label: "Announcements",
     hint: "News from league admins and your captain.",
   },
+  {
+    topic: "payment",
+    label: "Payment reminders",
+    hint: "7, 3 and 1 days before the deadline, until you have paid.",
+  },
 ];
 
 export type Choice = { topic: Topic; enabled: boolean };
