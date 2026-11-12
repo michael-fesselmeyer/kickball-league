@@ -85,6 +85,10 @@ async function DeleteAccount({
           <li>
             Your game RSVPs, email settings and emails waiting to be sent.
           </li>
+          <li>
+            Your sub offers for games still to come. The captain is told you
+            withdrew.
+          </li>
         </ul>
       </section>
 
@@ -98,8 +102,8 @@ async function DeleteAccount({
         </p>
         <ul className="list-disc pl-6">
           <li>
-            Your registrations and places on team rosters, so standings, scores
-            and history stay correct.
+            Your registrations, places on team rosters and past sub games, so
+            standings, scores and history stay correct.
           </li>
           <li>Your payments, for the league&apos;s accounts.</li>
           <li>

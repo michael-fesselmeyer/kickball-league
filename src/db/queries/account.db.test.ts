@@ -1,11 +1,14 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { auditLog } from "../schema/audit";
+import { field, game, slot, venue } from "../schema/game";
+import { league } from "../schema/league";
 import { account, session, user, verification } from "../schema/auth";
 import { message, notificationPreference } from "../schema/message";
 import { payment, purchase } from "../schema/money";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
+import { subClaim, subRequest } from "../schema/subs";
 import { invite, registration, rosterMembership } from "../schema/team";
 import { NOW, leagueWorld } from "../test/league-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
@@ -127,7 +130,7 @@ describe("the personal data export", () => {
   it("holds only the anonymized shell after deletion", async () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
-      await deleteAccount(db, w.teammate);
+      await deleteAccount(db, w.teammate, NOW);
       // The anonymized row still exists, so the export is the empty shell.
       const data = await personalData(db, w.teammate, NOW);
       expect(data?.account.email).toBe(deletedEmail(w.teammate));
@@ -136,12 +139,77 @@ describe("the personal data export", () => {
   });
 });
 
+/** A game between the two teams ending at `endsAt`, and a sub request from the other team. */
+async function subRequestFor(
+  db: Db,
+  w: Awaited<ReturnType<typeof leagueWorld>>,
+  endsAt: Date,
+  index: number,
+) {
+  const [lg] = await db
+    .select({ id: league.id })
+    .from(league)
+    .innerJoin(season, eq(season.leagueId, league.id))
+    .where(eq(season.id, w.season.id));
+  if (!lg) throw new Error("no league");
+  const [v] = await db
+    .insert(venue)
+    .values({ leagueId: lg.id, name: `Park ${index}`, slug: `park-${index}` })
+    .returning({ id: venue.id });
+  if (!v) throw new Error("no venue");
+  const [f] = await db
+    .insert(field)
+    .values({ venueId: v.id, name: "Field 1" })
+    .returning({ id: field.id });
+  if (!f) throw new Error("no field");
+  const [s] = await db
+    .insert(slot)
+    .values({
+      seasonId: w.season.id,
+      fieldId: f.id,
+      startsAt: new Date(endsAt.getTime() - 3_600_000),
+      endsAt,
+      timeIndex: 0,
+    })
+    .returning({ id: slot.id });
+  if (!s) throw new Error("no slot");
+  const [g] = await db
+    .insert(game)
+    .values({
+      seasonId: w.season.id,
+      teamAId: w.teamSeasonId,
+      teamBId: w.otherTeamSeasonId,
+      slotId: s.id,
+    })
+    .returning({ id: game.id });
+  if (!g) throw new Error("no game");
+  const [request] = await db
+    .insert(subRequest)
+    .values({
+      gameId: g.id,
+      teamSeasonId: w.otherTeamSeasonId,
+      requestedBy: w.otherCaptain,
+      needed: 1,
+      status: "filled",
+      closesAt: new Date(endsAt.getTime() - 3_600_000),
+    })
+    .returning({ id: subRequest.id });
+  if (!request) throw new Error("no request");
+  await db.insert(subClaim).values({
+    subRequestId: request.id,
+    userId: w.teammate,
+    status: "approved",
+    lineupGender: "man",
+  });
+  return request.id;
+}
+
 describe("deleting an account", () => {
   it("anonymizes the person and removes their personal data", async () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
       const email = await withAccountData(db, w);
-      expect(await deleteAccount(db, w.teammate)).toEqual({
+      expect(await deleteAccount(db, w.teammate, NOW)).toEqual({
         ok: true,
         value: undefined,
       });
@@ -195,7 +263,7 @@ describe("deleting an account", () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
       await withAccountData(db, w);
-      await deleteAccount(db, w.teammate);
+      await deleteAccount(db, w.teammate, NOW);
 
       const [reg] = await db
         .select({ status: registration.status })
@@ -236,10 +304,50 @@ describe("deleting an account", () => {
     });
   });
 
+  it("withdraws sub claims for games to come and keeps past ones without the lineup gender", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await leagueWorld(db);
+      const DAY = 86_400_000;
+      const upcoming = await subRequestFor(
+        db,
+        w,
+        new Date(NOW.getTime() + 3 * DAY),
+        1,
+      );
+      const past = await subRequestFor(db, w, new Date(NOW.getTime() - DAY), 2);
+      const before = await personalData(db, w.teammate, NOW);
+      expect(before?.subClaims).toHaveLength(2);
+      expect(await deleteAccount(db, w.teammate, NOW)).toEqual({
+        ok: true,
+        value: undefined,
+      });
+      const claims = await db
+        .select({
+          requestId: subClaim.subRequestId,
+          status: subClaim.status,
+          lineupGender: subClaim.lineupGender,
+        })
+        .from(subClaim)
+        .where(eq(subClaim.userId, w.teammate));
+      expect(claims).toEqual(
+        expect.arrayContaining([
+          { requestId: upcoming, status: "withdrawn", lineupGender: null },
+          { requestId: past, status: "approved", lineupGender: null },
+        ]),
+      );
+      // The upcoming request takes claims again.
+      const [request] = await db
+        .select({ status: subRequest.status })
+        .from(subRequest)
+        .where(eq(subRequest.id, upcoming));
+      expect(request?.status).toBe("open");
+    });
+  });
+
   it("writes an audit row that names no personal data", async () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
-      await deleteAccount(db, w.teammate);
+      await deleteAccount(db, w.teammate, NOW);
       const rows = await db
         .select({
           actorId: auditLog.actorId,
@@ -267,7 +375,7 @@ describe("deleting an account", () => {
         team: "Kick Bottom",
         season: "Spring 2027",
       });
-      expect(await deleteAccount(db, w.captain)).toEqual({
+      expect(await deleteAccount(db, w.captain, NOW)).toEqual({
         ok: false,
         error: "captain",
       });
@@ -298,7 +406,7 @@ describe("deleting an account", () => {
         .update(profile)
         .set({ globalRole: "owner" })
         .where(eq(profile.userId, w.admin));
-      expect(await deleteAccount(db, w.admin)).toEqual({
+      expect(await deleteAccount(db, w.admin, NOW)).toEqual({
         ok: false,
         error: "last_owner",
       });

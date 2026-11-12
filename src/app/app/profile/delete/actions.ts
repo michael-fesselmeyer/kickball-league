@@ -47,7 +47,7 @@ export async function deleteAccountAction(form: FormData): Promise<void> {
   if (typed !== me.email.toLowerCase()) redirect(`${PAGE}?error=confirm`);
 
   const result = await txDb.transaction((tx) =>
-    deleteAccount(tx, subject.userId),
+    deleteAccount(tx, subject.userId, new Date()),
   );
   if (!result.ok) redirect(`${PAGE}?error=${result.error}`);
   // The sessions are gone from the database; clear the browser's cookies too.

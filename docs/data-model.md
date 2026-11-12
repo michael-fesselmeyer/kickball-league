@@ -998,9 +998,9 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `notification_preference` and `message` rows; the address on any `invite` (open ones are revoked).
+- **Removed:** the `profile` row; every `session` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `notification_preference` and `message` rows; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
-- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, announcements and the audit log.
+- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, announcements and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
 
 Every deletion writes an `account.delete` audit row with no personal data in it. The person's own export (`personalData`) returns all of the above as JSON, without session tokens, sign-in tokens or provider tokens.
