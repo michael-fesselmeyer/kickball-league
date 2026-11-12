@@ -26,10 +26,13 @@ export function AnnouncementForm({
   action,
   audience,
   limitNote,
+  defaults,
 }: {
   action: (form: FormData) => Promise<void>;
   audience?: { value: string; label: string }[];
   limitNote: string;
+  /** Starting text to edit, such as a drafted recap. */
+  defaults?: { subject: string; body: string };
 }) {
   return (
     <form action={action} className="flex flex-col gap-4">
@@ -51,6 +54,7 @@ export function AnnouncementForm({
           name="subject"
           required
           maxLength={SUBJECT_MAX}
+          defaultValue={defaults?.subject}
           className={field}
         />
       </label>
@@ -60,7 +64,8 @@ export function AnnouncementForm({
           name="body"
           required
           maxLength={BODY_MAX}
-          rows={6}
+          rows={defaults ? 18 : 6}
+          defaultValue={defaults?.body}
           aria-describedby="announce-hint"
           className={field}
         />
