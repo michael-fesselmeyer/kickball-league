@@ -4,6 +4,7 @@ export * from "./game";
 export * from "./league";
 export * from "./message";
 export * from "./money";
+export * from "./playoffs";
 export * from "./profile";
 export * from "./schedule";
 export * from "./season";
