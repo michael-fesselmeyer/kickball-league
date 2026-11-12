@@ -2,7 +2,8 @@
  * npm run seed: replaces the demo league with fresh, deterministic seed data.
  *
  * Only seed-owned rows are ever deleted: the league with the demo slug and
- * users on the reserved seed email domain. Real accounts on the same
+ * users on the reserved seed email domain, plus the four demo personas
+ * (src/seed/demo-personas.ts). Real accounts on the same
  * database are never touched. Everything runs in one transaction.
  */
 import { existsSync } from "node:fs";
@@ -15,6 +16,7 @@ import {
   SEED_EMAIL_DOMAIN,
   SEED_LEAGUE_SLUG,
 } from "../src/seed/generate";
+import { addDemoPersonas, removeDemoPersonas } from "../src/seed/demo-personas";
 import { canSeed } from "../src/seed/guard";
 import { seedPublishedSchedule } from "../src/seed/published-schedule";
 
@@ -183,6 +185,7 @@ async function main(): Promise<void> {
       }
       // Seed users only (profiles, sessions and accounts cascade).
       await tx.delete(user).where(like(user.email, `%@${SEED_EMAIL_DOMAIN}`));
+      await removeDemoPersonas(tx);
 
       await tx.insert(league).values(data.league);
       await tx.insert(user).values(data.users);
@@ -203,6 +206,7 @@ async function main(): Promise<void> {
       await tx.insert(permitWindow).values(data.permitWindows);
       await tx.insert(slot).values(data.nextSlots);
       await tx.insert(teamConstraint).values(data.teamConstraints);
+      await addDemoPersonas(tx, data);
     });
     const played = data.games.filter((g) => g.status === "final").length;
     console.info(
