@@ -50,7 +50,16 @@ const WAYS_IN = [
   {
     title: "Come solo",
     body: "Sign up as a free agent and we'll place you on a team. Half the fun is the new people.",
+    href: "/free-agents",
+    label: "How solo signup works",
   },
+] as const;
+
+/** Search landing pages (docs/seo-plan.md, section 4). */
+const NEW_HERE = [
+  { href: "/news/how-to-play-kickball", label: "How to play kickball" },
+  { href: "/nyc-kickball-league", label: "Playing from elsewhere in NYC" },
+  { href: "/free-agents", label: "Joining without a team" },
 ] as const;
 
 export default function Home() {
@@ -134,6 +143,14 @@ export default function Home() {
               </span>
               <h3 className="text-h3">{way.title}</h3>
               <p>{way.body}</p>
+              {"href" in way && (
+                <Link
+                  href={way.href}
+                  className="font-bold text-brand underline underline-offset-4"
+                >
+                  {way.label}
+                </Link>
+              )}
             </li>
           ))}
         </ol>
@@ -159,6 +176,24 @@ export default function Home() {
             More about the league
           </Link>
         </p>
+      </section>
+
+      <section aria-labelledby="new-here" className="flex flex-col gap-4">
+        <h2 id="new-here" className="text-h2">
+          New to kickball, or to Brooklyn?
+        </h2>
+        <ul className="flex flex-col gap-2">
+          {NEW_HERE.map((link) => (
+            <li key={link.href}>
+              <Link
+                href={link.href}
+                className="inline-flex min-h-11 items-center font-bold text-brand underline underline-offset-4"
+              >
+                {link.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </section>
     </main>
   );

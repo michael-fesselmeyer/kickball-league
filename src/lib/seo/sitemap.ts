@@ -11,6 +11,13 @@ export const CONTENT_PAGES = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/parks/mccarren-park", changeFrequency: "monthly", priority: 0.8 },
   { path: "/faq", changeFrequency: "monthly", priority: 0.7 },
+  { path: "/nyc-kickball-league", changeFrequency: "monthly", priority: 0.7 },
+  { path: "/free-agents", changeFrequency: "monthly", priority: 0.7 },
+  {
+    path: "/news/how-to-play-kickball",
+    changeFrequency: "monthly",
+    priority: 0.6,
+  },
   { path: "/about", changeFrequency: "monthly", priority: 0.6 },
   { path: "/records", changeFrequency: "weekly", priority: 0.5 },
   { path: "/history", changeFrequency: "weekly", priority: 0.5 },
