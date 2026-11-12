@@ -70,6 +70,9 @@ async function Announcements({
         <p className="text-text-muted">
           Email everyone registered for {season.name}, or one team.
         </p>
+        <Link href={`/app/admin/seasons/${slug}/recap`} className="underline">
+          Draft this week&apos;s recap
+        </Link>
       </header>
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">

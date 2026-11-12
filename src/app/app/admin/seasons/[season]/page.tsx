@@ -80,6 +80,9 @@ async function Season({
           >
             Announcements
           </Link>
+          <Link href={`/app/admin/seasons/${slug}/recap`} className="underline">
+            Weekly recap
+          </Link>
         </p>
       </header>
       {(query.created || query.saved) && (
