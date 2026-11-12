@@ -50,6 +50,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - Public schedule, team and game pages. Anyone can see the season schedule (filter by team), each team's record, next game, results and roster (first name and last initial), and each game's time, field and score. Pages read only the published schedule version, never a draft.
 - Team calendar feeds: every team has an `.ics` feed that Apple Calendar, Google Calendar and Outlook can subscribe to. Moved or rained-out games update in place.
 - Home, About, FAQ and a park page, with a generated sitemap, robots file and structured data for the league, teams and games.
+- Sharing to WhatsApp: every game and team has a generated share image (1200 × 630, in the league's colors) for link previews, with the score on a final. One tap on a game or team page opens WhatsApp with a ready-made message and the link; a second button opens the phone's share sheet or copies the message. Admins can copy a rain-out notice, with every makeup, and any sent announcement as one message for the group chat.
 
 **Demo mode**
 
