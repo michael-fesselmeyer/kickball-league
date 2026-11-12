@@ -248,6 +248,7 @@ applyEdit(input, schedule, edit):
 ```
 
 - The screen shows violations and the before-and-after metrics before the admin saves.
+- On the desktop schedule board the same `applyEdit` runs in the browser for every slot the held game is aimed at, so the preview is the check the server repeats on save. A board session can stack several moves and swaps; the server applies them again in order and saves one draft.
 - Hard violations block publishing but not saving a draft, so an admin can make a two-step change that is briefly invalid.
 - An edited game is pinned by default. "Re-optimize around my changes" runs Stage C2 with pins respected.
 - Every save is a new draft `schedule_version`; publishing shows a diff of which games moved and which teams are affected.
