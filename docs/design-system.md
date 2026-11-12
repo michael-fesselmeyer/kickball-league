@@ -41,8 +41,8 @@ Tokens are semantic. Components never use a raw color. A league re-brands by cha
 | `--on-accent` | `#FFFFFF` | Text on accent | 6.5:1 |
 | `--highlight` | `#F5B301` | The "golden" moments: winners, team of the week, badges | Background only |
 | `--on-highlight` | `#14182B` | Text on highlight | 9.5:1 |
-| `--success` | `#1B7F4B` | Paid, confirmed, "in" | 4.7:1 on `--bg` |
-| `--warning` | `#A15C00` | Due soon, weather watch | 4.9:1 on `--bg` |
+| `--success` | `#1A7B49` | Paid, confirmed, "in" | 5.0:1 on `--bg`, 4.5:1 on `--surface-2` |
+| `--warning` | `#9F5B00` | Due soon, weather watch | 5.0:1 on `--bg`, 4.5:1 on `--surface-2` |
 | `--danger` | `#B3261E` | Errors, forfeits, rain-out | 6.2:1 on `--bg` |
 | `--info` | `#1F5FBF` | Neutral notices | 5.7:1 on `--bg` |
 | `--focus` | `#1F3A8A` | Focus ring, 3px with a 2px offset | 9.8:1 on `--bg` |
@@ -57,7 +57,7 @@ Tokens are semantic. Components never use a raw color. A league re-brands by cha
 | `--text` | `#F3EFE6` | 16.3:1 on `--bg`, 14.9:1 on `--surface` |
 | `--text-muted` | `#A9B0C7` | 8.6:1 on `--bg`, 6.9:1 on `--surface-2` |
 | `--border` | `#2E3757` | Decorative |
-| `--border-strong` | `#5B6690` | 3.3:1 on `--bg` |
+| `--border-strong` | `#656F97` | 3.8:1 on `--bg`, 3.0:1 on `--surface-2` |
 | `--brand` | `#8FA8FF` | 8.2:1 on `--bg` |
 | `--on-brand` | `#0E1220` | 8.2:1 |
 | `--accent` | `#FF7A6E` | 7.3:1 on `--bg` |
@@ -71,7 +71,7 @@ Tokens are semantic. Components never use a raw color. A league re-brands by cha
 | `--focus` | `#FFC93C` | 12.1:1 against `--bg` |
 
 Rules:
-- Body text meets 4.5:1 and large text and control outlines meet 3:1, which is WCAG 2.2 AA. Every pair above passes.
+- Body text meets 4.5:1 and large text and control outlines meet 3:1, which is WCAG 2.2 AA, on every background (`--bg`, `--surface`, `--surface-2`). A unit test (`src/design/tokens.test.ts`) checks every pair in both themes. It caught three values that passed on `--bg` but not on `--surface-2`; `--success`, `--warning` and dark `--border-strong` were adjusted slightly.
 - The theme follows the system setting, with a manual switch stored per device.
 - Color never carries meaning alone. A paid status is a green dot **and** the word "Paid"; a win is bold **and** marked "W".
 - Team colors are chosen by captains and are never used for text. They appear as a badge fill or a 4px stripe, and the badge picks dark or light initials by computed contrast.
