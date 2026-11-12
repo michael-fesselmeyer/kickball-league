@@ -35,7 +35,7 @@ function neonClients(url: string): { db: Database; txDb: Database } {
 /**
  * A plain Postgres on this machine (local development, and the end-to-end
  * tests in CI) has no Neon proxy, so both clients share one node-postgres
- * pool (docs/adr/0006-end-to-end-tests-on-local-services.md).
+ * pool (docs/adr/0007-end-to-end-tests-on-local-services.md).
  */
 function localClients(url: string): { db: Database; txDb: Database } {
   const local = drizzleNodePostgres({

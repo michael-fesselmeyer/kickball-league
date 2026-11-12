@@ -1,4 +1,4 @@
-# ADR 0006: End-to-end tests on a local Postgres and Stripe's mock server
+# ADR 0007: End-to-end tests on a local Postgres and Stripe's mock server
 
 - Status: accepted
 - Date: 2026-11-12
