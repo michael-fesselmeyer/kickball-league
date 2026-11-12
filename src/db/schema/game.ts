@@ -9,6 +9,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import type {
@@ -17,6 +18,7 @@ import type {
   LeagueId,
   PermitWindowId,
   ScoreReportId,
+  RefereeAssignmentId,
   ScoreResponseId,
   SeasonId,
   SlotId,
@@ -270,6 +272,46 @@ export const scoreResponse = pgTable(
     respondedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("score_response_once").on(t.scoreReportId, t.teamSeasonId)],
+);
+
+export const refereeAssignmentStatus = pgEnum("referee_assignment_status", [
+  "offered",
+  "accepted",
+  "declined",
+  "completed",
+  "no_show",
+  "cancelled",
+]);
+
+/**
+ * Who referees a game (docs/data-model.md, section 2.6). The MVP uses only
+ * assignments an admin creates as accepted; offers, availability and pay
+ * wait for the owners' approval. One live assignment per game.
+ */
+export const refereeAssignment = pgTable(
+  "referee_assignment",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<RefereeAssignmentId>(),
+    gameId: uuid()
+      .notNull()
+      .$type<GameId>()
+      .references(() => game.id, { onDelete: "cascade" }),
+    userId: uuid()
+      .notNull()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "restrict" }),
+    status: refereeAssignmentStatus().notNull().default("accepted"),
+    offeredAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    respondedAt: timestamp({ withTimezone: true }),
+    feeCents: integer(),
+    ...audit(),
+  },
+  (t) => [
+    uniqueIndex("referee_assignment_one_live")
+      .on(t.gameId)
+      .where(sql`${t.status} in ('offered', 'accepted')`),
+    index("referee_assignment_user_idx").on(t.userId, t.status),
+  ],
 );
 
 export type Venue = typeof venue.$inferSelect;
