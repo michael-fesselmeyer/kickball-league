@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { openTeamInvite, rosterBoard } from "@/db/queries/invites";
+import { myRsvps, type TeamRsvps, teamRsvps } from "@/db/queries/rsvps";
 import { teamGames } from "@/db/queries/scores";
 import {
   myRegistration,
@@ -14,7 +15,11 @@ import { can } from "@/domain/authz/permissions";
 import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { RECORD_PAYMENT_MESSAGES } from "../record-payment";
-import { createInviteAction, recordTeamPaymentAction } from "./actions";
+import {
+  createInviteAction,
+  recordTeamPaymentAction,
+  rsvpAction,
+} from "./actions";
 import { InviteLink } from "./invite-link";
 
 export const metadata: Metadata = { title: "Your team" };
@@ -28,6 +33,72 @@ export default function TeamPage(
         <Team {...props} />
       </Suspense>
     </main>
+  );
+}
+
+const LEVEL_STYLE = {
+  full: "text-success",
+  short: "text-text",
+  check: "text-warning",
+  forfeit: "text-danger",
+} as const;
+
+/** One game's answer buttons, the team's counts and the fielding check. */
+function Rsvp({
+  action,
+  mine,
+  team,
+}: {
+  action: (form: FormData) => Promise<void>;
+  mine: "in" | "out" | "maybe" | null;
+  team: TeamRsvps | undefined;
+}) {
+  return (
+    <div className="flex w-full flex-col gap-1">
+      <form action={action} className="flex flex-wrap items-center gap-2">
+        <span className="text-small text-text-muted">You:</span>
+        {(
+          [
+            ["in", "In"],
+            ["maybe", "Maybe"],
+            ["out", "Out"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="submit"
+            name="status"
+            value={value}
+            aria-pressed={mine === value}
+            className={`rounded-full border px-3 py-0.5 text-small ${
+              mine === value
+                ? "border-text bg-text text-surface"
+                : "border-border"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </form>
+      {team && team.in === 0 ? (
+        <p className="text-small text-text-muted">
+          Nobody has said they&apos;re in yet. {team.maybe} maybe · {team.out}{" "}
+          out · {team.noAnswer} no answer.
+        </p>
+      ) : (
+        team && (
+          <p className="text-small">
+            <span className="text-text-muted">
+              {team.in} in · {team.maybe} maybe · {team.out} out ·{" "}
+              {team.noAnswer} no answer.{" "}
+            </span>
+            <span className={LEVEL_STYLE[team.fielding.level]}>
+              {team.fielding.message}
+            </span>
+          </p>
+        )
+      )}
+    </div>
   );
 }
 
@@ -77,6 +148,18 @@ async function Team({
   const board = await rosterBoard(db, teamSeasonId);
   const games = await teamGames(db, teamSeasonId);
   const now = new Date();
+  // Answers are for games still to come.
+  const upcoming = games
+    .filter(
+      (g) =>
+        g.startsAt !== null &&
+        g.startsAt > now &&
+        g.status !== "final" &&
+        g.status !== "forfeit",
+    )
+    .map((g) => g.id);
+  const rsvps = await teamRsvps(db, teamSeasonId, upcoming);
+  const mineRsvps = await myRsvps(db, subject.userId, upcoming);
   const day = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -245,6 +328,7 @@ async function Team({
               return (
                 <li
                   key={g.id}
+                  id={`game-${g.id}`}
                   className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2"
                 >
                   <span>
@@ -266,6 +350,13 @@ async function Team({
                       </Link>
                     )}
                   </span>
+                  {rsvps.has(g.id) && (
+                    <Rsvp
+                      action={rsvpAction.bind(null, slug, g.id)}
+                      mine={mineRsvps.get(g.id) ?? null}
+                      team={rsvps.get(g.id)}
+                    />
+                  )}
                 </li>
               );
             })}

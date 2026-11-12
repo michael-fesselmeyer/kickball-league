@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { createTeamInvite } from "@/db/queries/invites";
@@ -10,6 +11,8 @@ import {
 import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { requirePermission } from "@/lib/auth/permission";
+import { setRsvp } from "@/db/queries/rsvps";
+import { type GameId, parseId } from "@/domain/ids";
 import { recordPaymentFor } from "../record-payment";
 
 export type InviteState = { token?: string; expiresAt?: string };
@@ -59,4 +62,34 @@ export async function recordTeamPaymentAction(
   const result = await recordPaymentFor(subject, slug, registrationId, form);
   if (!result.ok) redirect(`${page}?error=${result.error}`);
   redirect(`${page}?notice=payment_recorded`);
+}
+
+/** A player answers in, out or maybe for one of their team's games. */
+export async function rsvpAction(
+  slug: string,
+  rawGameId: string,
+  form: FormData,
+): Promise<void> {
+  const page = `/app/seasons/${slug}/team`;
+  const subject = await requirePermission("registration.join", { next: page });
+  const league = await currentLeague(db);
+  const season = league
+    ? await seasonForRegistration(db, league.id, slug)
+    : null;
+  const gameId = parseId<GameId>(rawGameId);
+  const status = form.get("status");
+  if (!season || !gameId) notFound();
+  if (status !== "in" && status !== "out" && status !== "maybe")
+    redirect(`${page}?error=invalid`);
+  const mine = await myRegistration(db, season.id, subject.userId);
+  if (!mine?.team) notFound();
+  const result = await setRsvp(db, {
+    gameId,
+    userId: subject.userId,
+    teamSeasonId: mine.team.teamSeasonId,
+    status,
+  });
+  if (!result.ok) redirect(`${page}?error=${result.error}#game-${gameId}`);
+  // Stay on the page, scrolled where the player tapped, with fresh counts.
+  refresh();
 }

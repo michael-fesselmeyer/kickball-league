@@ -1,14 +1,15 @@
 import { and, eq } from "drizzle-orm";
 import { type Subject, VISITOR } from "@/domain/authz/permissions";
 import type { UserId } from "@/domain/ids";
+import { refereeAssignment } from "../schema/game";
 import { profile } from "../schema/profile";
 import { registration, rosterMembership } from "../schema/team";
 import type { Db } from "./schedule";
 
 /**
  * Who a person is for permission checks: their global role and active roster
- * roles. Referee assignments and sponsor memberships join this when those
- * tables arrive. A missing user is treated as a visitor.
+ * roles, and the games they referee. Sponsor memberships join this when that
+ * table arrives. A missing user is treated as a visitor.
  */
 export async function loadSubject(
   db: Db,
@@ -37,10 +38,22 @@ export async function loadSubject(
       ),
     )
     .orderBy(rosterMembership.teamSeasonId);
+  const refereeing = await db
+    .select({ gameId: refereeAssignment.gameId })
+    .from(refereeAssignment)
+    .where(
+      and(
+        eq(refereeAssignment.userId, userId),
+        eq(refereeAssignment.status, "accepted"),
+      ),
+    )
+    .orderBy(refereeAssignment.gameId);
   return {
     ...VISITOR,
     userId,
     globalRole: person.globalRole,
     roster,
+    isReferee: refereeing.length > 0,
+    refereeGameIds: refereeing.map((r) => r.gameId),
   };
 }

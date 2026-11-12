@@ -1,5 +1,4 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import type { UserId } from "@/domain/ids";
 import type { auth as Auth } from "./index";
 import { createProfileForUser } from "./profile";
 
@@ -50,9 +49,16 @@ describe("auth instance", () => {
   it("creates a profile for the new user after Better Auth creates them", async () => {
     const after = auth.options.databaseHooks?.user?.create?.after;
     expect(after).toBeTypeOf("function");
-    const user = { id: "8a3c1f9e-0b1d-4c2e-9f3a-5d6e7f8a9b0c" as UserId };
-    // The hook only reads the user's id.
-    await after(user as never);
+    if (!after) throw new Error("no user.create.after hook");
+    const user: Parameters<typeof after>[0] = {
+      id: "8a3c1f9e-0b1d-4c2e-9f3a-5d6e7f8a9b0c",
+      email: "new@example.test",
+      emailVerified: false,
+      name: "New Player",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    await after(user);
     expect(createProfileForUser).toHaveBeenCalledWith(
       expect.anything(),
       user.id,

@@ -219,8 +219,11 @@ async function Score({
           </p>
           <p className="text-h3">{shown(latest)}</p>
           <p className="text-small text-text-muted">
-            Final when the other team confirms, or on {when(state.finalAt)} if
-            nobody disputes it.
+            Final when{" "}
+            {latest.role === "referee"
+              ? "either captain confirms"
+              : "the other team confirms"}
+            , or on {when(state.finalAt)} if nobody disputes it.
           </p>
           {mayAnswer && (
             <form

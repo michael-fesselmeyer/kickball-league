@@ -4,9 +4,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { gamesToReferee } from "@/db/queries/referees";
 import { openSeasons } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
+import { parseId, type UserId } from "@/domain/ids";
 import { auth } from "@/lib/auth";
 import { currentSubject } from "@/lib/auth/permission";
 import { signOut } from "./actions";
@@ -29,9 +31,28 @@ async function Account() {
   if (!session) redirect("/sign-in?next=/app");
 
   const { name, email } = session.user;
-  const isAdmin = can(await currentSubject(), "season.manage", {});
+  const subject = await currentSubject();
+  const isAdmin = can(subject, "season.manage", {});
   const league = await currentLeague(db);
-  const open = league ? await openSeasons(db, league.id, new Date()) : [];
+  const now = new Date();
+  const open = league ? await openSeasons(db, league.id, now) : [];
+  // Games this person referees that are not final yet.
+  const userId = parseId<UserId>(subject.userId);
+  const refereeing =
+    userId && subject.isReferee
+      ? (await gamesToReferee(db, userId)).filter(
+          (g) => g.status !== "final" && g.status !== "forfeit",
+        )
+      : [];
+  const when = (d: Date) =>
+    new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: league?.timeZone ?? "America/New_York",
+    }).format(d);
   return (
     <>
       <div className="flex flex-col gap-1">
@@ -41,6 +62,36 @@ async function Account() {
           Your season stuff will live here.
         </p>
       </div>
+      {refereeing.length > 0 && (
+        <section aria-labelledby="refereeing" className="flex flex-col gap-2">
+          <h2 id="refereeing" className="text-h3">
+            Games you&apos;re refereeing
+          </h2>
+          <ul className="flex flex-col">
+            {refereeing.map((g) => (
+              <li
+                key={g.id}
+                className="flex items-center justify-between gap-2 border-t border-border py-2"
+              >
+                <span>
+                  {g.teamAName} vs {g.teamBName}
+                  <span className="block text-small text-text-muted">
+                    {when(g.startsAt)} · {g.fieldName}
+                  </span>
+                </span>
+                {g.startsAt <= now && (
+                  <Link
+                    href={`/app/games/${g.id}/score`}
+                    className="btn btn-primary"
+                  >
+                    Score
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {open.map((s) => (
         <Link
           key={s.slug}
