@@ -43,3 +43,9 @@ next-env.d.ts
 
 # League material kept private until the league agrees to publish it
 docs/BKC_Rulebook_2023.pdf
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
