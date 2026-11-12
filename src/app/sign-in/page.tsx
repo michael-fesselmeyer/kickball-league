@@ -9,9 +9,10 @@ export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-4 py-12">
       <div className="flex flex-col gap-2">
-        <h1 className="text-h1">Sign in</h1>
+        <h1 className="text-h1">Let&apos;s get you in</h1>
         <p>
-          No password needed. We&apos;ll email you a link that signs you in.
+          No password to forget. Pop in your email and we&apos;ll send you a
+          link that signs you in.
         </p>
       </div>
       {/* The destination comes from the request, so it renders at request time. */}

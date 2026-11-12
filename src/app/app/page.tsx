@@ -26,14 +26,14 @@ async function Account() {
   return (
     <>
       <div className="flex flex-col gap-1">
-        <h1 className="text-h1">You&apos;re signed in</h1>
-        <p className="text-text-muted">{name || email}</p>
+        <h1 className="text-h1">You&apos;re in!</h1>
+        <p className="text-text-muted">
+          Signed in as <strong className="text-text">{name || email}</strong>.
+          Your season stuff will live here.
+        </p>
       </div>
       <form action={signOut}>
-        <button
-          type="submit"
-          className="min-h-11 rounded-input border border-border-strong bg-surface px-4 py-2 font-medium text-text"
-        >
+        <button type="submit" className="btn btn-secondary">
           Sign out
         </button>
       </form>
