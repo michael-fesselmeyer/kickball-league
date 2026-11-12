@@ -28,3 +28,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run test:coverage
       - run: npm run build
+        env:
+          # Placeholders that pass validation (src/lib/env.ts). The build only
+          # checks their shape; nothing connects to them. Real values live in Vercel.
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+          BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
+          BETTER_AUTH_URL: http://localhost:3000
