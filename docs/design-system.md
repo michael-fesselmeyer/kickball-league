@@ -102,7 +102,7 @@ Fluid between a 360px and a 1280px viewport using `clamp()`. Sizes in rem.
 | `small` | 0.875 | 0.875 | 1.45 | Captions, table cells |
 | `micro` | 0.75 | 0.75 | 1.4 | Labels in uppercase with letter spacing; never for sentences |
 
-- Display and headings: Bricolage Grotesque at weight 800, slightly tight letter spacing. Scores: Bricolage at width 75 with tabular numerals.
+- Display and headings: Bricolage Grotesque at weight 800, slightly tight letter spacing. Scores: Bricolage at width 75 with tabular numerals. Only the weight axis loads today; the width axis is added with the first scoreboard, so no page pays for it before it is used (fonts are budgeted at 120 kB).
 - Line length is capped at about 70 characters for prose.
 - Text can be zoomed to 200% without loss of content, and layouts reflow at a 320px width.
 
@@ -199,16 +199,16 @@ Measured at the 75th percentile of real users on phones, and enforced in CI with
 | Lighthouse performance, public pages | ≥ 95 | — |
 | Lighthouse accessibility, all pages | 100 | — |
 
-JavaScript budgets are compressed sizes for the first load of a route. The framework's shared runtime is roughly 100 kB of that and is outside our control, so the second column is the part we own.
+JavaScript budgets are compressed sizes for the first load of a route. The framework's shared runtime (React, the App Router and link prefetching) is outside our control. The original estimate of about 100 kB was too low: Lighthouse measured 140 kB on the home page in Next.js 16.4, with almost no code of our own (updated 2026-11-12). Totals are that 140 kB plus the second column, which is the part we own and is unchanged.
 
 | Route group | Total first-load JS | Of which route-specific |
 |---|---|---|
-| Marketing and content (`/`, `/rules`, `/faq`, parks, news) | ≤ 130 kB | ≤ 25 kB |
-| Public data (schedule, standings, team, game) | ≤ 150 kB | ≤ 45 kB |
-| Signed-in player and captain screens | ≤ 180 kB | ≤ 75 kB |
-| Score entry | ≤ 150 kB | ≤ 45 kB |
-| Admin, except the schedule board | ≤ 200 kB | ≤ 95 kB |
-| Admin schedule board (lazy-loaded) | ≤ 260 kB | ≤ 155 kB |
+| Marketing and content (`/`, `/rules`, `/faq`, parks, news) | ≤ 165 kB | ≤ 25 kB |
+| Public data (schedule, standings, team, game) | ≤ 185 kB | ≤ 45 kB |
+| Signed-in player and captain screens | ≤ 215 kB | ≤ 75 kB |
+| Score entry | ≤ 185 kB | ≤ 45 kB |
+| Admin, except the schedule board | ≤ 235 kB | ≤ 95 kB |
+| Admin schedule board (lazy-loaded) | ≤ 295 kB | ≤ 155 kB |
 
 Other budgets: fonts ≤ 120 kB in total (two variable files, Latin subset); the home hero image ≤ 120 kB at phone size, served as AVIF or WebP with explicit dimensions; no third-party scripts on public pages except analytics.
 
