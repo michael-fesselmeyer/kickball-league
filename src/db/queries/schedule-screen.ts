@@ -13,8 +13,10 @@ export async function seasonBySlug(db: Db, slug: string) {
   const [found] = await db
     .select({
       id: season.id,
+      leagueId: season.leagueId,
       name: season.name,
       slug: season.slug,
+      startsOn: season.startsOn,
       timeZone: league.timezone,
     })
     .from(season)
