@@ -199,6 +199,8 @@ Measured at the 75th percentile of real users on phones, and enforced in CI with
 | Lighthouse performance, public pages | ≥ 95 | — |
 | Lighthouse accessibility, all pages | 100 | — |
 
+CI runs Lighthouse three times per page and takes the median (`lighthouserc.json`). Home, sign-in, the content pages and the records page must meet every budget. The public schedule, standings and team pages must meet the accessibility, layout-shift, blocking-time and JavaScript budgets; their Largest Contentful Paint and performance score are reported as warnings for now. Those pages read the database on every request and stream their content in after the first paint, so in Lighthouse's simulation the main content waits behind the JavaScript. They pass when they are prerendered and cached as planned in [architecture.md](architecture.md#3-rendering-strategy-by-route), and the warnings become errors again then. Their loading states hold a screen's height, so the footer never jumps when the content arrives.
+
 JavaScript budgets are compressed sizes for the first load of a route. The framework's shared runtime (React, the App Router and link prefetching) is outside our control. The original estimate of about 100 kB was too low: Lighthouse measured 140 kB on the home page in Next.js 16.4, with almost no code of our own (updated 2026-11-12). Totals are that 140 kB plus the second column, which is the part we own and is unchanged.
 
 | Route group | Total first-load JS | Of which route-specific |
