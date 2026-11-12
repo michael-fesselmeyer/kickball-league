@@ -4,8 +4,9 @@ import { seededRandom, type Random } from "../random";
 import { measure } from "./measure";
 import { constructPlacement, placementCost } from "./placement";
 import { assignRoundsToDates, buildRounds } from "./rounds";
-import { DEFAULT_WEIGHTS, type SchedulerInput, type Slot } from "./types";
+import { DEFAULT_WEIGHTS, type SchedulerInput } from "./types";
 import { validate } from "./validate";
+import { arbitraryLeague } from "./league.fixture";
 import { slot, SUNDAYS, workedExample } from "./worked-example.fixture";
 
 const inOrder: Random = { ...seededRandom(0), shuffle: (items) => [...items] };
@@ -113,58 +114,7 @@ describe("constructPlacement on the worked example", () => {
   });
 });
 
-/** Random leagues: fields × times regular slots on each date. */
-const league = fc
-  .record({
-    teams: fc.integer({ min: 4, max: 12 }),
-    fields: fc.integer({ min: 1, max: 3 }),
-    times: fc.integer({ min: 2, max: 4 }),
-    dates: fc.integer({ min: 4, max: 10 }),
-    gamesPerTeamPerDay: fc.constantFrom(1 as const, 2 as const),
-    reservePerDay: fc.integer({ min: 0, max: 2 }),
-    unavailable: fc.array(
-      fc.record({
-        team: fc.nat(),
-        date: fc.option(fc.nat(), { nil: undefined }),
-        time: fc.option(fc.nat(), { nil: undefined }),
-      }),
-      { maxLength: 4 },
-    ),
-    seed: fc.integer(),
-  })
-  .map((l): SchedulerInput => {
-    const ids = Array.from({ length: l.teams }, (_, i) => `T${i}`);
-    const dates = Array.from(
-      { length: l.dates },
-      (_, d) => `2027-06-${String(d + 1).padStart(2, "0")}`,
-    );
-    const slots: Slot[] = dates.flatMap((date) =>
-      Array.from({ length: l.fields * l.times }, (_, k) =>
-        slot(
-          `${date}/F${k % l.fields}/${Math.floor(k / l.fields)}`,
-          date,
-          `F${k % l.fields}`,
-          Math.floor(k / l.fields),
-        ),
-      ),
-    );
-    return {
-      teams: ids.map((id) => ({ id })),
-      slots,
-      rounds: l.teams,
-      gamesPerTeamPerDay: l.gamesPerTeamPerDay,
-      reservePerDay: l.reservePerDay,
-      constraints: l.unavailable.map((u) => ({
-        teamId: ids[u.team % ids.length] as string,
-        kind: "unavailable" as const,
-        ...(u.date === undefined ? {} : { date: dates[u.date % dates.length] }),
-        ...(u.time === undefined ? {} : { timeIndex: u.time % l.times }),
-      })),
-      locked: [],
-      weights: DEFAULT_WEIGHTS,
-      seed: l.seed,
-    };
-  });
+const league = arbitraryLeague();
 
 describe("constructPlacement properties", () => {
   it("P1 and P3: stages A to C1 never break a hard constraint", () => {
