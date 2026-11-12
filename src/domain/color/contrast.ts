@@ -20,16 +20,15 @@ export function relativeLuminance(hex: Hex): number {
     const c = byte / 255;
     return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   });
-  const [r = 0, g = 0, b = 0] = channels;
+  const [r, g, b] = channels as [number, number, number];
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
 /** Contrast ratio between two colors, from 1 (identical) to 21 (black on white). Order does not matter. */
 export function contrastRatio(a: Hex, b: Hex): number {
-  const [light, dark] = [relativeLuminance(a), relativeLuminance(b)].sort(
-    (x, y) => y - x,
-  );
-  return ((light ?? 0) + 0.05) / ((dark ?? 0) + 0.05);
+  const la = relativeLuminance(a);
+  const lb = relativeLuminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 }
 
 /** WCAG 2.2 AA minimums. */
