@@ -579,14 +579,15 @@ erDiagram
     enum channel
     text template
     jsonb payload
-    enum status "queued, sending, sent, delivered, failed, suppressed"
-    text suppress_reason "no consent, quiet hours, budget, duplicate"
+    enum status "queued, sending, sent, failed, suppressed"
+    text suppress_reason "opted out, no consent, quiet hours, budget"
     timestamptz send_after
+    timestamptz locked_until "a worker's claim while sending"
     text dedupe_key UK
     text provider_message_id
-    int segments
-    int cost_micros
     int attempts
+    text last_error
+    timestamptz sent_at
     uuid announcement_id FK
   }
   announcement {
@@ -610,7 +611,7 @@ erDiagram
 ```
 
 Notes:
-- `message` is the outbox. Code that wants to notify someone inserts a row in the same transaction as the change that caused it; a worker sends it. See [architecture.md](architecture.md).
+- `message` is the outbox. Code that wants to notify someone inserts a row in the same transaction as the change that caused it; a worker sends it. See [architecture.md](architecture.md). It holds the template name and its payload, not the finished email, and looks up the address when sending. `segments` and `cost_micros` arrive with SMS.
 - Current SMS consent is the latest `sms_consent_event` for a phone number. The log is append-only so the league can show when and how someone agreed.
 
 ### 2.5 Sponsors, events, community
