@@ -41,8 +41,24 @@ const withoutBlanks = (source: Source): Source =>
     Object.entries(source).filter(([, value]) => value !== ""),
   );
 
+/**
+ * On Vercel, BETTER_AUTH_URL can be left unset: production uses the project's
+ * production domain and every preview uses its own deployment address, which
+ * a fixed value could not cover. An explicit value always wins.
+ */
+export function withVercelDefaults(source: Source): Source {
+  if (source.BETTER_AUTH_URL) return source;
+  const host =
+    source.VERCEL_ENV === "production"
+      ? source.VERCEL_PROJECT_PRODUCTION_URL
+      : source.VERCEL_ENV === "preview"
+        ? (source.VERCEL_BRANCH_URL ?? source.VERCEL_URL)
+        : undefined;
+  return host ? { ...source, BETTER_AUTH_URL: `https://${host}` } : source;
+}
+
 export function parseEnv(source: Source): Result<Env, string> {
-  const parsed = envSchema.safeParse(withoutBlanks(source));
+  const parsed = envSchema.safeParse(withVercelDefaults(withoutBlanks(source)));
   return parsed.success ? ok(parsed.data) : err(z.prettifyError(parsed.error));
 }
 
