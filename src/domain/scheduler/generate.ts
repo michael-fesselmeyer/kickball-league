@@ -2,7 +2,7 @@ import { seededRandom } from "../random";
 import { constructPlacement } from "./placement";
 import { assignRoundsToDates, buildRounds, type Round } from "./rounds";
 import { localSearch, type SearchOptions } from "./search";
-import type { Schedule, SchedulerInput } from "./types";
+import { gameKey, type Schedule, type SchedulerInput } from "./types";
 import { validate } from "./validate";
 
 /**
@@ -46,8 +46,55 @@ export function generate(
       if (part.bye !== null) byes.push({ round: r, teamId: part.bye });
   }
 
-  const dated = assignRoundsToDates(rounds, input);
-  const placed = constructPlacement(rounds, dated.days, input);
+  // Stage B can give a date two rounds that no placement fits, for example
+  // when a team can make only some of the times. When a multi-round date
+  // strands a game, cap that date at one round fewer and try again; caps only
+  // shrink, so this ends. Keep the attempt that places the most games.
+  // A pinned game keeps its round on the pinned slot's date.
+  const roundOf = new Map(
+    rounds.flatMap((r) =>
+      r.games.map(([a, b]) => [gameKey(r.round, a, b), r.round] as const),
+    ),
+  );
+  const slotDate = new Map(input.slots.map((s) => [s.id, s.date]));
+  const pinned = new Map<number, string>();
+  for (const lock of input.locked) {
+    const round = roundOf.get(lock.gameKey);
+    const date = slotDate.get(lock.slotId);
+    if (round !== undefined && date !== undefined && !pinned.has(round))
+      pinned.set(round, date);
+  }
+
+  const roundCap = new Map<string, number>();
+  let best: {
+    dated: ReturnType<typeof assignRoundsToDates>;
+    placed: Schedule;
+  } | null = null;
+  for (;;) {
+    const dated = assignRoundsToDates(rounds, input, roundCap, pinned);
+    const placed = constructPlacement(rounds, dated.days, input);
+    if (!best || placed.unplaced.length < best.placed.unplaced.length)
+      best = { dated, placed };
+    const stranded = new Set(
+      placed.games.filter((g) => g.slotId === null).map((g) => g.round),
+    );
+    const tight = dated.days.filter(
+      (d) => d.rounds.length > 1 && d.rounds.some((r) => stranded.has(r)),
+    );
+    // Cap only where that moves an unpinned round off the date; stop when
+    // nothing more can change.
+    let changed = false;
+    for (const day of tight) {
+      const cap = day.rounds.length - 1;
+      const movable = day.rounds.some((r) => pinned.get(r) !== day.date);
+      if (movable && cap < (roundCap.get(day.date) ?? Infinity)) {
+        roundCap.set(day.date, cap);
+        changed = true;
+      }
+    }
+    if (!changed) break;
+  }
+  const { dated, placed } = best;
   const searched = localSearch({ ...placed, byes }, input, random, options);
   const violations = validate(input, searched);
 
