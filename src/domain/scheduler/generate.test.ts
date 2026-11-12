@@ -184,30 +184,76 @@ describe("generate with pins on a tight date", () => {
 });
 
 describe("generate retries tight dates", () => {
-  // Found by search: T0 can never play the first time, so some doubleheader
-  // dates strand a game until generate caps them and tries again.
-  const tight = (seed: number) => ({
+  // Seven teams on two fields and three times, two rounds a date. T1 plays
+  // rounds 1 and 2 (seed 0), so a date where T1 can make only the first
+  // time cannot hold both: no placement fits, however it is searched.
+  const tight = (onlyFirstTimeOn: string[]) => ({
     ...league({
-      teams: 6,
+      teams: 7,
       fields: 2,
       times: 3,
       dates: 4,
       gamesPerTeamPerDay: 2,
       reservePerDay: 0,
-      rounds: 6,
-      seed,
+      rounds: 7,
+      seed: 0,
     }),
-    constraints: [{ teamId: "T0", kind: "unavailable" as const, timeIndex: 0 }],
+    constraints: onlyFirstTimeOn.flatMap((date) =>
+      [1, 2].map((timeIndex) => ({
+        teamId: "T1",
+        kind: "unavailable" as const,
+        date,
+        timeIndex,
+      })),
+    ),
   });
 
-  it.each([
-    ["after one retry", 0],
-    ["after a retry that does not help and one that does", 2],
-  ])("places every game %s", (_, seed) => {
-    const input = tight(seed);
+  it("caps a date that cannot fit and places every game after a retry", () => {
+    const input = tight(["2027-06-01"]);
     const schedule = generate(input, { iterations: 200 });
     expect(schedule.unplaced).toEqual([]);
     expect(validate(input, schedule)).toEqual([]);
+  });
+
+  it("keeps retrying past a retry that does not help", () => {
+    // Found by search: two teams that cannot make the last time and one
+    // that cannot make the first strand a game on a doubleheader date; the
+    // first cap moves the problem, the second clears it.
+    const input = {
+      ...league({
+        teams: 6,
+        fields: 2,
+        times: 3,
+        dates: 5,
+        gamesPerTeamPerDay: 2,
+        reservePerDay: 0,
+        rounds: 6,
+        seed: 244681619,
+      }),
+      constraints: [
+        { teamId: "T0", kind: "unavailable" as const, timeIndex: 2 },
+        { teamId: "T4", kind: "unavailable" as const, timeIndex: 0 },
+        { teamId: "T3", kind: "unavailable" as const, timeIndex: 2 },
+        {
+          teamId: "T4",
+          kind: "unavailable" as const,
+          date: "2027-06-02",
+          timeIndex: 2,
+        },
+      ],
+    };
+    const schedule = generate(input, { iterations: 200 });
+    expect(schedule.unplaced).toEqual([]);
+    expect(validate(input, schedule)).toEqual([]);
+  });
+
+  it("keeps the first attempt when retries only make it worse", () => {
+    // T1 can make only the first time on every date, so any date with two of
+    // its games strands one, and capping dates only loses room.
+    const dates = ["2027-06-01", "2027-06-02", "2027-06-03", "2027-06-04"];
+    const schedule = generate(tight(dates), { iterations: 200 });
+    expect(schedule.unplaced.length).toBeGreaterThan(0);
+    expect(schedule.diagnostics.length).toBeGreaterThan(0);
   });
 });
 
