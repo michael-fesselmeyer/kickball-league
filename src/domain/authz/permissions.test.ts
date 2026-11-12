@@ -187,6 +187,23 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     ]);
   });
 
+  it("exports a team's roster and payments to its captains, and the season's to admins", () => {
+    for (const action of ["roster.export", "payments.export"] as const) {
+      expect(allowed(action, { teamSeasonId: "A" })).toEqual([
+        "captain",
+        "coCaptain",
+        "admin",
+        "owner",
+      ]);
+      expect(allowed(action, { teamSeasonId: "B" })).toEqual([
+        "admin",
+        "owner",
+      ]);
+      // No team means every team in the season.
+      expect(allowed(action)).toEqual(["admin", "owner"]);
+    }
+  });
+
   it("lets the right people enter and confirm scores", () => {
     expect(allowed("score.enter", { game: g1 })).toEqual([
       "captain",
@@ -253,6 +270,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "player.suspend",
       "refund.issue",
       "audit.read",
+      "shirts.manage",
     ] as const)
       expect(allowed(action)).toEqual(["admin", "owner"]);
     for (const action of ["billing.manage", "admins.manage"] as const)
