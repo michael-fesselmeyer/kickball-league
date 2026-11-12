@@ -13,7 +13,7 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/domain/**", "src/lib/**"],
-      exclude: ["**/*.bench.ts"],
+      exclude: ["**/*.bench.ts", "**/__snapshots__/**"],
       thresholds: {
         lines: 90,
         branches: 90,
