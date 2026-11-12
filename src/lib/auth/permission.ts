@@ -32,3 +32,18 @@ export async function requirePermission(
   if (!can(subject, action, context)) notFound();
   return subject as Subject & { userId: UserId };
 }
+
+/**
+ * The signed-in person, if they may act on their own record (profile edits,
+ * waivers, their own payments). Signed-out visitors go to sign-in.
+ */
+export async function requireSelf(
+  action: Action,
+  next: string,
+): Promise<Subject & { userId: UserId }> {
+  const subject = await currentSubject();
+  if (subject.userId === null)
+    redirect(`/sign-in?next=${encodeURIComponent(next)}`);
+  if (!can(subject, action, { targetUserId: subject.userId })) notFound();
+  return subject as Subject & { userId: UserId };
+}
