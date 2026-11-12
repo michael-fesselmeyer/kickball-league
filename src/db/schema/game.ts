@@ -15,6 +15,7 @@ import type {
   FieldId,
   GameId,
   LeagueId,
+  PermitWindowId,
   ScoreReportId,
   SeasonId,
   SlotId,
@@ -24,6 +25,7 @@ import type {
 } from "@/domain/ids";
 import { user } from "./auth";
 import { league } from "./league";
+import { permitWindow } from "./schedule";
 import { season } from "./season";
 import { teamSeason } from "./team";
 
@@ -85,10 +87,7 @@ export const slotKind = pgEnum("slot_kind", [
 ]);
 export const slotStatus = pgEnum("slot_status", ["open", "cancelled"]);
 
-/**
- * A field at a time that a game can be placed in. permit_window_id arrives
- * with permit windows, alongside the scheduler.
- */
+/** A field at a time that a game can be placed in, cut from a permit window. */
 export const slot = pgTable(
   "slot",
   {
@@ -101,6 +100,9 @@ export const slot = pgTable(
       .notNull()
       .$type<FieldId>()
       .references(() => field.id, { onDelete: "restrict" }),
+    permitWindowId: uuid()
+      .$type<PermitWindowId>()
+      .references(() => permitWindow.id, { onDelete: "restrict" }),
     startsAt: timestamp({ withTimezone: true }).notNull(),
     endsAt: timestamp({ withTimezone: true }).notNull(),
     /** 0 is the earliest slot of the day. */
