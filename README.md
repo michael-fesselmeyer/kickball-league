@@ -38,6 +38,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - Power rankings from record, recent form, run difference and strength of schedule, with each team's movement since the last game day.
 - Win and loss streaks, the all-time series between any two teams, a game of the week for the next game day, and a league records page. All of it is computed on demand by pure, property-tested functions in `src/domain/stats`.
 - A weekly recap drafted from templates (results, rankings, streaks, new records, next week's big game) that an admin edits and sends as an announcement through the outbox.
+- A league history page: every completed season with its champion and final standings, and an all-time table. Team pages show the team's all-time record (wins, losses, ties, run difference) and the titles it won, added up from each season's standings in `src/domain/history`.
 
 **Messaging**
 
@@ -95,7 +96,7 @@ Requires Node 24 (`nvm use` reads `.nvmrc`).
 npm install
 cp .env.example .env.local   # fill in values; DATABASE_URL is your own Neon branch
 npm run db:migrate           # apply migrations to that branch
-npm run seed                 # a demo league: 8 teams, invented players, a season half played
+npm run seed                 # a demo league: 8 teams, invented players, a season half played, three past seasons
 npm run dev
 ```
 

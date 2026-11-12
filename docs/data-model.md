@@ -446,6 +446,7 @@ Notes:
 - A playoff `game` (`kind = playoff`, `round_no` null) exists only once both its teams are known, so a game never has an empty side. Until then its `bracket_match` holds the slot the bracket placement reserved, and that slot's kind becomes `playoff` so rain-out makeups and new regular-season schedules leave it alone. Divisions, when they arrive, add a `division_id` to `bracket`.
 - Schedule versions keep playoff placements apart from the round robin: the round-robin rules never judge a bracket, and a version made from another (an edit or a rain-out) carries the parent's playoff placements over. When a result fills both sides of the next match, its game is created and a new `playoffs` version with it is published by the league itself (`published_by` null).
 - `team_season.seed` is written when the bracket is made, from the standings with the season's tiebreakers.
+- League history is computed on demand like the standings: a completed season's champion is its complete bracket's `champion_id`, or the top of its final standings when it had no bracket, and a team's all-time record adds up its seasons' regular-season standings. Nothing about history is stored.
 
 ### 2.3 Money
 
