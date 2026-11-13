@@ -46,11 +46,11 @@ test("theme weeks show on the public schedule for their game days", async ({
   page,
 }) => {
   await page.goto("/seasons/fall-2026/schedule");
-  const day = page.getByRole("region", { name: "Tuesday, October 27" });
+  // A played day: the rain-out flow may cancel the last one (Costume week's).
+  const day = page.getByRole("region", { name: "Tuesday, September 29" });
   await expect(
-    page.getByRole("link", { name: "Theme week: Costume week" }),
-  ).toHaveAttribute("href", "/events/costume-week-2026-10-26");
-  await expect(day).toBeVisible();
+    day.getByRole("link", { name: "Theme week: Neon week" }),
+  ).toHaveAttribute("href", "/events/neon-week-2026-09-28");
 });
 
 test("the events calendar feed lists every event", async ({ request }) => {

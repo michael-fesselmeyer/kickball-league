@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { type EventInput, eventSlug } from "@/domain/events/event";
-import type { LeagueId, UserId } from "@/domain/ids";
+import type { EventId, UserId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
 import { event, eventRsvp } from "../schema/event";
@@ -87,10 +87,10 @@ async function world(db: Db) {
   return { tag, leagueId: lg.id, admin, ana, ben, cy, di, create };
 }
 
-const join = (db: Db, eventId: string, userId: UserId, now = NOW) =>
-  joinEvent(db, { eventId: eventId as never, userId, now });
-const leave = (db: Db, eventId: string, userId: UserId, now = NOW) =>
-  leaveEvent(db, { eventId: eventId as never, userId, now });
+const join = (db: Db, eventId: EventId, userId: UserId, now = NOW) =>
+  joinEvent(db, { eventId, userId, now });
+const leave = (db: Db, eventId: EventId, userId: UserId, now = NOW) =>
+  leaveEvent(db, { eventId, userId, now });
 
 /** Messages queued for a person, by template and payload kind. */
 async function notices(db: Db, userId: UserId) {
@@ -166,7 +166,7 @@ describe("joining and leaving", () => {
         ["Cy Example", "waitlisted"],
         ["Di Example", "waitlisted"],
       ]);
-      expect(await myEventRsvps(db, w.di, [id] as never)).toEqual(
+      expect(await myEventRsvps(db, w.di, [id])).toEqual(
         new Map([[id, "waitlisted"]]),
       );
     });
@@ -183,15 +183,15 @@ describe("joining and leaving", () => {
         ok: true,
         value: { promoted: [w.cy] },
       });
-      expect(await myEventRsvp(db, id as never, w.cy)).toEqual({
+      expect(await myEventRsvp(db, id, w.cy)).toEqual({
         status: "going",
         position: null,
       });
-      expect(await myEventRsvp(db, id as never, w.di)).toEqual({
+      expect(await myEventRsvp(db, id, w.di)).toEqual({
         status: "waitlisted",
         position: 1,
       });
-      expect(await myEventRsvp(db, id as never, w.ana)).toBeNull();
+      expect(await myEventRsvp(db, id, w.ana)).toBeNull();
       expect(await notices(db, w.cy)).toEqual(["event_notice:spot_opened"]);
       expect(await notices(db, w.di)).toEqual([]);
 
@@ -212,8 +212,7 @@ describe("joining and leaving", () => {
       await leave(db, id, w.ana);
       // Ben moved up when Ana left, so Cy waits.
       expect(
-        (await join(db, id, w.cy)).ok &&
-          (await myEventRsvp(db, id as never, w.cy)),
+        (await join(db, id, w.cy)).ok && (await myEventRsvp(db, id, w.cy)),
       ).toEqual({
         status: "waitlisted",
         position: 1,
@@ -234,7 +233,7 @@ describe("joining and leaving", () => {
         ok: false,
         error: "no_rsvp",
       });
-      await cancelEvent(db, { id: id as never, actorId: w.admin, now: NOW });
+      await cancelEvent(db, { id: id, actorId: w.admin, now: NOW });
       expect(await join(db, id, w.ana)).toEqual({
         ok: false,
         error: "cancelled",
@@ -257,7 +256,7 @@ describe("updateEvent", () => {
         await join(db, id, person);
 
       const smaller = await updateEvent(db, {
-        id: id as never,
+        id: id,
         event: { ...bbq, capacity: 1 },
         actorId: w.admin,
       });
@@ -269,7 +268,7 @@ describe("updateEvent", () => {
       });
 
       const bigger = await updateEvent(db, {
-        id: id as never,
+        id: id,
         event: { ...bbq, capacity: 3 },
         actorId: w.admin,
       });
@@ -277,7 +276,7 @@ describe("updateEvent", () => {
       expect(bigger).toEqual({ ok: true, value: { promoted: [w.cy] } });
 
       const unlimited = await updateEvent(db, {
-        id: id as never,
+        id: id,
         event: { ...bbq, capacity: null },
         actorId: w.admin,
       });
@@ -301,7 +300,7 @@ describe("updateEvent", () => {
       await join(db, id, w.ana);
       expect(
         await updateEvent(db, {
-          id: id as never,
+          id: id,
           event: costumeWeek,
           actorId: w.admin,
         }),
@@ -317,7 +316,7 @@ describe("cancelEvent", () => {
       const { id, slug } = await w.create(bbq);
       for (const person of [w.ana, w.ben, w.cy]) await join(db, id, person);
       expect(
-        await cancelEvent(db, { id: id as never, actorId: w.admin, now: NOW }),
+        await cancelEvent(db, { id: id, actorId: w.admin, now: NOW }),
       ).toEqual({ ok: true, value: { notified: 3 } });
       expect(await eventBySlug(db, slug)).toMatchObject({
         cancelledAt: NOW,
@@ -326,7 +325,7 @@ describe("cancelEvent", () => {
       });
       expect(await notices(db, w.cy)).toEqual(["event_notice:cancelled"]);
       expect(
-        await cancelEvent(db, { id: id as never, actorId: w.admin, now: NOW }),
+        await cancelEvent(db, { id: id, actorId: w.admin, now: NOW }),
       ).toEqual({ ok: false, error: "already" });
     });
   });
@@ -338,7 +337,7 @@ describe("cancelEvent", () => {
       await join(db, id, w.ana);
       expect(
         await cancelEvent(db, {
-          id: id as never,
+          id: id,
           actorId: w.admin,
           now: bbq.endsAt,
         }),
@@ -383,7 +382,7 @@ describe("lists", () => {
     await inRolledBackDb(async (db) => {
       const w = await world(db);
       await db.insert(season).values({
-        leagueId: w.leagueId as LeagueId,
+        leagueId: w.leagueId,
         name: "Spring 2027",
         slug: `spring-${w.tag}`,
         status: "in_progress",
@@ -412,7 +411,7 @@ describe("deleting an account", () => {
       await join(db, id, w.ana);
       await join(db, id, w.ben);
       expect((await deleteAccount(db, w.ana, NOW)).ok).toBe(true);
-      expect(await myEventRsvp(db, id as never, w.ben)).toEqual({
+      expect(await myEventRsvp(db, id, w.ben)).toEqual({
         status: "going",
         position: null,
       });
