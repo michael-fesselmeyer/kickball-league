@@ -415,19 +415,27 @@ test("an admin gives a player league credit, and the player sees it", async ({
 test("a full season sends the next captain to the waitlist, then offers a spot", async ({
   browser,
 }) => {
+  // A second team registers, then the admin caps the season at two.
   const admin = await pageAs(browser, "Admin");
+  await completeProfile(admin);
+  await admin.goto(`/app/seasons/${SEASON_SLUG}/register`);
+  const second = admin.getByRole("region", { name: "Register a team" });
+  await second.getByLabel("Team name").fill("Front Office");
+  await second.getByLabel("Expected roster size").fill("12");
+  await second.getByRole("button", { name: "Register the team" }).click();
+  await expect(admin).toHaveURL(/\?registered=team/);
   const setLimit = async (teams: string) => {
     await admin.goto(`/app/admin/seasons/${SEASON_SLUG}`);
     await admin.getByLabel("Most teams").fill(teams);
     await admin.getByRole("button", { name: "Save changes" }).click();
     await expect(admin).toHaveURL(/\?saved=1/);
   };
-  await setLimit("1");
+  await setLimit("2");
 
   const ref = await pageAs(browser, "Ref");
   await completeProfile(ref);
   await ref.goto(`/app/seasons/${SEASON_SLUG}/register`);
-  await expect(ref.getByText("All 1 team spots are taken.")).toBeVisible();
+  await expect(ref.getByText("All 2 team spots are taken.")).toBeVisible();
   await expectNoAxeViolations(ref);
   await ref.getByLabel("Team name (optional)").fill("Whistle Blowers");
   await ref.getByRole("button", { name: "Join the waitlist" }).click();
@@ -442,8 +450,8 @@ test("a full season sends the next captain to the waitlist, then offers a spot",
   ).toContainText("Whistle Blowers");
   await expectNoAxeViolations(admin);
 
-  // A second spot opens: the first in line is offered it at once.
-  await setLimit("2");
+  // A third spot opens: the first in line is offered it at once.
+  await setLimit("3");
   await admin.goto(`/app/admin/seasons/${SEASON_SLUG}/waitlist`);
   await expect(
     admin.getByRole("listitem").filter({ hasText: "Reese" }),

@@ -1,12 +1,13 @@
 import { and, eq, inArray, isNotNull, sql, sum } from "drizzle-orm";
 import { z } from "zod";
-import type {
-  PromoCodeId,
-  PurchaseId,
-  RegistrationId,
-  SeasonId,
-  TeamSeasonId,
-  UserId,
+import {
+  parseId,
+  type PromoCodeId,
+  type PurchaseId,
+  type RegistrationId,
+  type SeasonId,
+  type TeamSeasonId,
+  type UserId,
 } from "@/domain/ids";
 import type { CheckoutItem } from "@/domain/registration/checkout";
 import {
@@ -19,6 +20,7 @@ import {
 import { creditToApply } from "@/domain/money/credit";
 import { statusAfterRefunds } from "@/domain/registration/refund";
 import { err, ok, type Result } from "@/domain/result";
+import { savedPaymentMethod } from "../schema/guarantee";
 import { payment, purchase, purchaseItem, webhookEvent } from "../schema/money";
 import { recordAudit } from "./audit";
 import {
@@ -358,8 +360,8 @@ async function recordSavedCard(
   const session = sessionEvent.parse(event).data.object;
   const meta = session.metadata ?? {};
   if (meta.kind !== "guarantee") return false;
-  const userId = meta.userId as UserId | undefined;
-  const teamSeasonId = meta.teamSeasonId as TeamSeasonId | undefined;
+  const userId = parseId<UserId>(meta.userId);
+  const teamSeasonId = parseId<TeamSeasonId>(meta.teamSeasonId);
   if (!userId || !teamSeasonId) return false;
   if (!extras.setup) throw new Error("The saved card was not looked up");
   return saveGuarantee(db, {
@@ -393,7 +395,9 @@ async function recordAppCharge(
     .from(purchase)
     .where(eq(purchase.stripePaymentIntentId, intent.id));
   let target = found;
-  if (!target && named && z.uuid().safeParse(named).success) {
+  const namedId = parseId<PurchaseId>(named);
+  if (!target && namedId) {
+    // Only a guarantee's own deadline charge may be found by name.
     const [byName] = await db
       .select({
         id: purchase.id,
@@ -401,7 +405,11 @@ async function recordAppCharge(
         intent: purchase.stripePaymentIntentId,
       })
       .from(purchase)
-      .where(eq(purchase.id, named as PurchaseId));
+      .innerJoin(
+        savedPaymentMethod,
+        eq(savedPaymentMethod.chargePurchaseId, purchase.id),
+      )
+      .where(eq(purchase.id, namedId));
     if (byName && byName.intent === null) target = byName;
   }
   if (!target) return false;
