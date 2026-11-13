@@ -176,7 +176,7 @@ The app talks to Neon through its HTTP and WebSocket drivers, and to a Postgres 
 
 ### End-to-end and Lighthouse tests
 
-`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the core flows (registration with split pay through Stripe Checkout and a signed webhook that marks the payment, free-agent signup and payment with a promo code, the quiz and a friend code, applying a matcher suggestion, an admin's partial and full refunds confirmed by a signed `charge.refunded` webhook, generating and publishing a schedule, entering and confirming a score, scoring a game inning by inning while a spectator watches, a rain-out). Every key screen is checked with axe, and screens no flow visits are also checked in the dark theme and at a phone width. It reseeds the database before each run and sends Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so it needs both running locally:
+`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the core flows (registration with split pay through Stripe Checkout and a signed webhook that marks the payment, free-agent signup and payment with a promo code, the quiz and a friend code, applying a matcher suggestion, an admin's partial and full refunds confirmed by a signed `charge.refunded` webhook, generating and publishing a schedule, entering and confirming a score, scoring a game inning by inning while a spectator watches, a rain-out). Every key screen is checked with axe, and screens no flow visits are also checked in the dark theme and at a phone width. It seeds the database before building, so the public season and team pages are prerendered as in production and the flows check that their actions refresh them, reseeds before the tests, and sends Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so it needs both running locally:
 
 ```bash
 PGDATABASE_NAME=kb_e2e_demo scripts/setup-local-postgres.sh
@@ -208,7 +208,7 @@ In CI, the end-to-end and Lighthouse checks each build the app once and share th
 | `npm run typecheck`     | Generate route types and run `tsc`                               |
 | `npm run format:check`  | Check Prettier formatting                                        |
 | `npm run build`         | Production build                                                 |
-| `npm run test:e2e`      | Build, reseed, then smoke tests and core flows with axe          |
+| `npm run test:e2e`      | Seed, build, then smoke tests and core flows with axe            |
 | `npm run lighthouse`    | Lighthouse budgets on the public pages of the last build         |
 
 ## How changes land
