@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { type LiveSnapshot, nextPollIn, POLL_MS } from "@/domain/scores/live";
 import { LiveLine } from "./line-score";
 
@@ -10,6 +10,10 @@ import { LiveLine } from "./line-score";
  * visible, it asks the live JSON route again every 10 seconds, so a new
  * half-inning shows within 15 seconds without a reload. It stops once the
  * game is final, and when the game is not on it does not poll at all.
+ *
+ * Each update is a transition, so changed totals flip like a scoreboard,
+ * and a result that arrives while the page is open gets the winner moment
+ * (src/components/motion.tsx). A page opened after the final gets neither.
  */
 export function LiveScore({
   gameId,
@@ -28,12 +32,15 @@ export function LiveScore({
   pollUntil: string;
 }) {
   const [snapshot, setSnapshot] = useState(initial);
+  const [celebrate, setCelebrate] = useState(false);
+  const initiallyFinal = initial.result !== null;
 
   useEffect(() => {
     if (initial.closed) return;
     const from = Date.parse(pollFrom);
     const until = Date.parse(pollUntil);
     let lastEntryAt = initial.lastEntryAt;
+    let hadResult = initiallyFinal;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let done = false;
 
@@ -58,7 +65,12 @@ export function LiveScore({
           if (response.ok) {
             const next = (await response.json()) as LiveSnapshot;
             if (done) return;
-            setSnapshot(next);
+            const wentFinal = next.result !== null && !hadResult;
+            hadResult = next.result !== null;
+            startTransition(() => {
+              setSnapshot(next);
+              if (wentFinal) setCelebrate(true);
+            });
             lastEntryAt = next.lastEntryAt;
             if (next.closed) {
               done = true;
@@ -83,7 +95,21 @@ export function LiveScore({
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [gameId, initial.closed, initial.lastEntryAt, pollFrom, pollUntil]);
+  }, [
+    gameId,
+    initial.closed,
+    initial.lastEntryAt,
+    initiallyFinal,
+    pollFrom,
+    pollUntil,
+  ]);
 
-  return <LiveLine teamA={teamA} teamB={teamB} snapshot={snapshot} />;
+  return (
+    <LiveLine
+      teamA={teamA}
+      teamB={teamB}
+      snapshot={snapshot}
+      celebrate={celebrate}
+    />
+  );
 }
