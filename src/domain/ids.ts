@@ -54,6 +54,7 @@ export type SubClaimId = Brand<string, "SubClaimId">;
 export type TeamFormationRequestId = Brand<string, "TeamFormationRequestId">;
 export type EventId = Brand<string, "EventId">;
 export type EventRsvpId = Brand<string, "EventRsvpId">;
+export type EventTicketId = Brand<string, "EventTicketId">;
 export type AwardPollId = Brand<string, "AwardPollId">;
 export type AwardVoteId = Brand<string, "AwardVoteId">;
 export type SponsorId = Brand<string, "SponsorId">;
