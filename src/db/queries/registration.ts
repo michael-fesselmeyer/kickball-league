@@ -94,20 +94,6 @@ export async function openSeasons(db: Db, leagueId: LeagueId, now: Date) {
   return rows.filter((s) => registrationWindow(s, now) === "open");
 }
 
-/** Teams still in the running take a spot; withdrawn ones do not. */
-export async function teamsEntered(db: Db, seasonId: SeasonId) {
-  const rows = await db
-    .select({ id: teamSeason.id })
-    .from(teamSeason)
-    .where(
-      and(
-        eq(teamSeason.seasonId, seasonId),
-        notInArray(teamSeason.status, ["withdrawn", "waitlisted"]),
-      ),
-    );
-  return rows.length;
-}
-
 /** Teams this person captained in the league before, to bring one back. */
 export async function teamsCaptainedBy(
   db: Db,
