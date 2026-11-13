@@ -118,7 +118,7 @@ function RecordPayment({
         type="submit"
         className="inline-flex min-h-11 items-center underline"
       >
-        Record payment
+        Record payment<span className="sr-only"> for {person.name}</span>
       </button>
     </form>
   );
@@ -183,6 +183,7 @@ function Refund({ slug, person }: { slug: string; person: BoardPerson }) {
           className="inline-flex min-h-11 items-center underline"
         >
           {p.method === "stripe" ? "Refund through Stripe" : "Mark refunded"}
+          <span className="sr-only"> for {person.name}</span>
         </button>
       </form>
     </details>
@@ -433,7 +434,7 @@ async function Registrations({
                             type="submit"
                             className="inline-flex min-h-11 items-center underline"
                           >
-                            Place
+                            Place<span className="sr-only"> {p.name}</span>
                           </button>
                         </form>
                       )}

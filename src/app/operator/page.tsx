@@ -113,13 +113,13 @@ async function Console({ searchParams }: PageProps<"/operator">) {
             <fieldset className="flex flex-col gap-2" disabled={!fresh}>
               <legend className="sr-only">Set the site status</legend>
               {SITE_STATUSES.map((s) => (
-                <label key={s} className="flex items-start gap-2">
+                <label key={s} className="flex min-h-11 items-start gap-3">
                   <input
                     type="radio"
                     name="status"
                     value={s}
                     defaultChecked={s === site.status}
-                    className="mt-1"
+                    className="mt-0.5 size-5 shrink-0 accent-brand"
                   />
                   <span>
                     <strong>{STATUS_TEXT[s].label}.</strong>{" "}
@@ -167,6 +167,10 @@ async function Console({ searchParams }: PageProps<"/operator">) {
                       className="inline-flex min-h-11 items-center underline disabled:no-underline disabled:opacity-60"
                     >
                       Turn {on ? "off" : "on"}
+                      <span className="sr-only">
+                        {" "}
+                        {FEATURES[f].toLowerCase()}
+                      </span>
                     </button>
                   </form>
                 </li>

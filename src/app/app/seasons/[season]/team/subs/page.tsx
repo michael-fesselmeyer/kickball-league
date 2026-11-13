@@ -137,7 +137,7 @@ function RequestCard({
                     )}
                   >
                     <button type="submit" className="btn btn-primary">
-                      Approve
+                      Approve<span className="sr-only"> {c.name}</span>
                     </button>
                   </form>
                   <form
@@ -149,7 +149,7 @@ function RequestCard({
                     )}
                   >
                     <button type="submit" className="btn btn-secondary">
-                      Decline
+                      Decline<span className="sr-only"> {c.name}</span>
                     </button>
                   </form>
                 </span>
@@ -163,7 +163,7 @@ function RequestCard({
           type="submit"
           className="inline-flex min-h-11 items-center underline"
         >
-          Take this request down
+          Take this request down<span className="sr-only">: {label}</span>
         </button>
       </form>
     </li>
@@ -418,7 +418,7 @@ async function TeamSubs({
                     href={`${page}?game=${g.id}#ask`}
                     className="inline-flex min-h-11 items-center underline"
                   >
-                    Find subs
+                    Find subs<span className="sr-only">: {labelOf(g.id)}</span>
                   </Link>
                 )}
               </li>

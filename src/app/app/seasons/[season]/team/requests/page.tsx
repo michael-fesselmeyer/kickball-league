@@ -158,6 +158,9 @@ async function TeamRequests({
                       className="inline-flex min-h-11 items-center underline"
                     >
                       Remove
+                      <span className="sr-only">
+                        : {describeRequest(r, timeLabel, dateLabel)}
+                      </span>
                     </button>
                   </form>
                 )}
@@ -178,16 +181,32 @@ async function TeamRequests({
           >
             <fieldset className="flex flex-col gap-2">
               <legend className="font-semibold">What kind</legend>
-              <label className="flex items-center gap-2">
-                <input type="radio" name="kind" value="unavailable" required />
+              <label className="flex min-h-11 items-center gap-3">
+                <input
+                  className="size-5 accent-brand"
+                  type="radio"
+                  name="kind"
+                  value="unavailable"
+                  required
+                />
                 We can&apos;t play (a conflict)
               </label>
-              <label className="flex items-center gap-2">
-                <input type="radio" name="kind" value="prefer" />
+              <label className="flex min-h-11 items-center gap-3">
+                <input
+                  className="size-5 accent-brand"
+                  type="radio"
+                  name="kind"
+                  value="prefer"
+                />
                 We&apos;d rather play
               </label>
-              <label className="flex items-center gap-2">
-                <input type="radio" name="kind" value="avoid" />
+              <label className="flex min-h-11 items-center gap-3">
+                <input
+                  className="size-5 accent-brand"
+                  type="radio"
+                  name="kind"
+                  value="avoid"
+                />
                 We&apos;d rather not play
               </label>
             </fieldset>

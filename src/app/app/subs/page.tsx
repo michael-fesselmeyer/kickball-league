@@ -71,6 +71,9 @@ function RequestCard({ r }: { r: OpenRequest }) {
               className="inline-flex min-h-11 items-center underline"
             >
               Game details
+              <span className="sr-only">
+                : {r.game.teamNames[0]} vs {r.game.teamNames[1]}
+              </span>
             </Link>
             <form action={withdrawAction.bind(null, r.id)}>
               <button
@@ -78,6 +81,9 @@ function RequestCard({ r }: { r: OpenRequest }) {
                 className="inline-flex min-h-11 items-center underline"
               >
                 I can&apos;t make it
+                <span className="sr-only">
+                  : {r.team}, {r.game.when}
+                </span>
               </button>
             </form>
           </div>
@@ -91,6 +97,9 @@ function RequestCard({ r }: { r: OpenRequest }) {
               className="inline-flex min-h-11 items-center underline"
             >
               Drop out
+              <span className="sr-only">
+                : {r.team}, {r.game.when}
+              </span>
             </button>
           </form>
         </div>
@@ -113,6 +122,9 @@ function RequestCard({ r }: { r: OpenRequest }) {
           <form action={claimAction.bind(null, r.id)}>
             <button type="submit" className="btn btn-primary">
               I&apos;m in
+              <span className="sr-only">
+                : {r.team}, {r.game.when}
+              </span>
             </button>
           </form>
           <span className="text-small text-text-muted">
