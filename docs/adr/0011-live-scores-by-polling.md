@@ -1,4 +1,4 @@
-# ADR 0010: Live scores by polling a cached JSON route
+# ADR 0011: Live scores by polling a cached JSON route
 
 - Status: accepted
 - Date: 2026-11-12
