@@ -17,6 +17,7 @@ import {
   SEED_LEAGUE_SLUG,
 } from "../src/seed/generate";
 import { addDemoPersonas, removeDemoPersonas } from "../src/seed/demo-personas";
+import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addFreeAgentPool } from "../src/seed/free-agent-pool";
 import { canSeed } from "../src/seed/guard";
 import { addPastSeasons } from "../src/seed/past-seasons";
@@ -187,6 +188,7 @@ async function main(): Promise<void> {
         if (venueIds.length)
           await tx.delete(field).where(inArray(field.venueId, venueIds));
         await tx.delete(venue).where(eq(venue.leagueId, leagueId));
+        await removeSeedEvents(tx, leagueId);
         await tx.delete(league).where(eq(league.id, leagueId));
       }
       // Seed users: on the seed domain, or with an id the seed assigns (a
@@ -237,6 +239,7 @@ async function main(): Promise<void> {
       await addDemoPersonas(tx, data);
       await addPastSeasons(tx, data);
       await addFreeAgentPool(tx, data);
+      await addSeedEvents(tx, data);
     });
     const played = data.games.filter((g) => g.status === "final").length;
     console.info(
