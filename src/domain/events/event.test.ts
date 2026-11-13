@@ -221,6 +221,7 @@ describe("rsvpWindow", () => {
     kind: "bbq" as const,
     endsAt: new Date("2027-04-10T20:00:00Z"),
     cancelledAt: null,
+    inAppRsvp: true,
   };
   it("is open until the event ends", () => {
     expect(rsvpWindow(e, new Date("2027-04-10T19:59:00Z"))).toBe("open");
@@ -233,6 +234,11 @@ describe("rsvpWindow", () => {
     expect(
       rsvpWindow({ ...e, kind: "theme_week" }, new Date("2027-01-01")),
     ).toBe("no_rsvp");
+  });
+  it("sends people to the invite when the app takes no RSVPs", () => {
+    expect(rsvpWindow({ ...e, inAppRsvp: false }, new Date("2027-01-01"))).toBe(
+      "invite_only",
+    );
   });
 });
 
