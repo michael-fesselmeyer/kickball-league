@@ -16,8 +16,8 @@ permissions:
 #
 #   changes ─┬─ Lint, types, tests, build
 #            ├─ Migrations
-#            └─ Production build ─┬─ End-to-end shards ─── End-to-end
-#                                 └─ Lighthouse shards ─── Lighthouse
+#            ├─ Production build for end-to-end ── End-to-end shards ── End-to-end
+#            └─ Production build for Lighthouse ── Lighthouse shards ── Lighthouse
 #   Secret scan
 #
 # The names in .github/rulesets/main.json are the required checks. The
@@ -119,30 +119,46 @@ jobs:
         run: echo "Only documentation changed; formatting passed."
 
   build:
-    name: Production build
+    # One build per check, each made the way that check made its own before,
+    # and shared by all of that check's shards.
+    name: Production build for ${{ matrix.check }}
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.app != 'false' }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Against the migrated, empty database, as Playwright built before
+          # its global setup seeded it: the public seasons and teams are
+          # rendered on their first visit, after the flows change them.
+          - check: end-to-end
+            artifact: next-build-e2e
+            database: kickball_e2e_demo
+            address: http://localhost:3100
+            seed: false
+          # Against the seeded league, so the public seasons and teams are
+          # prerendered (src/lib/static-params.ts) the way Lighthouse must
+          # measure them. The seed is deterministic, so each shard seeds the
+          # same league again.
+          - check: Lighthouse
+            artifact: next-build-lighthouse
+            database: ci
+            address: http://localhost:3200
+            seed: true
     services:
       postgres:
         image: postgres:18
         env:
           POSTGRES_USER: ci
           POSTGRES_PASSWORD: ci
-          POSTGRES_DB: ci
+          POSTGRES_DB: ${{ matrix.database }}
         ports: ["5432:5432"]
         options: >-
           --health-cmd "pg_isready -U ci" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      # The seeded league, so the public seasons and teams are prerendered
-      # (src/lib/static-params.ts) the way Lighthouse must measure them. The
-      # seed is deterministic, so every shard seeds the same league again.
-      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/${{ matrix.database }}
       BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
-      # The end-to-end smoke server's address. Each server is started with its
-      # own address at run time; the prerendered pages carry this one in their
-      # metadata, which neither Playwright nor Lighthouse's audits read.
-      BETTER_AUTH_URL: http://localhost:3100
+      BETTER_AUTH_URL: ${{ matrix.address }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -151,19 +167,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run db:migrate
-      - run: npm run seed
+      - if: matrix.seed
+        run: npm run seed
       - name: Restore the Next.js build cache
         uses: actions/cache@v6
         with:
           path: .next/cache
-          key: next-seeded-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'public/**', 'assets/**', 'next.config.ts', 'tsconfig.json') }}
-          restore-keys: next-seeded-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+          key: ${{ matrix.artifact }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'public/**', 'assets/**', 'next.config.ts', 'tsconfig.json') }}
+          restore-keys: ${{ matrix.artifact }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npm run build
       - name: Pack the build (without its cache)
         run: tar --zstd -cf next-build.tar.zst --exclude=.next/cache .next
       - uses: actions/upload-artifact@v7
         with:
-          name: next-build
+          name: ${{ matrix.artifact }}
           path: next-build.tar.zst
           compression-level: 0
           overwrite: true
@@ -217,7 +234,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - uses: actions/download-artifact@v8
         with:
-          name: next-build
+          name: next-build-e2e
       - run: tar --zstd -xf next-build.tar.zst && rm next-build.tar.zst
       - run: npm run db:migrate
       - name: Smoke tests and core flows with axe (seeds the database first)
@@ -273,7 +290,7 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U ci" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      # The same seeded league the build was prerendered from.
+      # The same seeded league its build was prerendered from.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
       BETTER_AUTH_URL: http://localhost:3200
@@ -288,7 +305,7 @@ jobs:
       - run: npm run seed
       - uses: actions/download-artifact@v8
         with:
-          name: next-build
+          name: next-build-lighthouse
       - run: tar --zstd -xf next-build.tar.zst && rm next-build.tar.zst
       - name: This shard's pages, with every budget in lighthouserc.json
         run: node scripts/lighthouse-shard.mjs ${{ matrix.shard }} 3
