@@ -240,3 +240,32 @@ export function sourceLabel(source: MatchSource, rounds: number): string {
         : `round ${round} game`;
   return `Winner of ${game} ${position}`;
 }
+
+/**
+ * A bracket's seeds when two divisions each send `n` teams and their
+ * champions meet in a combined final (ADR 0035). The first division's
+ * teams fill the top half of the bracket and the second's the bottom, each
+ * in its own standard order (1 v n, 2 v n−1, ...), so no division meets the
+ * other before the final. Returns the teams in bracket-seed order, ready
+ * for placeBracket, or null unless both send the same number of teams.
+ */
+export function divisionHalvesSeeds(
+  first: readonly string[],
+  second: readonly string[],
+): string[] | null {
+  const n = first.length;
+  if (n === 0 || second.length !== n) return null;
+  const size = bracketSize(2 * n);
+  const order = seedOrder(size);
+  const half = (from: number) =>
+    order.slice(from, from + size / 2).sort((a, b) => a - b);
+  const seeds: string[] = [];
+  for (const [teams, slots] of [
+    [first, half(0)],
+    [second, half(size / 2)],
+  ] as const)
+    teams.forEach((team, i) => {
+      seeds[(slots[i] as number) - 1] = team;
+    });
+  return seeds;
+}

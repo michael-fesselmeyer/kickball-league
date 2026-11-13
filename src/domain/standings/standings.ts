@@ -289,3 +289,35 @@ export function standings(
     };
   });
 }
+
+/** One division's teams; a season without divisions is one group. */
+export type StandingsGroup = { id: string; teamIds: readonly string[] };
+
+/**
+ * Standings for each division (ADR 0035). Each team is ranked only against
+ * its own division, and head-to-head looks only at games inside it.
+ *
+ * Crossover games, between two divisions, count toward each team's record
+ * when `crossoversCount` is true (the default): a crossover win is a win.
+ * When false, a division's table reads only its own games.
+ */
+export function divisionStandings(
+  groups: readonly StandingsGroup[],
+  games: readonly ResultGame[],
+  {
+    crossoversCount = true,
+    ...options
+  }: {
+    tiebreakers?: readonly Tiebreaker[];
+    seed: string;
+    crossoversCount?: boolean;
+  },
+): { id: string; rows: StandingsRow[] }[] {
+  return groups.map((group) => {
+    const members = new Set(group.teamIds);
+    const counted = crossoversCount
+      ? games
+      : games.filter((g) => members.has(g.teamA) && members.has(g.teamB));
+    return { id: group.id, rows: standings(group.teamIds, counted, options) };
+  });
+}
