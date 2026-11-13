@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, ne } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 import {
   type AllTimeRecord,
   allTimeRecordOf,
@@ -45,7 +45,8 @@ const SEASON_COLUMNS = {
 async function seasonResults(db: Db, seasons: readonly SeasonInfo[]) {
   const teams = new Map<string, StandingsTeam>();
   // A finished bracket names the champion; seasons without one fall back to
-  // the top of the standings.
+  // the top of the standings. A division's own bracket crowns only that
+  // division, so only the season-wide bracket names the league champion.
   const champions = new Map(
     seasons.length === 0
       ? []
@@ -64,6 +65,7 @@ async function seasonResults(db: Db, seasons: readonly SeasonInfo[]) {
                 ),
                 eq(bracket.status, "complete"),
                 isNotNull(bracket.championId),
+                isNull(bracket.divisionId),
               ),
             )
         ).map((b) => [b.seasonId as string, b.championId]),

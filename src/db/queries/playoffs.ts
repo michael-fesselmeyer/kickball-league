@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type {
   BracketId,
   BracketMatchId,
+  DivisionId,
   GameId,
   ScheduleVersionId,
   SeasonId,
@@ -12,6 +13,7 @@ import type {
 import {
   advance,
   defaultPlayoffTeams,
+  divisionHalvesSeeds,
   gameWinner,
   isReady,
   MAX_PLAYOFF_TEAMS,
@@ -24,6 +26,7 @@ import { err, ok, type Result } from "@/domain/result";
 import { placeBracket } from "@/domain/scheduler/bracket";
 import { localDate } from "@/domain/scheduler/slots";
 import type { Slot as SchedulerSlot } from "@/domain/scheduler/types";
+import { division } from "../schema/division";
 import { field, game, slot } from "../schema/game";
 import { league } from "../schema/league";
 import { bracket, bracketMatch } from "../schema/playoffs";
@@ -39,7 +42,10 @@ import {
   publishVersion,
   saveVersion,
 } from "./schedule";
-import { seasonStandings } from "./standings";
+import { seasonDivisionStandings, seasonStandings } from "./standings";
+
+/** Teams each division sends by default when the season has divisions. */
+const DEFAULT_DIVISION_PLAYOFF_TEAMS = 4;
 
 /**
  * Playoffs (roadmap section 4, milestone 1). An admin seeds a bracket from
@@ -55,7 +61,11 @@ const PLAYING = ["forming", "pending_payment", "confirmed"] as const;
 
 async function seasonZone(db: Db, seasonId: SeasonId) {
   const [found] = await db
-    .select({ status: season.status, timeZone: league.timezone })
+    .select({
+      status: season.status,
+      timeZone: league.timezone,
+      combinedFinal: season.combinedFinal,
+    })
     .from(season)
     .innerJoin(league, eq(season.leagueId, league.id))
     .where(eq(season.id, seasonId));
@@ -109,17 +119,34 @@ async function freeSlots(
     }));
 }
 
+/** One team's line on the seeding table. */
+export type SeedingRow = {
+  teamId: TeamSeasonId;
+  rank: number;
+  name: string;
+  wins: number;
+  losses: number;
+  ties: number;
+  eligible: boolean;
+};
+
+/**
+ * How a season's playoffs are seeded (ADR 0035): one bracket from the
+ * season table; two divisions in opposite halves of one bracket, meeting
+ * in a combined final; or a bracket per division.
+ */
+export type PlayoffMode = "single" | "halves" | "per_division";
+
 export type PlayoffPreview = {
+  mode: PlayoffMode;
   /** Teams in standings order; `eligible` is false for teams that left. */
-  standings: {
-    teamId: TeamSeasonId;
-    rank: number;
-    name: string;
-    wins: number;
-    losses: number;
-    ties: number;
-    eligible: boolean;
-  }[];
+  standings: SeedingRow[];
+  /**
+   * With divisions, each division's table; teams not in a division cannot
+   * be seeded. Empty for a season without divisions.
+   */
+  divisions: { id: DivisionId; name: string; standings: SeedingRow[] }[];
+  /** Most teams that can make it: per division when there are divisions. */
   eligibleCount: number;
   defaultTeams: number;
   /** Dates with free slots after the last regular-season game, earliest first. */
@@ -134,30 +161,62 @@ export async function playoffPreview(
 ): Promise<PlayoffPreview | null> {
   const settings = await seasonZone(db, seasonId);
   if (!settings) return null;
-  const { rows, teams } = await seasonStandings(db, seasonId);
-  const playing = new Set(
-    (
-      await db
-        .select({ id: teamSeason.id })
-        .from(teamSeason)
-        .where(
-          and(
-            eq(teamSeason.seasonId, seasonId),
-            inArray(teamSeason.status, [...PLAYING]),
-          ),
-        )
-    ).map((t) => t.id as string),
+  const [{ rows, teams }, divided, entries] = await Promise.all([
+    seasonStandings(db, seasonId),
+    seasonDivisionStandings(db, seasonId),
+    db
+      .select({ id: teamSeason.id })
+      .from(teamSeason)
+      .where(
+        and(
+          eq(teamSeason.seasonId, seasonId),
+          inArray(teamSeason.status, [...PLAYING]),
+        ),
+      ),
+  ]);
+  const playing = new Set(entries.map((t) => t.id as string));
+  const seeding = (
+    table: readonly {
+      teamId: string;
+      rank: number;
+      wins: number;
+      losses: number;
+      ties: number;
+    }[],
+  ): SeedingRow[] =>
+    table.map((r) => ({
+      teamId: r.teamId as TeamSeasonId,
+      rank: r.rank,
+      name: teams.get(r.teamId)?.name ?? "Team",
+      wins: r.wins,
+      losses: r.losses,
+      ties: r.ties,
+      eligible: playing.has(r.teamId),
+    }));
+  const standings = seeding(rows);
+  const divisions = divided.tables.flatMap((t) =>
+    t.division
+      ? [
+          {
+            id: t.division.id,
+            name: t.division.name,
+            standings: seeding(t.rows),
+          },
+        ]
+      : [],
   );
-  const standings = rows.map((r) => ({
-    teamId: r.teamId as TeamSeasonId,
-    rank: r.rank,
-    name: teams.get(r.teamId)?.name ?? "Team",
-    wins: r.wins,
-    losses: r.losses,
-    ties: r.ties,
-    eligible: playing.has(r.teamId),
-  }));
-  const eligibleCount = standings.filter((s) => s.eligible).length;
+  const mode: PlayoffMode =
+    divisions.length === 0
+      ? "single"
+      : divisions.length === 2 && settings.combinedFinal
+        ? "halves"
+        : "per_division";
+  const eligibleCount =
+    mode === "single"
+      ? standings.filter((s) => s.eligible).length
+      : Math.min(
+          ...divisions.map((d) => d.standings.filter((s) => s.eligible).length),
+        );
 
   const [last] = await db
     .select({ startsAt: slot.startsAt })
@@ -172,9 +231,14 @@ export async function playoffPreview(
     if (s.date > lastDate) counts.set(s.date, (counts.get(s.date) ?? 0) + 1);
 
   return {
+    mode,
     standings,
+    divisions,
     eligibleCount,
-    defaultTeams: defaultPlayoffTeams(eligibleCount),
+    defaultTeams:
+      mode === "single"
+        ? defaultPlayoffTeams(eligibleCount)
+        : Math.min(DEFAULT_DIVISION_PLAYOFF_TEAMS, eligibleCount),
     dates: [...counts].map(([date, free]) => ({ date, free })),
     hasPublishedSchedule: (await publishedVersionId(db, seasonId)) !== null,
   };
@@ -188,9 +252,13 @@ export type CreateBracketError =
   | "no_slots";
 
 /**
- * Seeds a bracket from the standings and places it on the free slots from
- * `fromDate` on, saved as a draft schedule version built on the published
- * one. A draft bracket made earlier is replaced; a published one is kept.
+ * Seeds the playoffs from the standings and places them on the free slots
+ * from `fromDate` on, saved as one draft schedule version built on the
+ * published one. `teams` is the number of teams that make it, per division
+ * when the season has divisions: two divisions with a combined final share
+ * one bracket, each in its own half; otherwise each division gets its own
+ * bracket, placed one after another on the free slots. Drafts made earlier
+ * are replaced; a published bracket is kept.
  */
 export async function createBracket(
   db: Db,
@@ -204,12 +272,12 @@ export async function createBracket(
   return db.transaction(async (tx) => {
     const settings = await seasonZone(tx, input.seasonId);
     if (!settings) return err("unknown_season");
-    const [old] = await tx
+    const old = await tx
       .select()
       .from(bracket)
       .where(eq(bracket.seasonId, input.seasonId))
       .for("update");
-    if (old && old.status !== "draft") return err("already_published");
+    if (old.some((b) => b.status !== "draft")) return err("already_published");
 
     const publishedId = await publishedVersionId(tx, input.seasonId);
     if (!publishedId) return err("no_schedule");
@@ -222,89 +290,68 @@ export async function createBracket(
       await playoffPreview(tx, input.seasonId),
       "preview",
     );
-    const count = Math.min(input.teams, MAX_PLAYOFF_TEAMS);
-    if (count < MIN_PLAYOFF_TEAMS || count > preview.eligibleCount)
+    const top = (rows: readonly SeedingRow[], n: number) =>
+      rows
+        .filter((s) => s.eligible)
+        .slice(0, n)
+        .map((s) => s.teamId as string);
+    const n = input.teams;
+    const lowest = preview.mode === "halves" ? 1 : MIN_PLAYOFF_TEAMS;
+    const highest =
+      preview.mode === "halves" ? MAX_PLAYOFF_TEAMS / 2 : MAX_PLAYOFF_TEAMS;
+    if (n < lowest || n > Math.min(highest, preview.eligibleCount))
       return err("too_few_teams");
-    const seeds = preview.standings
-      .filter((s) => s.eligible)
-      .slice(0, count)
-      .map((s) => s.teamId);
+    const [first, second] = preview.divisions;
+    const planned: { divisionId: DivisionId | null; seeds: string[] }[] =
+      preview.mode === "single"
+        ? [{ divisionId: null, seeds: top(preview.standings, n) }]
+        : preview.mode === "halves" && first && second
+          ? [
+              {
+                divisionId: null,
+                seeds: required(
+                  divisionHalvesSeeds(
+                    top(first.standings, n),
+                    top(second.standings, n),
+                  ),
+                  "halves",
+                ),
+              },
+            ]
+          : preview.divisions.map((d) => ({
+              divisionId: d.id,
+              seeds: top(d.standings, n),
+            }));
 
-    const free = (
-      await freeSlots(tx, input.seasonId, settings.timeZone)
-    ).filter((s) => s.date >= input.fromDate);
+    let free = (await freeSlots(tx, input.seasonId, settings.timeZone)).filter(
+      (s) => s.date >= input.fromDate,
+    );
     if (free.length === 0) return err("no_slots");
-    // Every check has passed: only now replace an earlier draft.
-    if (old) await discardDraft(tx, old.id, old.scheduleVersionId);
-    const placed = placeBracket(seeds, free);
-    const matches = matchesFrom(placed);
-
-    const [created] = await tx
-      .insert(bracket)
-      .values({
-        seasonId: input.seasonId,
-        size: seeds.length,
-        seeds: seeds.map((teamSeasonId, i) => ({ seed: i + 1, teamSeasonId })),
-        diagnostics: placed.diagnostics,
-        createdBy: input.actorId,
-      })
-      .returning({ id: bracket.id });
-    const bracketId = required(created, "bracket").id;
-    const slotOf = new Map(placed.matches.map((m) => [m.id, m.slotId]));
-    const rows = await tx
-      .insert(bracketMatch)
-      .values(
-        matches.map((m) => ({
-          bracketId,
-          code: m.code,
-          roundNo: m.round,
-          position: m.position,
-          sourceA: m.sourceA,
-          sourceB: m.sourceB,
-          teamAId: m.teamA as TeamSeasonId | null,
-          teamBId: m.teamB as TeamSeasonId | null,
-          slotId: (slotOf.get(m.code) ?? null) as SlotId | null,
-        })),
-      )
-      .returning({
-        id: bracketMatch.id,
-        code: bracketMatch.code,
-        slotId: bracketMatch.slotId,
-      });
-
-    // Reserved slots become playoff slots, which rain-out makeups and new
-    // regular-season schedules leave alone.
-    const reserved = rows.flatMap((r) => (r.slotId ? [r.slotId] : []));
-    if (reserved.length > 0)
-      await tx
-        .update(slot)
-        .set({ kind: "playoff" })
-        .where(inArray(slot.id, reserved));
+    // Every check has passed: only now replace earlier drafts.
+    for (const o of old) await discardDraft(tx, o.id, o.scheduleVersionId);
     await tx
       .update(teamSeason)
       .set({ seed: null })
       .where(eq(teamSeason.seasonId, input.seasonId));
-    for (const [i, id] of seeds.entries())
-      await tx
-        .update(teamSeason)
-        .set({ seed: i + 1 })
-        .where(eq(teamSeason.id, id));
 
+    const created: BracketId[] = [];
     const placements: PlayoffPlacement[] = [];
-    for (const m of matches.filter(isReady)) {
-      const row = required(
-        rows.find((r) => r.code === m.code),
-        "match",
-      );
-      const gameId = await createGame(
-        tx,
-        input.seasonId,
-        row.id,
-        m,
-        input.actorId,
-      );
-      placements.push({ gameId, slotId: row.slotId });
+    for (const plan of planned) {
+      const placed = placeBracket(plan.seeds, free);
+      // The next division's bracket takes the slots this one leaves.
+      const used = new Set(placed.matches.map((m) => m.slotId));
+      free = free.filter((s) => !used.has(s.id));
+      const { bracketId, games } = await saveBracket(tx, {
+        seasonId: input.seasonId,
+        divisionId: plan.divisionId,
+        seeds: plan.seeds,
+        placed,
+        actorId: input.actorId,
+      });
+      created.push(bracketId);
+      placements.push(...games);
     }
+
     const versionId = await saveVersion(tx, {
       seasonId: input.seasonId,
       input: published.input,
@@ -317,21 +364,103 @@ export async function createBracket(
     await tx
       .update(bracket)
       .set({ scheduleVersionId: versionId })
-      .where(eq(bracket.id, bracketId));
-    await recordAudit(tx, {
-      actorId: input.actorId,
-      action: "bracket.create",
-      entityType: "bracket",
-      entityId: bracketId,
-      after: {
-        teams: seeds.length,
-        rounds: roundCount(seeds.length),
-        scheduleVersionId: versionId,
-        unplaced: placed.matches.filter((m) => m.slotId === null).length,
-      },
-    });
-    return ok(bracketId);
+      .where(inArray(bracket.id, created));
+    return ok(required(created[0], "bracket"));
   });
+}
+
+/**
+ * Saves one placed bracket: its row, its matches, its reserved slots, its
+ * seeds, and a game for each match whose teams are already known.
+ */
+async function saveBracket(
+  tx: Db,
+  input: {
+    seasonId: SeasonId;
+    divisionId: DivisionId | null;
+    seeds: readonly string[];
+    placed: ReturnType<typeof placeBracket>;
+    actorId: UserId;
+  },
+): Promise<{ bracketId: BracketId; games: PlayoffPlacement[] }> {
+  const { placed, seeds } = input;
+  const matches = matchesFrom(placed);
+  const [created] = await tx
+    .insert(bracket)
+    .values({
+      seasonId: input.seasonId,
+      divisionId: input.divisionId,
+      size: seeds.length,
+      seeds: seeds.map((teamSeasonId, i) => ({ seed: i + 1, teamSeasonId })),
+      diagnostics: placed.diagnostics,
+      createdBy: input.actorId,
+    })
+    .returning({ id: bracket.id });
+  const bracketId = required(created, "bracket").id;
+  const slotOf = new Map(placed.matches.map((m) => [m.id, m.slotId]));
+  const rows = await tx
+    .insert(bracketMatch)
+    .values(
+      matches.map((m) => ({
+        bracketId,
+        code: m.code,
+        roundNo: m.round,
+        position: m.position,
+        sourceA: m.sourceA,
+        sourceB: m.sourceB,
+        teamAId: m.teamA as TeamSeasonId | null,
+        teamBId: m.teamB as TeamSeasonId | null,
+        slotId: (slotOf.get(m.code) ?? null) as SlotId | null,
+      })),
+    )
+    .returning({
+      id: bracketMatch.id,
+      code: bracketMatch.code,
+      slotId: bracketMatch.slotId,
+    });
+
+  // Reserved slots become playoff slots, which rain-out makeups and new
+  // regular-season schedules leave alone.
+  const reserved = rows.flatMap((r) => (r.slotId ? [r.slotId] : []));
+  if (reserved.length > 0)
+    await tx
+      .update(slot)
+      .set({ kind: "playoff" })
+      .where(inArray(slot.id, reserved));
+  for (const [i, id] of seeds.entries())
+    await tx
+      .update(teamSeason)
+      .set({ seed: i + 1 })
+      .where(eq(teamSeason.id, id as TeamSeasonId));
+
+  const games: PlayoffPlacement[] = [];
+  for (const m of matches.filter(isReady)) {
+    const row = required(
+      rows.find((r) => r.code === m.code),
+      "match",
+    );
+    const gameId = await createGame(
+      tx,
+      input.seasonId,
+      row.id,
+      m,
+      input.actorId,
+    );
+    games.push({ gameId, slotId: row.slotId });
+  }
+  await recordAudit(tx, {
+    actorId: input.actorId,
+    action: "bracket.create",
+    entityType: "bracket",
+    entityId: bracketId,
+    after: {
+      divisionId: input.divisionId,
+      teams: seeds.length,
+      rounds: roundCount(seeds.length),
+      unplaced: placed.matches.filter((m) => m.slotId === null).length,
+    },
+  });
+  return { bracketId, games };
 }
 
 /** Removes a draft bracket, its games and its unpublished version. */
@@ -405,25 +534,24 @@ export async function publishBracket(
   now: Date = new Date(),
 ): Promise<Result<BracketId, PublishBracketError>> {
   return db.transaction(async (tx) => {
-    const [found] = await tx
+    // A season's draft brackets share one schedule version.
+    const found = await tx
       .select()
       .from(bracket)
       .where(eq(bracket.seasonId, seasonId))
       .for("update");
-    if (!found?.scheduleVersionId) return err("no_bracket");
-    if (found.status !== "draft") return err("already_published");
+    const drafts = found.filter((b) => b.status === "draft");
+    const [draft] = drafts;
+    if (!draft?.scheduleVersionId)
+      return err(found.length > 0 ? "already_published" : "no_bracket");
+    const versionId = draft.scheduleVersionId;
     const [version] = await tx
       .select({ parent: scheduleVersion.parentVersionId })
       .from(scheduleVersion)
-      .where(eq(scheduleVersion.id, found.scheduleVersionId));
+      .where(eq(scheduleVersion.id, versionId));
     if (version?.parent !== (await publishedVersionId(tx, seasonId)))
       return err("stale");
-    const published = await publishVersion(
-      tx,
-      found.scheduleVersionId,
-      actorId,
-      now,
-    );
+    const published = await publishVersion(tx, versionId, actorId, now);
     if (!published.ok)
       return err(
         published.error === "has_violations" ? "has_violations" : "stale",
@@ -431,7 +559,12 @@ export async function publishBracket(
     await tx
       .update(bracket)
       .set({ status: "published" })
-      .where(eq(bracket.id, found.id));
+      .where(
+        inArray(
+          bracket.id,
+          drafts.map((b) => b.id),
+        ),
+      );
     await tx
       .update(season)
       .set({ status: "playoffs" })
@@ -441,14 +574,15 @@ export async function publishBracket(
           inArray(season.status, ["registration_closed", "in_progress"]),
         ),
       );
-    await recordAudit(tx, {
-      actorId,
-      action: "bracket.publish",
-      entityType: "bracket",
-      entityId: found.id,
-      after: { scheduleVersionId: found.scheduleVersionId },
-    });
-    return ok(found.id);
+    for (const b of drafts)
+      await recordAudit(tx, {
+        actorId,
+        action: "bracket.publish",
+        entityType: "bracket",
+        entityId: b.id,
+        after: { scheduleVersionId: versionId },
+      });
+    return ok(draft.id);
   });
 }
 
@@ -615,30 +749,68 @@ export type BracketView = NonNullable<Awaited<ReturnType<typeof bracketView>>>;
 export type BracketViewMatch = BracketView["matches"][number];
 
 /**
- * A bracket for display: its seeds, matches with teams, times, fields and
- * results. Drafts are shown only when asked for, which only admins do.
+ * The season's bracket for display, or its first when each division has
+ * its own. Drafts are shown only when asked for, which only admins do.
  */
 export async function bracketView(
   db: Db,
   seasonId: SeasonId,
+  options: { includeDraft?: boolean } = {},
+) {
+  const [first] = await bracketViews(db, seasonId, options);
+  return first ?? null;
+}
+
+/**
+ * Every bracket of the season for display: one, or one per division
+ * (ADR 0035), in the divisions' order.
+ */
+export async function bracketViews(
+  db: Db,
+  seasonId: SeasonId,
   { includeDraft = false }: { includeDraft?: boolean } = {},
 ) {
-  const [found] = await db
-    .select()
-    .from(bracket)
-    .where(eq(bracket.seasonId, seasonId));
-  if (!found || (found.status === "draft" && !includeDraft)) return null;
-  const entries = await db
+  const found = await db
     .select({
-      id: teamSeason.id,
-      name: team.name,
-      slug: team.slug,
-      colorHex: team.colorHex,
+      bracket,
+      division: { id: division.id, name: division.name, slug: division.slug },
     })
-    .from(teamSeason)
-    .innerJoin(team, eq(teamSeason.teamId, team.id))
-    .where(eq(teamSeason.seasonId, seasonId));
+    .from(bracket)
+    .leftJoin(division, eq(bracket.divisionId, division.id))
+    .where(eq(bracket.seasonId, seasonId))
+    .orderBy(sql`${division.sortOrder} nulls first`, asc(division.name));
+  const shown = found.filter(
+    (f) => f.bracket.status !== "draft" || includeDraft,
+  );
+  if (shown.length === 0) return [];
+  const [entries, settings] = await Promise.all([
+    db
+      .select({
+        id: teamSeason.id,
+        name: team.name,
+        slug: team.slug,
+        colorHex: team.colorHex,
+      })
+      .from(teamSeason)
+      .innerJoin(team, eq(teamSeason.teamId, team.id))
+      .where(eq(teamSeason.seasonId, seasonId)),
+    seasonZone(db, seasonId),
+  ]);
   const teams = new Map(entries.map((e) => [e.id as string, e]));
+  return Promise.all(
+    shown.map((f) =>
+      viewOf(db, f.bracket, f.division, teams, settings?.timeZone ?? "UTC"),
+    ),
+  );
+}
+
+async function viewOf(
+  db: Db,
+  found: typeof bracket.$inferSelect,
+  divisionOf: { id: DivisionId; name: string; slug: string } | null,
+  teams: Map<string, { name: string; slug: string; colorHex: string | null }>,
+  timeZone: string,
+) {
   const seedOf = new Map(found.seeds.map((s) => [s.teamSeasonId, s.seed]));
   const side = (id: string | null) => {
     if (!id) return null;
@@ -678,14 +850,14 @@ export async function bracketView(
     .leftJoin(field, eq(slot.fieldId, field.id))
     .where(eq(bracketMatch.bracketId, found.id))
     .orderBy(asc(bracketMatch.roundNo), asc(bracketMatch.position));
-  const settings = await seasonZone(db, seasonId);
   return {
     id: found.id,
+    division: divisionOf,
     status: found.status,
     size: found.size,
     rounds: roundCount(found.size),
     diagnostics: found.diagnostics,
-    timeZone: settings?.timeZone ?? "UTC",
+    timeZone,
     champion: side(found.championId),
     seeds: found.seeds.map((s) => ({
       seed: s.seed,

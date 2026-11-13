@@ -55,8 +55,8 @@ export type GenerateOptions = {
 const SCHEDULED_STATUSES = ["forming", "pending_payment", "confirmed"] as const;
 
 /**
- * Builds the scheduler's input for a season from the database: its teams,
- * open slots (dated in the league's time zone), team constraints and
+ * Builds the scheduler's input for a season from the database: its teams
+ * with their divisions, the crossover count, open slots (dated in the league's time zone), team constraints and
  * settings, plus the admin's choices.
  */
 export async function loadSchedulerInput(
@@ -67,6 +67,7 @@ export async function loadSchedulerInput(
   const [settings] = await db
     .select({
       gamesPerTeamPerDay: season.gamesPerTeamPerDay,
+      crossoverGames: season.crossoverGames,
       timeZone: league.timezone,
     })
     .from(season)
@@ -75,7 +76,7 @@ export async function loadSchedulerInput(
   if (!settings) return err("unknown_season");
 
   const teams = await db
-    .select({ id: teamSeason.id })
+    .select({ id: teamSeason.id, divisionId: teamSeason.divisionId })
     .from(teamSeason)
     .where(
       and(
@@ -103,7 +104,10 @@ export async function loadSchedulerInput(
     .orderBy(teamConstraint.id);
 
   return ok({
-    teams: teams.map((t) => ({ id: t.id })),
+    // A season without divisions is one pool, as before divisions existed.
+    teams: teams.map((t) =>
+      t.divisionId ? { id: t.id, divisionId: t.divisionId } : { id: t.id },
+    ),
     slots: slots.map((s) => ({
       id: s.id,
       fieldId: s.fieldId,
@@ -114,6 +118,9 @@ export async function loadSchedulerInput(
       kind: s.kind,
     })),
     rounds: options.rounds,
+    ...(settings.crossoverGames > 0
+      ? { crossoverGames: settings.crossoverGames }
+      : {}),
     gamesPerTeamPerDay: settings.gamesPerTeamPerDay === 2 ? 2 : 1,
     reservePerDay: options.reservePerDay,
     constraints: constraints.map((c) => {
