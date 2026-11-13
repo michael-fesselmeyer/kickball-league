@@ -706,6 +706,7 @@ erDiagram
   social_account ||--o{ social_post : syncs
   social_post ||--o| social_image : "stored as"
   team ||--o{ social_post : "tagged in"
+  event ||--o{ social_post : "tagged in"
 
   sponsor {
     uuid id PK
@@ -856,6 +857,7 @@ erDiagram
     bool featured
     bool hidden
     uuid team_id FK
+    uuid event_id FK
     enum cover "home, team"
     text alt_text
   }
@@ -1109,7 +1111,7 @@ Indexes for the common reads:
 | `event_audience_team` | `(team_id)` | Team events for a team |
 | `award_poll` | `(season_id, closes_at)` | Open and closed polls of a season |
 | `award_vote` | `(voter_id)` | A player's own votes |
-| `social_post` | `(account_id, taken_at desc)`, `(team_id)` | Newest photos for the home page and the admin screen; a team's photos |
+| `social_post` | `(account_id, taken_at desc)`, `(team_id)`, `(event_id)` | Newest photos for the home page and the admin screen; a team's or an event's photos |
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
 
 ## 4. Personal data
