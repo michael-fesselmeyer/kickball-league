@@ -1,5 +1,5 @@
 {
-  "id": "1c1023af-55a8-4055-9108-36c40d8143de",
+  "id": "6e3398ec-848d-473a-98da-84c56924d12c",
   "prevId": "ff0372f6-aef3-4be9-9d36-bd1049caf72f",
   "version": "7",
   "dialect": "postgresql",
@@ -7183,6 +7183,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "cover": {
           "name": "cover",
           "type": "social_cover",
@@ -7248,6 +7254,21 @@
           "method": "btree",
           "with": {}
         },
+        "social_post_event": {
+          "name": "social_post_event",
+          "columns": [
+            {
+              "expression": "event_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "social_post_one_home_cover": {
           "name": "social_post_one_home_cover",
           "columns": [
@@ -7301,6 +7322,19 @@
           "tableTo": "team",
           "columnsFrom": [
             "team_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "social_post_event_id_event_id_fk": {
+          "name": "social_post_event_id_event_id_fk",
+          "tableFrom": "social_post",
+          "tableTo": "event",
+          "columnsFrom": [
+            "event_id"
           ],
           "columnsTo": [
             "id"

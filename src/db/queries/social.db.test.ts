@@ -10,6 +10,7 @@ import {
 } from "@/services/instagram-fixture";
 import media from "@/services/fixtures/instagram/media.json";
 import { auditLog } from "../schema/audit";
+import { event } from "../schema/event";
 import { user } from "../schema/auth";
 import { league } from "../schema/league";
 import { message } from "../schema/message";
@@ -28,6 +29,7 @@ import {
   connectedAccounts,
   curatePost,
   disconnect,
+  eventPhotos,
   homePhotos,
   instagramAccount,
   needsReconnect,
@@ -456,6 +458,33 @@ describe("curatePost", () => {
     });
   });
 
+  it("tags a post to an event, shown on that event's page once featured", async () => {
+    await inRolledBackDb(async (db) => {
+      const { w, ids, curate } = await synced(db);
+      const tag = Math.random().toString(36).slice(2, 8);
+      const [bbq] = await db
+        .insert(event)
+        .values({
+          leagueId: w.leagueId,
+          title: "Season BBQ",
+          slug: `bbq-${tag}`,
+          startsAt: new Date("2026-10-04T20:00:00Z"),
+          endsAt: new Date("2026-10-04T23:00:00Z"),
+        })
+        .returning({ id: event.id });
+      expect(
+        await curate(ids[2]!, { kind: "event", eventId: bbq!.id }),
+      ).toEqual({ ok: true, value: undefined });
+      expect(await eventPhotos(db, bbq!.id)).toEqual([]);
+      await curate(ids[2]!, { kind: "feature", on: true });
+      expect((await eventPhotos(db, bbq!.id)).map((p) => p.permalink)).toEqual([
+        "https://www.instagram.com/p/FixtureAfterParty/",
+      ]);
+      await curate(ids[2]!, { kind: "event", eventId: null });
+      expect(await eventPhotos(db, bbq!.id)).toEqual([]);
+    });
+  });
+
   it("refuses another league's team or post, and long alt text", async () => {
     await inRolledBackDb(async (db) => {
       const { ids, curate } = await synced(db);
@@ -463,6 +492,19 @@ describe("curatePost", () => {
       expect(
         await curate(ids[0]!, { kind: "team", teamId: other.sun }),
       ).toEqual({ ok: false, error: "unknown_team" });
+      const [otherEvent] = await db
+        .insert(event)
+        .values({
+          leagueId: other.leagueId,
+          title: "Other BBQ",
+          slug: `other-${Math.random().toString(36).slice(2, 8)}`,
+          startsAt: new Date("2026-10-04T20:00:00Z"),
+          endsAt: new Date("2026-10-04T23:00:00Z"),
+        })
+        .returning({ id: event.id });
+      expect(
+        await curate(ids[0]!, { kind: "event", eventId: otherEvent!.id }),
+      ).toEqual({ ok: false, error: "unknown_event" });
       expect(
         await curatePost(db, {
           leagueId: other.leagueId,

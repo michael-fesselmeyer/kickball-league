@@ -34,6 +34,7 @@ const ACTIONS: Record<string, string> = {
   "instagram.disconnect": "Disconnected the league's Instagram",
   "instagram.post_alt": "Described an Instagram photo",
   "instagram.post_cover": "Changed an Instagram photo's cover setting",
+  "instagram.post_event": "Tagged an Instagram photo to an event",
   "instagram.post_feature": "Featured or unfeatured an Instagram photo",
   "instagram.post_hide": "Hid or showed an Instagram photo",
   "instagram.post_team": "Tagged an Instagram photo to a team",

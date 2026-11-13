@@ -3,12 +3,14 @@ import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { InstagramPhotos } from "@/components/instagram-photos";
 import { InviteButton } from "@/components/invite-button";
 import { JsonLd } from "@/components/json-ld";
 import { PageLoading } from "@/components/page-loading";
 import { ShareButtons } from "@/components/share";
 import { db } from "@/db/client";
 import { eventBySlug, seasonOn } from "@/db/queries/events";
+import { eventPhotos } from "@/db/queries/social";
 import {
   KIND_LABELS,
   nextDay,
@@ -21,7 +23,7 @@ import { inviteHost } from "@/domain/events/audience";
 import { eventShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
 import { googleEventLink } from "@/lib/calendar-links";
-import { eventTag, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
+import { eventTag, PHOTOS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 import { leagueInfo } from "@/lib/seo/league";
 import { breadcrumbJsonLd, socialEventJsonLd } from "@/lib/seo/structured-data";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
@@ -92,9 +94,10 @@ function mapLink(place: string) {
 async function EventDetails({ slug }: { slug: string }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
-  cacheTag(eventTag(slug));
+  cacheTag(eventTag(slug), PHOTOS_TAG);
   const e = await eventBySlug(db, slug, "public");
   if (!e) notFound();
+  const photos = await eventPhotos(db, e.id);
   const now = new Date();
   const origin = siteOrigin(env.BETTER_AUTH_URL);
   const url = absoluteUrl(origin, `/events/${e.slug}`);
@@ -354,6 +357,13 @@ async function EventDetails({ slug }: { slug: string }) {
           </div>
         </section>
       )}
+
+      <InstagramPhotos
+        id="photos"
+        heading="Photos"
+        cover={null}
+        photos={photos}
+      />
     </>
   );
 }
