@@ -92,6 +92,10 @@ async function DeleteAccount({
             Your sub offers for games still to come. The captain is told you
             withdrew.
           </li>
+          <li>
+            Photos you uploaded, including any the league shows on its pages.
+            Copies the league already posted on its socials stay there.
+          </li>
         </ul>
       </section>
 

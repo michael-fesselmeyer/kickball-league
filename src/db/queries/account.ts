@@ -55,6 +55,7 @@ import {
   myKeepOffEntries,
   removeKeepOffsFor,
 } from "./keep-off";
+import { deletePhotosOf, myPhotos } from "./member-photos";
 import { heldMerchPurchases } from "./merch";
 import { expirePurchases } from "./payments";
 import { creditHistory } from "./credit";
@@ -586,6 +587,7 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     alertLimits,
     pushDevices,
     messages,
+    photos: (await myPhotos(db, userId)).map((p) => without(p, "id")),
     announcementsSent,
     actionsTaken,
     leagueCredit: credit.map((c) => without(c, "id")),
@@ -796,6 +798,8 @@ export async function deleteAccount(
   await db.delete(pushSubscription).where(eq(pushSubscription.userId, userId));
   // Answers to scores sent from their phone can name the other captain.
   await db.delete(offlineReceipt).where(eq(offlineReceipt.userId, userId));
+  // Photos they uploaded, shown ones too (ADR 0035).
+  await deletePhotosOf(db, userId);
   // A new version, so a private calendar link handed out before stops working.
   await resetFeed(db, userId);
   await db.delete(message).where(eq(message.userId, userId));
