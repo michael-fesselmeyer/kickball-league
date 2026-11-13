@@ -1,6 +1,6 @@
 # ADR 0003: Free-tier hosting, with no way to spend money by accident, and secrets that never leak
 
-- Status: accepted
+- Status: accepted; the paid-plan path under Spending is replaced by [ADR 0021](0021-free-services-only.md)
 - Date: 2026-11-12
 
 ## Context
