@@ -67,6 +67,9 @@ export type SeasonRebateId = Brand<string, "SeasonRebateId">;
 export type ReferralId = Brand<string, "ReferralId">;
 export type SavedPaymentMethodId = Brand<string, "SavedPaymentMethodId">;
 export type WaitlistEntryId = Brand<string, "WaitlistEntryId">;
+export type SocialAccountId = Brand<string, "SocialAccountId">;
+export type SocialPostId = Brand<string, "SocialPostId">;
+export type SocialImageId = Brand<string, "SocialImageId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
