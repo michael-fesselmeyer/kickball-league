@@ -69,9 +69,9 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/[season]/register       Register a team or join as a free agent; when the season is full, the team waitlist: join, see your place, leave, or take a held spot
 ├── seasons/[season]/team (fee)     Split-pay captains: the team fee, what is paid and left, pay the rest, and the card that guarantees it
 ├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps and an optional note) and a friend code to start, join, switch or leave
-├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; once final, a captain rates the other team's sportsmanship; a link to report an incident
+├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; with no signal, saved on the phone and sent later; once final, a captain rates the other team's sportsmanship; a link to report an incident
 ├── games/[game]/incident           Report an incident: kind, the people involved from either team, what happened (the game's ref, either captain, an admin; from kickoff on)
-├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref)
+├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref); works with no signal
 ├── games/[game]/lineup             Both teams' kicking orders: a team's captains any time, the other captain and the ref from game day (names only); each player sees their own spot
 │   └── [team]                      Captain: kicking-order builder from the players who are in, with drag, keyboard and button moves, live two-in-a-row checks, auto-arrange and copy from the last game
 ├── ref/                            Assignments, availability, earnings
