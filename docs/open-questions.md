@@ -13,10 +13,10 @@ Each question lists what the design assumes until it is answered, so nothing her
 | TypeScript | Strictest settings, branded IDs, typed results from domain functions |
 | Styling | Tailwind v4 with shadcn/ui, plus hand-written CSS for animation |
 | Sign-in | Google and email link, no passwords, 90-day renewing sessions; passkeys in Phase 2 |
-| AI | Recap drafts and Ask the rulebook in Phase 2, optional, capped at $5 a month, no subscription |
 | Multi-league | Later. `league_id` on tables now; no league in URLs |
 | Workflow | Work goes through issues, small commits and rebase-merged pull requests |
 | Tests | Full test suite as specified, including property-based tests |
+| Running costs (2026-11-13) | Free services only: no paid plan, paid API key or monthly bill. No AI features, text messages, WhatsApp business alerts, Sign in with Apple or app-store listings ([ADR 0021](adr/0021-free-services-only.md)) |
 
 ## 1. Answer first
 
@@ -73,7 +73,7 @@ Each question lists what the design assumes until it is answered, so nothing her
 | # | Question | Assumed until answered | Who | When |
 |---|---|---|---|---|
 | 31 | Is the league WhatsApp a Community with an announcements channel, or one group? Can the join link be shown to registered players? | A join link is shown after registration if the league provides one | You | now |
-| 32 | Will the owners approve an SMS program? It needs the league's legal name and tax ID for carrier registration | Email and push only until approved | Owners | pitch |
+| 32 | Will the owners approve an SMS program? | **Answered 2026-11-13: no.** Texts are billed per message, so notices go by email and free web push ([ADR 0021](adr/0021-free-services-only.md)) | — | — |
 | 33 | What is the league's sending email address, and who controls the domain's DNS? Email deliverability needs DNS records added | `info@brooklynkickballclub.com`; DNS access arranged at launch | Owners | launch |
 | 34 | Does the league have its own Instagram and Facebook? The current site links to another league's | Social links are hidden until real ones are supplied | You | launch |
 
@@ -117,9 +117,11 @@ Each question lists what the design assumes until it is answered, so nothing her
 | # | Question | My recommendation | When |
 |---|---|---|---|
 | 46 | Keep `brooklynkickballclub.com`, or launch on a new domain? | Keep it; it carries the brand searches. Use a neutral demo domain until the owners agree | launch |
-| 47 | Do you have, or want to buy, an Apple Developer account for Sign in with Apple ($99 a year)? | Skip for the MVP; Google, email link and password cover it | Phase 2 |
+| 47 | Should the site offer Sign in with Apple? It needs a paid Apple Developer account | **Answered 2026-11-13: no.** Google, email link and passkeys cover sign-in ([ADR 0021](adr/0021-free-services-only.md)) | — |
 | 48 | Should the repository be public from day one? | Yes, on the `michael-fesselmeyer` account. Keep league-specific data and the waiver text out of the repository | now |
 | 48a | Does the league agree to its rulebook being published in a public repository? It is already public as a PDF on the current site, but nobody has asked | Keep the PDF and the full rulebook text out of git until they agree; the repository carries a short sample | now |
-| 48b | Which model should the AI features use? Claude Opus 5.5 is the default; Claude Haiku 5.5 costs about a fortieth as much | Opus 5.5 for recap drafts (about 30 cents a season). Your choice for Ask the rulebook | Phase 2 |
+| 48b | Which model should the AI features use? | **Answered 2026-11-13: none.** There are no AI features, because every AI provider bills per use; the weekly recap is drafted from templates ([ADR 0021](adr/0021-free-services-only.md)) | — |
 | 49 | Project name for the repository and the demo? | Something not tied to BKC, since the league is configurable, with BKC as the first deployment | now |
 | 50 | Import existing accounts from the current site? | No. Players re-register, which also collects the waiver and current details | launch |
+| 51 | Which free host serves the live league? Vercel's terms allow the Hobby plan only for personal or non-commercial use, and the league takes registration payments | No pick yet. The options and their free limits are in [architecture.md](architecture.md), section 15, "Hosting and commercial use": stay on Hobby if Vercel confirms it fits, or move to another free host such as Cloudflare Workers. A paid plan only if the maintainer authorizes it | launch |
+| 52 | Should a second free email provider carry mail beyond Resend's free 100 a day? | Not yet. At 12 teams the outbox spreads large sends over days and leans on push; from 50 teams that is not enough for every reminder ([architecture.md](architecture.md), section 15) | launch |
