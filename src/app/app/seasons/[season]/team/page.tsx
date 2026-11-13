@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { openTeamInvite, rosterBoard } from "@/db/queries/invites";
+import { mySpots, savedFor } from "@/db/queries/lineups";
 import { myRsvps, type TeamRsvps, teamRsvps } from "@/db/queries/rsvps";
 import { teamGames } from "@/db/queries/scores";
 import {
@@ -19,6 +20,7 @@ import { formatMoment } from "@/domain/money/credit";
 import { chargeTime } from "@/domain/money/guarantee";
 import { stripeClient } from "@/services/stripe";
 import { can } from "@/domain/authz/permissions";
+import { ordinal } from "@/domain/lineup/order";
 import { formatCents } from "@/domain/registration/pricing";
 import { Pickups } from "@/components/pickups";
 import { scoresReceived, suspendedAmong } from "@/db/queries/discipline";
@@ -184,7 +186,16 @@ async function Team({
     can(subject, "sub_request.view_pickups", {
       game: { id: g.id, teamSeasonIds: [g.teamAId, g.teamBId] },
     });
-  const mineRsvps = await myRsvps(db, subject.userId, upcoming);
+  // Kicking orders, for games not played yet (game day included).
+  const unplayed = games
+    .filter((g) => !["final", "forfeit", "cancelled"].includes(g.status))
+    .map((g) => g.id);
+  const buildsLineups = can(subject, "lineup.edit", { teamSeasonId });
+  const [mineRsvps, spots, lineups] = await Promise.all([
+    myRsvps(db, subject.userId, upcoming),
+    mySpots(db, subject.userId, unplayed),
+    buildsLineups ? savedFor(db, teamSeasonId, unplayed) : new Set<string>(),
+  ]);
   // Suspensions are enforced even with the feature switched off; captains
   // see that a player is out, never why.
   const suspended = await suspendedAmong(
@@ -522,6 +533,30 @@ async function Team({
                       suspended={mySuspension !== undefined}
                     />
                   )}
+                  {unplayed.includes(g.id) &&
+                    (buildsLineups || spots.has(g.id)) && (
+                      <span className="flex flex-wrap gap-3 text-small">
+                        {spots.has(g.id) && (
+                          <Link
+                            href={`/app/games/${g.id}/lineup`}
+                            className="underline"
+                          >
+                            You kick {ordinal(spots.get(g.id)?.position ?? 0)}{" "}
+                            of {spots.get(g.id)?.of}
+                          </Link>
+                        )}
+                        {buildsLineups && (
+                          <Link
+                            href={`/app/games/${g.id}/lineup/${teamSeasonId}`}
+                            className="underline"
+                          >
+                            {lineups.has(g.id)
+                              ? "Edit kicking order"
+                              : "Set kicking order"}
+                          </Link>
+                        )}
+                      </span>
+                    )}
                   {rsvps.has(g.id) && findsSubs && g.kind !== "playoff" && (
                     <Link
                       href={`/app/seasons/${slug}/team/subs?game=${g.id}#ask`}

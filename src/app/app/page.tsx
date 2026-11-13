@@ -12,6 +12,7 @@ import { currentLeague } from "@/db/queries/seasons";
 import { pickupsFor } from "@/db/queries/subs";
 import { Pickups } from "@/components/pickups";
 import { can } from "@/domain/authz/permissions";
+import { isGameDay } from "@/domain/lineup/access";
 import {
   type GameId,
   parseId,
@@ -82,6 +83,7 @@ async function Account() {
   );
   const nextGame = pickNextGame(await myGames, now);
   const ballots = await waiting;
+  const timeZone = league?.timeZone ?? "America/New_York";
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -124,14 +126,28 @@ async function Account() {
                     ]}
                   />
                 </span>
-                {g.startsAt <= now && (
-                  <Link
-                    href={`/app/games/${g.id}/score`}
-                    className="btn btn-primary"
-                  >
-                    Score
-                  </Link>
-                )}
+                <span className="flex flex-col items-end gap-1">
+                  {g.startsAt <= now && (
+                    <Link
+                      href={`/app/games/${g.id}/score`}
+                      className="btn btn-primary"
+                    >
+                      Score
+                    </Link>
+                  )}
+                  {isGameDay(g.startsAt, now, timeZone) && (
+                    <Link
+                      href={`/app/games/${g.id}/lineup`}
+                      className="text-small underline"
+                    >
+                      Kicking orders
+                      <span className="sr-only">
+                        {" "}
+                        for {g.teamAName} vs {g.teamBName}
+                      </span>
+                    </Link>
+                  )}
+                </span>
               </li>
             ))}
           </ul>
