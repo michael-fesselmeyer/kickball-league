@@ -12,7 +12,7 @@ import {
   parseProfileForm,
 } from "@/domain/profile/profile-form";
 import { localDate } from "@/domain/scheduler/slots";
-import { requireSelf } from "@/lib/auth/permission";
+import { requireSelfToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 
 export type ProfileFormState = {
@@ -26,7 +26,7 @@ export async function saveProfileAction(
   _previous: ProfileFormState,
   form: FormData,
 ): Promise<ProfileFormState> {
-  const subject = await requireSelf("profile.edit", "/app/profile");
+  const subject = await requireSelfToChange("profile.edit", "/app/profile");
   const league = await currentLeague(db);
   if (!league) notFound();
   const values: ProfileForm = formStrings(form, PROFILE_FIELDS);
@@ -45,7 +45,7 @@ export async function saveProfileAction(
 
 /** Saves which topics the signed-in person gets email about. */
 export async function saveEmailSettingsAction(form: FormData): Promise<void> {
-  const subject = await requireSelf("profile.edit", "/app/profile");
+  const subject = await requireSelfToChange("profile.edit", "/app/profile");
   const enabled = new Set(
     form.getAll("topic").filter((v): v is string => typeof v === "string"),
   );

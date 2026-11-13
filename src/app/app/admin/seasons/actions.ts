@@ -16,7 +16,7 @@ import {
   type SeasonForm,
 } from "@/domain/season/settings";
 import { isOneOf } from "@/domain/guards";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { refreshSeasonPages } from "@/lib/public-cache";
 
@@ -37,7 +37,7 @@ export async function createSeasonAction(
   _previous: SeasonFormState,
   form: FormData,
 ): Promise<SeasonFormState> {
-  const subject = await requirePermission("season.manage", {
+  const subject = await requirePermissionToChange("season.manage", {
     next: "/app/admin/seasons/new",
   });
   const league = await currentLeague(db);
@@ -62,7 +62,7 @@ export async function updateSeasonAction(
   _previous: SeasonFormState,
   form: FormData,
 ): Promise<SeasonFormState> {
-  const subject = await requirePermission("season.manage", {
+  const subject = await requirePermissionToChange("season.manage", {
     next: `/app/admin/seasons/${slug}`,
   });
   const league = await currentLeague(db);

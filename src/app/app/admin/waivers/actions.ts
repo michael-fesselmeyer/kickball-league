@@ -7,7 +7,7 @@ import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { assignWaiver, publishWaiver } from "@/db/queries/waivers";
 import { parseId, type WaiverId } from "@/domain/ids";
 import type { WaiverDraftErrors } from "@/domain/waiver/waiver";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 
 const PAGE = "/app/admin/waivers";
 
@@ -27,7 +27,9 @@ export async function publishWaiverAction(
   _previous: WaiverDraftState,
   form: FormData,
 ): Promise<WaiverDraftState> {
-  const subject = await requirePermission("season.manage", { next: PAGE });
+  const subject = await requirePermissionToChange("season.manage", {
+    next: PAGE,
+  });
   const league = await currentLeague(db);
   if (!league) notFound();
   const title = text(form, "title");
@@ -41,7 +43,9 @@ export async function publishWaiverAction(
 
 /** Sets the version a season's players sign. */
 export async function assignWaiverAction(slug: string, form: FormData) {
-  const subject = await requirePermission("season.manage", { next: PAGE });
+  const subject = await requirePermissionToChange("season.manage", {
+    next: PAGE,
+  });
   const league = await currentLeague(db);
   const season = await seasonBySlug(db, slug);
   if (!league || !season) notFound();

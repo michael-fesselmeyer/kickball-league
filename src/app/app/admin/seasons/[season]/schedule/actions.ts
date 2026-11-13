@@ -13,7 +13,7 @@ import { seasonBySlug, versionsOf } from "@/db/queries/schedule-screen";
 import type { ScheduleVersionId } from "@/domain/ids";
 import { applyEdit } from "@/domain/scheduler/edits";
 import { generate } from "@/domain/scheduler/generate";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshSeasonPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 import { applyAll, stateOf } from "./board-model";
@@ -32,7 +32,9 @@ export async function generateDraft(
   form: FormData,
 ): Promise<void> {
   const page = pageFor(slug);
-  const subject = await requirePermission("schedule.manage", { next: page });
+  const subject = await requirePermissionToChange("schedule.manage", {
+    next: page,
+  });
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
 
@@ -66,7 +68,9 @@ export async function publishDraft(
   versionId: ScheduleVersionId,
 ): Promise<void> {
   const page = pageFor(slug);
-  const subject = await requirePermission("schedule.manage", { next: page });
+  const subject = await requirePermissionToChange("schedule.manage", {
+    next: page,
+  });
   const result = await publishVersion(txDb, versionId, subject.userId);
   if (!result.ok) redirect(`${page}?error=${result.error}`);
   const { moved, added, removed, teams, notified } = result.value;
@@ -90,7 +94,9 @@ export async function editGame(
   form: FormData,
 ): Promise<void> {
   const page = pageFor(slug);
-  const subject = await requirePermission("schedule.manage", { next: page });
+  const subject = await requirePermissionToChange("schedule.manage", {
+    next: page,
+  });
   const version = await loadVersion(db, versionId);
   const gameKey = form.get("game");
   const slotId = form.get("slot");
@@ -154,7 +160,9 @@ export async function saveBoard(
   form: FormData,
 ): Promise<void> {
   const page = pageFor(slug);
-  const subject = await requirePermission("schedule.manage", { next: page });
+  const subject = await requirePermissionToChange("schedule.manage", {
+    next: page,
+  });
   const version = await loadVersion(db, versionId);
   const edits = parseEdits(form.get("edits"));
   if (!version || !edits) redirect(`${page}?error=bad_input`);

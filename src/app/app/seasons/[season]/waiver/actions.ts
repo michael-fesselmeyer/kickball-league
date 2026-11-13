@@ -6,7 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { currentLeague } from "@/db/queries/seasons";
 import { signWaiver, waiverForSeason } from "@/db/queries/waivers";
-import { requireSelf } from "@/lib/auth/permission";
+import { requireSelfToChange } from "@/lib/auth/permission";
 
 export type SignState = { signedName: string; error?: string | undefined };
 
@@ -35,7 +35,7 @@ export async function signWaiverAction(
   form: FormData,
 ): Promise<SignState> {
   const page = `/app/seasons/${slug}/waiver`;
-  const subject = await requireSelf("waiver.sign", page);
+  const subject = await requireSelfToChange("waiver.sign", page);
   const league = await currentLeague(db);
   const view = league
     ? await waiverForSeason(db, {

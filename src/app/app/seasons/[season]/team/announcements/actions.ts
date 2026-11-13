@@ -9,17 +9,21 @@ import {
 } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { sendQueuedSoon } from "@/services/outbox";
+import { requireFeature } from "@/lib/platform/site";
 
 /** A captain's (or co-captain's) announcement to their own team. */
 export async function sendTeamAnnouncementAction(
   slug: string,
   form: FormData,
 ): Promise<void> {
+  await requireFeature("announcements");
   const page = `/app/seasons/${slug}/team/announcements`;
-  const subject = await requirePermission("registration.join", { next: page });
+  const subject = await requirePermissionToChange("registration.join", {
+    next: page,
+  });
   const league = await currentLeague(db);
   const season = league
     ? await seasonForRegistration(db, league.id, slug)

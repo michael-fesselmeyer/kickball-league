@@ -5,7 +5,7 @@ import { db, txDb } from "@/db/client";
 import { placeFreeAgent } from "@/db/queries/registrations-admin";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { parseId, type RegistrationId, type TeamSeasonId } from "@/domain/ids";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { recordPaymentFor } from "@/app/app/seasons/[season]/record-payment";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/registrations`;
@@ -16,7 +16,9 @@ export async function recordPaymentAction(
   form: FormData,
 ): Promise<void> {
   const page = pageFor(slug);
-  const subject = await requirePermission("season.manage", { next: page });
+  const subject = await requirePermissionToChange("season.manage", {
+    next: page,
+  });
   const result = await recordPaymentFor(subject, slug, registrationId, form);
   if (!result.ok) redirect(`${page}?error=${result.error}`);
   redirect(`${page}?notice=payment_recorded`);
@@ -28,7 +30,9 @@ export async function placeFreeAgentAction(
   form: FormData,
 ): Promise<void> {
   const page = pageFor(slug);
-  const subject = await requirePermission("free_agents.place", { next: page });
+  const subject = await requirePermissionToChange("free_agents.place", {
+    next: page,
+  });
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
   const registrationId = parseId<RegistrationId>(rawRegistrationId);

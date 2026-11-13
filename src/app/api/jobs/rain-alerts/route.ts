@@ -6,6 +6,7 @@ import {
 } from "@/db/queries/rain-alerts";
 import { env } from "@/env";
 import { refuseUnlessCron } from "@/lib/jobs";
+import { featureEnabled, refuseJobsWhileFrozen } from "@/lib/platform/site";
 import { cachedForecast } from "@/lib/weather";
 import { drainOutboxNow } from "@/services/outbox";
 
@@ -20,6 +21,10 @@ import { drainOutboxNow } from "@/services/outbox";
 export async function GET(request: Request): Promise<Response> {
   const refused = refuseUnlessCron(request, env.CRON_SECRET);
   if (refused) return refused;
+  const frozen = await refuseJobsWhileFrozen();
+  if (frozen) return frozen;
+  if (!(await featureEnabled("weather")))
+    return Response.json({ skipped: "Weather is switched off" });
   const now = new Date();
   const checks = await checkRain(await gameDaysDue(txDb, now), cachedForecast);
   const queued = await txDb.transaction((tx) =>
