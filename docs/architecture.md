@@ -422,7 +422,7 @@ The workflow is `.github/workflows/ci.yml`; pull request hygiene (branch, commit
 | Lint, types, tests, build | Format check, ESLint, `tsc`, unit tests with coverage, and the build with no database | What changed |
 | Migrations | Migration consistency, schema drift, apply twice, database tests, seed twice | What changed |
 | Production build for end-to-end, for Lighthouse | Two builds side by side, both against the seeded league, each with the address its servers run on. Each uploads `.next` (without its cache) as an artifact | What changed |
-| End-to-end shard 1–2 | Downloads its build, seeds its own database, starts both servers and runs half the Playwright tests (`--shard`). Shard 1 then runs the operator's site-wide switches on their own (`npm run test:e2e:site-wide`) | Production build for end-to-end |
+| End-to-end shard 1–2 | Downloads its build, seeds its own database, starts both servers and runs half the Playwright tests (`--shard`), which takes half the smoke tests and half the flows from each (`playwright.config.ts` lists the flows between the two smoke projects for this). Shard 2 then runs the operator's site-wide switches on their own (`npm run test:e2e:site-wide`) | Production build for end-to-end |
 | Lighthouse shard 1–3 | Downloads its build, seeds its own database and audits every third page of `lighthouserc.json` with the same five runs and the same budgets (`scripts/lighthouse-shard.mjs`) | Production build for Lighthouse |
 | End-to-end, Lighthouse | Pass only when every shard passed | Their shards |
 | Secret scan | gitleaks over the whole history | — |
