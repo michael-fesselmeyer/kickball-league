@@ -148,7 +148,13 @@ const RULES = {
   // Referees
   "referee.availability": all(signedIn, (s) => s.isReferee),
   "referee.earnings": all(signedIn, (s) => s.isReferee),
-  "incident.log": any(isAdmin, refereesGame),
+  // Game-day discipline: the game's ref, a captain of either team or an
+  // admin files a report; only admins review it and suspend.
+  "incident.log": any(isAdmin, refereesGame, captainsGame),
+  // A captain rates the other team once the game is final.
+  "sportsmanship.rate": captainsGame,
+  // A team's own average, for its captains.
+  "sportsmanship.view_own": (s, c) => captains(s, c.teamSeasonId),
   // Sponsors
   "sponsor.edit": any(isAdmin, (s, c) =>
     c.sponsorId !== undefined ? s.sponsorIds.includes(c.sponsorId) : false,
@@ -166,6 +172,8 @@ const RULES = {
   "event.manage": isAdmin,
   "referee.manage": isAdmin,
   "player.suspend": isAdmin,
+  "incident.review": isAdmin,
+  "sportsmanship.view": isAdmin,
   "refund.issue": isAdmin,
   "audit.read": isAdmin,
   "shirts.manage": isAdmin,

@@ -255,11 +255,28 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     expect(allowed("referee.availability")).toEqual(["referee"]);
     expect(allowed("referee.earnings")).toEqual(["referee"]);
     expect(allowed("incident.log", { game: g1 })).toEqual([
+      "captain",
+      "coCaptain",
       "referee",
       "admin",
       "owner",
     ]);
     expect(allowed("incident.log", { game: g2 })).toEqual(["admin", "owner"]);
+  });
+
+  it("lets captains rate the other team in their games and see their own average", () => {
+    expect(allowed("sportsmanship.rate", { game: g1 })).toEqual([
+      "captain",
+      "coCaptain",
+    ]);
+    expect(allowed("sportsmanship.rate", { game: g2 })).toEqual([]);
+    expect(allowed("sportsmanship.view_own", { teamSeasonId: "A" })).toEqual([
+      "captain",
+      "coCaptain",
+    ]);
+    expect(allowed("sportsmanship.view_own", { teamSeasonId: "B" })).toEqual(
+      [],
+    );
   });
 
   it("lets sponsors manage their own page and report", () => {
@@ -288,6 +305,8 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "event.manage",
       "referee.manage",
       "player.suspend",
+      "incident.review",
+      "sportsmanship.view",
       "refund.issue",
       "audit.read",
       "shirts.manage",
