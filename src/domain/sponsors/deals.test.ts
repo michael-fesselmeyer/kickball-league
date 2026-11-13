@@ -48,9 +48,9 @@ describe("when a deal applies", () => {
     expect(dealApplies(late, WEDNESDAY, "02:00")).toBe(false);
     expect(dealApplies(late, WEDNESDAY, "22:00")).toBe(false);
     // Monday's small hours belong to Sunday night.
-    expect(dealApplies(deal([7], "21:00", "02:00"), "2026-11-16", "01:00")).toBe(
-      true,
-    );
+    expect(
+      dealApplies(deal([7], "21:00", "02:00"), "2026-11-16", "01:00"),
+    ).toBe(true);
   });
 
   it("never applies on a day it is not offered, at any time", () => {

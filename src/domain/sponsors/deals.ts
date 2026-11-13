@@ -61,7 +61,9 @@ export function dealOnDay(
   deal: Pick<DealTerms, "validDays">,
   day: string,
 ): boolean {
-  return deal.validDays.length === 0 || deal.validDays.includes(isoWeekday(day));
+  return (
+    deal.validDays.length === 0 || deal.validDays.includes(isoWeekday(day))
+  );
 }
 
 function clock(time: string): string {
