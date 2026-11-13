@@ -14,6 +14,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import type {
+  FriendGroupId,
   LeagueId,
   RegistrationId,
   RosterMembershipId,
@@ -130,9 +131,30 @@ export const registrationShirtStatus = pgEnum("registration_shirt_status", [
 ]);
 
 /**
- * One person's entry in one season; carries waiver and payment state.
- * friend_group_id arrives with friend groups.
+ * A few free agents who signed up together and want the same team. One of
+ * them starts it and shares the code; the others enter it in their quiz.
+ * The code is unique across seasons so a typo can never land in a group
+ * from another season.
  */
+export const friendGroup = pgTable(
+  "friend_group",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<FriendGroupId>(),
+    seasonId: uuid()
+      .notNull()
+      .$type<SeasonId>()
+      .references(() => season.id, { onDelete: "restrict" }),
+    code: text().notNull(),
+    ...audit(),
+  },
+  (t) => [
+    unique("friend_group_code_unique").on(t.code),
+    index("friend_group_season_idx").on(t.seasonId),
+    check("friend_group_code_format", sql`${t.code} ~ '^[A-Z2-9]{6}$'`),
+  ],
+);
+
+/** One person's entry in one season; carries waiver and payment state. */
 export const registration = pgTable(
   "registration",
   {
@@ -153,10 +175,15 @@ export const registration = pgTable(
         onDelete: "restrict",
       }),
     shirtStatus: registrationShirtStatus().notNull().default("none"),
+    /** Friends who signed up together; set from the free-agent quiz. */
+    friendGroupId: uuid()
+      .$type<FriendGroupId>()
+      .references((): AnyPgColumn => friendGroup.id, { onDelete: "set null" }),
     ...audit(),
   },
   (t) => [
     unique("registration_season_user_unique").on(t.seasonId, t.userId),
+    index("registration_friend_group_idx").on(t.friendGroupId),
     index("registration_season_status_idx").on(t.seasonId, t.status),
     index("registration_user_idx").on(t.userId),
   ],
@@ -257,3 +284,4 @@ export type TeamSeason = typeof teamSeason.$inferSelect;
 export type Registration = typeof registration.$inferSelect;
 export type RosterMembership = typeof rosterMembership.$inferSelect;
 export type Invite = typeof invite.$inferSelect;
+export type FriendGroup = typeof friendGroup.$inferSelect;

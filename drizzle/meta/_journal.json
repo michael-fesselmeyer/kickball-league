@@ -148,6 +148,13 @@
       "when": 1794543916654,
       "tag": "0020_live_scoring",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794544977734,
+      "tag": "0021_free_agent_quiz",
+      "breakpoints": true
     }
   ]
 }
