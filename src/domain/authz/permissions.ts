@@ -181,6 +181,9 @@ const RULES = {
   "sportsmanship.rate": captainsGame,
   // A team's own average, for its captains.
   "sportsmanship.view_own": (s, c) => captains(s, c.teamSeasonId),
+  // A private "not on my team" list (ADR 0036): a team's captains for their
+  // own team, admins for any team. The person listed never sees it.
+  "keep_off.manage": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   // Sponsors
   "sponsor.edit": any(isAdmin, (s, c) =>
     c.sponsorId !== undefined ? s.sponsorIds.includes(c.sponsorId) : false,
@@ -202,6 +205,8 @@ const RULES = {
   "player.suspend": isAdmin,
   "incident.review": isAdmin,
   "sportsmanship.view": isAdmin,
+  // Every team's list and reasons, to catch misuse.
+  "keep_off.review": isAdmin,
   "refund.issue": isAdmin,
   "audit.read": isAdmin,
   "shirts.manage": isAdmin,
@@ -212,6 +217,8 @@ const RULES = {
   // The books (expenses, receipts, permit costs and documents, insurance).
   "books.manage": any(isOwner, isOperator),
   "admins.manage": isOwner,
+  // Whether a person's own data export lists entries about them (ADR 0036).
+  "keep_off.export_policy": isOwner,
 } satisfies Record<string, Rule>;
 
 export type Action = keyof typeof RULES;

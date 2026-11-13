@@ -334,6 +334,22 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     );
   });
 
+  it("keeps a team's not-on-my-team list to its captains and admins", () => {
+    expect(allowed("keep_off.manage", { teamSeasonId: "A" })).toEqual([
+      "captain",
+      "coCaptain",
+      "admin",
+      "owner",
+    ]);
+    // Another team's captain, and every player, never see or change it.
+    expect(allowed("keep_off.manage", { teamSeasonId: "B" })).toEqual([
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("keep_off.review")).toEqual(["admin", "owner"]);
+    expect(allowed("keep_off.export_policy")).toEqual(["owner"]);
+  });
+
   it("lets sponsors manage their own page and report", () => {
     for (const action of ["sponsor.edit", "sponsor.report"] as const) {
       expect(allowed(action, { sponsorId: "bar" })).toEqual([
