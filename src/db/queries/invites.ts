@@ -6,6 +6,7 @@ import {
   looksLikeInviteToken,
   newInviteToken,
 } from "@/domain/invite/token";
+import { inviteStateFor } from "@/domain/keep-off/keep-off";
 import { registrationWindow } from "@/domain/registration/pricing";
 import { err, ok, type Result } from "@/domain/result";
 import { user } from "../schema/auth";
@@ -19,6 +20,7 @@ import {
   teamSeason,
 } from "../schema/team";
 import { recordAudit } from "./audit";
+import { isKeptOff } from "./keep-off";
 import { settleCoveredRegistrations } from "./payments";
 import { seasonForRegistration, startingState } from "./registration";
 import type { Db } from "./schedule";
@@ -96,8 +98,17 @@ async function activeMembers(db: Db, teamSeasonId: TeamSeasonId) {
   return rows.length;
 }
 
-/** What a link leads to, for the join page. Null when it is not a link. */
-export async function inviteByToken(db: Db, token: string, now: Date) {
+/**
+ * What a link leads to, for the join page. Null when it is not a link. Pass
+ * the person opening it: if the team keeps them off (ADR 0036), the link
+ * reads as expired for them, exactly as an expired link does for anyone.
+ */
+export async function inviteByToken(
+  db: Db,
+  token: string,
+  now: Date,
+  viewerId?: UserId,
+) {
   if (!looksLikeInviteToken(token)) return null;
   const [found] = await db
     .select({
@@ -120,13 +131,18 @@ export async function inviteByToken(db: Db, token: string, now: Date) {
     .innerJoin(season, eq(teamSeason.seasonId, season.id))
     .where(eq(invite.tokenHash, hashInviteToken(token)));
   if (!found) return null;
-  const members = await activeMembers(db, found.teamSeasonId);
-  const state =
+  const [members, keptOff] = await Promise.all([
+    activeMembers(db, found.teamSeasonId),
+    viewerId ? isKeptOff(db, found.teamSeasonId, viewerId) : false,
+  ]);
+  const state = inviteStateFor(
     found.status !== "open"
       ? found.status
       : found.expiresAt <= now
         ? ("expired" as const)
-        : ("open" as const);
+        : ("open" as const),
+    keptOff,
+  );
   return { ...found, state, members };
 }
 
@@ -148,7 +164,7 @@ export async function acceptInvite(
   db: Db,
   input: { token: string; userId: UserId; now: Date },
 ): Promise<Result<{ seasonSlug: string; teamName: string }, AcceptError>> {
-  const found = await inviteByToken(db, input.token, input.now);
+  const found = await inviteByToken(db, input.token, input.now, input.userId);
   if (!found) return err("invalid");
   if (found.state === "expired") return err("expired");
   if (found.state !== "open") return err("revoked");

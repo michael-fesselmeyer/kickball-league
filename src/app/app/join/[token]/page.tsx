@@ -37,8 +37,10 @@ const ERRORS: Record<string, string> = {
 async function Join({ params, searchParams }: PageProps<"/app/join/[token]">) {
   const { token } = await params;
   const query = await searchParams;
-  await requirePermission("registration.join", { next: `/app/join/${token}` });
-  const found = await inviteByToken(db, token, new Date());
+  const subject = await requirePermission("registration.join", {
+    next: `/app/join/${token}`,
+  });
+  const found = await inviteByToken(db, token, new Date(), subject.userId);
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
 
