@@ -4,7 +4,11 @@ import { auditLog } from "../schema/audit";
 import { field, game, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
 import { account, session, user, verification } from "../schema/auth";
-import { message, notificationPreference } from "../schema/message";
+import {
+  message,
+  notificationPreference,
+  pushSubscription,
+} from "../schema/message";
 import { payment, purchase } from "../schema/money";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
@@ -27,6 +31,9 @@ afterAll(closePool);
 
 const SECRET_TOKEN = "session-token-that-must-not-leak";
 const SECRET_ACCESS = "provider-access-token-that-must-not-leak";
+const SECRET_PUSH =
+  "https://push.example.test/send/endpoint-that-must-not-leak";
+const PUSH_AUTH = "authsecretmustnotleak1";
 
 /** Sessions, a linked sign-in, settings and mail for the teammate. */
 async function withAccountData(
@@ -59,6 +66,14 @@ async function withAccountData(
     topic: "marketing",
     channel: "email",
     enabled: true,
+  });
+  await db.insert(pushSubscription).values({
+    userId: w.teammate,
+    endpoint: SECRET_PUSH,
+    p256dh: `B${"a".repeat(86)}`,
+    auth: PUSH_AUTH,
+    userAgent: "Test phone",
+    createdAt: NOW,
   });
   await db.insert(message).values({
     userId: w.teammate,
@@ -108,6 +123,7 @@ describe("the personal data export", () => {
           },
         ],
         emailSettings: [{ topic: "marketing", enabled: true }],
+        pushDevices: [{ browser: "Test phone", createdAt: NOW }],
         messages: [{ template: "payment-reminder" }],
       });
     });
@@ -120,6 +136,8 @@ describe("the personal data export", () => {
       const text = JSON.stringify(await personalData(db, w.teammate, NOW));
       expect(text).not.toContain(SECRET_TOKEN);
       expect(text).not.toContain(SECRET_ACCESS);
+      expect(text).not.toContain(SECRET_PUSH);
+      expect(text).not.toContain(PUSH_AUTH);
       expect(text).not.toContain("magic-link:abc");
       expect(text).not.toContain("Robin");
       expect(text).not.toContain(w.emails[0]);
@@ -246,6 +264,12 @@ describe("deleting an account", () => {
       );
       await none(
         db.select().from(message).where(eq(message.userId, w.teammate)),
+      );
+      await none(
+        db
+          .select()
+          .from(pushSubscription)
+          .where(eq(pushSubscription.userId, w.teammate)),
       );
       const [inv] = await db
         .select({ email: invite.email, status: invite.status })
