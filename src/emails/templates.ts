@@ -4,6 +4,7 @@ import { announcementEmail } from "./announcement";
 import type { Template } from "./define";
 import { eventNoticeEmail } from "./event";
 import { instagramReconnectEmail } from "./instagram-reconnect";
+import { instagramStorageFullEmail } from "./instagram-storage-full";
 import type { RenderContext } from "./layout";
 import { newTeamEmail } from "./new-team";
 import {
@@ -30,6 +31,7 @@ const TEMPLATES: Readonly<Record<string, Template>> = {
   guarantee_failed: guaranteeFailedEmail,
   guarantee_warning: guaranteeWarningEmail,
   instagram_reconnect: instagramReconnectEmail,
+  instagram_storage_full: instagramStorageFullEmail,
   new_team: newTeamEmail,
   payment_reminder: paymentReminderEmail,
   rain_alert: rainAlertEmail,

@@ -1,5 +1,5 @@
 {
-  "id": "3cbe3da8-c26e-4bc9-b0a1-342f6e3656f8",
+  "id": "1c1023af-55a8-4055-9108-36c40d8143de",
   "prevId": "ff0372f6-aef3-4be9-9d36-bd1049caf72f",
   "version": "7",
   "dialect": "postgresql",
@@ -7110,7 +7110,7 @@
         },
         "social_image_size": {
           "name": "social_image_size",
-          "value": "\"social_image\".\"byte_size\" = octet_length(\"social_image\".\"bytes\") and \"social_image\".\"byte_size\" between 1 and 8388608"
+          "value": "\"social_image\".\"byte_size\" = octet_length(\"social_image\".\"bytes\") and \"social_image\".\"byte_size\" between 1 and 2097152"
         }
       },
       "isRLSEnabled": false

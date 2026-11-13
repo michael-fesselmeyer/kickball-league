@@ -236,6 +236,17 @@ describe("rendererFor", () => {
     expect(render("instagram_reconnect", { username: "" }).ok).toBe(false);
   });
 
+  it("tells admins the Instagram photo storage is full, and how to free it", () => {
+    const result = render("instagram_storage_full", { capMegabytes: 25 });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe("Instagram photo storage is full");
+    expect(result.value.text).toContain("up to 25 MB of Instagram photos");
+    expect(result.value.text).toContain("unfeature or hide older ones");
+    expect(render("instagram_storage_full", { capMegabytes: 0 }).ok).toBe(
+      false,
+    );
+  });
+
   const subGame = {
     seasonName: "Fall 2026",
     seasonSlug: "fall-2026",
