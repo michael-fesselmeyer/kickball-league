@@ -118,6 +118,10 @@ async function FreeAgents({
 
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
+  const buildError =
+    typeof query.build_error === "string"
+      ? ERRORS[query.build_error]
+      : undefined;
   const notice =
     query.notice === "applied"
       ? "Suggestion applied. They're on the team."
@@ -141,9 +145,10 @@ async function FreeAgents({
         </p>
         <p className="max-w-prose">
           Suggestions keep friend groups together, stay within each team&apos;s
-          roster size, and even out women and men for the fielding rule first.
-          Then they look at game-day turnout, vibe, experience and positions.
-          Nothing changes until you apply a suggestion.
+          roster size, and fill each team&apos;s need for women and men under
+          the fielding rule first. Then they fill teams evenly and look at vibe,
+          experience and positions. Nothing changes until you apply a
+          suggestion.
         </p>
         <Link
           href={`/app/admin/seasons/${slug}/registrations`}
@@ -339,6 +344,11 @@ async function FreeAgents({
           <h2 id="new-team-title" className="text-h2">
             Build a new team from the pool
           </h2>
+          {buildError && (
+            <p role="alert" className="rounded-lg border border-danger p-3">
+              {buildError}
+            </p>
+          )}
           <p className="max-w-prose text-text-muted">
             The team starts as forming. Its players keep their free-agent
             registration and fee, and the captain can invite more players.

@@ -515,7 +515,7 @@ export type BuildTeamError =
  * free agents with volunteer captains"). The team starts "forming". Its
  * players keep their free-agent registrations, so each pays (or has paid)
  * the free-agent fee; per team, anyone the captain invites later pays that
- * same amount as a fixed share (see the ADR "Teams built from the pool").
+ * same amount as a fixed share (docs/adr/0010-free-agent-matching.md).
  */
 export async function buildTeamFromPool(
   db: Db,
