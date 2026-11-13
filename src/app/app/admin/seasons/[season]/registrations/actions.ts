@@ -2,10 +2,21 @@
 
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
+import {
+  confirmStripeRefund,
+  dropRefund,
+  startRefund,
+} from "@/db/queries/refunds";
 import { placeFreeAgent } from "@/db/queries/registrations-admin";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
-import { parseId, type RegistrationId, type TeamSeasonId } from "@/domain/ids";
+import {
+  type PaymentId,
+  parseId,
+  type RegistrationId,
+  type TeamSeasonId,
+} from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { stripeClient } from "@/services/stripe";
 import { recordPaymentFor } from "@/app/app/seasons/[season]/record-payment";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/registrations`;
@@ -49,4 +60,65 @@ export async function placeFreeAgentAction(
   );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
   redirect(`${page}?notice=placed`);
+}
+
+/**
+ * Refunds all or part of a payment (refund.issue). Stripe payments go back
+ * through Stripe and show as refunded once its webhook confirms; cash, Venmo
+ * and other payments are marked refunded at once, with the admin's note.
+ */
+export async function refundPaymentAction(
+  slug: string,
+  rawPaymentId: string,
+  form: FormData,
+): Promise<void> {
+  const page = pageFor(slug);
+  const subject = await requirePermissionToChange("refund.issue", {
+    next: page,
+  });
+  const season = await seasonBySlug(db, slug);
+  if (!season) notFound();
+  const paymentId = parseId<PaymentId>(rawPaymentId);
+  if (!paymentId) redirect(`${page}?error=unknown_payment`);
+  const started = await txDb.transaction((tx) =>
+    startRefund(tx, {
+      seasonId: season.id,
+      paymentId,
+      amount: form.get("amount"),
+      reason: form.get("reason"),
+      actorId: subject.userId,
+    }),
+  );
+  if (!started.ok) redirect(`${page}?error=${started.error}`);
+  const refund = started.value;
+  if (refund.kind === "off_app") redirect(`${page}?notice=refund_recorded`);
+
+  const stripe = stripeClient();
+  const sent = stripe
+    ? await stripe.refunds
+        .create(
+          {
+            payment_intent: refund.paymentIntentId,
+            amount: refund.amountCents,
+            metadata: { refundId: refund.refundId },
+          },
+          { idempotencyKey: `refund-${refund.refundId}` },
+        )
+        .catch((error: unknown) => {
+          console.error("Stripe refund failed", refund.refundId, error);
+          return null;
+        })
+    : null;
+  if (!sent) {
+    await dropRefund(db, refund.refundId);
+    redirect(`${page}?error=${stripe ? "refund_failed" : "payments_off"}`);
+  }
+  await txDb.transaction((tx) =>
+    confirmStripeRefund(tx, {
+      refundId: refund.refundId,
+      stripeRefundId: sent.id,
+      actorId: subject.userId,
+    }),
+  );
+  redirect(`${page}?notice=refund_sent`);
 }
