@@ -10,6 +10,7 @@ import {
 } from "@/domain/authz/permissions";
 import { parseId, type UserId } from "@/domain/ids";
 import { canWrite } from "@/domain/platform/operator";
+import { err, ok, type Result } from "@/domain/result";
 import { currentSite, isCurrentOperator } from "@/lib/platform/site";
 import { isFreshSession } from "./config";
 import { auth } from "./index";
@@ -31,9 +32,12 @@ const isSignedIn = (subject: Subject): subject is SignedInSubject =>
  * for everyone but the operator, before anything is written.
  */
 async function refuseWritesWhileFrozen(subject: SignedInSubject) {
+  if (await writesFrozen(subject)) redirect("/paused");
+}
+
+async function writesFrozen(subject: SignedInSubject): Promise<boolean> {
   const site = await currentSite();
-  if (!site || canWrite(site.status, isCurrentOperator(subject.userId))) return;
-  redirect("/paused");
+  return !!site && !canWrite(site.status, isCurrentOperator(subject.userId));
 }
 
 /**
@@ -64,6 +68,23 @@ export async function requirePermissionToChange(
   const subject = await requirePermission(action, options);
   await refuseWritesWhileFrozen(subject);
   return subject;
+}
+
+export type ChangeRefusal = "signed_out" | "forbidden" | "frozen";
+
+/**
+ * For Route Handlers that change data, which answer instead of redirecting:
+ * the same checks as `requirePermissionToChange`, as a result.
+ */
+export async function permissionToChange(
+  action: Action,
+  context: Context = {},
+): Promise<Result<SignedInSubject, ChangeRefusal>> {
+  const subject = await currentSubject();
+  if (!isSignedIn(subject)) return err("signed_out");
+  if (!can(subject, action, context)) return err("forbidden");
+  if (await writesFrozen(subject)) return err("frozen");
+  return ok(subject);
 }
 
 /**

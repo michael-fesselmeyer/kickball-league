@@ -85,6 +85,17 @@ export function refreshSeasonPages(seasonId: string): void {
   for (const route of SEASON_PAGE_ROUTES) revalidatePath(route, "layout");
 }
 
+/**
+ * From a Route Handler, where `updateTag` is not available: a game's score
+ * changed, so its live score and its season's public pages expire at once,
+ * as `refreshSeasonPages` and `updateTag(gameTag(id))` do from an action.
+ */
+export function expireGameScore(seasonId: string, gameId: string): void {
+  revalidateTag(seasonTag(seasonId), { expire: 0 });
+  revalidateTag(gameTag(gameId), { expire: 0 });
+  for (const route of SEASON_PAGE_ROUTES) revalidatePath(route, "layout");
+}
+
 /** The events list, the events calendar feed and every event page. */
 export const EVENTS_TAG = "events";
 export const eventTag = (slug: string) => `event:${slug}`;
