@@ -6,6 +6,7 @@ import {
   dismissOutcome,
   type Outbox,
   readOutbox,
+  retryDelay,
   sendWaiting,
 } from "@/lib/pwa/score-outbox";
 
@@ -15,8 +16,11 @@ const EMPTY: Outbox = { entries: [], outcomes: [] };
  * The score entries waiting on this phone and the server's answers to the
  * ones sent, kept current as the service worker sends them. Also asks the
  * worker to send when the page opens and when the signal comes back, which
- * is how entries go out on iPhones (no Background Sync there). With a game
- * id, only that game's entries.
+ * is how entries go out on iPhones (no Background Sync there), and keeps
+ * asking, less and less often, while entries wait and the browser says it
+ * is online: the first try after the signal returns can fail, because the
+ * connection (or the worker's own view of it) catches up a moment later.
+ * With a game id, only that game's entries.
  */
 export function useOutbox(gameId?: string): Outbox {
   const router = useRouter();
@@ -66,6 +70,32 @@ export function useOutbox(gameId?: string): Outbox {
       window.removeEventListener("online", onOnline);
     };
   }, [show]);
+
+  const waiting = outbox.entries.length;
+  useEffect(() => {
+    if (waiting === 0) return;
+    let attempt = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      timer = setTimeout(() => {
+        if (navigator.onLine) sendWaiting();
+        attempt += 1;
+        schedule();
+      }, retryDelay(attempt));
+    };
+    // Back online: start again from the shortest wait.
+    const onOnline = () => {
+      clearTimeout(timer);
+      attempt = 0;
+      schedule();
+    };
+    window.addEventListener("online", onOnline);
+    schedule();
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [waiting]);
 
   return outbox;
 }
