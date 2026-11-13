@@ -9,7 +9,7 @@ import {
   type TeamSeasonId,
   type UserId,
 } from "@/domain/ids";
-import type { CheckoutItem } from "@/domain/registration/checkout";
+import type { ItemKind } from "@/domain/registration/checkout";
 import {
   checkPromo,
   normalizeCode,
@@ -36,6 +36,12 @@ import { registration, rosterMembership, teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
 import { required } from "./rows";
 import { confirmCoveredTeams } from "./team-balance";
+import {
+  cancelRefundedTickets,
+  lockTicketEvents,
+  releaseTicketHolds,
+  settleTickets,
+} from "./event-tickets";
 
 /**
  * Purchases and the Stripe webhook (docs/architecture.md, section 6). Only
@@ -43,12 +49,25 @@ import { confirmCoveredTeams } from "./team-balance";
  * does.
  */
 
+/**
+ * One thing bought: a registration's fee or share, or an event ticket,
+ * which belongs to no registration or season.
+ */
+export type PurchaseLine = {
+  kind: ItemKind | "event_ticket";
+  amountCents: number;
+  description: string;
+  registrationId: string | null;
+  teamSeasonId: string | null;
+};
+
 export async function createPurchase(
   db: Db,
   input: {
     userId: UserId;
-    seasonId: SeasonId;
-    items: CheckoutItem[];
+    /** Null for an event ticket. */
+    seasonId: SeasonId | null;
+    items: readonly PurchaseLine[];
     promo?: { id: PromoCodeId; discountCents: number };
     creditCents?: number;
   },
@@ -75,8 +94,8 @@ export async function createPurchase(
       kind: i.kind,
       amountCents: i.amountCents,
       description: i.description,
-      registrationId: i.registrationId as RegistrationId,
-      teamSeasonId: i.teamSeasonId as TeamSeasonId | null,
+      registrationId: parseId<RegistrationId>(i.registrationId),
+      teamSeasonId: parseId<TeamSeasonId>(i.teamSeasonId),
     })),
   );
   return id;
@@ -103,12 +122,18 @@ export async function startPurchase(
   db: Db,
   input: {
     userId: UserId;
-    seasonId: SeasonId;
-    items: CheckoutItem[];
+    /** Null for an event ticket, which takes no promo code. */
+    seasonId: SeasonId | null;
+    items: readonly PurchaseLine[];
     promoCode: string | null;
     /** Use the person's league credit. On unless they unticked it. */
     useCredit?: boolean;
     now: Date;
+    /**
+     * Links what the purchase is for (an event ticket) before a purchase
+     * that costs nothing is settled.
+     */
+    attach?: (purchaseId: PurchaseId) => Promise<void>;
   },
 ): Promise<Result<StartedPurchase, PromoError>> {
   const amounts = input.items.map((i) => i.amountCents);
@@ -117,9 +142,10 @@ export async function startPurchase(
   const typed = input.promoCode?.trim() ?? "";
   if (typed !== "") {
     const code = normalizeCode(typed);
-    const stored = code
-      ? await promoForCheckout(db, input.seasonId, code)
-      : null;
+    const stored =
+      code && input.seasonId
+        ? await promoForCheckout(db, input.seasonId, code)
+        : null;
     const checked = checkPromo(stored, input.now);
     if (!checked.ok) return err(checked.error);
     promo = {
@@ -146,6 +172,7 @@ export async function startPurchase(
     purchaseId,
     cents: creditCents,
   });
+  await input.attach?.(purchaseId);
   const totalCents = discounted - creditCents;
   if (totalCents === 0) await settlePurchase(db, purchaseId, null, input.now);
   return ok({
@@ -191,21 +218,39 @@ export async function openCheckoutsFor(db: Db, registrationId: RegistrationId) {
     );
 }
 
-/** Expires open purchases and gives back any credit they held. */
-export async function expirePurchases(
+/**
+ * Expires open purchases and gives back any credit they held. Nothing else:
+ * expirePurchases also frees the event spots they held.
+ */
+export async function closePurchases(
   db: Db,
-  ids: PurchaseId[],
+  ids: readonly PurchaseId[],
 ): Promise<void> {
   if (ids.length === 0) return;
   const expired = await db
     .update(purchase)
     .set({ status: "expired" })
-    .where(and(inArray(purchase.id, ids), eq(purchase.status, "open")))
+    .where(and(inArray(purchase.id, [...ids]), eq(purchase.status, "open")))
     .returning({ id: purchase.id });
   await releaseCredit(
     db,
     expired.map((p) => p.id),
   );
+}
+
+/**
+ * Expires open purchases, gives back any credit they held, and frees any
+ * event spot their checkout held.
+ */
+export async function expirePurchases(
+  db: Db,
+  ids: PurchaseId[],
+  now: Date = new Date(),
+): Promise<void> {
+  if (ids.length === 0) return;
+  await lockTicketEvents(db, ids);
+  await closePurchases(db, ids);
+  await releaseTicketHolds(db, ids, now);
 }
 
 /** The fields of a Checkout Session event that this app reads. */
@@ -317,19 +362,22 @@ export async function handleStripeEvent(
       .where(eq(purchase.stripeCheckoutSessionId, session.id));
     if (found) {
       outcome = "processed";
+      // An event spot this checkout holds is changed under the event's lock,
+      // taken before the purchase row, in the same order as buying one.
+      await lockTicketEvents(db, [found.id]);
       const paid =
         (event.type === "checkout.session.completed" ||
           event.type === "checkout.session.async_payment_succeeded") &&
         session.payment_status === "paid";
       if (paid) await markPaid(db, found.id, session, now);
       else if (event.type === "checkout.session.async_payment_failed")
-        await setStatusIfOpen(db, found.id, "failed");
+        await setStatusIfOpen(db, found.id, "failed", now);
       else if (event.type === "checkout.session.expired")
-        await setStatusIfOpen(db, found.id, "expired");
+        await setStatusIfOpen(db, found.id, "expired", now);
     }
   } else if (event.type === "charge.refunded") {
     const charge = chargeEvent.parse(event).data.object;
-    if (await recordChargeRefunded(db, charge)) outcome = "processed";
+    if (await recordChargeRefunded(db, charge, now)) outcome = "processed";
   } else if (
     event.type === "payment_intent.succeeded" ||
     event.type === "payment_intent.payment_failed"
@@ -438,12 +486,18 @@ async function recordAppCharge(
 async function recordChargeRefunded(
   db: Db,
   charge: z.infer<typeof chargeEvent>["data"]["object"],
+  now: Date,
 ): Promise<boolean> {
   const intent =
     typeof charge.payment_intent === "string"
       ? charge.payment_intent
       : charge.payment_intent?.id;
   if (!intent) return false;
+  const [paidFor] = await db
+    .select({ purchaseId: payment.purchaseId })
+    .from(payment)
+    .where(eq(payment.stripePaymentIntentId, intent));
+  if (paidFor) await lockTicketEvents(db, [paidFor.purchaseId]);
   const [changed] = await db
     .update(payment)
     .set({
@@ -454,6 +508,9 @@ async function recordChargeRefunded(
     .returning({ purchaseId: payment.purchaseId });
   if (!changed) return false;
   await refreshRefundStatus(db, changed.purchaseId);
+  // A ticket whose money all went back, here or in Stripe's dashboard, no
+  // longer gets anyone in: its spot goes to the waitlist.
+  await cancelRefundedTickets(db, changed.purchaseId, now);
   return true;
 }
 
@@ -491,12 +548,14 @@ async function setStatusIfOpen(
   db: Db,
   id: PurchaseId,
   status: "failed" | "expired",
+  now: Date,
 ) {
   await db
     .update(purchase)
     .set({ status })
     .where(and(eq(purchase.id, id), eq(purchase.status, "open")));
   await releaseCredit(db, [id]);
+  await releaseTicketHolds(db, [id], now);
 }
 
 /**
@@ -543,7 +602,7 @@ type PaymentRecord =
  * same way. A purchase a promo code or credit made free has no payment to
  * record. Referrers of the registrations it paid for get their credit.
  */
-async function settlePurchase(
+export async function settlePurchase(
   db: Db,
   purchaseId: PurchaseId,
   record: PaymentRecord | null,
@@ -589,6 +648,8 @@ async function settlePurchase(
       .where(inArray(teamSeason.id, teamFees));
   for (const teamSeasonId of teamFees)
     await settleCoveredRegistrations(db, teamSeasonId);
+  if (items.some((i) => i.kind === "event_ticket"))
+    await settleTickets(db, purchaseId);
   const towardSplit = items.flatMap((i) =>
     (i.kind === "player_share" || i.kind === "balance") && i.teamSeasonId
       ? [i.teamSeasonId]
@@ -677,7 +738,7 @@ export async function recordOffAppPayment(
     userId: UserId;
     seasonId: SeasonId;
     registrationId: RegistrationId;
-    items: CheckoutItem[];
+    items: readonly PurchaseLine[];
     method: OffAppMethod;
     note: string;
     actorId: UserId;

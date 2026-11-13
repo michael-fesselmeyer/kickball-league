@@ -23,16 +23,23 @@ import {
   themeWeekDays,
   whenLine,
 } from "@/domain/events/event";
+import { FREE, isTicketed, type TicketPrices } from "@/domain/events/tickets";
 import type { EventId, LeagueId, SeasonId, TeamId, UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { eventNoticeKind } from "@/domain/notifications/kinds";
 import type { EventNoticePayload } from "@/emails/event";
 import { user } from "../schema/auth";
-import { event, eventAudienceTeam, eventRsvp } from "../schema/event";
+import {
+  event,
+  eventAudienceTeam,
+  eventRsvp,
+  eventTicket,
+} from "../schema/event";
 import { league } from "../schema/league";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { recordAudit } from "./audit";
+import { giveUpTickets, offerOpenSpots } from "./event-tickets";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
 import type { Db } from "./schedule";
 
@@ -55,6 +62,8 @@ export type EventSummary = {
   audience: Audience;
   inviteUrl: string | null;
   inAppRsvp: boolean;
+  ticketPriceCents: number | null;
+  memberPriceCents: number | null;
 };
 
 const going = sql<number>`(count(${eventRsvp.id}) filter (where ${eventRsvp.status} = 'going'))::int`;
@@ -84,6 +93,8 @@ const summaryColumns = {
   audienceTeamIds,
   inviteUrl: event.inviteUrl,
   inAppRsvp: event.inAppRsvp,
+  ticketPriceCents: event.ticketPriceCents,
+  memberPriceCents: event.memberPriceCents,
 };
 
 /** A stored audience as the domain's. */
@@ -280,9 +291,12 @@ export async function createEvent(
     timeZone: string;
     event: EventInput;
     reach: Reach;
+    /** A ticket price; free when left out. */
+    prices?: TicketPrices;
     actorId: UserId;
   },
 ): Promise<{ id: EventId; slug: string }> {
+  const prices = input.prices ?? FREE;
   const slug = await freeSlug(
     db,
     eventSlug(input.event.title, input.event.startsAt, input.timeZone),
@@ -292,6 +306,7 @@ export async function createEvent(
     .values({
       ...input.event,
       ...reachColumns(input.reach),
+      ...prices,
       leagueId: input.leagueId,
       slug,
       createdBy: input.actorId,
@@ -304,13 +319,14 @@ export async function createEvent(
     action: "event.create",
     entityType: "event",
     entityId: created.id,
-    after: { ...input.event, ...reachAudit(input.reach), slug },
+    after: { ...input.event, ...reachAudit(input.reach), ...prices, slug },
   });
   return created;
 }
 
-type Locked = {
+export type LockedEvent = {
   id: EventId;
+  leagueId: LeagueId;
   slug: string;
   kind: EventKind;
   title: string;
@@ -320,17 +336,22 @@ type Locked = {
   capacity: number | null;
   cancelledAt: Date | null;
   inAppRsvp: boolean;
+  ticketPriceCents: number | null;
+  memberPriceCents: number | null;
   timeZone: string;
 };
 
+type Locked = LockedEvent;
+
 /**
- * The event, locked until the transaction ends, so two RSVPs for the last
- * spot are taken one after the other.
+ * The event, locked until the transaction ends, so two RSVPs or two buyers
+ * for the last spot are taken one after the other.
  */
-async function lockEvent(db: Db, id: EventId): Promise<Locked | null> {
+export async function lockEvent(db: Db, id: EventId): Promise<Locked | null> {
   const [found] = await db
     .select({
       id: event.id,
+      leagueId: event.leagueId,
       slug: event.slug,
       kind: event.kind,
       title: event.title,
@@ -340,6 +361,8 @@ async function lockEvent(db: Db, id: EventId): Promise<Locked | null> {
       capacity: event.capacity,
       cancelledAt: event.cancelledAt,
       inAppRsvp: event.inAppRsvp,
+      ticketPriceCents: event.ticketPriceCents,
+      memberPriceCents: event.memberPriceCents,
       timeZone: league.timezone,
     })
     .from(event)
@@ -349,7 +372,7 @@ async function lockEvent(db: Db, id: EventId): Promise<Locked | null> {
   return found ?? null;
 }
 
-async function counts(db: Db, eventId: EventId) {
+export async function counts(db: Db, eventId: EventId) {
   const [row] = await db
     .select({ going, waitlisted })
     .from(eventRsvp)
@@ -382,9 +405,16 @@ function notice(
 
 /**
  * Moves the earliest waitlisted people into any open spots and emails each
- * of them. Call it with the event locked. Returns who moved up.
+ * of them. Call it with the event locked. Returns who moved up. On a
+ * ticketed event a spot isn't given away: the next people in line are
+ * offered it to buy instead.
  */
-async function fillFromWaitlist(db: Db, e: Locked): Promise<UserId[]> {
+async function fillFromWaitlist(
+  db: Db,
+  e: Locked,
+  at: Date,
+): Promise<UserId[]> {
+  if (isTicketed(e)) return offerOpenSpots(db, e, at);
   const now = await counts(db, e.id);
   const n = promotions(e.capacity, now.going, now.waitlisted);
   if (n === 0) return [];
@@ -420,7 +450,22 @@ async function fillFromWaitlist(db: Db, e: Locked): Promise<UserId[]> {
   return next.map((r) => r.userId);
 }
 
-export type EventChangeError = "not_found" | "has_rsvps" | "rsvps_in_app";
+export type EventChangeError =
+  "not_found" | "has_rsvps" | "rsvps_in_app" | "has_tickets";
+
+/** Whether anyone has bought a ticket for the event, or is buying one. */
+async function hasTickets(db: Db, eventId: EventId, now: Date) {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(eventTicket)
+    .where(
+      and(
+        eq(eventTicket.eventId, eventId),
+        sql`(${eventTicket.status} = 'paid' or (${eventTicket.status} = 'held' and ${eventTicket.heldUntil} > ${now}))`,
+      ),
+    );
+  return (row?.n ?? 0) > 0;
+}
 
 /**
  * Saves an admin's edit and its audit row. Run it in a transaction. A larger
@@ -430,17 +475,37 @@ export type EventChangeError = "not_found" | "has_rsvps" | "rsvps_in_app";
  */
 export async function updateEvent(
   db: Db,
-  input: { id: EventId; event: EventInput; reach: Reach; actorId: UserId },
+  input: {
+    id: EventId;
+    event: EventInput;
+    reach: Reach;
+    /** New ticket prices; left out, they stay as they are. */
+    prices?: TicketPrices;
+    actorId: UserId;
+    now?: Date;
+  },
 ): Promise<Result<{ promoted: UserId[] }, EventChangeError>> {
+  const at = input.now ?? new Date();
   const before = await lockEvent(db, input.id);
   if (!before) return err("not_found");
   const now = await counts(db, input.id);
   const rsvps = now.going + now.waitlisted;
   if (input.event.kind === "theme_week" && rsvps > 0) return err("has_rsvps");
   if (!input.reach.inAppRsvp && rsvps > 0) return err("rsvps_in_app");
+  const prices: TicketPrices = input.prices ?? {
+    ticketPriceCents: before.ticketPriceCents,
+    memberPriceCents: before.memberPriceCents,
+  };
+  // Tickets sold stay sold: refund them before making the event free.
+  if (
+    isTicketed(before) &&
+    !isTicketed(prices) &&
+    (await hasTickets(db, input.id, at))
+  )
+    return err("has_tickets");
   await db
     .update(event)
-    .set({ ...input.event, ...reachColumns(input.reach) })
+    .set({ ...input.event, ...reachColumns(input.reach), ...prices })
     .where(eq(event.id, input.id));
   await saveAudienceTeams(db, input.id, input.reach.audience);
   await recordAudit(db, {
@@ -456,16 +521,23 @@ export async function updateEvent(
       endsAt: before.endsAt,
       capacity: before.capacity,
       inAppRsvp: before.inAppRsvp,
+      ticketPriceCents: before.ticketPriceCents,
+      memberPriceCents: before.memberPriceCents,
     },
-    after: { ...input.event, ...reachAudit(input.reach) },
+    after: { ...input.event, ...reachAudit(input.reach), ...prices },
   });
   const promoted =
     before.cancelledAt === null
-      ? await fillFromWaitlist(db, {
-          ...before,
-          ...input.event,
-          inAppRsvp: input.reach.inAppRsvp,
-        })
+      ? await fillFromWaitlist(
+          db,
+          {
+            ...before,
+            ...input.event,
+            ...prices,
+            inAppRsvp: input.reach.inAppRsvp,
+          },
+          at,
+        )
       : [];
   return ok({ promoted });
 }
@@ -477,10 +549,25 @@ export async function updateEvent(
 export async function cancelEvent(
   db: Db,
   input: { id: EventId; actorId: UserId; now: Date },
-): Promise<Result<{ notified: number }, "not_found" | "already">> {
+): Promise<
+  Result<{ notified: number }, "not_found" | "already" | "has_tickets">
+> {
   const e = await lockEvent(db, input.id);
   if (!e) return err("not_found");
   if (e.cancelledAt) return err("already");
+  // Ticket money goes back first, one refund at a time, from the admin's
+  // ticket list; an open checkout runs out within the hour.
+  if (await hasTickets(db, input.id, input.now)) return err("has_tickets");
+  // Offers to buy a spot end with the event.
+  await db
+    .update(eventTicket)
+    .set({ status: "released", heldUntil: null })
+    .where(
+      and(
+        eq(eventTicket.eventId, input.id),
+        inArray(eventTicket.status, ["offered", "held"]),
+      ),
+    );
   await db
     .update(event)
     .set({ cancelledAt: input.now })
@@ -520,13 +607,18 @@ export async function cancelEvent(
   return ok({ notified });
 }
 
-/** Takes an event off every page. Run it in a transaction. */
+/**
+ * Takes an event off every page, unless people hold tickets for it. Run it
+ * in a transaction.
+ */
 export async function deleteEvent(
   db: Db,
   input: { id: EventId; actorId: UserId; now: Date },
-): Promise<Result<void, "not_found">> {
+): Promise<Result<void, "not_found" | "has_tickets">> {
   const e = await lockEvent(db, input.id);
   if (!e) return err("not_found");
+  // Ticket holders keep their event page until their money is back.
+  if (await hasTickets(db, input.id, input.now)) return err("has_tickets");
   await db
     .update(event)
     .set({ deletedAt: input.now })
@@ -542,7 +634,13 @@ export async function deleteEvent(
 }
 
 export type RsvpError =
-  "not_found" | "cancelled" | "over" | "no_rsvp" | "invite_only";
+  | "not_found"
+  | "cancelled"
+  | "over"
+  | "no_rsvp"
+  | "invite_only"
+  | "ticketed"
+  | "has_ticket";
 
 export type MyRsvp = {
   status: RsvpStatus;
@@ -562,6 +660,8 @@ export async function joinEvent(
   if (!e) return err("not_found");
   const window = rsvpWindow(e, input.now);
   if (window !== "open") return err(window);
+  // A spot on a ticketed event comes with a ticket (buyTicket).
+  if (isTicketed(e)) return err("ticketed");
   const mine = await myEventRsvp(db, input.eventId, input.userId);
   if (mine) return ok(mine);
   const now = await counts(db, input.eventId);
@@ -582,17 +682,31 @@ export async function joinEvent(
 }
 
 /**
- * Drops someone's RSVP. If they had a spot, the next person on the waitlist
- * gets it. Run it in a transaction.
+ * Drops someone's RSVP, or passes on a spot they were offered. If they had a
+ * spot, the next person on the waitlist gets it (or, on a ticketed event, an
+ * offer to buy it). A ticket holder keeps their spot unless they give the
+ * ticket up, as deleting an account does; refunds go through the league.
+ * Run it in a transaction.
  */
 export async function leaveEvent(
   db: Db,
-  input: { eventId: EventId; userId: UserId; now: Date },
+  input: {
+    eventId: EventId;
+    userId: UserId;
+    now: Date;
+    giveUpTicket?: boolean;
+  },
 ): Promise<Result<{ promoted: UserId[] }, RsvpError>> {
   const e = await lockEvent(db, input.eventId);
   if (!e) return err("not_found");
   const window = rsvpWindow(e, input.now);
   if (window !== "open") return err(window);
+  const given = await giveUpTickets(db, {
+    eventId: input.eventId,
+    userId: input.userId,
+    paid: input.giveUpTicket === true,
+  });
+  if (given.keptPaid) return err("has_ticket");
   const removed = await db
     .delete(eventRsvp)
     .where(
@@ -602,8 +716,9 @@ export async function leaveEvent(
       ),
     )
     .returning({ status: eventRsvp.status });
-  if (removed[0]?.status !== "going") return ok({ promoted: [] });
-  return ok({ promoted: await fillFromWaitlist(db, e) });
+  if (removed[0]?.status !== "going" && !given.freed)
+    return ok({ promoted: [] });
+  return ok({ promoted: await fillFromWaitlist(db, e, input.now) });
 }
 
 /** Someone's RSVP for an event, with their place in line if waitlisted. */

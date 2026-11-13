@@ -7,7 +7,7 @@ import { referralCode } from "../schema/credit";
 import { freeAgentProfile } from "../schema/free-agent";
 import { savedPaymentMethod } from "../schema/guarantee";
 import { account, passkey, session, user, verification } from "../schema/auth";
-import { eventRsvp } from "../schema/event";
+import { eventRsvp, eventTicket } from "../schema/event";
 import { gameLineup, gameLineupSpot } from "../schema/lineup";
 import {
   gameRsvp,
@@ -280,6 +280,18 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .from(eventRsvp)
     .where(eq(eventRsvp.userId, userId))
     .orderBy(asc(eventRsvp.createdAt));
+  const eventTickets = await db
+    .select({
+      eventId: eventTicket.eventId,
+      status: eventTicket.status,
+      code: eventTicket.code,
+      priceCents: eventTicket.priceCents,
+      checkedInAt: eventTicket.checkedInAt,
+      createdAt: eventTicket.createdAt,
+    })
+    .from(eventTicket)
+    .where(eq(eventTicket.userId, userId))
+    .orderBy(asc(eventTicket.createdAt));
   const scoresReported = await db
     .select({
       gameId: scoreReport.gameId,
@@ -507,6 +519,7 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     rsvps,
     kickingOrder,
     eventRsvps,
+    eventTickets,
     scoresReported,
     scoreAnswers,
     refereeAssignments: refereeing,
@@ -666,13 +679,25 @@ export async function deleteAccount(
   await db.delete(gameRsvp).where(eq(gameRsvp.userId, userId));
   await db.delete(gameLineupSpot).where(eq(gameLineupSpot.userId, userId));
   // Give up event spots the way the person would, so the waitlist moves up;
-  // RSVPs for past or called-off events are simply removed.
+  // a ticket or an offer to buy one goes too. RSVPs for past or called-off
+  // events are simply removed; tickets stay, as records of money paid.
   const rsvpd = await db
     .select({ eventId: eventRsvp.eventId })
     .from(eventRsvp)
-    .where(eq(eventRsvp.userId, userId));
+    .where(eq(eventRsvp.userId, userId))
+    .union(
+      db
+        .select({ eventId: eventTicket.eventId })
+        .from(eventTicket)
+        .where(
+          and(
+            eq(eventTicket.userId, userId),
+            inArray(eventTicket.status, ["offered", "held", "paid"]),
+          ),
+        ),
+    );
   for (const { eventId } of rsvpd)
-    await leaveEvent(db, { eventId, userId, now });
+    await leaveEvent(db, { eventId, userId, now, giveUpTicket: true });
   await db.delete(eventRsvp).where(eq(eventRsvp.userId, userId));
   // Votes in polls still open come out of the count; closed totals stay.
   await db

@@ -1,7 +1,14 @@
-import { and, eq, sql } from "drizzle-orm";
-import type { PaymentId, RefundId, SeasonId, UserId } from "@/domain/ids";
+import { and, eq, exists, sql } from "drizzle-orm";
+import type {
+  EventId,
+  PaymentId,
+  RefundId,
+  SeasonId,
+  UserId,
+} from "@/domain/ids";
 import { type RefundError, refundAmount } from "@/domain/registration/refund";
 import { err, ok, type Result } from "@/domain/result";
+import { eventTicket } from "../schema/event";
 import { payment, purchase, refund } from "../schema/money";
 import { recordAudit } from "./audit";
 import { refreshRefundStatus } from "./payments";
@@ -33,14 +40,31 @@ export type StartedRefund =
  */
 export async function startRefund(
   db: Db,
-  input: {
-    seasonId: SeasonId;
+  input: (
+    | { seasonId: SeasonId }
+    /** A payment for a ticket to this event. */
+    | { eventId: EventId }
+  ) & {
     paymentId: PaymentId;
     amount: unknown;
     reason: unknown;
     actorId: UserId;
   },
 ): Promise<Result<StartedRefund, RefundStartError>> {
+  const scope =
+    "seasonId" in input
+      ? eq(purchase.seasonId, input.seasonId)
+      : exists(
+          db
+            .select({ id: eventTicket.id })
+            .from(eventTicket)
+            .where(
+              and(
+                eq(eventTicket.purchaseId, purchase.id),
+                eq(eventTicket.eventId, input.eventId),
+              ),
+            ),
+        );
   const [found] = await db
     .select({
       id: payment.id,
@@ -56,7 +80,7 @@ export async function startRefund(
       and(
         eq(payment.id, input.paymentId),
         eq(payment.status, "succeeded"),
-        eq(purchase.seasonId, input.seasonId),
+        scope,
       ),
     )
     .for("update", { of: payment });
