@@ -2,6 +2,7 @@ import { and, asc, count, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import type { UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { auditLog } from "../schema/audit";
+import { freeAgentProfile } from "../schema/free-agent";
 import { account, session, user, verification } from "../schema/auth";
 import {
   gameRsvp,
@@ -141,6 +142,22 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
           ),
         )
         .orderBy(asc(rosterMembership.createdAt))
+    : [];
+  const quizzes = registrations.length
+    ? await db
+        .select({
+          registrationId: freeAgentProfile.registrationId,
+          answers: freeAgentProfile.answers,
+          notes: freeAgentProfile.notes,
+          answeredAt: freeAgentProfile.updatedAt,
+        })
+        .from(freeAgentProfile)
+        .where(
+          inArray(
+            freeAgentProfile.registrationId,
+            registrations.map((r) => r.id),
+          ),
+        )
     : [];
 
   const waivers = await db
@@ -322,6 +339,9 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
       teams: memberships
         .filter((m) => m.registrationId === r.id)
         .map((m) => without(m, "registrationId")),
+      freeAgentQuiz: ((q) => (q ? without(q, "registrationId") : null))(
+        quizzes.find((q) => q.registrationId === r.id),
+      ),
     })),
     waiverSignatures: waivers,
     purchases: purchases.map((p) => ({
@@ -483,6 +503,13 @@ export async function deleteAccount(
     .update(rosterMembership)
     .set({ sharesContact: false })
     .where(inArray(rosterMembership.registrationId, mine));
+  await db
+    .delete(freeAgentProfile)
+    .where(inArray(freeAgentProfile.registrationId, mine));
+  await db
+    .update(registration)
+    .set({ friendGroupId: null })
+    .where(eq(registration.userId, userId));
   await db.delete(profile).where(eq(profile.userId, userId));
   await db
     .update(user)
