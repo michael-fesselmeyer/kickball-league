@@ -16,6 +16,7 @@ import {
   SEED_EMAIL_DOMAIN,
   SEED_LEAGUE_SLUG,
 } from "../src/seed/generate";
+import { addSeedAwards } from "../src/seed/awards";
 import { addDemoPersonas, removeDemoPersonas } from "../src/seed/demo-personas";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addFreeAgentPool } from "../src/seed/free-agent-pool";
@@ -240,6 +241,7 @@ async function main(): Promise<void> {
       await addPastSeasons(tx, data);
       await addFreeAgentPool(tx, data);
       await addSeedEvents(tx, data);
+      await addSeedAwards(tx, data, new Date());
     });
     const played = data.games.filter((g) => g.status === "final").length;
     console.info(
