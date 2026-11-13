@@ -454,10 +454,15 @@ describe("refunds", () => {
         "refund.issue",
         "refund.issue",
       ]);
-      expect(audits[0]?.after).toMatchObject({
-        stripeRefundId: `re_a_${w.tag}`,
-        amountCents: 2000,
-        reason: "Missed the first two weeks",
+      // Both rows share the transaction's time, so find the first refund's
+      // row by its Stripe id rather than by position.
+      expect(audits).toContainEqual({
+        action: "refund.issue",
+        after: expect.objectContaining({
+          stripeRefundId: `re_a_${w.tag}`,
+          amountCents: 2000,
+          reason: "Missed the first two weeks",
+        }),
       });
 
       const board = await registrationsBoard(db, w.seasonId);
