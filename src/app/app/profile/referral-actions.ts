@@ -9,5 +9,5 @@ import { requireSelfToChange } from "@/lib/auth/permission";
 export async function makeReferralLinkAction(): Promise<void> {
   const subject = await requireSelfToChange("profile.edit", "/app/profile");
   await referralCodeFor(db, subject.userId);
-  redirect("/app/profile#invite");
+  redirect("/app/profile?invite=1#invite");
 }

@@ -481,9 +481,14 @@ erDiagram
   payment ||--o{ refund : "returned by"
   promo_code ||--o{ purchase : "applied to"
   user ||--o{ credit_entry : "holds"
-  team_season ||--o{ credit_entry : "holds"
+  purchase ||--o{ credit_entry : "spends"
+  season_rebate ||--o{ credit_entry : "pays out as"
+  referral ||--o| credit_entry : "earns"
+  team_season ||--o| season_rebate : "gets"
   user ||--o{ saved_payment_method : keeps
+  team_season ||--o| saved_payment_method : "guaranteed by"
   season ||--o{ waitlist_entry : queues
+  user ||--o| referral_code : shares
   user ||--o{ referral : refers
 
   purchase {
@@ -497,6 +502,7 @@ erDiagram
     int total_cents
     uuid promo_code_id FK
     text stripe_checkout_session_id UK
+    text stripe_payment_intent_id UK "for charges the app makes itself"
   }
   purchase_item {
     uuid id PK
@@ -541,39 +547,61 @@ erDiagram
   }
   credit_entry {
     uuid id PK
-    uuid user_id FK "one of user or team_season is set"
-    uuid team_season_id FK
+    uuid user_id FK
     int delta_cents "positive grants, negative spends"
-    enum reason "rainout_rebate, referral, overpayment, goodwill, spent, expired"
-    uuid purchase_id FK
+    enum reason "rainout_rebate, referral, goodwill, spent, released"
+    uuid purchase_id FK "for spent and released"
+    uuid rebate_id FK "for rainout_rebate"
+    uuid referral_id FK "for referral"
+    text note
     uuid issued_by FK
-    timestamptz expires_at
+  }
+  season_rebate {
+    uuid id PK
+    uuid season_id FK
+    uuid team_season_id FK,UK "one rebate per team"
+    int games_count
+    int games_lost
+    int paid_cents
+    int rebate_cents
+    uuid issued_by FK
   }
   saved_payment_method {
     uuid id PK
-    uuid user_id FK
+    uuid user_id FK "the captain who saved it"
     uuid team_season_id FK "the team this card guarantees"
+    text stripe_customer_id
     text stripe_payment_method_id
+    text stripe_setup_session_id UK
     text brand
     text last4
+    timestamptz warned_for_deadline
+    timestamptz warned_at
+    uuid charge_purchase_id FK "the deadline charge"
+    timestamptz removed_at
   }
   waitlist_entry {
     uuid id PK
     uuid season_id FK
     uuid user_id FK
-    text phone_e164 "for visitors with no account"
-    text email
-    enum kind "team, free_agent, interest"
-    enum status "waiting, offered, accepted, expired"
+    text team_name
+    enum status "waiting, offered, accepted, expired, left"
     timestamptz offered_at
     timestamptz offer_expires_at
+    timestamptz decided_at
+  }
+  referral_code {
+    uuid user_id PK
+    text code UK
   }
   referral {
     uuid id PK
     uuid referrer_user_id FK
-    uuid referred_user_id FK
+    uuid referred_user_id FK,UK
     uuid season_id FK
+    uuid registration_id FK
     enum status "pending, credited"
+    timestamptz credited_at
   }
 ```
 
@@ -582,7 +610,12 @@ Notes:
 - A team's balance is its fee minus the sum of paid `purchase_item` rows for that `team_season_id`. It is computed, not stored.
 - When a captain pays the whole team fee, every teammate who has signed the waiver is paid up: their registration becomes active when the fee is paid, or when they sign or join later.
 - Pressing "Pay" again expires the earlier Checkout session first, so one registration cannot be paid twice.
-- `credit_entry` is an append-only ledger. A balance is the sum of the deltas. Spending credit writes a negative row tied to the purchase.
+- `credit_entry` is an append-only ledger per player. A balance is the sum of the deltas. Checkout locks the player's user row, applies credit after any promo code (never leaving a charge under 50 cents) and writes a negative `spent` row tied to the purchase; if that purchase expires or fails, a `released` row gives it back. Each purchase spends and releases at most once. Credit covering the whole price settles the purchase with no payment, like a promo code. Credit does not expire.
+- A split-pay team's balance is its whole-team fee on the day it registered (an early-bird team keeps its early-bird price) minus the `team_fee`, `player_share` and `balance` items of its paid purchases. Refunds do not reopen it. When the balance reaches zero the team is confirmed.
+- `saved_payment_method` is the captain guarantee ([ADR 0017](adr/0017-captain-guarantee-and-league-credit.md)): one live card per team, saved by Checkout in setup mode. The daily job warns the captain once per deadline (`warned_for_deadline`, `warned_at`) and makes one `balance` purchase for the deadline charge (`charge_purchase_id`), never sooner than 72 hours after the warning. That purchase carries the PaymentIntent; `payment_intent.succeeded` settles it and `payment_intent.payment_failed` fails it.
+- `season_rebate` records how a team's rain-out rebate was worked out. A game is lost when it was cancelled or postponed, or sits in the published schedule with no slot or a cancelled one. A team that lost more than the season's `rebate_policy.thresholdPct` (25% by default) gets that share of what was paid for it, split among the people who paid in proportion to what they paid (promo discounts and refunds taken off), as `rainout_rebate` credit rows.
+- `waitlist_entry` is the team line for a full season. An offer holds a spot until `offer_expires_at` (48 hours, never past registration closing) and counts as expired the moment that passes. While anyone waits or holds a live offer, registering a team takes a lock on the season row and only the offer's holder may take the spot.
+- A `referral` is made when someone registers for the first time after arriving through `/r/<code>` (a 30-day cookie). It is credited once, with $10 of `referral` credit to the referrer, when that registration is paid.
 - Promo codes are applied by the app, not by Stripe ([ADR 0010](adr/0010-promo-codes-applied-in-app.md)). Checkout locks the code's row, counts its uses and writes the purchase with `discount_cents` and `promo_code_id`; Stripe is sent the discounted line items. A use is a purchase that is open, paid or refunded, so an abandoned or failed checkout gives its use back. A code that covers the whole price settles the purchase at once with no `payment` row. A percentage rounds down to the cent, and a code never leaves a charge under Stripe's 50-cent minimum. Turning a code off sets `disabled_at`; purchases that used it keep their discount.
 - A refund never cancels a registration; an admin removes a player separately. `payment.refunded_cents` is what has gone back. For Stripe payments only the `charge.refunded` webhook moves it, to Stripe's running total (never lower, so replays and late events are harmless), and refunds made in Stripe's dashboard count too. An admin's Stripe refund writes its `refund` row first, under a lock on the payment, then calls Stripe with the row's id as the idempotency key and stores `stripe_refund_id`; if Stripe refuses, the row is deleted. Off-app refunds (cash or Venmo handed back) add to `refunded_cents` at once. The purchase then becomes `partially_refunded` or `refunded`. Every refund writes an audit row (`refund.issue`).
 
@@ -1003,7 +1036,12 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `payment` | check `0 <= refunded_cents <= amount_cents` | Never refund more than was paid |
 | `refund` | check `amount_cents > 0` | A refund returns money |
 | `promo_code` | unique `(season_id, code)`; check `code = upper(code)`; check a percent is 1 to 100 and an amount is above 0 | Codes match without regard to case and never take off more than the price |
-| `credit_entry` | check that exactly one of `user_id`, `team_season_id` is set | Credit has one owner |
+| `credit_entry` | check that `spent` rows are negative and every other row positive; that `spent` and `released` rows have a purchase, `rainout_rebate` rows a rebate and `referral` rows a referral; unique (`purchase_id`, `reason`), (`rebate_id`, `user_id`) and `referral_id` | A checkout spends and gives back once; a rebate or referral pays once |
+| `season_rebate` | unique `team_season_id`; check `games_lost` between 1 and `games_count` and `rebate_cents` within `paid_cents` | One rebate per team, never more than was paid |
+| `saved_payment_method` | partial unique index on `team_season_id` where `removed_at` is null; unique `stripe_setup_session_id` | One live guarantee per team; a replayed webhook saves once |
+| `waitlist_entry` | partial unique index on (`season_id`, `user_id`) where status is `waiting` or `offered`; check that an offer has its times | One place in line per person |
+| `referral` | unique `referred_user_id`; check the referrer is not the referred | A person is referred once, never by themselves |
+| `purchase` | unique `stripe_payment_intent_id` | A deadline charge is settled once |
 
 Indexes for the common reads:
 
@@ -1053,9 +1091,9 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `push_subscription` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `push_subscription` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
-- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements and the audit log.
+- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
 
 Every deletion writes an `account.delete` audit row with no personal data in it. The person's own export (`personalData`) returns all of the above as JSON, including each passkey's name, type and date, without session tokens, sign-in tokens, provider tokens or passkey key material.

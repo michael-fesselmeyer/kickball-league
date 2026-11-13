@@ -38,6 +38,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── faq
 ├── about                           The league, the commissioners, contact
 ├── join                            Landing page for the QR codes on field signs and at the bar (P3)
+├── r/[code]                        A player's referral link: remembers who sent the visitor for 30 days, then opens the home page
 ├── legal/terms, legal/privacy
 ├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
 ├── offline                         Shown by the service worker when a page needs the network; links the saved next game
@@ -47,7 +48,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 /operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
 
 /app                                Signed-in home: next game, RSVP, what you owe, alerts
-├── account                         Profile, email and push settings, waivers, payments, credit (built at /app/profile)
+├── account                         Profile, email and push settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
 │   └── delete                      Delete your account: what is deleted, what the league keeps; a fresh sign-in (passkey or email link) and your typed email address confirm it
@@ -63,6 +64,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
 ├── seasons/[season]/team/requests  Captain: dates the team can't play and times it would rather have or avoid, until registration closes
 ├── seasons/[season]/new-team       Ask the league to start a new team; see the answer or withdraw while it waits
+├── seasons/[season]/register       Register a team or join as a free agent; when the season is full, the team waitlist: join, see your place, leave, or take a held spot
+├── seasons/[season]/team (fee)     Split-pay captains: the team fee, what is paid and left, pay the rest, and the card that guarantees it
 ├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps and an optional note) and a friend code to start, join, switch or leave
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref)
@@ -76,6 +79,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── seasons/[season]/           Setup, pricing, divisions, rule set, waiver
     │   ├── registrations           Teams, players, payments, waivers, full or partial refunds; roster and payment CSV downloads
     │   ├── promo-codes             The season's promo codes: add one, see its uses, turn it off
+    │   ├── waitlist                The team waitlist in order: who waits, who holds an offer and until when; offer free spots now
+    │   ├── rebates                 Rain-out rebates: each team's games lost and money paid; issue the pro-rata rebate as league credit
     │   ├── shirts                  Shirt sizes by team, what is still to order, and each player's shirt: not ordered, ordered or received
     │   ├── awards                  Open a game-day or season poll, close one early, remove one; results after close
     │   ├── free-agents             Matcher: suggested placements with reasons (apply one or all), the pool with quiz answers and friend groups, and building a new team from the pool
@@ -96,6 +101,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   └── [event]                 Edit, who's coming and the waitlist in order, call off or delete
     ├── news
     ├── messages                    Announcements and delivery log
+    ├── credit                      League credit: give goodwill credit, who holds credit, what was given lately
     ├── money                       Payments, refunds, credit, promo codes
     ├── audit                       Audit log in plain words, newest first; filter for the platform operator's actions
     ├── league.json                 The whole league as JSON, for owners and the operator

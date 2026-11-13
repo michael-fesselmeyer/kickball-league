@@ -111,6 +111,7 @@ Each question lists what the design assumes until it is answered, so nothing her
 | 43 | Is there a charity the league already supports? | None named; Phase 3 | Owners | later |
 | 44 | Would the league run corporate or private events? | Phase 3, a lead form only | Owners | later |
 | 45 | Which second park would the league want first, if permits allowed? | None; the model supports multiple venues | Owners | later |
+| 51 | How much should a referral be worth, and to whom? | $10 of league credit to the player who shared the link, once the new player's first registration is paid; nothing to the new player | Owners | pitch |
 
 ## 9. Technical decisions for you
 
