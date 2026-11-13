@@ -67,8 +67,26 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "team.request_new",
       "event.rsvp",
       "sponsor.check_in",
+      "giveaway.enter",
+      "challenge.view",
     ] as const)
       expect(allowed(action)).toEqual(everyone.filter((w) => w !== "visitor"));
+  });
+
+  it("shows a team's sign-up progress to its players and to admins", () => {
+    expect(allowed("challenge.view_team", { teamSeasonId: "A" })).toEqual(
+      expect.arrayContaining([
+        "player",
+        "captain",
+        "coCaptain",
+        "admin",
+        "owner",
+      ]),
+    );
+    expect(allowed("challenge.view_team", { teamSeasonId: "other" })).toEqual([
+      "admin",
+      "owner",
+    ]);
   });
 
   it("lets eligible signed-in people claim subs, and rostered players vote", () => {
@@ -340,6 +358,8 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "free_agents.place",
       "team.approve_new",
       "event.manage",
+      "giveaway.manage",
+      "challenge.manage",
       "referee.manage",
       "player.suspend",
       "incident.review",

@@ -99,6 +99,10 @@ const RULES = {
   "team.request_new": signedIn,
   "event.rsvp": signedIn,
   "sponsor.check_in": signedIn,
+  // A free giveaway at an event; the event's audience narrows it further.
+  "giveaway.enter": signedIn,
+  // The sign-up challenge's leaderboard: team names and percentages only.
+  "challenge.view": signedIn,
   "sub_request.claim": (s, c) => signedIn(s, c) && c.eligibleToSub === true,
   "awards.vote": (s) => s.roster.length > 0,
   // Players on a team
@@ -121,6 +125,8 @@ const RULES = {
       c.game?.teamSeasonIds.includes(c.teamSeasonId) === true,
   ),
   "opposing_captain.view_contact": any(isAdmin, captainsGame, refereesGame),
+  // A team's own sign-up progress, for everyone on it.
+  "challenge.view_team": any(isAdmin, (s, c) => onTeam(s, c.teamSeasonId)),
   // Captains, of their own team
   "roster.manage": any(isAdmin, (s, c) => {
     if (!captains(s, c.teamSeasonId)) return false;
@@ -190,6 +196,8 @@ const RULES = {
   "free_agents.place": isAdmin,
   "team.approve_new": isAdmin,
   "event.manage": isAdmin,
+  "giveaway.manage": isAdmin,
+  "challenge.manage": isAdmin,
   "referee.manage": isAdmin,
   "player.suspend": isAdmin,
   "incident.review": isAdmin,
