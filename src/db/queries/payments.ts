@@ -1,6 +1,7 @@
-import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, sql, sum } from "drizzle-orm";
 import { z } from "zod";
 import type {
+  PromoCodeId,
   PurchaseId,
   RegistrationId,
   SeasonId,
@@ -8,8 +9,18 @@ import type {
   UserId,
 } from "@/domain/ids";
 import type { CheckoutItem } from "@/domain/registration/checkout";
+import {
+  checkPromo,
+  normalizeCode,
+  type PromoError,
+  promoDiscount,
+  spreadDiscount,
+} from "@/domain/registration/promo";
+import { statusAfterRefunds } from "@/domain/registration/refund";
+import { err, ok, type Result } from "@/domain/result";
 import { payment, purchase, purchaseItem, webhookEvent } from "../schema/money";
 import { recordAudit } from "./audit";
+import { promoForCheckout } from "./promo-codes";
 import { registration, rosterMembership, teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
 import { required } from "./rows";
@@ -22,16 +33,24 @@ import { required } from "./rows";
 
 export async function createPurchase(
   db: Db,
-  input: { userId: UserId; seasonId: SeasonId; items: CheckoutItem[] },
+  input: {
+    userId: UserId;
+    seasonId: SeasonId;
+    items: CheckoutItem[];
+    promo?: { id: PromoCodeId; discountCents: number };
+  },
 ): Promise<PurchaseId> {
-  const total = input.items.reduce((sum, i) => sum + i.amountCents, 0);
+  const subtotal = input.items.reduce((sum, i) => sum + i.amountCents, 0);
+  const discount = input.promo?.discountCents ?? 0;
   const [created] = await db
     .insert(purchase)
     .values({
       userId: input.userId,
       seasonId: input.seasonId,
-      subtotalCents: total,
-      totalCents: total,
+      subtotalCents: subtotal,
+      discountCents: discount,
+      totalCents: subtotal - discount,
+      promoCodeId: input.promo?.id ?? null,
     })
     .returning({ id: purchase.id });
   const id = required(created, "purchase").id;
@@ -46,6 +65,60 @@ export async function createPurchase(
     })),
   );
   return id;
+}
+
+export type StartedPurchase = {
+  purchaseId: PurchaseId;
+  totalCents: number;
+  /** What to charge for each item, in order, after the discount. */
+  chargeCents: number[];
+};
+
+/**
+ * Creates the purchase for a checkout, with a promo code when one was
+ * typed. Call it inside a transaction: the code is locked while its uses are
+ * counted. A code that covers the whole price settles the purchase at once,
+ * with no payment, so there is nothing to send to Stripe.
+ */
+export async function startPurchase(
+  db: Db,
+  input: {
+    userId: UserId;
+    seasonId: SeasonId;
+    items: CheckoutItem[];
+    promoCode: string | null;
+    now: Date;
+  },
+): Promise<Result<StartedPurchase, PromoError>> {
+  const amounts = input.items.map((i) => i.amountCents);
+  const subtotal = amounts.reduce((total, a) => total + a, 0);
+  let promo: { id: PromoCodeId; discountCents: number } | undefined;
+  const typed = input.promoCode?.trim() ?? "";
+  if (typed !== "") {
+    const code = normalizeCode(typed);
+    const stored = code
+      ? await promoForCheckout(db, input.seasonId, code)
+      : null;
+    const checked = checkPromo(stored, input.now);
+    if (!checked.ok) return err(checked.error);
+    promo = {
+      id: checked.value.id,
+      discountCents: promoDiscount(subtotal, checked.value),
+    };
+  }
+  const purchaseId = await createPurchase(db, {
+    userId: input.userId,
+    seasonId: input.seasonId,
+    items: input.items,
+    ...(promo ? { promo } : {}),
+  });
+  const totalCents = subtotal - (promo?.discountCents ?? 0);
+  if (totalCents === 0) await settlePurchase(db, purchaseId, null);
+  return ok({
+    purchaseId,
+    totalCents,
+    chargeCents: spreadDiscount(amounts, promo?.discountCents ?? 0),
+  });
 }
 
 export async function attachCheckoutSession(
@@ -109,6 +182,20 @@ const sessionEvent = z.object({
   }),
 });
 
+/** The fields of a charge.refunded event that this app reads. */
+const chargeEvent = z.object({
+  data: z.object({
+    object: z.object({
+      id: z.string(),
+      payment_intent: z
+        .union([z.string(), z.object({ id: z.string() })])
+        .nullable()
+        .optional(),
+      amount_refunded: z.number().int().nonnegative(),
+    }),
+  }),
+});
+
 export type StripeEventLike = { id: string; type: string; data: unknown };
 
 export type EventOutcome = "processed" | "duplicate" | "ignored";
@@ -162,12 +249,72 @@ export async function handleStripeEvent(
       else if (event.type === "checkout.session.expired")
         await setStatusIfOpen(db, found.id, "expired");
     }
+  } else if (event.type === "charge.refunded") {
+    const charge = chargeEvent.parse(event).data.object;
+    if (await recordChargeRefunded(db, charge)) outcome = "processed";
   }
   await db
     .update(webhookEvent)
     .set({ status: "processed", processedAt: now })
     .where(eq(webhookEvent.id, recorded.id));
   return outcome;
+}
+
+/**
+ * Takes Stripe's word for how much of a charge has been refunded, whether an
+ * admin refunded it here or in Stripe's dashboard. Stripe sends the running
+ * total, so applying an older event again never lowers it.
+ */
+async function recordChargeRefunded(
+  db: Db,
+  charge: z.infer<typeof chargeEvent>["data"]["object"],
+): Promise<boolean> {
+  const intent =
+    typeof charge.payment_intent === "string"
+      ? charge.payment_intent
+      : charge.payment_intent?.id;
+  if (!intent) return false;
+  const [changed] = await db
+    .update(payment)
+    .set({
+      refundedCents: sql`least(${payment.amountCents}, greatest(${payment.refundedCents}, ${charge.amount_refunded}))`,
+      stripeChargeId: sql`coalesce(${payment.stripeChargeId}, ${charge.id})`,
+    })
+    .where(eq(payment.stripePaymentIntentId, intent))
+    .returning({ purchaseId: payment.purchaseId });
+  if (!changed) return false;
+  await refreshRefundStatus(db, changed.purchaseId);
+  return true;
+}
+
+/**
+ * Sets a paid purchase to paid, partially refunded or refunded from what its
+ * payments took and gave back.
+ */
+export async function refreshRefundStatus(
+  db: Db,
+  purchaseId: PurchaseId,
+): Promise<void> {
+  const [totals] = await db
+    .select({
+      paid: sum(payment.amountCents).mapWith(Number),
+      refunded: sum(payment.refundedCents).mapWith(Number),
+    })
+    .from(payment)
+    .where(
+      and(eq(payment.purchaseId, purchaseId), eq(payment.status, "succeeded")),
+    );
+  await db
+    .update(purchase)
+    .set({
+      status: statusAfterRefunds(totals?.paid ?? 0, totals?.refunded ?? 0),
+    })
+    .where(
+      and(
+        eq(purchase.id, purchaseId),
+        inArray(purchase.status, ["paid", "partially_refunded", "refunded"]),
+      ),
+    );
 }
 
 async function setStatusIfOpen(
@@ -221,21 +368,23 @@ type PaymentRecord =
 /**
  * Marks a purchase paid, records the payment, activates the registrations it
  * paid for, and confirms a team whose whole fee was paid. Stripe payments and
- * off-app payments settle the same way.
+ * off-app payments settle the same way. A purchase a promo code made free
+ * has no payment to record.
  */
 async function settlePurchase(
   db: Db,
   purchaseId: PurchaseId,
-  record: PaymentRecord,
+  record: PaymentRecord | null,
 ) {
   await db
     .update(purchase)
     .set({ status: "paid" })
     .where(eq(purchase.id, purchaseId));
-  await db
-    .insert(payment)
-    .values({ purchaseId, status: "succeeded", ...record })
-    .onConflictDoNothing();
+  if (record)
+    await db
+      .insert(payment)
+      .values({ purchaseId, status: "succeeded", ...record })
+      .onConflictDoNothing();
   const items = await db
     .select({
       kind: purchaseItem.kind,
