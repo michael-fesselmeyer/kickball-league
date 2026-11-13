@@ -9,6 +9,7 @@ import {
   type SyncResult,
 } from "@/db/queries/social";
 import type { Db } from "@/db/queries/schedule";
+import { compressPhoto } from "./compress-photo";
 import {
   type DownloadedImage,
   downloadImage,
@@ -28,7 +29,10 @@ type App = Pick<InstagramApp, "fetch" | "timeoutMs">;
 export type AccountOutcome =
   ({ accountId: string } & SyncResult) | { accountId: string; error: string };
 
-/** Photos copied at once; Instagram's CDN is fast but a page holds 25. */
+/**
+ * Photos copied at once; Instagram's CDN is fast but a page holds 25. Each
+ * is downloaded, then shrunk (./compress-photo.ts) before it is stored.
+ */
 const PARALLEL_COPIES = 4;
 
 async function copyAll(
@@ -39,10 +43,14 @@ async function copyAll(
   for (let i = 0; i < posts.length; i += PARALLEL_COPIES) {
     const batch = posts.slice(i, i + PARALLEL_COPIES);
     const copied = await Promise.all(
-      batch.map((p) => downloadImage(app, p.imageUrl)),
+      batch.map(async (p) => {
+        const result = await downloadImage(app, p.imageUrl);
+        // One small WebP copy is stored, never the original.
+        return result.ok ? compressPhoto(result.value.bytes) : null;
+      }),
     );
-    copied.forEach((result, j) => {
-      if (result.ok) images.set(batch[j]!.externalId, result.value);
+    copied.forEach((stored, j) => {
+      if (stored) images.set(batch[j]!.externalId, stored);
     });
   }
   return images;
