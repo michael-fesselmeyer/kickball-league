@@ -41,9 +41,14 @@ export async function stripeEventExtras(
   const session = (event.data as { object?: Stripe.Checkout.Session }).object;
   if (session?.mode !== "setup" || session.metadata?.kind !== "guarantee")
     return {};
-  const setupId = idOf(session.setup_intent);
+  // Stripe sends the SetupIntent's id; use it whole if it came expanded.
+  const sent = session.setup_intent;
+  const setupId = idOf(sent);
   if (!setupId) throw new Error("Setup session without a SetupIntent");
-  const setup = await stripe.setupIntents.retrieve(setupId);
+  const setup =
+    typeof sent === "object" && sent?.payment_method
+      ? sent
+      : await stripe.setupIntents.retrieve(setupId);
   const paymentMethodId = idOf(setup.payment_method);
   const customerId = idOf(setup.customer) ?? idOf(session.customer);
   if (!paymentMethodId || !customerId)

@@ -17,6 +17,7 @@ import type {
 } from "@/domain/ids";
 import { PERSONA_EMAILS, PERSONAS, type PersonaKey } from "@/lib/demo/personas";
 import { PLAYED_ROUNDS, type SeedData } from "./generate";
+import { removeMoneyRecords } from "./money";
 
 /**
  * The four people a demo visitor can view the league as
@@ -134,6 +135,7 @@ export async function removeDemoPersonas(db: Db): Promise<void> {
       )
   ).map((r) => r.id);
   if (!ids.length) return;
+  await removeMoneyRecords(db, { userIds: ids });
   await db
     .update(registration)
     .set({ waiverSignatureId: null })
