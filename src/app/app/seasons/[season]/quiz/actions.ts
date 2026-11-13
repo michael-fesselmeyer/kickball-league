@@ -13,13 +13,13 @@ import { seasonForRegistration } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { normalizeFriendCode } from "@/domain/matcher/friend-code";
 import { parseQuiz } from "@/domain/matcher/quiz";
-import { requireSelf } from "@/lib/auth/permission";
+import { requireSelfToChange } from "@/lib/auth/permission";
 
 const pageFor = (slug: string) => `/app/seasons/${slug}/quiz`;
 
 /** The signed-in person and the season, for their own quiz and group. */
 async function context(slug: string) {
-  const subject = await requireSelf("profile.edit", pageFor(slug));
+  const subject = await requireSelfToChange("profile.edit", pageFor(slug));
   const league = await currentLeague(db);
   const season = league
     ? await seasonForRegistration(db, league.id, slug)

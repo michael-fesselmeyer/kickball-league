@@ -10,14 +10,16 @@ import {
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { parseId, type RegistrationId, type TeamSeasonId } from "@/domain/ids";
 import { suggestPlacements } from "@/domain/matcher/matcher";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshSeasonPages } from "@/lib/public-cache";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/free-agents`;
 
 async function context(slug: string) {
   const page = pageFor(slug);
-  const subject = await requirePermission("free_agents.place", { next: page });
+  const subject = await requirePermissionToChange("free_agents.place", {
+    next: page,
+  });
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
   return { page, subject, season };
