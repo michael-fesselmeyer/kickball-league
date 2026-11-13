@@ -5,10 +5,12 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
 const { revalidatePath, updateTag } = await import("next/cache");
 const {
   EVENTS_TAG,
+  SPONSORS_TAG,
   THEME_WEEKS_TAG,
   eventTag,
   refreshEventPages,
   refreshSeasonPages,
+  refreshSponsorPages,
   seasonTag,
 } = await import("./public-cache");
 
@@ -51,6 +53,17 @@ describe("refreshEventPages", () => {
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
       ["/events/[event]", "page"],
       ["/seasons/[season]", "layout"],
+    ]);
+  });
+});
+
+describe("refreshSponsorPages", () => {
+  it("expires the sponsors tag and the sponsors list with every sponsor page", () => {
+    refreshSponsorPages();
+
+    expect(vi.mocked(updateTag).mock.calls).toEqual([[SPONSORS_TAG]]);
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([
+      ["/sponsors", "layout"],
     ]);
   });
 });
