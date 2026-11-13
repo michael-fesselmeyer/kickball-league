@@ -73,6 +73,12 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - Weekly numbers for each sponsor: check-ins, different players, teams and deals used by week, with the most used deals and the teams that came by most. Counts only, never names.
 - Team of the week: admins see each game day's best wins (an upset of a higher-ranked team counts most) and name a team, with an optional tab at a sponsor. It shows on the sponsors page and the sponsor's page.
 
+**Friends of the league**
+
+- A public, static directory of the other local leagues players also play in (softball, soccer, pool, tabletop games and more), grouped by activity, with each league's area, a short description, its logo and a link to its own site. The page carries `ItemList` structured data.
+- A "Link to us" section with the league's address and a copyable HTML snippet, so partner leagues can link back; entries that do show "Links to us".
+- Admins add, edit and remove entries. Website links must be https on a public host name, and are checked on the server. An optional logo is shrunk on the server to one small WebP and kept in Postgres, within a per-logo and total cap. Every change is audited.
+
 **Messaging**
 
 - A transactional outbox: messages are written with the change that caused them, failed sends retry, and nothing sends twice.

@@ -32,6 +32,7 @@ One primary page per intent, so pages do not compete with each other.
 | Social | things to do in brooklyn sunday, meet people in brooklyn, social sports brooklyn, adult sports leagues brooklyn | `/about` and `/events` | The "meet people in real life" story, with the events calendar |
 | Results | [team name] kickball, brooklyn kickball standings, kickball scores | `/teams/[team]`, `/seasons/[season]/standings` | Fresh, linkable pages that players share |
 | Sponsor | [bar name] kickball, kickball bar williamsburg | `/sponsors/[sponsor]` | Deals and the after-game plan; earns a link back from the bar |
+| Other leagues | softball league brooklyn, bar pool league williamsburg, board game night greenpoint, adult sports leagues brooklyn | `/friends` | Point players to the leagues they already share with ours, and give those leagues a ready link back |
 | Referee | kickball referee jobs nyc, umpire kickball | `/refs` | Recruit refs |
 | Corporate (P3) | corporate kickball nyc, team building kickball brooklyn | `/corporate` | Lead form |
 | Questions | is kickball coed, what to wear to kickball, how long is a kickball game | `/faq` | Short answers that link deeper |
@@ -73,6 +74,7 @@ Added as JSON-LD and validated in CI against the schema.org types.
 | `FAQPage` | FAQ | questions and answers. Google now shows FAQ rich results for few sites, so this is for clarity to machines, not for a visual result |
 | `BreadcrumbList` | Deep pages | The path |
 | `Article` | News and recaps | headline, datePublished, author, image |
+| `ItemList` | Friends of the league | One `ListItem` per league, in page order, each a `SportsOrganization` (with its sport) or an `Organization` (games and quizzes), with its own site's url, description, logo and area served |
 
 `LocalBusiness` is used for the sponsor bars, which have premises. The league itself is a `SportsOrganization` with an area served, because it has no storefront.
 
@@ -109,7 +111,7 @@ Writing rules: answer the question in the first two sentences; use the words peo
 | **Fix the social links** | The current site links to a different league's Facebook and Twitter. Create or claim the league's own Instagram and Facebook and link those | League |
 | **Sponsor bar links** | Each sponsor agreement includes a link from the bar's website and a tag in their Instagram posts. The QR check-in poster carries the site address | Sponsorship terms |
 | **Local citations** | List the league where New Yorkers look for things to do and for adult sports leagues: neighborhood blogs and newsletters for Greenpoint and Williamsburg, "things to do" calendars, Meetup, Eventbrite for social events, Yelp, Nextdoor, Reddit's NYC and Brooklyn communities where rules allow | League, with a checklist |
-| **Friends of the league** | Trade links with the leagues players already overlap with (softball, soccer, pool, football) | League |
+| **Friends of the league** | Trade links with the leagues players already overlap with (softball, soccer, pool, football). Built: `/friends` lists them, each linking out with `rel="noopener"` (no `nofollow`: these are real partners), and its "Link to us" section gives them the league's address and an HTML snippet. Admins mark which ones link back | League |
 | **Press** | One pitch a year to local outlets around opening day or the charity game | League |
 | **Park permits** | Ask whether permitted leagues can be listed on any Parks Department or conservancy page | League |
 
