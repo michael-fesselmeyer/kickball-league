@@ -56,6 +56,12 @@ export type EventId = Brand<string, "EventId">;
 export type EventRsvpId = Brand<string, "EventRsvpId">;
 export type AwardPollId = Brand<string, "AwardPollId">;
 export type AwardVoteId = Brand<string, "AwardVoteId">;
+export type SponsorId = Brand<string, "SponsorId">;
+export type SponsorMemberId = Brand<string, "SponsorMemberId">;
+export type DealId = Brand<string, "DealId">;
+export type CheckinId = Brand<string, "CheckinId">;
+export type DealRedemptionId = Brand<string, "DealRedemptionId">;
+export type TeamOfWeekId = Brand<string, "TeamOfWeekId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
