@@ -20,6 +20,7 @@ describe("buildSitemap", () => {
       `${ORIGIN}/news/how-to-play-kickball`,
       `${ORIGIN}/about`,
       `${ORIGIN}/events`,
+      `${ORIGIN}/sponsors`,
       `${ORIGIN}/records`,
       `${ORIGIN}/history`,
     ]);
