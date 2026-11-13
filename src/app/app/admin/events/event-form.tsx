@@ -2,6 +2,12 @@
 
 import { useActionState, useId, useState } from "react";
 import {
+  AUDIENCE_KINDS,
+  type AudienceChoices,
+  MAX_INVITE_URL_LENGTH,
+  type ReachForm,
+} from "@/domain/events/audience";
+import {
   EVENT_KINDS,
   type EventForm,
   KIND_LABELS,
@@ -53,22 +59,154 @@ function Field({
   );
 }
 
+const AUDIENCE_OPTIONS: Readonly<
+  Record<(typeof AUDIENCE_KINDS)[number], { label: string; hint: string }>
+> = {
+  public: {
+    label: "Everyone",
+    hint: "On the public events page and calendar feed.",
+  },
+  members: {
+    label: "All members",
+    hint: "Anyone registered in any season, once they sign in.",
+  },
+  teams: {
+    label: "Chosen teams",
+    hint: "Only the players on the teams you pick, once they sign in.",
+  },
+};
+
 /**
- * The admin's event form. A theme week needs only its days, so the time and
- * capacity fields hide while it is picked. Hidden fields are still sent and
- * ignored, so switching back keeps what was typed.
+ * Who the event is for. Picking teams shows a season (the active one first)
+ * or any season, and that season's teams. Only the boxes on screen are
+ * sent, so a team picked under another season is left out.
+ */
+function AudienceFields({
+  choices,
+  reach,
+}: {
+  choices: AudienceChoices;
+  reach: ReachForm;
+}) {
+  const id = useId();
+  const [audience, setAudience] = useState(reach.audience);
+  const [season, setSeason] = useState(reach.season);
+  const [picked, setPicked] = useState(() => new Set(reach.teams));
+  const teams =
+    season === "all"
+      ? choices.teams
+      : (choices.seasons.find((s) => s.id === season)?.teams ?? []);
+  const toggle = (teamId: string, on: boolean) =>
+    setPicked((now) => {
+      const next = new Set(now);
+      if (on) next.add(teamId);
+      else next.delete(teamId);
+      return next;
+    });
+  return (
+    <fieldset className="flex flex-col gap-3 rounded-card border border-border p-4">
+      <legend className="px-1 font-bold">Who it&apos;s for</legend>
+      <div className="flex flex-col gap-1">
+        {AUDIENCE_KINDS.map((kind) => (
+          <label key={kind} className="flex min-h-11 items-start gap-2 py-1">
+            <input
+              type="radio"
+              name="audience"
+              value={kind}
+              checked={audience === kind}
+              onChange={() => setAudience(kind)}
+              aria-describedby={`${id}-${kind}`}
+              className="mt-1 size-5 accent-brand"
+            />
+            <span className="flex flex-col">
+              {AUDIENCE_OPTIONS[kind].label}
+              <span id={`${id}-${kind}`} className="text-small text-text-muted">
+                {AUDIENCE_OPTIONS[kind].hint}
+              </span>
+            </span>
+          </label>
+        ))}
+      </div>
+      {audience === "teams" && (
+        <>
+          <div className="flex flex-col gap-1">
+            <label htmlFor={`${id}-season`} className="font-bold">
+              Season
+            </label>
+            <select
+              id={`${id}-season`}
+              name="season"
+              value={season}
+              onChange={(e) => setSeason(e.target.value)}
+              className={control}
+            >
+              {choices.seasons.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                  {s.id === choices.activeSeasonId ? " (active)" : ""}
+                </option>
+              ))}
+              <option value="all">Any season</option>
+            </select>
+          </div>
+          <fieldset className="flex flex-col gap-1">
+            <legend className="font-bold">Teams</legend>
+            {teams.length === 0 ? (
+              <p className="text-small text-text-muted">
+                No teams in this season yet.
+              </p>
+            ) : (
+              <div className="grid gap-x-4 sm:grid-cols-2">
+                {teams.map((t) => (
+                  <label
+                    key={t.id}
+                    className="flex min-h-11 items-center gap-2"
+                  >
+                    <input
+                      type="checkbox"
+                      name="team"
+                      value={t.id}
+                      checked={picked.has(t.id)}
+                      onChange={(e) => toggle(t.id, e.target.checked)}
+                      className="size-5 accent-brand"
+                    />
+                    {t.name}
+                  </label>
+                ))}
+              </div>
+            )}
+          </fieldset>
+        </>
+      )}
+    </fieldset>
+  );
+}
+
+/**
+ * The admin's event form. A theme week needs only its days, so the time,
+ * capacity and audience fields hide while it is picked (theme weeks are for
+ * everyone). Hidden fields are still sent and ignored, so switching back
+ * keeps what was typed.
  */
 export function EventFormFields({
   action,
   values,
+  reach,
+  choices,
   submitLabel,
+  announceLabel,
 }: {
   action: (previous: EventFormState, form: FormData) => Promise<EventFormState>;
   values: EventForm;
+  reach: ReachForm;
+  choices: AudienceChoices;
   submitLabel: string;
+  announceLabel: string;
 }) {
   const [state, formAction, pending] = useActionState(action, {
     values,
+    reach,
+    announce: false,
     error: null,
   });
   const v = state.values;
@@ -212,6 +350,51 @@ export function EventFormFields({
           />
         )}
       </Field>
+      <Field
+        label="Invite link (optional)"
+        hint="A Partiful invite or any https:// page. It shows as a button and goes in shared messages; the app doesn't read it."
+      >
+        {(props) => (
+          <input
+            {...props}
+            type="url"
+            name="inviteUrl"
+            inputMode="url"
+            maxLength={MAX_INVITE_URL_LENGTH}
+            placeholder="https://"
+            defaultValue={state.reach.inviteUrl}
+            className={control}
+          />
+        )}
+      </Field>
+      <label className="flex min-h-11 items-center gap-2" hidden={themeWeek}>
+        <input
+          type="checkbox"
+          name="inAppRsvp"
+          value="yes"
+          defaultChecked={state.reach.inAppRsvp === "yes"}
+          className="size-5 accent-brand"
+        />
+        Players RSVP in the app too (untick to use only the invite link)
+      </label>
+      <div hidden={themeWeek}>
+        {/* Keyed by the saved values, so a failed save shows what was sent. */}
+        <AudienceFields
+          key={JSON.stringify(state.reach)}
+          choices={choices}
+          reach={state.reach}
+        />
+      </div>
+      <label className="flex min-h-11 items-center gap-2">
+        <input
+          type="checkbox"
+          name="announce"
+          value="yes"
+          defaultChecked={state.announce}
+          className="size-5 accent-brand"
+        />
+        {announceLabel}
+      </label>
       <button
         type="submit"
         disabled={pending}
