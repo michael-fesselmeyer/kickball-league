@@ -16,6 +16,22 @@ export const PUBLIC_PAGE_LIFE = {
 
 export const seasonTag = (seasonId: string) => `season:${seasonId}`;
 export const teamTag = (teamSlug: string) => `team:${teamSlug}`;
+export const gameTag = (gameId: string) => `game:${gameId}`;
+
+/**
+ * How long a game's live score is kept on the server between saves
+ * (docs/architecture.md, section 3). Saving a half-inning expires it at once
+ * through `gameTag`; the short refresh covers changes no action makes, such
+ * as a score settling on its own.
+ */
+export const LIVE_SCORE_LIFE = {
+  stale: 5,
+  revalidate: 5,
+  expire: 60,
+} as const;
+
+/** Seconds a CDN may keep a copy of a game's live score. */
+export const LIVE_SCORE_CDN_SECONDS = 5;
 
 /**
  * From a Server Action: the next request for any public page of this season,
