@@ -33,6 +33,7 @@ export type AuditLogId = Brand<string, "AuditLogId">;
 export type WaiverId = Brand<string, "WaiverId">;
 export type WaiverSignatureId = Brand<string, "WaiverSignatureId">;
 export type InviteId = Brand<string, "InviteId">;
+export type FriendGroupId = Brand<string, "FriendGroupId">;
 export type PurchaseId = Brand<string, "PurchaseId">;
 export type PurchaseItemId = Brand<string, "PurchaseItemId">;
 export type PaymentId = Brand<string, "PaymentId">;

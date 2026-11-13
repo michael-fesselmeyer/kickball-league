@@ -1,5 +1,6 @@
 export * from "./audit";
 export * from "./auth";
+export * from "./free-agent";
 export * from "./game";
 export * from "./league";
 export * from "./message";
