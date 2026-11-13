@@ -12,6 +12,7 @@ export * from "./playoffs";
 export * from "./profile";
 export * from "./schedule";
 export * from "./season";
+export * from "./sponsor";
 export * from "./subs";
 export * from "./team";
 export * from "./waiver";
