@@ -14,10 +14,10 @@ permissions:
 
 # How the jobs fit together (docs/architecture.md, section 11):
 #
-#   Lint, types, tests, build
-#   Migrations
-#   Production build ─┬─ End-to-end shards ─── End-to-end
-#                     └─ Lighthouse shards ─── Lighthouse
+#   changes ─┬─ Lint, types, tests, build
+#            ├─ Migrations
+#            └─ Production build ─┬─ End-to-end shards ─── End-to-end
+#                                 └─ Lighthouse shards ─── Lighthouse
 #   Secret scan
 #
 # The names in .github/rulesets/main.json are the required checks. The
@@ -25,9 +25,62 @@ permissions:
 # never waits on a check that no longer exists.
 
 jobs:
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    outputs:
+      # "false" only for a pull request whose every file is documentation.
+      # Anything else, including a failure here, runs every check in full.
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The pull request's merge commit and its first parent, main.
+          fetch-depth: 2
+      - name: Does this change reach the app?
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" != pull_request ]; then
+            echo "app=true" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Everything this pull request would change on main.
+          files=$(git diff --name-only HEAD^1 HEAD)
+          app=false
+          [ -n "$files" ] || app=true
+          while IFS= read -r file; do
+            [ -n "$file" ] || continue
+            case "$file" in
+              # Conservative: these always run everything, Markdown included.
+              src/* | e2e/* | drizzle/* | scripts/* | public/* | assets/* | .github/*) app=true ;;
+              docs/* | *.md) ;;
+              # Config files, package*.json and anything unknown.
+              *) app=true ;;
+            esac
+          done <<<"$files"
+          echo "app=$app" >>"$GITHUB_OUTPUT"
+          {
+            if [ "$app" = true ]; then
+              echo "Runs every check: this pull request changes more than documentation."
+            else
+              echo "Documentation only: the build, tests, end-to-end, Lighthouse and migration checks pass without running. Formatting, secret scan and pull request hygiene still run."
+            fi
+            echo
+            echo '```'
+            echo "$files"
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+
   verify:
     name: Lint, types, tests, build
+    needs: changes
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
+    env:
+      APP: ${{ needs.changes.outputs.app != 'false' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -35,11 +88,16 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # Prettier also checks Markdown, so it runs on documentation changes too.
       - run: npm run format:check
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test:coverage
+      - if: env.APP == 'true'
+        run: npm run lint
+      - if: env.APP == 'true'
+        run: npm run typecheck
+      - if: env.APP == 'true'
+        run: npm run test:coverage
       - name: Restore the Next.js build cache
+        if: env.APP == 'true'
         uses: actions/cache@v6
         with:
           path: .next/cache
@@ -48,6 +106,7 @@ jobs:
       # A build with no database to read, the way src/lib/static-params.ts
       # falls back when one cannot be reached. The placeholder connects nowhere.
       - name: Build without a database
+        if: env.APP == 'true'
         run: npm run build
         env:
           # Placeholders that pass validation (src/lib/env.ts). The build only
@@ -55,9 +114,14 @@ jobs:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
           BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
           BETTER_AUTH_URL: http://localhost:3000
+      - name: Documentation only, nothing else to check
+        if: env.APP != 'true'
+        run: echo "Only documentation changed; formatting passed."
 
   build:
     name: Production build
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.app != 'false' }}
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -170,15 +234,21 @@ jobs:
 
   e2e:
     name: End-to-end
-    needs: [build, e2e-shard]
+    needs: [changes, build, e2e-shard]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Every shard passed
         env:
+          CHANGES: ${{ needs.changes.result }}
+          APP: ${{ needs.changes.outputs.app }}
           BUILD: ${{ needs.build.result }}
           SHARDS: ${{ needs.e2e-shard.result }}
         run: |
+          if [ "$CHANGES" = success ] && [ "$APP" = false ]; then
+            echo "Only documentation changed; no end-to-end run needed."
+            exit 0
+          fi
           echo "Production build: $BUILD. End-to-end shards: $SHARDS."
           [ "$BUILD" = success ] && [ "$SHARDS" = success ]
 
@@ -235,15 +305,21 @@ jobs:
 
   lighthouse:
     name: Lighthouse
-    needs: [build, lighthouse-shard]
+    needs: [changes, build, lighthouse-shard]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Every shard passed
         env:
+          CHANGES: ${{ needs.changes.result }}
+          APP: ${{ needs.changes.outputs.app }}
           BUILD: ${{ needs.build.result }}
           SHARDS: ${{ needs.lighthouse-shard.result }}
         run: |
+          if [ "$CHANGES" = success ] && [ "$APP" = false ]; then
+            echo "Only documentation changed; no Lighthouse run needed."
+            exit 0
+          fi
           echo "Production build: $BUILD. Lighthouse shards: $SHARDS."
           [ "$BUILD" = success ] && [ "$SHARDS" = success ]
 
@@ -261,11 +337,14 @@ jobs:
 
   migrations:
     name: Migrations
+    needs: changes
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     services:
-      # Same major version as the Neon project
+      # Same major version as the Neon project. An empty image starts no
+      # container, for a documentation-only change.
       postgres:
-        image: postgres:18
+        image: ${{ needs.changes.outputs.app != 'false' && 'postgres:18' || '' }}
         env:
           POSTGRES_USER: ci
           POSTGRES_PASSWORD: ci
@@ -275,16 +354,25 @@ jobs:
           --health-cmd "pg_isready -U ci" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      APP: ${{ needs.changes.outputs.app != 'false' }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - name: Documentation only, nothing to migrate
+        if: env.APP != 'true'
+        run: echo "Only documentation changed; the migration checks pass without running."
+      - if: env.APP == 'true'
+        uses: actions/checkout@v7
+      - if: env.APP == 'true'
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
+      - if: env.APP == 'true'
+        run: npm ci
       - name: Migration files are consistent
+        if: env.APP == 'true'
         run: npm run db:check
       - name: Schema has no changes without a migration
+        if: env.APP == 'true'
         run: |
           npm run db:generate
           if [ -n "$(git status --porcelain drizzle)" ]; then
@@ -293,10 +381,14 @@ jobs:
             exit 1
           fi
       - name: Every migration applies to an empty database
+        if: env.APP == 'true'
         run: npm run db:migrate
       - name: Migrations are idempotent on re-run
+        if: env.APP == 'true'
         run: npm run db:migrate
       - name: Database constraints hold
+        if: env.APP == 'true'
         run: npm run test:db
       - name: Seed data loads into a fresh database, twice
+        if: env.APP == 'true'
         run: npm run seed && npm run seed
