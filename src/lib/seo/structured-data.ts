@@ -373,3 +373,47 @@ export function serializeJsonLd(data: JsonLd | readonly JsonLd[]): string {
     .replace(/\u2028/g, "\\u2028")
     .replace(/\u2029/g, "\\u2029");
 }
+
+export type FriendLeagueInfo = {
+  name: string;
+  /** The league's own website. */
+  url: string;
+  /** What schema.org calls the sport; null for games and quizzes. */
+  sport: string | null;
+  description?: string | undefined;
+  /** An absolute address of its logo on this site. */
+  logo?: string | undefined;
+  area?: string | undefined;
+};
+
+/**
+ * The friends of the league page: an ItemList of the other local leagues
+ * it links, each a SportsOrganization (or an Organization when it plays
+ * games rather than a sport), pointing at the league's own site.
+ */
+export function friendsJsonLd(
+  page: { name: string; url: string },
+  friends: readonly FriendLeagueInfo[],
+): JsonLd {
+  return {
+    "@context": CONTEXT,
+    "@type": "ItemList",
+    name: page.name,
+    url: page.url,
+    numberOfItems: friends.length,
+    itemListElement: friends.map((f, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: f.name,
+      item: compact({
+        "@type": f.sport ? "SportsOrganization" : "Organization",
+        name: f.name,
+        url: f.url,
+        sport: f.sport ?? undefined,
+        description: f.description,
+        logo: f.logo,
+        areaServed: f.area,
+      }),
+    })),
+  };
+}

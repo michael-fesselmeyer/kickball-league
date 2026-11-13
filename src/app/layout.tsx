@@ -52,6 +52,7 @@ const FOOTER_LINKS = [
   { href: "/about", label: "About" },
   { href: "/events", label: "Events" },
   { href: "/faq", label: "FAQ" },
+  { href: "/friends", label: "Friends" },
   { href: "/parks/mccarren-park", label: "McCarren Park" },
   { href: "/sponsors", label: "Sponsors" },
   { href: "/sign-in", label: "Sign in" },

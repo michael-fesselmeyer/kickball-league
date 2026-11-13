@@ -21,6 +21,7 @@ describe("buildSitemap", () => {
       `${ORIGIN}/about`,
       `${ORIGIN}/events`,
       `${ORIGIN}/sponsors`,
+      `${ORIGIN}/friends`,
       `${ORIGIN}/records`,
       `${ORIGIN}/history`,
     ]);
