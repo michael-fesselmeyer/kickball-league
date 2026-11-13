@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { LogoBadge } from "@/components/logo-badge";
+import { Arrive } from "@/components/arrive";
+import { gameMorph, Morph, teamMorph } from "@/components/motion";
 import { ForecastChip } from "@/components/forecast-chip";
 import { ShareButtons } from "@/components/share";
 import { LiveLine } from "@/components/line-score";
@@ -68,7 +70,9 @@ export default function GamePage(props: PageProps<"/games/[game]">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:px-6">
       <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>
-        <Game {...props} />
+        <Arrive>
+          <Game {...props} />
+        </Arrive>
       </Suspense>
     </main>
   );
@@ -138,26 +142,28 @@ async function Game({ params }: PageProps<"/games/[game]">) {
           {game.teamA.name} vs {game.teamB.name}
           {result ? `: ${result}` : ""}
         </h1>
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-card border-2 border-text bg-surface p-4 shadow-sticker md:p-8">
-          <Side
-            team={game.teamA}
-            score={game.scoreA}
-            show={done && game.status === "final"}
-            won={outcomeFor(game, game.teamA.id) === "W"}
-          />
-          <p
-            aria-hidden="true"
-            className="font-display text-h3 text-text-muted"
-          >
-            vs
-          </p>
-          <Side
-            team={game.teamB}
-            score={game.scoreB}
-            show={done && game.status === "final"}
-            won={outcomeFor(game, game.teamB.id) === "W"}
-          />
-        </div>
+        <Morph name={gameMorph(game.id)}>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-card border-2 border-text bg-surface p-4 shadow-sticker md:p-8">
+            <Side
+              team={game.teamA}
+              score={game.scoreA}
+              show={done && game.status === "final"}
+              won={outcomeFor(game, game.teamA.id) === "W"}
+            />
+            <p
+              aria-hidden="true"
+              className="font-display text-h3 text-text-muted"
+            >
+              vs
+            </p>
+            <Side
+              team={game.teamB}
+              score={game.scoreB}
+              show={done && game.status === "final"}
+              won={outcomeFor(game, game.teamB.id) === "W"}
+            />
+          </div>
+        </Morph>
         {result && <p className="text-center text-body-lg">{result}</p>}
       </header>
 
@@ -301,14 +307,16 @@ function Side({
 }) {
   return (
     <div className="flex min-w-0 flex-col items-center gap-2 text-center">
-      <span aria-hidden="true" className="flex">
-        <LogoBadge
-          kind="team"
-          name={team.name}
-          color={team.colorHex as Hex | null}
-          size={64}
-        />
-      </span>
+      <Morph name={teamMorph(team.id)}>
+        <span aria-hidden="true" className="flex">
+          <LogoBadge
+            kind="team"
+            name={team.name}
+            color={team.colorHex as Hex | null}
+            size={64}
+          />
+        </span>
+      </Morph>
       <Link
         href={`/teams/${team.slug}`}
         className={`inline-flex min-h-11 items-center break-words underline ${won ? "font-bold" : ""}`}

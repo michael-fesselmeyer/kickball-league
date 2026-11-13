@@ -281,7 +281,12 @@ function DayGrid({
                 return (
                   <td key={f} className="align-top">
                     {g ? (
-                      <GameCard game={g} timeZone={timeZone} compact />
+                      <GameCard
+                        game={g}
+                        timeZone={timeZone}
+                        compact
+                        morph={false}
+                      />
                     ) : (
                       <span className="text-small text-text-muted">Open</span>
                     )}

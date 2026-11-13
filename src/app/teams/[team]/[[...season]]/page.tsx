@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { GameCard } from "@/components/game-card";
 import { AllTimeRecord } from "@/components/history/all-time-record";
 import { LogoBadge } from "@/components/logo-badge";
+import { Morph, teamMorph } from "@/components/motion";
 import { ShareButtons } from "@/components/share";
 import { TeamStats } from "@/components/stats/team-stats";
 import { PageLoading } from "@/components/page-loading";
@@ -151,15 +152,25 @@ async function TeamView({
   // Played, or called off, without a final score yet.
   const awaiting = open.filter(isOver);
 
+  const badge = (
+    <LogoBadge
+      kind="team"
+      name={team.name}
+      color={team.colorHex as Hex | null}
+      size={96}
+    />
+  );
+
   return (
     <>
       <header className="flex flex-wrap items-center gap-4">
-        <LogoBadge
-          kind="team"
-          name={team.name}
-          color={team.colorHex as Hex | null}
-          size={96}
-        />
+        {entry ? (
+          <Morph name={teamMorph(entry.id)}>
+            <span className="flex">{badge}</span>
+          </Morph>
+        ) : (
+          badge
+        )}
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-h1 break-words">{team.name}</h1>
           {entry && (
