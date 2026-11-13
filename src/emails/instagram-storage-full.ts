@@ -2,7 +2,7 @@ import { z } from "zod";
 import { defineTemplate } from "./define";
 import { renderEmail } from "./layout";
 
-/** Tells an admin the Instagram photo storage reached its cap (ADR 0020). */
+/** Tells an admin the Instagram photo storage reached its cap (ADR 0023). */
 export const instagramStorageFullPayload = z.object({
   capMegabytes: z.number().int().positive(),
 });

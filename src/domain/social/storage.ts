@@ -1,5 +1,5 @@
 /**
- * How much of the league's Instagram the site keeps (ADR 0020), so the
+ * How much of the league's Instagram the site keeps (ADR 0023), so the
  * copies stay inside the database's free tier, which every other table
  * shares.
  *

@@ -1,4 +1,4 @@
-# ADR 0020: Instagram photos through the official API, stored in Postgres
+# ADR 0023: Instagram photos through the official API, stored in Postgres
 
 - Status: accepted
 - Date: 2026-11-13
