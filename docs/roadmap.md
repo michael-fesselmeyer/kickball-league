@@ -138,6 +138,7 @@ Done means: **the demo makes the owners say yes.** Listed in build order; if tim
 |---|---|
 | Legal text | Real waiver, terms and privacy policy supplied or approved by the league |
 | Stripe live | The league's Stripe account connected; a real $1 payment and refund succeed end to end |
+| Continuous delivery | Automatic deployments turned back on in `vercel.json`: every merge to `main` deploys to production and every pull request gets a preview with its own database branch |
 | Production hardening | Vercel Pro, paid email tier, Sentry alerts, a restore test from backup, rate limits verified |
 | Data | Spring season, fields and permit windows entered; returning teams created with their names and colors |
 | Domain | Old DNS records saved first, so switching back is one change; cut over `brooklynkickballclub.com` with every old URL redirected; Search Console verified; Google Business Profile claimed |

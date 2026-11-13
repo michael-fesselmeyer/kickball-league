@@ -314,6 +314,7 @@ No Redis in the MVP. Rate limits that need a counter use a small Postgres table.
 | Demo | A second Vercel project from the same repository, `DEMO_MODE=true` ([ADR 0004](adr/0004-demo-mode.md)) | Its own Neon database, reseeded nightly | Stripe test mode with test cards; no real email or SMS; a banner and one-tap "view as" role switching |
 | Production | Vercel Pro, custom domain | Neon main branch with point-in-time restore | Stripe live; Resend; Twilio |
 
+- **Until launch, automatic deployments are off** (`git.deploymentEnabled: false` in `vercel.json`): features are built and checked locally and in CI first, and pushes to pull requests or `main` don't build on Vercel. The live address keeps the last build made before that. Turning them back on, with previews for pull requests and `main` to production, is a launch milestone ([roadmap.md](roadmap.md), section 6).
 - Environment variables are validated with a Zod schema at build and at boot; a missing variable fails the build.
 - Migrations are generated with `drizzle-kit generate`, reviewed in the pull request, and applied by `drizzle-kit migrate` in the deploy step before the new code serves traffic. Migrations must be backward compatible with the previous deploy.
 - The demo exists so recruiters and the league owners can click everything without touching real players' data.
