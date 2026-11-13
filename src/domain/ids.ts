@@ -48,6 +48,8 @@ export type NotificationPreferenceId = Brand<
 >;
 export type PushSubscriptionId = Brand<string, "PushSubscriptionId">;
 export type BracketId = Brand<string, "BracketId">;
+export type DivisionId = Brand<string, "DivisionId">;
+export type RuleSetId = Brand<string, "RuleSetId">;
 export type BracketMatchId = Brand<string, "BracketMatchId">;
 export type SubRequestId = Brand<string, "SubRequestId">;
 export type SubClaimId = Brand<string, "SubClaimId">;

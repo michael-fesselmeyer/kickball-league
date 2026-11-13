@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   date,
   index,
@@ -93,6 +94,12 @@ export const season = pgTable(
         "coin_flip",
       ]),
     rebatePolicy: jsonb().$type<RebatePolicy>().notNull().default({}),
+    /** Games each team plays against the other division (ADR 0035). */
+    crossoverGames: integer().notNull().default(0),
+    /** Whether crossover results count in division standings. */
+    crossoversCount: boolean().notNull().default(true),
+    /** With two divisions, whether their playoff champions meet in a final. */
+    combinedFinal: boolean().notNull().default(true),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -111,6 +118,10 @@ export const season = pgTable(
       sql`${t.rosterMin} > 0 and ${t.rosterMax} >= ${t.rosterMin}`,
     ),
     check("season_games_per_day", sql`${t.gamesPerTeamPerDay} in (1, 2)`),
+    check(
+      "season_crossover_games_range",
+      sql`${t.crossoverGames} between 0 and 10`,
+    ),
     check(
       "season_fees_non_negative",
       sql`coalesce(${t.teamFeeCents}, 0) >= 0 and coalesce(${t.playerFeeCents}, 0) >= 0 and coalesce(${t.freeAgentFeeCents}, 0) >= 0 and coalesce(${t.earlyBirdDiscountCents}, 0) >= 0`,
