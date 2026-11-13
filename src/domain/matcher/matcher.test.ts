@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { checkFielding } from "../rsvp/fielding";
 import {
   fieldingGain,
+  fieldingShortfall,
+  sideNeed,
   suggestNewTeam,
   suggestPlacements,
   type MatchTeam,
@@ -63,7 +65,7 @@ describe("suggestPlacements", () => {
       }),
     ]);
     expect(result.suggestions[0]?.reasons[0]).toBe(
-      "Evens out the fielding rule: Thunder has 3 women and 7 men.",
+      "Helps Thunder field a full lineup: it has 3 women and 7 men.",
     );
   });
 
@@ -78,6 +80,25 @@ describe("suggestPlacements", () => {
     expect(result.suggestions[0]?.teamName).toBe("Sharks");
     expect(result.suggestions[0]?.reasons).toContain(
       "Same vibe: Sharks is here to win.",
+    );
+  });
+
+  it("describes experience from the team's side", () => {
+    const newer = team("Rookies", many(6, { side: null, skill: 1 }));
+    const veterans = team("Vets", many(6, { side: null, skill: 5 }));
+    const keen = suggestPlacements(
+      [free("Ace", { side: null, skill: 5, vibe: null })],
+      [newer, veterans],
+    );
+    expect(keen.suggestions[0]?.reasons).toContain(
+      "Brings experience to Rookies, a newer team.",
+    );
+    const fresh = suggestPlacements(
+      [free("Newt", { side: null, skill: 1, vibe: null })],
+      [newer, veterans],
+    );
+    expect(fresh.suggestions[0]?.reasons).toContain(
+      "Joins Vets, an experienced team that can show them the ropes.",
     );
   });
 
@@ -265,10 +286,14 @@ describe("suggestPlacements properties", () => {
     );
   });
 
-  it("never makes a team's fielding worse", () => {
+  it("improves or holds every team's fielding balance", () => {
     fc.assert(
       fc.property(world, ({ teams, pool }) => {
         for (const t of suggestPlacements(pool, teams).teams) {
+          const need = sideNeed(t.capacity);
+          expect(fieldingShortfall({ ...t.after, need })).toBeLessThanOrEqual(
+            fieldingShortfall({ ...t.before, need }),
+          );
           const before = checkFielding(t.before);
           const after = checkFielding(t.after);
           expect(after.fielders).toBeGreaterThanOrEqual(before.fielders);
@@ -277,7 +302,18 @@ describe("suggestPlacements properties", () => {
     );
   });
 
-  it("puts each single player where the fielding balance improves or holds, whenever any team with room allows it", () => {
+  it("spreads players over empty teams instead of piling onto one", () => {
+    const pool = Array.from({ length: 8 }, (_, i) =>
+      free(`S${i}`, { side: i % 2 ? "man" : "woman" }),
+    );
+    const teams = ["A", "B", "C", "D"].map((n) => team(n, []));
+    const sizes = suggestPlacements(pool, teams).teams.map(
+      (t) => t.after.players,
+    );
+    expect(sizes).toEqual([2, 2, 2, 2]);
+  });
+
+  it("puts each single player where they cut a team's fielding shortfall the most", () => {
     fc.assert(
       fc.property(world, ({ teams, pool }) => {
         const { suggestions } = suggestPlacements(pool, teams);
@@ -288,6 +324,7 @@ describe("suggestPlacements properties", () => {
             t.teamSeasonId,
             {
               capacity: t.capacity,
+              need: sideNeed(t.capacity),
               players: t.members.length,
               women: t.members.filter((m) => m.side === "woman").length,
               men: t.members.filter((m) => m.side === "man").length,

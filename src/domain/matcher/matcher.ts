@@ -11,10 +11,15 @@ import { TURNOUT, vibeLabel, type Availability, type Position } from "./quiz";
  *   group with someone already on a team goes to that team or nowhere.
  * - No team goes over its capacity (its target roster size, capped by the
  *   season's roster maximum).
- * - The fielding rule comes first. Each placement picks, among teams with
- *   room, one where the newcomers even out women and men the most, so a
- *   team's fielding balance improves or holds whenever any team allows it.
- *   Only then do game-day turnout, vibe, experience and positions decide.
+ * - The fielding rule comes first. Each team wants half its roster from
+ *   each side of the rule (women and men, by the fielding group in their
+ *   profile), so it can field a full lineup on a night when some players
+ *   are away. A team's shortfall is how far below that it is on each side,
+ *   squared, so the team furthest short feels it most. Adding players never
+ *   raises a shortfall, so every team's fielding balance improves or holds,
+ *   and each placement goes where it cuts a shortfall the most.
+ * - Then open spots, so teams fill evenly, and after that vibe, experience
+ *   and positions.
  *
  * Players with no fielding group in their profile are matched on the rest.
  */
@@ -77,8 +82,13 @@ export type MatchResult = {
   teams: TeamOutlook[];
 };
 
-/** Fielding outweighs everything else put together (at most 30 points). */
+/**
+ * Fielding outweighs everything else put together: two different fielding
+ * gains differ by at least 1, worth 100, and the other terms span at most
+ * 45 points (open spots 20, vibe 10, experience -5 to 5, a position 5).
+ */
 const FIELDING_WEIGHT = 100;
+const ROOM_WEIGHT = 20;
 
 type Unit = {
   players: PoolPlayer[];
@@ -91,6 +101,8 @@ type TeamState = {
   players: number;
   women: number;
   men: number;
+  /** Players wanted from each side of the fielding rule. */
+  need: number;
   turnout: number;
   skills: number[];
   vibes: number[];
@@ -108,20 +120,33 @@ const turnoutOf = (p: Player) =>
 const plural = (n: number, one: string, many: string) =>
   `${n} ${n === 1 ? one : many}`;
 
-/** How far a team's women and men are apart; 0 is even. */
-export const fieldingGap = (women: number, men: number) =>
-  Math.abs(women - men);
+/** Players a team of `capacity` wants from each side of the fielding rule. */
+export const sideNeed = (capacity: number) => Math.ceil(capacity / 2);
 
-/** How much adding `players` closes a team's women–men gap (may be negative). */
+/** How far short a team is on each side, squared; 0 means none. */
+export function fieldingShortfall(team: {
+  women: number;
+  men: number;
+  need: number;
+}): number {
+  const short = (n: number) => Math.max(0, team.need - n) ** 2;
+  return short(team.women) + short(team.men);
+}
+
+/** How much adding `players` cuts a team's shortfall; never negative. */
 export function fieldingGain(
-  team: { women: number; men: number },
+  team: { women: number; men: number; need: number },
   players: readonly Pick<Player, "side">[],
 ): number {
   const women = players.filter((p) => p.side === "woman").length;
   const men = players.filter((p) => p.side === "man").length;
   return (
-    fieldingGap(team.women, team.men) -
-    fieldingGap(team.women + women, team.men + men)
+    fieldingShortfall(team) -
+    fieldingShortfall({
+      women: team.women + women,
+      men: team.men + men,
+      need: team.need,
+    })
   );
 }
 
@@ -133,6 +158,7 @@ function stateOf(team: MatchTeam): TeamState {
     players: team.members.length,
     women,
     men,
+    need: sideNeed(team.capacity),
     turnout: team.members.reduce((t, m) => t + turnoutOf(m), 0),
     skills: team.members.flatMap((m) => (m.skill === null ? [] : [m.skill])),
     vibes: team.members.flatMap((m) => (m.vibe === null ? [] : [m.vibe])),
@@ -188,7 +214,7 @@ function score(
 ): Scored {
   const { team } = state;
   const gain = fieldingGain(state, unit.players);
-  const room = 10 * Math.max(0, 1 - state.turnout / team.capacity);
+  const room = ROOM_WEIGHT * Math.max(0, 1 - state.turnout / team.capacity);
 
   const unitVibe = average(unit.players.flatMap((p) => p.vibe ?? []));
   const teamVibe = average(state.vibes);
@@ -197,11 +223,12 @@ function score(
       ? 5
       : Math.max(0, 10 - 2.5 * Math.abs(unitVibe - teamVibe));
 
+  // Experience counts only once the team has some to compare against.
   let skill = 0;
   const unitSkills = unit.players.flatMap((p) => p.skill ?? []);
-  if (leagueSkill !== null && unitSkills.length > 0) {
-    const before = average(state.skills) ?? leagueSkill;
-    const after = average([...state.skills, ...unitSkills]) ?? leagueSkill;
+  const before = average(state.skills);
+  if (leagueSkill !== null && before !== null && unitSkills.length > 0) {
+    const after = average([...state.skills, ...unitSkills]) ?? before;
     const better =
       Math.abs(before - leagueSkill) - Math.abs(after - leagueSkill);
     skill = 5 * Math.max(-1, Math.min(1, better));
@@ -245,7 +272,7 @@ function reasonsFor(
     reasons.push(`Keeps ${joinNames(names(unit.players))} together.`);
   if (best.gain > 0)
     reasons.push(
-      `Evens out the fielding rule: ${name} has ${plural(state.women, "woman", "women")} and ${plural(state.men, "man", "men")}.`,
+      `Helps ${name} field a full lineup: it has ${plural(state.women, "woman", "women")} and ${plural(state.men, "man", "men")}.`,
     );
   if (best.position)
     reasons.push(
@@ -259,14 +286,16 @@ function reasonsFor(
     Math.abs(teamVibe - unitVibe) <= 1
   )
     reasons.push(`Same vibe: ${name} is ${vibeLabel(teamVibe)}.`);
-  if (best.skill > 0 && leagueSkill !== null) {
-    const unitSkill = average(unit.players.flatMap((p) => p.skill ?? [])) ?? 0;
+  // A positive skill score means the team moves toward the league's
+  // average: a newer team gains experience, or an experienced one gains
+  // newer players it can show the ropes.
+  const teamSkill = average(state.skills);
+  if (best.skill > 0 && leagueSkill !== null && teamSkill !== null)
     reasons.push(
-      unitSkill > leagueSkill
-        ? `Brings experience to a newer team.`
-        : `Joins an experienced team that can show them the ropes.`,
+      teamSkill < leagueSkill
+        ? `Brings experience to ${name}, a newer team.`
+        : `Joins ${name}, an experienced team that can show them the ropes.`,
     );
-  }
   const mostRoom = Math.max(...candidates.map((c) => c.room));
   if (reasons.length < 3 && best.room >= mostRoom)
     reasons.push(
@@ -431,7 +460,7 @@ export function suggestNewTeam(
     }
   }
 
-  const team = { women: 0, men: 0, players: 0 };
+  const team = { women: 0, men: 0, players: 0, need: sideNeed(size) };
   const chosen: PoolPlayer[] = [];
   const take = (unit: PoolPlayer[]) => {
     chosen.push(...unit);
@@ -449,8 +478,8 @@ export function suggestNewTeam(
     const room = size - team.players;
     const options = units.filter((u) => u.length <= room);
     if (options.length === 0) break;
-    // The most even result first; then bigger groups, which are harder to
-    // place later; then whoever signed up first.
+    // The biggest cut in the fielding shortfall first; then bigger groups,
+    // which are harder to place later; then whoever signed up first.
     const best = options
       .map((u, i) => ({ u, i, gain: fieldingGain(team, u) }))
       .sort(
