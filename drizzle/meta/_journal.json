@@ -253,6 +253,13 @@
       "when": 1794599805263,
       "tag": "0035_event_tickets",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794605025420,
+      "tag": "0036_books_permits",
+      "breakpoints": true
     }
   ]
 }
