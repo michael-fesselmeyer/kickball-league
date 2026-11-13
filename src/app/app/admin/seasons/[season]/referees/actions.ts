@@ -5,13 +5,15 @@ import { db, txDb } from "@/db/client";
 import { assignReferee, unassignReferee } from "@/db/queries/referees";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { type GameId, parseId } from "@/domain/ids";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/referees`;
 
 async function context(slug: string, rawGameId: string) {
   const page = pageFor(slug);
-  const subject = await requirePermission("referee.manage", { next: page });
+  const subject = await requirePermissionToChange("referee.manage", {
+    next: page,
+  });
   const season = await seasonBySlug(db, slug);
   const gameId = parseId<GameId>(rawGameId);
   if (!season || !gameId) notFound();

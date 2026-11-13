@@ -17,7 +17,7 @@ import { currentLeague } from "@/db/queries/seasons";
 import { hasSignedSeasonWaiver } from "@/db/queries/waivers";
 import { checkoutItems } from "@/domain/registration/checkout";
 import { env } from "@/env";
-import { requireSelf } from "@/lib/auth/permission";
+import { requireSelfToChange } from "@/lib/auth/permission";
 import { stripeClient } from "@/services/stripe";
 
 /**
@@ -26,7 +26,7 @@ import { stripeClient } from "@/services/stripe";
  */
 export async function startCheckout(slug: string): Promise<void> {
   const page = `/app/seasons/${slug}`;
-  const subject = await requireSelf("payment.pay_own", page);
+  const subject = await requireSelfToChange("payment.pay_own", page);
   const league = await currentLeague(db);
   const season = league
     ? await seasonForRegistration(db, league.id, slug)

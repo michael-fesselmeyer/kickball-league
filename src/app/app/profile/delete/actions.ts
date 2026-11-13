@@ -7,14 +7,14 @@ import { deleteAccount } from "@/db/queries/account";
 import { profileOf } from "@/db/queries/profile";
 import { auth } from "@/lib/auth";
 import { isFreshSession } from "@/lib/auth/config";
-import { requireSelf, sessionSignedInAt } from "@/lib/auth/permission";
+import { requireSelfToChange, sessionSignedInAt } from "@/lib/auth/permission";
 import { demoStatus } from "@/lib/demo/guard";
 
 const PAGE = "/app/profile/delete";
 
 /** Emails the person a sign-in link that brings them back here, fresh. */
 export async function sendConfirmLinkAction(): Promise<void> {
-  const subject = await requireSelf("data.export_or_delete", PAGE);
+  const subject = await requireSelfToChange("data.export_or_delete", PAGE);
   const me = await profileOf(db, subject.userId);
   if (!me) redirect(PAGE);
   try {
@@ -34,7 +34,7 @@ export async function sendConfirmLinkAction(): Promise<void> {
  * typed again; the page explains both.
  */
 export async function deleteAccountAction(form: FormData): Promise<void> {
-  const subject = await requireSelf("data.export_or_delete", PAGE);
+  const subject = await requireSelfToChange("data.export_or_delete", PAGE);
   if (demoStatus(process.env).on) redirect(`${PAGE}?error=demo`);
   const signedInAt = await sessionSignedInAt();
   if (!signedInAt || !isFreshSession(signedInAt, new Date()))

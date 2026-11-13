@@ -17,7 +17,7 @@ import {
   type TeamSeasonId,
 } from "@/domain/ids";
 import { OUTCOMES, PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshSeasonPages } from "@/lib/public-cache";
 
 const pageFor = (gameId: string) => `/app/games/${gameId}/score`;
@@ -26,7 +26,9 @@ const pageFor = (gameId: string) => `/app/games/${gameId}/score`;
 async function context(rawGameId: string) {
   const gameId = parseId<GameId>(rawGameId);
   const page = pageFor(rawGameId);
-  const subject = await requirePermission("public.view", { next: page });
+  const subject = await requirePermissionToChange("public.view", {
+    next: page,
+  });
   const g = gameId ? await gameForScoring(db, gameId) : null;
   if (!g) notFound();
   const gameContext = {

@@ -13,7 +13,7 @@ import { recordOf } from "@/domain/guards";
 import { parseId, type TeamId } from "@/domain/ids";
 import { parseProfileForm, toProfileForm } from "@/domain/profile/profile-form";
 import { localDate } from "@/domain/scheduler/slots";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 
 export type RegisterState = {
   values: Record<string, string>;
@@ -37,7 +37,9 @@ const MESSAGES: Record<string, string> = {
 /** Loads what both actions need and checks the person may register. */
 async function context(slug: string) {
   const page = `/app/seasons/${slug}/register`;
-  const subject = await requirePermission("team.register", { next: page });
+  const subject = await requirePermissionToChange("team.register", {
+    next: page,
+  });
   const league = await currentLeague(db);
   const season = league
     ? await seasonForRegistration(db, league.id, slug)

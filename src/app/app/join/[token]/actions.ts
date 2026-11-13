@@ -3,10 +3,10 @@
 import { redirect } from "next/navigation";
 import { txDb } from "@/db/client";
 import { acceptInvite } from "@/db/queries/invites";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 
 export async function joinTeamAction(token: string): Promise<void> {
-  const subject = await requirePermission("registration.join", {
+  const subject = await requirePermissionToChange("registration.join", {
     next: `/app/join/${token}`,
   });
   const result = await txDb.transaction((tx) =>

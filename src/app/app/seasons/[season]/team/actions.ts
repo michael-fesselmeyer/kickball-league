@@ -10,7 +10,7 @@ import {
 } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { setRsvp } from "@/db/queries/rsvps";
 import { type GameId, parseId } from "@/domain/ids";
 import { recordPaymentFor } from "../record-payment";
@@ -25,7 +25,7 @@ export async function createInviteAction(
   slug: string,
   previous: InviteState,
 ): Promise<InviteState> {
-  const subject = await requirePermission("registration.join", {
+  const subject = await requirePermissionToChange("registration.join", {
     next: `/app/seasons/${slug}/team`,
   });
   const league = await currentLeague(db);
@@ -58,7 +58,9 @@ export async function recordTeamPaymentAction(
   form: FormData,
 ): Promise<void> {
   const page = `/app/seasons/${slug}/team`;
-  const subject = await requirePermission("registration.join", { next: page });
+  const subject = await requirePermissionToChange("registration.join", {
+    next: page,
+  });
   const result = await recordPaymentFor(subject, slug, registrationId, form);
   if (!result.ok) redirect(`${page}?error=${result.error}`);
   redirect(`${page}?notice=payment_recorded`);
@@ -71,7 +73,9 @@ export async function rsvpAction(
   form: FormData,
 ): Promise<void> {
   const page = `/app/seasons/${slug}/team`;
-  const subject = await requirePermission("registration.join", { next: page });
+  const subject = await requirePermissionToChange("registration.join", {
+    next: page,
+  });
   const league = await currentLeague(db);
   const season = league
     ? await seasonForRegistration(db, league.id, slug)

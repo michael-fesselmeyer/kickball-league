@@ -7,17 +7,19 @@ import {
   teamsToAnnounceTo,
 } from "@/db/queries/announcements";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { sendQueuedSoon } from "@/services/outbox";
+import { requireFeature } from "@/lib/platform/site";
 
 /** An admin's announcement to the whole league or to one team. */
 export async function sendLeagueAnnouncementAction(
   slug: string,
   form: FormData,
 ): Promise<void> {
+  await requireFeature("announcements");
   const page = `/app/admin/seasons/${slug}/announcements`;
-  const subject = await requirePermission("announcement.send", {
+  const subject = await requirePermissionToChange("announcement.send", {
     next: page,
     scope: "league",
   });

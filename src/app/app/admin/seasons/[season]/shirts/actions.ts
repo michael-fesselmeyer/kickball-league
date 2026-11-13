@@ -6,7 +6,7 @@ import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { markTeamOrdered, setShirtStatus } from "@/db/queries/shirts";
 import { parseId, type RegistrationId, type TeamSeasonId } from "@/domain/ids";
 import { isShirtStatus } from "@/domain/shirts/summary";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/shirts`;
 
@@ -17,7 +17,9 @@ export async function setShirtStatusAction(
   form: FormData,
 ): Promise<void> {
   const page = pageFor(slug);
-  const subject = await requirePermission("shirts.manage", { next: page });
+  const subject = await requirePermissionToChange("shirts.manage", {
+    next: page,
+  });
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
   const registrationId = parseId<RegistrationId>(rawRegistrationId);
@@ -42,7 +44,9 @@ export async function markTeamOrderedAction(
   rawTeamSeasonId: string,
 ): Promise<void> {
   const page = pageFor(slug);
-  const subject = await requirePermission("shirts.manage", { next: page });
+  const subject = await requirePermissionToChange("shirts.manage", {
+    next: page,
+  });
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
   const teamSeasonId = parseId<TeamSeasonId>(rawTeamSeasonId);

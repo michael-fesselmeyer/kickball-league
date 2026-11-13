@@ -21,16 +21,19 @@ import {
   type SubClaimId,
   type SubRequestId,
 } from "@/domain/ids";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { sendQueuedSoon } from "@/services/outbox";
+import { requireFeature } from "@/lib/platform/site";
 
 const pageOf = (slug: string) => `/app/seasons/${slug}/team/subs`;
 
 /** The signed-in captain (or co-captain, or admin) and their team. */
 async function captain(slug: string) {
   const page = pageOf(slug);
-  const subject = await requirePermission("registration.join", { next: page });
+  const subject = await requirePermissionToChange("registration.join", {
+    next: page,
+  });
   const league = await currentLeague(db);
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
@@ -54,6 +57,7 @@ export async function postSubRequestAction(
   rawGameId: string,
   form: FormData,
 ): Promise<void> {
+  await requireFeature("subs");
   const { subject, teamSeasonId, page } = await captain(slug);
   const gameId = parseId<GameId>(rawGameId);
   if (!gameId) notFound();
@@ -87,6 +91,7 @@ export async function decideClaimAction(
   rawClaimId: string,
   decision: "approved" | "declined",
 ): Promise<void> {
+  await requireFeature("subs");
   const { subject, page } = await captain(slug);
   const claimId = parseId<SubClaimId>(rawClaimId);
   const teamSeasonId = claimId ? await claimTeam(db, claimId) : null;
@@ -112,6 +117,7 @@ export async function cancelRequestAction(
   slug: string,
   rawRequestId: string,
 ): Promise<void> {
+  await requireFeature("subs");
   const { subject, page } = await captain(slug);
   const requestId = parseId<SubRequestId>(rawRequestId);
   const teamSeasonId = requestId ? await requestTeam(db, requestId) : null;

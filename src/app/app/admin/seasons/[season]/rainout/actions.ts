@@ -9,7 +9,7 @@ import { seasonBySlug, versionsOf } from "@/db/queries/schedule-screen";
 import { slot } from "@/db/schema/game";
 import type { SlotId } from "@/domain/ids";
 import { reschedule } from "@/domain/scheduler/reschedule";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 
 /**
  * Calls a rain-out for a whole date: cancels its slots and saves a draft
@@ -21,7 +21,9 @@ export async function declareRainout(
   date: string,
 ): Promise<void> {
   const page = `/app/admin/seasons/${slug}/rainout`;
-  const subject = await requirePermission("rainout.declare", { next: page });
+  const subject = await requirePermissionToChange("rainout.declare", {
+    next: page,
+  });
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
   const published = (await versionsOf(db, season.id)).find(

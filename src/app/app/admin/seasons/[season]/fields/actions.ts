@@ -23,7 +23,7 @@ import type {
 import { isOneOf } from "@/domain/guards";
 import { parseId } from "@/domain/ids";
 import { weeklyDates } from "@/domain/time/zoned";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/fields`;
 const STATUSES = [
@@ -40,7 +40,9 @@ const text = (form: FormData, name: string) => {
 /** Checks the admin may manage the season, and finds it. */
 async function context(slug: string) {
   const page = pageFor(slug);
-  const subject = await requirePermission("season.manage", { next: page });
+  const subject = await requirePermissionToChange("season.manage", {
+    next: page,
+  });
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
   return { page, actor: subject.userId, season };

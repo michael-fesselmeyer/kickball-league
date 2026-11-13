@@ -1,5 +1,6 @@
 import { env } from "@/env";
 import { refuseUnlessCron } from "@/lib/jobs";
+import { refuseJobsWhileFrozen } from "@/lib/platform/site";
 import { drainOutboxNow } from "@/services/outbox";
 
 /**
@@ -11,6 +12,8 @@ import { drainOutboxNow } from "@/services/outbox";
 export async function GET(request: Request): Promise<Response> {
   const refused = refuseUnlessCron(request, env.CRON_SECRET);
   if (refused) return refused;
+  const frozen = await refuseJobsWhileFrozen();
+  if (frozen) return frozen;
   const result = await drainOutboxNow();
   if (!result)
     return Response.json(
