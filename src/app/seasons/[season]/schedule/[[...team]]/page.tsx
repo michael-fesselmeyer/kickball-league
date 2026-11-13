@@ -15,8 +15,17 @@ import {
   type PublicTeam,
 } from "@/domain/schedule/public-game";
 import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
+import { NO_SEASON, publicSeasonParams } from "@/lib/static-params";
 
 type Props = PageProps<"/seasons/[season]/schedule/[[...team]]">;
+
+/**
+ * Each public season's full schedule (no team filter) is prerendered at
+ * build time; a team's view is rendered on its first visit and cached.
+ */
+export async function generateStaticParams() {
+  return (await publicSeasonParams()).map((p) => ({ ...p, team: [] }));
+}
 
 async function cachedSeason(slug: string) {
   "use cache";
@@ -28,6 +37,7 @@ async function cachedSeason(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { season: slug } = await params;
+  if (slug === NO_SEASON) return { title: "Schedule" };
   const season = await cachedSeason(slug);
   return {
     title:
@@ -63,6 +73,8 @@ function teamsOf(games: PublicGame[]): PublicTeam[] {
  */
 async function Schedule({ params }: Props) {
   const { season: slug, team } = await params;
+  // The build's placeholder when it had no database to read.
+  if (slug === NO_SEASON) notFound();
   return <SeasonSchedule slug={slug} teamSlug={team?.[0] ?? null} />;
 }
 

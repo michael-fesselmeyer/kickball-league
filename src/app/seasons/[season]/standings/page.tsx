@@ -10,8 +10,14 @@ import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { seasonStandings } from "@/db/queries/standings";
 import type { Tiebreaker } from "@/domain/standings/standings";
 import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
+import { NO_SEASON, publicSeasonParams } from "@/lib/static-params";
 
 export const metadata: Metadata = { title: "Standings" };
+
+/** Each public season's standings are prerendered at build time. */
+export async function generateStaticParams() {
+  return publicSeasonParams();
+}
 
 export default function StandingsPage(
   props: PageProps<"/seasons/[season]/standings">,
@@ -39,6 +45,8 @@ const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 async function Standings({ params }: PageProps<"/seasons/[season]/standings">) {
   const { season: slug } = await params;
+  // The build's placeholder when it had no database to read.
+  if (slug === NO_SEASON) notFound();
   return <SeasonStandings slug={slug} />;
 }
 
