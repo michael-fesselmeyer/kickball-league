@@ -25,13 +25,10 @@ import {
 } from "../schema/team";
 import { recordAudit } from "./audit";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
-import {
-  type SeasonForRegistration,
-  startingState,
-  teamsEntered,
-} from "./registration";
+import { type SeasonForRegistration, startingState } from "./registration";
 import { required } from "./rows";
 import type { Db } from "./schedule";
+import { acceptOffer, checkTeamSpot } from "./waitlist";
 
 /**
  * Start-a-new-team requests (docs/information-architecture.md, section 2.7).
@@ -469,8 +466,13 @@ export async function approveNewTeamRequest(
   const locked = await lockPending(db, s.id, input.requestId);
   if (!locked.ok) return locked;
   const req = locked.value;
-  if (s.maxTeams !== null && (await teamsEntered(db, s.id)) >= s.maxTeams)
-    return err("season_full");
+  // A spot held for the waitlist, or wanted by someone waiting, is not free.
+  const free = await checkTeamSpot(
+    db,
+    { seasonId: s.id, maxTeams: s.maxTeams, userId: req.requestedBy },
+    now,
+  );
+  if (!free) return err("season_full");
   if (await nameTaken(db, input.leagueId, s.id, req.proposedName, req.id))
     return err("name_taken");
   const spot = await currentSpot(db, s.id, req.requestedBy);
@@ -644,6 +646,7 @@ export async function approveNewTeamRequest(
       );
   }
   await enqueueMessages(db, messages);
+  if (free.offerId) await acceptOffer(db, free.offerId, now);
   return ok({ teamSeasonId });
 }
 
