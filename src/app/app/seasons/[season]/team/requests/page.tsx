@@ -192,14 +192,14 @@ async function TeamRequests({
                 name="onDate"
                 min={season.startsOn}
                 max={season.endsOn}
-                className="min-h-11 rounded-lg border border-border px-3"
+                className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
               />
             </label>
             <label className="flex flex-col gap-1">
               Game time
               <select
                 name="timeIndex"
-                className="min-h-11 rounded-lg border border-border px-3"
+                className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
               >
                 <option value="">Any time that day</option>
                 {times.map((t) => (
@@ -215,7 +215,7 @@ async function TeamRequests({
                 type="text"
                 name="reason"
                 maxLength={MAX_REASON_LENGTH}
-                className="min-h-11 rounded-lg border border-border px-3"
+                className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
               />
             </label>
             <button

@@ -69,7 +69,8 @@ const PAID_BY: Record<string, string> = {
   other: "Paid (other)",
 };
 
-const input = "rounded-md border border-border bg-surface px-2 py-1";
+const input =
+  "min-h-11 rounded-input border border-border-strong bg-surface px-3";
 
 function Mark({ yes, label }: { yes: boolean; label: string }) {
   return (

@@ -205,7 +205,7 @@ async function Console({ searchParams }: PageProps<"/operator">) {
                 type="email"
                 name="email"
                 required
-                className="min-h-11 rounded-lg border border-border px-3"
+                className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
               />
             </label>
             <label className="flex flex-col gap-1">
@@ -213,7 +213,7 @@ async function Console({ searchParams }: PageProps<"/operator">) {
               <select
                 name="role"
                 defaultValue="admin"
-                className="min-h-11 rounded-lg border border-border px-3"
+                className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
               >
                 <option value="player">Player</option>
                 <option value="admin">Admin</option>
