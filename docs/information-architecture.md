@@ -37,8 +37,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── refs                            Become a referee
 ├── faq
 ├── about                           The league, the commissioners, contact
-├── join                            Landing page for the text-to-join keyword and QR codes (P3)
-├── legal/terms, legal/privacy, legal/sms-terms
+├── join                            Landing page for the QR codes on field signs and at the bar (P3)
+├── legal/terms, legal/privacy
 ├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
 ├── offline                         Shown by the service worker when a page needs the network; links the saved next game
 ├── paused                          Neutral notice while the site is paused or read-only (operator setting)
@@ -207,7 +207,7 @@ flowchart TD
   F --> G{Confirm?}
   G -- Adjust --> F
   G -- Confirm --> H[New schedule version published]
-  H --> I[Affected players notified: email, push P2, SMS P3]
+  H --> I[Affected players notified: email and push]
   H --> J[Site banner, game pages and calendar feeds updated]
   F --> K[Games with no slot listed as 'makeup to be scheduled'<br/>and counted toward the rebate threshold]
 ```
