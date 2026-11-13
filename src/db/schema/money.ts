@@ -13,8 +13,10 @@ import {
 } from "drizzle-orm/pg-core";
 import type {
   PaymentId,
+  PromoCodeId,
   PurchaseId,
   PurchaseItemId,
+  RefundId,
   RegistrationId,
   SeasonId,
   TeamSeasonId,
@@ -29,7 +31,7 @@ import { registration, teamSeason } from "./team";
  * Money (docs/data-model.md, section 2.3). `purchase` is our record of what
  * was bought; `payment` mirrors what Stripe says happened. A purchase is
  * marked paid only by the Stripe webhook, never by the browser returning
- * from Checkout. Promo codes, credit and refunds arrive in later migrations.
+ * from Checkout. League credit arrives in a later migration.
  */
 export const purchaseStatus = pgEnum("purchase_status", [
   "open",
@@ -39,6 +41,48 @@ export const purchaseStatus = pgEnum("purchase_status", [
   "refunded",
   "partially_refunded",
 ]);
+
+export const promoKind = pgEnum("promo_kind", ["percent", "amount"]);
+
+/**
+ * A code that takes a percentage or an amount off checkout for one season.
+ * The app applies it itself (ADR 0010), so Stripe sees the discounted price.
+ * Codes are stored upper case and are unique within a season.
+ */
+export const promoCode = pgTable(
+  "promo_code",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<PromoCodeId>(),
+    seasonId: uuid()
+      .notNull()
+      .$type<SeasonId>()
+      .references(() => season.id, { onDelete: "cascade" }),
+    code: text().notNull(),
+    kind: promoKind().notNull(),
+    /** Whole percent for `percent`, cents for `amount`. */
+    value: integer().notNull(),
+    maxRedemptions: integer(),
+    validUntil: timestamp({ withTimezone: true }),
+    /** Set when an admin turns the code off; it stops working at once. */
+    disabledAt: timestamp({ withTimezone: true }),
+    createdBy: uuid()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("promo_code_season_code").on(t.seasonId, t.code),
+    check("promo_code_upper", sql`${t.code} = upper(${t.code})`),
+    check(
+      "promo_code_value",
+      sql`(${t.kind} = 'percent' and ${t.value} between 1 and 100) or (${t.kind} = 'amount' and ${t.value} > 0)`,
+    ),
+    check(
+      "promo_code_max_redemptions",
+      sql`${t.maxRedemptions} is null or ${t.maxRedemptions} > 0`,
+    ),
+  ],
+);
 
 export const purchase = pgTable(
   "purchase",
@@ -56,6 +100,9 @@ export const purchase = pgTable(
     discountCents: integer().notNull().default(0),
     creditAppliedCents: integer().notNull().default(0),
     totalCents: integer().notNull(),
+    promoCodeId: uuid()
+      .$type<PromoCodeId>()
+      .references(() => promoCode.id, { onDelete: "restrict" }),
     stripeCheckoutSessionId: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
@@ -66,6 +113,7 @@ export const purchase = pgTable(
   (t) => [
     unique("purchase_checkout_session_unique").on(t.stripeCheckoutSessionId),
     index("purchase_user_idx").on(t.userId),
+    index("purchase_promo_code_idx").on(t.promoCodeId),
     check(
       "purchase_amounts",
       sql`${t.subtotalCents} >= 0 and ${t.discountCents} >= 0 and ${t.creditAppliedCents} >= 0 and ${t.totalCents} = ${t.subtotalCents} - ${t.discountCents} - ${t.creditAppliedCents} and ${t.totalCents} >= 0`,
@@ -142,6 +190,11 @@ export const payment = pgTable(
       .references(() => user.id, { onDelete: "set null" }),
     stripeChargeId: text(),
     amountCents: integer().notNull(),
+    /**
+     * How much has gone back. For Stripe payments the charge.refunded
+     * webhook sets it from Stripe's own total; off-app refunds add to it.
+     */
+    refundedCents: integer().notNull().default(0),
     stripeFeeCents: integer(),
     status: paymentStatus().notNull(),
     paidAt: timestamp({ withTimezone: true }),
@@ -157,6 +210,39 @@ export const payment = pgTable(
       "payment_method_fields",
       sql`(${t.method} = 'stripe') = (${t.stripePaymentIntentId} is not null)`,
     ),
+    check(
+      "payment_refunded_cents",
+      sql`${t.refundedCents} >= 0 and ${t.refundedCents} <= ${t.amountCents}`,
+    ),
+  ],
+);
+
+/**
+ * Money an admin sent back. A Stripe refund carries its Stripe id once
+ * Stripe accepts it; the payment's refunded total follows from the
+ * charge.refunded webhook. An off-app refund (cash or Venmo handed back) has
+ * no Stripe id and counts at once.
+ */
+export const refund = pgTable(
+  "refund",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<RefundId>(),
+    paymentId: uuid()
+      .notNull()
+      .$type<PaymentId>()
+      .references(() => payment.id, { onDelete: "restrict" }),
+    stripeRefundId: text(),
+    amountCents: integer().notNull(),
+    reason: text(),
+    issuedBy: uuid()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("refund_stripe_refund_unique").on(t.stripeRefundId),
+    index("refund_payment_idx").on(t.paymentId),
+    check("refund_amount", sql`${t.amountCents} > 0`),
   ],
 );
 
@@ -186,3 +272,5 @@ export const webhookEvent = pgTable(
 export type Purchase = typeof purchase.$inferSelect;
 export type PurchaseItem = typeof purchaseItem.$inferSelect;
 export type Payment = typeof payment.$inferSelect;
+export type PromoCode = typeof promoCode.$inferSelect;
+export type Refund = typeof refund.$inferSelect;
