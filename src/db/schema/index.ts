@@ -9,6 +9,7 @@ export * from "./free-agent";
 export * from "./game";
 export * from "./guarantee";
 export * from "./league";
+export * from "./lineup";
 export * from "./message";
 export * from "./money";
 export * from "./playoffs";
