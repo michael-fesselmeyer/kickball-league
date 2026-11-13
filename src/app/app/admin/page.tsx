@@ -177,6 +177,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               [`${base}/scores`, "Scores"],
               [`${base}/rainout`, "Rain-out"],
               ["/app/admin/seasons", "All seasons"],
+              ["/app/admin/audit", "Audit log"],
             ].map(([href, label]) => (
               <li key={label}>
                 <Link href={href as string} className="btn btn-secondary">
