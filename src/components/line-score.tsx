@@ -5,6 +5,7 @@ import {
   positionLabel,
   REGULATION_INNINGS,
 } from "@/domain/scores/live";
+import { Flip } from "./motion";
 
 /**
  * A game's runs by inning, the way a scoreboard shows them: the team that
@@ -16,10 +17,13 @@ export function LineScore({
   teamA,
   teamB,
   snapshot,
+  celebrate = false,
 }: {
   teamA: string;
   teamB: string;
   snapshot: LiveSnapshot;
+  /** The game just went final while open: burst the winner's total once. */
+  celebrate?: boolean;
 }) {
   const { kicksFirst, halves } = snapshot;
   // The confirmed score, else the one waiting for confirmation.
@@ -35,6 +39,12 @@ export function LineScore({
   const a = { side: "A", name: teamA, total: result?.scoreA ?? line.totalA };
   const b = { side: "B", name: teamB, total: result?.scoreB ?? line.totalB };
   const rows = kicksFirst === "A" ? [a, b] : [b, a];
+  const winner =
+    celebrate && snapshot.result && a.total !== b.total
+      ? a.total > b.total
+        ? "A"
+        : "B"
+      : null;
 
   return (
     <div className="flex flex-col gap-2">
@@ -84,7 +94,11 @@ export function LineScore({
                     </td>
                   );
                 })}
-                <td className="px-2 py-2 font-display text-h3">{row.total}</td>
+                <td
+                  className={`px-2 py-2 font-display text-h3 ${row.side === winner ? "winner-burst" : ""}`}
+                >
+                  <Flip value={row.total} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -105,10 +119,12 @@ export function LiveLine({
   teamA,
   teamB,
   snapshot,
+  celebrate = false,
 }: {
   teamA: string;
   teamB: string;
   snapshot: LiveSnapshot;
+  celebrate?: boolean;
 }) {
   const { kicksFirst, halves, result, pending, closed, reported } = snapshot;
   if (!kicksFirst || halves.length === 0) return null;
@@ -154,7 +170,12 @@ export function LiveLine({
           </p>
         )}
       </div>
-      <LineScore teamA={teamA} teamB={teamB} snapshot={snapshot} />
+      <LineScore
+        teamA={teamA}
+        teamB={teamB}
+        snapshot={snapshot}
+        celebrate={celebrate}
+      />
     </section>
   );
 }
