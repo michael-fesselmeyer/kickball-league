@@ -34,3 +34,15 @@ export function normalizeFriendCode(input: string): string | null {
 export function formatFriendCode(code: string): string {
   return `${code.slice(0, 3)}-${code.slice(3)}`;
 }
+
+/**
+ * "In your group: Ana B. and Cy D." A list ending in an initial already
+ * ends with a period, so none is added.
+ */
+export function friendsSentence(lead: string, names: readonly string[]) {
+  const list =
+    names.length <= 2
+      ? names.join(" and ")
+      : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  return `${lead} ${list}${list.endsWith(".") ? "" : "."}`;
+}
