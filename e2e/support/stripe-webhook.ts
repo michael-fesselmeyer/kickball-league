@@ -12,8 +12,15 @@ import Stripe from "stripe";
 const WEBHOOK_SECRET = "whsec_e2e";
 const stripe = new Stripe("sk_test_e2e");
 
-/** The Checkout session of a person's newest open purchase. */
-export async function openCheckoutSession(email: string): Promise<{
+/**
+ * The Checkout session of a person's newest open purchase, in one season
+ * when given: flows running side by side may each have the same persona
+ * paying in a different season.
+ */
+export async function openCheckoutSession(
+  email: string,
+  seasonSlug?: string,
+): Promise<{
   sessionId: string;
   totalCents: number;
 }> {
@@ -26,9 +33,11 @@ export async function openCheckoutSession(email: string): Promise<{
     }>(
       `select p.stripe_checkout_session_id as session, p.total_cents as total
          from purchase p join "user" u on u.id = p.user_id
+         left join season s on s.id = p.season_id
         where u.email = $1 and p.status = 'open'
+          and ($2::text is null or s.slug = $2)
         order by p.created_at desc limit 1`,
-      [email],
+      [email, seasonSlug ?? null],
     );
     const row = rows[0];
     if (!row?.session) throw new Error(`No open checkout for ${email}`);
@@ -99,13 +108,14 @@ export async function sendCheckoutCompleted(
 
 /**
  * Posts a signed `charge.refunded` event for a person's newest Stripe
- * payment, carrying every refund an admin has sent so far, as Stripe does
+ * payment (in one season when given), carrying every refund an admin has sent so far, as Stripe does
  * once it has returned the money. stripe-mock accepts the refund but does not
  * remember it, so the total comes from the app's own refund rows.
  */
 export async function sendChargeRefunded(
   request: APIRequestContext,
   email: string,
+  seasonSlug?: string,
   eventId = nextEventId(),
 ): Promise<Delivery & { refundedCents: number }> {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
@@ -119,9 +129,11 @@ export async function sendChargeRefunded(
          from payment pm
          join purchase p on p.id = pm.purchase_id
          join "user" u on u.id = p.user_id
+         left join season s on s.id = p.season_id
         where u.email = $1 and pm.method = 'stripe'
+          and ($2::text is null or s.slug = $2)
         order by pm.created_at desc limit 1`,
-      [email],
+      [email, seasonSlug ?? null],
     );
     row = rows[0];
   } finally {

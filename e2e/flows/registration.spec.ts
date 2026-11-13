@@ -125,7 +125,10 @@ test("Stripe's webhook marks the captain paid once, and a forged one is refused"
   browser,
 }) => {
   const page = await pageAs(browser, "Captain");
-  const session = await openCheckoutSession("casey.captain@example.test");
+  const session = await openCheckoutSession(
+    "casey.captain@example.test",
+    SEASON_SLUG,
+  );
   expect(session.totalCents).toBe(8000);
 
   const forged = await page.request.post("/api/stripe/webhook", {
@@ -241,7 +244,10 @@ test("the free agent signs, pays with a promo code and is confirmed by Stripe", 
   await expect(page).toHaveURL(/^https:\/\/checkout\.stripe\.com\//);
 
   // 10% off $75: Stripe is asked for $67.50.
-  const session = await openCheckoutSession("pat.player@example.test");
+  const session = await openCheckoutSession(
+    "pat.player@example.test",
+    SEASON_SLUG,
+  );
   expect(session.totalCents).toBe(6750);
   expect(await sendCheckoutCompleted(page.request, session)).toEqual({
     status: 200,
@@ -338,6 +344,7 @@ test("an admin refunds part of one payment and all of another through Stripe", a
     await sendChargeRefunded(
       page.request,
       "casey.captain@example.test",
+      SEASON_SLUG,
       eventId,
     ),
   ).toEqual({ status: 200, outcome: "processed", refundedCents: 2000 });
@@ -346,6 +353,7 @@ test("an admin refunds part of one payment and all of another through Stripe", a
     await sendChargeRefunded(
       page.request,
       "casey.captain@example.test",
+      SEASON_SLUG,
       eventId,
     ),
   ).toEqual({ status: 200, outcome: "duplicate", refundedCents: 2000 });
@@ -364,7 +372,11 @@ test("an admin refunds part of one payment and all of another through Stripe", a
     .click();
   await expect(freeAgent).toContainText("Refund of $67.50 pending");
   expect(
-    await sendChargeRefunded(page.request, "pat.player@example.test"),
+    await sendChargeRefunded(
+      page.request,
+      "pat.player@example.test",
+      SEASON_SLUG,
+    ),
   ).toEqual({ status: 200, outcome: "processed", refundedCents: 6750 });
   await page.reload();
   await expect(freeAgent).toContainText("Refunded $67.50");
