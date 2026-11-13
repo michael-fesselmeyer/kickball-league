@@ -767,17 +767,21 @@ erDiagram
   award_poll {
     uuid id PK
     uuid season_id FK
-    enum kind "weekly_mvp, season_mvp, best_team_name, sportsmanship, custom"
+    enum kind "weekly, season"
+    enum category "mvp, best_play, best_sport, newcomer, team_spirit, best_dressed"
     text title
+    date game_day "weekly polls only"
     timestamptz opens_at
     timestamptz closes_at
+    uuid created_by FK
   }
   award_vote {
     uuid id PK
     uuid award_poll_id FK
     uuid voter_id FK
-    uuid nominee_user_id FK
-    uuid nominee_team_season_id FK
+    uuid nominee_user_id FK "player awards"
+    uuid nominee_team_season_id FK "team awards"
+    timestamptz cast_at
   }
   social_account {
     uuid id PK
@@ -823,6 +827,11 @@ Events, as built (`src/db/schema/event.ts`, `src/db/queries/events.ts`):
 - When a spot opens (someone drops out, the admin raises the capacity or removes it), the earliest waitlisted people move up and each gets an `event_notice` email through the outbox. A smaller capacity never takes a spot from anyone.
 - Calling an event off sets `cancelled_at`, clears every RSVP and emails everyone who had one; the page stays up and says so. Deleting sets `deleted_at` and takes it off every page. Both, and every create and edit, write an audit row.
 - Planned later: a sponsor or venue link, a cover image, guests and paid tickets (`ticket_price_cents`, `purchase_item_id`), and Partiful-style invite links (product-spec.md).
+
+Awards, as built (`src/db/schema/awards.ts`, `src/db/queries/awards.ts`):
+
+- An admin opens an `award_poll` for one `game_day` (a weekly poll) or the whole season. Voting runs from `opens_at` until `closes_at`; closing early sets `closes_at` to now. The category decides whether a vote names a player (`nominee_user_id`) or a team (`nominee_team_season_id`), and a check keeps exactly one of them set. Anyone on an active roster that season may vote; a weekly ballot lists only the teams with a game that day (and their players). Totals are read only after `closes_at`, and who voted for whom is never shown to anyone but the voter.
+- Deleting a poll deletes its votes; deleting a season deletes its polls.
 
 ### 2.6 Referees (pending owner approval)
 
@@ -988,7 +997,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `team_formation_request` | check `status in ('approved', 'declined')` exactly when `decided_at` is set; check `status = 'approved'` exactly when `team_season_id` is set | An answer is timestamped; an approval names its team |
 | `team_formation_request` | check `expected_size` between 1 and 60; name 1 to 40 characters; note and reason at most 500 | Requests stay readable |
 | `checkin` | unique `(sponsor_id, user_id, on_date)` | One check-in per bar per day |
-| `award_vote` | unique `(award_poll_id, voter_id)` | One vote per poll |
+| `award_vote` | unique `(award_poll_id, voter_id)`; check exactly one nominee; check `nominee_user_id <> voter_id` | One vote per player per poll, for one person or team, never yourself |
+| `award_poll` | check `closes_at > opens_at`; check `game_day` is set exactly when `kind = 'weekly'` | A poll has a voting window; weekly polls name their game day |
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
 | `webhook_event` | unique `(provider, event_id)` | Webhooks are processed once |
 | `payment`, `refund`, `purchase` | unique on each Stripe ID | Stripe retries cannot double-record |
@@ -1019,6 +1029,8 @@ Indexes for the common reads:
 | `team_formation_request` | `(season_id, status, created_at)`; `(requested_by)` | The admin's waiting list; a player's requests |
 | `event` | `(league_id, starts_at)` | Calendar |
 | `event_rsvp` | `(event_id, status, created_at)`; `(user_id)` | Counts and the waitlist in order; a person's RSVPs |
+| `award_poll` | `(season_id, closes_at)` | Open and closed polls of a season |
+| `award_vote` | `(voter_id)` | A player's own votes |
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
 
 ## 4. Personal data
@@ -1031,6 +1043,7 @@ Indexes for the common reads:
 | Gender and lineup gender | `profile` | The person, their captain (for lineups), admins. A sub's lineup gender is copied to `sub_claim`, which the asking team's captains see |
 | Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
 | New-team requests, with the player's note | `team_formation_request` | The player and admins |
+| Award votes | `award_vote` | The voter alone sees whom they picked; everyone sees only the totals after a poll closes. Deleting an account withdraws votes in polls still open |
 | Emergency contact | `profile` | The person, their captain, admins |
 | Free-agent quiz answers and note | `free_agent_profile` | The person and admins |
 | Friend group | `friend_group`, `registration.friend_group_id` | The person; others in the group see first name and last initial; admins |

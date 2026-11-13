@@ -55,7 +55,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── subs                            Sub requests I can claim, and games I'm subbing in
 ├── events/                         Upcoming events with my RSVP
 │   └── [event]                     RSVP, join the waitlist and see my place in line, or drop out
-├── vote                            Awards voting (P2)
+├── vote                            Awards: open ballots (one vote each, never for yourself or your own team) and closed polls
+│   └── [poll]                      Results after voting closes, ties sharing a place; until then, only when it closes
 ├── check-in/[code]                 Bar check-in landing from a QR code (P2)
 ├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
 ├── seasons/[season]/team/requests  Captain: dates the team can't play and times it would rather have or avoid, until registration closes
@@ -71,6 +72,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── registrations           Teams, players, payments, waivers, full or partial refunds; roster and payment CSV downloads
     │   ├── promo-codes             The season's promo codes: add one, see its uses, turn it off
     │   ├── shirts                  Shirt sizes by team, what is still to order, and each player's shirt: not ordered, ordered or received
+    │   ├── awards                  Open a game-day or season poll, close one early, remove one; results after close
     │   ├── free-agents             Matcher: suggested placements with reasons (apply one or all), the pool with quiz answers and friend groups, and building a new team from the pool
     │   ├── fields                  Fields, permit windows, blackout dates, slots
     │   ├── requests                Every team's conflicts and preferences, read before generating
@@ -261,6 +263,8 @@ Rules:
 | Admin: registrations | Team list with paid and waiver counts; tap for roster | Table with filters and CSV export |
 | Admin: rain-out | Three steps: scope, preview, confirm | Same on one screen |
 | Admin: playoffs | Draft or published bracket first; then teams, playoff day and the seeding table | Same, with the whole board |
+| Awards (player) | One card per open poll: the award, when it closes, and a team-grouped picker with one Cast vote button; after voting, your pick and "results when voting closes". Closed polls link to results | Same, picker and button on one line |
+| Award results | The winner (or everyone tied) in a highlighted box, then every nominee with place, votes and a bar | Same |
 | Ref home | Today's assignments with accept and decline; "enter score" on each | Same |
 | Sponsor report (P3) | Three numbers and a weekly bar chart | Adds a table by week and deal |
 
