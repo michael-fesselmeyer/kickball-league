@@ -71,7 +71,9 @@ test("an admin's theme week shows on the schedule", async ({ browser }) => {
   await admin.getByLabel("First day").fill("2026-10-12");
   await admin.getByLabel("Last day").fill("2026-10-18");
   await admin.getByRole("button", { name: "Create event" }).click();
-  await expect(admin.getByRole("status").first()).toContainText("Event created.");
+  await expect(admin.getByRole("status").first()).toContainText(
+    "Event created.",
+  );
 
   // A team's view: the smoke tests open the full schedule on another server
   // that shares this build's page cache, and could write back an older copy.
@@ -90,6 +92,8 @@ test("an admin's theme week shows on the schedule", async ({ browser }) => {
 test("a team event with an invite reaches its teams and no one else", async ({
   browser,
 }) => {
+  // Four people sign in and four screens get an axe scan.
+  test.slow();
   const slug = "team-mixer-2027-03-13";
   const invite = "https://partiful.example.test/e/team-mixer";
 
@@ -121,7 +125,7 @@ test("a team event with an invite reaches its teams and no one else", async ({
   );
   await expect(saved).toContainText("will get an email.");
   await expect(
-    admin.getByText("The Big Kicks and Sun Kickers, Fall 2026"),
+    admin.getByText("Sun Kickers and The Big Kicks, Fall 2026"),
   ).toBeVisible();
   await expectNoAxeViolations(admin);
 
@@ -140,7 +144,7 @@ test("a team event with an invite reaches its teams and no one else", async ({
     player.getByRole("link", { name: /^RSVP on partiful\.example\.test/ }),
   ).toHaveAttribute("href", invite);
   await expect(
-    player.getByText("For The Big Kicks and Sun Kickers, Fall 2026"),
+    player.getByText("For Sun Kickers and The Big Kicks, Fall 2026"),
   ).toBeVisible();
   await expect(
     player.getByRole("button", { name: /Copy for WhatsApp/ }),
@@ -158,7 +162,7 @@ test("a team event with an invite reaches its teams and no one else", async ({
   ).toBeVisible();
 
   // Nor does a signed-out visitor: no public page, list entry or feed entry.
-  const visitor = await browser.newPage();
+  const visitor = await (await browser.newContext()).newPage();
   await visitor.goto("/events");
   await expect(visitor.getByRole("heading", { level: 1 })).toHaveText(
     "League events",
