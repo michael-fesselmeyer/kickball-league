@@ -21,7 +21,7 @@ import { game } from "./game";
 import { teamSeason } from "./team";
 
 /**
- * A team's saved kicking order for one game (rulebook 2.2.4; ADR 0021).
+ * A team's saved kicking order for one game (rulebook 2.2.4; ADR 0030).
  * Saving again replaces its spots. Players' lineup genders are never copied
  * here: they are read from the profile (or the sub claim, for a pickup)
  * when the order is shown to the team's captains.

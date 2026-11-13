@@ -1,4 +1,4 @@
-# ADR 0021: Kicking orders count the side each player chose, and wrap around
+# ADR 0030: Kicking orders count the side each player chose, and wrap around
 
 - Status: accepted
 - Date: 2026-11-13
