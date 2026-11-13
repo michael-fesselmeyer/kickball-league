@@ -155,19 +155,13 @@ export const DEAL_FORM_ERRORS: Record<DealFormError, string> = {
 };
 
 /**
- * How long ago the deals were confirmed, for the "confirmed" line on the
- * public page. Days are whole local dates.
+ * When the sponsor last said a deal is current, for the public page:
+ * "Confirmed Nov 10". A date, not "3 days ago", so a cached page stays true.
  */
-export function confirmedLabel(confirmedOn: string, today: string): string {
-  const days = Math.round(
-    (Date.parse(`${today}T12:00:00Z`) - Date.parse(`${confirmedOn}T12:00:00Z`)) /
-      86_400_000,
-  );
-  if (days <= 0) return "Confirmed today";
-  if (days === 1) return "Confirmed yesterday";
+export function confirmedLabel(confirmedOn: string): string {
   return `Confirmed ${new Intl.DateTimeFormat("en-US", {
     timeZone: "UTC",
-    month: "long",
+    month: "short",
     day: "numeric",
   }).format(new Date(`${confirmedOn}T12:00:00Z`))}`;
 }
