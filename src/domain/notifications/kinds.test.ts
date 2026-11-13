@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   DIGEST_KIND,
@@ -48,4 +49,36 @@ describe("MESSAGE_KINDS", () => {
       ]),
     );
   });
+});
+
+describe("every message the code queues", () => {
+  const SRC = join(__dirname, "..", "..");
+
+  function sources(dir: string): string[] {
+    return readdirSync(dir).flatMap((name) => {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) return sources(path);
+      return /\.tsx?$/.test(name) && !/\.test\./.test(name) ? [path] : [];
+    });
+  }
+
+  /** `template: "x"` wherever a message row is written, outside tests. */
+  const named = sources(SRC).flatMap((path) =>
+    [...readFileSync(path, "utf8").matchAll(/\btemplate: "([a-z_]+)"/g)].map(
+      ([, name]) => [relative(SRC, path), name] as const,
+    ),
+  );
+
+  it("finds the queued messages", () => {
+    expect(named.length).toBeGreaterThan(10);
+  });
+
+  it.each(named)(
+    "%s queues %s, a kind that says whether it is urgent",
+    (_path, name) => {
+      expect(
+        name === DIGEST_KIND || Object.hasOwn(MESSAGE_KINDS, name ?? ""),
+      ).toBe(true);
+    },
+  );
 });
