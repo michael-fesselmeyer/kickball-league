@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { BracketBoard, BracketList, Champion } from "@/components/bracket";
 import { db } from "@/db/client";
-import { bracketView } from "@/db/queries/playoffs";
+import { bracketViews } from "@/db/queries/playoffs";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 
 export const metadata: Metadata = {
@@ -34,7 +34,8 @@ async function Bracket({
   const season = await seasonBySlug(db, slug);
   // Drafts are the league's work in progress, not public.
   if (!season || season.status === "draft") notFound();
-  const bracket = await bracketView(db, season.id);
+  // One bracket, or one per division without a combined final (ADR 0035).
+  const brackets = await bracketViews(db, season.id);
   const asList = view === "list";
   const base = `/seasons/${season.slug}/bracket`;
 
@@ -59,7 +60,7 @@ async function Bracket({
         </nav>
       </header>
 
-      {!bracket ? (
+      {brackets.length === 0 ? (
         <section className="flex flex-col items-start gap-3 rounded-card border border-border bg-surface p-6">
           <p className="sticker">Coming soon</p>
           <p className="max-w-prose text-body-lg">
@@ -69,7 +70,6 @@ async function Bracket({
         </section>
       ) : (
         <>
-          <Champion bracket={bracket} />
           <nav aria-label="Bracket view" className="flex gap-2">
             <Link
               href={base}
@@ -86,11 +86,43 @@ async function Bracket({
               List
             </Link>
           </nav>
-          {asList ? (
-            <BracketList bracket={bracket} />
-          ) : (
-            <BracketBoard bracket={bracket} />
-          )}
+          {brackets.map((bracket) => {
+            const division = bracket.division;
+            const body = (
+              <>
+                <Champion bracket={bracket} />
+                {asList ? (
+                  <BracketList
+                    bracket={bracket}
+                    headingLevel={division ? 3 : 2}
+                    idPrefix={division ? `${division.slug}-` : ""}
+                  />
+                ) : (
+                  <BracketBoard
+                    bracket={bracket}
+                    headingLevel={division ? 3 : 2}
+                    {...(division ? { name: division.name } : {})}
+                  />
+                )}
+              </>
+            );
+            return division ? (
+              <section
+                key={bracket.id}
+                aria-labelledby={`bracket-${division.slug}`}
+                className="flex flex-col gap-4"
+              >
+                <h2 id={`bracket-${division.slug}`} className="text-h2">
+                  {division.name}
+                </h2>
+                {body}
+              </section>
+            ) : (
+              <div key={bracket.id} className="flex flex-col gap-4">
+                {body}
+              </div>
+            );
+          })}
           <p className="max-w-prose text-small text-text-muted">
             Seeds come from the final standings, ties broken by the
             league&apos;s tiebreakers. Playoff games can&apos;t end in a tie,
