@@ -19,6 +19,8 @@ export const teamTag = (teamSlug: string) => `team:${teamSlug}`;
 export const gameTag = (gameId: string) => `game:${gameId}`;
 /** Every sponsor page and the sponsors list: there are only a handful. */
 export const SPONSORS_TAG = "sponsors";
+/** Synced Instagram photos, on the home page and team pages. */
+export const PHOTOS_TAG = "photos";
 
 /**
  * How long a game's live score is kept on the server between saves
