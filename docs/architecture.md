@@ -476,7 +476,7 @@ Two features made the cut because each saves real time. Neither is needed to run
 ### Design
 
 - **Client.** A small HTTP client for the provider's Messages API in `src/services/ai.ts`, called only from server code, so the API key never reaches the browser. It takes an injected `fetch`, so tests never touch the network ([ADR 0017](adr/0017-ai-recap-draft-with-a-reserved-budget.md)).
-- **Model.** Read from `AI_MODEL`, defaulting to `claude-opus-5-5`. Only models with a price in `src/domain/ai/models.ts` are accepted, so every call can be costed. `claude-haiku-5-5` is the low-cost alternative (see the cost table). Requests use low effort.
+- **Model.** Read from `AI_MODEL`, defaulting to `claude-opus-5-5`. `ANTHROPIC_API_KEY` and `AI_MODEL` are optional and read straight from the server's environment, like `DEMO_MODE` and `OPERATOR_USER_IDS`, and checked where they are read. Only models with a price in `src/domain/ai/models.ts` are accepted, so every call can be costed. `claude-haiku-5-5` is the low-cost alternative (see the cost table). Requests use low effort.
 - **Grounding.** The full rulebook (about 6,000 tokens) goes in the system prompt with prompt caching, so repeat questions read it from cache. The model is told to answer only from that text.
 - **Checked output.** The answer comes back as structured output (answer text plus a list of rule numbers), validated with Zod. Every cited rule number must exist in the rulebook or the answer is discarded and the player is pointed to rulebook search.
 - **Untrusted input.** A player's question is data, not instructions. It cannot change the system prompt, and the model has no tools and no access to league data.

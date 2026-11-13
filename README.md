@@ -140,6 +140,10 @@ npm run test:db
 
 It starts the server if it is stopped, creates the `ci` role and `ci` database only when they are missing, and runs `npm run db:migrate`, so it is safe to run again after pulling new migrations. It connects as the `postgres` superuser (through `sudo` when you are not root); set `PG_SUPERUSER_URL` to connect another way, for example to a Postgres in Docker. Nothing here is a secret: the database is local and holds only test data.
 
+### Turning on the AI recap draft
+
+The AI-written recap draft is optional and off by default. It appears on the weekly recap screen only when the server has `ANTHROPIC_API_KEY` set to the AI provider's API key. `AI_MODEL` picks the model (`claude-opus-5-5` when unset; `claude-sonnet-5-5` and `claude-haiku-5-5` cost less). Both are read straight from the server's environment, not the validated list in `.env.example`: set them in `.env.local` or the hosting provider's settings. A key in the wrong format, or a model without a known price, leaves the feature off. Spending is capped at a monthly budget ($5 by default) that the operator sets in the console; see [ADR 0017](docs/adr/0017-ai-recap-draft-with-a-reserved-budget.md).
+
 ### Demo mode
 
 The demo deployment lets anyone view the league as a player, captain, ref or admin in one tap, with a banner on every page. It is off unless `DEMO_MODE=true` **and** the database's name contains `demo` **and**, on a Vercel production deployment, the project's address contains `demo`; see [ADR 0004](docs/adr/0004-demo-mode.md). To try it locally against a throwaway database:

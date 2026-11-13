@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AI_MODEL_IDS,
+  aiSettings,
   costMicrodollars,
   DEFAULT_AI_MODEL,
   formatDollars,
@@ -15,6 +16,36 @@ describe("AI models", () => {
     expect(isAiModel("claude-haiku-5-5")).toBe(true);
     expect(isAiModel("some-other-model")).toBe(false);
     expect(isAiModel("toString")).toBe(false);
+  });
+});
+
+describe("aiSettings", () => {
+  const KEY = "sk-ant-test-0000";
+
+  it("is off without a key, or with a key in the wrong format", () => {
+    expect(aiSettings({})).toBeNull();
+    expect(aiSettings({ ANTHROPIC_API_KEY: "" })).toBeNull();
+    expect(aiSettings({ ANTHROPIC_API_KEY: "sk_test_abc" })).toBeNull();
+    expect(aiSettings({ ANTHROPIC_API_KEY: "sk-ant-has space" })).toBeNull();
+  });
+
+  it("uses the default model unless a priced one is chosen", () => {
+    expect(aiSettings({ ANTHROPIC_API_KEY: ` ${KEY} ` })).toEqual({
+      apiKey: KEY,
+      model: "claude-opus-5-5",
+    });
+    expect(
+      aiSettings({ ANTHROPIC_API_KEY: KEY, AI_MODEL: "claude-haiku-5-5" }),
+    ).toEqual({ apiKey: KEY, model: "claude-haiku-5-5" });
+    expect(aiSettings({ ANTHROPIC_API_KEY: KEY, AI_MODEL: "" })?.model).toBe(
+      "claude-opus-5-5",
+    );
+  });
+
+  it("stays off for a model with no known price", () => {
+    expect(
+      aiSettings({ ANTHROPIC_API_KEY: KEY, AI_MODEL: "unpriced-model" }),
+    ).toBeNull();
   });
 });
 

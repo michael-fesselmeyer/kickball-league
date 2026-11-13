@@ -1,8 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LeagueId } from "@/domain/ids";
 
-const env: { ANTHROPIC_API_KEY?: string; AI_MODEL?: string } = {};
-vi.mock("@/env", () => ({ env }));
 vi.mock("@/db/client", () => ({ db: {} }));
 vi.mock("@/db/queries/ai", () => ({
   aiBudget: vi.fn(),
@@ -17,9 +15,13 @@ const { aiConfig, recapAvailability } = await import("./config");
 const NOW = new Date("2026-11-13T18:00:00Z");
 const LEAGUE = "00000000-0000-4000-8000-000000000001" as LeagueId;
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 beforeEach(() => {
-  delete env.ANTHROPIC_API_KEY;
-  delete env.AI_MODEL;
+  vi.stubEnv("ANTHROPIC_API_KEY", "");
+  vi.stubEnv("AI_MODEL", "");
   vi.mocked(site.featureEnabled).mockReset().mockResolvedValue(true);
   vi.mocked(queries.aiBudget)
     .mockReset()
@@ -33,9 +35,9 @@ describe("aiConfig", () => {
   });
 
   it("uses the configured model, or the default", () => {
-    env.ANTHROPIC_API_KEY = "sk-ant-test-0000";
+    vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-test-0000");
     expect(aiConfig()?.model).toBe("claude-opus-5-5");
-    env.AI_MODEL = "claude-haiku-5-5";
+    vi.stubEnv("AI_MODEL", "claude-haiku-5-5");
     expect(aiConfig()?.model).toBe("claude-haiku-5-5");
   });
 });
@@ -47,20 +49,20 @@ describe("recapAvailability", () => {
   });
 
   it("is hidden while the operator has the feature off", async () => {
-    env.ANTHROPIC_API_KEY = "sk-ant-test-0000";
+    vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-test-0000");
     vi.mocked(site.featureEnabled).mockResolvedValue(false);
     expect(await recapAvailability(NOW)).toEqual({ kind: "hidden" });
     expect(site.featureEnabled).toHaveBeenCalledWith("ai");
   });
 
   it("is hidden when there is no league yet", async () => {
-    env.ANTHROPIC_API_KEY = "sk-ant-test-0000";
+    vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-test-0000");
     vi.mocked(queries.aiBudget).mockResolvedValue(null);
     expect(await recapAvailability(NOW)).toEqual({ kind: "hidden" });
   });
 
   it("is ready with room in the budget, and off when it is spent", async () => {
-    env.ANTHROPIC_API_KEY = "sk-ant-test-0000";
+    vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-test-0000");
     vi.mocked(queries.monthSpend).mockResolvedValue(70_000);
     expect(await recapAvailability(NOW)).toEqual({
       kind: "ready",

@@ -1,7 +1,7 @@
 /**
  * The models the AI features may use and their list prices, so every call's
  * cost can be worked out from its token usage. A model that is not listed
- * here cannot be configured (src/lib/env.ts), because its cost could not be
+ * here cannot be configured (`aiSettings` below), because its cost could not be
  * counted against the monthly budget. See ADR 0017.
  *
  * Pure: no clock, no network.
@@ -22,6 +22,24 @@ export const DEFAULT_AI_MODEL: AiModel = "claude-opus-5-5";
 
 export const isAiModel = (value: string): value is AiModel =>
   Object.hasOwn(AI_MODELS, value);
+
+export type AiSettings = { apiKey: string; model: AiModel };
+
+/**
+ * The AI settings from the server's environment, or null to keep the AI
+ * features off. Read raw, like DEMO_MODE (ADR 0004) and OPERATOR_USER_IDS
+ * (ADR 0009): both are optional, so they stay out of the validated schema
+ * and are checked here instead. A key in the wrong format, or a model with
+ * no known price, leaves the features off rather than stopping the server.
+ */
+export function aiSettings(
+  source: Readonly<Record<string, string | undefined>>,
+): AiSettings | null {
+  const apiKey = source.ANTHROPIC_API_KEY?.trim() ?? "";
+  if (!/^sk-ant-[A-Za-z0-9_-]+$/.test(apiKey)) return null;
+  const model = source.AI_MODEL?.trim() || DEFAULT_AI_MODEL;
+  return isAiModel(model) ? { apiKey, model } : null;
+}
 
 /** Token counts from one response. */
 export type TokenUsage = {

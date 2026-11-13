@@ -1,6 +1,5 @@
 // Relative imports only: next.config.ts loads this file, and the @/ alias does not resolve there.
 import { z } from "zod";
-import { AI_MODEL_IDS } from "../domain/ai/models";
 import { err, ok, type Result } from "../domain/result";
 
 /**
@@ -61,20 +60,6 @@ export const envSchema = z.object({
   CRON_SECRET: z
     .string()
     .min(16, { error: "must be at least 16 characters" })
-    .optional(),
-  // Optional: without a key the AI features stay hidden (ADR 0017).
-  ANTHROPIC_API_KEY: z
-    .string()
-    .startsWith("sk-ant-", {
-      error: "must be an API key from the AI provider (starts with sk-ant-)",
-    })
-    .optional(),
-  // Only models with a known price, so every call can be counted against
-  // the monthly budget. Defaults to claude-opus-5-5.
-  AI_MODEL: z
-    .enum(AI_MODEL_IDS, {
-      error: `must be one of ${AI_MODEL_IDS.join(", ")}`,
-    })
     .optional(),
 });
 

@@ -1,19 +1,20 @@
 import { db } from "@/db/client";
 import { aiBudget, monthSpend } from "@/db/queries/ai";
 import { type AiAvailability, aiAvailability } from "@/domain/ai/budget";
-import { type AiModel, DEFAULT_AI_MODEL } from "@/domain/ai/models";
-import { env } from "@/env";
+import { type AiModel, aiSettings } from "@/domain/ai/models";
 import { featureEnabled } from "@/lib/platform/site";
 import { aiCall, type AiCall } from "@/services/ai";
 import { recapWorstCase } from "./recap";
 
-/** The AI provider's key and model, or null when no key is configured. */
+/**
+ * The AI provider's client and model, or null when no usable key is set.
+ * `ANTHROPIC_API_KEY` and `AI_MODEL` are read straight from the server's
+ * environment (see `aiSettings`), never from the database or the browser.
+ */
 export function aiConfig(): { call: AiCall; model: AiModel } | null {
-  if (!env.ANTHROPIC_API_KEY) return null;
-  return {
-    call: aiCall({ apiKey: env.ANTHROPIC_API_KEY }),
-    model: env.AI_MODEL ?? DEFAULT_AI_MODEL,
-  };
+  const settings = aiSettings(process.env);
+  if (!settings) return null;
+  return { call: aiCall({ apiKey: settings.apiKey }), model: settings.model };
 }
 
 /**
