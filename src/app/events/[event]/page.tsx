@@ -4,12 +4,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { InstagramPhotos } from "@/components/instagram-photos";
+import { MemberPhotos } from "@/components/member-photos";
 import { InviteButton } from "@/components/invite-button";
 import { JsonLd } from "@/components/json-ld";
 import { PageLoading } from "@/components/page-loading";
 import { ShareButtons } from "@/components/share";
 import { db } from "@/db/client";
 import { eventBySlug, seasonOn } from "@/db/queries/events";
+import { approvedPhotos } from "@/db/queries/member-photos";
 import { eventPhotos } from "@/db/queries/social";
 import {
   KIND_LABELS,
@@ -24,7 +26,12 @@ import { priceLine } from "@/domain/events/tickets";
 import { eventShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
 import { googleEventLink } from "@/lib/calendar-links";
-import { eventTag, PHOTOS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
+import {
+  eventTag,
+  MEMBER_PHOTOS_TAG,
+  PHOTOS_TAG,
+  PUBLIC_PAGE_LIFE,
+} from "@/lib/public-cache";
 import { leagueInfo } from "@/lib/seo/league";
 import { breadcrumbJsonLd, socialEventJsonLd } from "@/lib/seo/structured-data";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
@@ -95,10 +102,13 @@ function mapLink(place: string) {
 async function EventDetails({ slug }: { slug: string }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
-  cacheTag(eventTag(slug), PHOTOS_TAG);
+  cacheTag(eventTag(slug), PHOTOS_TAG, MEMBER_PHOTOS_TAG);
   const e = await eventBySlug(db, slug, "public");
   if (!e) notFound();
-  const photos = await eventPhotos(db, e.id);
+  const [photos, playerPhotos] = await Promise.all([
+    eventPhotos(db, e.id),
+    approvedPhotos(db, { eventId: e.id }),
+  ]);
   const now = new Date();
   const origin = siteOrigin(env.BETTER_AUTH_URL);
   const url = absoluteUrl(origin, `/events/${e.slug}`);
@@ -379,6 +389,16 @@ async function EventDetails({ slug }: { slug: string }) {
         cover={null}
         photos={photos}
       />
+
+      {/* Once it has started: there's nothing to photograph before. */}
+      {(playerPhotos.length > 0 || e.startsAt <= now) && (
+        <MemberPhotos
+          id="player-photos"
+          about={e.title}
+          photos={playerPhotos}
+          shareHref={`/app/photos?event=${e.slug}`}
+        />
+      )}
     </>
   );
 }

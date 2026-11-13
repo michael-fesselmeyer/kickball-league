@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GameCard } from "@/components/game-card";
 import { InstagramPhotos } from "@/components/instagram-photos";
+import { MemberPhotos } from "@/components/member-photos";
 import { AllTimeRecord } from "@/components/history/all-time-record";
 import { LogoBadge } from "@/components/logo-badge";
 import { Morph, teamMorph } from "@/components/motion";
@@ -15,6 +16,7 @@ import {
   publishedSchedule,
   teamBySlug,
 } from "@/db/queries/public-schedule";
+import { approvedPhotos } from "@/db/queries/member-photos";
 import { teamPhotos } from "@/db/queries/social";
 import { seasonStandings } from "@/db/queries/standings";
 import type { Hex } from "@/domain/color/contrast";
@@ -32,6 +34,7 @@ import { teamShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
 import { calendarLinks } from "@/lib/calendar-links";
 import {
+  MEMBER_PHOTOS_TAG,
   PHOTOS_TAG,
   PUBLIC_PAGE_LIFE,
   seasonTag,
@@ -134,7 +137,7 @@ async function TeamView({
 }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
-  cacheTag(teamTag(slug), PHOTOS_TAG);
+  cacheTag(teamTag(slug), PHOTOS_TAG, MEMBER_PHOTOS_TAG);
   const team = await teamBySlug(db, slug);
   if (!team) notFound();
   const entry =
@@ -145,7 +148,7 @@ async function TeamView({
   if (entry) cacheTag(seasonTag(entry.seasonId));
   const links = calendarLinks(siteOrigin(env.BETTER_AUTH_URL), team.slug);
 
-  const [[games, roster, standings], photos] = await Promise.all([
+  const [[games, roster, standings], photos, playerPhotos] = await Promise.all([
     entry
       ? Promise.all([
           publishedSchedule(db, entry.seasonId),
@@ -154,6 +157,7 @@ async function TeamView({
         ])
       : ([[], [], null] as const),
     teamPhotos(db, team.id),
+    approvedPhotos(db, { teamId: team.id }),
   ]);
   const mine = entry
     ? games.filter((g) => g.teamA.id === entry.id || g.teamB.id === entry.id)
@@ -323,6 +327,13 @@ async function TeamView({
             heading="Photos"
             cover={photos.cover}
             photos={photos.photos}
+          />
+
+          <MemberPhotos
+            id="player-photos"
+            about={team.name}
+            photos={playerPhotos}
+            shareHref={`/app/photos?team=${team.slug}`}
           />
         </div>
 
