@@ -14,7 +14,7 @@ import {
  *
  * An admin sets up a season with one game day behind it and two ahead. A
  * captain registers a team with split pay and pays through Stripe's signed
- * webhook; a player joins by the captain's invite link and pays their
+ * webhook; a teammate joins by the captain's invite link and pays their
  * share; a free agent registers and the admin builds a second team around
  * them. The admin publishes the schedule and the public schedule shows it.
  * A player left in the pool picks up a sub spot for next week's game and
@@ -165,8 +165,11 @@ test("a whole season, from setting it up to a rain-out", async ({
     inviteLink = await link.inputValue();
   });
 
-  await test.step("a player joins by the invite link and pays their share", async () => {
-    const player = await pageAs(browser, "Player");
+  await test.step("a teammate joins by the invite link and pays their share", async () => {
+    // The admin who runs the league plays on this team. (Pat Player is
+    // left for the sub finder: another flow gives Pat league credit, which
+    // would change what Pat pays here.)
+    const player = admin;
     await completeProfile(player);
     await player.goto(new URL(inviteLink).pathname);
     await expect(player.getByText("Your share is $100.")).toBeVisible();
@@ -176,9 +179,8 @@ test("a whole season, from setting it up to a rain-out", async ({
       `You're on ${HOME}. Next, sign the waiver.`,
     );
 
-    await signWaiver(player, SLUG, "Pat Player");
-    await payShare(player, "$100", "pat.player@example.test");
-    await player.context().close();
+    await signWaiver(player, SLUG, "Addie Admin");
+    await payShare(player, "$100", "addie.admin@example.test");
 
     await captain.goto(`/app/seasons/${SLUG}/team`);
     await expect(
@@ -236,10 +238,10 @@ test("a whole season, from setting it up to a rain-out", async ({
   });
 
   await test.step("a player in the pool picks up a sub spot for next week", async () => {
-    // The admin plays too, and joins the pool without a team.
-    await completeProfile(admin);
-    await joinAsFreeAgent(admin, SLUG);
-    await signWaiver(admin, SLUG, "Addie Admin");
+    const sub = await pageAs(browser, "Player");
+    await completeProfile(sub);
+    await joinAsFreeAgent(sub, SLUG);
+    await signWaiver(sub, SLUG, "Pat Player");
 
     await captain.goto(`/app/seasons/${SLUG}/team`);
     await captain
@@ -254,30 +256,31 @@ test("a whole season, from setting it up to a rain-out", async ({
       .click();
     await expect(captain.getByRole("status")).toContainText("Request posted.");
 
-    await admin.goto("/app/subs");
-    const request = admin
+    await sub.goto("/app/subs");
+    const request = sub
       .getByRole("listitem")
       .filter({ hasText: `${HOME} needs` });
-    await expectNoAxeViolations(admin);
+    await expectNoAxeViolations(sub);
     await request.getByRole("button", { name: /^I'm in/ }).click();
-    await expect(admin.getByRole("status")).toHaveText(
+    await expect(sub.getByRole("status")).toHaveText(
       "You're holding a spot. The captain confirms, and you'll get an email.",
     );
 
     await captain.goto(`/app/seasons/${SLUG}/team/subs`);
-    await captain.getByRole("button", { name: /^Approve Addie/ }).click();
+    await captain.getByRole("button", { name: /^Approve Pat/ }).click();
     await expect(captain.getByRole("status")).toHaveText(
       "Approved. They'll get an email saying they're playing.",
     );
     await expectNoAxeViolations(captain);
 
-    await admin.goto("/app/subs");
+    await sub.goto("/app/subs");
     await expect(
-      admin
+      sub
         .getByRole("listitem")
         .filter({ hasText: `${HOME} needs` })
         .getByText("You're playing! See you at the field."),
     ).toBeVisible();
+    await sub.context().close();
   });
 
   await test.step("a captain enters last week's score and the other confirms", async () => {
