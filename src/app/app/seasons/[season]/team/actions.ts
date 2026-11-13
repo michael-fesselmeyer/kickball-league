@@ -12,7 +12,9 @@ import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { setRsvp } from "@/db/queries/rsvps";
-import { type GameId, parseId } from "@/domain/ids";
+import { type GameId, type KeepOffId, parseId } from "@/domain/ids";
+import { readEmail, readReason } from "@/domain/keep-off/keep-off";
+import { addKeepOff, removeKeepOff, teamOfSeason } from "@/db/queries/keep-off";
 import { recordPaymentFor } from "../record-payment";
 
 export type InviteState = { token?: string; expiresAt?: string };
@@ -96,4 +98,64 @@ export async function rsvpAction(
   if (!result.ok) redirect(`${page}?error=${result.error}#game-${gameId}`);
   // Stay on the page, scrolled where the player tapped, with fresh counts.
   refresh();
+}
+
+/**
+ * The captain's own team, for the "not on my team" list. Stops with a 404
+ * for anyone who isn't a captain or co-captain of it, or an admin on it.
+ */
+async function keepOffContext(slug: string) {
+  const page = `/app/seasons/${slug}/team`;
+  const subject = await requirePermissionToChange("registration.join", {
+    next: page,
+  });
+  const league = await currentLeague(db);
+  const season = league
+    ? await seasonForRegistration(db, league.id, slug)
+    : null;
+  if (!season) notFound();
+  const mine = await myRegistration(db, season.id, subject.userId);
+  const teamSeasonId = mine?.team?.teamSeasonId;
+  if (!teamSeasonId || !can(subject, "keep_off.manage", { teamSeasonId }))
+    notFound();
+  const found = await teamOfSeason(db, teamSeasonId);
+  if (!found) notFound();
+  return { page: `${page}?keep_off=`, subject, teamId: found.teamId };
+}
+
+/** Adds a league member to the team's private list. They are never told. */
+export async function addKeepOffAction(
+  slug: string,
+  form: FormData,
+): Promise<void> {
+  const { page, subject, teamId } = await keepOffContext(slug);
+  const email = readEmail(form.get("email"));
+  if (!email) redirect(`${page}invalid_email#keep-off`);
+  const reason = readReason(form.get("reason"));
+  if (!reason.ok) redirect(`${page}${reason.error}#keep-off`);
+  const result = await txDb.transaction((tx) =>
+    addKeepOff(tx, {
+      teamId,
+      email,
+      reason: reason.value,
+      actorId: subject.userId,
+      now: new Date(),
+    }),
+  );
+  redirect(`${page}${result.ok ? "added" : result.error}#keep-off`);
+}
+
+/** Takes someone off the team's private list. */
+export async function removeKeepOffAction(
+  slug: string,
+  rawId: string,
+): Promise<void> {
+  const { page, subject, teamId } = await keepOffContext(slug);
+  const id = parseId<KeepOffId>(rawId);
+  if (!id) notFound();
+  const result = await txDb.transaction((tx) =>
+    removeKeepOff(tx, { id, teamId, actorId: subject.userId }),
+  );
+  if (!result.ok) notFound();
+  redirect(`${page}removed#keep-off`);
 }
