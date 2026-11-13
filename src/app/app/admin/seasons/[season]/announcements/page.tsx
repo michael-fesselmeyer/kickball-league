@@ -17,6 +17,7 @@ import {
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { requirePermission } from "@/lib/auth/permission";
 import { sendLeagueAnnouncementAction } from "./actions";
+import { requireFeature } from "@/lib/platform/site";
 
 export const metadata: Metadata = { title: "Announcements" };
 
@@ -36,6 +37,7 @@ async function Announcements({
   params,
   searchParams,
 }: PageProps<"/app/admin/seasons/[season]/announcements">) {
+  await requireFeature("announcements");
   const { season: slug } = await params;
   const query = await searchParams;
   await requirePermission("announcement.send", {

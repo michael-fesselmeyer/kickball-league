@@ -7,6 +7,11 @@ import { ForecastChip, ForecastChipView } from "./forecast-chip";
 
 // The real lookup reads the environment and the data cache.
 vi.mock("@/lib/weather", () => ({ cachedForecast: vi.fn() }));
+// The operator's feature switch reads the database.
+const weatherOn = vi.hoisted(() => ({ value: true }));
+vi.mock("@/lib/platform/site", () => ({
+  featureEnabled: async () => weatherOn.value,
+}));
 
 afterEach(cleanup);
 
@@ -72,5 +77,21 @@ describe("ForecastChip", () => {
     expect(await ForecastChip(GAME)).toBeNull();
     vi.mocked(cachedForecast).mockResolvedValue([]);
     expect(await ForecastChip(GAME)).toBeNull();
+  });
+});
+
+describe("ForecastChip with weather switched off", () => {
+  it("renders nothing", async () => {
+    weatherOn.value = false;
+    const { container } = render(
+      await ForecastChip({
+        lat: 40.72,
+        lng: -73.95,
+        startsAt: new Date("2026-09-13T23:00:00Z"),
+        endsAt: new Date("2026-09-14T00:00:00Z"),
+      }),
+    );
+    expect(container.innerHTML).toBe("");
+    weatherOn.value = true;
   });
 });

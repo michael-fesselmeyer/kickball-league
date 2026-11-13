@@ -18,6 +18,7 @@ import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { requirePermission } from "@/lib/auth/permission";
 import { sendTeamAnnouncementAction } from "./actions";
+import { requireFeature } from "@/lib/platform/site";
 
 export const metadata: Metadata = { title: "Message your team" };
 
@@ -37,6 +38,7 @@ async function TeamAnnouncements({
   params,
   searchParams,
 }: PageProps<"/app/seasons/[season]/team/announcements">) {
+  await requireFeature("announcements");
   const { season: slug } = await params;
   const query = await searchParams;
   const subject = await requirePermission("registration.join", {
