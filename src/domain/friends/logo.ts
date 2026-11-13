@@ -6,7 +6,7 @@ import { err, ok, type Result } from "@/domain/result";
  * free database tier: one WebP copy each, and a cap on all of them.
  */
 
-/** The largest upload accepted, under the Server Action body limit (1 MB). */
+/** The largest upload accepted: a logo needs no more, and it uploads fast on a phone. */
 export const MAX_LOGO_UPLOAD_BYTES = 800 * 1024;
 /** The stored copy fits inside this square. The page shows it at 64 px. */
 export const LOGO_BOX = 192;
