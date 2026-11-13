@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogoBadge } from "@/components/logo-badge";
+import { gameMorph, Morph } from "@/components/motion";
 import type { Hex } from "@/domain/color/contrast";
 import { kickoff, shortDay } from "@/domain/schedule/format";
 import {
@@ -20,6 +21,11 @@ type Props = {
   highlight?: string | null | undefined;
   /** Leave out the time and field, when a grid's headers already say them. */
   compact?: boolean;
+  /**
+   * Grow into the game page's scoreboard on the way there. Turn it off for a
+   * second card of the same game on one page, since a name is used once.
+   */
+  morph?: boolean;
 };
 
 /** One game in a list: when, where, who, and the result. Opens the game page. */
@@ -29,6 +35,7 @@ export function GameCard({
   showDay,
   highlight,
   compact,
+  morph = true,
 }: Props) {
   const done = hasResult(game);
   const calledOff = isCalledOff(game);
@@ -43,7 +50,7 @@ export function GameCard({
     highlight != null &&
     (game.teamA.id === highlight || game.teamB.id === highlight);
 
-  return (
+  const card = (
     <Link
       href={`/games/${game.id}`}
       className={`flex min-h-11 items-center gap-3 rounded-card border bg-surface p-3 shadow-card hover:bg-surface-2 ${
@@ -96,6 +103,7 @@ export function GameCard({
       )}
     </Link>
   );
+  return morph ? <Morph name={gameMorph(game.id)}>{card}</Morph> : card;
 }
 
 function TeamLine({

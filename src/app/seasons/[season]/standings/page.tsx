@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cacheLife, cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { Morph, teamMorph } from "@/components/motion";
 import { StandingsStats } from "@/components/stats/standings-stats";
 import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
@@ -146,11 +147,13 @@ async function SeasonStandings({ slug }: { slug: string }) {
                   <td className="py-2 pr-2 text-text-muted">{r.rank}</td>
                   <th scope="row" className="font-normal">
                     <span className="flex items-center gap-2">
-                      <span
-                        aria-hidden="true"
-                        className="inline-block size-3 shrink-0 rounded-full border border-border"
-                        style={{ background: t?.colorHex ?? "transparent" }}
-                      />
+                      <Morph name={teamMorph(r.teamId)}>
+                        <span
+                          aria-hidden="true"
+                          className="inline-block size-3 shrink-0 rounded-full border border-border"
+                          style={{ background: t?.colorHex ?? "transparent" }}
+                        />
+                      </Morph>
                       {t ? (
                         <Link
                           href={`/teams/${t.slug}`}
