@@ -73,7 +73,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 
 ### Player
 - Create an account with Google or an email link, and stay signed in on my own devices.
-- Register for a season, sign that season's waiver, and pay my share from my phone.
+- Register for a season, sign that season's waiver, and pay my share from my phone, with a promo code if I have one.
 - See my next game (time, field, opponent, weather) on my home screen after sign-in.
 - RSVP in or out for each game so my captain can plan.
 - Add my team's games to my calendar and share results to WhatsApp.
@@ -112,7 +112,8 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - See the weather risk for the next game day, call a rain-out with one click, and let the system notify everyone and place makeups.
 - See registration, payment and waiver status for every team and player.
 - Place free agents on teams with suggestions from the matcher, and approve new-team requests.
-- Correct scores, record forfeits, suspend players, and issue refunds or league credit.
+- Make promo codes for a season: a percentage or an amount off, with an optional limit on uses and a last day, and turn one off at any time.
+- Correct scores, record forfeits, suspend players, and issue refunds (all or part of a payment) or league credit.
 - Run events, manage sponsors, and send announcements.
 - See who changed what in an audit log.
 
@@ -204,9 +205,9 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Team registration; captain pays in full | MVP |
 | Split pay: each invited player pays a fixed share through their own link; captain sees who has paid | MVP |
 | Free-agent registration with individual payment | MVP |
-| Promo codes (Stripe promotion codes) | MVP |
+| Promo codes for a season: a percentage or an amount off, an optional limit on uses and a last day, entered when paying; the app applies them and Stripe charges the lower price ([ADR 0010](adr/0010-promo-codes-applied-in-app.md)) | MVP |
 | Automatic payment reminders at 7, 3 and 1 days before the deadline | MVP |
-| Admin refunds, full or partial | MVP |
+| Admin refunds, full or partial: Stripe payments go back through Stripe and count once Stripe confirms; cash and Venmo handed back are marked refunded with a note; every refund is in the audit log | MVP |
 | Waitlist for full seasons, with timed offers when a spot opens | P2 |
 | Captain guarantee: saved card charged for any unpaid balance at the deadline | P2 |
 | League credit ledger (rain-out rebates, referral credit, goodwill), usable at checkout | P2 |
@@ -335,6 +336,8 @@ Both are capped at $5 a month by default and have no subscription. Details and c
 | Support both per-team and per-player pricing with one model | The league uses a team fee today, the old site sold per player, and nobody has confirmed which they want |
 | Split pay uses a fixed per-player share set when the team registers | A share that changes as people join means refunds and confusion; a fixed share is predictable |
 | Money owed back goes to league credit by default, not card refunds | The league's history is "avoid refunds, make up the games"; credit is cheap to issue and keeps players for next season |
+| A refund does not cancel a registration | A partial refund (a missed week, a shirt not needed) keeps the player on the team; an admin removes someone separately when they leave |
+| A promo code never leaves a charge under 50 cents | Stripe will not take a smaller card payment; such a code charges 50 cents, and one that covers the whole price needs no payment at all |
 | Subs must be registered players with a signed waiver, and sub requests are disabled for playoff games | This is what the rulebook already says |
 | The site warns about fielding-rule problems but never blocks a game | Forfeits are a referee's call under the rulebook |
 | WhatsApp is supported by sharing, not replaced | The league already lives there; fighting it would lose |

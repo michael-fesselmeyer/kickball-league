@@ -499,6 +499,7 @@ erDiagram
     text stripe_payment_intent_id UK
     text stripe_charge_id
     int amount_cents
+    int refunded_cents
     int stripe_fee_cents
     enum status "succeeded, failed, disputed"
     timestamptz paid_at
@@ -506,20 +507,22 @@ erDiagram
   refund {
     uuid id PK
     uuid payment_id FK
-    text stripe_refund_id UK
+    text stripe_refund_id UK "null for off-app refunds"
     int amount_cents
     text reason
     uuid issued_by FK
+    timestamptz created_at
   }
   promo_code {
     uuid id PK
     uuid season_id FK
-    text code UK
-    text stripe_promotion_code_id
+    text code "unique per season, upper case"
     enum kind "percent, amount"
-    int value
+    int value "whole percent, or cents"
     int max_redemptions
     timestamptz valid_until
+    timestamptz disabled_at
+    uuid created_by FK
   }
   credit_entry {
     uuid id PK
@@ -565,6 +568,8 @@ Notes:
 - When a captain pays the whole team fee, every teammate who has signed the waiver is paid up: their registration becomes active when the fee is paid, or when they sign or join later.
 - Pressing "Pay" again expires the earlier Checkout session first, so one registration cannot be paid twice.
 - `credit_entry` is an append-only ledger. A balance is the sum of the deltas. Spending credit writes a negative row tied to the purchase.
+- Promo codes are applied by the app, not by Stripe ([ADR 0010](adr/0010-promo-codes-applied-in-app.md)). Checkout locks the code's row, counts its uses and writes the purchase with `discount_cents` and `promo_code_id`; Stripe is sent the discounted line items. A use is a purchase that is open, paid or refunded, so an abandoned or failed checkout gives its use back. A code that covers the whole price settles the purchase at once with no `payment` row. A percentage rounds down to the cent, and a code never leaves a charge under Stripe's 50-cent minimum. Turning a code off sets `disabled_at`; purchases that used it keep their discount.
+- A refund never cancels a registration; an admin removes a player separately. `payment.refunded_cents` is what has gone back. For Stripe payments only the `charge.refunded` webhook moves it, to Stripe's running total (never lower, so replays and late events are harmless), and refunds made in Stripe's dashboard count too. An admin's Stripe refund writes its `refund` row first, under a lock on the payment, then calls Stripe with the row's id as the idempotency key and stores `stripe_refund_id`; if Stripe refuses, the row is deleted. Off-app refunds (cash or Venmo handed back) add to `refunded_cents` at once. The purchase then becomes `partially_refunded` or `refunded`. Every refund writes an audit row (`refund.issue`).
 
 ### 2.4 Notifications and consent
 
@@ -873,7 +878,7 @@ erDiagram
   audit_log {
     uuid id PK
     uuid actor_id FK
-    text action "for example schedule.publish, payment.refund"
+    text action "for example schedule.publish, refund.issue"
     text entity_type
     uuid entity_id
     jsonb before
@@ -960,6 +965,9 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
 | `webhook_event` | unique `(provider, event_id)` | Webhooks are processed once |
 | `payment`, `refund`, `purchase` | unique on each Stripe ID | Stripe retries cannot double-record |
+| `payment` | check `0 <= refunded_cents <= amount_cents` | Never refund more than was paid |
+| `refund` | check `amount_cents > 0` | A refund returns money |
+| `promo_code` | unique `(season_id, code)`; check `code = upper(code)`; check a percent is 1 to 100 and an amount is above 0 | Codes match without regard to case and never take off more than the price |
 | `credit_entry` | check that exactly one of `user_id`, `team_season_id` is set | Credit has one owner |
 
 Indexes for the common reads:
