@@ -68,12 +68,14 @@ test("an admin's theme week shows on the schedule", async ({ browser }) => {
   await admin.getByLabel("Kind").selectOption({ label: "Theme week" });
   await expect(admin.getByLabel("Starts at")).toBeHidden();
   await admin.getByLabel("Name").fill("Pajama week");
-  await admin.getByLabel("Date", { exact: true }).fill("2026-10-12");
-  await admin.getByLabel("End date (optional)").fill("2026-10-18");
+  await admin.getByLabel("First day").fill("2026-10-12");
+  await admin.getByLabel("Last day").fill("2026-10-18");
   await admin.getByRole("button", { name: "Create event" }).click();
   await expect(admin.getByRole("status")).toContainText("Event created.");
 
-  await admin.goto("/seasons/fall-2026/schedule");
+  // A team's view: the smoke tests open the full schedule on another server
+  // that shares this build's page cache, and could write back an older copy.
+  await admin.goto("/seasons/fall-2026/schedule?team=sun-kickers");
   await expect(
     admin.getByRole("link", { name: "Theme week: Pajama week" }),
   ).toHaveAttribute("href", "/events/pajama-week-2026-10-12");
