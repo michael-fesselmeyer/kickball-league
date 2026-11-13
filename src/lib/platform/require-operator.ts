@@ -24,10 +24,9 @@ export async function operatorIsFresh(): Promise<boolean> {
   return signedInRecently(await sessionSignedInAt(), new Date());
 }
 
-/** For actions: the operator, freshly signed in, or a redirect to sign in again. */
+/** For actions: the operator, freshly signed in, or back to confirm it's them. */
 export async function requireFreshOperator(): Promise<SignedInSubject> {
   const subject = await requireOperator();
-  if (!(await operatorIsFresh()))
-    redirect(`/sign-in?next=${encodeURIComponent("/operator")}&fresh=1`);
+  if (!(await operatorIsFresh())) redirect("/operator?error=stale");
   return subject;
 }

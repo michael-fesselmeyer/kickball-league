@@ -1,32 +1,15 @@
 "use server";
 
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { deleteAccount } from "@/db/queries/account";
 import { profileOf } from "@/db/queries/profile";
-import { auth } from "@/lib/auth";
 import { isFreshSession } from "@/lib/auth/config";
 import { requireSelfToChange, sessionSignedInAt } from "@/lib/auth/permission";
 import { demoStatus } from "@/lib/demo/guard";
 
 const PAGE = "/app/profile/delete";
-
-/** Emails the person a sign-in link that brings them back here, fresh. */
-export async function sendConfirmLinkAction(): Promise<void> {
-  const subject = await requireSelfToChange("data.export_or_delete", PAGE);
-  const me = await profileOf(db, subject.userId);
-  if (!me) redirect(PAGE);
-  try {
-    await auth.api.signInMagicLink({
-      body: { email: me.email, callbackURL: PAGE },
-      headers: await headers(),
-    });
-  } catch {
-    redirect(`${PAGE}?error=link`);
-  }
-  redirect(`${PAGE}?sent=1`);
-}
 
 /**
  * Deletes the signed-in person's account by anonymizing it. It needs a
