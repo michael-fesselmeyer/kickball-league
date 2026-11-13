@@ -14,6 +14,7 @@ export const TOPICS = [
   "score",
   "events",
   "marketing",
+  "new_team",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -28,6 +29,7 @@ export const DEFAULT_ENABLED: Readonly<Record<Topic, boolean>> = {
   score: true,
   events: true,
   marketing: false,
+  new_team: true,
 };
 
 /**
@@ -63,6 +65,11 @@ export const SETTINGS_TOPICS: readonly {
     topic: "score",
     label: "Score reminders",
     hint: "For refs and captains, when a game you were in has no score yet.",
+  },
+  {
+    topic: "new_team",
+    label: "New-team requests",
+    hint: "The league's answer when you ask to start a team, and, for captains, when a player leaves to start one.",
   },
 ];
 
