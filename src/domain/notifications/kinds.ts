@@ -46,6 +46,10 @@ export const MESSAGE_KINDS = {
     label:
       "Your event ticket's receipt or refund, or an event spot held for you to buy by a deadline",
   },
+  giveaway_win: {
+    urgency: "non_urgent",
+    label: "A giveaway you won at a league event",
+  },
   guarantee_failed: {
     urgency: "urgent",
     label: "A captain's card guarantee that could not be charged",
