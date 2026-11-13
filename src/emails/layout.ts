@@ -61,5 +61,36 @@ ${button}
     `You got this email because ${reason}.`,
     `Choose which emails you get: ${settings}`,
   ].join("\n");
-  return { subject, html, text };
+  return {
+    subject,
+    html,
+    text,
+    push: pushFrom(
+      action ? { heading, paragraphs, action } : { heading, paragraphs },
+    ),
+  };
+}
+
+/** The most a notification shows before the phone cuts it off. */
+const PUSH_TITLE_MAX = 80;
+const PUSH_BODY_MAX = 180;
+
+const clip = (value: string, max: number) =>
+  value.length <= max ? value : `${value.slice(0, max - 1).trimEnd()}…`;
+
+/**
+ * The same message as a phone notification: the email's heading as the
+ * title, its first paragraph as the text, and its button's page as where a
+ * tap goes. No footer: the settings page is one tap from any notification.
+ */
+export function pushFrom({
+  heading,
+  paragraphs,
+  action,
+}: Pick<EmailParts, "heading" | "paragraphs" | "action">) {
+  return {
+    title: clip(heading, PUSH_TITLE_MAX),
+    body: clip((paragraphs[0] ?? "").replaceAll("\n", " "), PUSH_BODY_MAX),
+    path: action?.path ?? "/app",
+  };
 }

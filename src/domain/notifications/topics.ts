@@ -63,8 +63,8 @@ export const SETTINGS_TOPICS: readonly {
   },
   {
     topic: "score",
-    label: "Score reminders",
-    hint: "For refs and captains, when a game you were in has no score yet.",
+    label: "Scores",
+    hint: "For captains, when the other team or the ref reports your game's score and you need to confirm it. For refs and captains, when a game you were in has no score yet.",
   },
   {
     topic: "new_team",
@@ -79,6 +79,48 @@ export const SETTINGS_TOPICS: readonly {
 ];
 
 export type Choice = { topic: Topic; enabled: boolean };
+
+/**
+ * The topics that can also come as a web push, in the order the settings
+ * page shows them: the time-sensitive ones a player acts on at the field.
+ * Push is opt-in: off for every topic until the person turns it on.
+ */
+export const PUSH_TOPICS: readonly {
+  topic: Topic;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    topic: "rainout",
+    label: "Rain-outs",
+    hint: "When your game is rained out.",
+  },
+  {
+    topic: "sub_request",
+    label: "Sub requests",
+    hint: "When a team needs a sub, and answers to your offers.",
+  },
+  {
+    topic: "score",
+    label: "Score confirmations",
+    hint: "When a score needs your confirmation, or a game you were in has no score yet.",
+  },
+];
+
+/** Whether `topic` can be sent as a web push at all. */
+export const isPushTopic = (topic: Topic): boolean =>
+  PUSH_TOPICS.some((t) => t.topic === topic);
+
+/**
+ * Whether a person gets a push about `topic`, given the push choices they
+ * saved. Off unless they turned it on.
+ */
+export function wantsPush(choices: readonly Choice[], topic: Topic): boolean {
+  return (
+    isPushTopic(topic) &&
+    (choices.find((c) => c.topic === topic)?.enabled ?? false)
+  );
+}
 
 /** Whether a person gets email about `topic`, given the choices they saved. */
 export function wantsEmail(choices: readonly Choice[], topic: Topic): boolean {
