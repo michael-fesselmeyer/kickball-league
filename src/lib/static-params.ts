@@ -1,5 +1,6 @@
 import { db } from "@/db/client";
 import { publicEventSlugs } from "@/db/queries/events";
+import { publishedSummarySeasons } from "@/db/queries/owner-dashboard";
 import { publicSeasons, publicTeams } from "@/db/queries/sitemap";
 import { publicSponsorPages } from "@/db/queries/sponsors";
 
@@ -87,4 +88,22 @@ export async function publicSponsorParams(): Promise<{ sponsor: string }[]> {
     );
   }
   return [{ sponsor: NO_SPONSOR }];
+}
+
+/**
+ * The seasons whose money summary is published, to prerender at build time,
+ * on the same terms. A summary published later renders on its first visit.
+ */
+export async function moneySummaryParams(): Promise<{ season: string }[]> {
+  try {
+    const seasons = await publishedSummarySeasons(db);
+    if (seasons.length > 0) return seasons.map((s) => ({ season: s.slug }));
+  } catch (error) {
+    console.warn(
+      `[build] No money summaries prerendered: the database could not be read (${
+        error instanceof Error ? error.message : String(error)
+      }).`,
+    );
+  }
+  return [{ season: NO_SEASON }];
 }
