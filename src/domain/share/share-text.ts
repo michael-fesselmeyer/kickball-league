@@ -125,3 +125,41 @@ export function announcementShareText({
 }): string {
   return [bold(subject), "", body.trim(), ...(url ? ["", url] : [])].join("\n");
 }
+
+/**
+ * An event for a group chat: name and kind, when and where, who it's for
+ * when it isn't open to everyone, the invite link and the event's page.
+ */
+export function eventShareText({
+  title,
+  kind,
+  when,
+  place,
+  audience,
+  invite,
+  url,
+  cancelled,
+}: {
+  title: string;
+  kind: string;
+  when: string;
+  place: string | null;
+  /** "Sun Kickers and Foul Play, Fall 2026", or null for a public event. */
+  audience: string | null;
+  invite: { host: string; url: string } | null;
+  url: string;
+  cancelled: boolean;
+}): string {
+  if (cancelled)
+    return [`Called off: ${bold(title)} (${when})`, url].join("\n");
+  return [
+    `${bold(title)} · ${kind}`,
+    when,
+    place,
+    audience ? `For ${audience}` : null,
+    invite ? `RSVP on ${invite.host}: ${invite.url}` : null,
+    url,
+  ]
+    .filter((line) => line !== null)
+    .join("\n");
+}
