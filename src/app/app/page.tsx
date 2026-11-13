@@ -10,6 +10,7 @@ import { gamesToReferee } from "@/db/queries/referees";
 import { openSeasons } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { pickupsFor } from "@/db/queries/subs";
+import { AllOutboxStatus } from "@/components/offline-outbox";
 import { Pickups } from "@/components/pickups";
 import { can } from "@/domain/authz/permissions";
 import { isGameDay } from "@/domain/lineup/access";
@@ -102,6 +103,7 @@ async function Account() {
           Your season stuff will live here.
         </p>
       </div>
+      {offeredInstall(subject) && <AllOutboxStatus />}
       {refereeing.length > 0 && (
         <section aria-labelledby="refereeing" className="flex flex-col gap-2">
           <h2 id="refereeing" className="text-h3">

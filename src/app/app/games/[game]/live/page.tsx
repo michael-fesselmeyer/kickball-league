@@ -6,26 +6,16 @@ import { Suspense } from "react";
 import { LineScore } from "@/components/line-score";
 import { db } from "@/db/client";
 import { hasReferee, liveGame, snapshotOf } from "@/db/queries/live-scores";
-import { gameForScoring } from "@/db/queries/scores";
+import { gameForScoring, scoreHistory } from "@/db/queries/scores";
 import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { fullWhen } from "@/domain/schedule/format";
-import {
-  calledScore,
-  lineScore,
-  ordinal,
-  positionLabel,
-  sideFor,
-} from "@/domain/scores/live";
+import { scoreVersion } from "@/domain/scores/offline";
 import { MIN_CALLED_INNINGS, PLAYOFF_TIE } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
-import {
-  endGameAction,
-  kicksFirstAction,
-  saveHalfAction,
-  undoAction,
-} from "./actions";
+import { kicksFirstAction } from "./actions";
+import { Scoring } from "./scoring";
 
 export const metadata: Metadata = { title: "Live score" };
 
@@ -53,9 +43,6 @@ const ERRORS: Record<string, string> = {
   not_found: "That game is gone.",
 };
 
-/** Runs most halves end with, one tap each. */
-const QUICK_RUNS = [0, 1, 2, 3, 4, 5, 6, 7];
-
 async function Live({
   params,
   searchParams,
@@ -67,11 +54,12 @@ async function Live({
   });
   const gameId = parseId<GameId>(rawId);
   if (!gameId) notFound();
-  const [g, live, refereed, league] = await Promise.all([
+  const [g, live, refereed, league, history] = await Promise.all([
     gameForScoring(db, gameId),
     liveGame(db, gameId),
     hasReferee(db, gameId),
     currentLeague(db),
+    scoreHistory(db, gameId),
   ]);
   if (!g || !live) notFound();
   const ctx = {
@@ -152,11 +140,14 @@ async function Live({
         </form>
       ) : (
         <Scoring
-          g={g}
+          gameId={g.id}
+          userId={subject.userId}
           kicksFirst={live.kicksFirst}
           snapshot={snapshot}
           names={names}
           scorePage={scorePage}
+          version={scoreVersion(history.reports, history.responses)}
+          endKey={randomUUID()}
         />
       )}
 
@@ -166,226 +157,6 @@ async function Live({
       >
         Report or confirm the final score instead
       </Link>
-    </>
-  );
-}
-
-function Scoring({
-  g,
-  kicksFirst,
-  snapshot,
-  names,
-  scorePage,
-}: {
-  g: { id: GameId };
-  kicksFirst: "A" | "B";
-  snapshot: ReturnType<typeof snapshotOf>;
-  names: { A: string; B: string };
-  scorePage: string;
-}) {
-  const line = lineScore(snapshot.halves, kicksFirst);
-  const called = calledScore(snapshot.halves, kicksFirst);
-  const next = line.next;
-  const last = line.last;
-  const team = (side: "A" | "B") => names[side];
-
-  return (
-    <>
-      {snapshot.reported && (
-        <p role="status" className="rounded-lg border border-success p-3">
-          A final score has been reported.{" "}
-          <Link href={scorePage} className="underline">
-            See it on the score screen
-          </Link>
-          .
-        </p>
-      )}
-
-      <LineScore teamA={names.A} teamB={names.B} snapshot={snapshot} />
-
-      {next && (
-        <section
-          aria-labelledby="next-half"
-          className="flex flex-col gap-3 rounded-lg border-2 border-text p-4 shadow-sticker"
-        >
-          <div>
-            <h2 id="next-half" className="text-h3">
-              {positionLabel(next)}
-            </h2>
-            <p className="text-text-muted">
-              {team(sideFor(next.half, kicksFirst))} kicking. How many runs?
-            </p>
-          </div>
-          <form action={saveHalfAction.bind(null, g.id)}>
-            <input type="hidden" name="inning" value={next.inning} />
-            <input type="hidden" name="half" value={next.half} />
-            <fieldset className="grid grid-cols-4 gap-2">
-              <legend className="sr-only">
-                Runs in the {positionLabel(next).toLowerCase()}
-              </legend>
-              {QUICK_RUNS.map((runs) => (
-                <button
-                  key={runs}
-                  type="submit"
-                  name="runs"
-                  value={runs}
-                  className="btn px-0 text-h3 btn-secondary tabular-nums"
-                >
-                  {runs}
-                </button>
-              ))}
-            </fieldset>
-          </form>
-          <form
-            action={saveHalfAction.bind(null, g.id)}
-            className="flex items-end gap-2"
-          >
-            <input type="hidden" name="inning" value={next.inning} />
-            <input type="hidden" name="half" value={next.half} />
-            <label className="flex flex-col gap-1">
-              More runs
-              <input
-                name="typedRuns"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={99}
-                required
-                className="min-h-11 w-24 rounded-input border border-border-strong bg-surface px-3 text-center tabular-nums"
-              />
-            </label>
-            <button type="submit" className="btn btn-primary">
-              Save
-            </button>
-          </form>
-        </section>
-      )}
-
-      {last && (
-        <section aria-labelledby="fix" className="flex flex-col gap-3">
-          <h2 id="fix" className="text-h3">
-            Fix a mistake
-          </h2>
-          <form action={undoAction.bind(null, g.id)}>
-            <button type="submit" className="btn btn-secondary">
-              Take back the {positionLabel(last).toLowerCase()}
-            </button>
-          </form>
-          <details className="rounded-lg border border-border p-3">
-            <summary className="min-h-11 content-center">
-              Change the runs in an earlier half
-            </summary>
-            <form
-              action={saveHalfAction.bind(null, g.id)}
-              className="mt-3 flex flex-wrap items-end gap-2"
-            >
-              <label className="flex flex-col gap-1">
-                Half-inning
-                <select
-                  name="position"
-                  defaultValue={`${last.inning}:${last.half}`}
-                  className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
-                >
-                  {snapshot.halves.map((h) => (
-                    <option
-                      key={`${h.inning}:${h.half}`}
-                      value={`${h.inning}:${h.half}`}
-                    >
-                      {positionLabel(h)} ({team(sideFor(h.half, kicksFirst))}
-                      ): {h.runs}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                Runs
-                <input
-                  name="typedRuns"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={99}
-                  required
-                  className="min-h-11 w-20 rounded-input border border-border-strong bg-surface px-3 text-center tabular-nums"
-                />
-              </label>
-              <button type="submit" className="btn btn-primary">
-                Save
-              </button>
-            </form>
-          </details>
-        </section>
-      )}
-
-      {last && (
-        <section aria-labelledby="end" className="flex flex-col gap-3">
-          <h2 id="end" className="text-h3">
-            End the game
-          </h2>
-          <p className="text-small text-text-muted">
-            This reports the final score. The captains confirm it on the score
-            screen as usual.
-          </p>
-          <form
-            action={endGameAction.bind(null, g.id, randomUUID())}
-            className="flex flex-col gap-2"
-          >
-            <button
-              type="submit"
-              name="ending"
-              value="normal"
-              className="btn btn-primary"
-            >
-              Game over: {names.A} {line.totalA}, {names.B} {line.totalB}
-            </button>
-            {called ? (
-              <button
-                type="submit"
-                name="ending"
-                value="called"
-                className="btn btn-secondary"
-              >
-                Called after the {ordinal(called.inningsPlayed)}: {names.A}{" "}
-                {called.scoreA}, {names.B} {called.scoreB}
-              </button>
-            ) : (
-              <p className="text-small text-text-muted">
-                A game called before {MIN_CALLED_INNINGS} complete innings
-                doesn’t count. If the weather stops it, tell an admin it’s a
-                rain-out.
-              </p>
-            )}
-          </form>
-          {called && line.completeInnings * 2 < snapshot.halves.length && (
-            <p className="text-small text-text-muted">
-              A called game stands at the last complete inning, so the runs in
-              the unfinished {ordinal(line.completeInnings + 1)} don’t count.
-            </p>
-          )}
-        </section>
-      )}
-
-      <details className="rounded-lg border border-border p-3">
-        <summary className="min-h-11 content-center">
-          {team(kicksFirst)} kick first. Wrong team?
-        </summary>
-        <form
-          action={kicksFirstAction.bind(null, g.id)}
-          className="mt-3 flex flex-col gap-2"
-        >
-          <p className="text-small text-text-muted">
-            Switching moves every top half to the other team.
-          </p>
-          <button
-            type="submit"
-            name="side"
-            value={kicksFirst === "A" ? "B" : "A"}
-            className="btn btn-secondary"
-          >
-            {team(kicksFirst === "A" ? "B" : "A")} kick first
-          </button>
-        </form>
-      </details>
     </>
   );
 }
