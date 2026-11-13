@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { db } from "@/db/client";
 import { auditLogPage } from "@/db/queries/audit";
 import { currentLeague } from "@/db/queries/seasons";
+import { can } from "@/domain/authz/permissions";
 import {
   describeAction,
   describeChange,
@@ -28,7 +29,10 @@ export default function AuditPage(props: PageProps<"/app/admin/audit">) {
 }
 
 async function Audit({ searchParams }: PageProps<"/app/admin/audit">) {
-  await requirePermission("audit.read", { next: "/app/admin/audit" });
+  const subject = await requirePermission("audit.read", {
+    next: "/app/admin/audit",
+  });
+  const withBooks = can(subject, "books.manage");
   const query = await searchParams;
   const operatorOnly = query.only === "operator";
   const before =
@@ -37,7 +41,7 @@ async function Audit({ searchParams }: PageProps<"/app/admin/audit">) {
       : undefined;
   const [league, page] = await Promise.all([
     currentLeague(db),
-    auditLogPage(db, { before, operatorOnly }),
+    auditLogPage(db, { before, operatorOnly, withBooks }),
   ]);
   const when = new Intl.DateTimeFormat("en-US", {
     month: "short",

@@ -14,16 +14,13 @@
 
 export const FILE_MAX_BYTES = 1024 * 1024;
 export const TOTAL_CAP_BYTES = 50 * 1024 * 1024;
-/** The largest upload the server reads before resizing: a phone photo. */
-export const UPLOAD_MAX_BYTES = 12 * 1024 * 1024;
+/** The largest upload the server reads (next.config.ts allows 4 MB a form). */
+export const UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
 export const STORED_EDGE = 1600;
 export const STORED_QUALITY = 72;
 
 export type FileProblem =
-  | "too_large"
-  | "not_supported"
-  | "storage_full"
-  | "unreadable";
+  "too_large" | "not_supported" | "storage_full" | "unreadable";
 
 export const FILE_MESSAGES: Readonly<Record<FileProblem, string>> = {
   too_large:

@@ -139,14 +139,16 @@ export async function booksFileOf(
 /** Deletes files nothing refers to any more. */
 async function dropUnusedFiles(db: Db, ids: readonly BooksFileId[]) {
   if (ids.length === 0) return;
-  await db.delete(booksFile).where(
-    and(
-      inArray(booksFile.id, [...ids]),
-      sql`not exists (select 1 from ${expense} where ${expense.receiptFileId} = ${booksFile.id})`,
-      sql`not exists (select 1 from ${permitWindow} where ${permitWindow.documentFileId} = ${booksFile.id})`,
-      sql`not exists (select 1 from ${insuranceCertificate} where ${insuranceCertificate.documentFileId} = ${booksFile.id})`,
-    ),
-  );
+  await db
+    .delete(booksFile)
+    .where(
+      and(
+        inArray(booksFile.id, [...ids]),
+        sql`not exists (select 1 from ${expense} where ${expense.receiptFileId} = ${booksFile.id})`,
+        sql`not exists (select 1 from ${permitWindow} where ${permitWindow.documentFileId} = ${booksFile.id})`,
+        sql`not exists (select 1 from ${insuranceCertificate} where ${insuranceCertificate.documentFileId} = ${booksFile.id})`,
+      ),
+    );
 }
 
 // ---------------------------------------------------------------------------

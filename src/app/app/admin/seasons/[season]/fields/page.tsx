@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { gamesOnLostPermits } from "@/db/queries/books";
 import { fieldsScreen } from "@/db/queries/fields";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { localDate } from "@/domain/scheduler/slots";
@@ -111,7 +112,10 @@ async function Fields({
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
 
-  const screen = await fieldsScreen(db, season.leagueId, season.id);
+  const [screen, lostGames] = await Promise.all([
+    fieldsScreen(db, season.leagueId, season.id),
+    gamesOnLostPermits(db, season.id),
+  ]);
   const tz = season.timeZone;
   const fieldName = new Map(
     screen.fields.map((f) => [f.id, `${f.name}, ${f.venueName}`]),
@@ -161,6 +165,33 @@ async function Fields({
         <p role="status" className="rounded-lg border border-success p-3">
           {notice}
         </p>
+      )}
+
+      {lostGames.length > 0 && (
+        <section
+          aria-labelledby="lost"
+          className="flex flex-col gap-2 rounded-lg border-2 border-danger p-4"
+        >
+          <h2 id="lost" className="text-h3">
+            {lostGames.length === 1
+              ? "1 game is on a lost permit"
+              : `${lostGames.length} games are on a lost permit`}
+          </h2>
+          <ul className="flex flex-col">
+            {lostGames.map((g) => (
+              <li key={g.id}>
+                {g.teamA} vs {g.teamB}, {localDate(g.startsAt, tz)} at{" "}
+                {localTime(g.startsAt, tz)}, {g.fieldName}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href={`/app/admin/seasons/${slug}/schedule`}
+            className="btn self-start btn-primary"
+          >
+            Move them on the schedule board
+          </Link>
+        </section>
       )}
 
       <section aria-labelledby="venues" className="flex flex-col gap-4">

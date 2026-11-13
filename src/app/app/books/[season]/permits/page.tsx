@@ -69,15 +69,16 @@ const NOTICES: Record<string, string> = {
 };
 
 const SHEET_PROBLEMS: Record<RequestProblem, string> = {
-  no_teams: "There aren't enough teams in the season yet. Enter how many you expect.",
-  no_dates: "No game days fall on that weekday between the season's start and end.",
+  no_teams:
+    "There aren't enough teams in the season yet. Enter how many you expect.",
+  no_dates:
+    "No game days fall on that weekday between the season's start and end.",
   bad_time: "The last game has to end after the first one starts.",
   bad_length: "A game slot is 15 to 480 minutes long.",
   day_too_short: "The day is too short for one slot per game a team plays.",
 };
 
-const input =
-  "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
+const input = "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
 
 async function Permits({
   params,
@@ -136,9 +137,9 @@ async function Permits({
         <h1 className="text-h1">Permits and insurance</h1>
         <p className="text-text-muted">
           NYC Parks has no public permit system to connect to, so permits are
-          applied for on their site and tracked here. Owners get an email 30
-          and 7 days before an application window opens, a permit renews or
-          the insurance runs out.
+          applied for on their site and tracked here. Owners get an email 30 and
+          7 days before an application window opens, a permit renews or the
+          insurance runs out.
         </p>
         <SeasonPicker
           seasons={seasons}
@@ -226,7 +227,9 @@ async function Permits({
                     )}
                   </dd>
                   <dt className="text-text-muted">Cost</dt>
-                  <dd>{g.costCents === null ? "not set" : money(g.costCents)}</dd>
+                  <dd>
+                    {g.costCents === null ? "not set" : money(g.costCents)}
+                  </dd>
                   <dt className="text-text-muted">Applications</dt>
                   <dd>
                     {g.applicationOpensOn || g.applicationClosesOn
@@ -256,7 +259,7 @@ async function Permits({
                   </dd>
                 </dl>
                 <details>
-                  <summary className="btn btn-secondary cursor-pointer">
+                  <summary className="btn cursor-pointer btn-secondary">
                     Edit<span className="sr-only"> {g.label}</span>
                   </summary>
                   <form
@@ -319,7 +322,10 @@ async function Permits({
                       }
                       hint={`A photo or a PDF of 1 MB or less. The ref and captains see it on the game's page. Storage used: ${storageLine(used)}.`}
                     />
-                    <button type="submit" className="btn self-start btn-primary">
+                    <button
+                      type="submit"
+                      className="btn self-start btn-primary"
+                    >
                       Save permit
                     </button>
                   </form>
@@ -335,9 +341,9 @@ async function Permits({
           What to request
         </h2>
         <p className="text-text-muted">
-          The field time the league needs for {season.name}, from the number
-          of teams, the game day and the slot length. Copy it into the NYC
-          Parks application.
+          The field time the league needs for {season.name}, from the number of
+          teams, the game day and the slot length. Copy it into the NYC Parks
+          application.
         </p>
         <form method="get" action={page} className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-3">
@@ -428,8 +434,8 @@ async function Permits({
                 {sheet.value.fieldsNeeded === 1 ? "field" : "fields"}
               </strong>
               , {sheet.value.rows.length} field bookings and{" "}
-              {sheet.value.totalFieldHours.toLocaleString("en-US")} field
-              hours in all.
+              {sheet.value.totalFieldHours.toLocaleString("en-US")} field hours
+              in all.
             </p>
             <CopySheet text={sheetText(sheet.value.rows)} />
             <div className="overflow-x-auto">
@@ -439,16 +445,29 @@ async function Permits({
                 </caption>
                 <thead>
                   <tr className="border-b-2 border-border-strong">
-                    <th scope="col" className="py-2 pr-3">Date</th>
-                    <th scope="col" className="py-2 pr-3">Field</th>
-                    <th scope="col" className="py-2 pr-3">Hours</th>
-                    <th scope="col" className="py-2 text-right">Games</th>
+                    <th scope="col" className="py-2 pr-3">
+                      Date
+                    </th>
+                    <th scope="col" className="py-2 pr-3">
+                      Field
+                    </th>
+                    <th scope="col" className="py-2 pr-3">
+                      Hours
+                    </th>
+                    <th scope="col" className="py-2 text-right">
+                      Games
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {sheet.value.rows.map((r) => (
-                    <tr key={`${r.date}/${r.field}`} className="border-b border-border">
-                      <td className="py-2 pr-3 whitespace-nowrap">{day(r.date)}</td>
+                    <tr
+                      key={`${r.date}/${r.field}`}
+                      className="border-b border-border"
+                    >
+                      <td className="py-2 pr-3 whitespace-nowrap">
+                        {day(r.date)}
+                      </td>
                       <td className="py-2 pr-3">{r.field}</td>
                       <td className="py-2 pr-3 whitespace-nowrap">
                         {r.start}–{r.end}
@@ -545,7 +564,12 @@ async function Permits({
           <div className="flex flex-wrap gap-3">
             <label className="flex flex-col gap-1">
               <span className="text-small">Insurer</span>
-              <input name="insurer" required maxLength={120} className={input} />
+              <input
+                name="insurer"
+                required
+                maxLength={120}
+                className={input}
+              />
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-small">Policy number (optional)</span>

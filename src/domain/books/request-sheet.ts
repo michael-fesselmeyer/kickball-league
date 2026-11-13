@@ -49,11 +49,7 @@ export type RequestSheet = {
 };
 
 export type RequestProblem =
-  | "no_teams"
-  | "no_dates"
-  | "bad_time"
-  | "bad_length"
-  | "day_too_short";
+  "no_teams" | "no_dates" | "bad_time" | "bad_length" | "day_too_short";
 
 const HHMM = /^([01]\d|2[0-3]):([0-5]\d)$/;
 
@@ -70,9 +66,7 @@ export function clock(minutes: number): string {
 export function buildRequestSheet(
   input: RequestInput,
 ): Result<RequestSheet, RequestProblem> {
-  const gamesPerDay = Math.floor(
-    (input.teams * input.gamesPerTeamPerDay) / 2,
-  );
+  const gamesPerDay = Math.floor((input.teams * input.gamesPerTeamPerDay) / 2);
   if (gamesPerDay < 1) return err("no_teams");
   if (input.dates.length === 0) return err("no_dates");
   const first = minutesOf(input.firstGame);

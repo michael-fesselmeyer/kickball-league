@@ -14,7 +14,7 @@ export function SeasonPicker({
   if (others.length === 0) return null;
   return (
     <details className="relative">
-      <summary className="btn btn-secondary cursor-pointer">
+      <summary className="btn cursor-pointer btn-secondary">
         Other seasons
       </summary>
       <ul className="absolute z-10 mt-1 flex min-w-48 flex-col rounded-lg border border-border bg-surface p-1 shadow">

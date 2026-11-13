@@ -18,6 +18,8 @@ import type {
   SeasonId,
   UserId,
 } from "@/domain/ids";
+import { FILE_MAX_BYTES } from "@/domain/books/files";
+import { EXPENSE_CATEGORIES } from "@/domain/books/ledger";
 import { user } from "./auth";
 import { league } from "./league";
 import { season } from "./season";
@@ -38,9 +40,6 @@ export const booksFileKind = pgEnum("books_file_kind", [
   "permit",
   "insurance",
 ]);
-
-/** The largest stored file: 1 MB, after an image is resized. */
-export const BOOKS_FILE_MAX_BYTES = 1024 * 1024;
 
 /**
  * One stored file. Photos are resized and re-encoded on the server before
@@ -76,20 +75,12 @@ export const booksFile = pgTable(
     ),
     check(
       "books_file_size",
-      sql`${t.byteSize} = octet_length(${t.bytes}) and ${t.byteSize} between 1 and ${sql.raw(String(BOOKS_FILE_MAX_BYTES))}`,
+      sql`${t.byteSize} = octet_length(${t.bytes}) and ${t.byteSize} between 1 and ${sql.raw(String(FILE_MAX_BYTES))}`,
     ),
   ],
 );
 
-export const expenseCategory = pgEnum("expense_category", [
-  "fields_permits",
-  "equipment",
-  "shirts",
-  "refs",
-  "events",
-  "sponsor_costs",
-  "other",
-]);
+export const expenseCategory = pgEnum("expense_category", EXPENSE_CATEGORIES);
 
 /** Money the league spent, entered by an owner. */
 export const expense = pgTable(
@@ -143,12 +134,8 @@ export const insuranceCertificate = pgTable(
   (t) => [
     index("insurance_certificate_league").on(t.leagueId, t.expiresOn),
     index("insurance_certificate_document").on(t.documentFileId),
-    check(
-      "insurance_certificate_dates",
-      sql`${t.expiresOn} > ${t.startsOn}`,
-    ),
+    check("insurance_certificate_dates", sql`${t.expiresOn} > ${t.startsOn}`),
   ],
 );
 
-export type ExpenseCategory = (typeof expenseCategory.enumValues)[number];
 export type BooksFileKind = (typeof booksFileKind.enumValues)[number];

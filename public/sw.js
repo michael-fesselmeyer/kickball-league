@@ -7,6 +7,10 @@
  * 2. One public game page: the signed-in person's next game, which their
  *    home screen names. It is fetched without cookies, so the saved copy is
  *    the page anyone would see.
+ * 3. For that game's ref and captains only: its park permit page and
+ *    document, which a park officer may ask to see (ADR 0034). The home
+ *    screen names them only for someone allowed to see them, the server
+ *    checks again when they are fetched, and signing out deletes them.
  *
  * Everything else goes to the network untouched: signed-in screens
  * (payments, waivers, admin), API routes, Server Actions and the client
@@ -46,7 +50,10 @@ const ENTRIES = "entries";
 const OUTCOMES = "outcomes";
 const SEND_TAG = "kb-send-scores";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const GAME_PAGE = /^\/games\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
+const ID = "[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}";
+const GAME_PAGE = new RegExp(`^/games/(${ID})$`);
+const PERMIT_PAGE = new RegExp(`^/app/games/(${ID})/permit$`);
+const PERMIT_FILE = new RegExp(`^/app/games/(${ID})/permit/document$`);
 const STATIC_ASSET = /\/_next\/static\/[^"'\s)<>\\]+/g;
 
 /**
@@ -56,6 +63,8 @@ const STATIC_ASSET = /\/_next\/static\/[^"'\s)<>\\]+/g;
  * - "shell": a shell file; served from the shell cache when saved.
  * - "page": a page; from the network, always checked with the server, and
  *   when that fails, the saved copy of the next game or the offline page.
+ * - "saved-file": the next game's permit document; from the network, and
+ *   the saved copy when that fails.
  */
 function routeFor(request) {
   if (request.method !== "GET") return "network";
@@ -66,6 +75,7 @@ function routeFor(request) {
   if (request.headers.has("RSC") || url.searchParams.has("_rsc"))
     return "network";
   if (url.pathname.startsWith("/_next/static/")) return "asset";
+  if (PERMIT_FILE.test(url.pathname)) return "saved-file";
   if (SHELL_FILES.includes(url.pathname)) return "shell";
   if (request.mode === "navigate") return "page";
   return "network";
@@ -92,6 +102,7 @@ self.addEventListener("fetch", (event) => {
   if (route === "asset" || route === "shell")
     event.respondWith(fromCacheFirst(event.request));
   else if (route === "page") event.respondWith(page(event));
+  else if (route === "saved-file") event.respondWith(savedFile(event.request));
 });
 
 self.addEventListener("message", (event) => {
@@ -100,9 +111,11 @@ self.addEventListener("message", (event) => {
   if (data.type === "next-game") {
     const path = typeof data.path === "string" ? data.path : null;
     const label = typeof data.label === "string" ? data.label : "";
-    // Only a public game page may be saved, whatever a page asks for.
+    // Only a public game page may be saved, whatever a page asks for, and
+    // only that same game's permit.
     if (path !== null && !GAME_PAGE.test(path)) return;
-    event.waitUntil(saveForOffline(path, label));
+    const permit = permitFor(path, data.permit);
+    event.waitUntil(saveForOffline(path, label, permit));
   } else if (data.type === "forget") {
     // Signing out also drops entries not sent yet: they are that person's.
     event.waitUntil(
@@ -227,6 +240,24 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
+/** The permit page path, if it is the saved game's own; otherwise null. */
+function permitFor(path, permit) {
+  if (path === null || typeof permit !== "string") return null;
+  const game = GAME_PAGE.exec(path)?.[1];
+  const match = PERMIT_PAGE.exec(permit);
+  return match && match[1] === game ? permit : null;
+}
+
+async function savedFile(request) {
+  try {
+    return await fetch(request);
+  } catch {
+    const path = new URL(request.url).pathname;
+    const saved = await caches.match(path, { cacheName: NEXT_GAME_CACHE });
+    return saved ?? new Response("You're offline.", { status: 503 });
+  }
+}
+
 async function fromCacheFirst(request) {
   const saved = await caches.match(request, { cacheName: SHELL_CACHE });
   return saved ?? fetch(request);
@@ -239,7 +270,11 @@ async function page(event) {
     // Public pages carry `stale-while-revalidate` for the CDN, and a plain
     // fetch would let the browser answer with its stored copy (#204).
     const response = await fetch(event.request, { cache: "no-cache" });
-    if (GAME_PAGE.test(path) && response.ok && !response.redirected)
+    if (
+      (GAME_PAGE.test(path) || PERMIT_PAGE.test(path)) &&
+      response.ok &&
+      !response.redirected
+    )
       // Keep the saved next game fresh whenever it is opened online.
       event.waitUntil(refreshSavedGame(path, response.clone()));
     return response;
@@ -342,7 +377,8 @@ async function refreshShell() {
     const games = await caches.open(NEXT_GAME_CACHE);
     for (const request of await games.keys()) {
       const saved = await games.match(request);
-      if (saved && GAME_PAGE.test(new URL(request.url).pathname))
+      const path = new URL(request.url).pathname;
+      if (saved && (GAME_PAGE.test(path) || PERMIT_PAGE.test(path)))
         for (const asset of assetsIn(await saved.text())) wanted.add(asset);
     }
   }
@@ -352,6 +388,25 @@ async function refreshShell() {
     if (path.startsWith("/_next/static/") && !wanted.has(path))
       await shell.delete(request);
   }
+}
+
+/** Saves a permit page and its document, if there is one. */
+async function savePermit(games, permit) {
+  const response = await get(permit, { credentials: "same-origin" });
+  if (!response) return false;
+  await games.put(permit, stamped(await response.text(), response));
+  const file = await get(`${permit}/document`, { credentials: "same-origin" });
+  if (file)
+    await games.put(
+      `${permit}/document`,
+      new Response(await file.blob(), {
+        headers: {
+          "Content-Type":
+            file.headers.get("Content-Type") ?? "application/octet-stream",
+        },
+      }),
+    );
+  return true;
 }
 
 async function saveAssets(shell, paths) {
@@ -365,9 +420,11 @@ async function saveAssets(shell, paths) {
 /**
  * Keeps one game for offline use, replacing any other, then refreshes the
  * shell around it. A null path forgets the saved game (no upcoming game).
- * Offline, the saved game stays as it is.
+ * Offline, the saved game stays as it is. With a permit path, the permit
+ * page and document are saved too, with this person's cookies: the server
+ * shows them only to the game's ref and captains.
  */
-async function saveForOffline(path, label) {
+async function saveForOffline(path, label, permit) {
   if (path === null) {
     await caches.delete(NEXT_GAME_CACHE);
   } else {
@@ -378,11 +435,15 @@ async function saveForOffline(path, label) {
       const html = await response.text();
       for (const request of await games.keys()) await games.delete(request);
       await games.put(path, stamped(html, response));
+      const permitSaved = permit !== null && (await savePermit(games, permit));
       await games.put(
         NEXT_GAME_INFO,
-        new Response(JSON.stringify({ path, label }), {
-          headers: { "Content-Type": "application/json" },
-        }),
+        new Response(
+          JSON.stringify(
+            permitSaved ? { path, label, permit } : { path, label },
+          ),
+          { headers: { "Content-Type": "application/json" } },
+        ),
       );
     }
   }

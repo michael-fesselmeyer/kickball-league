@@ -59,7 +59,10 @@ export function requestChoices(
   };
   return {
     weekday: weekday >= 0 && weekday <= 6 ? weekday : defaults.weekday,
-    teams: Math.max(0, Math.min(200, whole(one(query, "teams"), defaults.teams))),
+    teams: Math.max(
+      0,
+      Math.min(200, whole(one(query, "teams"), defaults.teams)),
+    ),
     firstGame: time("first", "12:00"),
     latestEnd: time("last", "18:00"),
     slotMinutes: whole(one(query, "slot"), 60),
