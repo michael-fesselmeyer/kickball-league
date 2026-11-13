@@ -1,4 +1,4 @@
-# ADR 0013: A rotating check-in code, drawn as a QR code on the server
+# ADR 0016: A rotating check-in code, drawn as a QR code on the server
 
 - Status: accepted
 - Date: 2026-11-13

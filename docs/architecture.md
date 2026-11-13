@@ -304,7 +304,7 @@ How it is built:
 
 Thresholds are season settings. The rule only recommends; an admin decides. Built so far ✔: the probability and thunderstorm parts, with the thresholds as constants in `src/domain/weather/forecast.ts`. The wet-field rule, severe-weather alerts and per-season thresholds come later.
 
-**Check-in at the bar** ([ADR 0013](adr/0013-rotating-check-in-code.md)). The sponsor's screen at `/app/sponsor/[sponsor]/code` draws a QR code on the server for `/app/check-in/[sponsor]/[code]`, where the code is an HMAC of the current 5-minute window under the sponsor's secret. A small client island fetches the page again after each turnover and asks the device to keep the screen on. The player's tap runs a Server Action that checks the code again (this window or the one before) and inserts the day's check-in, ignoring a repeat; using a deal checks that it is the sponsor's, turned on and good at that local time, once per visit. Neither touches the cached public pages.
+**Check-in at the bar** ([ADR 0016](adr/0016-rotating-check-in-code.md)). The sponsor's screen at `/app/sponsor/[sponsor]/code` draws a QR code on the server for `/app/check-in/[sponsor]/[code]`, where the code is an HMAC of the current 5-minute window under the sponsor's secret. A small client island fetches the page again after each turnover and asks the device to keep the screen on. The player's tap runs a Server Action that checks the code again (this window or the one before) and inserts the day's check-in, ignoring a repeat; using a deal checks that it is the sponsor's, turned on and good at that local time, once per visit. Neither touches the cached public pages.
 
 ## 8. Caching summary
 
