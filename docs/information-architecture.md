@@ -72,6 +72,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; once final, a captain rates the other team's sportsmanship; a link to report an incident
 ├── games/[game]/incident           Report an incident: kind, the people involved from either team, what happened (the game's ref, either captain, an admin; from kickoff on)
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref)
+├── games/[game]/lineup             Both teams' kicking orders: a team's captains any time, the other captain and the ref from game day (names only); each player sees their own spot
+│   └── [team]                      Captain: kicking-order builder from the players who are in, with drag, keyboard and button moves, live two-in-a-row checks, auto-arrange and copy from the last game
 ├── ref/                            Assignments, availability, earnings
 ├── sponsor/                        The sponsors a person manages (admins: every sponsor, and add one)
 │   └── [sponsor]/                  Sponsor portal: deals, "still current", details; admins also page address, home bar and people
@@ -262,6 +264,13 @@ Rules:
 3. The app seeds the bracket, gives the top seeds byes when the field is not a power of two, and places every match on fields and times with the scheduler's bracket placement. It is saved as a draft schedule version; the admin checks it and publishes it like the regular season. The season moves to "playoffs".
 4. As each playoff score becomes final, the winner moves on. When both teams of the next match are known, its game is put on the published schedule in the slot reserved for it. A corrected score swaps the team in the next game while that game is still to be played.
 5. A playoff game cannot end in a tie; the score screen says so. The final's winner is shown as champion on the bracket page.
+
+### 2.9 Kicking order (P3)
+
+1. From the team page, a captain taps "Set kicking order" on a game not yet played. The builder lists the players who said they're in, then any approved pickups, with the side each one counts toward for the gender rules. Players who have not chosen a side are named, so the captain can ask them to finish their profile; the fielding-rule warning from the RSVPs is shown too.
+2. The captain drags rows by their handle, picks one up with Space and moves it with the arrow keys, or taps the up and down buttons. Each change is announced to screen readers and checked against the two-in-a-row rule, counting from the last kicker back to the first; every break is explained by name.
+3. "Auto-arrange" fixes the order moving as few people as it can, or says why no order works. "Copy last game" starts from the team's previous saved order, leaving out who isn't coming and adding new players at the end.
+4. Saving keeps the order even if it still breaks the rule, and says so. Each player in it sees "You kick 4th of 12" on the team page. On game day, the ref (from their home screen or the score screen) and the other captain see the order as names, with whether it keeps to the rule.
 
 ## 3. Key screens
 
