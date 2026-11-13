@@ -9,6 +9,9 @@
  * - A request can reserve spots for women or men, for the fielding rule.
  *   A claim holds a spot until the captain answers, so the spots left are
  *   the spots asked for minus claims that are pending or approved.
+ * - A team's request is hidden from anyone on that team's "not on my team"
+ *   list (ADR 0036): they never hear of it, see it or claim it. Every other
+ *   team's requests reach them as usual.
  */
 
 import type { FieldingRules } from "../rsvp/fielding";
@@ -65,7 +68,19 @@ export type SubCandidate = {
   commitments: readonly { startsAt: Date; endsAt: Date }[];
   /** Suspended by the league right now (src/domain/discipline). */
   suspended?: boolean;
+  /** Teams in the game (team_season ids) whose list keeps them off. */
+  keptOffBy?: readonly string[];
 };
+
+/**
+ * Whether `teamSeasonId`'s requests are hidden from `person` because the
+ * team keeps them off. Only that team: the person's eligibility for every
+ * other team's request is unchanged.
+ */
+export const hiddenFrom = (
+  person: Pick<SubCandidate, "keptOffBy">,
+  teamSeasonId: string,
+): boolean => person.keptOffBy?.includes(teamSeasonId) === true;
 
 export type Ineligible =
   "not_registered" | "waiver_unsigned" | "suspended" | "plays_in_game" | "busy";
