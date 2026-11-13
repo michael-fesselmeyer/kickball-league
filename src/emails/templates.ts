@@ -20,6 +20,7 @@ import { rainoutNoticeEmail } from "./rainout-notice";
 import { scoreConfirmationEmail } from "./score-confirmation";
 import { scoreReminderEmail } from "./score-reminder";
 import { subRequestEmail, subUpdateEmail } from "./sub-request";
+import { suspensionEmail } from "./suspension";
 
 /**
  * Every email the outbox can send, by the template name stored on the
@@ -42,6 +43,7 @@ const TEMPLATES: Readonly<Record<string, Template>> = {
   score_reminder: scoreReminderEmail,
   sub_request: subRequestEmail,
   sub_update: subUpdateEmail,
+  suspension: suspensionEmail,
   waitlist_offer: waitlistOfferEmail,
 };
 
