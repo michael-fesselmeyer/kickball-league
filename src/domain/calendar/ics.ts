@@ -19,6 +19,11 @@ export type CalendarEvent = {
   status?: "CONFIRMED" | "TENTATIVE" | "CANCELLED";
   /** Raised when the event changes, so clients replace their copy. */
   sequence?: number;
+  /**
+   * Whole days in the calendar's zone, from the day `start` falls on up to,
+   * not including, the day `end` falls on. Shown as free time.
+   */
+  allDay?: boolean;
 };
 
 export type Calendar = {
@@ -207,8 +212,15 @@ function eventLines(
     "BEGIN:VEVENT",
     `UID:${event.uid}`,
     `DTSTAMP:${stamp}`,
-    `DTSTART;TZID=${timeZone}:${localStamp(event.start, timeZone)}`,
-    `DTEND;TZID=${timeZone}:${localStamp(event.end, timeZone)}`,
+    ...(event.allDay
+      ? [
+          `DTSTART;VALUE=DATE:${localStamp(event.start, timeZone).slice(0, 8)}`,
+          `DTEND;VALUE=DATE:${localStamp(event.end, timeZone).slice(0, 8)}`,
+        ]
+      : [
+          `DTSTART;TZID=${timeZone}:${localStamp(event.start, timeZone)}`,
+          `DTEND;TZID=${timeZone}:${localStamp(event.end, timeZone)}`,
+        ]),
     `SUMMARY:${escapeText(event.summary)}`,
   ];
   if (event.location) lines.push(`LOCATION:${escapeText(event.location)}`);
@@ -219,7 +231,10 @@ function eventLines(
   if (event.url) lines.push(`URL:${event.url}`);
   lines.push(`STATUS:${event.status ?? "CONFIRMED"}`);
   if (event.sequence !== undefined) lines.push(`SEQUENCE:${event.sequence}`);
-  lines.push("TRANSP:OPAQUE", "END:VEVENT");
+  lines.push(
+    event.allDay ? "TRANSP:TRANSPARENT" : "TRANSP:OPAQUE",
+    "END:VEVENT",
+  );
   return lines;
 }
 

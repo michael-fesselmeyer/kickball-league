@@ -19,6 +19,7 @@ export const CONTENT_PAGES = [
     priority: 0.6,
   },
   { path: "/about", changeFrequency: "monthly", priority: 0.6 },
+  { path: "/events", changeFrequency: "weekly", priority: 0.6 },
   { path: "/records", changeFrequency: "weekly", priority: 0.5 },
   { path: "/history", changeFrequency: "weekly", priority: 0.5 },
 ] as const satisfies readonly {
@@ -64,4 +65,14 @@ export function buildRobots(
     rules: { userAgent: "*", allow: "/", disallow: [...PRIVATE_PATHS] },
     sitemap: absoluteUrl(origin, "/sitemap.xml"),
   };
+}
+
+/** Each event's page (the events page itself is a content page). */
+export function eventPages(
+  events: readonly { slug: string; updatedAt: Date }[],
+): DataPage[] {
+  return events.map((e) => ({
+    path: `/events/${e.slug}`,
+    lastModified: e.updatedAt,
+  }));
 }

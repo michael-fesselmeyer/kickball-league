@@ -1,4 +1,5 @@
 import { db } from "@/db/client";
+import { publicEventSlugs } from "@/db/queries/events";
 import { publicSeasons, publicTeams } from "@/db/queries/sitemap";
 
 /**
@@ -49,4 +50,22 @@ export async function publicTeamParams(): Promise<{ team: string }[]> {
     );
   }
   return [{ team: NO_TEAM }];
+}
+
+/** As NO_SEASON, for event pages. */
+export const NO_EVENT = "_";
+
+/** The event pages to prerender at build time, on the same terms. */
+export async function publicEventParams(): Promise<{ event: string }[]> {
+  try {
+    const events = await publicEventSlugs(db);
+    if (events.length > 0) return events.map((e) => ({ event: e.slug }));
+  } catch (error) {
+    console.warn(
+      `[build] No events prerendered: the database could not be read (${
+        error instanceof Error ? error.message : String(error)
+      }).`,
+    );
+  }
+  return [{ event: NO_EVENT }];
 }

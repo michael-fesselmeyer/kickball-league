@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildRobots, buildSitemap, CONTENT_PAGES } from "./sitemap";
+import {
+  buildRobots,
+  buildSitemap,
+  CONTENT_PAGES,
+  eventPages,
+} from "./sitemap";
 
 const ORIGIN = "https://league.example.test";
 
@@ -14,6 +19,7 @@ describe("buildSitemap", () => {
       `${ORIGIN}/free-agents`,
       `${ORIGIN}/news/how-to-play-kickball`,
       `${ORIGIN}/about`,
+      `${ORIGIN}/events`,
       `${ORIGIN}/records`,
       `${ORIGIN}/history`,
     ]);
@@ -31,6 +37,15 @@ describe("buildSitemap", () => {
       changeFrequency: "daily",
       priority: 0.5,
     });
+  });
+
+  it("lists each event page with when it last changed", () => {
+    const changed = new Date("2027-05-01T12:00:00Z");
+    expect(
+      eventPages([{ slug: "spring-bbq-2027-05-16", updatedAt: changed }]),
+    ).toEqual([
+      { path: "/events/spring-bbq-2027-05-16", lastModified: changed },
+    ]);
   });
 
   it("ranks the home page first", () => {

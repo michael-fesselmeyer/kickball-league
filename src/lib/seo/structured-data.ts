@@ -201,6 +201,47 @@ export function gameJsonLd(game: GameInfo, league: LeagueInfo): JsonLd {
   });
 }
 
+export type SocialEventInfo = {
+  name: string;
+  /** The event's page. */
+  url: string;
+  description?: string | undefined;
+  startsAt: Date;
+  endsAt: Date;
+  /** Where, as the league wrote it: "Bar name, 123 Example St". */
+  place?: string | undefined;
+  cancelled: boolean;
+  capacity?: number | undefined;
+  spotsLeft?: number | undefined;
+};
+
+/** A league social event: a bar night, a BBQ, a tournament or a theme week. */
+export function socialEventJsonLd(
+  e: SocialEventInfo,
+  league: LeagueInfo,
+): JsonLd {
+  return compact({
+    "@context": CONTEXT,
+    "@type": "SocialEvent",
+    name: e.name,
+    url: e.url,
+    description: e.description || undefined,
+    startDate: e.startsAt.toISOString(),
+    endDate: e.endsAt.toISOString(),
+    eventStatus: e.cancelled
+      ? "https://schema.org/EventCancelled"
+      : "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: e.place
+      ? { "@type": "Place", name: e.place, address: e.place }
+      : undefined,
+    maximumAttendeeCapacity: e.capacity,
+    remainingAttendeeCapacity: e.spotsLeft,
+    isAccessibleForFree: true,
+    organizer: leagueRef(league),
+  });
+}
+
 /** The park page. */
 export function parkJsonLd(park: ParkInfo): JsonLd {
   return { "@context": CONTEXT, ...place(park) };

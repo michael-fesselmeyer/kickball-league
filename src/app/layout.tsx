@@ -50,6 +50,7 @@ export const viewport: Viewport = {
 
 const FOOTER_LINKS = [
   { href: "/about", label: "About" },
+  { href: "/events", label: "Events" },
   { href: "/faq", label: "FAQ" },
   { href: "/parks/mccarren-park", label: "McCarren Park" },
   { href: "/sign-in", label: "Sign in" },

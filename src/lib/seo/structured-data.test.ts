@@ -8,6 +8,7 @@ import {
   leagueJsonLd,
   parkJsonLd,
   serializeJsonLd,
+  socialEventJsonLd,
   teamJsonLd,
   websiteJsonLd,
   type GameInfo,
@@ -36,6 +37,15 @@ const REQUIRED: Record<string, readonly string[]> = {
     "competitor",
     "organizer",
   ],
+  SocialEvent: [
+    "name",
+    "url",
+    "startDate",
+    "endDate",
+    "eventStatus",
+    "organizer",
+  ],
+  Place: ["name", "address"],
   Park: ["name", "address"],
   PostalAddress: ["streetAddress", "addressLocality", "addressCountry"],
   GeoCoordinates: ["latitude", "longitude"],
@@ -511,5 +521,56 @@ describe("serializeJsonLd", () => {
       websiteJsonLd({ name: league.name, url: ORIGIN }),
     ]);
     expect(JSON.parse(json)).toHaveLength(2);
+  });
+});
+
+describe("socialEventJsonLd", () => {
+  const bbq = {
+    name: "Spring kickoff BBQ",
+    url: `${ORIGIN}/events/spring-kickoff-bbq-2027-04-10`,
+    description: "Burgers and lawn games.",
+    startsAt: new Date("2027-04-10T16:00:00Z"),
+    endsAt: new Date("2027-04-10T20:00:00Z"),
+    place: "McCarren Park, north picnic area",
+    cancelled: false,
+    capacity: 12,
+    spotsLeft: 3,
+  };
+
+  it("is a scheduled SocialEvent at a place, run by the league", () => {
+    const data = socialEventJsonLd(bbq, league);
+    expectValid(data);
+    expect(data).toMatchObject({
+      "@type": "SocialEvent",
+      startDate: "2027-04-10T16:00:00.000Z",
+      eventStatus: "https://schema.org/EventScheduled",
+      location: { "@type": "Place", name: "McCarren Park, north picnic area" },
+      maximumAttendeeCapacity: 12,
+      remainingAttendeeCapacity: 3,
+      organizer: { "@id": leagueId(league) },
+    });
+  });
+
+  it("says when it is called off and leaves out what it doesn't know", () => {
+    const data = socialEventJsonLd(
+      {
+        ...bbq,
+        description: "",
+        place: undefined,
+        capacity: undefined,
+        spotsLeft: undefined,
+        cancelled: true,
+      },
+      league,
+    );
+    expectValid(data);
+    expect(data.eventStatus).toBe("https://schema.org/EventCancelled");
+    for (const key of [
+      "description",
+      "location",
+      "maximumAttendeeCapacity",
+      "remainingAttendeeCapacity",
+    ])
+      expect(data).not.toHaveProperty(key);
   });
 });

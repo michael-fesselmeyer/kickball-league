@@ -40,3 +40,22 @@ export const LIVE_SCORE_CDN_SECONDS = 5;
 export function refreshSeasonPages(seasonId: string): void {
   updateTag(seasonTag(seasonId));
 }
+
+/** The events list, the events calendar feed and every event page. */
+export const EVENTS_TAG = "events";
+export const eventTag = (slug: string) => `event:${slug}`;
+/** The theme weeks the public schedule marks on its game days. */
+export const THEME_WEEKS_TAG = "theme-weeks";
+
+/**
+ * From a Server Action: the events pages show the change at once. A theme
+ * week change also refreshes the public schedules that show it.
+ */
+export function refreshEventPages(
+  slug: string,
+  { themeWeek = false }: { themeWeek?: boolean } = {},
+): void {
+  updateTag(EVENTS_TAG);
+  updateTag(eventTag(slug));
+  if (themeWeek) updateTag(THEME_WEEKS_TAG);
+}
