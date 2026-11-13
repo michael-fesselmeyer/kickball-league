@@ -15,6 +15,8 @@ import {
   registrationSummary,
 } from "@/db/queries/admin-dashboard";
 import { pendingNewTeamCount } from "@/db/queries/new-teams";
+import { seasonSignups } from "@/db/queries/challenges";
+import { SignupBoard } from "@/components/signup-board";
 import { currentLeague } from "@/db/queries/seasons";
 import { needsReconnect } from "@/db/queries/social";
 import type { FieldingLevel } from "@/domain/rsvp/fielding";
@@ -117,7 +119,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
     );
   }
 
-  const [day, missing, registrations, others, newTeams, instagram] =
+  const [day, missing, registrations, others, newTeams, instagram, signups] =
     await Promise.all([
       nextGameDay(db, current, now),
       missingScores(db, current, now),
@@ -125,6 +127,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
       otherSeasons(db, current.id),
       pendingNewTeamCount(db, current.id),
       currentLeague(db).then((l) => (l ? needsReconnect(db, l.id) : null)),
+      seasonSignups(db, current.id),
     ]);
   const base = `/app/admin/seasons/${current.slug}`;
   const dayLabel = (date: string) =>
@@ -307,6 +310,31 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
       )}
 
       <Registrations summary={registrations} href={`${base}/registrations`} />
+      {signups.length > 0 && (
+        <section aria-labelledby="signups" className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 id="signups" className="text-h2">
+              Sign-up rate
+            </h2>
+            <Link href={`${base}/challenge`} className="btn btn-secondary">
+              Sign-up challenge
+            </Link>
+          </div>
+          <p className="text-text-muted">
+            Players with an account and a signed waiver, out of each team&apos;s
+            expected roster. Lowest first: these teams need a nudge.
+          </p>
+          <SignupBoard
+            rows={[...signups].sort(
+              (a, b) =>
+                a.progress.percent - b.progress.percent ||
+                a.name.localeCompare(b.name),
+            )}
+            caption="Sign-up rate by team, lowest first"
+            nudge
+          />
+        </section>
+      )}
     </>
   );
 }

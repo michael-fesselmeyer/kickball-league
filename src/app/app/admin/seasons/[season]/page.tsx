@@ -143,6 +143,12 @@ async function Season({
           >
             Sportsmanship
           </Link>
+          <Link
+            href={`/app/admin/seasons/${slug}/challenge`}
+            className="underline"
+          >
+            Sign-up challenge
+          </Link>
         </p>
       </header>
       {(query.created || query.saved) && (
