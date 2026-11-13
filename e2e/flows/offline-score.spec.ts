@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
+import { unscoreGame } from "../support/games";
 import { pageAs } from "../support/personas";
 
 /**
@@ -26,6 +27,7 @@ const waiting = (page: Page) =>
 test("a final score entered with no signal is saved once when signal returns", async ({
   browser,
 }) => {
+  await unscoreGame("Pitch Please", "Base Invaders");
   const ref = await pageAs(browser, "Ref");
   await openScoreScreen(ref, "Pitch Please vs Base Invaders");
 
@@ -65,6 +67,7 @@ test("a final score entered with no signal is saved once when signal returns", a
 test("innings scored with no signal reach the live score in order", async ({
   browser,
 }) => {
+  await unscoreGame("Grand Slammers", "Foul Play");
   const ref = await pageAs(browser, "Ref");
   await openScoreScreen(ref, "Grand Slammers vs Foul Play");
   await ref.getByRole("link", { name: "Score it inning by inning" }).click();
