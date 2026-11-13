@@ -225,6 +225,12 @@ async function Score({
             { id: g.teamBId, name: g.teamBName },
           ]}
         />
+        <Link
+          href={`/app/games/${g.id}/lineup`}
+          className="self-start text-small underline"
+        >
+          Kicking orders
+        </Link>
       </header>
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
