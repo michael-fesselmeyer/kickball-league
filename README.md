@@ -55,6 +55,14 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - A weekly recap drafted from templates (results, rankings, streaks, new records, next week's big game) that an admin edits and sends as an announcement through the outbox.
 - A league history page: every completed season with its champion and final standings, and an all-time table. Team pages show the team's all-time record (wins, losses, ties, run difference) and the titles it won, added up from each season's standings in `src/domain/history`.
 
+**Home bar and sponsors**
+
+- A sponsors page with the home bar first, and a page for each sponsor with its deals (days, hours, fine print) and the date the sponsor last confirmed them. Both are static HTML and carry structured data for the business.
+- QR check-in with a rotating code ([ADR 0013](docs/adr/0013-rotating-check-in-code.md)): the bar shows a code that changes every 5 minutes, drawn as a QR code on the server. A signed-in player scans it, taps Check in (once a day counts) and can use each of the day's deals once. An old or copied code soon stops working.
+- A sponsor portal for the sponsor's own people and admins: add, change or turn off deals, confirm in one tap that they are still current, show the check-in code on a screen at the bar, and edit the page's details. Admins add sponsors, choose the home bar and give people access.
+- Weekly numbers for each sponsor: check-ins, different players, teams and deals used by week, with the most used deals and the teams that came by most. Counts only, never names.
+- Team of the week: admins see each game day's best wins (an upset of a higher-ranked team counts most) and name a team, with an optional tab at a sponsor. It shows on the sponsors page and the sponsor's page.
+
 **Messaging**
 
 - A transactional outbox: messages are written with the change that caused them, failed sends retry, and nothing sends twice.
