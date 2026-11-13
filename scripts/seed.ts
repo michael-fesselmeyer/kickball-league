@@ -18,6 +18,7 @@ import {
 } from "../src/seed/generate";
 import { addSeedAwards } from "../src/seed/awards";
 import { addDemoPersonas, removeDemoPersonas } from "../src/seed/demo-personas";
+import { addSeedDivisions, removeSeedDivisions } from "../src/seed/divisions";
 import {
   addDisciplinePlayer,
   removeDisciplinePlayer,
@@ -115,6 +116,8 @@ async function main(): Promise<void> {
         // Expenses hold seasons; the books' files belong to the league.
         await removeSeedBooks(tx, leagueId);
         await removeSeedMoneySummaries(tx, leagueId);
+        // Team entries and brackets point at divisions.
+        await removeSeedDivisions(tx, leagueId);
         const seasonIds = (
           await tx
             .select({ id: season.id })
@@ -291,6 +294,7 @@ async function main(): Promise<void> {
       await addKeepOffPerson(tx, data);
       await addSeedLineups(tx, data);
       await addPastSeasons(tx, data);
+      await addSeedDivisions(tx, data);
       await addFreeAgentPool(tx, data);
       await addSeedEvents(tx, data);
       await addAudienceDemo(tx, data);
