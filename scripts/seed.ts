@@ -27,6 +27,7 @@ import { addAudienceDemo } from "../src/seed/event-audience";
 import { addSeedBooks, removeSeedBooks } from "../src/seed/books";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addSeedLineups } from "../src/seed/lineups";
+import { addMerchDemo, removeSeedMerch } from "../src/seed/merch";
 import { addTicketDemo, removeSeedTickets } from "../src/seed/tickets";
 import { addFreeAgentPool } from "../src/seed/free-agent-pool";
 import { removeMoneyRecords } from "../src/seed/money";
@@ -101,6 +102,8 @@ async function main(): Promise<void> {
         // Events first: they can name the league's seasons and teams.
         // Tickets and the money behind them point at events and people.
         await removeSeedTickets(tx, leagueId);
+        // Merch orders point at people, teams and purchases.
+        await removeSeedMerch(tx, leagueId);
         await removeSeedEvents(tx, leagueId);
         // Expenses hold seasons; the books' files belong to the league.
         await removeSeedBooks(tx, leagueId);
@@ -284,6 +287,7 @@ async function main(): Promise<void> {
       await addSeedEvents(tx, data);
       await addAudienceDemo(tx, data);
       await addTicketDemo(tx, data);
+      await addMerchDemo(tx, data);
       await addSeedAwards(tx, data, new Date());
       await addSeedSponsors(tx, data);
       await addInstagramPhotos(tx, data);
