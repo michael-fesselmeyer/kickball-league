@@ -398,7 +398,7 @@ describe("permissions and accounts", () => {
       const [a, b] = w.players;
       if (!a || !b) throw new Error("no players");
       const data = await personalData(db, a, DURING);
-      expect(data.giveawayEntries).toEqual([
+      expect(data?.giveawayEntries).toEqual([
         expect.objectContaining({ prize: "A $50 bar tab" }),
       ]);
       // Not drawn yet: deleting the account takes the entry out.
