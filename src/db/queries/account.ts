@@ -8,6 +8,7 @@ import { freeAgentProfile } from "../schema/free-agent";
 import { savedPaymentMethod } from "../schema/guarantee";
 import { account, passkey, session, user, verification } from "../schema/auth";
 import { eventRsvp } from "../schema/event";
+import { gameLineup, gameLineupSpot } from "../schema/lineup";
 import {
   gameRsvp,
   refereeAssignment,
@@ -258,6 +259,17 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .from(gameRsvp)
     .where(eq(gameRsvp.userId, userId))
     .orderBy(asc(gameRsvp.updatedAt));
+  // Where they kick in saved orders; their lineup gender is in the profile.
+  const kickingOrder = await db
+    .select({
+      gameId: gameLineup.gameId,
+      position: gameLineupSpot.position,
+      pickup: gameLineupSpot.pickup,
+    })
+    .from(gameLineupSpot)
+    .innerJoin(gameLineup, eq(gameLineup.id, gameLineupSpot.lineupId))
+    .where(eq(gameLineupSpot.userId, userId))
+    .orderBy(asc(gameLineup.createdAt));
   const eventRsvps = await db
     .select({
       eventId: eventRsvp.eventId,
@@ -492,6 +504,7 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
         .map((x) => without(x, "purchaseId")),
     })),
     rsvps,
+    kickingOrder,
     eventRsvps,
     scoresReported,
     scoreAnswers,
@@ -650,6 +663,7 @@ export async function deleteAccount(
       sql`position(${`"email":${JSON.stringify(person.email)}`} in ${verification.value}) > 0`,
     );
   await db.delete(gameRsvp).where(eq(gameRsvp.userId, userId));
+  await db.delete(gameLineupSpot).where(eq(gameLineupSpot.userId, userId));
   // Give up event spots the way the person would, so the waitlist moves up;
   // RSVPs for past or called-off events are simply removed.
   const rsvpd = await db
