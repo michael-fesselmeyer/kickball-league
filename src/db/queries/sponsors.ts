@@ -142,7 +142,15 @@ export async function sponsorDirectory(
       ...s,
       deals: deals
         .filter((d) => d.sponsorId === s.id)
-        .map(({ sponsorId: _, ...d }) => d),
+        .map((d) => ({
+          id: d.id,
+          title: d.title,
+          terms: d.terms,
+          validDays: d.validDays,
+          validFrom: d.validFrom,
+          validTo: d.validTo,
+          confirmedOn: d.confirmedOn,
+        })),
     })),
     teamOfWeek: honors[0] ?? null,
   };
@@ -745,6 +753,7 @@ export async function teamsOfWeek(db: Db, seasonId: SeasonId) {
       weekOf: teamOfWeek.weekOf,
       teamSeasonId: teamOfWeek.teamSeasonId,
       teamName: team.name,
+      sponsorId: teamOfWeek.sponsorId,
       sponsorName: sponsor.name,
       tabCents: teamOfWeek.tabCents,
       reason: teamOfWeek.reason,
