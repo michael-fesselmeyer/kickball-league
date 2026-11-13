@@ -16,6 +16,7 @@ import { parseId, type SocialPostId, type TeamId } from "@/domain/ids";
 import { env } from "@/env";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { PHOTOS_TAG } from "@/lib/public-cache";
+import { completeConnection } from "@/lib/social/connect";
 import { instagramConfig, signInUrl } from "@/lib/social/instagram-app";
 import {
   newState,
@@ -24,6 +25,7 @@ import {
   STATE_MAX_AGE,
 } from "@/lib/social/oauth-state";
 import { syncAccount } from "@/lib/social/sync";
+import { FIXTURE_CODE } from "@/services/instagram-fixture";
 import { sendQueuedSoon } from "@/services/outbox";
 
 const PAGE = "/app/admin/instagram";
@@ -42,11 +44,24 @@ async function adminOfLeague() {
   return { subject, league };
 }
 
-/** Sends the admin to sign in on Instagram, with a state to check on return. */
+/**
+ * Sends the admin to sign in on Instagram, with a state to check on return.
+ * With the recorded fixture there is no Instagram screen to visit, so the
+ * connection is finished here with the fixture's code.
+ */
 export async function connectInstagramAction() {
-  await adminOfLeague();
+  const { subject, league } = await adminOfLeague();
   const config = instagramConfig();
   if (!config) redirect(`${PAGE}?error=off`);
+  if (config.fixture) {
+    const result = await completeConnection(config, {
+      code: FIXTURE_CODE,
+      leagueId: league.id,
+      actorId: subject.userId,
+    });
+    updateTag(PHOTOS_TAG);
+    redirect(`${PAGE}?${result}`);
+  }
   const state = newState();
   (await cookies()).set(STATE_COOKIE, state, {
     httpOnly: true,
