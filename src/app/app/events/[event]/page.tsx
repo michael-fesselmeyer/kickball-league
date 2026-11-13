@@ -2,15 +2,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { InviteButton } from "@/components/invite-button";
+import { CopyForWhatsApp } from "@/components/share";
 import { db } from "@/db/client";
-import { eventBySlug, myEventRsvp } from "@/db/queries/events";
+import { audienceNames, visibleEvent } from "@/db/queries/event-audience";
+import { myEventRsvp } from "@/db/queries/events";
+import { can } from "@/domain/authz/permissions";
+import { audienceShareLine, inviteHost } from "@/domain/events/audience";
 import {
   KIND_LABELS,
+  nextDay,
   rsvpWindow,
   spotsLeft,
+  themeWeekDays,
   whenLine,
 } from "@/domain/events/event";
+import { eventShareText } from "@/domain/share/share-text";
+import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
+import { googleEventLink } from "@/lib/calendar-links";
+import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { joinEventAction, leaveEventAction } from "../actions";
 
 export const metadata: Metadata = { title: "RSVP" };
@@ -20,6 +31,7 @@ const ERRORS: Record<string, string> = {
   cancelled: "The league called this event off.",
   over: "This event is over.",
   no_rsvp: "Theme weeks don't need an RSVP. Just show up on game day.",
+  invite_only: "This event takes RSVPs on its invite, not here.",
 };
 
 const DONE: Record<string, string> = {
@@ -48,10 +60,40 @@ async function EventRsvp({
   const subject = await requirePermission("event.rsvp", {
     next: `/app/events/${slug}`,
   });
-  const e = await eventBySlug(db, slug);
+  const e = await visibleEvent(
+    db,
+    slug,
+    subject.userId,
+    can(subject, "event.manage", {}),
+  );
   if (!e) notFound();
-  const mine = await myEventRsvp(db, e.id, subject.userId);
-  const window = rsvpWindow(e, new Date());
+  const [mine, names] = await Promise.all([
+    myEventRsvp(db, e.id, subject.userId),
+    audienceNames(db, e.audience),
+  ]);
+  const now = new Date();
+  const window = rsvpWindow(e, now);
+  const isPublic = e.audience.kind === "public";
+  const when = whenLine(e, e.timeZone);
+  const url = absoluteUrl(
+    siteOrigin(env.BETTER_AUTH_URL),
+    isPublic ? `/events/${e.slug}` : `/app/events/${e.slug}`,
+  );
+  const days = e.kind === "theme_week" ? themeWeekDays(e, e.timeZone) : null;
+  const google = googleEventLink({
+    title: e.title,
+    details: `${e.description}\n\n${url}`.trim(),
+    place: e.place,
+    start: e.startsAt,
+    end: e.endsAt,
+    ...(days
+      ? { allDay: { first: days.first, afterLast: nextDay(days.last) } }
+      : {}),
+  });
+  const paragraphs = e.description
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean);
   const left = spotsLeft(e.capacity, e.going);
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
@@ -72,15 +114,31 @@ async function EventRsvp({
           {KIND_LABELS[e.kind]}
         </p>
         <h1 className="text-h1">{e.title}</h1>
-        <p>{whenLine(e, e.timeZone)}</p>
+        <p>{when}</p>
         {e.place && <p className="text-text-muted">{e.place}</p>}
-        <Link
-          href={`/events/${e.slug}`}
-          className="inline-flex min-h-11 items-center self-start underline"
-        >
-          Event details
-        </Link>
+        {isPublic ? (
+          <Link
+            href={`/events/${e.slug}`}
+            className="inline-flex min-h-11 items-center self-start underline"
+          >
+            Event details
+          </Link>
+        ) : (
+          <p className="text-small font-bold">
+            For {audienceShareLine(e.audience, names)}
+          </p>
+        )}
       </header>
+
+      {!isPublic && paragraphs.length > 0 && (
+        <section aria-label="About this event" className="flex flex-col gap-3">
+          {paragraphs.map((p, i) => (
+            <p key={i} className="max-w-prose whitespace-pre-line">
+              {p}
+            </p>
+          ))}
+        </section>
+      )}
 
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
@@ -102,6 +160,15 @@ async function EventRsvp({
         </h2>
         {window === "no_rsvp" ? (
           <p>{ERRORS.no_rsvp}</p>
+        ) : window === "invite_only" ? (
+          e.inviteUrl ? (
+            <>
+              <p>RSVP on the event&apos;s invite.</p>
+              <InviteButton url={e.inviteUrl} primary />
+            </>
+          ) : (
+            <p>No RSVP needed. Just come along.</p>
+          )
         ) : window !== "open" ? (
           <p>{ERRORS[window]}</p>
         ) : mine?.status === "going" ? (
@@ -148,7 +215,50 @@ async function EventRsvp({
             </form>
           </>
         )}
+        {window === "open" && e.inviteUrl && (
+          <p className="flex flex-col items-start gap-2 text-small text-text-muted">
+            The league also has an invite for this one.
+            <InviteButton url={e.inviteUrl} />
+          </p>
+        )}
       </section>
+
+      {!e.cancelledAt && e.endsAt > now && (
+        <section aria-labelledby="share" className="flex flex-col gap-3">
+          <h2 id="share" className="text-h3">
+            Save and share
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={google}
+              className="btn btn-secondary"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Add to Google Calendar
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+            <Link href="/app/events#feed" className="btn btn-secondary">
+              Your calendar feed
+            </Link>
+          </div>
+          <CopyForWhatsApp
+            about={e.title}
+            text={eventShareText({
+              title: e.title,
+              kind: KIND_LABELS[e.kind],
+              when,
+              place: e.place,
+              audience: audienceShareLine(e.audience, names),
+              invite: e.inviteUrl
+                ? { host: inviteHost(e.inviteUrl), url: e.inviteUrl }
+                : null,
+              url,
+              cancelled: false,
+            })}
+          />
+        </section>
+      )}
     </>
   );
 }
