@@ -137,6 +137,12 @@ async function Season({
           >
             Awards
           </Link>
+          <Link
+            href={`/app/admin/seasons/${slug}/sportsmanship`}
+            className="underline"
+          >
+            Sportsmanship
+          </Link>
         </p>
       </header>
       {(query.created || query.saved) && (

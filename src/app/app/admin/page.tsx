@@ -190,6 +190,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               ["/app/sponsor", "Sponsors"],
               [`${base}/rebates`, "Rebates"],
               ["/app/admin/credit", "League credit"],
+              ["/app/admin/incidents", "Incidents"],
               ["/app/admin/seasons", "All seasons"],
               ["/app/admin/instagram", "Instagram"],
               ["/app/admin/audit", "Audit log"],

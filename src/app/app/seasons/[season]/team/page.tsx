@@ -21,7 +21,10 @@ import { stripeClient } from "@/services/stripe";
 import { can } from "@/domain/authz/permissions";
 import { formatCents } from "@/domain/registration/pricing";
 import { Pickups } from "@/components/pickups";
+import { scoresReceived, suspendedAmong } from "@/db/queries/discipline";
+import { ownAverage } from "@/domain/discipline/discipline";
 import { requirePermission } from "@/lib/auth/permission";
+import { featureEnabled } from "@/lib/platform/site";
 import { RECORD_PAYMENT_MESSAGES } from "../record-payment";
 import {
   createInviteAction,
@@ -57,10 +60,13 @@ function Rsvp({
   action,
   mine,
   team,
+  suspended,
 }: {
   action: (form: FormData) => Promise<void>;
   mine: "in" | "out" | "maybe" | null;
   team: TeamRsvps | undefined;
+  /** A suspended player can't say they're in. */
+  suspended: boolean;
 }) {
   return (
     <div className="flex w-full flex-col gap-1">
@@ -79,7 +85,8 @@ function Rsvp({
             name="status"
             value={value}
             aria-pressed={mine === value}
-            className={`rounded-full border px-3 py-0.5 text-small ${
+            disabled={suspended && value === "in"}
+            className={`rounded-full border px-3 py-0.5 text-small disabled:opacity-50 ${
               mine === value
                 ? "border-text bg-text text-surface"
                 : "border-border"
@@ -112,7 +119,10 @@ function Rsvp({
 }
 
 /** Messages by error code; an unknown code from the URL finds nothing. */
-const PAYMENT_ERRORS: Record<string, string> = RECORD_PAYMENT_MESSAGES;
+const PAYMENT_ERRORS: Record<string, string> = {
+  ...RECORD_PAYMENT_MESSAGES,
+  suspended: "You're suspended, so you can't say you're in until it's served.",
+};
 
 const ROLE: Record<string, string> = {
   captain: "Captain",
@@ -175,6 +185,19 @@ async function Team({
       game: { id: g.id, teamSeasonIds: [g.teamAId, g.teamBId] },
     });
   const mineRsvps = await myRsvps(db, subject.userId, upcoming);
+  // Suspensions are enforced even with the feature switched off; captains
+  // see that a player is out, never why.
+  const suspended = await suspendedAmong(
+    db,
+    board.map((m) => m.userId),
+    now,
+  );
+  const mySuspension = suspended.get(subject.userId);
+  const ownRatings =
+    can(subject, "sportsmanship.view_own", { teamSeasonId }) &&
+    (await featureEnabled("discipline"))
+      ? ownAverage(await scoresReceived(db, teamSeasonId))
+      : null;
   const day = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -245,6 +268,13 @@ async function Team({
       {query.notice === "payment_recorded" && (
         <p role="status" className="rounded-lg border border-success p-3">
           Payment recorded. They&apos;re paid up.
+        </p>
+      )}
+      {mySuspension && (
+        <p className="rounded-lg border border-warning p-3">
+          <strong>{mySuspension.label}.</strong> While you&apos;re suspended you
+          can&apos;t say you&apos;re in for a game or claim a sub spot. To
+          appeal, reply to the league&apos;s email about it.
         </p>
       )}
       <header className="flex flex-col gap-1">
@@ -380,7 +410,15 @@ async function Team({
               const visible = seesStatus || m.userId === subject.userId;
               return (
                 <tr key={m.userId} className="border-t border-border">
-                  <td className="py-2">{m.name}</td>
+                  <td className="py-2">
+                    {m.name}
+                    {(seesStatus || m.userId === subject.userId) &&
+                      suspended.has(m.userId) && (
+                        <span className="ml-2 rounded-full border border-warning px-2 text-small">
+                          {suspended.get(m.userId)?.label}
+                        </span>
+                      )}
+                  </td>
                   <td>{ROLE[m.role]}</td>
                   {seesStatus && (
                     <>
@@ -424,6 +462,22 @@ async function Team({
         </table>
       </section>
 
+      {ownRatings && (
+        <section
+          aria-labelledby="sportsmanship"
+          className="flex flex-col gap-1"
+        >
+          <h2 id="sportsmanship" className="text-h2">
+            Sportsmanship
+          </h2>
+          <p>
+            {"average" in ownRatings
+              ? `Other captains rate your team ${ownRatings.average.toFixed(1)} of 5, from ${ownRatings.count} games.`
+              : `Your team's average shows once ${ownRatings.waitingFor} more ${ownRatings.waitingFor === 1 ? "game is" : "games are"} rated, so no single rating can be read from it.`}
+          </p>
+        </section>
+      )}
+
       <section aria-labelledby="games" className="flex flex-col gap-3">
         <h2 id="games" className="text-h2">
           Games
@@ -465,6 +519,7 @@ async function Team({
                       action={rsvpAction.bind(null, slug, g.id)}
                       mine={mineRsvps.get(g.id) ?? null}
                       team={rsvps.get(g.id)}
+                      suspended={mySuspension !== undefined}
                     />
                   )}
                   {rsvps.has(g.id) && findsSubs && g.kind !== "playoff" && (
