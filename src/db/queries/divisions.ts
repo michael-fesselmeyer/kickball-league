@@ -440,3 +440,13 @@ export async function teamDivisions(
     rows.flatMap((r) => (r.divisionId ? [[r.id as string, r.divisionId]] : [])),
   );
 }
+
+/** The divisions of every public season, for their prerendered pages. */
+export async function publicDivisionPages(db: Db) {
+  return db
+    .select({ season: season.slug, division: division.slug })
+    .from(division)
+    .innerJoin(season, eq(division.seasonId, season.id))
+    .where(ne(season.status, "draft"))
+    .orderBy(asc(season.slug), asc(division.sortOrder));
+}

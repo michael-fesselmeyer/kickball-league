@@ -18,7 +18,7 @@ import {
 } from "@/db/queries/public-schedule";
 import { approvedPhotos } from "@/db/queries/member-photos";
 import { teamPhotos } from "@/db/queries/social";
-import { seasonStandings } from "@/db/queries/standings";
+import { seasonDivisionStandings } from "@/db/queries/standings";
 import type { Hex } from "@/domain/color/contrast";
 import { shortDay } from "@/domain/schedule/format";
 import {
@@ -153,7 +153,7 @@ async function TeamView({
       ? Promise.all([
           publishedSchedule(db, entry.seasonId),
           publicRoster(db, entry.id),
-          seasonStandings(db, entry.seasonId),
+          seasonDivisionStandings(db, entry.seasonId),
         ])
       : ([[], [], null] as const),
     teamPhotos(db, team.id),
@@ -162,7 +162,12 @@ async function TeamView({
   const mine = entry
     ? games.filter((g) => g.teamA.id === entry.id || g.teamB.id === entry.id)
     : [];
-  const row = standings?.rows.find((r) => r.teamId === entry?.id);
+  // Its place in its division, or in the season when there are none.
+  const table = standings?.tables.find((t) =>
+    t.rows.some((r) => r.teamId === entry?.id),
+  );
+  const row = table?.rows.find((r) => r.teamId === entry?.id);
+  const division = table?.division ?? null;
   const now = new Date();
   const upNext = nextGame(mine, now);
   const results = mine.filter(hasResult);
@@ -196,6 +201,17 @@ async function TeamView({
           {entry && (
             <p className="text-text-muted">
               {entry.seasonName}
+              {division && (
+                <>
+                  {" · "}
+                  <Link
+                    href={`/seasons/${entry.seasonSlug}/schedule/division/${division.slug}`}
+                    className="underline"
+                  >
+                    {division.name}
+                  </Link>
+                </>
+              )}
               {row && row.played > 0 && (
                 <>
                   {" "}
