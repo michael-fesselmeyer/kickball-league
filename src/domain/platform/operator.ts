@@ -76,6 +76,7 @@ export const FEATURES = {
   announcements: "Announcements",
   weather: "Weather forecasts and rain alerts",
   awards: "Awards voting",
+  discipline: "Sportsmanship ratings, incidents and suspensions",
 } as const;
 export type Feature = keyof typeof FEATURES;
 export const FEATURE_KEYS: readonly Feature[] = [
@@ -83,6 +84,7 @@ export const FEATURE_KEYS: readonly Feature[] = [
   "announcements",
   "weather",
   "awards",
+  "discipline",
 ];
 export const isFeature = (value: string): value is Feature =>
   Object.hasOwn(FEATURES, value);
