@@ -4,6 +4,7 @@ import { err } from "@/domain/result";
 import { announcementEmail } from "./announcement";
 import type { Template } from "./define";
 import { digestEmail } from "./digest";
+import { emailBudgetEmail } from "./email-budget";
 import { eventNoticeEmail } from "./event";
 import { instagramReconnectEmail } from "./instagram-reconnect";
 import { instagramStorageFullEmail } from "./instagram-storage-full";
@@ -34,6 +35,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
   {
     announcement: announcementEmail,
     digest: digestEmail,
+    email_budget: emailBudgetEmail,
     event_notice: eventNoticeEmail,
     guarantee_failed: guaranteeFailedEmail,
     guarantee_warning: guaranteeWarningEmail,

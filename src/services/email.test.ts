@@ -72,6 +72,22 @@ describe("resendSender", () => {
     expect(JSON.stringify(result)).not.toContain(KEY);
   });
 
+  it("names a quota refusal, so the outbox can wait for tomorrow", async () => {
+    const send = resendSender({
+      apiKey: KEY,
+      from: "hi@example.test",
+      fetch: respond(429, {
+        name: "daily_quota_exceeded",
+        message: "You have reached your daily email sending quota.",
+      }),
+    });
+    expect(await send(message)).toEqual({
+      ok: false,
+      error:
+        "Resend refused the email (429 daily_quota_exceeded): You have reached your daily email sending quota.",
+    });
+  });
+
   it("falls back to the status text when the body is not JSON", async () => {
     const send = resendSender({
       apiKey: KEY,

@@ -1,7 +1,20 @@
 import { and, count, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import type { MessageId, UserId } from "@/domain/ids";
 import {
+  type EmailBudget,
+  emailsLeft,
+  FREE_EMAIL_BUDGET,
+  isQuotaRefusal,
+  nextUtcDay,
+  startOfUtcDay,
+  startOfUtcMonth,
+  whenOutOfEmail,
+} from "@/domain/notifications/email-budget";
+import {
+  DIGEST_KIND,
+  type DeliveryClass,
   deliveryClassOf,
+  EMAIL_BUDGET_KIND,
   type MessageKind,
   NON_URGENT_KINDS,
 } from "@/domain/notifications/kinds";
@@ -9,6 +22,7 @@ import {
   type AlertLimits,
   DEFAULT_LIMITS,
   decide,
+  nextDigestAt,
   startOfLocalDay,
 } from "@/domain/notifications/limits";
 import {
@@ -23,6 +37,7 @@ import type { Result } from "@/domain/result";
 import type { EmailSender } from "@/services/email";
 import type { PushSender } from "@/services/push";
 import { user } from "../schema/auth";
+import { profile } from "../schema/profile";
 import {
   alertSetting,
   message,
@@ -163,18 +178,32 @@ export type ClaimedMessage = {
   template: string;
   payload: Record<string, unknown>;
   attempts: number;
+  dedupeKey: string;
+  sendAfter: Date;
 };
+
+/** Urgent first, then news that can wait and the digest. */
+const urgencyRank = sql<number>`case when ${inArray(message.template, [
+  ...NON_URGENT_KINDS,
+  DIGEST_KIND,
+])} then 1 else 0 end`;
+
+/** People with a push copy last: their phone already has the news. */
+const pushCopyRank = sql<number>`case when exists (select 1 from ${message} as push_copy where push_copy.dedupe_key = 'push:' || ${message.dedupeKey}) then 1 else 0 end`;
 
 /**
  * Claims up to `limit` messages that are due: queued and past send_after,
  * or held by a worker whose claim has lapsed. One statement, so a row is
- * claimed by exactly one caller.
+ * claimed by exactly one caller. With `byPriority` (email, while the
+ * day's quota is limited) urgent messages come first, and among them the
+ * people without a push copy, so the quota goes where it is needed.
  */
 export async function claimDueMessages(
   db: Db,
   now: Date,
   limit: number,
   channels: readonly Channel[] = ["email", "push"],
+  { byPriority = false }: { byPriority?: boolean } = {},
 ): Promise<ClaimedMessage[]> {
   const due = db
     .select({ id: message.id })
@@ -188,7 +217,10 @@ export async function claimDueMessages(
         ),
       ),
     )
-    .orderBy(message.sendAfter)
+    .orderBy(
+      ...(byPriority ? [urgencyRank, pushCopyRank] : []),
+      message.sendAfter,
+    )
     .limit(limit)
     .for("update", { skipLocked: true });
   return db
@@ -207,6 +239,8 @@ export async function claimDueMessages(
       template: message.template,
       payload: message.payload,
       attempts: message.attempts,
+      dedupeKey: message.dedupeKey,
+      sendAfter: message.sendAfter,
     });
 }
 
@@ -239,6 +273,8 @@ export type DrainResult = {
   waiting: number;
   /** Non-urgent and over the person's daily cap: held for their digest. */
   held: number;
+  /** Email the day's quota could not cover: queued again for tomorrow. */
+  nextDay: number;
 };
 
 export const emptyDrain = (): DrainResult => ({
@@ -248,6 +284,7 @@ export const emptyDrain = (): DrainResult => ({
   suppressed: 0,
   waiting: 0,
   held: 0,
+  nextDay: 0,
 });
 
 /** The league's time zone when the caller does not name one. */
@@ -346,6 +383,7 @@ export async function drainOutbox(
     render,
     now,
     timeZone = DEFAULT_TIME_ZONE,
+    emailBudget = FREE_EMAIL_BUDGET,
     limit = 50,
   }: {
     send: EmailSender | null;
@@ -353,16 +391,19 @@ export async function drainOutbox(
     render: Renderer;
     now: Date;
     timeZone?: string;
+    /** The email provider's free quota, which the drain never goes past. */
+    emailBudget?: EmailBudget;
     limit?: number;
   },
 ): Promise<DrainResult> {
   const result = emptyDrain();
-  const claimed = await claimDueMessages(
-    db,
-    now,
-    limit,
-    send ? ["email", "push"] : ["push"],
-  );
+  // Push first: it is free, and an urgent email whose push copy went out
+  // can give its place in the email quota to someone without push.
+  const pushClaimed = await claimDueMessages(db, now, limit, ["push"]);
+  const emailClaimed = send
+    ? await claimDueMessages(db, now, limit, ["email"], { byPriority: true })
+    : [];
+  const claimed = [...pushClaimed, ...emailClaimed];
   if (claimed.length === 0) return result;
   const userIds = [...new Set(claimed.map((m) => m.userId))];
   const recipients = await db
@@ -412,7 +453,41 @@ export async function drainOutbox(
     ? await sentTodayOf(db, userIds, now, timeZone)
     : new Map<string, number>();
 
-  for (const m of claimed) {
+  let emailUse = { today: 0, month: 0 };
+  let pushSent = new Set<string>();
+  let quotaRefused = false;
+  let urgentForTomorrow = 0;
+
+  /** An email the quota cannot cover now: delivered by push, tomorrow, or in the digest. */
+  const outOfEmail = async (m: ClaimedMessage, kind: DeliveryClass) => {
+    const next = whenOutOfEmail(kind, { pushSent: pushSent.has(m.dedupeKey) });
+    if (next === "pushed") {
+      await settle(db, m, {
+        status: "suppressed",
+        suppressReason: "sent_by_push",
+      });
+      result.suppressed++;
+      return;
+    }
+    const digest = next === "digest";
+    await settle(db, m, {
+      status: digest ? "held" : "queued",
+      sendAfter: digest
+        ? nextDigestAt(
+            now,
+            timeZone,
+            (limits.get(m.userId) ?? DEFAULT_LIMITS).digest,
+          )
+        : nextUtcDay(now),
+      attempts: m.attempts - 1,
+    });
+    if (digest) result.held++;
+    else result.nextDay++;
+    if (kind === "urgent" && m.template !== EMAIL_BUDGET_KIND)
+      urgentForTomorrow++;
+  };
+
+  const handle = async (m: ClaimedMessage): Promise<void> => {
     const channel = m.channel;
     if (channel === "sms" || (channel === "email" && !send)) {
       // Nothing sends this channel yet; it is not claimed in practice.
@@ -421,7 +496,7 @@ export async function drainOutbox(
         suppressReason: "channel_off",
       });
       result.suppressed++;
-      continue;
+      return;
     }
     const wanted =
       channel === "push"
@@ -433,7 +508,7 @@ export async function drainOutbox(
         suppressReason: "opted_out",
       });
       result.suppressed++;
-      continue;
+      return;
     }
     const kind = deliveryClassOf(m.template);
     const counted = `${m.userId}/${channel}`;
@@ -453,11 +528,22 @@ export async function drainOutbox(
       });
       if (decision.action === "wait") result.waiting++;
       else result.held++;
-      continue;
+      return;
+    }
+    if (channel === "email") {
+      const left = quotaRefused
+        ? 0
+        : emailsLeft(emailBudget, emailUse, {
+            reserve: m.template === EMAIL_BUDGET_KIND,
+          });
+      if (left <= 0) {
+        await outOfEmail(m, kind);
+        return;
+      }
     }
     const delivered =
       channel === "push"
-        ? await deliverPush(db, m, {
+        ? (await deliverPush(db, m, {
             push,
             render,
             devices: devices.filter((d) => d.userId === m.userId),
@@ -465,7 +551,9 @@ export async function drainOutbox(
             urgent: kind === "urgent",
             now,
             result,
-          })
+          }))
+          ? "sent"
+          : "failed"
         : send
           ? await deliverEmail(db, m, {
               send,
@@ -474,14 +562,135 @@ export async function drainOutbox(
               now,
               result,
             })
-          : false;
-    if (delivered && kind === "non_urgent")
+          : "failed";
+    if (delivered === "quota") {
+      // The provider's own count says the quota is gone, whatever ours says.
+      quotaRefused = true;
+      await outOfEmail(m, kind);
+      return;
+    }
+    if (delivered === "sent" && channel === "email")
+      emailUse = { today: emailUse.today + 1, month: emailUse.month + 1 };
+    if (delivered === "sent" && kind === "non_urgent")
       sentToday.set(counted, (sentToday.get(counted) ?? 0) + 1);
-  }
+  };
+
+  for (const m of pushClaimed) await handle(m);
+  // The pushes have settled: count today's email and see whose phone
+  // already has the news, then send email in priority order.
+  [emailUse, pushSent] = await Promise.all([
+    emailsSent(db, now),
+    pushCopiesSent(db, emailClaimed),
+  ]);
+  const rank = (m: ClaimedMessage) =>
+    (deliveryClassOf(m.template) === "urgent" ? 0 : 2) +
+    (pushSent.has(m.dedupeKey) ? 1 : 0);
+  const emails = [...emailClaimed].sort(
+    (a, b) =>
+      rank(a) - rank(b) || a.sendAfter.getTime() - b.sendAfter.getTime(),
+  );
+  for (const m of emails) await handle(m);
+  if (urgentForTomorrow > 0)
+    await tellAdminsEmailRanOut(db, {
+      now,
+      timeZone,
+      waiting: urgentForTomorrow,
+      budget: emailBudget,
+    });
   return result;
 }
 
-/** Sends one email. True when the provider accepted it. */
+/** Emails the outbox sent today and this month, as the provider counts days. */
+async function emailsSent(
+  db: Db,
+  now: Date,
+): Promise<{ today: number; month: number }> {
+  const [row] = await db
+    .select({
+      today: sql<number>`count(*) filter (where ${message.sentAt} >= ${startOfUtcDay(now)})::int`,
+      month: count(),
+    })
+    .from(message)
+    .where(
+      and(
+        eq(message.channel, "email"),
+        eq(message.status, "sent"),
+        gte(message.sentAt, startOfUtcMonth(now)),
+      ),
+    );
+  return { today: row?.today ?? 0, month: row?.month ?? 0 };
+}
+
+/** The dedupe keys, among these emails, whose push copy has been sent. */
+async function pushCopiesSent(
+  db: Db,
+  emails: readonly ClaimedMessage[],
+): Promise<Set<string>> {
+  if (emails.length === 0) return new Set();
+  const rows = await db
+    .select({ dedupeKey: message.dedupeKey })
+    .from(message)
+    .where(
+      and(
+        inArray(
+          message.dedupeKey,
+          emails.map((m) => pushKey(m.dedupeKey)),
+        ),
+        eq(message.status, "sent"),
+      ),
+    );
+  return new Set(rows.map((r) => r.dedupeKey.slice("push:".length)));
+}
+
+/**
+ * Tells every admin, once a UTC day, that urgent email is waiting for
+ * tomorrow's quota. The notice is urgent and may use the reserve, so it
+ * goes even when ordinary email has stopped.
+ */
+async function tellAdminsEmailRanOut(
+  db: Db,
+  {
+    now,
+    timeZone,
+    waiting,
+    budget,
+  }: { now: Date; timeZone: string; waiting: number; budget: EmailBudget },
+): Promise<void> {
+  const admins = await db
+    .select({ id: profile.userId })
+    .from(profile)
+    .where(inArray(profile.globalRole, ["admin", "owner"]));
+  if (admins.length === 0) return;
+  const day = startOfUtcDay(now).toISOString().slice(0, 10);
+  const resumes = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(nextUtcDay(now));
+  await enqueueMessages(
+    db,
+    admins.map((a) => ({
+      userId: a.id,
+      topic: "operations" as const,
+      template: EMAIL_BUDGET_KIND,
+      payload: {
+        waiting,
+        resumes,
+        daily: budget.daily,
+        monthly: budget.monthly,
+      },
+      dedupeKey: `email-budget/${day}/${a.id}`,
+      sendAfter: now,
+    })),
+  );
+}
+
+/**
+ * Sends one email: "sent" when the provider accepted it, "quota" when it
+ * refused because the account's quota is used up (nothing is recorded; the
+ * caller decides), "failed" otherwise (failed or retrying).
+ */
 async function deliverEmail(
   db: Db,
   m: ClaimedMessage,
@@ -498,7 +707,7 @@ async function deliverEmail(
     now: Date;
     result: DrainResult;
   },
-): Promise<boolean> {
+): Promise<"sent" | "quota" | "failed"> {
   const rendered = render(m.template, m.payload);
   if (!rendered.ok || !to) {
     // Retrying cannot fix a message that cannot be built.
@@ -507,7 +716,7 @@ async function deliverEmail(
       lastError: rendered.ok ? "No email address" : rendered.error,
     });
     result.failed++;
-    return false;
+    return "failed";
   }
   const { subject, html, text } = rendered.value;
   const sent = await send({
@@ -525,10 +734,11 @@ async function deliverEmail(
       lastError: null,
     });
     result.sent++;
-    return true;
+    return "sent";
   }
+  if (isQuotaRefusal(sent.error)) return "quota";
   await retryOrFail(db, m, sent.error, now, result);
-  return false;
+  return "failed";
 }
 
 /** Where a push's "Change alerts" button goes: the push settings. */
