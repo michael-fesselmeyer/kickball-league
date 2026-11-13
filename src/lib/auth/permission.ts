@@ -11,6 +11,7 @@ import {
 import { parseId, type UserId } from "@/domain/ids";
 import { canWrite } from "@/domain/platform/operator";
 import { currentSite, isCurrentOperator } from "@/lib/platform/site";
+import { isFreshSession } from "./config";
 import { auth } from "./index";
 
 /** The signed-in person as a permissions subject; a visitor when signed out. */
@@ -90,8 +91,30 @@ export async function requireSelfToChange(
   return subject;
 }
 
+/** The current session's id and when it was signed in; null when signed out. */
+export async function currentSession(): Promise<{
+  id: string;
+  signedInAt: Date;
+} | null> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  return session
+    ? {
+        id: session.session.id,
+        signedInAt: new Date(session.session.createdAt),
+      }
+    : null;
+}
+
 /** When the current session was signed in, or null when signed out. */
 export async function sessionSignedInAt(): Promise<Date | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
-  return session ? new Date(session.session.createdAt) : null;
+  return (await currentSession())?.signedInAt ?? null;
+}
+
+/**
+ * Whether the current session was signed in recently enough for a sensitive
+ * action (`isFreshSession`). A new email link or a passkey makes it fresh.
+ */
+export async function sessionIsFresh(): Promise<boolean> {
+  const signedInAt = await sessionSignedInAt();
+  return signedInAt !== null && isFreshSession(signedInAt, new Date());
 }
