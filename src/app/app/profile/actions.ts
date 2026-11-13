@@ -3,13 +3,17 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
-import { saveEmailSettings } from "@/db/queries/notifications";
+import { saveAlertLimits, saveEmailSettings } from "@/db/queries/notifications";
 import {
   countPushDevices,
   removePushSubscription,
   savePushSettings,
   savePushSubscription,
 } from "@/db/queries/push";
+import {
+  ALERT_LIMIT_FIELDS,
+  alertLimitsForm,
+} from "@/domain/notifications/limits";
 import { parseDeviceSubscription } from "@/domain/notifications/push";
 import { saveProfile } from "@/db/queries/profile";
 import { currentLeague } from "@/db/queries/seasons";
@@ -62,6 +66,28 @@ export async function saveEmailSettingsAction(form: FormData): Promise<void> {
     saveEmailSettings(tx, subject.userId, enabled),
   );
   redirect("/app/profile?emails=saved#notifications");
+}
+
+/**
+ * Saves the signed-in person's daily cap, digest and quiet hours. Messages
+ * already held move to the next digest under the new choice.
+ */
+export async function saveAlertLimitsAction(form: FormData): Promise<void> {
+  const subject = await requireSelfToChange("profile.edit", "/app/profile");
+  const parsed = alertLimitsForm.safeParse(
+    formStrings(form, ALERT_LIMIT_FIELDS),
+  );
+  if (!parsed.success) redirect("/app/profile?alerts=invalid#alert-limits");
+  const league = await currentLeague(db);
+  if (!league) notFound();
+  const now = new Date();
+  await txDb.transaction((tx) =>
+    saveAlertLimits(tx, subject.userId, parsed.data, {
+      now,
+      timeZone: league.timeZone,
+    }),
+  );
+  redirect("/app/profile?alerts=saved#alert-limits");
 }
 
 export type PushSettingsState = {

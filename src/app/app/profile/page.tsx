@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { creditBalance, creditHistory } from "@/db/queries/credit";
-import { emailSettingsOf } from "@/db/queries/notifications";
+import { alertLimitsFor, emailSettingsOf } from "@/db/queries/notifications";
+import { DEFAULT_TIME_ZONE } from "@/db/queries/outbox";
 import { profileOf } from "@/db/queries/profile";
 import { pushSettingsOf } from "@/db/queries/push";
 import { existingReferralCode, myReferrals } from "@/db/queries/referrals";
@@ -14,6 +15,7 @@ import { toProfileForm } from "@/domain/profile/profile-form";
 import { env } from "@/env";
 import { requireSelf } from "@/lib/auth/permission";
 import { siteOrigin } from "@/lib/site";
+import { AlertLimitsSettings } from "./alert-limits";
 import { CreditSection } from "./credit-section";
 import { EmailSettings } from "./email-settings";
 import { ProfileSettingsForm } from "./profile-form";
@@ -44,6 +46,7 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
     history,
     code,
     referrals,
+    limits,
   ] = await Promise.all([
     profileOf(db, subject.userId),
     emailSettingsOf(db, subject.userId),
@@ -53,6 +56,7 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
     creditHistory(db, subject.userId, 20),
     existingReferralCode(db, subject.userId),
     myReferrals(db, subject.userId),
+    alertLimitsFor(db, subject.userId),
   ]);
   if (!profile) notFound();
   return (
@@ -79,6 +83,17 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
         </p>
       )}
       <EmailSettings topics={emailTopics} />
+      <AlertLimitsSettings
+        limits={limits}
+        timeZone={league?.timeZone ?? DEFAULT_TIME_ZONE}
+        status={
+          query.alerts === "saved"
+            ? "saved"
+            : query.alerts === "invalid"
+              ? "invalid"
+              : null
+        }
+      />
       {publicKey && push && (
         <PushSettings
           publicKey={publicKey}
