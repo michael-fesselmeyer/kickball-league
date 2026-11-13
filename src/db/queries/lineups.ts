@@ -25,6 +25,7 @@ import {
   team,
   teamSeason,
 } from "../schema/team";
+import { suspendedAmong } from "./discipline";
 import type { Db } from "./schedule";
 
 /** Kicking orders for game day (rulebook 2.2.4; ADR 0030). */
@@ -73,13 +74,16 @@ const isOver = (status: string) => OVER.some((s) => s === status);
 
 /**
  * Who can kick for a team in a game: its active players who said they're
- * in, by name, then its approved pickups in the order they claimed. Each carries their lineup gender, which
+ * in, by name, then its approved pickups in the order they claimed. A
+ * player suspended right now is left out, as from every way into a game
+ * (ADR 0026). Each carries their lineup gender, which
  * only the team's captains and admins may see.
  */
 export async function lineupCandidates(
   db: Db,
   gameId: GameId,
   teamSeasonId: TeamSeasonId,
+  now: Date,
 ): Promise<Kicker<UserId>[]> {
   const [regulars, pickups] = await Promise.all([
     db
@@ -128,7 +132,12 @@ export async function lineupCandidates(
       )
       .orderBy(asc(subClaim.claimedAt)),
   ]);
-  const seen = new Set<UserId>();
+  const suspended = await suspendedAmong(
+    db,
+    [...regulars, ...pickups].map((r) => r.id),
+    now,
+  );
+  const seen = new Set<UserId>(suspended.keys());
   const once = <T extends { id: UserId }>(rows: T[]) =>
     rows.filter((r) => !seen.has(r.id) && seen.add(r.id));
   const side = (s: Side | undefined): Side => s ?? null;
@@ -236,7 +245,8 @@ export type SaveLineupError =
 
 /**
  * Saves a team's kicking order, replacing the one before. Every kicker must
- * be available (in, or an approved pickup) and appear once. An order that
+ * be available (in, or an approved pickup, and not suspended) and appear
+ * once. An order that
  * breaks the rule is still saved, with the count of breaks, because the
  * site warns and the ref decides.
  */
@@ -247,6 +257,7 @@ export async function saveLineup(
     teamSeasonId: TeamSeasonId;
     order: readonly UserId[];
     savedBy: UserId;
+    now: Date;
   },
 ): Promise<Result<{ runBreaks: number }, SaveLineupError>> {
   const g = await lineupGame(db, input.gameId);
@@ -259,6 +270,7 @@ export async function saveLineup(
     db,
     input.gameId,
     input.teamSeasonId,
+    input.now,
   );
   const byId = new Map(candidates.map((k) => [k.id, k]));
   const order = input.order.flatMap((id) => {

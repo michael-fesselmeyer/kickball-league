@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import type { UserId } from "@/domain/ids";
 import { lineupAccess } from "@/domain/lineup/access";
+import { incident, suspension } from "../schema/discipline";
 import { game, gameRsvp } from "../schema/game";
 import { gameLineupSpot } from "../schema/lineup";
 import { profile } from "../schema/profile";
@@ -22,6 +23,8 @@ import { required } from "./rows";
 import { loadSubject } from "./subject";
 
 afterAll(closePool);
+
+const NOW = new Date("2026-10-01T16:00:00Z");
 
 type Side = "woman" | "man" | null;
 
@@ -107,13 +110,15 @@ describe("lineup candidates", () => {
         status: "approved",
         lineupGender: "woman",
       });
-      const found = await lineupCandidates(db, w.later.gameId, w.aces.id);
+      const found = await lineupCandidates(db, w.later.gameId, w.aces.id, NOW);
       expect(found).toEqual([
         { id: cap.userId, name: "Avery T.", side: "man", pickup: false },
         { id: p1.userId, name: "Blair T.", side: "woman", pickup: false },
         { id: pickup.userId, name: "Pat Q.", side: "woman", pickup: true },
       ]);
-      expect(await lineupCandidates(db, w.later.gameId, w.bees.id)).toEqual([]);
+      expect(
+        await lineupCandidates(db, w.later.gameId, w.bees.id, NOW),
+      ).toEqual([]);
     });
   });
 });
@@ -132,6 +137,7 @@ describe("saving a kicking order", () => {
         teamSeasonId: w.aces.id,
         order: [b, c, e, a, d, f],
         savedBy: a,
+        now: NOW,
       });
       expect(first).toEqual({ ok: true, value: { runBreaks: 1 } });
       const second = await saveLineup(db, {
@@ -139,6 +145,7 @@ describe("saving a kicking order", () => {
         teamSeasonId: w.aces.id,
         order: [b, c, a, e, d, f],
         savedBy: a,
+        now: NOW,
       });
       expect(second).toEqual({ ok: true, value: { runBreaks: 0 } });
       const saved = (await savedLineups(db, w.later.gameId)).get(w.aces.id);
@@ -189,6 +196,7 @@ describe("saving a kicking order", () => {
           teamSeasonId: w.aces.id,
           order,
           savedBy: a,
+          now: NOW,
           ...over,
         });
       expect(await save([a, b])).toEqual({ ok: false, error: "not_available" });
@@ -220,6 +228,7 @@ describe("saving a kicking order", () => {
         teamSeasonId: w.aces.id,
         order: [c, a, b],
         savedBy: a,
+        now: NOW,
       });
       expect(await previousLineup(db, w.later.gameId, w.aces.id)).toEqual({
         gameId: w.earlier.gameId,
@@ -227,6 +236,51 @@ describe("saving a kicking order", () => {
       });
       // Nothing comes before the earlier game.
       expect(await previousLineup(db, w.earlier.gameId, w.aces.id)).toBeNull();
+    });
+  });
+});
+
+describe("suspended players", () => {
+  it("are left out of the candidates and can't be saved into an order", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const [a, b] = w.acesKickers.map((p) => p.userId);
+      if (!a || !b) throw new Error("world");
+      await w.rsvp(w.later.gameId, a, "in");
+      await w.rsvp(w.later.gameId, b, "in");
+      const filed = required(
+        (
+          await db
+            .insert(incident)
+            .values({
+              gameId: w.earlier.gameId,
+              kind: "unsportsmanlike",
+              details: "Argued every call",
+              reportedBy: w.ref.userId,
+              reporterRole: "referee",
+            })
+            .returning({ id: incident.id })
+        )[0],
+        "incident",
+      );
+      await db.insert(suspension).values({
+        userId: b,
+        incidentId: filed.id,
+        seasonId: w.season.id,
+        scope: "season",
+        startsAt: new Date("2026-09-30T16:00:00Z"),
+      });
+      const found = await lineupCandidates(db, w.later.gameId, w.aces.id, NOW);
+      expect(found.map((k) => k.id)).toEqual([a]);
+      expect(
+        await saveLineup(db, {
+          gameId: w.later.gameId,
+          teamSeasonId: w.aces.id,
+          order: [a, b],
+          savedBy: a,
+          now: NOW,
+        }),
+      ).toEqual({ ok: false, error: "not_available" });
     });
   });
 });
