@@ -75,7 +75,10 @@ async function Playoffs({
   return (
     <>
       <header className="flex flex-col gap-1">
-        <Link href={`/app/admin/seasons/${slug}`} className="underline">
+        <Link
+          href={`/app/admin/seasons/${slug}`}
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           {season.name}
         </Link>
         <h1 className="text-h1">Playoffs</h1>

@@ -159,7 +159,10 @@ function RequestCard({
         </ul>
       )}
       <form action={cancelRequestAction.bind(null, slug, request.id)}>
-        <button type="submit" className="text-small underline">
+        <button
+          type="submit"
+          className="inline-flex min-h-11 items-center underline"
+        >
           Take this request down
         </button>
       </form>
@@ -252,7 +255,10 @@ async function TeamSubs({
   return (
     <>
       <header className="flex flex-col gap-1">
-        <Link href={`/app/seasons/${slug}/team`} className="underline">
+        <Link
+          href={`/app/seasons/${slug}/team`}
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           {team.teamName}
         </Link>
         <h1 className="text-h1">Find subs</h1>
@@ -408,7 +414,10 @@ async function TeamSubs({
                 ) : requested.has(g.id) ? (
                   <span className="text-small text-text-muted">Request up</span>
                 ) : (
-                  <Link href={`${page}?game=${g.id}#ask`} className="underline">
+                  <Link
+                    href={`${page}?game=${g.id}#ask`}
+                    className="inline-flex min-h-11 items-center underline"
+                  >
                     Find subs
                   </Link>
                 )}

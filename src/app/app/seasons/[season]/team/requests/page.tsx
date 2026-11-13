@@ -98,7 +98,10 @@ async function TeamRequests({
   return (
     <>
       <header className="flex flex-col gap-1">
-        <Link href={`/app/seasons/${slug}/team`} className="underline">
+        <Link
+          href={`/app/seasons/${slug}/team`}
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           {team.teamName}
         </Link>
         <h1 className="text-h1">Scheduling requests</h1>
@@ -150,7 +153,10 @@ async function TeamRequests({
                 </span>
                 {open && (
                   <form action={removeTeamRequestAction.bind(null, slug, r.id)}>
-                    <button type="submit" className="underline">
+                    <button
+                      type="submit"
+                      className="inline-flex min-h-11 items-center underline"
+                    >
                       Remove
                     </button>
                   </form>

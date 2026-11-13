@@ -66,11 +66,17 @@ function RequestCard({ r }: { r: OpenRequest }) {
             You&apos;re playing! See you at the field.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <Link href={`/games/${r.game.id}`} className="underline">
+            <Link
+              href={`/games/${r.game.id}`}
+              className="inline-flex min-h-11 items-center underline"
+            >
               Game details
             </Link>
             <form action={withdrawAction.bind(null, r.id)}>
-              <button type="submit" className="text-small underline">
+              <button
+                type="submit"
+                className="inline-flex min-h-11 items-center underline"
+              >
                 I can&apos;t make it
               </button>
             </form>
@@ -80,7 +86,10 @@ function RequestCard({ r }: { r: OpenRequest }) {
         <div className="flex flex-wrap items-center gap-3">
           <p>You&apos;re holding a spot. Waiting for the captain.</p>
           <form action={withdrawAction.bind(null, r.id)}>
-            <button type="submit" className="text-small underline">
+            <button
+              type="submit"
+              className="inline-flex min-h-11 items-center underline"
+            >
               Drop out
             </button>
           </form>
@@ -136,7 +145,10 @@ async function Subs({ searchParams }: PageProps<"/app/subs">) {
   return (
     <>
       <header className="flex flex-col gap-1">
-        <Link href="/app" className="underline">
+        <Link
+          href="/app"
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           Home
         </Link>
         <h1 className="text-h1">Sub for a team</h1>
