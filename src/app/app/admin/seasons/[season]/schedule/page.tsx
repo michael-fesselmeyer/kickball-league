@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { divisionsScreen } from "@/db/queries/divisions";
 import { loadVersion } from "@/db/queries/schedule";
 import {
   scheduleLabels,
@@ -64,12 +65,25 @@ async function Schedule({
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
 
-  const versions = await versionsOf(db, season.id);
+  const [versions, divided] = await Promise.all([
+    versionsOf(db, season.id),
+    divisionsScreen(db, season.leagueId, season.id),
+  ]);
   const latest = versions[0] ? await loadVersion(db, versions[0].id) : null;
   const labels = await scheduleLabels(db, season.id, season.timeZone);
   const metrics = latest ? measure(latest.input, latest.schedule) : null;
   const violations = latest ? validate(latest.input, latest.schedule) : [];
   const teamCount = labels.teams.size;
+  // One full round robin for the largest pool: the season, or the largest
+  // division. Crossover games come on top.
+  const poolSizes =
+    divided.divisions.length > 0
+      ? divided.divisions.map(
+          (d) => divided.teams.filter((t) => t.divisionId === d.id).length,
+        )
+      : [teamCount];
+  const largest = Math.max(2, ...poolSizes);
+  const defaultRounds = largest % 2 === 0 ? largest - 1 : largest;
   const boardSlots: BoardSlot[] = (latest?.input.slots ?? []).flatMap((s) => {
     const where = labels.slots.get(s.id);
     return where
@@ -98,6 +112,20 @@ async function Schedule({
         <h1 className="text-h1">Schedule</h1>
         <Link href={`/app/admin/seasons/${slug}/fields`} className="underline">
           Fields, permits and slots
+        </Link>
+        <Link
+          href={`/app/admin/seasons/${slug}/divisions`}
+          className="underline"
+        >
+          {divided.divisions.length === 0
+            ? "Divisions: none, every team plays in one pool"
+            : `Divisions: ${divided.divisions
+                .map((d, i) => `${d.name} (${poolSizes[i] ?? 0} teams)`)
+                .join(", ")}${
+                divided.settings.crossoverGames > 0
+                  ? `, ${divided.settings.crossoverGames} crossover game${divided.settings.crossoverGames === 1 ? "" : "s"} a team`
+                  : ""
+              }`}
         </Link>
         {versions.some((v) => v.status === "published") && (
           <Link
@@ -151,7 +179,7 @@ async function Schedule({
               min={1}
               max={60}
               required
-              defaultValue={teamCount % 2 === 0 ? teamCount - 1 : teamCount}
+              defaultValue={defaultRounds}
               className="w-24 rounded-md border border-border bg-surface px-2 py-1"
             />
           </label>
