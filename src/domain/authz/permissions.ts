@@ -127,6 +127,9 @@ const RULES = {
   "conflicts.submit": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   // Cash or Venmo paid outside the app (product-spec.md, section 9).
   "payment.record_offline": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
+  // A saved card that guarantees the team's balance (roadmap item 13). Only
+  // the team's own captains: an admin never saves a card for someone.
+  "guarantee.manage": (s, c) => captains(s, c.teamSeasonId),
   // CSV files of a roster or its payments. Without a team: the whole season.
   "roster.export": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   "payments.export": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),

@@ -156,6 +156,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Create and edit seasons, divisions, fields, permits | — | — | — | — | — | ✓ | ✓ |
 | Generate, edit and publish schedules | — | — | — | — | — | ✓ | ✓ |
 | Record a cash or Venmo payment for a team member | — | — | own team | — | — | ✓ | ✓ |
+| Save a card that guarantees the team's balance | — | — | own team | — | — | — | — |
 | Download roster and payment CSV files | — | — | own team | — | — | ✓ (whole season) | ✓ (whole season) |
 | Track shirt sizes and mark shirts received | — | — | — | — | — | ✓ | ✓ |
 | Declare a rain-out | — | — | — | — | — | ✓ | ✓ |
