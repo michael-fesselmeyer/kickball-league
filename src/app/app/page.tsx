@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { ballotsWaiting } from "@/db/queries/awards";
 import { publishedGamesFor } from "@/db/queries/public-schedule";
 import { gamesToReferee } from "@/db/queries/referees";
 import { openSeasons } from "@/db/queries/registration";
@@ -24,6 +25,7 @@ import {
 } from "@/domain/pwa/offline";
 import { auth } from "@/lib/auth";
 import { currentSubject } from "@/lib/auth/permission";
+import { featureEnabled } from "@/lib/platform/site";
 import { signOut } from "./actions";
 import { InstallPrompt } from "./install-prompt";
 import { OfflineSync, SignOutForm } from "./offline-sync";
@@ -55,6 +57,13 @@ async function Account() {
     ),
     gameIds: subject.refereeGameIds.flatMap((id) => parseId<GameId>(id) ?? []),
   });
+  // Also started early: open awards this person has not voted in yet.
+  const waiting = (async () => {
+    const id = parseId<UserId>(subject.userId);
+    if (!id || subject.roster.length === 0) return 0;
+    if (!(await featureEnabled("awards"))) return 0;
+    return ballotsWaiting(db, id, new Date());
+  })();
   const isAdmin = can(subject, "season.manage", {});
   const league = await currentLeague(db);
   const now = new Date();
@@ -72,6 +81,7 @@ async function Account() {
     refereeing.map((g) => g.id),
   );
   const nextGame = pickNextGame(await myGames, now);
+  const ballots = await waiting;
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -136,6 +146,11 @@ async function Account() {
           {s.name}: register or check your spot
         </Link>
       ))}
+      {ballots > 0 && (
+        <Link href="/app/vote" className="btn btn-primary">
+          Vote for awards ({ballots} open)
+        </Link>
+      )}
       <Link href="/app/subs" className="btn btn-secondary">
         Sub for a team
       </Link>
