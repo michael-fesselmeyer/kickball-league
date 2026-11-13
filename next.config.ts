@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
   images: {
     // Only our copies of Instagram photos are optimized, never another path.
     localPatterns: [{ pathname: "/media/instagram/**", search: "" }],
+    // Optimized copies follow the photo's own five-minute lifetime, so a
+    // photo an admin hides stops being served soon after.
+    minimumCacheTTL: 300,
   },
   partialPrefetching: true,
   async headers() {
