@@ -33,6 +33,28 @@ export const NO_PURCHASE_LINE =
 export const DRAW_METHOD =
   "crypto.randomInt partial Fisher-Yates shuffle over entries ordered by entry time, no seed";
 
+/**
+ * Whether an event can hold a giveaway. Entry means being at the event, so
+ * an event that sells tickets can't: entering would cost money. A theme
+ * week has no one place to check in.
+ */
+export function eventCanHoldGiveaway(e: {
+  kind: string;
+  ticketed: boolean;
+}): Result<true, "ticketed" | "theme_week"> {
+  if (e.ticketed) return err("ticketed");
+  if (e.kind === "theme_week") return err("theme_week");
+  return ok(true);
+}
+
+export const HOLD_ERRORS: Readonly<Record<"ticketed" | "theme_week", string>> =
+  {
+    ticketed:
+      "This event sells tickets, so it can't hold a giveaway: entry has to be free, and being there would cost money. Make the event free first.",
+    theme_week:
+      "A theme week has no one place to check in, so it can't hold a giveaway. Add it to a bar night or party instead.",
+  };
+
 /** Where a giveaway stands at an instant. */
 export type GiveawayPhase = "not_open" | "open" | "closed" | "drawn";
 
@@ -50,11 +72,18 @@ export function giveawayPhase(g: GiveawayTimes, now: Date): GiveawayPhase {
 }
 
 export type EntryRefusal =
-  "not_for_you" | "event_off" | "not_open" | "closed" | "already_entered";
+  | "not_for_you"
+  | "event_off"
+  | "ticketed"
+  | "not_open"
+  | "closed"
+  | "already_entered";
 
 export const ENTRY_REFUSALS: Readonly<Record<EntryRefusal, string>> = {
   not_for_you: "This giveaway is for the people the event is for.",
   event_off: "The league called this event off, so its giveaway is closed.",
+  ticketed:
+    "This event sells tickets, so it can't run a giveaway: entry would depend on buying one.",
   not_open: "Entry hasn't opened yet. Scan the code again once it does.",
   closed: "Entry has closed for this giveaway.",
   already_entered: "You're already entered. One entry per person.",
@@ -71,12 +100,15 @@ export function mayEnter(input: {
   viewer: NonNullable<Viewer>;
   giveaway: GiveawayTimes;
   eventCancelled: boolean;
+  /** The event sells tickets: being there would cost money. */
+  eventTicketed: boolean;
   alreadyEntered: boolean;
   now: Date;
 }): Result<true, EntryRefusal> {
   const asPlayer = { ...input.viewer, staff: false };
   if (!canSee(input.audience, asPlayer)) return err("not_for_you");
   if (input.eventCancelled) return err("event_off");
+  if (input.eventTicketed) return err("ticketed");
   if (input.alreadyEntered) return err("already_entered");
   const phase = giveawayPhase(input.giveaway, input.now);
   if (phase === "not_open") return err("not_open");

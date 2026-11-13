@@ -4,6 +4,7 @@ import type { SeasonId, TeamId } from "@/domain/ids";
 import {
   blankGiveawayForm,
   drawWinners,
+  eventCanHoldGiveaway,
   type GiveawayForm,
   giveawayFormValues,
   giveawayPhase,
@@ -32,6 +33,7 @@ const enter = (over: Partial<Parameters<typeof mayEnter>[0]> = {}) =>
     viewer: member,
     giveaway: times,
     eventCancelled: false,
+    eventTicketed: false,
     alreadyEntered: false,
     now: DURING,
     ...over,
@@ -84,6 +86,22 @@ describe("who may enter a giveaway", () => {
       ok: false,
       error: "event_off",
     });
+  });
+
+  it("refuses entry at an event that sells tickets, so entering never costs money", () => {
+    expect(enter({ eventTicketed: true })).toEqual({
+      ok: false,
+      error: "ticketed",
+    });
+    expect(eventCanHoldGiveaway({ kind: "bar_night", ticketed: true })).toEqual(
+      { ok: false, error: "ticketed" },
+    );
+    expect(
+      eventCanHoldGiveaway({ kind: "theme_week", ticketed: false }),
+    ).toEqual({ ok: false, error: "theme_week" });
+    expect(eventCanHoldGiveaway({ kind: "party", ticketed: false }).ok).toBe(
+      true,
+    );
   });
 
   it("never depends on anything but the audience, the window and one entry", () => {
