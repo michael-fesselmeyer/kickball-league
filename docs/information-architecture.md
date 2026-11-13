@@ -55,6 +55,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── check-in/[code]                 Bar check-in landing from a QR code (P2)
 ├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
 ├── seasons/[season]/team/requests  Captain: dates the team can't play and times it would rather have or avoid, until registration closes
+├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps and an optional note) and a friend code to start, join, switch or leave
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref)
 ├── ref/                            Assignments, availability, earnings
@@ -65,7 +66,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── registrations           Teams, players, payments, waivers, full or partial refunds; roster and payment CSV downloads
     │   ├── promo-codes             The season's promo codes: add one, see its uses, turn it off
     │   ├── shirts                  Shirt sizes by team, what is still to order, and each player's shirt: not ordered, ordered or received
-    │   ├── free-agents             Pool and matcher (P2)
+    │   ├── free-agents             Matcher: suggested placements with reasons (apply one or all), the pool with quiz answers and friend groups, and building a new team from the pool
     │   ├── fields                  Fields, permit windows, blackout dates, slots
     │   ├── requests                Every team's conflicts and preferences, read before generating
     │   ├── schedule                Generate, metrics, versions, publish; board (desktop) and move-or-swap form
@@ -118,10 +119,10 @@ Rules:
 
 1. Player taps "Join solo" on the season page and signs in.
 2. Confirms profile and signs the waiver.
-3. P2: takes the quiz (about 8 questions, under 2 minutes) and can enter a friend code or create one to share.
+3. Takes the quiz (five one-tap questions and an optional note, about a minute) and can start a friend code to share or enter a friend's. Up to 4 people share a code and stay together.
 4. Pays the free-agent fee through Stripe Checkout. If the season is full, joins the waitlist without paying.
 5. Sees "You're in the pool. Placements go out by [date]."
-6. Admin places them (with matcher suggestions in P2). The player and the receiving captain are notified.
+6. Admin places them, by hand or by applying the matcher's suggestions, or builds a new team from the pool with a volunteer captain. The player and the receiving captain are notified.
 7. If no team can be found, the admin refunds in full.
 
 ### 2.3 Captain registers a team with split payment
