@@ -42,6 +42,7 @@ import {
 import { waiver, waiverSignature } from "../schema/waiver";
 import { waitlistEntry } from "../schema/waitlist";
 import { recordAudit } from "./audit";
+import { resetFeed } from "./event-audience";
 import { leaveEvent } from "./events";
 import { creditHistory } from "./credit";
 import { myReferrals } from "./referrals";
@@ -666,6 +667,8 @@ export async function deleteAccount(
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));
   await db.delete(pushSubscription).where(eq(pushSubscription.userId, userId));
+  // A new version, so a private calendar link handed out before stops working.
+  await resetFeed(db, userId);
   await db.delete(message).where(eq(message.userId, userId));
   await db
     .update(invite)

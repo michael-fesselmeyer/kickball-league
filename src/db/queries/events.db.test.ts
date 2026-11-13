@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
+import { PUBLIC, type Reach } from "@/domain/events/audience";
 import { type EventInput, eventSlug } from "@/domain/events/event";
 import type { EventId, UserId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
@@ -43,6 +44,8 @@ const bbq: EventInput = {
   capacity: 2,
 };
 
+const everyone: Reach = { audience: PUBLIC, inviteUrl: null, inAppRsvp: true };
+
 const costumeWeek: EventInput = {
   kind: "theme_week",
   title: "Costume week",
@@ -82,6 +85,7 @@ async function world(db: Db) {
       leagueId: lg.id,
       timeZone: NY,
       event: input,
+      reach: everyone,
       actorId: admin,
     });
   return { tag, leagueId: lg.id, admin, ana, ben, cy, di, create };
@@ -113,7 +117,7 @@ describe("createEvent", () => {
       // A second event with the same name on the same day gets its own slug.
       expect((await w.create(named)).slug).toBe(`${slug}-2`);
 
-      const found = await eventBySlug(db, slug);
+      const found = await eventBySlug(db, slug, "all");
       expect(found).toMatchObject({
         title: named.title,
         capacity: 2,
@@ -154,7 +158,7 @@ describe("joining and leaving", () => {
         value: { status: "waitlisted", position: 1 },
       });
 
-      expect(await eventBySlug(db, slug)).toMatchObject({
+      expect(await eventBySlug(db, slug, "all")).toMatchObject({
         going: 2,
         waitlisted: 2,
       });
@@ -258,10 +262,11 @@ describe("updateEvent", () => {
       const smaller = await updateEvent(db, {
         id: id,
         event: { ...bbq, capacity: 1 },
+        reach: everyone,
         actorId: w.admin,
       });
       expect(smaller).toEqual({ ok: true, value: { promoted: [] } });
-      expect(await eventBySlug(db, slug)).toMatchObject({
+      expect(await eventBySlug(db, slug, "all")).toMatchObject({
         capacity: 1,
         going: 2,
         waitlisted: 2,
@@ -270,6 +275,7 @@ describe("updateEvent", () => {
       const bigger = await updateEvent(db, {
         id: id,
         event: { ...bbq, capacity: 3 },
+        reach: everyone,
         actorId: w.admin,
       });
       // Still over 1 → 3 leaves one open spot for Cy.
@@ -278,6 +284,7 @@ describe("updateEvent", () => {
       const unlimited = await updateEvent(db, {
         id: id,
         event: { ...bbq, capacity: null },
+        reach: everyone,
         actorId: w.admin,
       });
       expect(unlimited).toEqual({ ok: true, value: { promoted: [w.di] } });
@@ -302,6 +309,7 @@ describe("updateEvent", () => {
         await updateEvent(db, {
           id: id,
           event: costumeWeek,
+          reach: everyone,
           actorId: w.admin,
         }),
       ).toEqual({ ok: false, error: "has_rsvps" });
@@ -318,7 +326,7 @@ describe("cancelEvent", () => {
       expect(
         await cancelEvent(db, { id: id, actorId: w.admin, now: NOW }),
       ).toEqual({ ok: true, value: { notified: 3 } });
-      expect(await eventBySlug(db, slug)).toMatchObject({
+      expect(await eventBySlug(db, slug, "all")).toMatchObject({
         cancelledAt: NOW,
         going: 0,
         waitlisted: 0,
@@ -355,11 +363,10 @@ describe("lists", () => {
       const gone = await w.create({ ...bbq, title: "Typo" });
       await deleteEvent(db, { id: gone.id, actorId: w.admin, now: NOW });
 
-      expect((await leagueEvents(db, w.leagueId)).map((e) => e.slug)).toEqual([
-        party.slug,
-        week.slug,
-      ]);
-      expect(await eventBySlug(db, gone.slug)).toBeNull();
+      expect(
+        (await leagueEvents(db, w.leagueId, "all")).map((e) => e.slug),
+      ).toEqual([party.slug, week.slug]);
+      expect(await eventBySlug(db, gone.slug, "all")).toBeNull();
       const slugs = (await publicEventSlugs(db)).map((e) => e.slug);
       expect(slugs).toContain(party.slug);
       expect(slugs).not.toContain(gone.slug);
