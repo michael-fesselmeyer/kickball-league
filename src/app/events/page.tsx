@@ -60,7 +60,7 @@ async function Events() {
     const league = await currentLeague(db);
     return {
       league,
-      events: league ? await leagueEvents(db, league.id) : [],
+      events: league ? await leagueEvents(db, league.id, "public") : [],
     };
   });
   cacheLife(found?.league ? PUBLIC_PAGE_LIFE : NOT_KEPT);

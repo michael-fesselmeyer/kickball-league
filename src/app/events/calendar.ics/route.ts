@@ -11,7 +11,7 @@ import { requestOrigin } from "@/lib/calendar-links";
  */
 export async function GET(request: Request) {
   const league = await currentLeague(db);
-  const events = league ? await leagueEvents(db, league.id) : [];
+  const events = league ? await leagueEvents(db, league.id, "public") : [];
   const body = eventsFeed({
     name: league ? `${league.name} events` : "League events",
     timeZone: league?.timeZone ?? "America/New_York",

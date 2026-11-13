@@ -9,7 +9,7 @@ export async function GET(
   ctx: RouteContext<"/events/[event]/calendar.ics">,
 ) {
   const { event: slug } = await ctx.params;
-  const e = await eventBySlug(db, slug);
+  const e = await eventBySlug(db, slug, "public");
   if (!e)
     return new Response("No event with that name.", {
       status: 404,

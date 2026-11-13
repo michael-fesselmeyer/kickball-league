@@ -13,6 +13,8 @@ const bbq: FeedEvent = {
   startsAt: new Date("2027-04-10T16:00:00Z"),
   endsAt: new Date("2027-04-10T20:00:00Z"),
   cancelledAt: null,
+  audience: { kind: "public" },
+  inviteUrl: null,
 };
 
 const costumes: FeedEvent = {
@@ -25,6 +27,8 @@ const costumes: FeedEvent = {
   startsAt: new Date("2026-10-26T04:00:00Z"),
   endsAt: new Date("2026-11-02T05:00:00Z"),
   cancelledAt: null,
+  audience: { kind: "public" },
+  inviteUrl: null,
 };
 
 describe("leagueEvent", () => {
@@ -39,6 +43,23 @@ describe("leagueEvent", () => {
       status: "CONFIRMED",
       location: "McCarren Park, north picnic area",
     });
+  });
+
+  it("links a members' event to the app and lists its invite", () => {
+    const entry = leagueEvent(
+      {
+        ...bbq,
+        audience: { kind: "members" },
+        inviteUrl: "https://partiful.example.test/e/bbq",
+      },
+      ORIGIN,
+    );
+    expect(entry.url).toBe(
+      `${ORIGIN}/app/events/spring-kickoff-bbq-2027-04-10`,
+    );
+    expect(entry.description).toBe(
+      `Burgers, veggie dogs and lawn games.\n\nInvite: https://partiful.example.test/e/bbq\n\nEvent page: ${ORIGIN}/app/events/spring-kickoff-bbq-2027-04-10`,
+    );
   });
 
   it("marks a called-off event", () => {
