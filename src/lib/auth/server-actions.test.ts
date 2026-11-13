@@ -12,12 +12,14 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = join(__dirname, "..", "..");
 
-/** Actions that must keep working while frozen: signing in and out. */
+/** Actions that must keep working while frozen: signing in, out and again. */
 const ALLOWED_WITHOUT_GUARD = new Set([
   "app/sign-in/actions.ts",
   "app/app/actions.ts",
   "app/demo/actions.ts",
   "app/operator/actions.ts",
+  // Emails a fresh sign-in link; the operator needs it while frozen.
+  "lib/auth/confirm-actions.ts",
 ]);
 
 function files(dir: string): string[] {
