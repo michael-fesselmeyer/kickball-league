@@ -8,6 +8,7 @@ export * from "./drive";
 export * from "./event";
 export * from "./formation";
 export * from "./free-agent";
+export * from "./friends";
 export * from "./game";
 export * from "./guarantee";
 export * from "./keep-off";
