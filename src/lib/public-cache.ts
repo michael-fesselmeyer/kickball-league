@@ -62,7 +62,9 @@ export const THEME_WEEKS_TAG = "theme-weeks";
 
 /**
  * From a Server Action: the events pages show the change at once. A theme
- * week change also refreshes the public schedules that show it.
+ * week change also refreshes the public schedules that show it. As with
+ * `refreshSeasonPages`, the prerendered routes are expired by path too, so
+ * their shells don't serve the data they were built with.
  */
 export function refreshEventPages(
   slug: string,
@@ -70,5 +72,9 @@ export function refreshEventPages(
 ): void {
   updateTag(EVENTS_TAG);
   updateTag(eventTag(slug));
-  if (themeWeek) updateTag(THEME_WEEKS_TAG);
+  revalidatePath("/events/[event]", "page");
+  if (themeWeek) {
+    updateTag(THEME_WEEKS_TAG);
+    revalidatePath("/seasons/[season]", "layout");
+  }
 }
