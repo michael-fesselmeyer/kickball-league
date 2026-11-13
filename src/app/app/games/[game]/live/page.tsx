@@ -248,7 +248,7 @@ function Scoring({
                 min={0}
                 max={99}
                 required
-                className="w-24 rounded-md border border-border bg-surface px-3 py-2 text-center tabular-nums"
+                className="min-h-11 w-24 rounded-input border border-border-strong bg-surface px-3 text-center tabular-nums"
               />
             </label>
             <button type="submit" className="btn btn-primary">
@@ -281,7 +281,7 @@ function Scoring({
                 <select
                   name="position"
                   defaultValue={`${last.inning}:${last.half}`}
-                  className="rounded-md border border-border bg-surface px-2 py-2"
+                  className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
                 >
                   {snapshot.halves.map((h) => (
                     <option
@@ -303,7 +303,7 @@ function Scoring({
                   min={0}
                   max={99}
                   required
-                  className="w-20 rounded-md border border-border bg-surface px-3 py-2 text-center tabular-nums"
+                  className="min-h-11 w-20 rounded-input border border-border-strong bg-surface px-3 text-center tabular-nums"
                 />
               </label>
               <button type="submit" className="btn btn-primary">

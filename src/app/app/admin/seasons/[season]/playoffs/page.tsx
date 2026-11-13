@@ -167,7 +167,7 @@ async function Playoffs({
                   max={Math.min(MAX_PLAYOFF_TEAMS, preview.eligibleCount)}
                   required
                   defaultValue={defaultTeams}
-                  className="w-24 rounded-md border border-border bg-surface px-2 py-1"
+                  className="min-h-11 w-24 rounded-input border border-border-strong bg-surface px-3"
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -175,7 +175,7 @@ async function Playoffs({
                 <select
                   name="date"
                   required
-                  className="min-h-11 rounded-md border border-border bg-surface px-2"
+                  className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
                 >
                   {preview.dates.map((d) => (
                     <option key={d.date} value={d.date}>

@@ -76,7 +76,7 @@ const STATUS: Record<string, string> = {
 };
 
 const field =
-  "rounded-md border border-border bg-surface px-3 py-2 tabular-nums";
+  "min-h-11 rounded-input border border-border-strong bg-surface px-3 tabular-nums";
 
 function RequestCard({
   request,
@@ -354,7 +354,7 @@ async function TeamSubs({
                   maxLength={500}
                   rows={2}
                   placeholder="Wear red. We play at the far field."
-                  className="rounded-md border border-border bg-surface px-3 py-2"
+                  className="min-h-11 rounded-input border border-border-strong bg-surface px-3 py-2"
                 />
               </label>
               <button type="submit" className="btn self-start btn-primary">
