@@ -81,7 +81,10 @@ function Status({ tone, children }: { tone: Tone; children: React.ReactNode }) {
 }
 
 async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
-  await requirePermission("season.manage", { next: "/app/admin" });
+  const subject = await requirePermission("season.manage", {
+    next: "/app/admin",
+  });
+  const isOwner = subject.globalRole === "owner";
   const query = await searchParams;
   const now = new Date();
   const current = await dashboardSeason(
@@ -183,6 +186,16 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
             ))}
           </ul>
         </nav>
+        {isOwner && (
+          <p>
+            <a href="/app/admin/league.json" className="underline">
+              Download all league data
+            </a>{" "}
+            <span className="text-text-muted">
+              (seasons, teams, rosters, games, scores and payments, as JSON)
+            </span>
+          </p>
+        )}
       </header>
 
       <NextGameDay day={day} base={base} dayLabel={dayLabel} time={time} />
