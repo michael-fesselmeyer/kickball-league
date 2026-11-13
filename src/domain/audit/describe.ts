@@ -6,6 +6,9 @@
 const ACTIONS: Record<string, string> = {
   "account.delete": "Deleted their account",
   "announcement.send": "Sent an announcement",
+  "awards.close": "Closed an awards poll early",
+  "awards.open": "Opened an awards poll",
+  "awards.remove": "Removed an awards poll",
   "blackout.create": "Added a blackout date",
   "blackout.delete": "Removed a blackout date",
   "bracket.create": "Seeded the playoff bracket",
