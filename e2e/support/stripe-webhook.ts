@@ -268,3 +268,24 @@ export async function sendGuaranteeCharged(
   });
   return { ...delivered, cents: row.cents };
 }
+
+/** The Checkout session of a person's open ticket checkout for an event. */
+export async function openTicketCheckout(
+  email: string,
+  eventSlug: string,
+): Promise<{ sessionId: string; totalCents: number }> {
+  const [row] = await sql<{ session: string | null; total: number }>(
+    `select p.stripe_checkout_session_id as session, p.total_cents as total
+       from event_ticket t
+       join event e on e.id = t.event_id
+       join purchase p on p.id = t.purchase_id
+       join "user" u on u.id = t.user_id
+      where u.email = $1 and e.slug = $2 and t.status = 'held'
+        and p.status = 'open'
+      order by p.created_at desc limit 1`,
+    [email, eventSlug],
+  );
+  if (!row?.session)
+    throw new Error(`No open ticket checkout for ${email} at ${eventSlug}`);
+  return { sessionId: row.session, totalCents: row.total };
+}
