@@ -155,6 +155,13 @@
       "when": 1794544977734,
       "tag": "0021_free_agent_quiz",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794551219847,
+      "tag": "0022_ai_recap",
+      "breakpoints": true
     }
   ]
 }

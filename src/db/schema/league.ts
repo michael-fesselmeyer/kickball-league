@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   check,
+  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -49,6 +50,11 @@ export const league = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
+    /**
+     * What the AI features may spend in a calendar month, in cents (operator
+     * only). At this amount they switch off until the next month. ADR 0013.
+     */
+    aiMonthlyBudgetCents: integer().notNull().default(500),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -62,6 +68,10 @@ export const league = pgTable(
     check(
       "league_slug_format",
       sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`,
+    ),
+    check(
+      "league_ai_monthly_budget_range",
+      sql`${table.aiMonthlyBudgetCents} between 0 and 100000`,
     ),
   ],
 );
