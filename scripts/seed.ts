@@ -23,6 +23,7 @@ import {
   removeDisciplinePlayer,
 } from "../src/seed/discipline";
 import { addAudienceDemo } from "../src/seed/event-audience";
+import { addSeedBooks, removeSeedBooks } from "../src/seed/books";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addSeedLineups } from "../src/seed/lineups";
 import { addTicketDemo, removeSeedTickets } from "../src/seed/tickets";
@@ -100,6 +101,8 @@ async function main(): Promise<void> {
         // Tickets and the money behind them point at events and people.
         await removeSeedTickets(tx, leagueId);
         await removeSeedEvents(tx, leagueId);
+        // Expenses hold seasons; the books' files belong to the league.
+        await removeSeedBooks(tx, leagueId);
         const seasonIds = (
           await tx
             .select({ id: season.id })
@@ -281,6 +284,7 @@ async function main(): Promise<void> {
       await addSeedAwards(tx, data, new Date());
       await addSeedSponsors(tx, data);
       await addInstagramPhotos(tx, data);
+      await addSeedBooks(tx, data);
     });
     const played = data.games.filter((g) => g.status === "final").length;
     console.info(
