@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const SMOKE_PORT = 3100;
-const FLOWS_PORT = 3110;
+// Another worker's run on the same machine can pick other ports.
+const SMOKE_PORT = Number(process.env.E2E_SMOKE_PORT ?? 3100);
+const FLOWS_PORT = Number(process.env.E2E_FLOWS_PORT ?? 3110);
 
 /**
  * End-to-end tests against a production build (`next start`) and a seeded
