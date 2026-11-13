@@ -15,7 +15,11 @@ import {
   type RegistrationId,
   type TeamSeasonId,
 } from "@/domain/ids";
-import { requirePermissionToChange } from "@/lib/auth/permission";
+import { isFreshSession } from "@/lib/auth/config";
+import {
+  requirePermissionToChange,
+  sessionSignedInAt,
+} from "@/lib/auth/permission";
 import { stripeClient } from "@/services/stripe";
 import { recordPaymentFor } from "@/app/app/seasons/[season]/record-payment";
 
@@ -66,6 +70,7 @@ export async function placeFreeAgentAction(
  * Refunds all or part of a payment (refund.issue). Stripe payments go back
  * through Stripe and show as refunded once its webhook confirms; cash, Venmo
  * and other payments are marked refunded at once, with the admin's note.
+ * Like other sensitive actions, it needs a sign-in from the last 15 minutes.
  */
 export async function refundPaymentAction(
   slug: string,
@@ -76,6 +81,9 @@ export async function refundPaymentAction(
   const subject = await requirePermissionToChange("refund.issue", {
     next: page,
   });
+  const signedInAt = await sessionSignedInAt();
+  if (!signedInAt || !isFreshSession(signedInAt, new Date()))
+    redirect(`${page}?error=stale`);
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
   const paymentId = parseId<PaymentId>(rawPaymentId);
