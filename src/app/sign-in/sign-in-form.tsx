@@ -1,12 +1,29 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { sendSignInLink, type SignInState } from "./actions";
 
 const initial: SignInState = { status: "idle" };
 
 export function SignInForm({ next }: { next: string }) {
   const [state, action, pending] = useActionState(sendSignInLink, initial);
+  const autofillStarted = useRef(false);
+
+  /**
+   * Offers saved passkeys in the email field's autofill. It starts when the
+   * field is first focused, so the WebAuthn code never loads for people who
+   * don't sign in.
+   */
+  async function offerPasskeys() {
+    if (autofillStarted.current) return;
+    autofillStarted.current = true;
+    const supported =
+      typeof PublicKeyCredential !== "undefined" &&
+      (await PublicKeyCredential.isConditionalMediationAvailable?.());
+    if (!supported) return;
+    const { passkeyAutofill } = await import("@/lib/auth/passkey-client");
+    if (await passkeyAutofill()) window.location.assign(next);
+  }
 
   if (state.status === "sent") {
     return (
@@ -33,7 +50,8 @@ export function SignInForm({ next }: { next: string }) {
         id="email"
         name="email"
         type="email"
-        autoComplete="email"
+        autoComplete="email webauthn"
+        onFocus={offerPasskeys}
         inputMode="email"
         required
         defaultValue={state.status === "error" ? state.email : ""}
