@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { GameCard } from "@/components/game-card";
-import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { themeWeeks } from "@/db/queries/events";
 import { publishedSchedule } from "@/db/queries/public-schedule";
@@ -24,6 +22,16 @@ import {
 import { NO_SEASON, publicSeasonParams } from "@/lib/static-params";
 
 type Props = PageProps<"/seasons/[season]/schedule/[[...team]]">;
+
+/**
+ * The whole page is static, and a view the build didn't list is rendered in
+ * full on its first visit instead of streaming in behind a loading state.
+ * Without a <Suspense> boundary around it, the schedule is part of the first
+ * paint: React moves a finished boundary larger than its progressive chunk
+ * (12.8 kB) to the end of the document, and the browser could paint the
+ * fallback first and reveal the schedule up to 300 ms later.
+ */
+export const ensureStatic = "navigation";
 
 /**
  * Each public season's full schedule (no team filter) is prerendered at
@@ -56,9 +64,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default function SchedulePage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 md:px-6">
-      <Suspense fallback={<PageLoading>Loading the schedule…</PageLoading>}>
-        <Schedule {...props} />
-      </Suspense>
+      <Schedule {...props} />
     </main>
   );
 }
