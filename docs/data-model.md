@@ -745,26 +745,24 @@ erDiagram
   event {
     uuid id PK
     uuid league_id FK
-    uuid season_id FK
-    enum kind "bar_night, bbq, tournament, theme_week, social"
+    enum kind "social, bar_night, bbq, tournament, theme_week"
     text title
-    text slug UK
-    text description_md
+    text slug UK "title and start date, set once"
+    text place "null allowed for a theme week"
+    text description
     timestamptz starts_at
     timestamptz ends_at
-    uuid venue_id FK
-    uuid sponsor_id FK
-    int capacity
-    int ticket_price_cents
-    uuid cover_asset_id FK
+    int capacity "null: no limit"
+    timestamptz cancelled_at
+    timestamptz deleted_at
+    uuid created_by FK
   }
   event_rsvp {
     uuid id PK
     uuid event_id FK
     uuid user_id FK
-    enum status "going, maybe, not_going, waitlisted"
-    int guests
-    uuid purchase_item_id FK
+    enum status "going, waitlisted"
+    timestamptz created_at "waitlist order"
   }
   award_poll {
     uuid id PK
@@ -817,6 +815,14 @@ erDiagram
     timestamptz published_at
   }
 ```
+
+Events, as built (`src/db/schema/event.ts`, `src/db/queries/events.ts`):
+
+- A theme week has no capacity and nothing to RSVP to. It starts at midnight on its first day and ends at midnight after its last, in the league's time zone, and the public schedule marks every game day inside it.
+- An RSVP is a spot (`going`) or a place in line (`waitlisted`); "can't make it" deletes the row. Every join, drop-out and capacity change locks the event row first, so two people can never take the last spot. A newcomer waits behind anyone already in line even when a spot is open.
+- When a spot opens (someone drops out, the admin raises the capacity or removes it), the earliest waitlisted people move up and each gets an `event_notice` email through the outbox. A smaller capacity never takes a spot from anyone.
+- Calling an event off sets `cancelled_at`, clears every RSVP and emails everyone who had one; the page stays up and says so. Deleting sets `deleted_at` and takes it off every page. Both, and every create and edit, write an audit row.
+- Planned later: a sponsor or venue link, a cover image, guests and paid tickets (`ticket_price_cents`, `purchase_item_id`), and Partiful-style invite links (product-spec.md).
 
 ### 2.6 Referees (pending owner approval)
 
@@ -970,6 +976,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `score_report` | unique `(client_id)` | Retried offline submissions are ignored |
 | `score_confirmation` | unique `(game_id, team_season_id)` | One answer per team |
 | `game_rsvp` | unique `(game_id, user_id)` | One RSVP per game |
+| `event` | unique `slug`; check `ends_at > starts_at`; check `capacity` is null or positive; check a theme week has no capacity | Stable links; an event has a length; theme weeks take no RSVPs |
+| `event_rsvp` | unique `(event_id, user_id)` | One RSVP per person per event |
 | `game_period` | unique `(game_id, period_no, half)` | One row per half-inning |
 | `game_period` | check `period_no` between 1 and 20; check `runs` between 0 and 99 | Innings and runs stay in range |
 | `game` | check `kicks_first` is null or one of `team_a_id`, `team_b_id` | Only a team in the game kicks first |
@@ -1010,6 +1018,7 @@ Indexes for the common reads:
 | `sub_claim` | `(user_id, status)` | A player's offers |
 | `team_formation_request` | `(season_id, status, created_at)`; `(requested_by)` | The admin's waiting list; a player's requests |
 | `event` | `(league_id, starts_at)` | Calendar |
+| `event_rsvp` | `(event_id, status, created_at)`; `(user_id)` | Counts and the waitlist in order; a person's RSVPs |
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
 
 ## 4. Personal data
@@ -1032,7 +1041,7 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `notification_preference` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn.
+- **Removed:** the `profile` row; every `session` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
