@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   jsonb,
   pgEnum,
@@ -49,6 +50,11 @@ export const league = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
+    /**
+     * Whether a person's own data export lists the "not on my team" entries
+     * about them (ADR 0036). Off by default; the owners decide.
+     */
+    exportKeepOffEntries: boolean().notNull().default(false),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
