@@ -22,6 +22,7 @@ import {
   addDisciplinePlayer,
   removeDisciplinePlayer,
 } from "../src/seed/discipline";
+import { addKeepOffPerson, removeKeepOffPerson } from "../src/seed/keep-off";
 import { addAudienceDemo } from "../src/seed/event-audience";
 import { addSeedBooks, removeSeedBooks } from "../src/seed/books";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
@@ -253,6 +254,7 @@ async function main(): Promise<void> {
       await tx.delete(user).where(isSeedUser);
       await removeDemoPersonas(tx);
       await removeDisciplinePlayer(tx);
+      await removeKeepOffPerson(tx);
 
       await tx.insert(league).values(data.league);
       await tx.insert(user).values(data.users);
@@ -275,6 +277,7 @@ async function main(): Promise<void> {
       await tx.insert(teamConstraint).values(data.teamConstraints);
       await addDemoPersonas(tx, data);
       await addDisciplinePlayer(tx, data);
+      await addKeepOffPerson(tx, data);
       await addSeedLineups(tx, data);
       await addPastSeasons(tx, data);
       await addFreeAgentPool(tx, data);
