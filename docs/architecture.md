@@ -141,14 +141,16 @@ With Cache Components, a page's static parts and cached data are prerendered int
 | `/rules` | Prerendered from MDX in the repository | — | Deploy |
 | `/parks/[park]` | Prerendered; cached | `venue:{id}` | Venue edited |
 | `/seasons/[season]` | Prerendered; price and spots-left cached for minutes | `season:{id}` | Season edited, registration paid |
-| `/seasons/[season]/schedule` | Static HTML, prerendered at build for every public season, refreshed in the background each minute ✔. `?team=` is rewritten to a path segment | `season:{seasonId}` | A schedule version is published (including a rain-out), a score is reported or answered, the season is edited |
+| `/seasons/[season]/schedule` | Static HTML, prerendered at build for every public season, refreshed in the background each minute ✔. `?team=` is rewritten to a path segment | `season:{seasonId}`, `theme-weeks` | A schedule version is published (including a rain-out), a score is reported or answered, the season is edited, a theme week is added, changed or removed |
 | `/seasons/[season]/standings` | Static HTML, prerendered at build for every public season, refreshed in the background each minute ✔ | `season:{seasonId}` | As the schedule |
 | `/seasons/[season]/bracket` | Prerendered; cached | `standings:{seasonId}` | A game becomes final or is corrected |
 | `/teams/[team]` | Static HTML, prerendered at build for every public team (current season), refreshed in the background each minute ✔. `?season=` is rewritten to a path segment | `team:{slug}`, `season:{seasonId}` | As the schedule; roster changes show within a minute |
 | `/games/[game]` | Rendered on request behind its loading state. While the game is on, a small client island polls the live JSON every 10 seconds; a finished game's line score is plain server HTML ✔ | — | — |
-| `/events`, `/events/[event]`, `/sponsors/*`, `/news/*`, `/history/*` | Prerendered; cached | `events`, `sponsor:{id}`, `posts` | Admin edits |
+| `/events`, `/events/[event]` | Static HTML, prerendered at build for every event, refreshed in the background each minute ✔ | `events`, `event:{slug}` | An admin creates, edits, calls off or deletes an event; an RSVP or drop-out (spots left) |
+| `/sponsors/*`, `/news/*`, `/history/*` | Prerendered; cached | `sponsor:{id}`, `posts` | Admin edits |
 | `opengraph-image` for games and teams | Generated with `next/og`, cached | Same as the page | Same as the page |
 | `/teams/[team]/calendar.ics` | Route handler, cached | `schedule:{seasonId}` | Schedule published |
+| `/events/calendar.ics`, `/events/[event]/calendar.ics` | Route handlers; the CDN keeps a copy for five minutes ✔ | — | — |
 | `/api/games/[game]/live` | Route handler; `use cache` for 5 seconds (`LIVE_SCORE_LIFE`) and a 5-second CDN copy ✔ | `game:{id}` | A half-inning is entered, corrected or taken back; who kicks first changes; a score is reported or answered |
 | `sitemap.xml`, `robots.txt` | `sitemap.ts`, `robots.ts`, cached daily | `league` | — |
 | `/app/**` | Dynamic, streamed with Suspense; never cached across users | — | — |
@@ -157,6 +159,8 @@ With Cache Components, a page's static parts and cached data are prerendered int
 Public pages show the same thing to everyone. "My team" highlighting and the signed-in header are client islands, so a signed-in player still gets the cached page.
 
 **Schedule, standings and team pages** ([ADR 0008](adr/0008-static-public-pages.md)) render everything inside one `use cache` component with the tags above and `PUBLIC_PAGE_LIFE` from `src/lib/public-cache.ts`. `generateStaticParams` lists every public season and team (`src/lib/static-params.ts`), so the build renders those pages as static HTML with the content in the first paint; a build with no database lists one placeholder that renders as not found. A view the build didn't list (a team-filtered schedule, another season's team page) streams in on its first visit behind its loading state, and Next.js stores the finished page for every later visit. A visit more than a minute after the last render still gets the stored page and refreshes it in the background; only a page nobody opened for a day is rendered while the visitor waits. A page that read the query string would render on every request, so `src/proxy.ts` rewrites `?team=` and `?season=` to the optional `[[...team]]` and `[[...season]]` segments, and the address in the browser stays the same.
+
+**Events pages** follow the same pattern with the `events` and `event:{slug}` tags. `/events` has no params to hold a placeholder, so it reads through `readUnlessBuildHasNoDatabase` (`src/lib/build-phase.ts`): a build with no database (the CI build job) prerenders it empty, and at request time a failed read throws as usual. The public schedule also carries the `theme-weeks` tag, so a theme week change shows on its game days at once.
 
 Mutations are Server Actions. An action that changes public data calls `updateTag` so the person who made the change sees it immediately; webhooks and jobs call `revalidateTag`.
 

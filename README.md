@@ -59,6 +59,13 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - League and team announcements, with per-person email settings.
 - Payment reminders 7, 3 and 1 days before the deadline, and missing-score reminders to the ref and then the captains.
 
+**Events**
+
+- An events calendar for bar nights, BBQs, tournaments and theme weeks. Admins create an event with a place, time, capacity and description, edit it, call it off (everyone who RSVP'd is emailed) or delete it.
+- Players RSVP from the app. When an event is full they join a waitlist, see their place in line, and move up in order when someone drops out or the admin adds spots, with an email when they do. A spot is never taken from anyone when capacity shrinks.
+- A public events page and a page for every event (static HTML with `SocialEvent` structured data), all in the sitemap. Theme weeks mark their game days on the public schedule.
+- Calendar export: a subscribed `.ics` feed of every event (theme weeks as all-day entries), plus "save the date" links for one event to Apple Calendar, Outlook or Google Calendar.
+
 **Admin**
 
 - Season setup, fields, permits and blackout dates.

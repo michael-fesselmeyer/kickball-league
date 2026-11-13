@@ -10,7 +10,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 /                                   Home: what, where, when, price, join
 ├── seasons/                        Open and upcoming seasons
 │   └── [season]/                   Season overview and register button
-│       ├── schedule                Full schedule, filter by team or date
+│       ├── schedule                Full schedule, filter by team or date; theme weeks marked on their game days
 │       ├── standings               Standings, tiebreaker notes, power rankings and the game of the week
 │       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list)
 │       └── register                Register a team, join by invite, or free agent
@@ -22,8 +22,10 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── records                         League records across every season: most runs, biggest win, longest streaks
 ├── rules/                          Searchable rulebook with a link for every rule number
 ├── parks/[park]                    Park page: map, fields, directions, nearby home bar
-├── events/                         Calendar of social events (P2)
-│   └── [event]                     Event page with RSVP
+├── events/                         Upcoming and recent events, and calendar subscribe links
+│   ├── calendar.ics                Events calendar feed: every event, theme weeks as all-day entries
+│   └── [event]                     Event page: when, where, spots left or the waitlist, an RSVP button, save-the-date links
+│       └── calendar.ics            One event as a calendar file
 ├── sponsors/                       Sponsor list (logo slots)
 │   └── [sponsor]                   Sponsor page with deals (P2)
 ├── free-agents                     How solo signup works, with FAQ structured data (P2: quiz)
@@ -51,6 +53,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/[season]/export/        CSV downloads: roster.csv (with shirt sizes) and payments.csv; the whole season for admins, ?team= for one team (its captains too)
 ├── team/[teamSeason]               Roster, RSVPs, payments, invites, subs, announcements (captain view adds controls and roster and payment CSV downloads)
 ├── subs                            Sub requests I can claim, and games I'm subbing in
+├── events/                         Upcoming events with my RSVP
+│   └── [event]                     RSVP, join the waitlist and see my place in line, or drop out
 ├── vote                            Awards voting (P2)
 ├── check-in/[code]                 Bar check-in landing from a QR code (P2)
 ├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
@@ -79,7 +83,10 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── games                       Scores, forfeits, corrections
     ├── people                      Players, roles, suspensions
     ├── refs                        Referee pool and assignments
-    ├── events, sponsors, news
+    ├── events/                     Every event with going and waitlist counts
+    │   ├── new                     Create an event or theme week
+    │   └── [event]                 Edit, who's coming and the waitlist in order, call off or delete
+    ├── sponsors, news
     ├── messages                    Announcements and delivery log
     ├── money                       Payments, refunds, credit, promo codes
     ├── audit                       Audit log in plain words, newest first; filter for the platform operator's actions
