@@ -18,6 +18,7 @@ import {
 } from "../src/seed/generate";
 import { addSeedAwards } from "../src/seed/awards";
 import { addDemoPersonas, removeDemoPersonas } from "../src/seed/demo-personas";
+import { addAudienceDemo } from "../src/seed/event-audience";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addFreeAgentPool } from "../src/seed/free-agent-pool";
 import { removeMoneyRecords } from "../src/seed/money";
@@ -83,6 +84,8 @@ async function main(): Promise<void> {
       for (const { id: leagueId } of old) {
         // Sponsors hold check-ins by seed users and point at the league.
         await removeSeedSponsors(tx, leagueId);
+        // Events first: they can name the league's seasons and teams.
+        await removeSeedEvents(tx, leagueId);
         const seasonIds = (
           await tx
             .select({ id: season.id })
@@ -195,7 +198,6 @@ async function main(): Promise<void> {
         if (venueIds.length)
           await tx.delete(field).where(inArray(field.venueId, venueIds));
         await tx.delete(venue).where(eq(venue.leagueId, leagueId));
-        await removeSeedEvents(tx, leagueId);
         await tx.delete(league).where(eq(league.id, leagueId));
       }
       // Seed users: on the seed domain, or with an id the seed assigns (a
@@ -248,6 +250,7 @@ async function main(): Promise<void> {
       await addPastSeasons(tx, data);
       await addFreeAgentPool(tx, data);
       await addSeedEvents(tx, data);
+      await addAudienceDemo(tx, data);
       await addSeedAwards(tx, data, new Date());
       await addSeedSponsors(tx, data);
     });
