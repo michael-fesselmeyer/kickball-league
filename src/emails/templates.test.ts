@@ -361,6 +361,39 @@ describe("rendererFor", () => {
     );
   });
 
+  it("renders merch receipts, ready notices and refunds", () => {
+    const order = { description: "Replacement jersey (M)", team: "Kick Ash" };
+    const receipt = render("merch_receipt", {
+      ...order,
+      kind: "receipt",
+      paid: "$15 on your card and $5 of league credit",
+    });
+    if (!receipt.ok) throw new Error(receipt.error);
+    expect(receipt.value.subject).toBe("Your order: Replacement jersey (M)");
+    expect(receipt.value.text).toContain(
+      "Your order for Replacement jersey (M), Kick Ash colors is in.",
+    );
+    expect(receipt.value.text).toContain(
+      "You paid $15 on your card and $5 of league credit.",
+    );
+
+    const ready = render("merch_update", {
+      description: "Hat",
+      kind: "fulfilled",
+    });
+    expect(ready.ok && ready.value.subject).toBe("Ready: Hat");
+
+    const refunded = render("merch_update", {
+      ...order,
+      kind: "refunded",
+      returned: "$15 back to your card",
+    });
+    expect(refunded.ok && refunded.value.text).toContain(
+      "$15 back to your card. A card refund usually shows up",
+    );
+    expect(render("merch_update", { ...order, kind: "nope" }).ok).toBe(false);
+  });
+
   it("refuses an unknown template", () => {
     expect(render("nope", {})).toEqual({
       ok: false,

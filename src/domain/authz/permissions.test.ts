@@ -69,6 +69,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "sponsor.check_in",
       "giveaway.enter",
       "challenge.view",
+      "merch.order",
     ] as const)
       expect(allowed(action)).toEqual(everyone.filter((w) => w !== "visitor"));
   });
@@ -385,6 +386,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "shirts.manage",
       "awards.manage",
       "photos.manage",
+      "merch.manage",
     ] as const)
       expect(allowed(action)).toEqual(["admin", "owner"]);
     for (const action of [

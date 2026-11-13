@@ -42,6 +42,12 @@ import {
   releaseTicketHolds,
   settleTickets,
 } from "./event-tickets";
+import {
+  endRefundedMerch,
+  lockMerchItems,
+  releaseMerchHolds,
+  settleMerch,
+} from "./merch";
 
 /**
  * Purchases and the Stripe webhook (docs/architecture.md, section 6). Only
@@ -50,11 +56,11 @@ import {
  */
 
 /**
- * One thing bought: a registration's fee or share, or an event ticket,
- * which belongs to no registration or season.
+ * One thing bought: a registration's fee or share, or an event ticket or a
+ * merch order, which belong to no registration or season.
  */
 export type PurchaseLine = {
-  kind: ItemKind | "event_ticket";
+  kind: ItemKind | "event_ticket" | "merch";
   amountCents: number;
   description: string;
   registrationId: string | null;
@@ -65,7 +71,7 @@ export async function createPurchase(
   db: Db,
   input: {
     userId: UserId;
-    /** Null for an event ticket. */
+    /** Null for an event ticket or a merch order. */
     seasonId: SeasonId | null;
     items: readonly PurchaseLine[];
     promo?: { id: PromoCodeId; discountCents: number };
@@ -240,7 +246,7 @@ export async function closePurchases(
 
 /**
  * Expires open purchases, gives back any credit they held, and frees any
- * event spot their checkout held.
+ * event spot or merch stock their checkout held.
  */
 export async function expirePurchases(
   db: Db,
@@ -249,8 +255,10 @@ export async function expirePurchases(
 ): Promise<void> {
   if (ids.length === 0) return;
   await lockTicketEvents(db, ids);
+  await lockMerchItems(db, ids);
   await closePurchases(db, ids);
   await releaseTicketHolds(db, ids, now);
+  await releaseMerchHolds(db, ids);
 }
 
 /** The fields of a Checkout Session event that this app reads. */
@@ -365,6 +373,7 @@ export async function handleStripeEvent(
       // An event spot this checkout holds is changed under the event's lock,
       // taken before the purchase row, in the same order as buying one.
       await lockTicketEvents(db, [found.id]);
+      await lockMerchItems(db, [found.id]);
       const paid =
         (event.type === "checkout.session.completed" ||
           event.type === "checkout.session.async_payment_succeeded") &&
@@ -497,7 +506,10 @@ async function recordChargeRefunded(
     .select({ purchaseId: payment.purchaseId })
     .from(payment)
     .where(eq(payment.stripePaymentIntentId, intent));
-  if (paidFor) await lockTicketEvents(db, [paidFor.purchaseId]);
+  if (paidFor) {
+    await lockTicketEvents(db, [paidFor.purchaseId]);
+    await lockMerchItems(db, [paidFor.purchaseId]);
+  }
   const [changed] = await db
     .update(payment)
     .set({
@@ -511,6 +523,8 @@ async function recordChargeRefunded(
   // A ticket whose money all went back, here or in Stripe's dashboard, no
   // longer gets anyone in: its spot goes to the waitlist.
   await cancelRefundedTickets(db, changed.purchaseId, now);
+  // A merch order refunded in full is over, and its stock is free again.
+  await endRefundedMerch(db, changed.purchaseId);
   return true;
 }
 
@@ -556,6 +570,7 @@ async function setStatusIfOpen(
     .where(and(eq(purchase.id, id), eq(purchase.status, "open")));
   await releaseCredit(db, [id]);
   await releaseTicketHolds(db, [id], now);
+  await releaseMerchHolds(db, [id]);
 }
 
 /**
@@ -650,6 +665,7 @@ export async function settlePurchase(
     await settleCoveredRegistrations(db, teamSeasonId);
   if (items.some((i) => i.kind === "event_ticket"))
     await settleTickets(db, purchaseId);
+  if (items.some((i) => i.kind === "merch")) await settleMerch(db, purchaseId);
   const towardSplit = items.flatMap((i) =>
     (i.kind === "player_share" || i.kind === "balance") && i.teamSeasonId
       ? [i.teamSeasonId]

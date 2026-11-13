@@ -103,6 +103,8 @@ const RULES = {
   "giveaway.enter": signedIn,
   // The sign-up challenge's leaderboard: team names and percentages only.
   "challenge.view": signedIn,
+  // Buy from the league shop, for themselves.
+  "merch.order": signedIn,
   "sub_request.claim": (s, c) => signedIn(s, c) && c.eligibleToSub === true,
   "awards.vote": (s) => s.roster.length > 0,
   // Players on a team
@@ -212,6 +214,8 @@ const RULES = {
   "shirts.manage": isAdmin,
   "awards.manage": isAdmin,
   "photos.manage": isAdmin,
+  // The shop's catalog, its orders, the printer's CSV and fulfillment.
+  "merch.manage": isAdmin,
   // The owner alone
   "billing.manage": isOwner,
   // The books (expenses, receipts, permit costs and documents, insurance).
