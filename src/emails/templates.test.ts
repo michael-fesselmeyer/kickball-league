@@ -99,6 +99,42 @@ describe("rendererFor", () => {
     expect(off.value.text).toContain("https://league.example.test/events");
   });
 
+  it("tells an event's audience about a new event or a change", () => {
+    const about = {
+      title: "Team mixer",
+      slug: "team-mixer-2027-03-06",
+      when: "Sat, Mar 6, 8:00 – 11:00 PM",
+      place: "The Example Hall, 1 Example St",
+      inviteUrl: "https://www.partiful.example.test/e/mixer",
+    };
+    const fresh = render("event_notice", { ...about, kind: "announced" });
+    if (!fresh.ok) throw new Error(fresh.error);
+    expect(fresh.value.subject).toBe("New event: Team mixer");
+    expect(fresh.value.text).toContain(
+      "RSVP on partiful.example.test: https://www.partiful.example.test/e/mixer",
+    );
+    // Not a public event: the link goes to the signed-in page.
+    expect(fresh.value.text).toContain(
+      "https://league.example.test/app/events/team-mixer-2027-03-06",
+    );
+    expect(fresh.value.text).toContain(
+      "because the league posted an event for you",
+    );
+
+    const changed = render("event_notice", {
+      ...about,
+      inviteUrl: null,
+      publicPage: true,
+      kind: "updated",
+    });
+    if (!changed.ok) throw new Error(changed.error);
+    expect(changed.value.subject).toBe("Update: Team mixer");
+    expect(changed.value.text).not.toContain("RSVP on");
+    expect(changed.value.text).toContain(
+      "https://league.example.test/events/team-mixer-2027-03-06",
+    );
+  });
+
   it("refuses a payload that does not match its template", () => {
     expect(render("announcement", { subject: "Hi" })).toEqual({
       ok: false,

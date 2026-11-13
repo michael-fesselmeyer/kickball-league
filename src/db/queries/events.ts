@@ -10,6 +10,7 @@ import {
   ne,
   sql,
 } from "drizzle-orm";
+import type { Audience, Reach } from "@/domain/events/audience";
 import {
   type EventInput,
   type EventKind,
@@ -22,11 +23,11 @@ import {
   themeWeekDays,
   whenLine,
 } from "@/domain/events/event";
-import type { EventId, LeagueId, UserId } from "@/domain/ids";
+import type { EventId, LeagueId, SeasonId, TeamId, UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import type { EventNoticePayload } from "@/emails/event";
 import { user } from "../schema/auth";
-import { event, eventRsvp } from "../schema/event";
+import { event, eventAudienceTeam, eventRsvp } from "../schema/event";
 import { league } from "../schema/league";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
@@ -50,12 +51,20 @@ export type EventSummary = {
   updatedAt: Date;
   going: number;
   waitlisted: number;
+  audience: Audience;
+  inviteUrl: string | null;
+  inAppRsvp: boolean;
 };
 
 const going = sql<number>`(count(${eventRsvp.id}) filter (where ${eventRsvp.status} = 'going'))::int`;
 const waitlisted = sql<number>`(count(${eventRsvp.id}) filter (where ${eventRsvp.status} = 'waitlisted'))::int`;
 
-const summary = {
+/** The teams of a teams audience, read with the event in the same query. */
+export const audienceTeamIds = sql<
+  TeamId[]
+>`coalesce((select array_agg(${eventAudienceTeam.teamId}::text order by ${eventAudienceTeam.teamId}) from ${eventAudienceTeam} where ${eventAudienceTeam.eventId} = ${event.id}), '{}')`;
+
+const summaryColumns = {
   id: event.id,
   slug: event.slug,
   kind: event.kind,
@@ -69,47 +78,115 @@ const summary = {
   updatedAt: event.updatedAt,
   going,
   waitlisted,
+  audienceKind: event.audience,
+  audienceSeasonId: event.audienceSeasonId,
+  audienceTeamIds,
+  inviteUrl: event.inviteUrl,
+  inAppRsvp: event.inAppRsvp,
 };
 
-/** Every event a league hasn't deleted, soonest first, with RSVP counts. */
+/** A stored audience as the domain's. */
+export function audienceFrom(row: {
+  audienceKind: "public" | "members" | "teams";
+  audienceSeasonId: SeasonId | null;
+  audienceTeamIds: readonly TeamId[];
+}): Audience {
+  if (row.audienceKind !== "teams") return { kind: row.audienceKind };
+  return {
+    kind: "teams",
+    seasonId: row.audienceSeasonId,
+    teamIds: row.audienceTeamIds,
+  };
+}
+
+function toSummary<
+  Row extends {
+    audienceKind: "public" | "members" | "teams";
+    audienceSeasonId: SeasonId | null;
+    audienceTeamIds: readonly TeamId[];
+  },
+>({
+  audienceKind,
+  audienceSeasonId,
+  audienceTeamIds,
+  ...rest
+}: Row): Omit<Row, "audienceKind" | "audienceSeasonId" | "audienceTeamIds"> & {
+  audience: Audience;
+} {
+  return {
+    ...rest,
+    audience: audienceFrom({ audienceKind, audienceSeasonId, audienceTeamIds }),
+  };
+}
+
+export type EventVisibility = "public" | "all";
+
+const visibility = (only: EventVisibility) =>
+  only === "public" ? eq(event.audience, "public") : undefined;
+
+/**
+ * A league's events that aren't deleted, soonest first, with RSVP counts and
+ * audiences, in one query. Public pages and the public feed ask for the
+ * public ones only; the signed-in app filters the rest per viewer.
+ */
 export async function leagueEvents(
   db: Db,
   leagueId: LeagueId,
+  only: EventVisibility,
 ): Promise<EventSummary[]> {
-  return db
-    .select(summary)
+  const rows = await db
+    .select(summaryColumns)
     .from(event)
     .leftJoin(eventRsvp, eq(eventRsvp.eventId, event.id))
-    .where(and(eq(event.leagueId, leagueId), isNull(event.deletedAt)))
+    .where(
+      and(
+        eq(event.leagueId, leagueId),
+        isNull(event.deletedAt),
+        visibility(only),
+      ),
+    )
     .groupBy(event.id)
     .orderBy(asc(event.startsAt), asc(event.title));
+  return rows.map(toSummary);
 }
 
-/** One event by its slug, with counts and the league's time zone. */
+export type EventDetails = EventSummary & {
+  leagueId: LeagueId;
+  timeZone: string;
+};
+
+/**
+ * One event by its slug, with counts and the league's time zone. Public
+ * pages ask for public events only, so a members' event has no public page.
+ */
 export async function eventBySlug(
   db: Db,
   slug: string,
-): Promise<(EventSummary & { leagueId: LeagueId; timeZone: string }) | null> {
+  only: EventVisibility,
+): Promise<EventDetails | null> {
   const [found] = await db
     .select({
-      ...summary,
+      ...summaryColumns,
       leagueId: event.leagueId,
       timeZone: league.timezone,
     })
     .from(event)
     .innerJoin(league, eq(league.id, event.leagueId))
     .leftJoin(eventRsvp, eq(eventRsvp.eventId, event.id))
-    .where(and(eq(event.slug, slug), isNull(event.deletedAt)))
+    .where(and(eq(event.slug, slug), isNull(event.deletedAt), visibility(only)))
     .groupBy(event.id, league.timezone);
-  return found ?? null;
+  return found ? toSummary(found) : null;
 }
 
-/** Slugs of every event with a public page, for prerendering and the sitemap. */
+/**
+ * Slugs of every event with a public page, for prerendering and the
+ * sitemap. Members' and team events have none.
+ */
 export async function publicEventSlugs(db: Db) {
   return db
     .select({ slug: event.slug, updatedAt: event.updatedAt })
     .from(event)
-    .where(isNull(event.deletedAt))
+    .where(and(isNull(event.deletedAt), eq(event.audience, "public")))
     .orderBy(asc(event.startsAt));
 }
 
@@ -134,6 +211,8 @@ export async function themeWeeks(
       and(
         eq(event.leagueId, leagueId),
         eq(event.kind, "theme_week"),
+        // Always public (a check constraint), but say so where it matters.
+        eq(event.audience, "public"),
         isNull(event.deletedAt),
         isNull(event.cancelledAt),
       ),
@@ -163,6 +242,35 @@ async function freeSlug(db: Db, base: string): Promise<string> {
     if (!taken.has(`${base}-${n}`)) return `${base}-${n}`;
 }
 
+/** Who an event is for and how people RSVP, as its columns. */
+function reachColumns(reach: Reach) {
+  return {
+    audience: reach.audience.kind,
+    audienceSeasonId:
+      reach.audience.kind === "teams" ? reach.audience.seasonId : null,
+    inviteUrl: reach.inviteUrl,
+    inAppRsvp: reach.inAppRsvp,
+  };
+}
+
+/** Replaces the teams an event is for. */
+async function saveAudienceTeams(db: Db, eventId: EventId, audience: Audience) {
+  await db
+    .delete(eventAudienceTeam)
+    .where(eq(eventAudienceTeam.eventId, eventId));
+  if (audience.kind === "teams" && audience.teamIds.length > 0)
+    await db
+      .insert(eventAudienceTeam)
+      .values(audience.teamIds.map((teamId) => ({ eventId, teamId })));
+}
+
+/** A reach for the audit log. */
+const reachAudit = (reach: Reach) => ({
+  audience: reach.audience,
+  inviteUrl: reach.inviteUrl,
+  inAppRsvp: reach.inAppRsvp,
+});
+
 /** Saves a new event and its audit row. Run it in a transaction. */
 export async function createEvent(
   db: Db,
@@ -170,6 +278,7 @@ export async function createEvent(
     leagueId: LeagueId;
     timeZone: string;
     event: EventInput;
+    reach: Reach;
     actorId: UserId;
   },
 ): Promise<{ id: EventId; slug: string }> {
@@ -181,18 +290,20 @@ export async function createEvent(
     .insert(event)
     .values({
       ...input.event,
+      ...reachColumns(input.reach),
       leagueId: input.leagueId,
       slug,
       createdBy: input.actorId,
     })
     .returning({ id: event.id, slug: event.slug });
   if (!created) throw new Error("The event was not saved");
+  await saveAudienceTeams(db, created.id, input.reach.audience);
   await recordAudit(db, {
     actorId: input.actorId,
     action: "event.create",
     entityType: "event",
     entityId: created.id,
-    after: { ...input.event, slug },
+    after: { ...input.event, ...reachAudit(input.reach), slug },
   });
   return created;
 }
@@ -207,6 +318,7 @@ type Locked = {
   endsAt: Date;
   capacity: number | null;
   cancelledAt: Date | null;
+  inAppRsvp: boolean;
   timeZone: string;
 };
 
@@ -226,6 +338,7 @@ async function lockEvent(db: Db, id: EventId): Promise<Locked | null> {
       endsAt: event.endsAt,
       capacity: event.capacity,
       cancelledAt: event.cancelledAt,
+      inAppRsvp: event.inAppRsvp,
       timeZone: league.timezone,
     })
     .from(event)
@@ -296,24 +409,29 @@ async function fillFromWaitlist(db: Db, e: Locked): Promise<UserId[]> {
   return next.map((r) => r.userId);
 }
 
-export type EventChangeError = "not_found" | "has_rsvps";
+export type EventChangeError = "not_found" | "has_rsvps" | "rsvps_in_app";
 
 /**
  * Saves an admin's edit and its audit row. Run it in a transaction. A larger
  * capacity moves people up from the waitlist; a smaller one never takes a
  * spot from anyone who has it. An event people RSVP'd to can't become a
- * theme week, which has nothing to RSVP to.
+ * theme week, which has nothing to RSVP to, or stop taking RSVPs in the app.
  */
 export async function updateEvent(
   db: Db,
-  input: { id: EventId; event: EventInput; actorId: UserId },
+  input: { id: EventId; event: EventInput; reach: Reach; actorId: UserId },
 ): Promise<Result<{ promoted: UserId[] }, EventChangeError>> {
   const before = await lockEvent(db, input.id);
   if (!before) return err("not_found");
   const now = await counts(db, input.id);
-  if (input.event.kind === "theme_week" && now.going + now.waitlisted > 0)
-    return err("has_rsvps");
-  await db.update(event).set(input.event).where(eq(event.id, input.id));
+  const rsvps = now.going + now.waitlisted;
+  if (input.event.kind === "theme_week" && rsvps > 0) return err("has_rsvps");
+  if (!input.reach.inAppRsvp && rsvps > 0) return err("rsvps_in_app");
+  await db
+    .update(event)
+    .set({ ...input.event, ...reachColumns(input.reach) })
+    .where(eq(event.id, input.id));
+  await saveAudienceTeams(db, input.id, input.reach.audience);
   await recordAudit(db, {
     actorId: input.actorId,
     action: "event.update",
@@ -326,14 +444,16 @@ export async function updateEvent(
       startsAt: before.startsAt,
       endsAt: before.endsAt,
       capacity: before.capacity,
+      inAppRsvp: before.inAppRsvp,
     },
-    after: input.event,
+    after: { ...input.event, ...reachAudit(input.reach) },
   });
   const promoted =
     before.cancelledAt === null
       ? await fillFromWaitlist(db, {
           ...before,
           ...input.event,
+          inAppRsvp: input.reach.inAppRsvp,
         })
       : [];
   return ok({ promoted });
@@ -404,7 +524,8 @@ export async function deleteEvent(
   return ok(undefined);
 }
 
-export type RsvpError = "not_found" | "cancelled" | "over" | "no_rsvp";
+export type RsvpError =
+  "not_found" | "cancelled" | "over" | "no_rsvp" | "invite_only";
 
 export type MyRsvp = {
   status: RsvpStatus;

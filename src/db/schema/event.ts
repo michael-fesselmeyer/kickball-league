@@ -1,18 +1,29 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   integer,
   pgEnum,
   pgTable,
   text,
+  primaryKey,
   timestamp,
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
-import type { EventId, EventRsvpId, LeagueId, UserId } from "@/domain/ids";
+import type {
+  EventId,
+  EventRsvpId,
+  LeagueId,
+  SeasonId,
+  TeamId,
+  UserId,
+} from "@/domain/ids";
 import { user } from "./auth";
 import { league } from "./league";
+import { season } from "./season";
+import { team } from "./team";
 
 /**
  * What an event is, for its label. A theme week is different: it runs whole
@@ -25,6 +36,18 @@ export const eventKind = pgEnum("event_kind", [
   "bbq",
   "tournament",
   "theme_week",
+  "party",
+]);
+
+/**
+ * Who sees an event and who can be told about it: everyone (public pages),
+ * all members (anyone registered in any season), or the active rosters of
+ * chosen teams (event_audience_team), in one season or in any.
+ */
+export const eventAudience = pgEnum("event_audience", [
+  "public",
+  "members",
+  "teams",
 ]);
 
 /**
@@ -50,6 +73,21 @@ export const event = pgTable(
     startsAt: timestamp({ withTimezone: true }).notNull(),
     endsAt: timestamp({ withTimezone: true }).notNull(),
     capacity: integer(),
+    audience: eventAudience().notNull().default("public"),
+    /**
+     * For a teams audience: the season whose rosters count. Null means the
+     * chosen teams' players from any season.
+     */
+    audienceSeasonId: uuid()
+      .$type<SeasonId>()
+      .references(() => season.id, { onDelete: "restrict" }),
+    /**
+     * An external invite (Partiful or any https page). Shown and shared,
+     * never fetched by the server.
+     */
+    inviteUrl: text(),
+    /** Off when people RSVP only through the invite link. */
+    inAppRsvp: boolean().notNull().default(true),
     /** Called off: the page stays up and says so; RSVPs are closed. */
     cancelledAt: timestamp({ withTimezone: true }),
     /** Removed by an admin: gone from every page. */
@@ -74,9 +112,57 @@ export const event = pgTable(
       "event_theme_week_open",
       sql`${t.kind} <> 'theme_week' or ${t.capacity} is null`,
     ),
+    check(
+      "event_theme_week_public",
+      sql`${t.kind} <> 'theme_week' or ${t.audience} = 'public'`,
+    ),
+    check(
+      "event_audience_season_teams",
+      sql`${t.audience} = 'teams' or ${t.audienceSeasonId} is null`,
+    ),
+    check(
+      "event_invite_url_https",
+      sql`${t.inviteUrl} is null or (${t.inviteUrl} ~ '^https://' and length(${t.inviteUrl}) <= 500)`,
+    ),
     index("event_league_starts_idx").on(t.leagueId, t.startsAt),
   ],
 );
+
+/** The teams an event with a teams audience is for. */
+export const eventAudienceTeam = pgTable(
+  "event_audience_team",
+  {
+    eventId: uuid()
+      .notNull()
+      .$type<EventId>()
+      .references(() => event.id, { onDelete: "cascade" }),
+    teamId: uuid()
+      .notNull()
+      .$type<TeamId>()
+      .references(() => team.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.eventId, t.teamId] }),
+    index("event_audience_team_team_idx").on(t.teamId),
+  ],
+);
+
+/**
+ * A person's private events calendar feed. Its link carries a signature of
+ * the user id and this version, so the link itself is never stored, and
+ * resetting it (a new version) stops the old link working.
+ */
+export const calendarFeed = pgTable("calendar_feed", {
+  userId: uuid()
+    .primaryKey()
+    .$type<UserId>()
+    .references(() => user.id, { onDelete: "cascade" }),
+  version: integer().notNull().default(1),
+  updatedAt: timestamp({ withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
 
 /**
  * going: has a spot. waitlisted: the event was full; the earliest waitlisted
