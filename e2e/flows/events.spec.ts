@@ -23,7 +23,7 @@ test("players RSVP, a full event has a waitlist, and a dropped spot moves the li
     .fill("Teams of four, no phones. Prizes for first and last.");
   await expectNoAxeViolations(admin);
   await admin.getByRole("button", { name: "Create event" }).click();
-  await expect(admin.getByRole("status")).toHaveText(
+  await expect(admin.getByRole("status").first()).toHaveText(
     "Event created. It's on the events page now.",
   );
   const rsvpPage = "/app/events/trivia-night-2027-03-05";
@@ -35,7 +35,7 @@ test("players RSVP, a full event has a waitlist, and a dropped spot moves the li
   const player = await pageAs(browser, "Player");
   await player.goto(rsvpPage);
   await player.getByRole("button", { name: "I'm going" }).click();
-  await expect(player.getByRole("status")).toHaveText(
+  await expect(player.getByRole("status").first()).toHaveText(
     "You're going. See you there!",
   );
   await expectNoAxeViolations(player);
@@ -48,7 +48,7 @@ test("players RSVP, a full event has a waitlist, and a dropped spot moves the li
   ).toBeVisible();
 
   await player.getByRole("button", { name: "I can't make it" }).click();
-  await expect(player.getByRole("status")).toHaveText(
+  await expect(player.getByRole("status").first()).toHaveText(
     "Done. Your RSVP is cleared.",
   );
 
@@ -71,7 +71,7 @@ test("an admin's theme week shows on the schedule", async ({ browser }) => {
   await admin.getByLabel("First day").fill("2026-10-12");
   await admin.getByLabel("Last day").fill("2026-10-18");
   await admin.getByRole("button", { name: "Create event" }).click();
-  await expect(admin.getByRole("status")).toContainText("Event created.");
+  await expect(admin.getByRole("status").first()).toContainText("Event created.");
 
   // A team's view: the smoke tests open the full schedule on another server
   // that shares this build's page cache, and could write back an older copy.
@@ -79,4 +79,97 @@ test("an admin's theme week shows on the schedule", async ({ browser }) => {
   await expect(
     admin.getByRole("link", { name: "Theme week: Pajama week" }),
   ).toHaveAttribute("href", "/events/pajama-week-2026-10-12");
+});
+
+/**
+ * An admin posts a members-only party for two of this season's teams, with
+ * a Partiful-style invite instead of RSVPs in the app. Pat Player (on The
+ * Big Kicks) sees it; Reese Ref (who played for Foul Play last summer) and a
+ * signed-out visitor don't.
+ */
+test("a team event with an invite reaches its teams and no one else", async ({
+  browser,
+}) => {
+  const slug = "team-mixer-2027-03-13";
+  const invite = "https://partiful.example.test/e/team-mixer";
+
+  const admin = await pageAs(browser, "Admin");
+  await admin.goto("/app/admin/events/new");
+  await admin.getByLabel("Kind").selectOption({ label: "Party" });
+  await admin.getByLabel("Name").fill("Team mixer");
+  await admin
+    .getByLabel("Place")
+    .fill("The Example Hall (demo venue), 2 Example St");
+  await admin.getByLabel("Date", { exact: true }).fill("2027-03-13");
+  await admin.getByLabel("Starts at").fill("20:00");
+  await admin.getByLabel("Ends at").fill("23:00");
+  await admin.getByLabel("Invite link (optional)").fill(invite);
+  await admin.getByLabel(/^Players RSVP in the app too/).uncheck();
+  await admin.getByRole("radio", { name: /^Chosen teams/ }).check();
+  // The team picker starts on the season being played.
+  await expect(admin.getByLabel("Season").locator("option:checked")).toHaveText(
+    "Fall 2026 (active)",
+  );
+  await admin.getByRole("checkbox", { name: "The Big Kicks" }).check();
+  await admin.getByRole("checkbox", { name: "Sun Kickers" }).check();
+  await admin.getByLabel("Email everyone it's for").check();
+  await expectNoAxeViolations(admin);
+  await admin.getByRole("button", { name: "Create event" }).click();
+  const saved = admin.getByRole("status").first();
+  await expect(saved).toContainText(
+    "Event created. The people it's for see it in the app now.",
+  );
+  await expect(saved).toContainText("will get an email.");
+  await expect(
+    admin.getByText("The Big Kicks and Sun Kickers, Fall 2026"),
+  ).toBeVisible();
+  await expectNoAxeViolations(admin);
+
+  // A player on one of the teams sees it in the app, with the invite.
+  const player = await pageAs(browser, "Player");
+  await player.goto("/app/events");
+  const card = player.getByRole("link", { name: /Team mixer/ });
+  await expect(card).toContainText("Party · Team event");
+  await expect(card).toContainText("RSVP on partiful.example.test");
+  await expectNoAxeViolations(player);
+  await card.click();
+  await expect(player.getByRole("heading", { level: 1 })).toHaveText(
+    "Team mixer",
+  );
+  await expect(
+    player.getByRole("link", { name: /^RSVP on partiful\.example\.test/ }),
+  ).toHaveAttribute("href", invite);
+  await expect(
+    player.getByText("For The Big Kicks and Sun Kickers, Fall 2026"),
+  ).toBeVisible();
+  await expect(
+    player.getByRole("button", { name: /Copy for WhatsApp/ }),
+  ).toBeVisible();
+  await expectNoAxeViolations(player);
+
+  // A player on another team doesn't, even with the link.
+  const ref = await pageAs(browser, "Ref");
+  await ref.goto("/app/events");
+  await expect(ref.getByRole("heading", { level: 1 })).toHaveText("Events");
+  await expect(ref.getByRole("link", { name: /Team mixer/ })).toHaveCount(0);
+  await ref.goto(`/app/events/${slug}`);
+  await expect(
+    ref.getByRole("heading", { name: "This page could not be found." }),
+  ).toBeVisible();
+
+  // Nor does a signed-out visitor: no public page, list entry or feed entry.
+  const visitor = await browser.newPage();
+  await visitor.goto("/events");
+  await expect(visitor.getByRole("heading", { level: 1 })).toHaveText(
+    "League events",
+  );
+  await expect(visitor.getByRole("link", { name: /Team mixer/ })).toHaveCount(
+    0,
+  );
+  await visitor.goto(`/events/${slug}`);
+  await expect(
+    visitor.getByRole("heading", { name: "This page could not be found." }),
+  ).toBeVisible();
+  const feed = await visitor.request.get("/events/calendar.ics");
+  expect(await feed.text()).not.toContain("Team mixer");
 });
