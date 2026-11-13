@@ -6,7 +6,7 @@ import { can } from "@/domain/authz/permissions";
 import { FILE_MAX_BYTES, STORED_EDGE } from "@/domain/books/files";
 import { LEDGER_COLUMNS, ledgerLines } from "@/domain/books/ledger-csv";
 import { toCsv } from "@/domain/export/csv";
-import type { GameId, UserId } from "@/domain/ids";
+import type { UserId } from "@/domain/ids";
 import { prepareUpload, type PreparedFile } from "@/lib/books/store-file";
 import { auditLog } from "../schema/audit";
 import { booksFile } from "../schema/books";
@@ -108,7 +108,7 @@ async function permitWorld(db: Db) {
     })
     .returning({ id: game.id });
   if (!g) throw new Error("no game");
-  return { ...w, windows, gameId: g.id as GameId };
+  return { ...w, windows, gameId: g.id };
 }
 
 async function makeOwner(db: Db, userId: UserId) {
