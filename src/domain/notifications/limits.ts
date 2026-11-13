@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { zonedInstant } from "@/domain/time/zoned";
 import type { DeliveryClass } from "./kinds";
 
 /**
@@ -111,6 +110,30 @@ const minutesOfDay = (instant: Date, timeZone: string) =>
 const localDate = (instant: Date, timeZone: string) =>
   wallClock(instant, timeZone).date;
 
+/** Minutes the zone is ahead of UTC at instant `t` (ms), from the cached clock. */
+const offsetAt = (t: number, timeZone: string) => {
+  const wall = wallClock(new Date(t), timeZone);
+  const wallMs = Date.parse(`${wall.date}T00:00:00Z`) + wall.minutes * MINUTE;
+  return Math.round((wallMs - Math.floor(t / MINUTE) * MINUTE) / MINUTE);
+};
+
+/**
+ * The instant the clock reads `hh:00` on `date`, as zonedInstant in
+ * src/domain/time/zoned.ts finds it, but with the cached clock: the outbox
+ * and its property tests ask this thousands of times.
+ */
+function wallInstant(date: string, hh: number, timeZone: string): Date {
+  const wall = Date.parse(`${date}T${pad(hh)}:00:00Z`);
+  const before = offsetAt(wall, timeZone);
+  const first = wall - before * MINUTE;
+  const after = offsetAt(first, timeZone);
+  if (after === before) return new Date(first);
+  const second = wall - after * MINUTE;
+  if (offsetAt(second, timeZone) === after) return new Date(second);
+  // The clock skipped this time: take the later reading.
+  return new Date(Math.max(first, second));
+}
+
 const addDays = (date: string, days: number) =>
   new Date(Date.parse(`${date}T12:00:00Z`) + days * 86_400_000)
     .toISOString()
@@ -129,9 +152,9 @@ export function startOfLocalHour(
   hh: number,
   timeZone: string,
 ): Date {
-  const at = zonedInstant(date, `${pad(hh)}:00`, timeZone);
+  const at = wallInstant(date, hh, timeZone);
   // A repeated hour has an earlier reading, a clock change (30 minutes to
-  // 2 hours, depending on the zone) before the one zonedInstant picked.
+  // 2 hours, depending on the zone) before the one wallInstant picked.
   const earlier = [120, 60, 30]
     .map((minutes) => new Date(at.getTime() - minutes * MINUTE))
     .find((t) => {
