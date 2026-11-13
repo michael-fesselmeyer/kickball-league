@@ -82,18 +82,12 @@ export const sponsor = pgTable(
       .on(t.leagueId)
       .where(sql`${t.isHomeBar} and ${t.deletedAt} is null`),
     check("sponsor_slug_format", sql`${t.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
-    check(
-      "sponsor_name_length",
-      sql`char_length(${t.name}) between 1 and 80`,
-    ),
+    check("sponsor_name_length", sql`char_length(${t.name}) between 1 and 80`),
     check(
       "sponsor_blurb_length",
       sql`${t.blurb} is null or char_length(${t.blurb}) <= 500`,
     ),
-    check(
-      "sponsor_url_https",
-      sql`${t.url} is null or ${t.url} ~ '^https://'`,
-    ),
+    check("sponsor_url_https", sql`${t.url} is null or ${t.url} ~ '^https://'`),
     check(
       "sponsor_checkin_secret_length",
       sql`char_length(${t.checkinSecret}) >= 32`,
@@ -139,7 +133,10 @@ export const deal = pgTable(
       .references(() => sponsor.id, { onDelete: "cascade" }),
     title: text().notNull(),
     terms: text(),
-    validDays: smallint().array().notNull().default(sql`'{}'::smallint[]`),
+    validDays: smallint()
+      .array()
+      .notNull()
+      .default(sql`'{}'::smallint[]`),
     validFrom: time(),
     validTo: time(),
     active: boolean().notNull().default(true),
