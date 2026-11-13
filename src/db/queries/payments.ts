@@ -16,14 +16,24 @@ import {
   promoDiscount,
   spreadDiscount,
 } from "@/domain/registration/promo";
+import { creditToApply } from "@/domain/money/credit";
 import { statusAfterRefunds } from "@/domain/registration/refund";
 import { err, ok, type Result } from "@/domain/result";
 import { payment, purchase, purchaseItem, webhookEvent } from "../schema/money";
 import { recordAudit } from "./audit";
+import {
+  creditBalance,
+  lockCredit,
+  releaseCredit,
+  spendCredit,
+} from "./credit";
+import { failCharge, saveGuarantee } from "./guarantee";
 import { promoForCheckout } from "./promo-codes";
+import { creditReferrals } from "./referrals";
 import { registration, rosterMembership, teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
 import { required } from "./rows";
+import { confirmCoveredTeams } from "./team-balance";
 
 /**
  * Purchases and the Stripe webhook (docs/architecture.md, section 6). Only
@@ -38,10 +48,12 @@ export async function createPurchase(
     seasonId: SeasonId;
     items: CheckoutItem[];
     promo?: { id: PromoCodeId; discountCents: number };
+    creditCents?: number;
   },
 ): Promise<PurchaseId> {
   const subtotal = input.items.reduce((sum, i) => sum + i.amountCents, 0);
   const discount = input.promo?.discountCents ?? 0;
+  const credit = input.creditCents ?? 0;
   const [created] = await db
     .insert(purchase)
     .values({
@@ -49,7 +61,8 @@ export async function createPurchase(
       seasonId: input.seasonId,
       subtotalCents: subtotal,
       discountCents: discount,
-      totalCents: subtotal - discount,
+      creditAppliedCents: credit,
+      totalCents: subtotal - discount - credit,
       promoCodeId: input.promo?.id ?? null,
     })
     .returning({ id: purchase.id });
@@ -70,15 +83,19 @@ export async function createPurchase(
 export type StartedPurchase = {
   purchaseId: PurchaseId;
   totalCents: number;
-  /** What to charge for each item, in order, after the discount. */
+  /** League credit used, already taken from the person's balance. */
+  creditCents: number;
+  /** What to charge for each item, in order, after the discount and credit. */
   chargeCents: number[];
 };
 
 /**
  * Creates the purchase for a checkout, with a promo code when one was
- * typed. Call it inside a transaction: the code is locked while its uses are
- * counted. A code that covers the whole price settles the purchase at once,
- * with no payment, so there is nothing to send to Stripe.
+ * typed and the person's league credit unless they chose not to use it.
+ * Call it inside a transaction: the code is locked while its uses are
+ * counted, and the person's ledger while their credit is spent. A code or
+ * credit that covers the whole price settles the purchase at once, with no
+ * payment, so there is nothing to send to Stripe.
  */
 export async function startPurchase(
   db: Db,
@@ -87,6 +104,8 @@ export async function startPurchase(
     seasonId: SeasonId;
     items: CheckoutItem[];
     promoCode: string | null;
+    /** Use the person's league credit. On unless they unticked it. */
+    useCredit?: boolean;
     now: Date;
   },
 ): Promise<Result<StartedPurchase, PromoError>> {
@@ -106,18 +125,35 @@ export async function startPurchase(
       discountCents: promoDiscount(subtotal, checked.value),
     };
   }
+  const discounted = subtotal - (promo?.discountCents ?? 0);
+  let creditCents = 0;
+  if (input.useCredit !== false && discounted > 0) {
+    await lockCredit(db, input.userId);
+    const balance = await creditBalance(db, input.userId);
+    creditCents = creditToApply(discounted, balance);
+  }
   const purchaseId = await createPurchase(db, {
     userId: input.userId,
     seasonId: input.seasonId,
     items: input.items,
     ...(promo ? { promo } : {}),
+    creditCents,
   });
-  const totalCents = subtotal - (promo?.discountCents ?? 0);
-  if (totalCents === 0) await settlePurchase(db, purchaseId, null);
+  await spendCredit(db, {
+    userId: input.userId,
+    purchaseId,
+    cents: creditCents,
+  });
+  const totalCents = discounted - creditCents;
+  if (totalCents === 0) await settlePurchase(db, purchaseId, null, input.now);
   return ok({
     purchaseId,
     totalCents,
-    chargeCents: spreadDiscount(amounts, promo?.discountCents ?? 0),
+    creditCents,
+    chargeCents: spreadDiscount(
+      amounts,
+      (promo?.discountCents ?? 0) + creditCents,
+    ),
   });
 }
 
@@ -153,15 +189,21 @@ export async function openCheckoutsFor(db: Db, registrationId: RegistrationId) {
     );
 }
 
+/** Expires open purchases and gives back any credit they held. */
 export async function expirePurchases(
   db: Db,
   ids: PurchaseId[],
 ): Promise<void> {
   if (ids.length === 0) return;
-  await db
+  const expired = await db
     .update(purchase)
     .set({ status: "expired" })
-    .where(and(inArray(purchase.id, ids), eq(purchase.status, "open")));
+    .where(and(inArray(purchase.id, ids), eq(purchase.status, "open")))
+    .returning({ id: purchase.id });
+  await releaseCredit(
+    db,
+    expired.map((p) => p.id),
+  );
 }
 
 /** The fields of a Checkout Session event that this app reads. */
@@ -178,9 +220,37 @@ const sessionEvent = z.object({
         .optional(),
       amount_total: z.number().nullable().optional(),
       created: z.number().optional(),
+      mode: z.string().optional(),
+      metadata: z.record(z.string(), z.string()).nullable().optional(),
     }),
   }),
 });
+
+/** The fields of a PaymentIntent event that this app reads. */
+const intentEvent = z.object({
+  data: z.object({
+    object: z.object({
+      id: z.string(),
+      amount: z.number().int().nonnegative(),
+      amount_received: z.number().int().nonnegative().optional(),
+      metadata: z.record(z.string(), z.string()).nullable().optional(),
+    }),
+  }),
+});
+
+/**
+ * What the webhook route looked up from Stripe before applying an event,
+ * because the event itself does not carry it: for a Checkout session in
+ * setup mode, the card it saved.
+ */
+export type StripeEventExtras = {
+  setup?: {
+    customerId: string;
+    paymentMethodId: string;
+    brand: string | null;
+    last4: string | null;
+  };
+};
 
 /** The fields of a charge.refunded event that this app reads. */
 const chargeEvent = z.object({
@@ -216,6 +286,7 @@ export async function handleStripeEvent(
   db: Db,
   event: StripeEventLike,
   now: Date,
+  extras: StripeEventExtras = {},
 ): Promise<EventOutcome> {
   const [recorded] = await db
     .insert(webhookEvent)
@@ -230,7 +301,12 @@ export async function handleStripeEvent(
   if (!recorded) return "duplicate";
 
   let outcome: EventOutcome = "ignored";
-  if (SESSION_EVENTS.has(event.type)) {
+  if (
+    event.type === "checkout.session.completed" &&
+    sessionEvent.parse(event).data.object.mode === "setup"
+  ) {
+    if (await recordSavedCard(db, event, now, extras)) outcome = "processed";
+  } else if (SESSION_EVENTS.has(event.type)) {
     const parsed = sessionEvent.parse(event);
     const session = parsed.data.object;
     const [found] = await db
@@ -252,12 +328,98 @@ export async function handleStripeEvent(
   } else if (event.type === "charge.refunded") {
     const charge = chargeEvent.parse(event).data.object;
     if (await recordChargeRefunded(db, charge)) outcome = "processed";
+  } else if (
+    event.type === "payment_intent.succeeded" ||
+    event.type === "payment_intent.payment_failed"
+  ) {
+    const intent = intentEvent.parse(event).data.object;
+    if (await recordAppCharge(db, event.type, intent, now))
+      outcome = "processed";
   }
   await db
     .update(webhookEvent)
     .set({ status: "processed", processedAt: now })
     .where(eq(webhookEvent.id, recorded.id));
   return outcome;
+}
+
+/**
+ * A captain saved a card in Checkout's setup mode: it becomes the team's
+ * guarantee. The session's metadata says whose and for which team; the
+ * route looked up the card itself. Without that lookup the event fails, so
+ * Stripe sends it again.
+ */
+async function recordSavedCard(
+  db: Db,
+  event: StripeEventLike,
+  now: Date,
+  extras: StripeEventExtras,
+): Promise<boolean> {
+  const session = sessionEvent.parse(event).data.object;
+  const meta = session.metadata ?? {};
+  if (meta.kind !== "guarantee") return false;
+  const userId = meta.userId as UserId | undefined;
+  const teamSeasonId = meta.teamSeasonId as TeamSeasonId | undefined;
+  if (!userId || !teamSeasonId) return false;
+  if (!extras.setup) throw new Error("The saved card was not looked up");
+  return saveGuarantee(db, {
+    userId,
+    teamSeasonId,
+    sessionId: session.id,
+    ...extras.setup,
+    now,
+  });
+}
+
+/**
+ * A charge the app made itself (the captain guarantee's deadline charge)
+ * succeeded or failed. Only purchases that hold this PaymentIntent, or that
+ * the intent names and have none yet, are touched, so Checkout's own
+ * PaymentIntents pass through untouched.
+ */
+async function recordAppCharge(
+  db: Db,
+  type: string,
+  intent: z.infer<typeof intentEvent>["data"]["object"],
+  now: Date,
+): Promise<boolean> {
+  const named = intent.metadata?.purchaseId;
+  const [found] = await db
+    .select({
+      id: purchase.id,
+      status: purchase.status,
+      intent: purchase.stripePaymentIntentId,
+    })
+    .from(purchase)
+    .where(eq(purchase.stripePaymentIntentId, intent.id));
+  let target = found;
+  if (!target && named && z.uuid().safeParse(named).success) {
+    const [byName] = await db
+      .select({
+        id: purchase.id,
+        status: purchase.status,
+        intent: purchase.stripePaymentIntentId,
+      })
+      .from(purchase)
+      .where(eq(purchase.id, named as PurchaseId));
+    if (byName && byName.intent === null) target = byName;
+  }
+  if (!target) return false;
+  if (target.intent === null)
+    await db
+      .update(purchase)
+      .set({ stripePaymentIntentId: intent.id })
+      .where(eq(purchase.id, target.id));
+  if (type === "payment_intent.payment_failed")
+    return failCharge(db, target.id, now);
+  if (target.status !== "open") return false;
+  await settlePurchase(db, target.id, {
+    method: "stripe",
+    stripePaymentIntentId: intent.id,
+    amountCents: intent.amount_received ?? intent.amount,
+    paidAt: now,
+  });
+  return true;
 }
 
 /**
@@ -326,6 +488,7 @@ async function setStatusIfOpen(
     .update(purchase)
     .set({ status })
     .where(and(eq(purchase.id, id), eq(purchase.status, "open")));
+  await releaseCredit(db, [id]);
 }
 
 /**
@@ -367,14 +530,16 @@ type PaymentRecord =
 
 /**
  * Marks a purchase paid, records the payment, activates the registrations it
- * paid for, and confirms a team whose whole fee was paid. Stripe payments and
- * off-app payments settle the same way. A purchase a promo code made free
- * has no payment to record.
+ * paid for, and confirms a team whose whole fee was paid, or a split team
+ * whose shares now cover it. Stripe payments and off-app payments settle the
+ * same way. A purchase a promo code or credit made free has no payment to
+ * record. Referrers of the registrations it paid for get their credit.
  */
 async function settlePurchase(
   db: Db,
   purchaseId: PurchaseId,
   record: PaymentRecord | null,
+  now: Date = record?.paidAt ?? new Date(),
 ) {
   await db
     .update(purchase)
@@ -416,6 +581,14 @@ async function settlePurchase(
       .where(inArray(teamSeason.id, teamFees));
   for (const teamSeasonId of teamFees)
     await settleCoveredRegistrations(db, teamSeasonId);
+  const towardSplit = items.flatMap((i) =>
+    (i.kind === "player_share" || i.kind === "balance") && i.teamSeasonId
+      ? [i.teamSeasonId]
+      : [],
+  );
+  if (towardSplit.length > 0)
+    await confirmCoveredTeams(db, [...new Set(towardSplit)]);
+  await creditReferrals(db, registrations, now);
 }
 
 /**
