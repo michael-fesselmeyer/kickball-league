@@ -118,7 +118,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - See who changed what in an audit log.
 
 ### League owner
-- Everything an admin can do, plus: manage admins, connect Stripe, set prices, decide refund and credit policy, export data, and approve pending features (referee marketplace, SMS program).
+- Everything an admin can do, plus: manage admins, connect Stripe, set prices, decide refund and credit policy, export data, and approve pending features (referee marketplace).
 
 ### Sponsor
 - See my sponsor page as players see it and update my deals.
@@ -194,7 +194,6 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 |---|---|
 | Sign-in with Google or an email link; no passwords; sessions last 90 days and renew on use | MVP |
 | Passkeys (Face ID, Touch ID, device PIN) and a list of signed-in devices | P2 |
-| Sign in with Apple, if the league wants it | P2 |
 | Profile: name, phone, gender, shirt size, birth date (18+ check), emergency contact | MVP |
 | Roles and scoped permissions as in the matrix | MVP |
 | Account deletion and data export on request | P2 |
@@ -274,8 +273,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Admin and captain announcements | MVP |
 | "Copy for WhatsApp" and share links on results, sub requests and rain-outs | P2 |
 | Web push for installed app users | P2 |
-| SMS with consent, quiet hours, STOP and HELP, cost caps | P3 (registration starts early; **Pending** the league's business details) |
-| Text-to-join keyword | P3 |
+| One-click unsubscribe for each topic in every email, as quick as replying STOP to a text | MVP |
 
 ### Community, events and content
 | Feature | Tag |
@@ -323,14 +321,6 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | CSV export of rosters, payments and shirt sizes | P2 |
 | Second league or sport on the same deployment (for example the affiliated football league) | P3 |
 
-### AI (optional, off unless an API key is set)
-| Feature | Tag |
-|---|---|
-| Ask the rulebook: answers a rules question from the rulebook only, with linked rule numbers | P2 |
-| Recap draft: a weekly recap drafted from the scores for an admin to edit | P2 |
-
-Both are capped at $5 a month by default and have no subscription. Details and costs are in [architecture.md](architecture.md), section 16.
-
 ## 7. Decisions worth calling out
 
 | Decision | Why |
@@ -344,10 +334,12 @@ Both are capped at $5 a month by default and have no subscription. Details and c
 | The site warns about fielding-rule problems but never blocks a game | Forfeits are a referee's call under the rulebook |
 | WhatsApp is supported by sharing, not replaced | The league already lives there; fighting it would lose |
 | One league per deployment, with a `league` record on every season | Cheap now, and it keeps the door open for the football league later |
+| Free services only: no feature may need a paid plan, a paid API key or a monthly bill. A feature with no free option is left out ([ADR 0021](adr/0021-free-services-only.md)) | The league is run by volunteers and the site must cost nothing to run. This rules out AI features, text messages, WhatsApp business alerts, Sign in with Apple and app-store listings. Stripe has no monthly fee; its per-payment fees come out of the league's own payments. Each free limit, and what the site does near it, is in [architecture.md](architecture.md), section 15 |
 
 ## 8. Out of scope
 
-- Native mobile apps built separately from the web app (see the PWA decision in [architecture.md](architecture.md)). Store listings that wrap the same app are a P3 option (section 9).
+- Native mobile apps built separately from the web app (see the PWA decision in [architecture.md](architecture.md)), and store listings that wrap the same app, because both app stores charge developers a fee (section 7).
+- Anything that needs a paid service (section 7): AI features such as Ask the rulebook or an AI helper, text messages, alerts by WhatsApp's business messaging, and Sign in with Apple.
 - Posting into WhatsApp groups automatically. WhatsApp's business API messages individuals, not existing group chats, so sharing stays a tap by a person.
 - Play-by-play or individual player statistics.
 - A multi-tenant product for leagues we do not know.
@@ -360,8 +352,8 @@ New goals from the owner of this project. Each row says what it means for the pr
 | Goal | What we will build | Tag |
 |---|---|---|
 | Signing up is as easy as possible, on any device | Sign-up to paid in under two minutes on a phone: email link or Google, a profile only when registering, Apple Pay or Google Pay at checkout. Measured in the end-to-end tests on a phone viewport | MVP (a target for work already planned) |
-| One account in the browser and in an app for Android and Apple | The installable app (PWA) shares the browser's sign-in and works on both platforms. Store listings, if wanted later, wrap the same app and keep the same accounts | PWA moves from P2 to MVP; store apps P3 |
-| Opt out of texts and news | Every email has a one-click unsubscribe for its topic; news and promotions are off until a member turns them on; texts follow STOP. Game-critical notices (rain-outs, schedule changes) stay on by default but can be switched to email only | MVP for email, with SMS when it ships |
+| One account in the browser and in an app for Android and Apple | The installable app (PWA) shares the browser's sign-in and works on both platforms. Store listings are not planned, because both app stores charge developers a fee (section 7) | PWA moves from P2 to MVP |
+| Opt out of texts and news | Every email has a one-click unsubscribe for its topic, as quick as replying STOP; news and promotions are off until a member turns them on. The site sends no text messages (section 7). Game-critical notices (rain-outs, schedule changes) stay on by default but can be switched to push or to the site only | MVP |
 | Alerts that fit each role, without too many | Default topics per role (owner, admin, ref, captain, player, sponsor). A daily cap per person, a digest for non-urgent news, and quiet hours. Each message says why the person got it and how to change it | MVP defaults; caps and digest P2 |
 | More transparency, without oversharing | Team members see their own team's payment and waiver progress (already planned). New: an optional season summary of where the money goes, by category totals only, which the owners choose to publish. Never another person's amounts, birth date or contact details unless the privacy rules in data-model.md section 4 allow it | P2 |
 
@@ -375,9 +367,8 @@ New goals from the owner of this project. Each row says what it means for the pr
 | Goal | What we will build | Tag |
 |---|---|---|
 | An events page for prom, parties and more, with Partiful invites | Events with a date, place, description and an optional external invite link (Partiful or any URL; Partiful has no public API, so the link is shown and shared, not synced). The admin picks who sees and is told about it: all members, or chosen teams from the active season, any season or all seasons | P2 (extends the planned events calendar) |
-| WhatsApp | Already planned: share buttons and "Copy for WhatsApp" text. New option: alerts to individuals by WhatsApp for members who opt in, using WhatsApp's business messaging, which charges per conversation. Posting into existing group chats is not possible with WhatsApp's API, so that stays a tap by a person | Share P2; individual alerts **Pending** cost approval |
-| Members upload photos and videos that could go on the league's socials | Uploads from players and teams with a checkbox that the league may repost them. An admin review queue approves, rejects, or downloads a file for Instagram. Size limits and storage costs are set before launch | P2 (moves up from P3 photo galleries) |
-| A simple, free AI helper | Extends "Ask the rulebook" into a helper that answers from the league's own data: rules, kickball tips, team history and playoff records, upcoming season dates, and the forecast for the next game day with the chance of a rain-out. It answers only from those sources and links them. Free to members; the league's cost stays capped (architecture.md, section 16) | P2 |
+| WhatsApp | Already planned: share buttons and "Copy for WhatsApp" text. Alerts to individuals through WhatsApp's business messaging are not planned, because WhatsApp charges for them (section 7). Posting into existing group chats is not possible with WhatsApp's API, so that stays a tap by a person | P2 |
+| Members upload photos and videos that could go on the league's socials | Uploads from players and teams with a checkbox that the league may repost them. An admin review queue approves, rejects, or downloads a file for Instagram. Size limits are set before launch so uploads stay inside the free storage (architecture.md, section 15) | P2 (moves up from P3 photo galleries) |
 | Drink specials from the sponsor bars stay current | The bar updates its specials on its sponsor page. Before each game day it gets a one-tap "same as last week?" email, and the game-day page shows the current specials with the date they were confirmed | P2 (with the home-bar page) |
 
 ### Running the league
