@@ -47,7 +47,9 @@ test("a captain messages the team and an admin messages a team", async ({
   await expect(
     admin.getByRole("status").filter({ hasText: "Sent to" }),
   ).toHaveText(/^Sent to \d+ people\./);
-  await expect(admin.getByText("Field 2 is closed this week")).toBeVisible();
+  await expect(
+    admin.getByText("Field 2 is closed this week", { exact: true }),
+  ).toBeVisible();
   await expectNoAxeViolations(admin);
   await admin.context().close();
 });
