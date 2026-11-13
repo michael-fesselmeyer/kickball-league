@@ -46,6 +46,7 @@ export type NotificationPreferenceId = Brand<
   string,
   "NotificationPreferenceId"
 >;
+export type PushSubscriptionId = Brand<string, "PushSubscriptionId">;
 export type BracketId = Brand<string, "BracketId">;
 export type BracketMatchId = Brand<string, "BracketMatchId">;
 export type SubRequestId = Brand<string, "SubRequestId">;
