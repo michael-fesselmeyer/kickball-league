@@ -50,6 +50,7 @@ import {
   team,
   teamSeason,
 } from "../schema/team";
+import { suspendedAmong } from "./discipline";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
 import type { Db } from "./schedule";
 
@@ -227,6 +228,13 @@ async function candidatesFor(
             ),
           );
 
+  // Suspended players can't take a spot, and aren't told about requests.
+  const suspended = await suspendedAmong(
+    db,
+    people.map((p) => p.userId),
+    new Date(),
+  );
+
   return people.map((p) => {
     const teamSeasonId = teamOf.get(p.registrationId) ?? null;
     const commitments = clashes
@@ -244,6 +252,7 @@ async function candidatesFor(
       teamSeasonId,
       lineupGender: p.lineupGender,
       commitments,
+      suspended: suspended.has(p.userId),
     };
   });
 }
