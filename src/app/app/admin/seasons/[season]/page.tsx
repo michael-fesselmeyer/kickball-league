@@ -63,6 +63,12 @@ async function Season({
             Registrations
           </Link>
           <Link
+            href={`/app/admin/seasons/${slug}/promo-codes`}
+            className="underline"
+          >
+            Promo codes
+          </Link>
+          <Link
             href={`/app/admin/seasons/${slug}/scores`}
             className="underline"
           >
