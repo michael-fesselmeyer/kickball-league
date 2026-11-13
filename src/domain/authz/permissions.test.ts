@@ -241,6 +241,43 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     ).toEqual(["admin", "owner"]);
   });
 
+  it("lets a team's captains build its kicking order", () => {
+    expect(allowed("lineup.edit", { teamSeasonId: "A" })).toEqual([
+      "captain",
+      "coCaptain",
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("lineup.edit", { teamSeasonId: "B" })).toEqual([
+      "admin",
+      "owner",
+    ]);
+  });
+
+  it("shows the other team's kicking order to the ref and captains on game day", () => {
+    // Captain A looks at team B's order in g1.
+    expect(
+      allowed("lineup.view_order", {
+        teamSeasonId: "B",
+        game: { ...g1, gameDay: true },
+      }),
+    ).toEqual(["captain", "coCaptain", "referee", "admin", "owner"]);
+    // Before game day, only the team's own captains and admins.
+    expect(
+      allowed("lineup.view_order", { teamSeasonId: "B", game: g1 }),
+    ).toEqual(["admin", "owner"]);
+    expect(
+      allowed("lineup.view_order", { teamSeasonId: "A", game: g1 }),
+    ).toEqual(["captain", "coCaptain", "admin", "owner"]);
+    // Players never see the whole order, and other games' refs see nothing.
+    expect(
+      allowed("lineup.view_order", {
+        teamSeasonId: "D",
+        game: { ...g2, gameDay: true },
+      }),
+    ).toEqual(["admin", "owner"]);
+  });
+
   it("sends announcements: captains to their team, admins to anyone", () => {
     expect(
       allowed("announcement.send", { scope: "team", teamSeasonId: "A" }),

@@ -36,6 +36,8 @@ export type Context = {
     teamSeasonIds: readonly [string, string];
     /** For live scoring: a ref has accepted the game. */
     hasReferee?: boolean;
+    /** It is the game's day (or later) in the league's time zone. */
+    gameDay?: boolean;
   };
   sponsorId?: string;
   /** For contact details: the member chose to share them with their team. */
@@ -140,6 +142,14 @@ const RULES = {
     isAdmin,
     refereesGame,
     all(captainsGame, (_, c) => c.game?.hasReferee === false),
+  ),
+  // Build and save a team's kicking order, seeing its players' lineup genders.
+  "lineup.edit": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
+  // See a saved order, names only: from game day, both captains and the ref.
+  "lineup.view_order": any(
+    isAdmin,
+    (s, c) => captains(s, c.teamSeasonId),
+    all(any(captainsGame, refereesGame), (_, c) => c.game?.gameDay === true),
   ),
   "announcement.send": any(
     isAdmin,
