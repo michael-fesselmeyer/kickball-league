@@ -141,6 +141,14 @@ async function AdminEvent({
         >
           {isPublic ? "Public page" : "Event page in the app"}
         </Link>
+        {!themeWeek && (
+          <Link
+            href={`/app/admin/events/${e.slug}/giveaway`}
+            className="inline-flex min-h-11 items-center self-start underline"
+          >
+            Giveaway
+          </Link>
+        )}
       </header>
 
       {error && (
