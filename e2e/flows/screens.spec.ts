@@ -16,6 +16,8 @@ const SCREENS: [Persona, string, string | RegExp][] = [
   ["Admin", "/app/admin/seasons/fall-2026/scores", "Scores"],
   ["Admin", "/app/admin/seasons/fall-2026/shirts", "Shirts"],
   ["Admin", "/app/admin/seasons/fall-2026/recap", "Weekly recap"],
+  ["Admin", "/app/admin/seasons/fall-2026/rebates", "Rain-out rebates"],
+  ["Admin", "/app/sponsor", "Sponsors"],
   ["Admin", "/operator", "Operator"],
   ["Admin", "/app/admin/audit", "Audit log"],
   [
@@ -30,6 +32,8 @@ const SCREENS: [Persona, string, string | RegExp][] = [
   ["Captain", "/app/seasons/fall-2026/team/subs", "Find subs"],
   ["Player", "/app/subs", "Sub for a team"],
   ["Player", "/app/events", "Events"],
+  // A check-in page without a code, as from an old bookmark.
+  ["Player", "/app/check-in/the-corner-pocket", "The Corner Pocket"],
 ];
 
 for (const colorScheme of ["light", "dark"] as const) {
