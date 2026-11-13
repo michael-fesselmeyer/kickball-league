@@ -1,6 +1,7 @@
 // Relative imports only: next.config.ts loads this file, and the @/ alias does not resolve there.
 import { z } from "zod";
 import { err, ok, type Result } from "../domain/result";
+import { isVapidPair } from "./push/web-push";
 
 /**
  * Every environment variable the server reads, validated once at startup.
@@ -61,9 +62,31 @@ export const envSchema = z.object({
     .string()
     .min(16, { error: "must be at least 16 characters" })
     .optional(),
+  // Optional: web push is off until both keys are set. Generate a pair with
+  // `npm run push:keys`, which writes them to .env.local.
+  VAPID_PUBLIC_KEY: z
+    .string()
+    .regex(/^B[A-Za-z0-9_-]{86}$/, {
+      error: "must be an uncompressed P-256 public key, base64url (87 chars)",
+    })
+    .optional(),
+  VAPID_PRIVATE_KEY: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{43}$/, {
+      error: "must be a P-256 private key, base64url (43 chars)",
+    })
+    .optional(),
+  // Optional: who push services may contact about the league's messages.
+  // Defaults to the site's address.
+  VAPID_SUBJECT: z
+    .string()
+    .regex(/^(mailto:[^\s@]+@[^\s@]+|https:\/\/\S+)$/, {
+      error: "must be a mailto: address or an https:// URL",
+    })
+    .optional(),
 });
 
-/** Google, email and Stripe each need both values; one without the other is a mistake. */
+/** Google, email, Stripe and push each need both values; one without the other is a mistake. */
 const pairs = envSchema
   .refine(
     (env) =>
@@ -83,6 +106,23 @@ const pairs = envSchema
     {
       error: "set both STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET, or neither",
       path: ["STRIPE_WEBHOOK_SECRET"],
+    },
+  )
+  .refine(
+    (env) => Boolean(env.VAPID_PUBLIC_KEY) === Boolean(env.VAPID_PRIVATE_KEY),
+    {
+      error: "set both VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY, or neither",
+      path: ["VAPID_PRIVATE_KEY"],
+    },
+  )
+  .refine(
+    (env) =>
+      !env.VAPID_PUBLIC_KEY ||
+      !env.VAPID_PRIVATE_KEY ||
+      isVapidPair(env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY),
+    {
+      error: "is not the private key for VAPID_PUBLIC_KEY",
+      path: ["VAPID_PRIVATE_KEY"],
     },
   );
 

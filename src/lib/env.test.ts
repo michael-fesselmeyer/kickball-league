@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { envSchema, loadEnv, parseEnv, withVercelDefaults } from "./env";
+import { generateVapidKeys } from "./push/web-push";
 
 const valid = {
   DATABASE_URL:
@@ -121,6 +122,39 @@ describe("parseEnv", () => {
       expect(result.ok).toBe(true);
     },
   );
+
+  it("accepts a VAPID key pair, and refuses half, malformed or mismatched keys", () => {
+    const keys = generateVapidKeys();
+    const vapid = {
+      VAPID_PUBLIC_KEY: keys.publicKey,
+      VAPID_PRIVATE_KEY: keys.privateKey,
+    };
+    expect(parseEnv({ ...valid, ...vapid }).ok).toBe(true);
+    expect(
+      parseEnv({
+        ...valid,
+        ...vapid,
+        VAPID_SUBJECT: "mailto:league@example.test",
+      }).ok,
+    ).toBe(true);
+    const half = parseEnv({ ...valid, VAPID_PUBLIC_KEY: keys.publicKey });
+    expect(half.ok).toBe(false);
+    if (!half.ok) expect(half.error).toContain("VAPID_PRIVATE_KEY");
+    const mismatched = parseEnv({
+      ...valid,
+      ...vapid,
+      VAPID_PRIVATE_KEY: generateVapidKeys().privateKey,
+    });
+    expect(mismatched.ok).toBe(false);
+    if (!mismatched.ok)
+      expect(mismatched.error).toContain("is not the private key");
+    const malformed = parseEnv({ ...valid, ...vapid, VAPID_PUBLIC_KEY: "abc" });
+    expect(malformed.ok).toBe(false);
+    if (!malformed.ok) expect(malformed.error).toContain("P-256 public key");
+    const subject = parseEnv({ ...valid, ...vapid, VAPID_SUBJECT: "league" });
+    expect(subject.ok).toBe(false);
+    if (!subject.ok) expect(subject.error).toContain("mailto:");
+  });
 
   it("allows Google sign-in to be unset until it is configured", () => {
     expect(parseEnv(valid).ok).toBe(true);
