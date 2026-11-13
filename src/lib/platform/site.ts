@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { db } from "@/db/client";
 import { siteSettings, type SiteSettings } from "@/db/queries/platform";
 import {
@@ -40,8 +41,13 @@ export function forgetSite(): void {
   cached = null;
 }
 
-/** Whether the operator left `feature` on; on when no league exists yet. */
+/**
+ * Whether the operator left `feature` on; on when no league exists yet.
+ * Per request, so a page that checks it is never prerendered with a stale
+ * answer (and the site cache's clock is never read while prerendering).
+ */
 export async function featureEnabled(feature: Feature): Promise<boolean> {
+  await connection();
   const site = await currentSite();
   return site === null || featureOn(site.disabledFeatures, feature);
 }
