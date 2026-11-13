@@ -12,6 +12,10 @@ if (process.env.SKIP_ENV_VALIDATION !== "true") {
 const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
+  images: {
+    // Only our copies of Instagram photos are optimized, never another path.
+    localPatterns: [{ pathname: "/media/instagram/**", search: "" }],
+  },
   partialPrefetching: true,
   async headers() {
     return [

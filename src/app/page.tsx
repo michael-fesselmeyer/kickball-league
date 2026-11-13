@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
+import { InstagramPhotos } from "@/components/instagram-photos";
 import { JsonLd } from "@/components/json-ld";
 import { Kickball } from "@/components/kickball";
 import { revealOrder } from "@/components/motion";
+import { db } from "@/db/client";
+import { currentLeague } from "@/db/queries/seasons";
+import { homePhotos } from "@/db/queries/social";
 import { env } from "@/env";
+import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
+import { PHOTOS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 import { leagueInfo } from "@/lib/seo/league";
 import { leagueJsonLd, websiteJsonLd } from "@/lib/seo/structured-data";
 import { SITE, siteOrigin } from "@/lib/site";
@@ -181,6 +188,8 @@ export default function Home() {
         </p>
       </section>
 
+      <HomePhotos />
+
       <section aria-labelledby="new-here" className="flex flex-col gap-4">
         <h2 id="new-here" className="text-h2">
           New to kickball, or to Brooklyn?
@@ -199,5 +208,28 @@ export default function Home() {
         </ul>
       </section>
     </main>
+  );
+}
+
+/**
+ * Featured photos from the league's Instagram, cached with the rest of the
+ * page and refreshed when an admin curates or the sync brings new ones.
+ */
+async function HomePhotos() {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
+  cacheTag(PHOTOS_TAG);
+  const found = await readUnlessBuildHasNoDatabase(async () => {
+    const league = await currentLeague(db);
+    return league ? homePhotos(db, league.id) : null;
+  });
+  if (!found) return null;
+  return (
+    <InstagramPhotos
+      id="photos"
+      heading="Lately, on the field"
+      cover={found.cover}
+      photos={found.photos}
+    />
   );
 }

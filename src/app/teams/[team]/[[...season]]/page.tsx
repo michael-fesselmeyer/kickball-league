@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { GameCard } from "@/components/game-card";
+import { InstagramPhotos } from "@/components/instagram-photos";
 import { AllTimeRecord } from "@/components/history/all-time-record";
 import { LogoBadge } from "@/components/logo-badge";
 import { Morph, teamMorph } from "@/components/motion";
@@ -16,6 +17,7 @@ import {
   publishedSchedule,
   teamBySlug,
 } from "@/db/queries/public-schedule";
+import { teamPhotos } from "@/db/queries/social";
 import { seasonStandings } from "@/db/queries/standings";
 import type { Hex } from "@/domain/color/contrast";
 import { shortDay } from "@/domain/schedule/format";
@@ -31,7 +33,12 @@ import { cardVersion } from "@/domain/share/cards";
 import { teamShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
 import { calendarLinks } from "@/lib/calendar-links";
-import { PUBLIC_PAGE_LIFE, seasonTag, teamTag } from "@/lib/public-cache";
+import {
+  PHOTOS_TAG,
+  PUBLIC_PAGE_LIFE,
+  seasonTag,
+  teamTag,
+} from "@/lib/public-cache";
 import { shareMetadata } from "@/lib/share/metadata";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { NO_TEAM, publicTeamParams } from "@/lib/static-params";
@@ -121,7 +128,7 @@ async function TeamView({
 }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
-  cacheTag(teamTag(slug));
+  cacheTag(teamTag(slug), PHOTOS_TAG);
   const team = await teamBySlug(db, slug);
   if (!team) notFound();
   const entry =
@@ -132,13 +139,16 @@ async function TeamView({
   if (entry) cacheTag(seasonTag(entry.seasonId));
   const links = calendarLinks(siteOrigin(env.BETTER_AUTH_URL), team.slug);
 
-  const [games, roster, standings] = entry
-    ? await Promise.all([
-        publishedSchedule(db, entry.seasonId),
-        publicRoster(db, entry.id),
-        seasonStandings(db, entry.seasonId),
-      ])
-    : [[], [], null];
+  const [[games, roster, standings], photos] = await Promise.all([
+    entry
+      ? Promise.all([
+          publishedSchedule(db, entry.seasonId),
+          publicRoster(db, entry.id),
+          seasonStandings(db, entry.seasonId),
+        ])
+      : ([[], [], null] as const),
+    teamPhotos(db, team.id),
+  ]);
   const mine = entry
     ? games.filter((g) => g.teamA.id === entry.id || g.teamB.id === entry.id)
     : [];
@@ -301,6 +311,13 @@ async function TeamView({
           {entry && (
             <TeamStats team={team} schedule={games} timeZone={team.timeZone} />
           )}
+
+          <InstagramPhotos
+            id="photos"
+            heading="Photos"
+            cover={photos.cover}
+            photos={photos.photos}
+          />
         </div>
 
         <div className="flex flex-col gap-8">
