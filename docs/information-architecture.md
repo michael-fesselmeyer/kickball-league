@@ -77,7 +77,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── events, sponsors, news
     ├── messages                    Announcements and delivery log
     ├── money                       Payments, refunds, credit, promo codes
-    ├── audit                       Audit log
+    ├── audit                       Audit log in plain words, newest first; filter for the platform operator's actions
     ├── league.json                 The whole league as JSON, for owners and the operator
     └── settings                    League name, branding, contacts, Stripe (owner)
 ```

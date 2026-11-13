@@ -58,7 +58,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 - Season setup, fields, permits and blackout dates.
 - A dashboard for the next game day: games, refs, RSVP warnings, missing scores, and registrations, payments and waivers by team.
-- An audit log of admin actions, and a permissions matrix enforced by one tested function.
+- An audit log of admin actions that admins and owners can read in plain words, newest first, with a filter for the platform operator's actions; and a permissions matrix enforced by one tested function.
 
 **Public site**
 
