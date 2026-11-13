@@ -74,6 +74,15 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref); works with no signal
 ├── games/[game]/lineup             Both teams' kicking orders: a team's captains any time, the other captain and the ref from game day (names only); each player sees their own spot
 │   └── [team]                      Captain: kicking-order builder from the players who are in, with drag, keyboard and button moves, live two-in-a-row checks, auto-arrange and copy from the last game
+├── games/[game]/permit             The park permit at the field: number, field, hours and document, for the game's ref and both captains (and owners); kept on the phone with the next game
+│   └── document                    The permit document itself, for the same people, never cached by a CDN
+├── books/                          Owners and the platform operator only (404 for everyone else); opens on the newest season
+│   ├── [season]                    The ledger (money in, money out by category, net), add an expense with a receipt photo, the season's expenses
+│   │   ├── ledger.csv              Every transaction for taxes, no player names
+│   │   └── permits                 Permits (cost, document, dates), games on lost permits, "What to request" and its copy button, the insurance certificate
+│   │       └── request.csv         The request sheet as a CSV, with the screen's choices
+│   ├── permits                     Opens the newest season's permits (where the reminder emails point)
+│   └── files/[file]                A receipt, permit document or certificate, for owners and the operator
 ├── ref/                            Assignments, availability, earnings
 ├── sponsor/                        The sponsors a person manages (admins: every sponsor, and add one)
 │   └── [sponsor]/                  Sponsor portal: deals, "still current", details; admins also page address, home bar and people
@@ -298,6 +307,9 @@ Rules:
 | Awards (player) | One card per open poll: the award, when it closes, and a team-grouped picker with one Cast vote button; after voting, your pick and "results when voting closes". Closed polls link to results | Same, picker and button on one line |
 | Award results | The winner (or everyone tied) in a highlighted box, then every nominee with place, votes and a bar | Same |
 | Ref home | Today's assignments with accept and decline; "enter score" on each | Same |
+| Books (owners) | The ledger as a two-column table, then "Add an expense" (date, amount, category, note, a receipt photo from the camera or saved photos), then the season's expenses with their receipts | Same, no wider than 768px |
+| Permits (owners) | A red box listing games on a lost permit, with a button to the schedule board; one card per permit with an Edit fold-out; the request form, sheet and copy button; the insurance certificate | Same |
+| Park permit (ref and captains) | The permit number large, the field and hours, then the permit's photo full width (or a button to open its PDF); a saved copy when offline | Same, no wider than a phone |
 | Sponsor report | Three numbers for this week, a weekly bar chart and a table by week, then deals used and the teams that came by most | Same, wider |
 | Check-in code (bar screen) | The QR code as large as fits, the code in text, and how often it changes | Same, centered |
 | Check-in and visit | One Check in button; then today's deals, each with "Use this deal" or when it was used | Same, no wider than a phone |
