@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": { "deploymentEnabled": false },
   "crons": [
     { "path": "/api/jobs/finalize-scores", "schedule": "0 9 * * *" },
     { "path": "/api/jobs/outbox", "schedule": "30 9 * * *" },
