@@ -104,8 +104,9 @@ export async function buildTeamAction(slug: string, form: FormData) {
   const picked = form.getAll("registrationId");
   const registrationIds = ids(picked);
   const captainId = parseId<RegistrationId>(form.get("captainId"));
-  if (registrationIds.length === 0) redirect(`${page}?error=nobody_picked`);
-  if (!captainId) redirect(`${page}?error=no_captain`);
+  if (registrationIds.length === 0)
+    redirect(`${page}?build_error=nobody_picked#new-team`);
+  if (!captainId) redirect(`${page}?build_error=no_captain#new-team`);
   const name = form.get("name");
   const color = form.get("colorHex");
   const result = await txDb.transaction((tx) =>
@@ -120,7 +121,7 @@ export async function buildTeamAction(slug: string, form: FormData) {
       now: new Date(),
     }),
   );
-  if (!result.ok) redirect(`${page}?error=${result.error}#new-team`);
+  if (!result.ok) redirect(`${page}?build_error=${result.error}#new-team`);
   refreshSeasonPages(season.id);
   redirect(`${page}?notice=team_built`);
 }
