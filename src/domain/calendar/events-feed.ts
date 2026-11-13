@@ -1,3 +1,4 @@
+import type { AudienceKind } from "@/domain/events/audience";
 import { type EventKind, KIND_LABELS } from "@/domain/events/event";
 import { buildCalendar, type CalendarEvent } from "./ics";
 
@@ -12,11 +13,20 @@ export type FeedEvent = {
   startsAt: Date;
   endsAt: Date;
   cancelledAt: Date | null;
+  audience: { kind: AudienceKind };
+  inviteUrl: string | null;
 };
 
-/** One league event as a calendar entry; a theme week covers whole days. */
+/**
+ * One league event as a calendar entry; a theme week covers whole days. A
+ * members' or team event links to its page in the app, since it has no
+ * public page.
+ */
 export function leagueEvent(e: FeedEvent, origin: string): CalendarEvent {
-  const url = `${origin}/events/${e.slug}`;
+  const url =
+    e.audience.kind === "public"
+      ? `${origin}/events/${e.slug}`
+      : `${origin}/app/events/${e.slug}`;
   const cancelled = e.cancelledAt !== null;
   const entry: CalendarEvent = {
     uid: `event-${e.id}@kickball-league`,
@@ -26,7 +36,11 @@ export function leagueEvent(e: FeedEvent, origin: string): CalendarEvent {
       (cancelled ? "Called off: " : "") +
       (e.kind === "theme_week" ? `${KIND_LABELS.theme_week}: ` : "") +
       e.title,
-    description: [e.description, `Event page: ${url}`]
+    description: [
+      e.description,
+      e.inviteUrl ? `Invite: ${e.inviteUrl}` : "",
+      `Event page: ${url}`,
+    ]
       .filter((line) => line !== "")
       .join("\n\n"),
     url,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { inviteHost } from "@/domain/events/audience";
 import {
   type EventKind,
   KIND_LABELS,
@@ -16,13 +17,20 @@ export type EventCardData = {
   capacity: number | null;
   cancelledAt: Date | null;
   going: number;
+  inAppRsvp: boolean;
+  inviteUrl: string | null;
 };
 
-/** "6 spots left", "Full: waitlist open", or nothing when there is no limit. */
+/**
+ * "6 spots left", "Full: waitlist open", "RSVP on partiful.com", or nothing
+ * when there is no limit.
+ */
 export function spotsLine(e: EventCardData, now: Date): string | null {
   if (e.cancelledAt) return "Called off";
   if (e.endsAt <= now) return null;
   if (e.kind === "theme_week") return null;
+  if (!e.inAppRsvp)
+    return e.inviteUrl ? `RSVP on ${inviteHost(e.inviteUrl)}` : null;
   const left = spotsLeft(e.capacity, e.going);
   if (left === null) return e.going > 0 ? `${e.going} going` : null;
   if (left === 0) return "Full: waitlist open";
@@ -58,6 +66,7 @@ export function EventCard({
   now,
   href = `/events/${e.slug}`,
   note,
+  tag,
 }: {
   event: EventCardData;
   timeZone: string;
@@ -65,6 +74,8 @@ export function EventCard({
   href?: string;
   /** A line about the viewer, such as "You're going". */
   note?: string | null | undefined;
+  /** Who it's for, when that isn't everyone: "Members only". */
+  tag?: string | null | undefined;
 }) {
   const spots = spotsLine(e, now);
   const cancelled = e.cancelledAt !== null;
@@ -76,7 +87,7 @@ export function EventCard({
       <DateBlock at={e.startsAt} timeZone={timeZone} />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="text-micro font-bold tracking-wide text-text-muted uppercase">
-          {KIND_LABELS[e.kind]}
+          {tag ? `${KIND_LABELS[e.kind]} · ${tag}` : KIND_LABELS[e.kind]}
         </span>
         <span
           className={`font-display text-h3 leading-tight font-bold ${cancelled ? "line-through decoration-2" : ""}`}

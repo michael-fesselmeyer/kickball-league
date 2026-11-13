@@ -3,8 +3,10 @@ import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { InviteButton } from "@/components/invite-button";
 import { JsonLd } from "@/components/json-ld";
 import { PageLoading } from "@/components/page-loading";
+import { ShareButtons } from "@/components/share";
 import { db } from "@/db/client";
 import { eventBySlug, seasonOn } from "@/db/queries/events";
 import {
@@ -15,6 +17,8 @@ import {
   themeWeekDays,
   whenLine,
 } from "@/domain/events/event";
+import { inviteHost } from "@/domain/events/audience";
+import { eventShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
 import { googleEventLink } from "@/lib/calendar-links";
 import { eventTag, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
@@ -34,7 +38,7 @@ async function cachedEvent(slug: string) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   cacheTag(eventTag(slug));
-  return eventBySlug(db, slug);
+  return eventBySlug(db, slug, "public");
 }
 
 /** The first lines of the description, for search results and link previews. */
@@ -89,7 +93,7 @@ async function EventDetails({ slug }: { slug: string }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   cacheTag(eventTag(slug));
-  const e = await eventBySlug(db, slug);
+  const e = await eventBySlug(db, slug, "public");
   if (!e) notFound();
   const now = new Date();
   const origin = siteOrigin(env.BETTER_AUTH_URL);
@@ -194,7 +198,7 @@ async function EventDetails({ slug }: { slug: string }) {
             </dd>
           </div>
         )}
-        {!themeWeek && (
+        {!themeWeek && e.inAppRsvp && (
           <div className="flex flex-col gap-1 rounded-card border border-border bg-surface p-4 sm:col-span-2">
             <dt className="text-micro font-bold tracking-wide text-text-muted uppercase">
               Spots
@@ -252,10 +256,40 @@ async function EventDetails({ slug }: { slug: string }) {
               ? "Join the waitlist and we'll email you if someone drops out."
               : "RSVP so the league knows how many to plan for. You can change your mind any time."}
           </p>
-          <Link href={`/app/events/${e.slug}`} className="btn btn-primary">
-            {full ? "Join the waitlist" : "RSVP"}
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/app/events/${e.slug}`} className="btn btn-primary">
+              {full ? "Join the waitlist" : "RSVP"}
+            </Link>
+            {e.inviteUrl && <InviteButton url={e.inviteUrl} />}
+          </div>
         </section>
+      )}
+      {window === "invite_only" && (
+        <section
+          aria-labelledby="rsvp"
+          className="flex flex-col items-start gap-3 rounded-card border-2 border-text bg-surface p-4 shadow-sticker"
+        >
+          <h2 id="rsvp" className="text-h3">
+            Coming?
+          </h2>
+          {e.inviteUrl ? (
+            <>
+              <p className="text-small text-text-muted">
+                RSVP on the event&apos;s invite.
+              </p>
+              <InviteButton url={e.inviteUrl} primary />
+            </>
+          ) : (
+            <p className="text-small text-text-muted">
+              No RSVP needed. Just come along.
+            </p>
+          )}
+        </section>
+      )}
+      {window === "no_rsvp" && e.inviteUrl && (
+        <p>
+          <InviteButton url={e.inviteUrl} />
+        </p>
       )}
       {window === "over" && (
         <p className="text-text-muted">
@@ -270,6 +304,29 @@ async function EventDetails({ slug }: { slug: string }) {
           </Link>
           .
         </p>
+      )}
+
+      {e.endsAt > now && (
+        <section aria-labelledby="share" className="flex flex-col gap-2">
+          <h2 id="share" className="text-h3">
+            Share this event
+          </h2>
+          <ShareButtons
+            title={e.title}
+            text={eventShareText({
+              title: e.title,
+              kind: KIND_LABELS[e.kind],
+              when,
+              place: e.place,
+              audience: null,
+              invite: e.inviteUrl
+                ? { host: inviteHost(e.inviteUrl), url: e.inviteUrl }
+                : null,
+              url,
+              cancelled: e.cancelledAt !== null,
+            })}
+          />
+        </section>
       )}
 
       {!e.cancelledAt && e.endsAt > now && (
