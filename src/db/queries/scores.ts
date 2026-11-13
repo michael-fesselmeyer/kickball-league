@@ -32,6 +32,7 @@ import { team, teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
 import { advanceBracket } from "./playoffs";
 import { required } from "./rows";
+import { queueScoreConfirmations } from "./score-confirmations";
 import type { Db } from "./schedule";
 
 /**
@@ -249,7 +250,21 @@ export async function reportScore(
       entityId: input.gameId,
       after: { reportId: created.id, ...input.score },
     });
-  return ok(await settleGame(db, input.gameId, input.now));
+  const state = await settleGame(db, input.gameId, input.now);
+  // A new report that still needs an answer asks the captains who can give it.
+  if (created && state.state === "awaiting" && state.reportId === created.id)
+    await queueScoreConfirmations(db, g, {
+      id: created.id,
+      role: input.role,
+      teamSeasonId: input.teamSeasonId,
+      reportedAt: input.now,
+      outcome: input.score.outcome,
+      scoreA: forfeit ? 0 : input.score.scoreA,
+      scoreB: forfeit ? 0 : input.score.scoreB,
+      inningsPlayed:
+        input.score.outcome === "called" ? input.score.inningsPlayed : null,
+    });
+  return ok(state);
 }
 
 export type RespondError = "unknown_report" | "already_answered";

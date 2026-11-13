@@ -20,6 +20,7 @@ import {
 import { OUTCOMES, PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { gameTag, refreshSeasonPages } from "@/lib/public-cache";
+import { sendQueuedSoon } from "@/services/outbox";
 
 const pageFor = (gameId: string) => `/app/games/${gameId}/score`;
 
@@ -98,9 +99,11 @@ export async function submitScoreAction(
     redirect(
       `${page}?error=${typeof result.error === "string" ? result.error : result.error.scoreB === PLAYOFF_TIE ? "playoff_tie" : "invalid"}`,
     );
-  // An admin's score is final at once; anyone's shows as reported.
+  // An admin's score is final at once; anyone's shows as reported, and the
+  // captains who can confirm it are told.
   refreshSeasonPages(g.seasonId);
   updateTag(gameTag(g.id));
+  sendQueuedSoon();
   redirect(`${page}?saved=1`);
 }
 
