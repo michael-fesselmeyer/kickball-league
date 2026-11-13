@@ -19,7 +19,7 @@ import {
   parseTeamRequest,
   requestsOpen,
 } from "@/domain/schedule/team-requests";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 
 const isAdmin = (s: Subject) =>
@@ -28,7 +28,9 @@ const isAdmin = (s: Subject) =>
 /** The captain's team for the season, or not found; and whether they may still change requests. */
 async function captainsTeam(slug: string) {
   const page = `/app/seasons/${slug}/team/requests`;
-  const subject = await requirePermission("registration.join", { next: page });
+  const subject = await requirePermissionToChange("registration.join", {
+    next: page,
+  });
   const league = await currentLeague(db);
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
