@@ -225,6 +225,9 @@ async function Account() {
       <Link href="/app/events" className="btn btn-secondary">
         Events
       </Link>
+      <Link href="/app/shop" className="btn btn-secondary">
+        League shop
+      </Link>
       <Link href="/app/profile" className="btn btn-secondary">
         Your profile
       </Link>

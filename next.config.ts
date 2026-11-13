@@ -13,8 +13,12 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   images: {
-    // Only our copies of Instagram photos are optimized, never another path.
-    localPatterns: [{ pathname: "/media/instagram/**", search: "" }],
+    // Only our stored photos (Instagram copies and merch items) are
+    // optimized, never another path.
+    localPatterns: [
+      { pathname: "/media/instagram/**", search: "" },
+      { pathname: "/media/merch/**", search: "" },
+    ],
     // Optimized copies follow the photo's own five-minute lifetime, so a
     // photo an admin hides stops being served soon after.
     minimumCacheTTL: 300,
@@ -22,7 +26,8 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   experimental: {
     serverActions: {
-      // A receipt photo or permit PDF (ADR 0034). Photos are shrunk in the
+      // A receipt photo or permit PDF (ADR 0034), or a merch photo straight
+      // from a phone, up to 3 MB (ADR 0035). Books photos are shrunk in the
       // browser first; this covers a 1 MB PDF and a photo sent without
       // JavaScript. Under Vercel's 4.5 MB request limit.
       bodySizeLimit: "4mb",
