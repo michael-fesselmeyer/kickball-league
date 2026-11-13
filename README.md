@@ -73,7 +73,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 - A transactional outbox: messages are written with the change that caused them, failed sends retry, and nothing sends twice.
 - League and team announcements, with per-person email settings.
-- Alerts without too many: rain-outs, sub spots, payment deadlines and other urgent messages always go at once, while news and reminders that can wait count toward a daily limit (3 by default, lower if a member likes). Anything over it comes in one digest email, every evening or on Sundays. During quiet hours (10 pm to 8 am by default) only urgent news is sent, and it reaches phones silently. Every email and push says why the person got it and links to the setting that changes it ([ADR 0019](docs/adr/0019-urgent-and-non-urgent-messages.md)).
+- Alerts without too many: rain-outs, sub spots, payment deadlines and other urgent messages always go at once, while news and reminders that can wait count toward a daily limit (3 by default, lower if a member likes). Anything over it comes in one digest email, every evening or on Sundays. During quiet hours (10 pm to 8 am by default) only urgent news is sent, and it reaches phones silently. Every email and push says why the person got it and links to the setting that changes it. Email stays inside the provider's free quota (100 a day, 3,000 a month by default): pushes go first, urgent email goes to people without push first, news over the quota joins the digest, and urgent email that cannot go today goes after midnight UTC, with admins told ([ADR 0019](docs/adr/0019-urgent-and-non-urgent-messages.md)).
 - Payment reminders 7, 3 and 1 days before the deadline, and missing-score reminders to the ref and then the captains.
 - Web push for rain-outs, sub requests and scores: each player opts in per topic on their profile, and the outbox sends a push to each of their phones alongside the email. Push is off until VAPID keys are set, devices a push service reports gone are removed, and the protocol is written against the standards with Node's crypto ([ADR 0014](docs/adr/0014-web-push-without-a-library.md)).
 
@@ -180,6 +180,10 @@ The photo sync is off until both `INSTAGRAM_APP_ID` and `INSTAGRAM_APP_SECRET` a
 3. Put the Instagram app ID and secret in `.env.local`, and in Vercel's encrypted settings for production. Then an admin chooses **Connect Instagram** on the Instagram admin screen.
 
 To try the whole flow without an account, start the development server with `INSTAGRAM_FIXTURE=true` and no app ID: connecting and syncing then play back a recorded copy of the API (`src/services/fixtures/instagram`) with generated pictures. A production build ignores it unless demo mode is on.
+
+### Email quota
+
+The outbox keeps email inside the provider's free plan. It assumes Resend's free limits, 100 emails a UTC day and 3,000 a month, and keeps 10 of each back for sign-in links. Different limits can be set with the optional `EMAIL_DAILY_LIMIT`, `EMAIL_MONTHLY_LIMIT` and `EMAIL_RESERVE` (whole numbers), read straight from the environment like `DEMO_MODE`. What happens when the quota runs out is in [docs/architecture.md](docs/architecture.md), section 5, "The email budget".
 
 ### Run the database tests against a local Postgres
 
