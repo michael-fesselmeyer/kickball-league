@@ -49,6 +49,21 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expectNoAxeViolations(page);
     });
 
+    for (const [path, heading] of [
+      ["/history", "League history"],
+      ["/records", "League records"],
+      ["/seasons/fall-2026/bracket", "Playoffs"],
+      ["/paused", "Everything is running"],
+    ] as const) {
+      test(`${path} is accessible`, async ({ page }) => {
+        await page.goto(path);
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+          heading,
+        );
+        await expectNoAxeViolations(page);
+      });
+    }
+
     test("style guide is accessible", async ({ page }) => {
       await page.goto("/style");
       await expect(

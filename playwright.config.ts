@@ -75,6 +75,9 @@ export default defineConfig({
       env: {
         BETTER_AUTH_URL: `http://localhost:${FLOWS_PORT}`,
         DEMO_MODE: "true",
+        // The demo admin persona (src/seed/demo-personas.ts) runs the
+        // operator console, so its screen can be checked.
+        OPERATOR_USER_IDS: "d3e30000-0000-4000-8000-000000000004",
         // Placeholders in Stripe's test format, not real keys.
         STRIPE_SECRET_KEY: "sk_test_e2e",
         STRIPE_WEBHOOK_SECRET: "whsec_e2e",
