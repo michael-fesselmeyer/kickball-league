@@ -26,6 +26,7 @@ export const TOPICS = [
   // Notices about the league's own running, such as the email quota, for
   // admins. Not offered on the settings page.
   "operations",
+  "photos",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -44,6 +45,7 @@ export const DEFAULT_ENABLED: Readonly<Record<Topic, boolean>> = {
   discipline: true,
   digest: true,
   operations: true,
+  photos: true,
 };
 
 /**
@@ -89,6 +91,11 @@ export const SETTINGS_TOPICS: readonly {
     topic: "events",
     label: "Events",
     hint: "When a spot opens for an event you're waitlisted for, or an event you RSVP'd to is called off.",
+  },
+  {
+    topic: "photos",
+    label: "Your photos",
+    hint: "Whether the league used a photo you uploaded.",
   },
 ];
 
