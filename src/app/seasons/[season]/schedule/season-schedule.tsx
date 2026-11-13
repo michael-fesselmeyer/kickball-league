@@ -214,6 +214,7 @@ export async function SeasonSchedule({
                     games={dayGames}
                     timeZone={season.timeZone}
                     note={note}
+                    empty={division ? "–" : "Open"}
                   />
                 )}
                 <ul
@@ -271,10 +272,13 @@ function DayGrid({
   games,
   timeZone,
   note,
+  empty,
 }: {
   games: PublicGame[];
   timeZone: string;
   note: (g: PublicGame) => string | undefined;
+  /** What an empty cell says: "Open", or a dash when other games may be there. */
+  empty: string;
 }) {
   const fields = [...new Set(games.map((g) => g.field ?? "Field TBA"))].sort(
     (a, b) => a.localeCompare(b, "en", { numeric: true }),
@@ -322,7 +326,9 @@ function DayGrid({
                         note={note(g)}
                       />
                     ) : (
-                      <span className="text-small text-text-muted">Open</span>
+                      <span className="text-small text-text-muted">
+                        {empty}
+                      </span>
                     )}
                   </td>
                 );
