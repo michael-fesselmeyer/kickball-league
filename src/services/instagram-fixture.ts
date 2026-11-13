@@ -118,7 +118,7 @@ function chunk(type: string, data: Buffer): Buffer {
   return Buffer.concat([length, body, crc]);
 }
 
-/** A 360×360 PNG of diagonal stripes in two colors picked from the seed. */
+/** A square PNG of diagonal stripes in two colors picked from the seed. */
 export function fixturePhoto(seed: string, size = 360): Buffer {
   const hash = createHash("sha256").update(seed).digest();
   const a = [hash[0]!, hash[1]!, hash[2]!];

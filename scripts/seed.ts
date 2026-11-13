@@ -22,6 +22,10 @@ import { addAudienceDemo } from "../src/seed/event-audience";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addFreeAgentPool } from "../src/seed/free-agent-pool";
 import { removeMoneyRecords } from "../src/seed/money";
+import {
+  addInstagramPhotos,
+  removeInstagramPhotos,
+} from "../src/seed/instagram-photos";
 import { canSeed } from "../src/seed/guard";
 import { addPastSeasons } from "../src/seed/past-seasons";
 import { addSeedSponsors, removeSeedSponsors } from "../src/seed/sponsors";
@@ -188,6 +192,7 @@ async function main(): Promise<void> {
           await tx.delete(season).where(inArray(season.id, seasonIds));
         }
         await tx.delete(waiver).where(eq(waiver.leagueId, leagueId));
+        await removeInstagramPhotos(tx, leagueId);
         await tx.delete(team).where(eq(team.leagueId, leagueId));
         const venueIds = (
           await tx
@@ -253,6 +258,7 @@ async function main(): Promise<void> {
       await addAudienceDemo(tx, data);
       await addSeedAwards(tx, data, new Date());
       await addSeedSponsors(tx, data);
+      await addInstagramPhotos(tx, data);
     });
     const played = data.games.filter((g) => g.status === "final").length;
     console.info(
