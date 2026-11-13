@@ -18,6 +18,10 @@ import {
 } from "../src/seed/generate";
 import { addSeedAwards } from "../src/seed/awards";
 import { addDemoPersonas, removeDemoPersonas } from "../src/seed/demo-personas";
+import {
+  addDisciplinePlayer,
+  removeDisciplinePlayer,
+} from "../src/seed/discipline";
 import { addAudienceDemo } from "../src/seed/event-audience";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addFreeAgentPool } from "../src/seed/free-agent-pool";
@@ -241,6 +245,7 @@ async function main(): Promise<void> {
       // Seed users only (profiles, sessions and accounts cascade).
       await tx.delete(user).where(isSeedUser);
       await removeDemoPersonas(tx);
+      await removeDisciplinePlayer(tx);
 
       await tx.insert(league).values(data.league);
       await tx.insert(user).values(data.users);
@@ -262,6 +267,7 @@ async function main(): Promise<void> {
       await tx.insert(slot).values(data.nextSlots);
       await tx.insert(teamConstraint).values(data.teamConstraints);
       await addDemoPersonas(tx, data);
+      await addDisciplinePlayer(tx, data);
       await addPastSeasons(tx, data);
       await addFreeAgentPool(tx, data);
       await addSeedEvents(tx, data);
