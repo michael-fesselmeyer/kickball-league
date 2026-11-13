@@ -42,14 +42,15 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
 ├── offline                         Shown by the service worker when a page needs the network; links the saved next game
 ├── paused                          Neutral notice while the site is paused or read-only (operator setting)
-└── sign-in, sign-up
+└── sign-in, sign-up                Email link, passkey (button and email-field autofill) or Google
 
 /operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
 
 /app                                Signed-in home: next game, RSVP, what you owe, alerts
 ├── account                         Profile, email and push settings, waivers, payments, credit (built at /app/profile)
+│   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
-│   └── delete                      Delete your account: what is deleted, what the league keeps; a fresh sign-in and your typed email address confirm it
+│   └── delete                      Delete your account: what is deleted, what the league keeps; a fresh sign-in (passkey or email link) and your typed email address confirm it
 ├── seasons/[season]/export/        CSV downloads: roster.csv (with shirt sizes) and payments.csv; the whole season for admins, ?team= for one team (its captains too)
 ├── team/[teamSeason]               Roster, RSVPs, payments, invites, subs, announcements (captain view adds controls and roster and payment CSV downloads)
 ├── subs                            Sub requests I can claim, and games I'm subbing in
