@@ -110,6 +110,19 @@ describe("parseEnv", () => {
     if (!secret.ok) expect(secret.error).toContain("starts with whsec_");
   });
 
+  it("accepts the AI provider's key and a priced model, and refuses others", () => {
+    const ai = { ANTHROPIC_API_KEY: "sk-ant-test-0000" };
+    expect(parseEnv({ ...valid, ...ai }).ok).toBe(true);
+    const chosen = parseEnv({ ...valid, ...ai, AI_MODEL: "claude-haiku-5-5" });
+    expect(chosen.ok && chosen.value.AI_MODEL).toBe("claude-haiku-5-5");
+    const key = parseEnv({ ...valid, ANTHROPIC_API_KEY: "sk_test_abc" });
+    expect(key.ok).toBe(false);
+    if (!key.ok) expect(key.error).toContain("starts with sk-ant-");
+    const model = parseEnv({ ...valid, ...ai, AI_MODEL: "unpriced-model" });
+    expect(model.ok).toBe(false);
+    if (!model.ok) expect(model.error).toContain("claude-opus-5-5");
+  });
+
   it.each(["League <hello@example.test>", "hello@example.test"])(
     "accepts email configured as %s",
     (from) => {

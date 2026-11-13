@@ -10,7 +10,7 @@ export function WriteButton({ label }: { label: string }) {
       type="submit"
       disabled={pending}
       aria-disabled={pending}
-      className="btn btn-secondary self-start disabled:opacity-60"
+      className="btn self-start btn-secondary disabled:opacity-60"
     >
       {pending ? "Writing… (about 10 seconds)" : label}
     </button>

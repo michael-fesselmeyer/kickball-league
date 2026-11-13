@@ -74,9 +74,7 @@ async function Console({ searchParams }: PageProps<"/operator">) {
     operatorIsFresh(),
     aiBudget(db),
   ]);
-  const spent = budget
-    ? await monthSpend(db, budget.leagueId, new Date())
-    : 0;
+  const spent = budget ? await monthSpend(db, budget.leagueId, new Date()) : 0;
   const saved = typeof query.saved === "string" ? SAVED[query.saved] : null;
   const error = typeof query.error === "string" ? ERRORS[query.error] : null;
 

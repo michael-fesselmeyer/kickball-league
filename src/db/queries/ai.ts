@@ -64,8 +64,7 @@ export async function reserveAiCall(
   const spent = await monthSpend(db, input.leagueId, input.now);
   if (
     !row ||
-    spent + input.worstCaseMicrodollars >
-      centsToMicrodollars(row.budgetCents)
+    spent + input.worstCaseMicrodollars > centsToMicrodollars(row.budgetCents)
   )
     return err("over_budget");
   const [usage] = await db

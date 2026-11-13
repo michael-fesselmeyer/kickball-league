@@ -148,10 +148,7 @@ const answerSchema = z.object({
 });
 
 export type RecapRejection =
-  | "malformed"
-  | "too_long"
-  | "unknown_score"
-  | "unknown_link";
+  "malformed" | "too_long" | "unknown_score" | "unknown_link";
 
 /** Number runs joined by dashes, not part of a longer run like a date. */
 const SCORE_LIKE = /(?<![\d–—-])\d{1,3}(?:\s?[–—-]\s?\d{1,3}){1,2}(?![\d–—-])/g;

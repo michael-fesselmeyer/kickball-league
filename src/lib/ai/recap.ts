@@ -1,8 +1,4 @@
-import {
-  reserveAiCall,
-  saveRecapDraft,
-  settleAiCall,
-} from "@/db/queries/ai";
+import { reserveAiCall, saveRecapDraft, settleAiCall } from "@/db/queries/ai";
 import type { Db } from "@/db/queries/schedule";
 import {
   type AiModel,
@@ -45,20 +41,18 @@ export const tokenBound = (text: string) => Math.ceil(text.length / 2);
 
 /** The most one recap call can cost, for the availability check. */
 export const recapWorstCase = (model: AiModel) =>
-  worstCaseMicrodollars(
-    model,
-    RECAP_MAX_INPUT_TOKENS,
-    RECAP_MAX_OUTPUT_TOKENS,
-  );
+  worstCaseMicrodollars(model, RECAP_MAX_INPUT_TOKENS, RECAP_MAX_OUTPUT_TOKENS);
 
 export type RecapFailure =
-  | "over_budget"
-  | "too_big"
-  | "no_answer"
-  | RecapRejection;
+  "over_budget" | "too_big" | "no_answer" | RecapRejection;
+
+/** What the reservation needs from the transaction-capable client. */
+type Transactor = {
+  transaction<T>(body: (tx: Db) => Promise<T>): Promise<T>;
+};
 
 export async function writeRecapDraft(
-  deps: { db: Db; txDb: Db; call: AiCall; model: AiModel; now: Date },
+  deps: { db: Db; txDb: Transactor; call: AiCall; model: AiModel; now: Date },
   input: {
     leagueId: LeagueId;
     seasonId: SeasonId;
