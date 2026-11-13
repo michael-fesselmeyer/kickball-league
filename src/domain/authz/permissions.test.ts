@@ -394,6 +394,8 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "billing.manage",
       "admins.manage",
       "books.manage",
+      "dashboard.view",
+      "money_summary.publish",
     ] as const)
       expect(allowed(action)).toEqual(["owner"]);
   });
@@ -403,6 +405,15 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     expect(can(operator, "books.manage")).toBe(true);
     expect(can({ ...VISITOR, isOperator: true }, "books.manage")).toBe(false);
     expect(can(people.admin, "books.manage")).toBe(false);
+  });
+
+  it("opens the dashboard and the money summary to the operator, never to an admin", () => {
+    const operator = person("op", { isOperator: true });
+    for (const action of ["dashboard.view", "money_summary.publish"] as const) {
+      expect(can(operator, action)).toBe(true);
+      expect(can({ ...VISITOR, isOperator: true }, action)).toBe(false);
+      expect(can(people.admin, action)).toBe(false);
+    }
   });
 
   it("shows a game's permit to its ref and captains, not to admins", () => {
