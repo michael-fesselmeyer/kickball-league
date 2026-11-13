@@ -425,6 +425,56 @@ describe("announceEvent", () => {
       expect(await announce("updated", party("x").endsAt)).toBe(0);
     });
   });
+
+  it("hurries only a move of time or place within a day of the start", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const created = await w.create("Trivia", {
+        kind: "teams",
+        seasonId: w.fall,
+        teamIds: [w.kickers],
+      });
+      const start = party("x").startsAt.getTime();
+      const kindsAt = async (
+        hoursBefore: number,
+        timeOrPlace: boolean,
+      ): Promise<string[]> => {
+        const now = new Date(start - hoursBefore * 3_600_000);
+        await announceEvent(db, {
+          eventId: created.id,
+          kind: "updated",
+          now,
+          change: { timeOrPlace, startedBefore: new Date(start) },
+        });
+        const rows = await db
+          .select({ template: message.template })
+          .from(message)
+          .where(
+            sql`${message.dedupeKey} like ${`event_updated/${created.id}/${now.getTime()}/%`}`,
+          );
+        return [...new Set(rows.map((r) => r.template))];
+      };
+      expect(await kindsAt(5, true)).toEqual(["event_notice"]);
+      expect(await kindsAt(6, false)).toEqual(["event_news"]);
+      expect(await kindsAt(72, true)).toEqual(["event_news"]);
+      // An announcement can always wait.
+      await announceEvent(db, {
+        eventId: created.id,
+        kind: "announced",
+        now: new Date(start - 3_600_000),
+      });
+      expect(
+        (
+          await db
+            .select({ template: message.template })
+            .from(message)
+            .where(
+              sql`${message.dedupeKey} like ${`event_announced/${created.id}/%`}`,
+            )
+        ).map((r) => r.template),
+      ).toEqual(["event_news"]);
+    });
+  });
 });
 
 describe("updateEvent", () => {

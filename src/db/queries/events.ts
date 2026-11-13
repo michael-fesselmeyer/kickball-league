@@ -25,6 +25,7 @@ import {
 } from "@/domain/events/event";
 import type { EventId, LeagueId, SeasonId, TeamId, UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
+import { eventNoticeKind } from "@/domain/notifications/kinds";
 import type { EventNoticePayload } from "@/emails/event";
 import { user } from "../schema/auth";
 import { event, eventAudienceTeam, eventRsvp } from "../schema/event";
@@ -359,8 +360,9 @@ async function counts(db: Db, eventId: EventId) {
 function notice(
   e: Locked,
   userId: UserId,
-  kind: EventNoticePayload["kind"],
+  kind: "spot_opened" | "cancelled",
   dedupeKey: string,
+  template: "event_notice" | "event_news",
 ): OutboxMessage {
   const payload: EventNoticePayload = {
     kind,
@@ -372,7 +374,7 @@ function notice(
   return {
     userId,
     topic: "events",
-    template: "event_notice",
+    template,
     payload,
     dedupeKey,
   };
@@ -404,7 +406,16 @@ async function fillFromWaitlist(db: Db, e: Locked): Promise<UserId[]> {
     );
   await enqueueMessages(
     db,
-    next.map((r) => notice(e, r.userId, "spot_opened", `event_spot/${r.id}`)),
+    next.map((r) =>
+      notice(
+        e,
+        r.userId,
+        "spot_opened",
+        `event_spot/${r.id}`,
+        // A spot that opened for someone is always urgent (kinds.ts).
+        "event_notice",
+      ),
+    ),
   );
   return next.map((r) => r.userId);
 }
@@ -489,6 +500,12 @@ export async function cancelEvent(
               r.userId,
               "cancelled",
               `event_cancelled/${e.id}/${r.userId}`,
+              // A cancellation more than a day ahead can wait.
+              eventNoticeKind({
+                notice: "cancelled",
+                startsAt: e.startsAt,
+                now: input.now,
+              }),
             ),
           ),
         )

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   DIGEST_KIND,
   deliveryClassOf,
+  eventNoticeKind,
   MESSAGE_KINDS,
   NON_URGENT_KINDS,
   URGENT_LABELS,
@@ -26,7 +27,12 @@ describe("MESSAGE_KINDS", () => {
   it("lists the non-urgent kinds and the urgent labels from one table", () => {
     expect([...NON_URGENT_KINDS].sort()).toEqual([
       "announcement",
+      "event_news",
+      "instagram_reconnect",
+      "instagram_storage_full",
       "new_team",
+      "rebate_credit",
+      "referral_credit",
       "score_reminder",
     ]);
     expect(URGENT_LABELS).toContain("Rain-outs and makeup times");
@@ -81,4 +87,63 @@ describe("every message the code queues", () => {
       ).toBe(true);
     },
   );
+});
+
+describe("eventNoticeKind", () => {
+  const now = new Date("2026-11-20T15:00:00Z");
+  const hours = (h: number) => new Date(now.getTime() + h * 3_600_000);
+
+  it("always hurries a spot that opened for someone", () => {
+    expect(
+      eventNoticeKind({ notice: "spot_opened", startsAt: hours(500), now }),
+    ).toBe("event_notice");
+  });
+
+  it("hurries a cancellation within a day of the start, not further out", () => {
+    expect(
+      eventNoticeKind({ notice: "cancelled", startsAt: hours(23), now }),
+    ).toBe("event_notice");
+    expect(
+      eventNoticeKind({ notice: "cancelled", startsAt: hours(24), now }),
+    ).toBe("event_notice");
+    expect(
+      eventNoticeKind({ notice: "cancelled", startsAt: hours(25), now }),
+    ).toBe("event_news");
+  });
+
+  it("hurries only a change to the time or place within a day", () => {
+    const soon = { notice: "updated" as const, startsAt: hours(3), now };
+    expect(eventNoticeKind({ ...soon, timeOrPlaceChanged: true })).toBe(
+      "event_notice",
+    );
+    expect(eventNoticeKind({ ...soon, timeOrPlaceChanged: false })).toBe(
+      "event_news",
+    );
+    expect(
+      eventNoticeKind({
+        notice: "updated",
+        startsAt: hours(72),
+        timeOrPlaceChanged: true,
+        now,
+      }),
+    ).toBe("event_news");
+  });
+
+  it("counts the old start when an event tonight moves to next week", () => {
+    expect(
+      eventNoticeKind({
+        notice: "updated",
+        startsAt: hours(170),
+        startedBefore: hours(4),
+        timeOrPlaceChanged: true,
+        now,
+      }),
+    ).toBe("event_notice");
+  });
+
+  it("lets an announcement wait, however soon", () => {
+    expect(
+      eventNoticeKind({ notice: "announced", startsAt: hours(2), now }),
+    ).toBe("event_news");
+  });
 });

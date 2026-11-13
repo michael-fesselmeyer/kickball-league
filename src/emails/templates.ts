@@ -36,6 +36,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     announcement: announcementEmail,
     digest: digestEmail,
     email_budget: emailBudgetEmail,
+    event_news: eventNoticeEmail,
     event_notice: eventNoticeEmail,
     guarantee_failed: guaranteeFailedEmail,
     guarantee_warning: guaranteeWarningEmail,

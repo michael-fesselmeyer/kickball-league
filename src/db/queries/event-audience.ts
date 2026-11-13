@@ -17,6 +17,7 @@ import {
 } from "@/domain/events/audience";
 import { whenLine } from "@/domain/events/event";
 import type { EventId, LeagueId, SeasonId, TeamId, UserId } from "@/domain/ids";
+import { eventNoticeKind } from "@/domain/notifications/kinds";
 import type { EventNoticePayload } from "@/emails/event";
 import { calendarFeed, event, eventAudienceTeam } from "../schema/event";
 import { league } from "../schema/league";
@@ -178,7 +179,13 @@ export type AnnounceKind = "announced" | "updated";
  */
 export async function announceEvent(
   db: Db,
-  input: { eventId: EventId; kind: AnnounceKind; now: Date },
+  input: {
+    eventId: EventId;
+    kind: AnnounceKind;
+    now: Date;
+    /** For an update: whether the time or place changed, and the old start. */
+    change?: { timeOrPlace: boolean; startedBefore: Date };
+  },
 ): Promise<number> {
   const [e] = await db
     .select({
@@ -214,12 +221,21 @@ export async function announceEvent(
     publicPage: e.audienceKind === "public",
   };
   const stamp = input.kind === "announced" ? "new" : input.now.getTime();
+  // A change to the time or place within a day of the start is urgent;
+  // announcements and other edits are news that can wait (kinds.ts).
+  const template = eventNoticeKind({
+    notice: input.kind,
+    startsAt: e.startsAt,
+    startedBefore: input.change?.startedBefore,
+    timeOrPlaceChanged: input.change?.timeOrPlace ?? false,
+    now: input.now,
+  });
   return enqueueMessages(
     db,
     recipients.map((userId) => ({
       userId,
       topic: "events",
-      template: "event_notice",
+      template,
       payload,
       dedupeKey: `event_${input.kind}/${e.id}/${stamp}/${userId}`,
     })),
