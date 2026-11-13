@@ -16,6 +16,7 @@ import {
   announcement,
   message,
   notificationPreference,
+  pushSubscription,
 } from "../schema/message";
 import { payment, purchase, purchaseItem } from "../schema/money";
 import { profile } from "../schema/profile";
@@ -334,6 +335,17 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .from(notificationPreference)
     .where(eq(notificationPreference.userId, userId))
     .orderBy(asc(notificationPreference.topic));
+  // Which browsers get push, without the endpoint or keys: those only
+  // let a push service reach the device.
+  const pushDevices = await db
+    .select({
+      browser: pushSubscription.userAgent,
+      createdAt: pushSubscription.createdAt,
+      lastSuccessAt: pushSubscription.lastSuccessAt,
+    })
+    .from(pushSubscription)
+    .where(eq(pushSubscription.userId, userId))
+    .orderBy(asc(pushSubscription.createdAt));
   const messages = await db
     .select({
       topic: message.topic,
@@ -411,6 +423,7 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
       pick: v.pickedPlayer ?? v.pickedTeam,
     })),
     emailSettings,
+    pushDevices,
     messages,
     announcementsSent,
     actionsTaken,
@@ -479,7 +492,8 @@ export type DeleteError = "not_found" | DeleteBlocker["reason"];
  * Removed: the profile (name, phone, gender, shirt size, birth date,
  * emergency contact), every session and sign-in method, pending sign-in
  * links, game and event RSVPs (a freed event spot goes to the waitlist),
- * email settings and messages, and their address on invites.
+ * email and push settings, push devices and messages, and their address on
+ * invites.
  * Sub claims for games still to come are withdrawn, which reopens the spot
  * and tells the captains; past claims stay as history without the copied
  * lineup gender.
@@ -570,6 +584,7 @@ export async function deleteAccount(
   await db
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));
+  await db.delete(pushSubscription).where(eq(pushSubscription.userId, userId));
   await db.delete(message).where(eq(message.userId, userId));
   await db
     .update(invite)
