@@ -60,8 +60,15 @@ export async function placeFreeAgentAction(
       teamSeasonId,
       actorId: subject.userId,
       now: new Date(),
+      // Only from the warning's "Place anyway" button; audited.
+      override: form.get("override") === "yes",
     }),
   );
+  // The team keeps them off: show the admin the conflict before anything.
+  if (!result.ok && result.error === "on_team_list")
+    redirect(
+      `${page}?conflict=${registrationId}&team=${teamSeasonId}#place-conflict`,
+    );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
   redirect(`${page}?notice=placed`);
 }

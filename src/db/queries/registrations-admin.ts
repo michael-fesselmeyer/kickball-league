@@ -19,6 +19,7 @@ import {
 } from "../schema/team";
 import { recordAudit } from "./audit";
 import { anySuspendedRegistration } from "./discipline";
+import { keepsRegistrationOff, recordKeepOffOverride } from "./keep-off";
 import { settleCoveredRegistrations } from "./payments";
 import type { Db } from "./schedule";
 
@@ -217,7 +218,8 @@ export type PlaceError =
   | "already_on_team"
   | "unknown_team"
   | "full"
-  | "suspended";
+  | "suspended"
+  | "on_team_list";
 
 /** Puts a free agent on a team in the same season (free_agents.place). */
 export async function placeFreeAgent(
@@ -228,6 +230,11 @@ export async function placeFreeAgent(
     teamSeasonId: TeamSeasonId;
     actorId: UserId;
     now: Date;
+    /**
+     * The admin saw the warning that the team keeps this person off and
+     * places them anyway; the override is audited (ADR 0036).
+     */
+    override?: boolean;
   },
 ): Promise<Result<void, PlaceError>> {
   const [entry] = await db
@@ -276,6 +283,12 @@ export async function placeFreeAgent(
       ),
     );
   if (members.length >= target.rosterMax) return err("full");
+  const keptOff = await keepsRegistrationOff(
+    db,
+    input.teamSeasonId,
+    input.registrationId,
+  );
+  if (keptOff && input.override !== true) return err("on_team_list");
 
   await db
     .update(registration)
@@ -297,6 +310,7 @@ export async function placeFreeAgent(
     entityId: input.registrationId,
     after: { teamSeasonId: input.teamSeasonId },
   });
+  if (keptOff) await recordKeepOffOverride(db, input);
   return ok(undefined);
 }
 
