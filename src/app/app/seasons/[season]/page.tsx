@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { myQuiz } from "@/db/queries/free-agents";
 import {
   amountOwed,
   myRegistration,
@@ -118,7 +119,11 @@ async function Season({
     );
   }
 
-  const signed = await hasSignedSeasonWaiver(db, subject.userId, season.id);
+  const inPool = mine.kind === "free_agent" && !mine.team;
+  const [signed, quiz] = await Promise.all([
+    hasSignedSeasonWaiver(db, subject.userId, season.id),
+    inPool ? myQuiz(db, season.id, subject.userId) : null,
+  ]);
   const owed = amountOwed(season, mine, now);
   const deadline = season.paymentDeadlineAt
     ? new Intl.DateTimeFormat("en-US", {
@@ -156,7 +161,13 @@ async function Season({
             ? `You're on ${mine.team?.teamName ?? "the team"}. Next, sign the waiver.`
             : query.registered === "team"
               ? "Your team is registered. Next, invite your players and sign the waiver."
-              : "You're in the free-agent pool. Next, sign the waiver."}
+              : "You're in the free-agent pool. Next, take the one-minute quiz so we can find your team, then sign the waiver."}
+        </p>
+      )}
+      {query.quiz === "saved" && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          Thanks! Your answers are saved. The league will use them to place you
+          on a team.
         </p>
       )}
       <ol className="flex flex-col">
@@ -181,6 +192,22 @@ async function Season({
             </Link>
           )}
         </Step>
+        {inPool && (
+          <Step done={Boolean(quiz?.answers)} title="Take the team-fit quiz">
+            <Link href={`/app/seasons/${slug}/quiz`} className="underline">
+              {quiz?.answers
+                ? "Change your answers or friend code"
+                : "Five quick questions and an optional friend code"}
+            </Link>
+            {quiz?.code && (
+              <p className="text-text-muted">
+                {quiz.friends.length === 0
+                  ? "Your friend group is waiting for friends to join."
+                  : `Staying together with ${quiz.friends.join(", ")}.`}
+              </p>
+            )}
+          </Step>
+        )}
         <Step done={signed} title="Sign the waiver">
           {!signed && (
             <Link href={`/app/seasons/${slug}/waiver`} className="underline">
