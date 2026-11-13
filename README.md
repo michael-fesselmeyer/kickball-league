@@ -2,7 +2,7 @@
 
 > Software to run a recreational adult kickball league: registration and payment, waivers, a fair season schedule, game-day scores and rain-outs, built first for a Brooklyn league of 8 to 12 teams.
 
-**Live:** [kickball-league.vercel.app](https://kickball-league.vercel.app) · **Status:** season core in progress. Scheduling, registration, game day and the admin tools work; card payments and email are built but stay off until their accounts are configured (free-tier hosting, see [ADR 0003](docs/adr/0003-free-hosting-and-secrets.md))
+**Live:** [kickball-league.vercel.app](https://kickball-league.vercel.app) (an earlier build: automatic deployments are paused until launch) · **Status:** season core in progress. Scheduling, registration, game day and the admin tools work; card payments and email are built but stay off until their accounts are configured (free-tier hosting, see [ADR 0003](docs/adr/0003-free-hosting-and-secrets.md))
 
 ## Why this exists
 
