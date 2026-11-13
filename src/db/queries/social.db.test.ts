@@ -7,7 +7,6 @@ import { recentPosts } from "@/services/instagram";
 import {
   EXPIRED_FIXTURE_TOKEN,
   fixtureFetch,
-  fixturePhoto,
 } from "@/services/instagram-fixture";
 import media from "@/services/fixtures/instagram/media.json";
 import { auditLog } from "../schema/audit";
@@ -19,8 +18,13 @@ import { socialAccount, socialImage, socialPost } from "../schema/social";
 import { team } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import type { Db } from "./schedule";
+import sharp from "sharp";
+import { KEEP_RECENT } from "@/domain/social/storage";
+import { STORED_WIDTH } from "@/lib/social/compress-photo";
+import type { RecentPost } from "@/services/instagram";
 import {
   adminPosts,
+  applySync,
   connectedAccounts,
   curatePost,
   disconnect,
@@ -29,7 +33,9 @@ import {
   needsReconnect,
   saveConnection,
   setShowNewest,
+  STORAGE_FULL_MESSAGE,
   storedImage,
+  storedImageBytes,
   teamPhotos,
 } from "./social";
 
@@ -153,14 +159,11 @@ describe("sync", () => {
         "https://www.instagram.com/p/FixtureChampionship/",
       );
       const image = await storedImage(db, posts[0]!.imageId!);
-      expect(image?.contentType).toBe("image/png");
-      expect(
-        image?.bytes.equals(
-          fixturePhoto(
-            "https://scontent-lga3-1.cdninstagram.com/v/t51.fixture/championship.jpg?_nc_ht=fixture",
-          ),
-        ),
-      ).toBe(true);
+      // Stored as one compressed WebP copy, not the original.
+      expect(image?.contentType).toBe("image/webp");
+      const meta = await sharp(image!.bytes).metadata();
+      expect(meta.format).toBe("webp");
+      expect(meta.width).toBeLessThanOrEqual(STORED_WIDTH);
       expect((await instagramAccount(db, w.leagueId))?.lastSyncedAt).toEqual(
         LATER,
       );
@@ -497,6 +500,132 @@ describe("curatePost", () => {
         );
       expect(entry?.before).toMatchObject({ featured: false });
       expect(entry?.after).toMatchObject({ featured: true });
+    });
+  });
+});
+
+describe("storage limits", () => {
+  /** A page of Instagram media, `count` posts from minute `from` on. */
+  const page = (from: number, count: number) => ({
+    data: Array.from({ length: count }, (_, i) => {
+      const n = from + i;
+      return {
+        id: `limit-${n}`,
+        caption: `Post ${n}`,
+        media_type: "IMAGE",
+        media_url: `https://scontent.cdninstagram.com/limit-${n}.jpg`,
+        permalink: `https://www.instagram.com/p/Limit${n}/`,
+        timestamp: new Date(Date.UTC(2026, 8, 1) + n * 60_000)
+          .toISOString()
+          .replace(/\.\d{3}Z$/, "+0000"),
+      };
+    }),
+  });
+
+  it("keeps the 30 newest posts plus curated ones, and deletes the rest with their photos", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      await connect(db, w);
+      // 25 older posts, two of them curated, then 25 newer ones.
+      await syncAll(
+        db,
+        { fetch: fixtureFetch({ media: page(0, 25) }) },
+        SECRET,
+        NOW,
+      );
+      const featured = await postId(db, "limit-0");
+      const cover = await postId(db, "limit-1");
+      for (const [id, change] of [
+        [featured, { kind: "feature", on: true }],
+        [cover, { kind: "cover", cover: "home" }],
+      ] as const)
+        await curatePost(db, {
+          leagueId: w.leagueId,
+          postId: id,
+          change,
+          actorId: w.adminId,
+        });
+      const [outcome] = await syncAll(
+        db,
+        { fetch: fixtureFetch({ media: page(25, 25) }) },
+        SECRET,
+        LATER,
+      );
+      expect(outcome).toMatchObject({ added: 25, removed: 18, full: false });
+
+      const posts = await adminPosts(db, w.leagueId);
+      expect(posts).toHaveLength(KEEP_RECENT + 2);
+      const ids = new Set(posts.map((p) => p.permalink));
+      expect(ids.has("https://www.instagram.com/p/Limit0/")).toBe(true);
+      expect(ids.has("https://www.instagram.com/p/Limit1/")).toBe(true);
+      expect(ids.has("https://www.instagram.com/p/Limit19/")).toBe(false);
+      expect(ids.has("https://www.instagram.com/p/Limit20/")).toBe(true);
+      // Every remaining post has its photo, and no photo is left without one.
+      expect(posts.every((p) => p.imageId)).toBe(true);
+      const images = await db
+        .select({ id: socialImage.id })
+        .from(socialImage)
+        .innerJoin(socialPost, eq(socialImage.postId, socialPost.id))
+        .innerJoin(socialAccount, eq(socialPost.accountId, socialAccount.id))
+        .where(eq(socialAccount.leagueId, w.leagueId));
+      expect(images).toHaveLength(KEEP_RECENT + 2);
+    });
+  });
+
+  it("never stores more than the cap, copies the newest that fit, and tells admins once", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const accountId = await connect(db, w);
+      const size = 1000;
+      const cap = (await storedImageBytes(db)) + 3 * size;
+      const posts: RecentPost[] = Array.from({ length: 5 }, (_, i) => ({
+        externalId: `cap-${i}`,
+        caption: null,
+        mediaType: "image",
+        imageUrl: `https://scontent.cdninstagram.com/cap-${i}.jpg`,
+        permalink: `https://www.instagram.com/p/Cap${i}/`,
+        takenAt: new Date(Date.UTC(2026, 9, 1, i)),
+      }));
+      const images = new Map(
+        posts.map((p) => [
+          p.externalId,
+          { contentType: "image/png", bytes: Buffer.alloc(size, 7) },
+        ]),
+      );
+      const sync = (now: Date) =>
+        applySync(db, {
+          accountId,
+          fetched: { posts, complete: true },
+          images,
+          now,
+          capBytes: cap,
+        });
+
+      expect(await sync(NOW)).toMatchObject({ added: 3, full: true });
+      expect(await storedImageBytes(db)).toBeLessThanOrEqual(cap);
+      const kept = (await adminPosts(db, w.leagueId)).map((p) => p.permalink);
+      expect(kept).toEqual([
+        "https://www.instagram.com/p/Cap4/",
+        "https://www.instagram.com/p/Cap3/",
+        "https://www.instagram.com/p/Cap2/",
+      ]);
+      expect((await instagramAccount(db, w.leagueId))?.lastError).toBe(
+        STORAGE_FULL_MESSAGE,
+      );
+
+      // Still full on the next run: nothing more is stored, nobody is told twice.
+      expect(await sync(LATER)).toMatchObject({ added: 0, full: true });
+      expect(await storedImageBytes(db)).toBeLessThanOrEqual(cap);
+      const notices = await db
+        .select({ userId: message.userId })
+        .from(message)
+        .where(
+          and(
+            eq(message.template, "instagram_storage_full"),
+            eq(message.userId, w.adminId),
+          ),
+        );
+      expect(notices).toHaveLength(1);
     });
   });
 });

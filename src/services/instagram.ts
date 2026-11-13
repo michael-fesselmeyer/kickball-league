@@ -21,7 +21,7 @@ export const SCOPE = "instagram_business_basic";
 /** How many recent posts a sync reads. */
 export const RECENT_LIMIT = 25;
 /** The largest photo the site copies. */
-export const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 export type InstagramFetch = (
   url: string,

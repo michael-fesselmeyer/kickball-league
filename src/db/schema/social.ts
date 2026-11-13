@@ -194,7 +194,7 @@ export const socialImage = pgTable(
     ),
     check(
       "social_image_size",
-      sql`${t.byteSize} = octet_length(${t.bytes}) and ${t.byteSize} between 1 and 8388608`,
+      sql`${t.byteSize} = octet_length(${t.bytes}) and ${t.byteSize} between 1 and 2097152`,
     ),
   ],
 );

@@ -32,7 +32,7 @@ CREATE TABLE "social_image" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "social_image_postId_unique" UNIQUE("post_id"),
 	CONSTRAINT "social_image_type" CHECK ("social_image"."content_type" in ('image/jpeg', 'image/png', 'image/webp')),
-	CONSTRAINT "social_image_size" CHECK ("social_image"."byte_size" = octet_length("social_image"."bytes") and "social_image"."byte_size" between 1 and 8388608)
+	CONSTRAINT "social_image_size" CHECK ("social_image"."byte_size" = octet_length("social_image"."bytes") and "social_image"."byte_size" between 1 and 2097152)
 );
 --> statement-breakpoint
 CREATE TABLE "social_post" (

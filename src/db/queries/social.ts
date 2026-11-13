@@ -19,7 +19,13 @@ import type {
   UserId,
 } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
-import { planSync } from "@/domain/social/sync-plan";
+import {
+  fitUnderCap,
+  postsToKeep,
+  STORAGE_CAP_BYTES,
+} from "@/domain/social/storage";
+import { planSync, type SyncPlan } from "@/domain/social/sync-plan";
+import type { InstagramStorageFullPayload } from "@/emails/instagram-storage-full";
 import type { InstagramReconnectPayload } from "@/emails/instagram-reconnect";
 import { decryptToken, encryptToken } from "@/lib/social/token-crypto";
 import type {
@@ -245,34 +251,88 @@ export async function connectedAccounts(
   return accounts;
 }
 
+export type StoredPost = {
+  externalId: string;
+  takenAt: Date;
+  featured: boolean;
+  cover: "home" | "team" | null;
+};
+
 /** What the sync already has for an account, to plan against. */
-export async function storedPosts(db: Db, accountId: SocialAccountId) {
+export async function storedPosts(
+  db: Db,
+  accountId: SocialAccountId,
+): Promise<StoredPost[]> {
   return db
-    .select({ externalId: socialPost.externalId, takenAt: socialPost.takenAt })
+    .select({
+      externalId: socialPost.externalId,
+      takenAt: socialPost.takenAt,
+      featured: socialPost.featured,
+      cover: socialPost.cover,
+    })
     .from(socialPost)
     .where(eq(socialPost.accountId, accountId));
 }
 
-/** Which fetched posts need their photo copied: the ones not stored yet. */
+/**
+ * The posts the site keeps after this sync (src/domain/social/storage.ts):
+ * the newest of what stays plus what arrives, and every curated one.
+ */
+function keptAfter(
+  stored: readonly StoredPost[],
+  plan: SyncPlan<RecentPost>,
+): Set<string> {
+  const removed = new Set(plan.remove);
+  return postsToKeep([
+    ...stored.filter((p) => !removed.has(p.externalId)),
+    ...plan.add.map((p) => ({ ...p, featured: false, cover: null })),
+  ]);
+}
+
+/**
+ * Which fetched posts need their photo copied: new ones the site will
+ * keep. A new post too old to keep is never downloaded.
+ */
 export function postsToCopy(
-  stored: readonly { externalId: string; takenAt: Date }[],
+  stored: readonly StoredPost[],
   fetched: { posts: RecentPost[]; complete: boolean },
 ): RecentPost[] {
-  return planSync(stored, fetched.posts, fetched.complete).add;
+  const plan = planSync(stored, fetched.posts, fetched.complete);
+  const keep = keptAfter(stored, plan);
+  return plan.add.filter((p) => keep.has(p.externalId));
+}
+
+/** Bytes of every stored photo, the figure the storage cap limits. */
+export async function storedImageBytes(db: Db): Promise<number> {
+  const [row] = await db
+    .select({
+      total: sql<string>`coalesce(sum(${socialImage.byteSize}), 0)`,
+    })
+    .from(socialImage);
+  return Number(row?.total ?? 0);
 }
 
 export type SyncResult = {
   added: number;
   updated: number;
+  /** Deleted on Instagram, or too old to keep. */
   removed: number;
   /** New posts left for the next sync because their photo could not be copied. */
   skipped: number;
+  /** New posts left out because the photo storage cap was reached. */
+  full: boolean;
 };
 
+export const STORAGE_FULL_MESSAGE =
+  "Photo storage is full, so the newest posts weren't copied. Unfeature or hide older photos to make room";
+
 /**
- * Writes one sync: inserts new posts with their copied photos, refreshes
- * caption, link and type of the others without touching curation, and
- * deletes posts removed on Instagram. Run it in one transaction.
+ * Writes one sync, in this order: deletes posts removed on Instagram and
+ * posts too old to keep (src/domain/social/storage.ts), refreshes caption,
+ * link and type of the rest without touching curation, then inserts new
+ * posts with their copied photos, newest first, while the photos stay
+ * under the storage cap. When the cap stops it, the account notes why and
+ * admins are told once a month. Run it in one transaction.
  */
 export async function applySync(
   db: Db,
@@ -281,18 +341,61 @@ export async function applySync(
     fetched: { posts: RecentPost[]; complete: boolean };
     images: ReadonlyMap<string, DownloadedImage>;
     now: Date;
+    /** Tests pass a smaller cap. */
+    capBytes?: number;
   },
 ): Promise<SyncResult> {
   const stored = await storedPosts(db, input.accountId);
   const plan = planSync(stored, input.fetched.posts, input.fetched.complete);
-  let skipped = 0;
-  let added = 0;
-  for (const post of plan.add) {
+  const keep = keptAfter(stored, plan);
+  const gone = [
+    ...plan.remove,
+    ...stored
+      .filter((p) => !keep.has(p.externalId))
+      .map((p) => p.externalId)
+      .filter((id) => !plan.remove.includes(id)),
+  ];
+  if (gone.length > 0)
+    await db
+      .delete(socialPost)
+      .where(
+        and(
+          eq(socialPost.accountId, input.accountId),
+          inArray(socialPost.externalId, gone),
+        ),
+      );
+
+  const kept = plan.update.filter((p) => keep.has(p.externalId));
+  for (const post of kept) {
+    await db
+      .update(socialPost)
+      .set({
+        permalink: post.permalink,
+        caption: post.caption,
+        mediaType: post.mediaType,
+      })
+      .where(
+        and(
+          eq(socialPost.accountId, input.accountId),
+          eq(socialPost.externalId, post.externalId),
+        ),
+      );
+  }
+
+  const arriving = plan.add.filter((p) => keep.has(p.externalId));
+  const copied = arriving.flatMap((post) => {
     const image = input.images.get(post.externalId);
-    if (!image) {
-      skipped++;
-      continue;
-    }
+    return image
+      ? [{ post, image, takenAt: post.takenAt, size: image.bytes.length }]
+      : [];
+  });
+  const { accepted, full } = fitUnderCap(
+    await storedImageBytes(db),
+    copied,
+    input.capBytes,
+  );
+  let added = 0;
+  for (const { post, image } of accepted) {
     const [row] = await db
       .insert(socialPost)
       .values({
@@ -315,40 +418,55 @@ export async function applySync(
     });
     added++;
   }
-  for (const post of plan.update) {
-    await db
-      .update(socialPost)
-      .set({
-        permalink: post.permalink,
-        caption: post.caption,
-        mediaType: post.mediaType,
-      })
-      .where(
-        and(
-          eq(socialPost.accountId, input.accountId),
-          eq(socialPost.externalId, post.externalId),
-        ),
-      );
-  }
-  if (plan.remove.length > 0)
-    await db
-      .delete(socialPost)
-      .where(
-        and(
-          eq(socialPost.accountId, input.accountId),
-          inArray(socialPost.externalId, plan.remove),
-        ),
-      );
+
   await db
     .update(socialAccount)
-    .set({ lastSyncedAt: input.now, lastError: null })
+    .set({
+      lastSyncedAt: input.now,
+      lastError: full ? STORAGE_FULL_MESSAGE : null,
+    })
     .where(eq(socialAccount.id, input.accountId));
+  if (full) await tellAdminsStorageIsFull(db, input.accountId, input.now);
   return {
     added,
-    updated: plan.update.length,
-    removed: plan.remove.length,
-    skipped,
+    updated: kept.length,
+    removed: gone.length,
+    skipped: arriving.length - copied.length,
+    full,
   };
+}
+
+/** Everyone who can manage the league's photos. */
+async function adminIds(db: Db): Promise<UserId[]> {
+  const rows = await db
+    .select({ id: user.id })
+    .from(profile)
+    .innerJoin(user, eq(profile.userId, user.id))
+    .where(inArray(profile.globalRole, ["admin", "owner"]));
+  return rows.map((r) => r.id);
+}
+
+/** One email per admin per month while the photo storage stays full. */
+async function tellAdminsStorageIsFull(
+  db: Db,
+  accountId: SocialAccountId,
+  now: Date,
+): Promise<void> {
+  const month = now.toISOString().slice(0, 7);
+  const payload = {
+    capMegabytes: Math.round(STORAGE_CAP_BYTES / (1024 * 1024)),
+  } satisfies InstagramStorageFullPayload;
+  await enqueueMessages(
+    db,
+    (await adminIds(db)).map((id) => ({
+      userId: id,
+      topic: "announcement" as const,
+      template: "instagram_storage_full",
+      payload,
+      dedupeKey: `instagram-storage-full/${accountId}/${month}/${id}`,
+      sendAfter: now,
+    })),
+  );
 }
 
 /** Stores a refreshed token. */
@@ -411,11 +529,7 @@ export async function recordProblem(
       refreshedAt: socialAccount.tokenRefreshedAt,
     });
   if (!account) return;
-  const admins = await db
-    .select({ id: user.id })
-    .from(profile)
-    .innerJoin(user, eq(profile.userId, user.id))
-    .where(inArray(profile.globalRole, ["admin", "owner"]));
+  const admins = await adminIds(db);
   const payload = {
     username: account.username,
     reason: problem.message,
@@ -424,12 +538,12 @@ export async function recordProblem(
   const connection = (account.refreshedAt ?? now).toISOString();
   await enqueueMessages(
     db,
-    admins.map((a) => ({
-      userId: a.id,
+    admins.map((id) => ({
+      userId: id,
       topic: "announcement" as const,
       template: "instagram_reconnect",
       payload,
-      dedupeKey: `instagram-reconnect/${accountId}/${connection}/${a.id}`,
+      dedupeKey: `instagram-reconnect/${accountId}/${connection}/${id}`,
       sendAfter: now,
     })),
   );
