@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { DealId, SponsorId } from "@/domain/ids";
+import type { DealId } from "@/domain/ids";
 import type { DealTerms } from "@/domain/sponsors/deals";
 import { auditLog } from "../schema/audit";
 import { season } from "../schema/season";
@@ -31,9 +31,10 @@ afterAll(closePool);
 const NOW = new Date("2027-04-13T23:30:00Z");
 const TZ = "America/New_York";
 
+// A slug of its own, so a seeded sponsor on the same database never matches.
 const bar = {
-  name: "The Corner Pocket",
-  slug: "the-corner-pocket",
+  name: "The Test Pocket",
+  slug: `test-pocket-${Math.random().toString(36).slice(2, 8)}`,
   kind: "bar" as const,
   isHomeBar: true,
   blurb: "Shuffleboard, big booths and a kitchen open late.",
@@ -147,10 +148,7 @@ describe("sponsors", () => {
         now: NOW,
       });
       const { sponsors } = await sponsorDirectory(db, w.leagueId, TZ);
-      expect(sponsors.map((s) => s.slug)).toEqual([
-        "the-corner-pocket",
-        "bounce-supply",
-      ]);
+      expect(sponsors.map((s) => s.slug)).toEqual([bar.slug, "bounce-supply"]);
       const [home] = sponsors;
       expect(home?.deals.map((d) => [d.title, d.confirmedOn])).toEqual([
         // 23:30 UTC is still the 13th in New York.
@@ -207,9 +205,7 @@ describe("sponsors", () => {
         .select({ at: deal.confirmedAt })
         .from(deal)
         .where(eq(deal.sponsorId, sponsorId));
-      expect(dates.every((d) => d.at.getTime() === later.getTime())).toBe(
-        true,
-      );
+      expect(dates.every((d) => d.at.getTime() === later.getTime())).toBe(true);
       const audits = await db
         .select({ action: auditLog.action })
         .from(auditLog)
@@ -433,7 +429,7 @@ describe("team of the week", () => {
           seasonId: w.season.id,
           weekOf,
           teamSeasonId,
-          sponsorId: sponsorId as SponsorId,
+          sponsorId,
           tabCents: 5000,
           reason: "Took down No. 1.",
           actorId: w.admin,
