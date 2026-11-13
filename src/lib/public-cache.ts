@@ -131,3 +131,17 @@ export function refreshSponsorPages(): void {
   updateTag(SPONSORS_TAG);
   revalidatePath("/sponsors", "layout");
 }
+
+/** The friends of the league directory. */
+export const FRIENDS_TAG = "friends";
+
+/**
+ * From a Server Action: the friends directory shows an admin's change on
+ * its next request. As with the other refreshes, the route is expired by
+ * path too, so its prerendered page doesn't serve the entries it was built
+ * with.
+ */
+export function refreshFriendPages(): void {
+  updateTag(FRIENDS_TAG);
+  revalidatePath("/friends", "page");
+}
