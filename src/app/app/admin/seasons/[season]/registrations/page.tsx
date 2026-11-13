@@ -46,6 +46,8 @@ const ERRORS: Record<string, string> = {
   nothing_left: "This payment has already been refunded in full.",
   refund_failed:
     "Stripe did not take the refund. Nothing was refunded; try again in a minute.",
+  stale:
+    "Your sign-in is more than 15 minutes old. Sign out and back in, then refund again. Nothing was refunded.",
   payments_off:
     "Online payments are not set up, so Stripe refunds cannot be sent.",
 };
