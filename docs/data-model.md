@@ -696,6 +696,9 @@ erDiagram
   season ||--o{ team_of_week : names
   league ||--o{ event : hosts
   event ||--o{ event_rsvp : collects
+  event ||--o{ event_audience_team : "is for"
+  team ||--o{ event_audience_team : "is invited to"
+  user ||--o| calendar_feed : "subscribes with"
   season ||--o{ award_poll : runs
   award_poll ||--o{ award_vote : collects
   league ||--o{ post : publishes
@@ -773,7 +776,7 @@ erDiagram
   event {
     uuid id PK
     uuid league_id FK
-    enum kind "social, bar_night, bbq, tournament, theme_week"
+    enum kind "social, bar_night, bbq, tournament, theme_week, party"
     text title
     text slug UK "title and start date, set once"
     text place "null allowed for a theme week"
@@ -781,9 +784,21 @@ erDiagram
     timestamptz starts_at
     timestamptz ends_at
     int capacity "null: no limit"
+    enum audience "public, members, teams"
+    uuid audience_season_id FK "teams audience: null for any season"
+    text invite_url "https://, shown and shared, never fetched"
+    bool in_app_rsvp "false: RSVPs only on the invite"
     timestamptz cancelled_at
     timestamptz deleted_at
     uuid created_by FK
+  }
+  event_audience_team {
+    uuid event_id PK,FK
+    uuid team_id PK,FK
+  }
+  calendar_feed {
+    uuid user_id PK,FK
+    int version "the signed feed link's version; 1 until reset"
   }
   event_rsvp {
     uuid id PK
@@ -854,7 +869,11 @@ Events, as built (`src/db/schema/event.ts`, `src/db/queries/events.ts`):
 - An RSVP is a spot (`going`) or a place in line (`waitlisted`); "can't make it" deletes the row. Every join, drop-out and capacity change locks the event row first, so two people can never take the last spot. A newcomer waits behind anyone already in line even when a spot is open.
 - When a spot opens (someone drops out, the admin raises the capacity or removes it), the earliest waitlisted people move up and each gets an `event_notice` email through the outbox. A smaller capacity never takes a spot from anyone.
 - Calling an event off sets `cancelled_at`, clears every RSVP and emails everyone who had one; the page stays up and says so. Deleting sets `deleted_at` and takes it off every page. Both, and every create and edit, write an audit row.
-- Planned later: a sponsor or venue link, a cover image, guests and paid tickets (`ticket_price_cents`, `purchase_item_id`), and Partiful-style invite links (product-spec.md).
+- Who an event is for (`audience`, `src/domain/events/audience.ts`): `public` (everyone; the only kind with a public page, a place in the public calendar feed and the sitemap), `members` (anyone with a registration that isn't cancelled or refunded, in any season), or `teams` (the active roster spots of the teams in `event_audience_team`, in `audience_season_id`, or in any season when it is null). Admins see every event. A theme week is always public, since it marks the public schedule (a check constraint). The signed-in app reads the league's events and the person in two queries and filters with the domain's rule; the recipients of an announcement are one query, tested against the same rule.
+- `invite_url` is an external invite (Partiful has no public API, so it is shown and shared, not synced): https only, a host name with a dot, no user name or password, up to 500 characters. With `in_app_rsvp` off the app takes no RSVPs and points to the invite; it can be turned off only while no one has an RSVP.
+- An admin can tell an event's audience when they create or change it: one `event_notice` per person through the outbox with the `events` topic (dedupe key `event_announced/<event>/new/<user>` once per event, or `event_updated/<event>/<time>/<user>` per change). A public event is announced to all members.
+- `calendar_feed` holds the version of a person's private events calendar link. The link is the user id and an HMAC of the id and version with the server's secret, so nothing secret is stored; a reset (or deleting the account) moves the version on and the old link stops working.
+- Planned later: a sponsor or venue link, a cover image, guests and paid tickets (`ticket_price_cents`, `purchase_item_id`).
 
 Awards, as built (`src/db/schema/awards.ts`, `src/db/queries/awards.ts`):
 
@@ -1011,7 +1030,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `score_report` | unique `(client_id)` | Retried offline submissions are ignored |
 | `score_confirmation` | unique `(game_id, team_season_id)` | One answer per team |
 | `game_rsvp` | unique `(game_id, user_id)` | One RSVP per game |
-| `event` | unique `slug`; check `ends_at > starts_at`; check `capacity` is null or positive; check a theme week has no capacity | Stable links; an event has a length; theme weeks take no RSVPs |
+| `event` | unique `slug`; check `ends_at > starts_at`; check `capacity` is null or positive; check a theme week has no capacity and is public; check `audience_season_id` is set only for a teams audience; check `invite_url` starts with `https://` and is at most 500 characters | Stable links; an event has a length; theme weeks take no RSVPs and mark the public schedule; an invite link is never another scheme |
+| `event_audience_team` | primary key `(event_id, team_id)` | A team is listed once per event |
 | `event_rsvp` | unique `(event_id, user_id)` | One RSVP per person per event |
 | `game_period` | unique `(game_id, period_no, half)` | One row per half-inning |
 | `game_period` | check `period_no` between 1 and 20; check `runs` between 0 and 99 | Innings and runs stay in range |
@@ -1065,6 +1085,7 @@ Indexes for the common reads:
 | `team_formation_request` | `(season_id, status, created_at)`; `(requested_by)` | The admin's waiting list; a player's requests |
 | `event` | `(league_id, starts_at)` | Calendar |
 | `event_rsvp` | `(event_id, status, created_at)`; `(user_id)` | Counts and the waitlist in order; a person's RSVPs |
+| `event_audience_team` | `(team_id)` | Team events for a team |
 | `award_poll` | `(season_id, closes_at)` | Open and closed polls of a season |
 | `award_vote` | `(voter_id)` | A player's own votes |
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
@@ -1091,7 +1112,7 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `push_subscription` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `push_subscription` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version).
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
