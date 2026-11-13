@@ -10,6 +10,14 @@ test("an admin generates and publishes a schedule", async ({
   browser,
   page: visitor,
 }) => {
+  // The build prerendered the season's schedule from the seeded league. An
+  // earlier visitor (in a browser of their own, so the one below starts with
+  // nothing saved) gets that stored page until publishing refreshes it.
+  const earlier = await browser.newPage();
+  await earlier.goto("/seasons/spring-2027/schedule");
+  await expect(earlier.getByText("Coming soon", { exact: true })).toBeVisible();
+  await earlier.context().close();
+
   const page = await pageAs(browser, "Admin");
   await page.goto("/app/admin/seasons/spring-2027/schedule");
   await expect(page.getByRole("heading", { name: "Schedule" })).toBeVisible();
@@ -34,7 +42,7 @@ test("an admin generates and publishes a schedule", async ({
   ).toBeVisible();
   await page.context().close();
 
-  // Anyone can now see it, signed in or not.
+  // Anyone can now see it, signed in or not, on their first load.
   await visitor.goto("/seasons/spring-2027/schedule");
   await expect(visitor.getByRole("heading", { level: 1 })).toHaveText(
     "Schedule",
