@@ -21,6 +21,7 @@
     "test:db": "vitest run --config vitest.db.config.mts",
     "seed": "tsx scripts/seed.ts",
     "demo:reset": "tsx scripts/reset-demo.ts",
+    "push:keys": "tsx scripts/vapid-keys.ts",
     "test:e2e": "playwright test",
     "lighthouse": "lhci autorun"
   },
