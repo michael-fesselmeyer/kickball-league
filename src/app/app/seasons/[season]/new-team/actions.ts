@@ -10,7 +10,7 @@ import { parseId, type TeamFormationRequestId } from "@/domain/ids";
 import { parseProfileForm, toProfileForm } from "@/domain/profile/profile-form";
 import { parseNewTeamRequest } from "@/domain/registration/new-team";
 import { localDate } from "@/domain/scheduler/slots";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 
 export type NewTeamState = {
@@ -35,7 +35,7 @@ const FIELDS = ["name", "expectedSize", "paymentMode", "note"] as const;
 const pageFor = (slug: string) => `/app/seasons/${slug}/new-team`;
 
 async function context(slug: string) {
-  const subject = await requirePermission("team.request_new", {
+  const subject = await requirePermissionToChange("team.request_new", {
     next: pageFor(slug),
   });
   const league = await currentLeague(db);

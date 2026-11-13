@@ -10,7 +10,7 @@ import { seasonForRegistration } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { parseId, type TeamFormationRequestId } from "@/domain/ids";
 import { parseDeclineReason } from "@/domain/registration/new-team";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { sendQueuedSoon } from "@/services/outbox";
 
@@ -18,7 +18,9 @@ const pageFor = (slug: string) => `/app/admin/seasons/${slug}/new-teams`;
 
 async function context(slug: string, rawId: string) {
   const page = pageFor(slug);
-  const subject = await requirePermission("team.approve_new", { next: page });
+  const subject = await requirePermissionToChange("team.approve_new", {
+    next: page,
+  });
   const league = await currentLeague(db);
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
