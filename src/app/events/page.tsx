@@ -23,6 +23,9 @@ export const metadata: Metadata = {
 /** How many past events the page keeps showing. */
 const PAST_SHOWN = 6;
 
+/** A cache life Next.js leaves out of the prerender and reads per request. */
+const NOT_KEPT = { stale: 0, revalidate: 0, expire: 0 } as const;
+
 export default function EventsPage() {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:px-6">
@@ -44,12 +47,14 @@ export default function EventsPage() {
 }
 
 /**
- * Cached, so after the first visit the list is served as static HTML; an
- * admin's change or an RSVP refreshes it through the events tag.
+ * Cached, so the list is served as static HTML; an admin's change or an RSVP
+ * refreshes it through the events tag. Until there is a league (a build with
+ * an empty or unreachable database, such as the end-to-end tests' build
+ * before they seed), nothing is kept, so the first real visit reads the
+ * database instead of an empty copy from the build.
  */
 async function Events() {
   "use cache";
-  cacheLife(PUBLIC_PAGE_LIFE);
   cacheTag(EVENTS_TAG);
   const found = await readUnlessBuildHasNoDatabase(async () => {
     const league = await currentLeague(db);
@@ -58,6 +63,7 @@ async function Events() {
       events: league ? await leagueEvents(db, league.id) : [],
     };
   });
+  cacheLife(found?.league ? PUBLIC_PAGE_LIFE : NOT_KEPT);
   const events = found?.events ?? [];
   const timeZone = found?.league?.timeZone ?? "America/New_York";
   const now = new Date();
