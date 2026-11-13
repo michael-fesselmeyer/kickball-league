@@ -31,6 +31,7 @@ function textProblem(value: string): string | null {
     } else if (c === ";" || c === ",") return `an unescaped "${c}"`;
     else if (/[\u0000-\u0008\u000A-\u001F\u007F]/.test(c))
       return "a control character";
+    else if (/[\u0085\u2028\u2029]/.test(c)) return "a raw line separator";
   }
   return null;
 }
@@ -51,7 +52,7 @@ export function problems(ics: string): string[] {
   const stack: Component[] = [root];
   const tzids = new Set<string>();
   for (const line of unfold(ics)) {
-    const match = /^([A-Za-z0-9-]+)((?:;[^:]*)?):(.*)$/.exec(line);
+    const match = /^([A-Za-z0-9-]+)((?:;[^:]*)?):(.*)$/s.exec(line);
     if (!match) {
       found.push(`Not a content line: ${line}`);
       continue;

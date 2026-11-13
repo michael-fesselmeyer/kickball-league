@@ -86,4 +86,12 @@ describe("problems", () => {
       problems(doc(...valid.map((l) => l.replace("A vs B", "A \\x")))),
     ).toEqual(["SUMMARY has a bad escape."]);
   });
+
+  it("names a raw Unicode line separator instead of rejecting the line", () => {
+    for (const separator of ["\u0085", "\u2028", "\u2029"]) {
+      expect(
+        problems(doc(...valid.map((l) => l.replace("A vs B", separator)))),
+      ).toEqual(["SUMMARY has a raw line separator."]);
+    }
+  });
 });
