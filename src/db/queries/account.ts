@@ -7,7 +7,8 @@ import { referralCode } from "../schema/credit";
 import { freeAgentProfile } from "../schema/free-agent";
 import { savedPaymentMethod } from "../schema/guarantee";
 import { account, passkey, session, user, verification } from "../schema/auth";
-import { eventRsvp, eventTicket } from "../schema/event";
+import { giveaway, giveawayEntry } from "../schema/drive";
+import { event, eventRsvp, eventTicket } from "../schema/event";
 import { gameLineup, gameLineupSpot } from "../schema/lineup";
 import {
   gameRsvp,
@@ -49,6 +50,7 @@ import { myDisciplineRecords, removeDisciplineNotes } from "./discipline";
 import { resetFeed } from "./event-audience";
 import { leaveEvent } from "./events";
 import { creditHistory } from "./credit";
+import { myGiveawayWins } from "./giveaways";
 import { myReferrals } from "./referrals";
 import { withdrawSubClaim } from "./subs";
 import type { Db } from "./schedule";
@@ -386,6 +388,18 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .innerJoin(sponsor, eq(checkin.sponsorId, sponsor.id))
     .where(eq(checkin.userId, userId))
     .orderBy(asc(checkin.checkedInAt));
+  const giveawayEntries = await db
+    .select({
+      event: event.title,
+      prize: giveaway.prize,
+      enteredAt: giveawayEntry.enteredAt,
+    })
+    .from(giveawayEntry)
+    .innerJoin(giveaway, eq(giveaway.id, giveawayEntry.giveawayId))
+    .innerJoin(event, eq(event.id, giveaway.eventId))
+    .where(eq(giveawayEntry.userId, userId))
+    .orderBy(asc(giveawayEntry.enteredAt));
+  const giveawaysWon = await myGiveawayWins(db, userId);
   const dealsUsed = await db
     .select({ deal: deal.title, redeemedAt: dealRedemption.redeemedAt })
     .from(dealRedemption)
@@ -532,6 +546,8 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
       pick: v.pickedPlayer ?? v.pickedTeam,
     })),
     checkIns,
+    giveawayEntries,
+    giveawaysWon,
     dealsUsed,
     sponsorsManaged,
     discipline: await myDisciplineRecords(db, userId, now),
@@ -711,6 +727,22 @@ export async function deleteAccount(
             .select({ id: awardPoll.id })
             .from(awardPoll)
             .where(gt(awardPoll.closesAt, now)),
+        ),
+      ),
+    );
+  // Entries in giveaways not drawn yet come out; a drawn giveaway keeps
+  // its entries, under the anonymized user, so its draw record still adds up.
+  await db
+    .delete(giveawayEntry)
+    .where(
+      and(
+        eq(giveawayEntry.userId, userId),
+        inArray(
+          giveawayEntry.giveawayId,
+          db
+            .select({ id: giveaway.id })
+            .from(giveaway)
+            .where(isNull(giveaway.drawnAt)),
         ),
       ),
     );
