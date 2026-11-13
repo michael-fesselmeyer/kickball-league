@@ -15,6 +15,11 @@ export const TOPICS = [
   "events",
   "marketing",
   "new_team",
+  /**
+   * A suspension notice. Not offered on the settings page: the league must
+   * be able to tell a player they are suspended and how to appeal.
+   */
+  "discipline",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -30,6 +35,7 @@ export const DEFAULT_ENABLED: Readonly<Record<Topic, boolean>> = {
   events: true,
   marketing: false,
   new_team: true,
+  discipline: true,
 };
 
 /**

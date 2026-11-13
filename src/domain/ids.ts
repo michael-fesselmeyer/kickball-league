@@ -70,6 +70,10 @@ export type WaitlistEntryId = Brand<string, "WaitlistEntryId">;
 export type SocialAccountId = Brand<string, "SocialAccountId">;
 export type SocialPostId = Brand<string, "SocialPostId">;
 export type SocialImageId = Brand<string, "SocialImageId">;
+export type SportsmanshipRatingId = Brand<string, "SportsmanshipRatingId">;
+export type IncidentId = Brand<string, "IncidentId">;
+export type IncidentNoteId = Brand<string, "IncidentNoteId">;
+export type SuspensionId = Brand<string, "SuspensionId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
