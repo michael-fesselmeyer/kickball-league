@@ -55,7 +55,10 @@ async function SeasonRequests({
   return (
     <>
       <header className="flex flex-col gap-1">
-        <Link href={`/app/admin/seasons/${slug}`} className="underline">
+        <Link
+          href={`/app/admin/seasons/${slug}`}
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           {season.name}
         </Link>
         <h1 className="text-h1">Team scheduling requests</h1>
@@ -71,7 +74,7 @@ async function SeasonRequests({
         </p>
         <Link
           href={`/app/admin/seasons/${slug}/schedule`}
-          className="self-start underline"
+          className="inline-flex min-h-11 items-center self-start underline"
         >
           Go to the schedule
         </Link>

@@ -160,7 +160,10 @@ async function Live({
         />
       )}
 
-      <Link href={scorePage} className="underline">
+      <Link
+        href={scorePage}
+        className="inline-flex min-h-11 items-center self-start underline"
+      >
         Report or confirm the final score instead
       </Link>
     </>

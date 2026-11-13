@@ -67,7 +67,10 @@ async function PromoCodes({
   return (
     <>
       <header className="flex flex-col gap-1">
-        <Link href={`/app/admin/seasons/${slug}`} className="underline">
+        <Link
+          href={`/app/admin/seasons/${slug}`}
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           {season.name}
         </Link>
         <h1 className="text-h1">Promo codes</h1>
@@ -141,7 +144,7 @@ async function PromoCodes({
                             <span>{status}</span>
                             <button
                               type="submit"
-                              className="underline"
+                              className="inline-flex min-h-11 items-center underline"
                               aria-label={`Turn off ${c.code}`}
                             >
                               Turn off

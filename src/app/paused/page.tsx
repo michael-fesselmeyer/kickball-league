@@ -35,7 +35,10 @@ async function Notice() {
           {name}&apos;s site is read-only for now. Everything is still there to
           see, but nothing can be changed, so your last change was not saved.
         </p>
-        <Link href="/app" className="self-start underline">
+        <Link
+          href="/app"
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           Back to your home page
         </Link>
       </>
@@ -48,7 +51,10 @@ async function Notice() {
           {name}&apos;s site is paused for now. League admins can still sign in
           and download the league&apos;s data.
         </p>
-        <Link href="/sign-in" className="self-start underline">
+        <Link
+          href="/sign-in"
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           Sign in
         </Link>
       </>
@@ -57,7 +63,10 @@ async function Notice() {
     <>
       <h1 className="text-h1">Everything is running</h1>
       <p>The site isn&apos;t paused.</p>
-      <Link href="/" className="self-start underline">
+      <Link
+        href="/"
+        className="inline-flex min-h-11 items-center self-start underline"
+      >
         Go to the home page
       </Link>
     </>

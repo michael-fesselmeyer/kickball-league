@@ -164,7 +164,7 @@ async function Console({ searchParams }: PageProps<"/operator">) {
                     <button
                       type="submit"
                       disabled={!fresh}
-                      className="underline disabled:no-underline disabled:opacity-60"
+                      className="inline-flex min-h-11 items-center underline disabled:no-underline disabled:opacity-60"
                     >
                       Turn {on ? "off" : "on"}
                     </button>
@@ -238,7 +238,10 @@ async function Console({ searchParams }: PageProps<"/operator">) {
           Everything the league needs to run elsewhere, as JSON. Owners can
           download the same file from their admin pages.
         </p>
-        <a href="/app/admin/league.json" className="self-start underline">
+        <a
+          href="/app/admin/league.json"
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           Download the league export
         </a>
       </section>

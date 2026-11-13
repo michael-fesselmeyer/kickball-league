@@ -114,7 +114,10 @@ function RecordPayment({
         aria-label={`Note about ${person.name}'s payment`}
         className={`${input} w-40`}
       />
-      <button type="submit" className="underline">
+      <button
+        type="submit"
+        className="inline-flex min-h-11 items-center underline"
+      >
         Record payment
       </button>
     </form>
@@ -154,7 +157,7 @@ function Refund({ slug, person }: { slug: string; person: BoardPerson }) {
   });
   return open.map((p) => (
     <details key={p.paymentId}>
-      <summary className="cursor-pointer underline">
+      <summary className="min-h-11 cursor-pointer content-center underline">
         Refund {person.name}
       </summary>
       <form
@@ -175,7 +178,10 @@ function Refund({ slug, person }: { slug: string; person: BoardPerson }) {
           aria-label={`Reason for refunding ${person.name}`}
           className={`${input} w-40`}
         />
-        <button type="submit" className="underline">
+        <button
+          type="submit"
+          className="inline-flex min-h-11 items-center underline"
+        >
           {p.method === "stripe" ? "Refund through Stripe" : "Mark refunded"}
         </button>
       </form>
@@ -248,7 +254,10 @@ async function Registrations({
   return (
     <>
       <header className="flex flex-col gap-1">
-        <Link href={`/app/admin/seasons/${slug}`} className="underline">
+        <Link
+          href={`/app/admin/seasons/${slug}`}
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           {season.name}
         </Link>
         <h1 className="text-h1">Registrations</h1>
@@ -263,14 +272,14 @@ async function Registrations({
           <a
             href={`/app/seasons/${slug}/export/roster.csv`}
             download
-            className="underline"
+            className="inline-flex min-h-11 items-center underline"
           >
             Download rosters (CSV)
           </a>
           <a
             href={`/app/seasons/${slug}/export/payments.csv`}
             download
-            className="underline"
+            className="inline-flex min-h-11 items-center underline"
           >
             Download payments (CSV)
           </a>
@@ -420,7 +429,10 @@ async function Registrations({
                               </option>
                             ))}
                           </select>
-                          <button type="submit" className="underline">
+                          <button
+                            type="submit"
+                            className="inline-flex min-h-11 items-center underline"
+                          >
                             Place
                           </button>
                         </form>

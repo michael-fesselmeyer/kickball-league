@@ -49,7 +49,10 @@ async function Audit({ searchParams }: PageProps<"/app/admin/audit">) {
   return (
     <>
       <header className="flex flex-col gap-2">
-        <Link href="/app/admin" className="self-start underline">
+        <Link
+          href="/app/admin"
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           League admin
         </Link>
         <h1 className="text-h1">Audit log</h1>
@@ -115,7 +118,7 @@ async function Audit({ searchParams }: PageProps<"/app/admin/audit">) {
       {page.more && oldest && (
         <Link
           href={`/app/admin/audit?before=${encodeURIComponent(oldest.toISOString())}${filter}`}
-          className="self-start underline"
+          className="inline-flex min-h-11 items-center self-start underline"
         >
           Older
         </Link>
