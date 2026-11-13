@@ -48,7 +48,11 @@ export async function runGuaranteeCharges(now: Date): Promise<GuaranteeRun> {
         run.declined += 1;
       }
     } catch (error) {
-      console.error("Guarantee charge failed to send", charge.purchaseId, error);
+      console.error(
+        "Guarantee charge failed to send",
+        charge.purchaseId,
+        error,
+      );
       run.retry += 1;
     }
   }

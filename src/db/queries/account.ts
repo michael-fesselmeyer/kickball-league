@@ -1,9 +1,11 @@
-import { and, asc, count, eq, gt, inArray, ne, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, inArray, isNull, ne, sql } from "drizzle-orm";
 import type { UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { auditLog } from "../schema/audit";
 import { awardPoll, awardVote } from "../schema/awards";
+import { referralCode } from "../schema/credit";
 import { freeAgentProfile } from "../schema/free-agent";
+import { savedPaymentMethod } from "../schema/guarantee";
 import { account, passkey, session, user, verification } from "../schema/auth";
 import { eventRsvp } from "../schema/event";
 import {
@@ -38,8 +40,11 @@ import {
   teamSeason,
 } from "../schema/team";
 import { waiver, waiverSignature } from "../schema/waiver";
+import { waitlistEntry } from "../schema/waitlist";
 import { recordAudit } from "./audit";
 import { leaveEvent } from "./events";
+import { creditHistory } from "./credit";
+import { myReferrals } from "./referrals";
 import { withdrawSubClaim } from "./subs";
 import type { Db } from "./schedule";
 
@@ -419,6 +424,30 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .where(eq(auditLog.actorId, userId))
     .orderBy(asc(auditLog.occurredAt));
 
+  const [credit, referralCounts, waitlist, savedCards] = await Promise.all([
+    creditHistory(db, userId, 1000),
+    myReferrals(db, userId),
+    db
+      .select({
+        season: season.name,
+        teamName: waitlistEntry.teamName,
+        status: waitlistEntry.status,
+        offerExpiresAt: waitlistEntry.offerExpiresAt,
+        createdAt: waitlistEntry.createdAt,
+      })
+      .from(waitlistEntry)
+      .innerJoin(season, eq(waitlistEntry.seasonId, season.id))
+      .where(eq(waitlistEntry.userId, userId)),
+    db
+      .select({
+        brand: savedPaymentMethod.brand,
+        last4: savedPaymentMethod.last4,
+        createdAt: savedPaymentMethod.createdAt,
+        removedAt: savedPaymentMethod.removedAt,
+      })
+      .from(savedPaymentMethod)
+      .where(eq(savedPaymentMethod.userId, userId)),
+  ]);
   return {
     exportedAt: now.toISOString(),
     account: {
@@ -471,6 +500,10 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     messages,
     announcementsSent,
     actionsTaken,
+    leagueCredit: credit.map((c) => without(c, "id")),
+    referrals: referralCounts,
+    waitlist,
+    savedCards,
   };
 }
 
@@ -662,6 +695,26 @@ export async function deleteAccount(
     .update(registration)
     .set({ friendGroupId: null })
     .where(eq(registration.userId, userId));
+  // Leave any waitlist, retire guarantee cards, drop the referral link.
+  await db
+    .update(waitlistEntry)
+    .set({ status: "left", decidedAt: now })
+    .where(
+      and(
+        eq(waitlistEntry.userId, userId),
+        inArray(waitlistEntry.status, ["waiting", "offered"]),
+      ),
+    );
+  await db
+    .update(savedPaymentMethod)
+    .set({ removedAt: now })
+    .where(
+      and(
+        eq(savedPaymentMethod.userId, userId),
+        isNull(savedPaymentMethod.removedAt),
+      ),
+    );
+  await db.delete(referralCode).where(eq(referralCode.userId, userId));
   await db.delete(profile).where(eq(profile.userId, userId));
   await db
     .update(user)

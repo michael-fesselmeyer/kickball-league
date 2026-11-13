@@ -184,6 +184,8 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               [`${base}/rainout`, "Rain-out"],
               [`${base}/team-of-the-week`, "Team of the week"],
               ["/app/sponsor", "Sponsors"],
+              [`${base}/rebates`, "Rebates"],
+              ["/app/admin/credit", "League credit"],
               ["/app/admin/seasons", "All seasons"],
               ["/app/admin/audit", "Audit log"],
             ].map(([href, label]) => (

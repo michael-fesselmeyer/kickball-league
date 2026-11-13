@@ -69,6 +69,18 @@ async function Season({
             Promo codes
           </Link>
           <Link
+            href={`/app/admin/seasons/${slug}/waitlist`}
+            className="underline"
+          >
+            Waitlist
+          </Link>
+          <Link
+            href={`/app/admin/seasons/${slug}/rebates`}
+            className="underline"
+          >
+            Rain-out rebates
+          </Link>
+          <Link
             href={`/app/admin/seasons/${slug}/free-agents`}
             className="underline"
           >
