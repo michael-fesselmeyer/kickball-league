@@ -84,8 +84,10 @@ export function refreshEventPages(
 /**
  * From a Server Action: the sponsors list and every sponsor page render
  * fresh data on their next request, after a sponsor, deal or team of the
- * week changes.
+ * week changes. As with `refreshSeasonPages`, the routes are expired by path
+ * too, so their prerendered shells don't serve the data they were built with.
  */
 export function refreshSponsorPages(): void {
   updateTag(SPONSORS_TAG);
+  revalidatePath("/sponsors", "layout");
 }
