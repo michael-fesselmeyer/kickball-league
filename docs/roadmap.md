@@ -18,8 +18,8 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | 2. Wow pack | 7–12 | Dec 28 – Feb 7 | The extras that sell it: subs, matching, playoffs, live scoring, events, sponsors, awards, installable app |
 | Pitch | 13 | Feb 8 – Feb 14 | Owners see the demo and decide |
 | Launch | 13–15 | Feb 8 – Mar 1 | Real waiver text, live Stripe, domain cut-over, spring registration opens |
-| 3. In season and after | — | April 2027 on | SMS, offline scoring, sponsor portal, and the other items tagged P3 in the spec |
-| Pending | — | After owner decisions | Referee marketplace and payouts, sponsorship pricing, SMS program |
+| 3. In season and after | — | April 2027 on | Offline scoring, sponsor portal, and the other items tagged P3 in the spec |
+| Pending | — | After owner decisions | Referee marketplace and payouts, sponsorship pricing |
 
 If time runs short, Phase 2 items drop in the order listed at the end of that section. Nothing in Phase 1 can drop.
 
@@ -119,9 +119,8 @@ Done means: **the demo makes the owners say yes.** Listed in build order; if tim
 | 17 | Team conflicts and preferences | Captains submit them before the schedule is made; the metric "preferences honored" appears |
 | 18 | Shirt tracking, exports, account deletion | Sizes by team, received flag, CSV exports for rosters and payments; a player can export or delete their account |
 | 19 | Passkeys and device list | A player adds a passkey and signs in with Face ID or Touch ID; the account page lists signed-in devices and can sign one out; sensitive actions ask for a fresh confirmation |
-| 20 | AI: recap draft and Ask the rulebook | Hidden with no API key; every cited rule number exists in the rulebook; spend is recorded and both features switch off at the monthly cap |
-| 21 | Instagram connection | An admin connects the league's Instagram account; recent posts sync on a schedule and are copied to our storage; an admin can feature, hide, tag to a team or event, or set one as a cover photo; each shown post links back to Instagram; disconnecting stops the sync |
-| 22 | Search content | The city-wide landing page, the free-agent page and the "how to play kickball" guide from [seo-plan.md](seo-plan.md) |
+| 20 | Instagram connection | An admin connects the league's Instagram account; recent posts sync on a schedule and are copied to our storage; an admin can feature, hide, tag to a team or event, or set one as a cover photo; each shown post links back to Instagram; disconnecting stops the sync |
+| 21 | Search content | The city-wide landing page, the free-agent page and the "how to play kickball" guide from [seo-plan.md](seo-plan.md) |
 
 ## 5. The pitch (week 13)
 
@@ -139,17 +138,16 @@ Done means: **the demo makes the owners say yes.** Listed in build order; if tim
 | Legal text | Real waiver, terms and privacy policy supplied or approved by the league |
 | Stripe live | The league's Stripe account connected; a real $1 payment and refund succeed end to end |
 | Continuous delivery | Automatic deployments turned back on in `vercel.json`: every merge to `main` deploys to production and every pull request gets a preview with its own database branch |
-| Production hardening | Vercel Pro, paid email tier, Sentry alerts, a restore test from backup, rate limits verified |
+| Production hardening | Every service on its free tier, checked against the free-tier budget in [architecture.md](architecture.md), section 15; the host for the live league chosen ([open-questions.md](open-questions.md), question 51); free email alerts from Sentry's Developer plan; a restore test from backup; rate limits verified |
 | Data | Spring season, fields and permit windows entered; returning teams created with their names and colors |
 | Domain | Old DNS records saved first, so switching back is one change; cut over `brooklynkickballclub.com` with every old URL redirected; Search Console verified; Google Business Profile claimed |
 | Dry run | One commissioner and two captains complete registration, payment, a mock game and a mock rain-out on production |
-| SMS registration started | Brand and campaign submitted to Twilio with the league's details |
 
 ## 7. Phase 3 and later
 
 Goals added on 2026-11-12 are in [product-spec.md](product-spec.md), section 9. Their tags decide which phase they land in. The installable app (PWA) moves into the MVP.
 
-In rough priority order: SMS with the full compliance design; offline score entry; sponsor portal and reports; paid event tickets; lineup and kicking-order builder; incident reports and suspensions; photo galleries; merch and jerseys; divisions with crossover games; a second park; the affiliated football league on the same deployment; corporate leagues; charity tie-in; a "friends of the league" directory.
+In rough priority order: offline score entry; sponsor portal and reports; paid event tickets; lineup and kicking-order builder; incident reports and suspensions; photo galleries; merch and jerseys; divisions with crossover games; a second park; the affiliated football league on the same deployment; corporate leagues; charity tie-in; a "friends of the league" directory.
 
 **Pending owner approval**, designed but not scheduled: referee availability and accept or decline, compensation tracking and incentives, Stripe Connect payouts, sponsorship tiers and pricing.
 
