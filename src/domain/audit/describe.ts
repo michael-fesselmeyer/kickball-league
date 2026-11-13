@@ -54,6 +54,12 @@ const ACTIONS: Record<string, string> = {
   "instagram.show_newest":
     "Changed whether new Instagram posts show on their own",
   "invite.create": "Created a team invite",
+  "keep_off.add": "Added a person to a team's not-on-my-team list",
+  "keep_off.export_policy":
+    "Changed whether a person's own export lists not-on-my-team entries about them",
+  "keep_off.override":
+    "Placed a person on a team that has them on its not-on-my-team list",
+  "keep_off.remove": "Took a person off a team's not-on-my-team list",
   "league.export": "Downloaded the league's data",
   "operator.feature": "Platform operator switched a feature",
   "operator.role": "Platform operator changed a person's role",
