@@ -1,4 +1,4 @@
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag, updateTag } from "next/cache";
 
 /**
  * How long the public schedule, standings and team pages are served as
@@ -19,8 +19,35 @@ export const teamTag = (teamSlug: string) => `team:${teamSlug}`;
 export const gameTag = (gameId: string) => `game:${gameId}`;
 /** Every sponsor page and the sponsors list: there are only a handful. */
 export const SPONSORS_TAG = "sponsors";
-/** Synced Instagram photos, on the home page and team pages. */
+/** Synced Instagram photos, on the home, team and event pages. */
 export const PHOTOS_TAG = "photos";
+
+/** The prerendered routes that show Instagram photos. */
+const PHOTO_PAGE_ROUTES = [
+  ["/", "page"],
+  ["/teams/[team]/[[...season]]", "page"],
+  ["/events/[event]", "page"],
+] as const;
+
+/**
+ * From a Server Action: pages with Instagram photos show an admin's change
+ * on their next request. As with `refreshSeasonPages`, the prerendered
+ * routes are expired by path too, so their shells don't serve the photos
+ * they were built with; a photo an admin hides is gone at once.
+ */
+export function refreshPhotoPages(): void {
+  updateTag(PHOTOS_TAG);
+  for (const [route, type] of PHOTO_PAGE_ROUTES) revalidatePath(route, type);
+}
+
+/**
+ * From a route handler (the sync job, the sign-in callback), where
+ * `updateTag` is not allowed: the same pages refresh in the background.
+ */
+export function refreshPhotoPagesInBackground(): void {
+  revalidateTag(PHOTOS_TAG, "max");
+  for (const [route, type] of PHOTO_PAGE_ROUTES) revalidatePath(route, type);
+}
 
 /**
  * How long a game's live score is kept on the server between saves

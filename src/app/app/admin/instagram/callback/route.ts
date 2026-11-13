@@ -1,10 +1,9 @@
-import { revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db/client";
 import { currentLeague } from "@/db/queries/seasons";
 import { requirePermissionToChange } from "@/lib/auth/permission";
-import { PHOTOS_TAG } from "@/lib/public-cache";
+import { refreshPhotoPagesInBackground } from "@/lib/public-cache";
 import { completeConnection } from "@/lib/social/connect";
 import { instagramConfig } from "@/lib/social/instagram-app";
 import {
@@ -45,6 +44,6 @@ export async function GET(request: Request): Promise<Response> {
     leagueId: league.id,
     actorId: subject.userId,
   });
-  revalidateTag(PHOTOS_TAG, "max");
+  refreshPhotoPagesInBackground();
   redirect(`${PAGE}?${result}`);
 }
