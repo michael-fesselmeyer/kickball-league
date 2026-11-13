@@ -242,6 +242,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | Kind (template) | Urgency | What it is |
 |---|---|---|
 | `announcement` | non-urgent | Announcements from admins and captains |
+| `books_reminder` | non-urgent | For owners: a permit application window, renewal or insurance expiry coming up |
 | `email_budget` | urgent | For admins: urgent email waiting for tomorrow's email allowance |
 | `event_news` | non-urgent | Event announcements, and changes or cancellations more than a day ahead |
 | `event_notice` | urgent | An event spot that opened for you, or an event cancelled or moved within a day of its start |

@@ -22,6 +22,11 @@ export const MESSAGE_KINDS = {
     urgency: "non_urgent",
     label: "Announcements from admins and captains",
   },
+  books_reminder: {
+    urgency: "non_urgent",
+    label:
+      "For owners: a permit application window, renewal or insurance expiry coming up",
+  },
   email_budget: {
     urgency: "urgent",
     label: "For admins: urgent email waiting for tomorrow's email allowance",

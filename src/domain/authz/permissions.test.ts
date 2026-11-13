@@ -351,8 +351,29 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "photos.manage",
     ] as const)
       expect(allowed(action)).toEqual(["admin", "owner"]);
-    for (const action of ["billing.manage", "admins.manage"] as const)
+    for (const action of [
+      "billing.manage",
+      "admins.manage",
+      "books.manage",
+    ] as const)
       expect(allowed(action)).toEqual(["owner"]);
+  });
+
+  it("opens the books to the operator, never to an admin", () => {
+    const operator = person("op", { isOperator: true });
+    expect(can(operator, "books.manage")).toBe(true);
+    expect(can({ ...VISITOR, isOperator: true }, "books.manage")).toBe(false);
+    expect(can(people.admin, "books.manage")).toBe(false);
+  });
+
+  it("shows a game's permit to its ref and captains, not to admins", () => {
+    expect(allowed("permit.view_at_field", { game: g1 })).toEqual([
+      "captain",
+      "coCaptain",
+      "referee",
+      "owner",
+    ]);
+    expect(allowed("permit.view_at_field", { game: g2 })).toEqual(["owner"]);
   });
 });
 
