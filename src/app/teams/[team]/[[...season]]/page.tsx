@@ -33,8 +33,17 @@ import { calendarLinks } from "@/lib/calendar-links";
 import { PUBLIC_PAGE_LIFE, seasonTag, teamTag } from "@/lib/public-cache";
 import { shareMetadata } from "@/lib/share/metadata";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
+import { NO_TEAM, publicTeamParams } from "@/lib/static-params";
 
 type Props = PageProps<"/teams/[team]/[[...season]]">;
+
+/**
+ * Each public team's page (its current season) is prerendered at build
+ * time; another season's view is rendered on its first visit and cached.
+ */
+export async function generateStaticParams() {
+  return (await publicTeamParams()).map((p) => ({ ...p, season: [] }));
+}
 
 async function cachedTeamShare(slug: string) {
   "use cache";
@@ -45,6 +54,7 @@ async function cachedTeamShare(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { team: slug } = await params;
+  if (slug === NO_TEAM) return { title: "Team" };
   const found = await cachedTeamShare(slug);
   if (!found) return { title: "Team" };
   const { team, card } = found;
@@ -90,6 +100,8 @@ const PLAYING = new Set(["in_progress", "playoffs"]);
  */
 async function Team({ params }: Props) {
   const { team: slug, season } = await params;
+  // The build's placeholder when it had no database to read.
+  if (slug === NO_TEAM) notFound();
   return <TeamView slug={slug} seasonSlug={season?.[0] ?? null} />;
 }
 
