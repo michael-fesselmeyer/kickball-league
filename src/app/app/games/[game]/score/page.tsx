@@ -18,7 +18,12 @@ import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
+import { teamRatingFor } from "@/db/queries/discipline";
+import { canFileFor, canRate } from "@/domain/discipline/discipline";
+import { featureEnabled } from "@/lib/platform/site";
 import { respondAction, submitScoreAction } from "./actions";
+import { rateSportsmanshipAction } from "./rate";
+import { SportsmanshipForm } from "./sportsmanship-form";
 
 export const metadata: Metadata = { title: "Score" };
 
@@ -41,6 +46,9 @@ const ERRORS: Record<string, string> = {
   not_yours: "Only the other team's captain can answer this score.",
   already_answered: "Your team has already answered this score.",
   unknown_report: "That score report is gone. Reload the page.",
+  bad_score: "Pick a rating from 1 to 5.",
+  rating_note_too_long: "Keep the note under 200 characters.",
+  not_final: "You can rate the other team once the score is final.",
 };
 
 const input =
@@ -187,6 +195,17 @@ async function Score({
   const pickups = can(subject, "sub_request.view_pickups", ctx)
     ? (await pickupsFor(db, [g.id])).get(g.id)
     : undefined;
+  // Game-day discipline: a captain rates the other team once the score is
+  // final; the ref, a captain or an admin can report an incident.
+  const discipline = await featureEnabled("discipline");
+  const rates =
+    discipline &&
+    myTeam !== undefined &&
+    canRate(g) &&
+    can(subject, "sportsmanship.rate", ctx);
+  const myRating = rates ? await teamRatingFor(db, g.id, myTeam) : null;
+  const reports =
+    discipline && canFileFor(g, now).ok && can(subject, "incident.log", ctx);
 
   return (
     <>
@@ -326,6 +345,24 @@ async function Score({
             </div>
           </details>
         ) : null)}
+
+      {query.rated && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          Thanks. Your rating is saved.
+        </p>
+      )}
+      {rates && (
+        <SportsmanshipForm
+          action={rateSportsmanshipAction.bind(null, g.id)}
+          opponent={myTeam === g.teamAId ? g.teamBName : g.teamAName}
+          current={myRating}
+        />
+      )}
+      {reports && (
+        <Link href={`/app/games/${g.id}/incident`} className="underline">
+          Report an incident
+        </Link>
+      )}
 
       {history.reports.length > 1 && (
         <section aria-labelledby="history" className="flex flex-col gap-1">
