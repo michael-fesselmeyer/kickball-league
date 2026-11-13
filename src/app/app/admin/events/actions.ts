@@ -15,9 +15,10 @@ import {
   type EventForm,
   parseEventForm,
 } from "@/domain/events/event";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { refreshEventPages } from "@/lib/public-cache";
+import { sendQueuedSoon } from "@/services/outbox";
 
 export type EventFormState = { values: EventForm; error: string | null };
 
@@ -40,7 +41,7 @@ export async function createEventAction(
   _previous: EventFormState,
   form: FormData,
 ): Promise<EventFormState> {
-  const subject = await requirePermission("event.manage", {
+  const subject = await requirePermissionToChange("event.manage", {
     next: `${LIST}/new`,
   });
   const league = await currentLeague(db);
@@ -70,7 +71,9 @@ export async function updateEventAction(
   form: FormData,
 ): Promise<EventFormState> {
   const page = `${LIST}/${slug}`;
-  const subject = await requirePermission("event.manage", { next: page });
+  const subject = await requirePermissionToChange("event.manage", {
+    next: page,
+  });
   const e = await eventBySlug(db, slug);
   if (!e) notFound();
   const values = formStrings(form, FIELDS);
@@ -87,6 +90,7 @@ export async function updateEventAction(
           ? "People have RSVP'd, so this can't become a theme week. Make a new theme week instead."
           : "That event is gone.",
     };
+  if (saved.value.promoted.length) sendQueuedSoon();
   refreshEventPages(slug, { themeWeek: true });
   redirect(
     `${page}?saved=updated${saved.value.promoted.length ? `&promoted=${saved.value.promoted.length}` : ""}`,
@@ -99,7 +103,9 @@ export async function cancelEventAction(
   form: FormData,
 ): Promise<void> {
   const page = `${LIST}/${slug}`;
-  const subject = await requirePermission("event.manage", { next: page });
+  const subject = await requirePermissionToChange("event.manage", {
+    next: page,
+  });
   if (form.get("confirm") !== "yes") redirect(`${page}?error=confirm`);
   const e = await eventBySlug(db, slug);
   if (!e) notFound();
@@ -107,6 +113,7 @@ export async function cancelEventAction(
     cancelEvent(tx, { id: e.id, actorId: subject.userId, now: new Date() }),
   );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
+  if (result.value.notified) sendQueuedSoon();
   refreshEventPages(slug, { themeWeek: true });
   redirect(`${page}?saved=cancelled&notified=${result.value.notified}`);
 }
@@ -117,7 +124,9 @@ export async function deleteEventAction(
   form: FormData,
 ): Promise<void> {
   const page = `${LIST}/${slug}`;
-  const subject = await requirePermission("event.manage", { next: page });
+  const subject = await requirePermissionToChange("event.manage", {
+    next: page,
+  });
   if (form.get("confirm") !== "yes") redirect(`${page}?error=confirm`);
   const e = await eventBySlug(db, slug);
   if (!e) notFound();

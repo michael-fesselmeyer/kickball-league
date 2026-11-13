@@ -3,12 +3,13 @@
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { eventBySlug, joinEvent, leaveEvent } from "@/db/queries/events";
-import { requirePermission } from "@/lib/auth/permission";
+import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshEventPages } from "@/lib/public-cache";
+import { sendQueuedSoon } from "@/services/outbox";
 
 async function eventFor(slug: string) {
   const page = `/app/events/${slug}`;
-  const subject = await requirePermission("event.rsvp", { next: page });
+  const subject = await requirePermissionToChange("event.rsvp", { next: page });
   const e = await eventBySlug(db, slug);
   if (!e) notFound();
   return { page, subject, e };
@@ -32,6 +33,7 @@ export async function leaveEventAction(slug: string): Promise<void> {
     leaveEvent(tx, { eventId: e.id, userId: subject.userId, now: new Date() }),
   );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
+  if (result.value.promoted.length) sendQueuedSoon();
   refreshEventPages(e.slug);
   redirect(`${page}?done=left`);
 }
