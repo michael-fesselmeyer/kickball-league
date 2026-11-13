@@ -166,6 +166,8 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Create and edit events | — | — | — | — | — | ✓ | ✓ |
 | RSVP or buy a ticket for an event | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |
 | Check in at a sponsor bar, redeem a deal | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |
+| Order merch or a replacement jersey for themselves | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |
+| Manage the merch catalog; see, export, fulfill and refund orders | — | — | — | — | — | ✓ | ✓ |
 | Edit sponsor page and deals | — | — | — | — | own | ✓ | ✓ |
 | View sponsor report | — | — | — | — | own | ✓ | ✓ |
 | Set referee availability; accept or decline assignments | — | — | — | own | — | — | — |

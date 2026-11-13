@@ -71,7 +71,7 @@ import type { Db } from "./schedule";
 
 /**
  * Merch and replacement jersey orders (docs/data-model.md, section 2.3;
- * ADR 0035). Every change to an item's stock or orders locks the item row
+ * ADR 0037). Every change to an item's stock or orders locks the item row
  * first, so two people ordering the last shirt at once can't both get it.
  * An order is paid only by the Stripe webhook, or by league credit that
  * covers it.

@@ -61,6 +61,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │   └── [event]                     RSVP, join the waitlist and see my place in line, or drop out; for a members' or team event also its details, who it's for, the invite, Google Calendar and "Copy for WhatsApp". A ticketed event instead shows my price (member or full), buys a ticket through Stripe Checkout with league credit, takes me back to an open checkout, shows a spot offered to me from the waitlist (buy it or pass), and once paid shows my ticket and check-in code; a box for the event's free giveaway when it has one
 │       └── giveaway/               The event's free giveaway: prize, "no purchase necessary", how to enter, my entry or my win, entry and winner counts (never names), and the official rules
 │           └── enter/[code]        Where the giveaway's QR code at the event lands: one tap to enter, once (an expired code says so)
+├── shop/                           League shop: what's for sale with photos, price (member or full), stock and order deadline; my orders and whether each is ordered, ready or refunded
+│   └── [item]                      Photos and details; pick a size (my profile's size first) and how many; a replacement jersey also picks my team (my newest first) and is made in its color; order through Stripe Checkout with league credit, or straight away when credit covers it
 ├── vote                            Awards: open ballots (one vote each, never for yourself or your own team) and closed polls
 │   └── [poll]                      Results after voting closes, ties sharing a place; until then, only when it closes
 ├── check-in/[sponsor]/[code]       Where the bar's QR code lands: one tap to check in (an expired code says so)
@@ -127,6 +129,11 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │           └── code            The giveaway's rotating entry code, full screen, for a phone or screen at the event
     ├── news
     ├── messages                    Announcements and delivery log
+    ├── merch/                      The shop's items: price, in the shop or hidden, orders still to make; a new item; the printer's CSV; how much photo storage is used
+    │   ├── new                     Add an item: league item or replacement team jersey, name, description, price and member price, made to order or stock per size, order deadline
+    │   ├── [item]                  Orders to make by size, each with the buyer, team and color and what they paid on card and in credit; mark one or all fulfilled; a full refund per order; photos (add up to four, remove); edit the details; hide from the shop or put back
+    │   ├── orders.csv              Every paid order not yet fulfilled, for the printer: item, size, quantity, team and color, name and email
+    │   └── photos/[image]          Any merch photo, a hidden item's included, for admins
     ├── credit                      League credit: give goodwill credit, who holds credit, what was given lately
     ├── money                       Payments, refunds, credit, promo codes
     ├── audit                       Audit log in plain words, newest first; filter for the platform operator's actions

@@ -27,7 +27,7 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       // A receipt photo or permit PDF (ADR 0034), or a merch photo straight
-      // from a phone, up to 3 MB (ADR 0035). Books photos are shrunk in the
+      // from a phone, up to 3 MB (ADR 0037). Books photos are shrunk in the
       // browser first; this covers a 1 MB PDF and a photo sent without
       // JavaScript. Under Vercel's 4.5 MB request limit.
       bodySizeLimit: "4mb",

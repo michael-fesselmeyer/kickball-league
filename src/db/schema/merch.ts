@@ -29,7 +29,7 @@ import { teamSeason } from "./team";
 
 /**
  * Merch and replacement jersey orders (docs/data-model.md, section 2.3;
- * ADR 0035). A small catalog the league's admins keep; players order one
+ * ADR 0037). A small catalog the league's admins keep; players order one
  * item in one size per checkout, paid through Stripe Checkout or league
  * credit like registration.
  */
