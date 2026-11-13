@@ -24,6 +24,7 @@ import {
 } from "../src/seed/discipline";
 import { addAudienceDemo } from "../src/seed/event-audience";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
+import { addSeedLineups } from "../src/seed/lineups";
 import { addFreeAgentPool } from "../src/seed/free-agent-pool";
 import { removeMoneyRecords } from "../src/seed/money";
 import {
@@ -268,6 +269,7 @@ async function main(): Promise<void> {
       await tx.insert(teamConstraint).values(data.teamConstraints);
       await addDemoPersonas(tx, data);
       await addDisciplinePlayer(tx, data);
+      await addSeedLineups(tx, data);
       await addPastSeasons(tx, data);
       await addFreeAgentPool(tx, data);
       await addSeedEvents(tx, data);
