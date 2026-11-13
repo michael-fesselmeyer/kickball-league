@@ -31,7 +31,7 @@ The site must cost nothing to run ([ADR 0021](0021-free-services-only.md)). The 
 
 **A request sheet, not an integration.** "What to request" works out, from the number of teams, the game day, the first game, the end of the day and the slot length, how many games each game day has, the fewest fields that hold them, and each field's hours rounded up to the half hour, for every game day in the season except league-wide blackouts (`src/domain/books/request-sheet.ts`). The owners copy it into the NYC Parks application or download it as a CSV. Nothing is submitted, scraped or automated.
 
-**Reminders through the outbox.** A daily job emails every owner 30 and 7 days before a permit application window opens, a permit renews, or the newest insurance certificate expires. A missed day still sends the closest reminder, and each is queued once per deadline, milestone and owner. The reminders use the `announcement` topic until the outbox has an operations topic for staff.
+**Reminders through the outbox.** A daily job emails every owner 30 and 7 days before a permit application window opens, a permit renews, or the newest insurance certificate expires. A missed day still sends the closest reminder, and each is queued once per deadline, milestone and owner. They use the staff-only `operations` topic and are classified non-urgent (`books_reminder` in `MESSAGE_KINDS`, ADR 0019), so they respect quiet hours and the daily cap.
 
 **Lost permits.** When an admin marks a permit window lost, the games still to play on its slots are listed on the fields screen and the owners' permits screen, with a link to the schedule board to move them. The permit page warns a ref or captain who opens it.
 

@@ -27,6 +27,7 @@ describe("MESSAGE_KINDS", () => {
   it("lists the non-urgent kinds and the urgent labels from one table", () => {
     expect([...NON_URGENT_KINDS].sort()).toEqual([
       "announcement",
+      "books_reminder",
       "event_news",
       "instagram_reconnect",
       "instagram_storage_full",
