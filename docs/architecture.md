@@ -209,7 +209,7 @@ Anything that should happen after a change (an email or a push) is a row in `mes
 1. The action commits its change and its `message` rows.
 2. `after()` drains those rows immediately, so the usual delay is under a second.
 3. A scheduled job sweeps every minute for rows that are queued and due, which covers retries, delayed sends (`send_after`) and anything `after()` missed.
-4. The worker claims rows with `select … for update skip locked`, applies the person's choices, sends, and records the provider's ID. How it stays inside the email provider's free daily quota is in section 15.
+4. The worker claims rows with `select … for update skip locked`, applies the person's choices and alert limits (quiet hours, the daily cap and the digest; see "Urgent and non-urgent messages" below), keeps email inside the provider's free quota ("The email budget" below, and section 15), sends, and records the provider's ID.
 5. Failures retry with backoff up to five attempts, then stay `failed` and appear on the admin health card.
 
 How a message is never sent twice (`src/db/queries/outbox.ts`, tested in `outbox.db.test.ts`):
@@ -227,7 +227,7 @@ How a message is never sent twice (`src/db/queries/outbox.ts`, tested in `outbox
 - **One push to every device.** The copy is sent to each of the person's devices. It is `sent` when any device accepted it, `suppressed` (`no_device`) when none is left, and retried with the usual backoff when every device failed for another reason. A retry goes to every device again, so the push carries the message id as its `Topic` header (the push service replaces an undelivered copy) and as the notification's tag (the phone replaces a shown one).
 - **Expired subscriptions are removed.** A push service answering 404 or 410 has dropped that subscription; the outbox deletes the device on the spot. A device whose stored keys cannot be used is dropped the same way.
 - **Off without keys.** Without `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`, push copies are suppressed (`push_off`) and the profile page offers no push. Without an email provider but with push, the drain sends push and leaves email queued.
-- Rain-outs go with `Urgency: high`; everything is kept by the push service for up to a day (`TTL`) while a phone is offline.
+- Urgent messages go with `Urgency: high`; everything is kept by the push service for up to a day (`TTL`) while a phone is offline.
 
 **Score confirmations** (`src/db/queries/score-confirmations.ts`). When a captain or ref reports a score that still needs an answer, the captains and co-captains who can confirm or dispute it get a `score_confirmation` message (topic `score`) in the same transaction: the other team's for a captain's report, both teams' for a ref's, nobody for an admin's, which is final at once. The dedupe key is `score-confirm/<report>/<person>`, so a retried submit asks once.
 
@@ -235,13 +235,46 @@ How a message is never sent twice (`src/db/queries/outbox.ts`, tested in `outbox
 
 **Suspension notices** (`suspendPlayer` in `src/db/queries/discipline.ts`, tested in `discipline.db.test.ts`). When an admin suspends a player from an incident report, the suspension, its audit row and one `suspension` message (topic `discipline`) commit together. The email gives the length, what it blocks and how to appeal (reply, or the league's contact address when one is set), and never who reported it. The dedupe key is `suspension/<id>`. The `discipline` topic is not offered on the email settings page, so a player can't switch off being told they are suspended; the action calls `after()` to send right away. Games served are counted when read, not stored ([ADR 0026](adr/0026-discipline-counted-not-stored.md)).
 
+### Urgent and non-urgent messages
+
+Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0019-urgent-and-non-urgent-messages.md)). The table lives in one place in code, `MESSAGE_KINDS` in `src/domain/notifications/kinds.ts`; the email templates and `enqueueMessages` are typed by it, so a new kind does not compile until it is classified, and `kinds.test.ts` checks this table matches it.
+
+| Kind (template) | Urgency | What it is |
+|---|---|---|
+| `announcement` | non-urgent | Announcements from admins and captains |
+| `event_notice` | urgent | An event spot that opened for you, or an event you RSVP'd to called off |
+| `new_team` | non-urgent | Answers to new-team requests |
+| `payment_reminder` | urgent | Payment deadline reminders |
+| `rain_alert` | urgent | Rain alerts for admins the day before games |
+| `rainout_notice` | urgent | Rain-outs and makeup times |
+| `score_confirmation` | urgent | Scores waiting for your confirmation |
+| `score_reminder` | non-urgent | Reminders about games with no score yet |
+| `sub_request` | urgent | Teams that need a sub when you're free |
+| `sub_update` | urgent | Answers to your sub offers |
+
+The `digest` template carries held messages and is neither: it is never capped but waits out quiet hours.
+
+**The rules** (`decide` in `src/domain/notifications/limits.ts`, unit and property tested) run in the drain, after consent, for each message and channel, in the league's time zone:
+
+- **Urgent** goes at once, always. In the person's quiet hours a push carries `silent: true`, and the service worker shows it without sound or vibration where the platform allows.
+- **Non-urgent in quiet hours** goes back to `queued` with `send_after` at the moment quiet hours end, so the next drain after that sends it.
+- **Non-urgent outside quiet hours** is sent while the person has had fewer than their daily cap of non-urgent messages on that channel since local midnight (counted from `sent` rows in one query per batch, `message_sent_today_idx`). Over the cap it becomes `held`, with `send_after` at their next digest: 6 pm that day or the next, or the next Sunday at 6 pm for a weekly digest.
+- Waiting and holding give back the claim's attempt, since nothing was tried, so neither uses up retries.
+- Defaults: a cap of 3, a daily digest, quiet from 10 pm to 8 am. A member can lower the cap (0 means everything that can wait comes in the digest), choose a weekly digest, move quiet hours or turn them off, on the profile page ("How often we message you", `saveAlertLimitsAction`, `requireSelfToChange`). Saving moves messages already held to the next digest under the new choice.
+- Local times survive daylight-saving changes: quiet hours end at the first moment the clock reads the end hour (the first reading when an hour repeats, the jump when it is skipped), and the cap's day starts at the first moment of the local date. Property tests run these across zones with 30-minute, one-hour and two-hour changes and changes at midnight.
+
+**The digest job** (`/api/jobs/digests`, `buildDigests` in `src/db/queries/digests.ts`, tested in `digests.db.test.ts`) takes held messages whose `send_after` has passed (`for update skip locked`, inside a transaction) and queues one `digest` email per person listing them, each with its heading, first paragraph and a link to its page. The held rows become `digested` with `digest_id` pointing at the digest, in the same transaction, so a second run finds nothing. A notice held on both email and push is listed once; a held push whose email copy already went out on its own is `suppressed` (`sent_by_email`); a topic turned off since is `suppressed` (`opted_out`). It then drains the outbox, so the digests go out in the same run.
+
+**Every message says why.** Each email's footer finishes "You got this email because …" and links to the setting that changes it: the email settings, or for the digest the daily limit, digest and quiet hours. A push carries the same reason as a "Because …" line under its text and a "Change alerts" button that opens the push settings.
+
 ### Scheduled jobs
 
 Times are Eastern. Schedules are written in UTC, so jobs that care about local time run at both candidate UTC hours and exit early when the local hour does not match; that survives daylight-saving changes.
 
 | Job | When | Does |
 |---|---|---|
-| Outbox sweep | Every minute | Sends due messages, retries failures |
+| Outbox sweep | Every minute | Sends due messages, retries failures, sends messages that waited out quiet hours or for the next day's email quota |
+| Digests ✔ | Daily, 18:00 or later (`/api/jobs/digests`) | Gathers each person's held non-urgent messages whose digest is due into one email, then drains the outbox |
 | Rain alerts ✔ | Daily 18:00 (`/api/jobs/rain-alerts`) | Checks the forecast for each game day whose first game starts in the next 30 hours and alerts every admin on "watch" or "likely", once per level per game day |
 | Game reminders | Two days before game day, 18:00 | Reminds players of their next game and asks for an RSVP |
 | RSVP nudge | The day before game day, 12:00 | Nudges players who have not answered; tells captains where they stand |
@@ -259,7 +292,7 @@ Sub requests need no expiry job: a request closes when its game starts (`sub_req
 
 Every job is a route handler under `/api/jobs/*` that checks an `Authorization: Bearer ${CRON_SECRET}` header ✔, is safe to run twice, and logs a heartbeat.
 
-On Vercel's Hobby plan `vercel.json` schedules each job once a day, because Hobby refuses to deploy anything more frequent. Each job works out what is due from the data whenever it runs, so running a job more often never needs code changes. The outbox relies on `after()` for immediate sends and the daily sweep for retries. If a job needs the frequency above, a free way is a scheduled GitHub Actions workflow that calls the same route with the `CRON_SECRET`, which costs nothing in a public repository; a paid hosting plan is not used ([ADR 0021](adr/0021-free-services-only.md)).
+On Vercel's Hobby plan `vercel.json` schedules each job once a day, because Hobby refuses to deploy anything more frequent. Each job works out what is due from the data whenever it runs, so running a job more often never needs code changes. The outbox relies on `after()` for immediate sends and the daily sweep for retries. The sweep runs at 13:30 UTC (9:30 am in New York in summer, 8:30 am in winter), after default quiet hours end, so messages that waited overnight go out that morning; the digest job runs at 23:00 UTC, after 6 pm in New York all year. If a job needs the frequency above, a free way is a scheduled GitHub Actions workflow that calls the same route with the `CRON_SECRET`, which costs nothing in a public repository; a paid hosting plan is not used ([ADR 0021](adr/0021-free-services-only.md)).
 
 If orchestration grows beyond this (multi-step flows with waits), Vercel's Workflow and Queues products exist ✔ and Inngest is a common alternative. Nothing in the MVP or P2 needs them.
 
@@ -556,7 +589,7 @@ Build it the way Next.js documents ✔: `app/manifest.ts`, a small hand-written 
 - **Protocol.** Written against the standards with Node's crypto ([ADR 0014](adr/0014-web-push-without-a-library.md)): `src/lib/push/web-push.ts` encrypts each message for one device (RFC 8291, `aes128gcm`) and signs a VAPID token (RFC 8292); `src/services/push.ts` posts it and reports sent, gone or failed. The outbox does the rest (section 5, "Push copies").
 - **Opting in.** The profile page has a "Push notifications" section under the email settings, one checkbox per push topic, all off at first. Saving with a topic ticked asks the browser for permission, subscribes this device with the league's public key and saves the device and the choices in one Server Action (`savePushSettingsAction`, `requireSelfToChange`). The endpoint must be https and the keys the right size before anything is stored. "Turn off push on this device" unsubscribes the browser and forgets the device. A browser has one endpoint, so a shared phone belongs to whoever subscribed it last.
 - **Where it works.** Android and desktop browsers, and iPhone only once the app is on the home screen (iOS 16.4 and later); elsewhere the section says why it can't. It needs the service worker, so only production builds offer it.
-- **The service worker** shows each push with the league icon and, on a tap, opens the page the message links to, moving an open window there when there is one. It only ever opens a path on this site.
+- **The service worker** shows each push with the league icon, its text and a "Because …" line saying why the person got it, and, on a tap, opens the page the message links to, moving an open window there when there is one. Where the browser shows buttons, "Change alerts" opens the push settings instead. A push sent in quiet hours (only urgent ones are) is shown silently. It only ever opens a path on this site.
 - **Data.** `push_subscription` holds the endpoint, the device's keys and its browser. The personal data export lists a person's devices by browser and date, without endpoints or keys; deleting an account deletes them.
 - **Tests.** `src/lib/push/web-push.test.ts` checks the encryption against RFC 8291's worked example. Outbox and sender tests deliver to a recorded push endpoint (`recordedPushEndpoint` in `src/lib/push/test-device.ts`) that decrypts each request with a test device's keys, as a phone would; no test reaches a real push service. `service-worker.test.ts` runs the push and click handlers of `public/sw.js` as written.
 
