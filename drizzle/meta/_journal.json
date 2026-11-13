@@ -183,6 +183,13 @@
       "when": 1794582095699,
       "tag": "0025_web_push",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794582836203,
+      "tag": "0026_passkeys",
+      "breakpoints": true
     }
   ]
 }
