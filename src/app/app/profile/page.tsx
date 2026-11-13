@@ -5,10 +5,13 @@ import { Suspense } from "react";
 import { db } from "@/db/client";
 import { emailSettingsOf } from "@/db/queries/notifications";
 import { profileOf } from "@/db/queries/profile";
+import { pushSettingsOf } from "@/db/queries/push";
 import { toProfileForm } from "@/domain/profile/profile-form";
+import { env } from "@/env";
 import { requireSelf } from "@/lib/auth/permission";
 import { EmailSettings } from "./email-settings";
 import { ProfileSettingsForm } from "./profile-form";
+import { PushSettings } from "./push-settings";
 
 export const metadata: Metadata = { title: "Your profile" };
 
@@ -25,7 +28,12 @@ export default function ProfilePage(props: PageProps<"/app/profile">) {
 async function Profile({ searchParams }: PageProps<"/app/profile">) {
   const subject = await requireSelf("profile.edit", "/app/profile");
   const query = await searchParams;
-  const profile = await profileOf(db, subject.userId);
+  const publicKey = env.VAPID_PUBLIC_KEY;
+  const [profile, emailTopics, push] = await Promise.all([
+    profileOf(db, subject.userId),
+    emailSettingsOf(db, subject.userId),
+    publicKey ? pushSettingsOf(db, subject.userId) : null,
+  ]);
   if (!profile) notFound();
   return (
     <>
@@ -50,7 +58,14 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
           Email settings saved.
         </p>
       )}
-      <EmailSettings topics={await emailSettingsOf(db, subject.userId)} />
+      <EmailSettings topics={emailTopics} />
+      {publicKey && push && (
+        <PushSettings
+          publicKey={publicKey}
+          topics={push.topics}
+          devices={push.devices}
+        />
+      )}
       <section aria-labelledby="your-data" className="flex flex-col gap-3">
         <h2 id="your-data" className="text-h2">
           Your data
