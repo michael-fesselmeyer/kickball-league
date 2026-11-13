@@ -17,6 +17,18 @@ import type { Db } from "./schedule";
  * paid.
  */
 
+/** A person's referral code, if they have made one. */
+export async function existingReferralCode(
+  db: Db,
+  userId: UserId,
+): Promise<string | null> {
+  const [found] = await db
+    .select({ code: referralCode.code })
+    .from(referralCode)
+    .where(eq(referralCode.userId, userId));
+  return found?.code ?? null;
+}
+
 /** A person's referral code, made the first time it is asked for. */
 export async function referralCodeFor(db: Db, userId: UserId): Promise<string> {
   const [found] = await db
