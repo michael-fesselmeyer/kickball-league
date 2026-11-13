@@ -168,24 +168,24 @@ In CI, the end-to-end and Lighthouse checks each build the app once and share th
 
 ## Scripts
 
-| Command                 | What it does                                                     |
-| ----------------------- | ---------------------------------------------------------------- |
-| `npm run dev`           | Start the development server                                     |
-| `npm test`              | Run unit tests once                                              |
-| `npm run test:coverage` | Run unit tests with coverage of `src/domain` and `src/lib`       |
-| `npm run db:generate`   | Generate a SQL migration from `src/db/schema`                    |
-| `npm run db:migrate`    | Apply pending migrations to `DATABASE_URL`                       |
-| `npm run db:check`      | Check migration files are consistent                             |
-| `npm run db:studio`     | Browse the database in Drizzle Studio                            |
-| `npm run test:db`       | Database constraint tests (each rolls back)                      |
-| `npm run seed`          | Replace the demo league with fresh seed data; refuses production |
-| `npm run demo:reset`    | Reseed the demo deployment; refuses unless demo mode is on       |
-| `npm run lint`          | ESLint, failing on any warning                                   |
-| `npm run typecheck`     | Generate route types and run `tsc`                               |
-| `npm run format:check`  | Check Prettier formatting                                        |
-| `npm run build`         | Production build                                                 |
-| `npm run test:e2e`      | Build, reseed, then smoke tests and core flows with axe          |
-| `npm run lighthouse`    | Lighthouse budgets on the public pages of the last build         |
+| Command                 | What it does                                                      |
+| ----------------------- | ----------------------------------------------------------------- |
+| `npm run dev`           | Start the development server                                      |
+| `npm test`              | Run unit tests once                                               |
+| `npm run test:coverage` | Run unit tests with coverage of `src/domain` and `src/lib`        |
+| `npm run db:generate`   | Generate a SQL migration from `src/db/schema`                     |
+| `npm run db:migrate`    | Apply pending migrations to `DATABASE_URL`                        |
+| `npm run db:check`      | Check migration files are consistent                              |
+| `npm run db:studio`     | Browse the database in Drizzle Studio                             |
+| `npm run test:db`       | Database constraint tests (each rolls back)                       |
+| `npm run seed`          | Replace the demo league with fresh seed data; refuses production  |
+| `npm run demo:reset`    | Reseed the demo deployment; refuses unless demo mode is on        |
+| `npm run lint`          | ESLint, failing on any warning                                    |
+| `npm run typecheck`     | Generate route types and run `tsc`                                |
+| `npm run format:check`  | Check Prettier formatting                                         |
+| `npm run build`         | Production build                                                  |
+| `npm run test:e2e`      | Build (unless `E2E_PREBUILT=true`), reseed, smoke tests and flows |
+| `npm run lighthouse`    | Lighthouse budgets on the public pages of the last build          |
 
 ## How changes land
 
