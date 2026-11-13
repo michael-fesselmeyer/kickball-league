@@ -51,10 +51,15 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `npm run build && npm run start -- --port ${SMOKE_PORT}`,
+      // CI builds once and hands the build to every shard (E2E_PREBUILT);
+      // a local run builds first.
+      command:
+        process.env.E2E_PREBUILT === "true"
+          ? `npm run start -- --port ${SMOKE_PORT}`
+          : `npm run build && npm run start -- --port ${SMOKE_PORT}`,
       url: `http://localhost:${SMOKE_PORT}`,
       reuseExistingServer: false,
-      timeout: 240_000,
+      timeout: process.env.E2E_PREBUILT === "true" ? 60_000 : 240_000,
       stdout: "ignore",
       stderr: "pipe",
       env: { BETTER_AUTH_URL: `http://localhost:${SMOKE_PORT}` },
