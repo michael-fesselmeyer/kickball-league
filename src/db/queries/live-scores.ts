@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import type { GameId, TeamSeasonId, UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import {
@@ -8,6 +8,7 @@ import {
   type HalfError,
   type HalfInning,
   lineScore,
+  type LiveSnapshot,
   type Side,
 } from "@/domain/scores/live";
 import type {
@@ -15,7 +16,13 @@ import type {
   ScoreErrors,
   ScoreState,
 } from "@/domain/scores/scores";
-import { game, gamePeriod, refereeAssignment, slot } from "../schema/game";
+import {
+  game,
+  gamePeriod,
+  refereeAssignment,
+  scoreReport,
+  slot,
+} from "../schema/game";
 import type { Db } from "./schedule";
 import { type ReportError, reportScore } from "./scores";
 
@@ -43,6 +50,8 @@ export type LiveGame = {
   scoreB: number | null;
   /** Set for a called game: the innings that count. */
   inningsPlayed: number | null;
+  /** Someone has reported a final score, final or not yet. */
+  reported: boolean;
   halves: HalfInning[];
 };
 
@@ -62,6 +71,7 @@ export async function liveGame(
       scoreB: game.scoreB,
       inningsPlayed: game.inningsPlayed,
       startsAt: slot.startsAt,
+      reported: sql<boolean>`exists (select 1 from ${scoreReport} where ${scoreReport.gameId} = ${game.id})`,
       inning: gamePeriod.periodNo,
       half: gamePeriod.half,
       runs: gamePeriod.runs,
@@ -89,11 +99,30 @@ export async function liveGame(
     scoreA: first.scoreA,
     scoreB: first.scoreB,
     inningsPlayed: first.inningsPlayed,
+    reported: first.reported,
     halves: rows.flatMap((r) =>
       r.inning !== null && r.half !== null && r.runs !== null
         ? [{ inning: r.inning, half: r.half, runs: r.runs }]
         : [],
     ),
+  };
+}
+
+/** What the public game page shows and polls for. */
+export function snapshotOf(live: LiveGame): LiveSnapshot {
+  return {
+    kicksFirst: live.kicksFirst,
+    halves: live.halves,
+    closed: isClosed(live.status),
+    reported: live.reported,
+    result:
+      live.status === "final" && live.scoreA !== null && live.scoreB !== null
+        ? {
+            scoreA: live.scoreA,
+            scoreB: live.scoreB,
+            inningsPlayed: live.inningsPlayed,
+          }
+        : null,
   };
 }
 

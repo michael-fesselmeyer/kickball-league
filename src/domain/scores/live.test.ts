@@ -141,7 +141,8 @@ describe("checkHalf", () => {
       { inning: 2, half: "bottom" as const, runs: 100 },
       { inning: 0, half: "top" as const, runs: 1 },
       { inning: MAX_INNINGS + 1, half: "top" as const, runs: 1 },
-      { inning: 2, half: "middle" as never, runs: 1 },
+      // A half from a tampered form, as the server would receive it.
+      JSON.parse('{ "inning": 2, "half": "middle", "runs": 1 }') as HalfInning,
     ])
       expect(checkHalf(two, entry, "A")).toBe("invalid");
   });

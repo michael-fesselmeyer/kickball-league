@@ -176,3 +176,25 @@ export function ordinal(n: number): string {
 export function positionLabel(p: Position): string {
   return `${p.half === "top" ? "Top" : "Bottom"} of the ${ordinal(p.inning)}`;
 }
+
+/** Innings in a regulation game (rulebook 3.1); the line score shows them all. */
+export const REGULATION_INNINGS = 7;
+
+/**
+ * What the public game page shows and polls for: the halves so far, and
+ * the official result once there is one. Sent as JSON, so plain data only.
+ */
+export type LiveSnapshot = {
+  kicksFirst: Side | null;
+  halves: HalfInning[];
+  /** Final, forfeited or cancelled: nothing more will change. */
+  closed: boolean;
+  /** A final score has been reported and waits for confirmation. */
+  reported: boolean;
+  /** The official score once final; innings is set for a called game. */
+  result: {
+    scoreA: number;
+    scoreB: number;
+    inningsPlayed: number | null;
+  } | null;
+};
