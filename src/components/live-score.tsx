@@ -5,7 +5,7 @@ import { type LiveSnapshot, nextPollIn, POLL_MS } from "@/domain/scores/live";
 import { LiveLine } from "./line-score";
 
 /**
- * The live line score on the public game page (ADR 0009). The page renders
+ * The live line score on the public game page (ADR 0011). The page renders
  * it with the score at render time; while the game is on and the tab is
  * visible, it asks the live JSON route again every 10 seconds, so a new
  * half-inning shows within 15 seconds without a reload. It stops once the

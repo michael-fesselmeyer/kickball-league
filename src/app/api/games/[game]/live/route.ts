@@ -11,7 +11,7 @@ import {
 
 /**
  * A game's live score as JSON, polled by the public game page while the game
- * is on (docs/architecture.md, section 3, and ADR 0009). The server keeps it
+ * is on (docs/architecture.md, section 3, and ADR 0011). The server keeps it
  * for a few seconds and saving a half-inning expires it; a CDN may keep a
  * copy for a few seconds more, so a crowd of phones costs a query every few
  * seconds, not one per phone.
