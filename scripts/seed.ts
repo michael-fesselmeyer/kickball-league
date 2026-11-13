@@ -26,6 +26,7 @@ import { addKeepOffPerson, removeKeepOffPerson } from "../src/seed/keep-off";
 import { addAudienceDemo } from "../src/seed/event-audience";
 import { addSeedBooks, removeSeedBooks } from "../src/seed/books";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
+import { addSeedFriends } from "../src/seed/friends";
 import { addSeedLineups } from "../src/seed/lineups";
 import { addMerchDemo, removeSeedMerch } from "../src/seed/merch";
 import { addTicketDemo, removeSeedTickets } from "../src/seed/tickets";
@@ -292,6 +293,7 @@ async function main(): Promise<void> {
       await addSeedSponsors(tx, data);
       await addInstagramPhotos(tx, data);
       await addSeedBooks(tx, data);
+      await addSeedFriends(tx, data);
     });
     const played = data.games.filter((g) => g.status === "final").length;
     console.info(
