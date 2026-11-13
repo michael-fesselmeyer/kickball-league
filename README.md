@@ -150,7 +150,7 @@ The app talks to Neon through its HTTP and WebSocket drivers, and to a Postgres 
 
 ### End-to-end and Lighthouse tests
 
-`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the core flows (registration with split pay up to Stripe Checkout, free-agent signup, generating and publishing a schedule, entering and confirming a score, a rain-out). Every key screen is checked with axe. It reseeds the database before each run and sends Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so it needs both running locally:
+`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the core flows (registration with split pay through Stripe Checkout and a signed webhook that marks the payment, free-agent signup and payment, generating and publishing a schedule, entering and confirming a score, a rain-out). Every key screen is checked with axe. It reseeds the database before each run and sends Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so it needs both running locally:
 
 ```bash
 PGDATABASE_NAME=kb_e2e_demo scripts/setup-local-postgres.sh
