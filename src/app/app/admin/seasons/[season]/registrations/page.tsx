@@ -330,52 +330,56 @@ async function Registrations({
                 · {t.status === "confirmed" ? "confirmed" : "forming"}
               </span>
             </h3>
-            <div
-              role="region"
-              aria-label={`${t.name} players`}
-              // A scrolling region must be reachable by keyboard, even with no links.
-              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-              tabIndex={0}
-              className="relative overflow-x-auto"
-            >
-              <table className="w-full min-w-[34rem] text-left">
-                <thead className="text-text-muted">
-                  <tr>
-                    <th scope="col">Name</th>
-                    <th scope="col">Role</th>
-                    <th scope="col">Waiver</th>
-                    <th scope="col">Paid</th>
-                    <th scope="col">
-                      <span className="sr-only">Payments and refunds</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {t.members.map((m) => (
-                    <tr
-                      key={m.registrationId}
-                      className="border-t border-border"
-                    >
-                      <td className="py-2">{m.name}</td>
-                      <td>{ROLE[m.role ?? "player"]}</td>
-                      <Status person={m} />
-                      <td>
-                        {/* Each pays their own unless the captain pays the team fee. */}
-                        {board.feeModel === "per_player" ||
-                        t.paymentMode === "split" ||
-                        m.role === "captain" ? (
-                          <PaymentActions
-                            slug={slug}
-                            person={m}
-                            refunds={refunds}
-                          />
-                        ) : null}
-                      </td>
+            {t.members.length === 0 ? (
+              <p className="text-text-muted">Nobody on this team yet.</p>
+            ) : (
+              <div
+                role="region"
+                aria-label={`${t.name} players`}
+                // A scrolling region must be reachable by keyboard, even with no links.
+                // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+                tabIndex={0}
+                className="relative overflow-x-auto"
+              >
+                <table className="w-full min-w-[34rem] text-left">
+                  <thead className="text-text-muted">
+                    <tr>
+                      <th scope="col">Name</th>
+                      <th scope="col">Role</th>
+                      <th scope="col">Waiver</th>
+                      <th scope="col">Paid</th>
+                      <th scope="col">
+                        <span className="sr-only">Payments and refunds</span>
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {t.members.map((m) => (
+                      <tr
+                        key={m.registrationId}
+                        className="border-t border-border"
+                      >
+                        <td className="py-2">{m.name}</td>
+                        <td>{ROLE[m.role ?? "player"]}</td>
+                        <Status person={m} />
+                        <td>
+                          {/* Each pays their own unless the captain pays the team fee. */}
+                          {board.feeModel === "per_player" ||
+                          t.paymentMode === "split" ||
+                          m.role === "captain" ? (
+                            <PaymentActions
+                              slug={slug}
+                              person={m}
+                              refunds={refunds}
+                            />
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </article>
         ))}
       </section>
