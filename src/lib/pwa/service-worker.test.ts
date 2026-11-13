@@ -115,14 +115,52 @@ class FakeNetwork {
 
 type Listener = (event: unknown) => void;
 
-function loadWorker(network: FakeNetwork, storage: FakeCacheStorage) {
+type Shown = { title: string; options: NotificationOptions };
+
+/** The windows the worker can see, and what it did with them. */
+class FakeWindows {
+  readonly shown: Shown[] = [];
+  readonly opened: string[] = [];
+  readonly focused: string[] = [];
+  open: { url: string }[] = [];
+
+  windows = () =>
+    this.open.map((w) => ({
+      get url() {
+        return w.url;
+      },
+      navigate: async (url: string) => {
+        w.url = url;
+      },
+      focus: async () => {
+        this.focused.push(w.url);
+      },
+    }));
+}
+
+function loadWorker(
+  network: FakeNetwork,
+  storage: FakeCacheStorage,
+  screen: FakeWindows = new FakeWindows(),
+) {
   const listeners = new Map<string, Listener>();
   const self = {
     location: { origin: ORIGIN },
     addEventListener: (type: string, listener: Listener) =>
       listeners.set(type, listener),
     skipWaiting: async () => {},
-    clients: { claim: async () => {} },
+    registration: {
+      showNotification: async (title: string, options: NotificationOptions) => {
+        screen.shown.push({ title, options });
+      },
+    },
+    clients: {
+      claim: async () => {},
+      matchAll: async () => screen.windows(),
+      openWindow: async (url: string) => {
+        screen.opened.push(url);
+      },
+    },
   };
   const source = readFileSync(join(process.cwd(), "public/sw.js"), "utf8");
   const exposed = new Function(
@@ -161,6 +199,22 @@ function loadWorker(network: FakeNetwork, storage: FakeCacheStorage) {
     install: () => dispatch("install"),
     activate: () => dispatch("activate"),
     message: (data: unknown) => dispatch("message", { data }),
+    push: (data: unknown) =>
+      dispatch("push", {
+        data:
+          data === null
+            ? null
+            : {
+                json: () =>
+                  typeof data === "string" ? JSON.parse(data) : data,
+              },
+      }),
+    click: (path: unknown) => {
+      const closed: boolean[] = [];
+      return dispatch("notificationclick", {
+        notification: { data: { path }, close: () => closed.push(true) },
+      }).then(() => closed.length);
+    },
     fetch: (request: Req) => dispatch("fetch", { request }),
   };
 }
@@ -445,5 +499,72 @@ describe("service worker: the next game", () => {
     await save(GAME);
     await worker.message({ type: "forget" });
     expect(storage.stores.has(worker.NEXT_GAME_CACHE)).toBe(false);
+  });
+});
+
+describe("service worker: push notifications", () => {
+  let screen: FakeWindows;
+  beforeEach(() => {
+    screen = new FakeWindows();
+    worker = loadWorker(network, storage, screen);
+  });
+
+  it("shows a league push with its text, tag and page", async () => {
+    await worker.push({
+      title: "Your game is postponed",
+      body: "Aces vs Bees (Sun 7 PM) is rained out.",
+      path: "/app/seasons/fall-2026",
+      tag: "abc123",
+    });
+    expect(screen.shown).toEqual([
+      {
+        title: "Your game is postponed",
+        options: {
+          body: "Aces vs Bees (Sun 7 PM) is rained out.",
+          tag: "abc123",
+          icon: "/icons/icon-192.png",
+          badge: "/icons/icon-192.png",
+          data: { path: "/app/seasons/fall-2026" },
+        },
+      },
+    ]);
+  });
+
+  it("still shows something for an empty or unreadable push", async () => {
+    await worker.push(null);
+    await worker.push("not json");
+    expect(screen.shown.map((s) => [s.title, s.options.data])).toEqual([
+      ["Kickball league", { path: "/app" }],
+      ["Kickball league", { path: "/app" }],
+    ]);
+  });
+
+  it("never sends a tap to another site", async () => {
+    for (const path of [
+      "https://evil.example.test/",
+      "//evil.example.test/x",
+      "/\\evil.example.test",
+      "javascript:alert(1)",
+      42,
+    ]) {
+      await worker.push({ title: "Hi", path });
+    }
+    expect(screen.shown.map((s) => s.options.data)).toEqual(
+      Array.from({ length: 5 }, () => ({ path: "/app" })),
+    );
+  });
+
+  it("opens the page on a tap, or moves an open window there", async () => {
+    expect(await worker.click("/app/subs")).toBe(1);
+    expect(screen.opened).toEqual([`${ORIGIN}/app/subs`]);
+
+    screen.open = [{ url: `${ORIGIN}/app` }];
+    await worker.click("/app/subs");
+    expect(screen.open).toEqual([{ url: `${ORIGIN}/app/subs` }]);
+    expect(screen.focused).toEqual([`${ORIGIN}/app/subs`]);
+    expect(screen.opened).toHaveLength(1);
+
+    await worker.click("https://evil.example.test/");
+    expect(screen.open).toEqual([{ url: `${ORIGIN}/app` }]);
   });
 });
