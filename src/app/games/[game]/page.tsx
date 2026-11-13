@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -9,10 +10,12 @@ import { ForecastChip } from "@/components/forecast-chip";
 import { ShareButtons } from "@/components/share";
 import { LiveLine } from "@/components/line-score";
 import { LiveScore } from "@/components/live-score";
+import { MemberPhotos } from "@/components/member-photos";
 import { GameStats } from "@/components/stats/game-stats";
 import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { liveGame, snapshotOf } from "@/db/queries/live-scores";
+import { approvedPhotos } from "@/db/queries/member-photos";
 import { publishedGame } from "@/db/queries/public-schedule";
 import type { Hex } from "@/domain/color/contrast";
 import { type GameId, parseId } from "@/domain/ids";
@@ -29,8 +32,17 @@ import {
 import { cardVersion, gameCard } from "@/domain/share/cards";
 import { gameShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
+import { MEMBER_PHOTOS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 import { shareMetadata } from "@/lib/share/metadata";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
+
+/** Players' approved photos of the game, refreshed when one is approved. */
+async function cachedGamePhotos(gameId: GameId) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
+  cacheTag(MEMBER_PHOTOS_TAG);
+  return approvedPhotos(db, { gameId });
+}
 
 async function load(param: string) {
   const id = parseId<GameId>(param);
@@ -103,9 +115,10 @@ function mapLink(venue: NonNullable<PublicGame["venue"]>) {
 async function Game({ params }: PageProps<"/games/[game]">) {
   const param = (await params).game;
   const id = parseId<GameId>(param);
-  const [found, live] = await Promise.all([
+  const [found, live, photos] = await Promise.all([
     load(param),
     id ? liveGame(db, id) : null,
+    id ? cachedGamePhotos(id) : [],
   ]);
   if (!found) notFound();
   const { game, timeZone } = found;
@@ -272,6 +285,17 @@ async function Game({ params }: PageProps<"/games/[game]">) {
       </section>
 
       <GameStats game={game} timeZone={timeZone} />
+
+      {/* Once it has started: there's nothing to photograph before. */}
+      {(photos.length > 0 ||
+        (game.startsAt !== null && game.startsAt <= new Date())) && (
+        <MemberPhotos
+          id="player-photos"
+          about={`${game.teamA.name} vs ${game.teamB.name}`}
+          photos={photos}
+          shareHref={`/app/photos?game=${game.id}`}
+        />
+      )}
 
       <section aria-labelledby="follow" className="flex flex-col gap-2">
         <h2 id="follow" className="text-h3">
