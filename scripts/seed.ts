@@ -41,6 +41,7 @@ import {
   addInstagramPhotos,
   removeInstagramPhotos,
 } from "../src/seed/instagram-photos";
+import { addMemberPhotos } from "../src/seed/member-photos";
 import { canSeed } from "../src/seed/guard";
 import { addPastSeasons } from "../src/seed/past-seasons";
 import { addSeedSponsors, removeSeedSponsors } from "../src/seed/sponsors";
@@ -301,6 +302,7 @@ async function main(): Promise<void> {
       await addSeedBooks(tx, data);
       await addSeedFriends(tx, data);
       await addSeedFeePayments(tx, data);
+      await addMemberPhotos(tx, data);
     });
     // After the commit, on the pool: the summary reads its totals in parallel.
     await addSeedMoneySummary(db, data);
