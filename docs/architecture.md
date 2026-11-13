@@ -387,6 +387,7 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `/app/seasons/[season]/team/announcements` | `announcements` |
 | `/app/seasons/[season]/export/roster.csv`, `payments.csv` | `admin-tools` (team and season files) |
 | `/app/admin` | `screens` |
+| `/app/admin/credit` | `registration` (league credit) |
 | `/app/admin/audit` | `admin-tools` (export and role changes, operator filter); `site-wide/operator` (status and feature switches); `screens` |
 | `/app/admin/events`, `/new`, `/[event]` | `screens`; `events` (create, attendees) |
 | `/app/admin/waivers` | `registration`, `season-journey`, `team-formation` |
@@ -400,6 +401,7 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `…/playoffs` | `screens` |
 | `…/promo-codes` | `registration`; `screens` |
 | `…/rainout` | `rainout`, `season-journey` |
+| `…/rebates` | `screens` |
 | `…/recap` | `screens` |
 | `…/referees` | `screens` |
 | `…/registrations` | `registration` (refunds), `admin-tools` (CSV); `screens` |
@@ -407,7 +409,13 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `…/schedule` | `schedule`, `rainout`, `season-journey` |
 | `…/scores` | `screens` |
 | `…/shirts` | `screens` |
+| `…/team-of-the-week` | `sponsors` |
+| `…/waitlist` | `registration` (a full season's waitlist) |
 | `/app/admin/league.json` | `admin-tools`; `site-wide/operator` (while paused) |
+| `/app/sponsor` | `screens` |
+| `/app/sponsor/[sponsor]`, `/code`, `/report` | `sponsors` |
+| `/app/check-in/[sponsor]` | `screens` |
+| `/app/check-in/[sponsor]/[code]` | `sponsors` |
 | `/operator` | `admin-tools` (export, roles); `site-wide/operator` (read-only, paused, features); `screens` |
 
 Flows that run side by side share the four personas, so each works in its own season or on data no other flow checks, and the Stripe helpers pick a person's payment by season.
