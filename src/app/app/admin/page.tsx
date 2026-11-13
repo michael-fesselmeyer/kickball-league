@@ -221,6 +221,14 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
         )}
         {can(subject, "books.manage") && (
           <p className="flex flex-wrap items-center gap-3">
+            {can(subject, "dashboard.view") && (
+              <Link
+                href={`/app/owner/${current.slug}`}
+                className="btn btn-secondary"
+              >
+                Owner dashboard
+              </Link>
+            )}
             <Link
               href={`/app/books/${current.slug}`}
               className="btn btn-secondary"
