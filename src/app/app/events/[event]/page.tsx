@@ -74,7 +74,10 @@ async function EventRsvp({
         <h1 className="text-h1">{e.title}</h1>
         <p>{whenLine(e, e.timeZone)}</p>
         {e.place && <p className="text-text-muted">{e.place}</p>}
-        <Link href={`/events/${e.slug}`} className="self-start underline">
+        <Link
+          href={`/events/${e.slug}`}
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           Event details
         </Link>
       </header>

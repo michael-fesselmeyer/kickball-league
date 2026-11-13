@@ -63,12 +63,18 @@ async function AdminEvent({
   return (
     <>
       <header className="flex flex-col gap-1">
-        <Link href="/app/admin/events" className="self-start underline">
+        <Link
+          href="/app/admin/events"
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           Events
         </Link>
         <h1 className="text-h1">{e.title}</h1>
         <p>{whenLine(e, e.timeZone)}</p>
-        <Link href={`/events/${e.slug}`} className="self-start underline">
+        <Link
+          href={`/events/${e.slug}`}
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           Public page
         </Link>
       </header>
@@ -149,7 +155,13 @@ async function AdminEvent({
               who RSVP&apos;d.
             </p>
             <label className="flex min-h-11 items-center gap-2">
-              <input type="checkbox" name="confirm" value="yes" required />
+              <input
+                type="checkbox"
+                name="confirm"
+                value="yes"
+                required
+                className="size-5 accent-brand"
+              />
               Yes, call it off
             </label>
             <button type="submit" className="btn btn-secondary">
@@ -166,7 +178,13 @@ async function AdminEvent({
             a mistake, not a change of plans.
           </p>
           <label className="flex min-h-11 items-center gap-2">
-            <input type="checkbox" name="confirm" value="yes" required />
+            <input
+              type="checkbox"
+              name="confirm"
+              value="yes"
+              required
+              className="size-5 accent-brand"
+            />
             Yes, delete it
           </label>
           <button type="submit" className="btn btn-secondary">

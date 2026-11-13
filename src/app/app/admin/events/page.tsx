@@ -85,7 +85,10 @@ async function AdminEvents({ searchParams }: PageProps<"/app/admin/events">) {
   return (
     <>
       <header className="flex flex-col gap-2">
-        <Link href="/app/admin" className="self-start underline">
+        <Link
+          href="/app/admin"
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
           League admin
         </Link>
         <h1 className="text-h1">Events</h1>
