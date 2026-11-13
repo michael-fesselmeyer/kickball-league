@@ -14,7 +14,7 @@ const APP_SECRET = /^[A-Za-z0-9]{16,64}$/;
  * like DEMO_MODE (ADR 0004) and OPERATOR_USER_IDS (ADR 0009): the
  * connection is optional, so the variables stay out of the validated schema
  * and `.env.example`, and are checked here, where they are used
- * (ADR 0020).
+ * (ADR 0023).
  *
  * Off when both are unset (reason null). A half or malformed pair fails
  * safe: the connection stays off and `reason` names the variable, never

@@ -7,7 +7,7 @@ import {
 
 /**
  * Encrypts a social account's access token for storage
- * (docs/adr/0020-instagram-photos-stored-in-postgres.md). AES-256-GCM with
+ * (docs/adr/0023-instagram-photos-stored-in-postgres.md). AES-256-GCM with
  * a key derived from the server's auth secret, so a database copy alone
  * cannot use the token. The additional data binds a ciphertext to its
  * account row: one copied onto another row does not decrypt.

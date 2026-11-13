@@ -1,5 +1,5 @@
 /**
- * Shrinks a copied Instagram photo before it is stored (ADR 0020), so the
+ * Shrinks a copied Instagram photo before it is stored (ADR 0023), so the
  * copies stay small on the free database tier. Server only: the sync job,
  * the "Sync now" action and the sign-in callback call it; no page imports
  * it, and sharp is loaded on first use.
