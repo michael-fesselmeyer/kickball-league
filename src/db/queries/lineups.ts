@@ -27,7 +27,7 @@ import {
 } from "../schema/team";
 import type { Db } from "./schedule";
 
-/** Kicking orders for game day (rulebook 2.2.4; ADR 0021). */
+/** Kicking orders for game day (rulebook 2.2.4; ADR 0030). */
 
 /** "Jo S.": first name and last initial, as on public rosters. */
 const shortName = sql<string>`coalesce(${profile.firstName} || coalesce(' ' || left(${profile.lastName}, 1) || '.', ''), nullif(${user.name}, ''), 'A player')`;

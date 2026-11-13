@@ -7,7 +7,7 @@
  *
  * A player counts toward the side they chose in their profile (their lineup
  * gender). A player who has not chosen counts toward neither side: they
- * never make a run and they break one (ADR 0021). The site warns; it never
+ * never make a run and they break one (ADR 0030). The site warns; it never
  * blocks a game (product-spec.md, section 7).
  */
 import { err, ok, type Result } from "../result";
