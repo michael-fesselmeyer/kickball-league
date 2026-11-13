@@ -1,0 +1,54 @@
+{
+  "data": [
+    {
+      "id": "18000000000000006",
+      "caption": "Opening day! Twelve teams, one very muddy outfield. #kickball #brooklyn",
+      "media_type": "IMAGE",
+      "media_url": "https://scontent-lga3-1.cdninstagram.com/v/t51.fixture/opening-day.jpg?stp=dst-jpg&_nc_ht=fixture",
+      "permalink": "https://www.instagram.com/p/FixtureOpeningDay/",
+      "timestamp": "2026-09-13T18:04:11+0000"
+    },
+    {
+      "id": "18000000000000005",
+      "caption": "Sun Kickers turned two in the fourth. Watch the replay.",
+      "media_type": "VIDEO",
+      "thumbnail_url": "https://scontent-lga3-2.cdninstagram.com/v/t51.fixture/double-play-thumb.jpg?_nc_ht=fixture",
+      "media_url": "https://scontent-lga3-2.cdninstagram.com/o1/v/t16.fixture/double-play.mp4",
+      "permalink": "https://www.instagram.com/reel/FixtureDoublePlay/",
+      "timestamp": "2026-09-20T19:30:00+0000"
+    },
+    {
+      "id": "18000000000000004",
+      "caption": "Post-game at the bar. Seltzers and pickles for everyone.",
+      "media_type": "CAROUSEL_ALBUM",
+      "media_url": "https://scontent-lga3-1.cdninstagram.com/v/t51.fixture/after-party-1.jpg?_nc_ht=fixture",
+      "permalink": "https://www.instagram.com/p/FixtureAfterParty/",
+      "timestamp": "2026-09-27T23:15:42+0000"
+    },
+    {
+      "id": "18000000000000003",
+      "media_type": "IMAGE",
+      "media_url": "https://scontent-lga3-1.cdninstagram.com/v/t51.fixture/team-photo.jpg?_nc_ht=fixture",
+      "permalink": "https://www.instagram.com/p/FixtureTeamPhoto/",
+      "timestamp": "2026-10-04T17:45:00+0000"
+    },
+    {
+      "id": "18000000000000002",
+      "caption": "Rain delay dance-off. Nobody won, everyone won.",
+      "media_type": "VIDEO",
+      "permalink": "https://www.instagram.com/reel/FixtureRainDance/",
+      "timestamp": "2026-10-11T20:00:00+0000"
+    },
+    {
+      "id": "18000000000000001",
+      "caption": "Championship Sunday. Congrats to the Big Kicks!",
+      "media_type": "IMAGE",
+      "media_url": "https://scontent-lga3-1.cdninstagram.com/v/t51.fixture/championship.jpg?_nc_ht=fixture",
+      "permalink": "https://www.instagram.com/p/FixtureChampionship/",
+      "timestamp": "2026-10-25T21:10:05+0000"
+    }
+  ],
+  "paging": {
+    "cursors": { "before": "QVFIUfixturebefore", "after": "QVFIUfixtureafter" }
+  }
+}
