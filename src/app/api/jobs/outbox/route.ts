@@ -17,7 +17,7 @@ export async function GET(request: Request): Promise<Response> {
   const result = await drainOutboxNow();
   if (!result)
     return Response.json(
-      { error: "Email is not configured; messages stay queued" },
+      { error: "Neither email nor push is configured; messages stay queued" },
       { status: 503 },
     );
   return Response.json(result);

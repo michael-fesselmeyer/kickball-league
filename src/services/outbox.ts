@@ -5,6 +5,7 @@ import { ok } from "@/domain/result";
 import { rendererFor } from "@/emails/templates";
 import { env } from "@/env";
 import { type EmailSender, resendSender } from "./email";
+import { pushSenderFrom } from "./push";
 
 /**
  * Prints each email instead of sending it, for local development without an
@@ -44,19 +45,31 @@ const sender = outboxSender({
   nodeEnv: process.env.NODE_ENV,
 });
 
+/** Web push when VAPID keys are set; otherwise push copies are suppressed. */
+const pushSender = pushSenderFrom({
+  publicKey: env.VAPID_PUBLIC_KEY,
+  privateKey: env.VAPID_PRIVATE_KEY,
+  subject: env.VAPID_SUBJECT ?? env.BETTER_AUTH_URL,
+});
+
 /**
  * Sends everything that is due, in batches, until the outbox is empty or
- * `maxBatches` is reached. Null when no email sender is configured.
+ * `maxBatches` is reached. Null when neither email nor push is configured.
  */
 export async function drainOutboxNow(
   now: Date = new Date(),
   maxBatches = 10,
 ): Promise<DrainResult | null> {
-  if (!sender) return null;
+  if (!sender && !pushSender) return null;
   const render = rendererFor({ siteUrl: env.BETTER_AUTH_URL });
   const total = emptyDrain();
   for (let batch = 0; batch < maxBatches; batch++) {
-    const r = await drainOutbox(txDb, { send: sender, render, now });
+    const r = await drainOutbox(txDb, {
+      send: sender,
+      push: pushSender,
+      render,
+      now,
+    });
     for (const key of Object.keys(total) as (keyof DrainResult)[])
       total[key] += r[key];
     if (Object.values(r).every((n) => n === 0)) break;
