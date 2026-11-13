@@ -149,6 +149,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Approve or decline sub claims; take a request down | — | — | own | — | — | ✓ | ✓ |
 | See a game's pickups (approved subs) | — | — | own team's games | assigned | — | ✓ | ✓ |
 | Enter a score | — | — | own team's games | assigned | — | ✓ | ✓ |
+| Enter runs inning by inning during a game | — | — | own team's games without a ref | assigned | — | ✓ | ✓ |
 | Confirm or dispute a score | — | — | own team's games | — | — | ✓ | ✓ |
 | Override a final score, record a forfeit | — | — | — | — | — | ✓ | ✓ |
 | Submit scheduling conflicts | — | — | own | — | — | ✓ | ✓ |

@@ -31,7 +31,12 @@ export type Context = {
   teamSeasonId?: string;
   /** The roster role of the member acted on. */
   targetRole?: RosterRole;
-  game?: { id: string; teamSeasonIds: readonly [string, string] };
+  game?: {
+    id: string;
+    teamSeasonIds: readonly [string, string];
+    /** For live scoring: a ref has accepted the game. */
+    hasReferee?: boolean;
+  };
   sponsorId?: string;
   /** For contact details: the member chose to share them with their team. */
   memberOptedIn?: boolean;
@@ -127,6 +132,12 @@ const RULES = {
   "payments.export": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   "score.enter": any(isAdmin, captainsGame, refereesGame),
   "score.confirm": any(isAdmin, captainsGame),
+  // Inning by inning: the ref, or a captain when the game has no ref.
+  "score.live": any(
+    isAdmin,
+    refereesGame,
+    all(captainsGame, (_, c) => c.game?.hasReferee === false),
+  ),
   "announcement.send": any(
     isAdmin,
     (s, c) => c.scope === "team" && captains(s, c.teamSeasonId),
