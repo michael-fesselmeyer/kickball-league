@@ -100,7 +100,7 @@ async function gamesWithoutScores(db: Db, endedAfter: Date, endedBy: Date) {
 }
 
 /** Captains and co-captains of the given teams, by team. */
-async function captainsOf(db: Db, teamSeasonIds: TeamSeasonId[]) {
+export async function captainsOf(db: Db, teamSeasonIds: TeamSeasonId[]) {
   if (teamSeasonIds.length === 0) return [];
   return db
     .select({

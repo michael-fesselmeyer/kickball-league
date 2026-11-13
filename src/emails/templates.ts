@@ -8,6 +8,7 @@ import { newTeamEmail } from "./new-team";
 import { paymentReminderEmail } from "./payment-reminder";
 import { rainAlertEmail } from "./rain-alert";
 import { rainoutNoticeEmail } from "./rainout-notice";
+import { scoreConfirmationEmail } from "./score-confirmation";
 import { scoreReminderEmail } from "./score-reminder";
 import { subRequestEmail, subUpdateEmail } from "./sub-request";
 
@@ -22,6 +23,7 @@ const TEMPLATES: Readonly<Record<string, Template>> = {
   payment_reminder: paymentReminderEmail,
   rain_alert: rainAlertEmail,
   rainout_notice: rainoutNoticeEmail,
+  score_confirmation: scoreConfirmationEmail,
   score_reminder: scoreReminderEmail,
   sub_request: subRequestEmail,
   sub_update: subUpdateEmail,
