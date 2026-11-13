@@ -29,6 +29,43 @@ export function seedOrder(size: number): number[] {
   return order;
 }
 
+/** "Final", "Semifinals", "Quarterfinals", then "Round 1"… */
+export function roundName(round: number, rounds: number): string {
+  const fromEnd = rounds - round;
+  if (fromEnd === 0) return "Final";
+  if (fromEnd === 1) return "Semifinals";
+  if (fromEnd === 2) return "Quarterfinals";
+  return `Round ${round}`;
+}
+
+/** "the final", "semifinal 2", "round 1 game 3": a match in plain words. */
+function matchName(match: BracketMatch, rounds: number): string {
+  const position = match.id.slice(match.id.indexOf("m") + 1);
+  const name = roundName(match.round, rounds);
+  if (name === "Final") return "the final";
+  if (name === "Semifinals") return `semifinal ${position}`;
+  if (name === "Quarterfinals") return `quarterfinal ${position}`;
+  return `round ${match.round} game ${position}`;
+}
+
+/** "The semifinals continue", "The final continues", "Round 1 continues". */
+function roundContinues(round: number, rounds: number): string {
+  const name = roundName(round, rounds);
+  if (name.startsWith("Round")) return `${name} continues`;
+  return name === "Final"
+    ? "The final continues"
+    : `The ${name.toLowerCase()} continue`;
+}
+
+/** "Sun, Aug 8" for a calendar date such as 2027-08-08. */
+const dayLabel = (date: string) =>
+  new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00Z`));
+
 /**
  * Lays a single-elimination bracket onto playoff slots
  * (scheduling-algorithm.md, section 8). Top seeds get byes when the field is
@@ -96,7 +133,7 @@ export function placeBracket(
       const first = open[0];
       if (!first) {
         diagnostics.push(
-          `Not enough playoff slots: match ${match.id} has no slot.`,
+          `No free slot is left for ${matchName(match, Math.log2(size))}. Add a permit for playoff day or seed fewer teams.`,
         );
         continue;
       }
@@ -126,7 +163,7 @@ export function placeBracket(
     const spill = dates.find((d) => start !== undefined && d > start);
     if (spill)
       diagnostics.push(
-        `Round ${round} continues on ${spill}: ${start} has no more room.`,
+        `${roundContinues(round, Math.log2(size))} on ${dayLabel(spill)}, because ${dayLabel(start as string)} has no more room.`,
       );
     after = latest;
   }

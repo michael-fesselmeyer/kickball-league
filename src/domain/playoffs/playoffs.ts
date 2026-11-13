@@ -1,4 +1,6 @@
-import { type Bracket, seedOrder } from "@/domain/scheduler/bracket";
+import { type Bracket, roundName, seedOrder } from "@/domain/scheduler/bracket";
+
+export { roundName };
 
 /**
  * Playoffs (roadmap section 4, milestone 1; scheduling-algorithm.md,
@@ -75,15 +77,6 @@ export function byeSeeds(teams: number): number[] {
     if (away > teams) byes.push(home);
   }
   return byes.sort((a, b) => a - b);
-}
-
-/** "Final", "Semifinals", "Quarterfinals", then "Round 1"… */
-export function roundName(round: number, rounds: number): string {
-  const fromEnd = rounds - round;
-  if (fromEnd === 0) return "Final";
-  if (fromEnd === 1) return "Semifinals";
-  if (fromEnd === 2) return "Quarterfinals";
-  return `Round ${round}`;
 }
 
 /** Turns placeBracket's output into match states with the seeded teams in. */

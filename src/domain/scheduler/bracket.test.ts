@@ -73,7 +73,7 @@ describe("placeBracket", () => {
     const final = matches.find((m) => m.id === "r3m1");
     expect(final?.slotId).toBe("2027-08-15/F1/0");
     expect(diagnostics).toEqual([
-      "Round 3 continues on 2027-08-15: 2027-08-08 has no more room.",
+      "The final continues on Sun, Aug 15, because Sun, Aug 8 has no more room.",
     ]);
   });
 
@@ -84,7 +84,7 @@ describe("placeBracket", () => {
     ];
     const { diagnostics } = placeBracket(teams(8), slots);
     expect(diagnostics[0]).toBe(
-      "Round 1 continues on 2027-08-15: 2027-08-08 has no more room.",
+      "The quarterfinals continue on Sun, Aug 15, because Sun, Aug 8 has no more room.",
     );
   });
 
@@ -97,7 +97,7 @@ describe("placeBracket", () => {
       "r2m1",
     ]);
     expect(diagnostics).toEqual([
-      "Not enough playoff slots: match r2m1 has no slot.",
+      "No free slot is left for the final. Add a permit for playoff day or seed fewer teams.",
     ]);
   });
 
