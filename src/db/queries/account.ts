@@ -18,6 +18,7 @@ import {
 import { payment, purchase, purchaseItem } from "../schema/money";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
+import { teamFormationRequest } from "../schema/formation";
 import { subClaim, subRequest } from "../schema/subs";
 import {
   invite,
@@ -281,6 +282,21 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .where(eq(subRequest.requestedBy, userId))
     .orderBy(asc(subRequest.createdAt));
 
+  const newTeamRequests = await db
+    .select({
+      seasonId: teamFormationRequest.seasonId,
+      proposedName: teamFormationRequest.proposedName,
+      expectedSize: teamFormationRequest.expectedSize,
+      note: teamFormationRequest.note,
+      status: teamFormationRequest.status,
+      declineReason: teamFormationRequest.declineReason,
+      createdAt: teamFormationRequest.createdAt,
+      decidedAt: teamFormationRequest.decidedAt,
+    })
+    .from(teamFormationRequest)
+    .where(eq(teamFormationRequest.requestedBy, userId))
+    .orderBy(asc(teamFormationRequest.createdAt));
+
   const emailSettings = await db
     .select({
       topic: notificationPreference.topic,
@@ -359,6 +375,7 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     refereeAssignments: refereeing,
     subClaims,
     subRequestsPosted,
+    newTeamRequests,
     emailSettings,
     messages,
     announcementsSent,
@@ -468,6 +485,17 @@ export async function deleteAccount(
     .update(subClaim)
     .set({ lineupGender: null })
     .where(eq(subClaim.userId, userId));
+
+  // An open request to start a team cannot be approved for a deleted account.
+  await db
+    .update(teamFormationRequest)
+    .set({ status: "withdrawn" })
+    .where(
+      and(
+        eq(teamFormationRequest.requestedBy, userId),
+        eq(teamFormationRequest.status, "pending"),
+      ),
+    );
 
   await db.delete(session).where(eq(session.userId, userId));
   await db.delete(account).where(eq(account.userId, userId));
