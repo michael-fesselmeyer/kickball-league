@@ -175,6 +175,9 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Open, close and remove awards polls | — | — | — | — | — | ✓ | ✓ |
 | Log an incident | — | — | own team's games | assigned | — | ✓ | ✓ |
 | Review incidents, suspend a player or lift a suspension | — | — | — | — | — | ✓ | ✓ |
+| Keep a person off the team with a private "not on my team" list ([ADR 0036](adr/0036-not-on-my-team-list.md)) | — | — | own team | — | — | ✓ (any team) | ✓ (any team) |
+| See every team's "not on my team" list and reasons | — | — | — | — | — | ✓ | ✓ |
+| Choose whether a person's own data export lists entries about them | — | — | — | — | — | — | ✓ |
 | Rate the other team's sportsmanship after a final score | — | — | own team's games | — | — | — | — |
 | See sportsmanship averages | — | — | own team, in blocks of 3 ratings | — | — | ✓ (every team, with notes) | ✓ (every team, with notes) |
 | Issue a refund or league credit | — | — | — | — | — | ✓ | ✓ |
