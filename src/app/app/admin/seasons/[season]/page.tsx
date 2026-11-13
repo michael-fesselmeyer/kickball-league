@@ -113,6 +113,12 @@ async function Season({
           >
             Team requests
           </Link>
+          <Link
+            href={`/app/admin/seasons/${slug}/new-teams`}
+            className="underline"
+          >
+            New-team requests
+          </Link>
         </p>
       </header>
       {(query.created || query.saved) && (
