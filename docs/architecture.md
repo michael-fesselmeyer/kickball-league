@@ -411,6 +411,8 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `…/shirts` | `screens` |
 | `…/team-of-the-week` | `sponsors` |
 | `…/waitlist` | `registration` (a full season's waitlist) |
+| `/app/admin/instagram`, `/photos/[image]` | `instagram` (connect, feature a post, disconnect) |
+| `/app/admin/instagram/callback` | Not reached: the test fixture connects without Instagram's sign-in, so its return has no browser test |
 | `/app/admin/league.json` | `admin-tools`; `site-wide/operator` (while paused) |
 | `/app/sponsor` | `screens` |
 | `/app/sponsor/[sponsor]`, `/code`, `/report` | `sponsors` |
