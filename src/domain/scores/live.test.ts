@@ -5,8 +5,11 @@ import {
   type HalfInning,
   lineScore,
   MAX_INNINGS,
+  nextPollIn,
   ordinal,
+  POLL_MS,
   positionLabel,
+  RECENT_ENTRY_MS,
   sideFor,
 } from "./live";
 
@@ -179,5 +182,30 @@ describe("labels", () => {
     expect(positionLabel({ inning: 1, half: "bottom" })).toBe(
       "Bottom of the 1st",
     );
+  });
+});
+
+describe("nextPollIn", () => {
+  const MIN = 60_000;
+  const window = { from: 100 * MIN, until: 300 * MIN, lastEntryAt: null };
+
+  it("polls every 10 seconds inside the game's window", () => {
+    expect(nextPollIn(100 * MIN, window)).toBe(POLL_MS);
+    expect(nextPollIn(300 * MIN, window)).toBe(POLL_MS);
+  });
+
+  it("waits for the window to open, checking at least hourly", () => {
+    expect(nextPollIn(90 * MIN, window)).toBe(10 * MIN);
+    expect(nextPollIn(0, window)).toBe(60 * MIN);
+  });
+
+  it("stops after the window", () => {
+    expect(nextPollIn(301 * MIN, window)).toBeNull();
+  });
+
+  it("keeps polling while someone is still entering halves", () => {
+    const late = { ...window, lastEntryAt: 400 * MIN };
+    expect(nextPollIn(450 * MIN, late)).toBe(POLL_MS);
+    expect(nextPollIn(400 * MIN + RECENT_ENTRY_MS, late)).toBeNull();
   });
 });

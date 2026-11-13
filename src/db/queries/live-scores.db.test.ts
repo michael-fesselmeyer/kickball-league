@@ -22,6 +22,7 @@ import {
   liveGame,
   reportFromInnings,
   setKicksFirst,
+  snapshotOf,
   undoLastHalf,
 } from "./live-scores";
 import { respondToScore } from "./scores";
@@ -279,6 +280,16 @@ describe("live scoring", () => {
         inningsPlayed: 5,
       });
 
+      // Spectators see the called score while it waits for confirmation.
+      expect(
+        snapshotOf(required(await liveGame(db, w.gameId), "live")),
+      ).toMatchObject({
+        closed: false,
+        reported: true,
+        pending: { scoreA: 4, scoreB: 3, inningsPlayed: 5 },
+        result: null,
+      });
+
       // A captain confirms; the game is final and closed to live entry.
       await respondToScore(db, {
         gameId: w.gameId,
@@ -290,11 +301,10 @@ describe("live scoring", () => {
         now: after(80),
       });
       const live = required(await liveGame(db, w.gameId), "live");
-      expect(live).toMatchObject({
-        status: "final",
-        scoreA: 4,
-        scoreB: 3,
-        inningsPlayed: 5,
+      expect(snapshotOf(live)).toMatchObject({
+        closed: true,
+        pending: null,
+        result: { scoreA: 4, scoreB: 3, inningsPlayed: 5 },
       });
       expect(
         await enterHalf(db, {

@@ -180,21 +180,52 @@ export function positionLabel(p: Position): string {
 /** Innings in a regulation game (rulebook 3.1); the line score shows them all. */
 export const REGULATION_INNINGS = 7;
 
+/** A final score: set innings only for a called game. */
+export type GameScore = {
+  scoreA: number;
+  scoreB: number;
+  inningsPlayed: number | null;
+};
+
 /**
  * What the public game page shows and polls for: the halves so far, and
- * the official result once there is one. Sent as JSON, so plain data only.
+ * the reported or official score once there is one. Sent as JSON, so plain
+ * data only.
  */
 export type LiveSnapshot = {
   kicksFirst: Side | null;
   halves: HalfInning[];
   /** Final, forfeited or cancelled: nothing more will change. */
   closed: boolean;
-  /** A final score has been reported and waits for confirmation. */
+  /** Someone has reported a final score. */
   reported: boolean;
-  /** The official score once final; innings is set for a called game. */
-  result: {
-    scoreA: number;
-    scoreB: number;
-    inningsPlayed: number | null;
-  } | null;
+  /** The reported score while it waits for confirmation. */
+  pending: GameScore | null;
+  /** The official score once final. */
+  result: GameScore | null;
+  /** When a half was last entered or corrected (ISO), or null. */
+  lastEntryAt: string | null;
 };
+
+/** How often the public game page asks for the score while the game is on. */
+export const POLL_MS = 10_000;
+
+/** A game someone entered a half for this recently is on, whatever its slot. */
+export const RECENT_ENTRY_MS = 2 * 3_600_000;
+
+/**
+ * How long the public game page waits before asking for the score again, or
+ * null to stop. It polls while the game is on: inside its slot's window, or
+ * while someone is still entering halves (a late start, a makeup played off
+ * schedule). Before the window it waits for the window to open.
+ */
+export function nextPollIn(
+  now: number,
+  window: { from: number; until: number; lastEntryAt: number | null },
+): number | null {
+  const recent =
+    window.lastEntryAt !== null && now - window.lastEntryAt < RECENT_ENTRY_MS;
+  if (recent || (now >= window.from && now <= window.until)) return POLL_MS;
+  if (now < window.from) return Math.min(window.from - now, 3_600_000);
+  return null;
+}
