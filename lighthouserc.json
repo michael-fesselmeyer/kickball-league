@@ -1,8 +1,9 @@
 {
   "ci": {
     "collect": {
-      "startServerCommand": "npm run start -- --port 3200",
-      "startServerReadyPattern": "Ready",
+      "startServerCommand": "node scripts/lighthouse-server.mjs 3200",
+      "startServerReadyPattern": "Lighthouse server warmed",
+      "startServerReadyTimeout": 120000,
       "url": [
         "http://localhost:3200/",
         "http://localhost:3200/about",
