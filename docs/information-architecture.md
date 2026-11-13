@@ -15,10 +15,10 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list)
 │       ├── money                   Where the money goes: the season's spending by category and how each fee divides, only once an owner publishes it (404 until then)
 │       └── register                Register a team, join by invite, or free agent
-├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries, all-time record and titles, tagged Instagram photos and the team's cover
+├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries, all-time record and titles, tagged Instagram photos and the team's cover, and players' approved photos with a link to share one
 │   ├── calendar.ics                Team calendar feed: every published game, in the league's time zone
 │   └── share.png                   Team share image: record, place, last five results
-├── games/[game]                    Game page: time, field, weather, score, the live line score while it is played, head-to-head history, share buttons
+├── games/[game]                    Game page: time, field, weather, score, the live line score while it is played, head-to-head history, share buttons; from kickoff, players' approved photos and a link to share one
 │   └── share.png                   Game share image: score on a final, or the matchup and its state
 ├── records                         League records across every season: most runs, biggest win, longest streaks
 ├── rules/                          Searchable rulebook with a link for every rule number
@@ -26,7 +26,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── events/                         Upcoming and recent public events, and calendar subscribe links (members' and team events never appear here)
 │   ├── calendar.ics                Events calendar feed: every public event, theme weeks as all-day entries
 │   ├── personal/[token]/calendar.ics  A member's private feed: every event they can see; the signed link is the key, reset from /app/events
-│   └── [event]                     Public event page: when, where, the ticket price, spots left or the waitlist, an RSVP or "Get a ticket" button or the invite ("RSVP on partiful.com"), share and save-the-date links, tagged Instagram photos
+│   └── [event]                     Public event page: when, where, the ticket price, spots left or the waitlist, an RSVP or "Get a ticket" button or the invite ("RSVP on partiful.com"), share and save-the-date links, tagged Instagram photos; once it has started, players' approved photos and a link to share one
 │       └── calendar.ics            One public event as a calendar file
 ├── sponsors/                       Sponsors, home bar first, with the team of the week
 │   └── [sponsor]                   Sponsor page: deals with when they were confirmed, the team of the week, how to check in
@@ -46,6 +46,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
 ├── media/instagram/[image]         Our copy of a featured Instagram photo (404 once hidden)
 ├── media/friends/[logo]            A friend league's logo, as stored (404 once removed or replaced)
+├── media/photos/[photo]            A member's approved photo (404 while waiting, once rejected or deleted)
 ├── offline                         Shown by the service worker when a page needs the network; links the saved next game
 ├── paused                          Neutral notice while the site is paused or read-only (operator setting)
 └── sign-in, sign-up                Email link, passkey (button and email-field autofill) or Google
@@ -66,6 +67,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │           └── enter/[code]        Where the giveaway's QR code at the event lands: one tap to enter, once (an expired code says so)
 ├── shop/                           League shop: what's for sale with photos, price (member or full), stock and order deadline; my orders and whether each is ordered, ready or refunded
 │   └── [item]                      Photos and details; pick a size (my profile's size first) and how many; a replacement jersey also picks my team (my newest first) and is made in its color; order through Stripe Checkout with league credit, or straight away when credit covers it
+├── photos/                         Share a photo: choose it, tag a recent game day, public event or your team, an optional caption, and the required "The league may repost this on its socials"; your photos with what the league decided, each with Delete
+│   └── [photo]                     The stored copy, waiting ones included, for its uploader and admins; ?download saves it as a file
 ├── vote                            Awards: open ballots (one vote each, never for yourself or your own team) and closed polls
 │   └── [poll]                      Results after voting closes, ties sharing a place; until then, only when it closes
 ├── check-in/[sponsor]/[code]       Where the bar's QR code lands: one tap to check in (an expired code says so)
@@ -144,6 +147,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── credit                      League credit: give goodwill credit, who holds credit, what was given lately
     ├── money                       Payments, refunds, credit, promo codes
     ├── audit                       Audit log in plain words, newest first; filter for the platform operator's actions
+    ├── photos                      Member photos: the review queue (approve, download, or reject with a note only admins see), approved photos to download or take down, recent rejections, and storage used against the cap
     ├── instagram                   Connect, sync, disconnect (keep or remove photos); feature, hide, tag to a team or event, set a cover, describe each post
     │   ├── callback                Where Instagram's sign-in returns; checks the state, saves the token encrypted, runs the first sync
     │   └── photos/[image]          Any synced photo, hidden ones included, for admins
