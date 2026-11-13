@@ -29,6 +29,7 @@ describe("MESSAGE_KINDS", () => {
       "announcement",
       "books_reminder",
       "event_news",
+      "giveaway_win",
       "instagram_reconnect",
       "instagram_storage_full",
       "new_team",
