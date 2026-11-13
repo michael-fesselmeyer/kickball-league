@@ -18,6 +18,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type {
   BlackoutId,
+  BooksFileId,
   FieldId,
   GameId,
   GamePlacementId,
@@ -33,6 +34,7 @@ import type { Metrics } from "@/domain/scheduler/measure";
 import type { SchedulerInput } from "@/domain/scheduler/types";
 import type { Violation } from "@/domain/scheduler/validate";
 import { user } from "./auth";
+import { booksFile } from "./books";
 import { field, game, slot } from "./game";
 import { season } from "./season";
 import { teamSeason } from "./team";
@@ -59,7 +61,12 @@ export const permitStatus = pgEnum("permit_window_status", [
   "lost",
 ]);
 
-/** When the league holds a field. Slots are cut from these. */
+/**
+ * When the league holds a field. Slots are cut from these. Windows added
+ * together under one permit share its details: the owners' permit screen
+ * splits the permit's cost across them (so the books add up to it), and
+ * gives each the same document, application window and renewal date.
+ */
 export const permitWindow = pgTable(
   "permit_window",
   {
@@ -76,11 +83,31 @@ export const permitWindow = pgTable(
     endsAt: timestamp({ withTimezone: true }).notNull(),
     permitNumber: text(),
     status: permitStatus().notNull().default("requested"),
+    /** This window's share of the permit's cost; owners only. */
+    costCents: integer(),
+    /** The permit as issued, shown to the game's ref and captains. */
+    documentFileId: uuid()
+      .$type<BooksFileId>()
+      .references(() => booksFile.id, { onDelete: "set null" }),
+    /** When NYC Parks takes applications for the next permit. */
+    applicationOpensOn: date({ mode: "string" }),
+    applicationClosesOn: date({ mode: "string" }),
+    /** When the permit has to be renewed. */
+    renewsOn: date({ mode: "string" }),
     ...audit(),
   },
   (t) => [
     index("permit_window_season_idx").on(t.seasonId, t.startsAt),
+    index("permit_window_document_idx").on(t.documentFileId),
     check("permit_window_times_order", sql`${t.endsAt} > ${t.startsAt}`),
+    check(
+      "permit_window_cost",
+      sql`${t.costCents} is null or ${t.costCents} >= 0`,
+    ),
+    check(
+      "permit_window_application_order",
+      sql`${t.applicationClosesOn} is null or ${t.applicationOpensOn} is null or ${t.applicationClosesOn} >= ${t.applicationOpensOn}`,
+    ),
   ],
 );
 

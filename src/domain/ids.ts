@@ -77,6 +77,9 @@ export type IncidentNoteId = Brand<string, "IncidentNoteId">;
 export type SuspensionId = Brand<string, "SuspensionId">;
 export type GameLineupId = Brand<string, "GameLineupId">;
 export type GameLineupSpotId = Brand<string, "GameLineupSpotId">;
+export type BooksFileId = Brand<string, "BooksFileId">;
+export type ExpenseId = Brand<string, "ExpenseId">;
+export type InsuranceCertificateId = Brand<string, "InsuranceCertificateId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
