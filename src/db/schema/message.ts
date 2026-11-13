@@ -16,6 +16,7 @@ import type {
   AnnouncementId,
   MessageId,
   NotificationPreferenceId,
+  PushSubscriptionId,
   SeasonId,
   TeamSeasonId,
   UserId,
@@ -38,7 +39,7 @@ export const messageTopic = pgEnum("message_topic", [
   "new_team",
 ]);
 
-/** Email for now; text and push arrive later behind the same outbox. */
+/** Email and web push today; text arrives later behind the same outbox. */
 export const messageChannel = pgEnum("message_channel", [
   "email",
   "sms",
@@ -168,6 +169,46 @@ export const announcement = pgTable(
     check(
       "announcement_text_lengths",
       sql`char_length(${t.subject}) between 1 and 120 and char_length(${t.body}) between 1 and 5000`,
+    ),
+  ],
+);
+
+/**
+ * One browser or installed app that agreed to receive web push for a
+ * person. The endpoint is the push service's address for that device; the
+ * keys encrypt each message so only the device can read it. A person may
+ * have several devices. A push service that answers 404 or 410 has dropped
+ * the subscription, and the outbox deletes the row. See
+ * docs/architecture.md, section 14 ("Push notifications").
+ */
+export const pushSubscription = pgTable(
+  "push_subscription",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<PushSubscriptionId>(),
+    userId: uuid()
+      .notNull()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "cascade" }),
+    endpoint: text().notNull(),
+    /** The device's P-256 public key, base64url. */
+    p256dh: text().notNull(),
+    /** The device's 16-byte authentication secret, base64url. */
+    auth: text().notNull(),
+    /** The browser that subscribed, so the person can tell devices apart. */
+    userAgent: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    lastSuccessAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [
+    unique("push_subscription_endpoint_unique").on(t.endpoint),
+    index("push_subscription_user_idx").on(t.userId),
+    check(
+      "push_subscription_endpoint_https",
+      sql`${t.endpoint} like 'https://%' and char_length(${t.endpoint}) <= 2048`,
+    ),
+    check(
+      "push_subscription_key_lengths",
+      sql`char_length(${t.p256dh}) between 80 and 100 and char_length(${t.auth}) between 16 and 32`,
     ),
   ],
 );
