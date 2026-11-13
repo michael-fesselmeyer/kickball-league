@@ -52,6 +52,8 @@ erDiagram
   user ||--o{ waiver_signature : signs
   season ||--o{ team_formation_request : receives
   team_formation_request |o--o| team_season : "creates on approval"
+  team ||--o{ team_keep_off : "keeps off"
+  user ||--o{ team_keep_off : "kept off by"
 
   profile {
     uuid user_id PK
@@ -219,6 +221,14 @@ erDiagram
     uuid team_season_id FK "the team approval created"
     uuid left_team_season_id FK "the team the requester left"
   }
+  team_keep_off {
+    uuid id PK
+    uuid team_id FK
+    uuid user_id FK "the person kept off"
+    text reason "private, 1 to 300 characters"
+    uuid added_by FK
+    timestamptz created_at
+  }
 ```
 
 Notes:
@@ -230,6 +240,7 @@ Notes:
 - `friend_group` keeps a few free agents who signed up together on the same team: one starts it and shares the code, the others enter it in their quiz. A group holds up to 4 registrations (`registration.friend_group_id`), checked when someone joins. The code is unique across seasons, so a typo never lands in another season's group.
 - Players on a team built from the free-agent pool keep `registration.kind = free_agent` and pay the free-agent fee; per team, the new team's fixed share is that fee, for anyone the captain invites later ([ADR 0012](adr/0012-free-agent-matching.md)).
 - A team has one main captain, who makes final decisions and handles payment, and commonly one to three co-captains (`role = co_captain`, no limit in the schema). How much say co-captains have varies by team, so it is a per-team permission setting chosen by the main captain (Phase 1), not a schema rule. Paying for and withdrawing the team stay with the main captain.
+- `team_keep_off` is a team's private "not on my team" list ([ADR 0036](adr/0036-not-on-my-team-list.md)). It hangs off the lasting `team`, so it carries over from season to season; one row per person per team (unique `(team_id, user_id)`). A person on it sees the team's invite link as expired, is never suggested for the team by the matcher (an admin placing them anyway is warned and the override audited), and never hears of or sees the team's sub requests. Nothing else reads it. `league.export_keep_off_entries` (off by default, owners only) decides whether a person's own export lists the rows about them. The audit log records who added or removed whom, never the reason.
 - `team_formation_request` is a player's ask to start a team ([information architecture, 2.7](information-architecture.md#27-start-a-new-team-p2)). A person has at most one `pending` request per season. Approval creates the `team` and its `team_season` in `forming` status, priced as of the day they asked, and makes the requester its captain: their registration is reused (a free agent becomes a team member) or created, and any active spot on another team is ended, with `left_team_season_id` recording which captain was told. A requester who paid for their own spot keeps it as their share, so the team splits its fee; one whose spot was covered by their old captain's team fee owes again ([ADR 0013](adr/0013-new-team-approval-moves-the-player.md)). The request row is locked while an admin answers it, so two admins cannot both decide it.
 
 ### 2.2 Fields, schedule, games, scores
@@ -1223,6 +1234,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `roster_membership` | unique `(registration_id)` where `status = 'active'` | A player is active on one team per season |
 | `roster_membership` | unique `(team_season_id)` where `role = 'captain' and status = 'active'` | Exactly one captain |
 | `team_season` | unique `(team_id, season_id)` | One entry per team per season |
+| `team_keep_off` | unique `(team_id, user_id)`; check reason length 1 to 300; cascades from `team` and `user` | One entry per person per team; a deleted row takes its reason with it |
 | `slot` | unique `(field_id, starts_at)`; check `ends_at > starts_at` | No duplicate slots |
 | `slot` | exclusion on `(field_id, tstzrange(starts_at, ends_at))` | No overlapping slots on a field |
 | `game` | check `team_a_id <> team_b_id` | A team cannot play itself |
@@ -1348,6 +1360,7 @@ Indexes for the common reads:
 | Kicking order | `game_lineup`, `game_lineup_spot` | The team's captains and admins; from game day, the other team's captains and the game's ref, as names in order with no genders. Each player sees only their own spot |
 | Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
 | New-team requests, with the player's note | `team_formation_request` | The player and admins |
+| "Not on my team" entries, with the private reason | `team_keep_off` | The team's captains and admins. The person listed never sees them anywhere; their own export lists them only if the owners turn on `league.export_keep_off_entries`. The captain or admin who added an entry finds it in their own export |
 | Sportsmanship ratings | `sportsmanship_rating` | Admins see each team's average and the notes, never which game or team they came from; a captain sees their own team's average over whole blocks of 3 ratings. The captain who rated sees their team's rating |
 | Incident reports | `incident`, `incident_person`, `incident_note` | Admins. The person filing sees what they filed in their export; a person named sees the reports about them in their export, without the other people named or the admins' notes |
 | Suspensions | `suspension` | The player and admins see the length and why; the player's captains see only that they are suspended and for how long still |
@@ -1367,7 +1380,7 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, entries and wins in drawn giveaways, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.

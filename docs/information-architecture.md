@@ -72,6 +72,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/[season]/team (challenge) The season's sign-up challenge on the team page: "9 of 12 signed up", a bar, the prize and a link to the leaderboard
 ├── seasons/[season]/challenge      The sign-up challenge leaderboard: teams by the share of their roster with an account and a signed waiver (team names and counts only), my team marked, the winner once confirmed
 ├── seasons/[season]/team (fee)     Split-pay captains: the team fee, what is paid and left, pay the rest, and the card that guarantees it
+├── seasons/[season]/team (list)    Captains: the team's private "not on my team" list, folded away: add a league member by email with an optional reason, or take them off
 ├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps and an optional note) and a friend code to start, join, switch or leave
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; with no signal, saved on the phone and sent later; once final, a captain rates the other team's sportsmanship; a link to report an incident
 ├── games/[game]/incident           Report an incident: kind, the people involved from either team, what happened (the game's ref, either captain, an admin; from kickoff on)
@@ -116,6 +117,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── games                       Scores, forfeits, corrections
     ├── incidents/                  Review queue (open reports oldest first), everyone suspended now, recently resolved
     │   └── [incident]              What happened and who; notes; suspend someone named (the outside-alcohol ladder suggested) or lift a suspension; resolve or reopen
+    ├── team-lists                  Every team's "not on my team" list with reasons and who added each entry; teams listing 5 or more people and anyone on several lists; add or remove an entry; owners choose whether a person's own export lists entries about them
     ├── people                      Players, roles
     ├── refs                        Referee pool and assignments
     ├── events/                     Every event with who it's for, going and waitlist counts
@@ -264,6 +266,14 @@ Rules:
 5. The captain approves (the player is emailed that they're playing) or declines (the spot opens again). The request is filled when approved subs take every spot. A sub can drop out until game time, which reopens it.
 6. The sub sees game details on the sub page. Both captains and the ref see each team's pickups, by first name and last initial, on the team page, the score page and the ref's home, as the rulebook requires.
 7. The request closes at game time, or when the captain takes it down (anyone holding a spot is told). Sub requests are not offered for playoff games.
+
+### 2.6a Not on my team (private list)
+
+1. On the team page, a captain or co-captain opens "Not on my team (private)", types a league member's email address and, if they want, a reason only the team's captains and the league's admins will read. A teammate on this season's roster can't be added; the league moves them first.
+2. Nobody tells the person. If they open the team's invite link they see "This link has expired. Ask your captain for a new one.", the same words anyone sees for an expired link, and joining fails the same way.
+3. The free-agent matcher never suggests the team for them, or for a friend group they are in. An admin placing them by hand on the registrations screen sees a warning naming the team and the person, and can place them anyway; the override is in the audit log.
+4. They never hear about, see or claim the team's sub requests. Every other team's requests, their registration, other teams' links and their RSVPs work as before. Anything unsafe goes through an incident report instead.
+5. Admins and owners see every list on the admin "Not-on-my-team lists" screen, with long lists and people listed by several teams pointed out, and can take an entry off. See [ADR 0036](adr/0036-not-on-my-team-list.md).
 
 ### 2.7 Start a new team (P2)
 
