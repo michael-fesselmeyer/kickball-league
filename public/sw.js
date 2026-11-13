@@ -41,8 +41,8 @@ const STATIC_ASSET = /\/_next\/static\/[^"'\s)<>\\]+/g;
  * - "network": not intercepted at all.
  * - "asset": a versioned file; served from the shell cache when saved.
  * - "shell": a shell file; served from the shell cache when saved.
- * - "page": a page; from the network, and when that fails, the saved copy
- *   of the next game or the offline page.
+ * - "page": a page; from the network, always checked with the server, and
+ *   when that fails, the saved copy of the next game or the offline page.
  */
 function routeFor(request) {
   if (request.method !== "GET") return "network";
@@ -173,7 +173,10 @@ async function fromCacheFirst(request) {
 async function page(event) {
   const path = new URL(event.request.url).pathname;
   try {
-    const response = await fetch(event.request);
+    // Always check with the server, as a page load without the worker does.
+    // Public pages carry `stale-while-revalidate` for the CDN, and a plain
+    // fetch would let the browser answer with its stored copy (#204).
+    const response = await fetch(event.request, { cache: "no-cache" });
     if (GAME_PAGE.test(path) && response.ok && !response.redirected)
       // Keep the saved next game fresh whenever it is opened online.
       event.waitUntil(refreshSavedGame(path, response.clone()));

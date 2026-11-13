@@ -376,6 +376,20 @@ describe("service worker: the app shell", () => {
   });
 });
 
+describe("service worker: page loads", () => {
+  it("checks every page with the server, never the browser's stored copy", async () => {
+    network.serve("/seasons/spring-2027/schedule", page("Schedule", []), {
+      "Cache-Control": "s-maxage=60, stale-while-revalidate=86340",
+    });
+    for (const path of ["/seasons/spring-2027/schedule", GAME, "/app"]) {
+      await worker.fetch(navigate(path));
+      expect(network.fetched(path).at(-1)?.init).toEqual({
+        cache: "no-cache",
+      });
+    }
+  });
+});
+
 describe("service worker: signed-in screens are never cached", () => {
   it("serves payments, waivers and admin screens from the network only", async () => {
     await worker.install();
