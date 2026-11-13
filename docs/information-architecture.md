@@ -7,14 +7,14 @@ Status: draft v1, 2026-11-11. Phase tags match [product-spec.md](product-spec.md
 Public pages are indexable and need no sign-in. App pages sit behind sign-in and are not indexed.
 
 ```
-/                                   Home: what, where, when, price, join
+/                                   Home: what, where, when, price, join; featured Instagram photos and the home cover
 ├── seasons/                        Open and upcoming seasons
 │   └── [season]/                   Season overview and register button
 │       ├── schedule                Full schedule, filter by team or date; theme weeks marked on their game days
 │       ├── standings               Standings, tiebreaker notes, power rankings and the game of the week
 │       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list)
 │       └── register                Register a team, join by invite, or free agent
-├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries, all-time record and titles
+├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries, all-time record and titles, tagged Instagram photos and the team's cover
 │   ├── calendar.ics                Team calendar feed: every published game, in the league's time zone
 │   └── share.png                   Team share image: record, place, last five results
 ├── games/[game]                    Game page: time, field, weather, score, the live line score while it is played, head-to-head history, share buttons
@@ -42,6 +42,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── r/[code]                        A player's referral link: remembers who sent the visitor for 30 days, then opens the home page
 ├── legal/terms, legal/privacy
 ├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
+├── media/instagram/[image]         Our copy of a featured Instagram photo (404 once hidden)
 ├── offline                         Shown by the service worker when a page needs the network; links the saved next game
 ├── paused                          Neutral notice while the site is paused or read-only (operator setting)
 └── sign-in, sign-up                Email link, passkey (button and email-field autofill) or Google
@@ -105,6 +106,9 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── credit                      League credit: give goodwill credit, who holds credit, what was given lately
     ├── money                       Payments, refunds, credit, promo codes
     ├── audit                       Audit log in plain words, newest first; filter for the platform operator's actions
+    ├── instagram                   Connect, sync, disconnect (keep or remove photos); feature, hide, tag to a team, set a cover, describe each post
+    │   ├── callback                Where Instagram's sign-in returns; checks the state, saves the token encrypted, runs the first sync
+    │   └── photos/[image]          Any synced photo, hidden ones included, for admins
     ├── league.json                 The whole league as JSON, for owners and the operator
     └── settings                    League name, branding, contacts, Stripe (owner)
 ```

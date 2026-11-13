@@ -249,8 +249,8 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Guarantee charges ✔ | Daily (`/api/jobs/guarantee-charges`) | Warns each captain with a saved card about 72 hours before the payment deadline, once per deadline, then charges the card off-session for the team's unpaid balance, never sooner than 72 hours after the warning. The database half (warnings and the `balance` purchase) commits first; each Stripe call uses the purchase as its idempotency key, and a charge Stripe could not take is sent again on the next run. A decline fails the purchase and emails the captain; the card is not retried |
 | Waitlist offers ✔ | Daily (`/api/jobs/waitlist-offers`) | Marks offers whose 48 hours ran out as expired and offers each free team spot to the next captain in line. Offers stop holding their spot the moment they run out, whether or not this has run. Raising a season's team limit, or an admin's "Offer now", sends offers at once |
 | Sponsor stats rollup (P2) | Daily 3:00 | Aggregates impressions and clicks into `sponsor_stat_daily` |
-| Instagram sync (P2) | Every 3 hours | Fetches recent posts from the connected account and copies new images to storage |
-| Instagram token refresh (P2) | Weekly | Extends the access token; alerts admins if it fails |
+| Instagram sync (P2) ✔ | Every 3 hours (`/api/jobs/instagram-sync`; daily on Hobby) | Fetches the 25 newest posts from the connected account, copies new photos and removes posts deleted on Instagram |
+| Instagram token refresh (P2) ✔ | Weekly, Mondays (`/api/jobs/instagram-token`) | Extends the access token; if Instagram refuses it, emails every admin once to reconnect |
 | Demo reset | Daily 4:00, demo deployment only | Restores seed data |
 
 Sub requests need no expiry job: a request closes when its game starts (`sub_request.closes_at`), and every query compares that with the current time ([ADR 0006](adr/0006-sub-claims-hold-spots.md)).
@@ -329,6 +329,7 @@ No Redis in the MVP. Rate limits that need a counter use a small Postgres table.
 - **Records.** Each upload is an `asset` row with dimensions and size; tables reference assets by ID.
 - **Delivery.** `next/image` with explicit width and height so nothing shifts on load.
 - **Sizes and placeholders.** See the logo specification in [design-system.md](design-system.md).
+- **Synced Instagram photos** are the exception: they are stored in Postgres (`social_image`) and served from `/media/instagram/[image]`, because they arrive from a job rather than a browser upload and the project has no Blob store yet ([ADR 0020](adr/0020-instagram-photos-stored-in-postgres.md), section 17).
 - **Waiver and permit documents** are stored privately and served only through an authorized route.
 
 ## 10. Environments
@@ -538,25 +539,24 @@ Also possible: ask Vercel whether a volunteer-run league's registration site fit
 
 No feature calls an AI provider, because every provider bills per use and the product runs on free services only ([ADR 0021](adr/0021-free-services-only.md)). The rulebook is a searchable page instead ([product-spec.md](product-spec.md), section 6), and the weekly recap is drafted from templates over the week's results, rankings, streaks and records (`src/domain/stats/recap.ts`), for an admin to edit and send.
 
-## 17. Instagram connection (P2)
+## 17. Instagram connection (P2) ✔
 
-The league already keeps its promotional photos current on Instagram, so the site reads from there instead of asking admins to upload everything twice.
+The league already keeps its promotional photos current on Instagram, so the site reads from there instead of asking admins to upload everything twice. Built on the Instagram API with Instagram Login, version v27.0, checked against Meta's reference in November 2026 ([ADR 0020](adr/0020-instagram-photos-stored-in-postgres.md)).
 
 | Step | How it works |
 |---|---|
-| Connect | An admin opens Settings, chooses "Connect Instagram", and signs in to the league's account on Instagram's own screen. We store the access token encrypted. The account must be a professional (Business or Creator) account |
-| Sync | A scheduled job every few hours fetches recent posts: image or video thumbnail, caption, link and date. Each image is copied to our storage, because Instagram's image addresses expire |
-| Curate | Admins see synced posts and can feature or hide each one, tag it to a team, event or season, or set it as the cover photo for a page. Nothing appears publicly until it is featured, unless the league turns on "show newest automatically" |
-| Show | A photo strip on the home page, tagged photos on team and event pages, and cover photos where chosen. Every photo links back to its post on Instagram |
-| Keep alive | Tokens last about 60 days and are refreshed by a weekly job. If refresh fails, admins are told to reconnect and the last synced photos stay up |
+| Connect | An admin opens **Instagram** from the admin dashboard and chooses "Connect Instagram". A Server Action sets a random state in an httpOnly cookie (ten minutes, admin path only) and sends them to Instagram's own sign-in, asking only for `instagram_business_basic`. The callback checks the state, exchanges the code for a short-lived token and that for a 60-day one, reads the account's ID and username, stores the token encrypted and runs the first sync. The account must be a professional (Business or Creator) account |
+| Sync | A scheduled job reads the 25 newest posts: caption, link, type, date, and the photo to copy (the image, a video's thumbnail or a carousel's cover). New photos are downloaded, only from Instagram's CDNs over https, only JPEG, PNG or WebP up to 8 MB, and stored in `social_image`, because Instagram's image addresses expire. Instagram is called outside any transaction; each account's changes are written in one |
+| Curate | Admins see every synced post and can feature or hide it, tag it to a team, set it as the cover of the home page or its team's page, and describe it for screen readers. Nothing appears publicly until it is featured, unless the league turns on "show new posts". Every change is in the audit log |
+| Show | A photo grid on the home page (the cover first, then the newest featured photos) and on team pages (photos tagged to the team). Images go through `next/image` at the size each cell needs and load lazily below the fold. Every photo links back to its post on Instagram |
+| Keep alive | Tokens last 60 days and are refreshed by a weekly job (Instagram refreshes only tokens at least a day old). If Instagram refuses the token, the account is marked "needs reconnecting", every admin is emailed once and the dashboard says so; the photos already synced stay up |
 | Disconnect | Stops the sync and deletes the token. Admins choose whether synced photos stay or go |
 
 Rules:
 - Only the official API is used, with the account owner's sign-in. Photos are never scraped. Instagram's terms forbid scraping, and it breaks without warning.
-- A hidden post stays hidden across later syncs. A post deleted on Instagram is removed from the site at the next sync.
-- Any player can ask for a photo of them to be hidden; admins hide it in one tap.
-- The connection is optional. Without it, the photo areas fall back to uploaded cover images and the placeholders in [design-system.md](design-system.md).
+- A hidden post stays hidden across later syncs, because a sync refreshes only caption, link and type. A post deleted on Instagram is removed at the next sync when it is at least as new as the oldest post read (or always, when the account has fewer than 25 posts); older ones cannot be told apart from posts that are merely old.
+- Any player can ask for a photo of them to be hidden; admins hide it in one tap. Hiding expires the `photos` cache tag, so every public page drops the photo on its next render (a visit in the moment after may still get the previous copy while the fresh one renders), and the photo's address answers 404 once caches expire, within five minutes at the CDN and in the image optimizer.
+- The connection is optional and off until `INSTAGRAM_APP_ID` and `INSTAGRAM_APP_SECRET` are set. Without it, the jobs skip, the admin screen says so, and the photo areas render nothing; photos synced earlier stay as they were.
+- Tests never reach the network: the client takes an injected `fetch`, and `src/services/instagram-fixture.ts` plays back responses recorded in the shape of the real API (`src/services/fixtures/instagram`), drawing a small PNG for each photo. `INSTAGRAM_FIXTURE=true` uses the same fixture in development and in the demo, never in the league's production build.
 
-Tables: `social_account` (provider, account name, encrypted token, token expiry, status) and `social_post` (provider post ID, link, caption, taken-at time, media type, our stored asset, featured, hidden, and optional team, event and season tags).
-
-What I know about the API and have not re-checked: Meta retired the old Basic Display API in December 2024; the current route is the Instagram API with Instagram Login, which needs a Meta developer app and a professional account. An app used only by its own account's owner can run without Meta's app review. Confirm all of this against Meta's current documentation before building.
+Tables: `social_account` (provider, account ID and username, encrypted token, token expiry and last refresh, status, "show new posts", last sync and last problem), `social_post` (provider post ID, link, caption, taken-at time, media type, featured, hidden, team tag, cover, alt text) and `social_image` (our copy of the photo). See [data-model.md](data-model.md), section 2.5. Event tags arrive once the events calendar's `event` table is on `main`.

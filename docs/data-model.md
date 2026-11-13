@@ -702,6 +702,10 @@ erDiagram
   season ||--o{ award_poll : runs
   award_poll ||--o{ award_vote : collects
   league ||--o{ post : publishes
+  league ||--o| social_account : connects
+  social_account ||--o{ social_post : syncs
+  social_post ||--o| social_image : "stored as"
+  team ||--o{ social_post : "tagged in"
 
   sponsor {
     uuid id PK
@@ -830,26 +834,38 @@ erDiagram
     uuid id PK
     uuid league_id FK
     enum provider "instagram"
-    text account_name
-    text access_token_encrypted
+    text external_id "the account's ID at Instagram"
+    text username
+    enum status "active, needs_reconnect, disconnected"
+    text token_ciphertext "AES-256-GCM; null once disconnected"
     timestamptz token_expires_at
-    enum status "connected, needs_reconnect, disconnected"
+    timestamptz token_refreshed_at
+    bool show_newest "show posts without featuring each"
     timestamptz last_synced_at
+    text last_error
+    uuid connected_by FK
   }
   social_post {
     uuid id PK
-    uuid social_account_id FK
-    text provider_post_id UK
-    text permalink
+    uuid account_id FK
+    text external_id "unique per account"
+    text permalink "the post on Instagram"
     text caption
     enum media_type "image, video, carousel"
-    uuid asset_id FK "our stored copy"
     timestamptz taken_at
     bool featured
     bool hidden
     uuid team_id FK
-    uuid event_id FK
-    uuid season_id FK
+    enum cover "home, team"
+    text alt_text
+  }
+  social_image {
+    uuid id PK
+    uuid post_id FK "unique"
+    text content_type "image/jpeg, image/png, image/webp"
+    bytea bytes "our copy; up to 8 MB"
+    int byte_size
+    text sha256
   }
   post {
     uuid id PK
@@ -1049,6 +1065,11 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `sponsor` | unique `(league_id, slug)`; unique `league_id` where `is_home_bar and deleted_at is null`; check `url` starts with `https://` | One page address each, one home bar |
 | `deal` | check `valid_days <@ {1..7}`; check `valid_from` and `valid_to` both set or both null | Days and hours make sense |
 | `team_of_week` | unique `(season_id, week_of)`; check a tab has a sponsor and is $0.01 to $1,000 | One team per game day |
+| `social_account` | unique `(league_id, provider)`; check `token_ciphertext` is null exactly when `status = 'disconnected'` | One connection per league; disconnecting always deletes the token |
+| `social_post` | unique `(account_id, external_id)`; check `permalink` starts `https://www.instagram.com/` | A post is stored once, and links only to Instagram |
+| `social_post` | check a hidden post is neither featured nor a cover; check a team cover has a team | Hiding always wins |
+| `social_post` | unique `(account_id)` where `cover = 'home'`; unique `(team_id)` where `cover = 'team'` | One cover per page |
+| `social_image` | check type is JPEG, PNG or WebP and `byte_size = octet_length(bytes)` up to 8 MB | Only images are stored and served |
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
 | `push_subscription` | unique `(endpoint)`; check it starts with `https://` and is at most 2,048 characters; check the key lengths | A device is stored once, and the outbox only ever posts to https |
 | `webhook_event` | unique `(provider, event_id)` | Webhooks are processed once |
@@ -1088,6 +1109,7 @@ Indexes for the common reads:
 | `event_audience_team` | `(team_id)` | Team events for a team |
 | `award_poll` | `(season_id, closes_at)` | Open and closed polls of a season |
 | `award_vote` | `(voter_id)` | A player's own votes |
+| `social_post` | `(account_id, taken_at desc)`, `(team_id)` | Newest photos for the home page and the admin screen; a team's photos |
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
 
 ## 4. Personal data
@@ -1107,6 +1129,8 @@ Indexes for the common reads:
 | Waiver signature, IP address | `waiver_signature` | The person, owners |
 | Payment card | Never stored. Stripe holds it; we keep brand and last four digits | The person |
 | Push devices | `push_subscription` (endpoint, keys, browser) | Only the outbox. The person's export lists their devices by browser and date, without the endpoint or keys |
+| Photos and captions from the league's Instagram, which may show players | `social_post`, `social_image` | Admins; everyone once an admin features a photo. Any player can ask for a photo of them to be hidden, and hiding takes it off public pages on their next render |
+| The Instagram access token | `social_account.token_ciphertext`, encrypted | Nobody: only the sync jobs decrypt it, and disconnecting deletes it |
 
 Deleting an account removes the profile and anonymizes the user row. Signatures, payments, consent events and audit rows are kept because the league may need them for legal or accounting reasons; the privacy policy says so.
 
