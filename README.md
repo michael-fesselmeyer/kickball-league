@@ -39,7 +39,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 **Game day**
 
-- Refs see their assigned games and enter scores from their phone. Captains confirm or dispute, and undisputed scores become final.
+- Refs see their assigned games and enter scores from their phone. The captains who need to answer are asked by email (and push, if they turned it on) to confirm or dispute, and undisputed scores become final.
 - Live scoring: the ref, or a captain when there is no ref, taps in the runs after each half-inning. The public game page shows the line score and updates within 15 seconds without a reload. A called game goes back to the score at the last complete inning, and the final score is confirmed like any other.
 - Players answer in, out or maybe, and captains see a warning when the fielding rule is at risk.
 - A sub finder: a short-handed captain asks for subs for a game, with spots reserved for women or men when the fielding rule needs them. Registered players with a signed waiver who are free at that time hear about it by email (free agents first, and only if sub alerts are on). A player's "I'm in" holds a spot until the captain approves or declines, so two players can never take the last spot at once. Both captains and the ref see who is playing as a pickup. Not offered for playoff games.
@@ -59,6 +59,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - A transactional outbox: messages are written with the change that caused them, failed sends retry, and nothing sends twice.
 - League and team announcements, with per-person email settings.
 - Payment reminders 7, 3 and 1 days before the deadline, and missing-score reminders to the ref and then the captains.
+- Web push for rain-outs, sub requests and scores: each player opts in per topic on their profile, and the outbox sends a push to each of their phones alongside the email. Push is off until VAPID keys are set, devices a push service reports gone are removed, and the protocol is written against the standards with Node's crypto ([ADR 0014](docs/adr/0014-web-push-without-a-library.md)).
 
 **Events**
 
@@ -137,6 +138,16 @@ Sign-in works by email link out of the box. Google is added when both `GOOGLE_CL
 2. Add the authorized redirect URIs `http://localhost:3000/api/auth/callback/google` and `https://kickball-league.vercel.app/api/auth/callback/google`.
 3. Put both values in `.env.local`, and in Vercel with `npx vercel env add GOOGLE_CLIENT_ID --environment production` (and the same for the secret). Values go straight from your terminal to Vercel and are never committed.
 
+### Turning on web push
+
+Push is off until the league has a VAPID key pair. Generate one into `.env.local` (it prints only the public key):
+
+```bash
+npm run push:keys
+```
+
+For hosting, copy `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` from `.env.local` into the provider's encrypted settings. `VAPID_SUBJECT` (a `mailto:` address or `https://` URL push services can contact) is optional and defaults to the site's address. Keep the same pair once players have opted in: a new pair means every device has to opt in again. Push needs the service worker, which only production builds register, so try it with `npm run build && npm start`.
+
 ### Run the database tests against a local Postgres
 
 `npm run test:db` needs a real database, but not a Neon branch. With PostgreSQL installed locally (CI uses 18, the same major version as Neon; 16 passes too), one script creates a throwaway database matching CI's and applies every migration:
@@ -191,6 +202,7 @@ In CI, the end-to-end and Lighthouse checks each build the app once and share th
 | `npm run test:db`       | Database constraint tests (each rolls back)                      |
 | `npm run seed`          | Replace the demo league with fresh seed data; refuses production |
 | `npm run demo:reset`    | Reseed the demo deployment; refuses unless demo mode is on       |
+| `npm run push:keys`     | Add a new VAPID key pair for web push to `.env.local`            |
 | `npm run lint`          | ESLint, failing on any warning                                   |
 | `npm run typecheck`     | Generate route types and run `tsc`                               |
 | `npm run format:check`  | Check Prettier formatting                                        |

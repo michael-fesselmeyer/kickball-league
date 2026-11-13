@@ -212,6 +212,16 @@ How a message is never sent twice (`src/db/queries/outbox.ts`, tested in `outbox
 - Retries wait 1, 4, 16 and 64 minutes. A message that cannot be built (unknown template, payload that fails its schema) fails at once.
 - Without an email provider, development prints each email to the console; production leaves messages queued until one is configured.
 
+**Push copies** (`enqueueMessages` and `drainOutbox` in `src/db/queries/outbox.ts`, tested in `push.db.test.ts`). A message about a push topic (rain-outs, sub requests, scores) also gets a second row with channel `push` and dedupe key `push:<key>` for each person who has a subscribed device and push on for that topic, found in one query for the whole batch. Each copy retries and settles on its own, so a push service that is down never holds up the email.
+
+- **Choices at send time.** Push is opt-in: off for every topic until the person turns it on. The drain reads the push choice again when it sends, so turning a topic off stops pushes already queued (`suppressed`, `opted_out`).
+- **One push to every device.** The copy is sent to each of the person's devices. It is `sent` when any device accepted it, `suppressed` (`no_device`) when none is left, and retried with the usual backoff when every device failed for another reason. A retry goes to every device again, so the push carries the message id as its `Topic` header (the push service replaces an undelivered copy) and as the notification's tag (the phone replaces a shown one).
+- **Expired subscriptions are removed.** A push service answering 404 or 410 has dropped that subscription; the outbox deletes the device on the spot. A device whose stored keys cannot be used is dropped the same way.
+- **Off without keys.** Without `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`, push copies are suppressed (`push_off`) and the profile page offers no push. Without an email provider but with push, the drain sends push and leaves email queued.
+- Rain-outs go with `Urgency: high`; everything is kept by the push service for up to a day (`TTL`) while a phone is offline.
+
+**Score confirmations** (`src/db/queries/score-confirmations.ts`). When a captain or ref reports a score that still needs an answer, the captains and co-captains who can confirm or dispute it get a `score_confirmation` message (topic `score`) in the same transaction: the other team's for a captain's report, both teams' for a ref's, nobody for an admin's, which is final at once. The dedupe key is `score-confirm/<report>/<person>`, so a retried submit asks once.
+
 **Rain-out notices** (`src/db/queries/rainout-notices.ts`, tested in `rainout-notices.db.test.ts`). The rain-out screen cancels the date's slots and saves the makeups as a draft; nothing is sent yet. When an admin publishes that draft, `publishVersion` queues the notices in its own transaction, so the new schedule and its emails commit together. A game counts as rained out when the slot it moved from is cancelled. Each active player on both teams of such a game gets one message with that game, where it was and its makeup time (or "no makeup yet"). Games that did not move, or moved for another reason, send nothing. The dedupe key is `rainout/<game>/<rained-out slot>/<person>`, so publishing again, a second draft of the same rain-out, or a retried request never sends twice, while the same game rained out again from a different slot is a new notice. The `rainout` topic is on the email settings page, and the publish action calls `after()` to send right away.
 
 ### Scheduled jobs
@@ -436,7 +446,7 @@ Third-party material stays out of the public repository until the league agrees:
 | Cost controls | Plain GSM-7 text under 160 characters so each message is one segment; a monthly budget with a hard stop and an admin alert at 80%; a per-user daily cap; duplicates blocked by `dedupe_key`; low-urgency topics go by email or push only |
 | Fallback | If SMS is off, unconsented, undeliverable or over budget, the same message goes by email |
 | Growing the list | "Text KICK to the league number" on field signs and bar coasters, answered with a link to finish signing up; a QR code at the home bar; the consent checkbox at registration; the waitlist form |
-| Push (P2) | `push_subscription` rows and the Web Push protocol with VAPID keys. The outbox already treats push as a channel |
+| Push ✔ | `push_subscription` rows and the Web Push protocol with VAPID keys, sent by the outbox alongside email (section 14, "Push notifications") |
 
 ## 14. Mobile app: PWA first
 
@@ -451,7 +461,7 @@ Third-party material stays out of the public repository until the league agrees:
 
 **Recommendation: PWA.** The people who would install anything are about 30 captains, refs and admins, and what they need (score entry, RSVPs, subs, rain-out control) is forms and lists. The one real weakness is iPhone push, which requires installing first; the installed-app prompt explains that, and email covers anyone who skips it.
 
-Build it the way Next.js documents ✔: `app/manifest.ts`, a small hand-written service worker, and `web-push` for notifications. Add a precaching library only if the hand-written worker becomes a burden.
+Build it the way Next.js documents ✔: `app/manifest.ts`, a small hand-written service worker, and the Web Push protocol for notifications (written with Node's crypto rather than the `web-push` package, [ADR 0014](adr/0014-web-push-without-a-library.md)). Add a precaching library only if the hand-written worker becomes a burden.
 
 ### How the installable app works
 
@@ -464,7 +474,16 @@ Build it the way Next.js documents ✔: `app/manifest.ts`, a small hand-written 
 - **What is never cached.** Signed-in screens (`/app/*`, including payments, waivers and admin), API responses and Server Action calls. With no signal they show the offline page, never stale data.
 - **Install prompt.** Shown on the signed-in home screen to captains, co-captains, refs and admins only (`offeredInstall`), from their second browser session on, not when already installed, and never again after "Not now" (stored on the device). Chrome and Edge get an Install button that opens the browser's own prompt, which the inline script holds back on every page so players never see it; iPhone gets Safari's "Share, then Add to Home Screen" steps.
 - **Tests.** `src/lib/pwa/service-worker.test.ts` runs `public/sw.js` as written against an in-memory Cache Storage and a fake network. `e2e/installable.spec.ts` asks Chrome for installability errors (Lighthouse removed its installability audit in version 12) and checks the offline page and that nothing under `/app` is kept.
-- **Not yet.** Push notifications (a later issue), and offline score entry (P3).
+- **Not yet.** Offline score entry (P3).
+
+### Push notifications
+
+- **Protocol.** Written against the standards with Node's crypto ([ADR 0014](adr/0014-web-push-without-a-library.md)): `src/lib/push/web-push.ts` encrypts each message for one device (RFC 8291, `aes128gcm`) and signs a VAPID token (RFC 8292); `src/services/push.ts` posts it and reports sent, gone or failed. The outbox does the rest (section 5, "Push copies").
+- **Opting in.** The profile page has a "Push notifications" section under the email settings, one checkbox per push topic, all off at first. Saving with a topic ticked asks the browser for permission, subscribes this device with the league's public key and saves the device and the choices in one Server Action (`savePushSettingsAction`, `requireSelfToChange`). The endpoint must be https and the keys the right size before anything is stored. "Turn off push on this device" unsubscribes the browser and forgets the device. A browser has one endpoint, so a shared phone belongs to whoever subscribed it last.
+- **Where it works.** Android and desktop browsers, and iPhone only once the app is on the home screen (iOS 16.4 and later); elsewhere the section says why it can't. It needs the service worker, so only production builds offer it.
+- **The service worker** shows each push with the league icon and, on a tap, opens the page the message links to, moving an open window there when there is one. It only ever opens a path on this site.
+- **Data.** `push_subscription` holds the endpoint, the device's keys and its browser. The personal data export lists a person's devices by browser and date, without endpoints or keys; deleting an account deletes them.
+- **Tests.** `src/lib/push/web-push.test.ts` checks the encryption against RFC 8291's worked example. Outbox and sender tests deliver to a recorded push endpoint (`recordedPushEndpoint` in `src/lib/push/test-device.ts`) that decrypts each request with a test device's keys, as a phone would; no test reaches a real push service. `service-worker.test.ts` runs the push and click handlers of `public/sw.js` as written.
 
 Revisit Expo only if, after a season, captains or refs report missed notifications, or the league wants a store presence.
 
