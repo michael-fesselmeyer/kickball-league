@@ -3,12 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { creditBalance, creditHistory } from "@/db/queries/credit";
 import { emailSettingsOf } from "@/db/queries/notifications";
 import { profileOf } from "@/db/queries/profile";
 import { pushSettingsOf } from "@/db/queries/push";
+import { existingReferralCode, myReferrals } from "@/db/queries/referrals";
+import { currentLeague } from "@/db/queries/seasons";
+import { REFERRAL_CREDIT_CENTS } from "@/domain/money/credit";
 import { toProfileForm } from "@/domain/profile/profile-form";
 import { env } from "@/env";
 import { requireSelf } from "@/lib/auth/permission";
+import { siteOrigin } from "@/lib/site";
+import { CreditSection } from "./credit-section";
 import { EmailSettings } from "./email-settings";
 import { ProfileSettingsForm } from "./profile-form";
 import { PushSettings } from "./push-settings";
@@ -29,11 +35,17 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
   const subject = await requireSelf("profile.edit", "/app/profile");
   const query = await searchParams;
   const publicKey = env.VAPID_PUBLIC_KEY;
-  const [profile, emailTopics, push] = await Promise.all([
-    profileOf(db, subject.userId),
-    emailSettingsOf(db, subject.userId),
-    publicKey ? pushSettingsOf(db, subject.userId) : null,
-  ]);
+  const [profile, emailTopics, push, league, balance, history, code, referrals] =
+    await Promise.all([
+      profileOf(db, subject.userId),
+      emailSettingsOf(db, subject.userId),
+      publicKey ? pushSettingsOf(db, subject.userId) : null,
+      currentLeague(db),
+      creditBalance(db, subject.userId),
+      creditHistory(db, subject.userId, 20),
+      existingReferralCode(db, subject.userId),
+      myReferrals(db, subject.userId),
+    ]);
   if (!profile) notFound();
   return (
     <>
@@ -80,6 +92,16 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
           </Link>
         </p>
       </section>
+      <CreditSection
+        balanceCents={balance}
+        history={history}
+        timeZone={league?.timeZone ?? "America/New_York"}
+        referralLink={
+          code ? `${siteOrigin(env.BETTER_AUTH_URL)}/r/${code}` : null
+        }
+        referralCents={REFERRAL_CREDIT_CENTS}
+        referrals={referrals}
+      />
       <section aria-labelledby="your-data" className="flex flex-col gap-3">
         <h2 id="your-data" className="text-h2">
           Your data
