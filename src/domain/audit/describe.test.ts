@@ -19,7 +19,9 @@ describe("describeAction", () => {
       .map((f) => readFileSync(join(src, f), "utf8"));
     const recorded = new Set(
       files.flatMap((text) =>
-        [...text.matchAll(/action: "([a-z_]+\.[a-z_]+)"/g)].map((m) => m[1]),
+        [...text.matchAll(/action: "([a-z_]+\.[a-z_]+)"/g)].flatMap(
+          (m) => m[1] ?? [],
+        ),
       ),
     );
     expect(recorded.size).toBeGreaterThan(30);
