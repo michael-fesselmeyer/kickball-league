@@ -222,6 +222,25 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     ]);
   });
 
+  it("lets the ref, or a captain when there is no ref, score inning by inning", () => {
+    // g1 has a ref (the referee person is assigned to it).
+    expect(
+      allowed("score.live", { game: { ...g1, hasReferee: true } }),
+    ).toEqual(["referee", "admin", "owner"]);
+    expect(
+      allowed("score.live", { game: { ...g1, hasReferee: false } }),
+    ).toEqual(["captain", "coCaptain", "referee", "admin", "owner"]);
+    // Not knowing whether there is a ref is not permission for captains.
+    expect(allowed("score.live", { game: g1 })).toEqual([
+      "referee",
+      "admin",
+      "owner",
+    ]);
+    expect(
+      allowed("score.live", { game: { ...g2, hasReferee: false } }),
+    ).toEqual(["admin", "owner"]);
+  });
+
   it("sends announcements: captains to their team, admins to anyone", () => {
     expect(
       allowed("announcement.send", { scope: "team", teamSeasonId: "A" }),
