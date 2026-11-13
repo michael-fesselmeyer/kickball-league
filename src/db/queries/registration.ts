@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne, notInArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import type {
   LeagueId,
   RegistrationId,

@@ -1,9 +1,6 @@
 import Stripe from "stripe";
 import type { ChargeToSend } from "@/db/queries/guarantee";
-import type {
-  StripeEventExtras,
-  StripeEventLike,
-} from "@/db/queries/payments";
+import type { StripeEventExtras, StripeEventLike } from "@/db/queries/payments";
 
 /**
  * Stripe calls for the captain guarantee (docs/architecture.md, section 6).

@@ -16,7 +16,9 @@ import {
   type SeasonForm,
 } from "@/domain/season/settings";
 import { isOneOf } from "@/domain/guards";
+import { sendWaitlistOffers } from "@/db/queries/waitlist";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { sendQueuedSoon } from "@/services/outbox";
 import { formStrings } from "@/lib/form";
 import { refreshSeasonPages } from "@/lib/public-cache";
 
@@ -96,6 +98,11 @@ export async function updateSeasonAction(
     if (updated.error === "unknown_season") notFound();
     return { values, status, errors: { name: DUPLICATE }, message: CHECK };
   }
+  // A higher team limit frees spots: offer them to the waitlist now.
+  const offers = await txDb.transaction((tx) =>
+    sendWaitlistOffers(tx, new Date(), existing.id),
+  );
+  if (offers.offered > 0) sendQueuedSoon();
   // Its name and status show on the public pages.
   refreshSeasonPages(existing.id);
   redirect(`/app/admin/seasons/${updated.value.slug}?saved=1`);

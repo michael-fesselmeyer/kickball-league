@@ -1,6 +1,6 @@
 import { and, eq, like } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { TeamSeasonId, UserId } from "@/domain/ids";
+import type { RegistrationId, TeamSeasonId, UserId } from "@/domain/ids";
 import { REFERRAL_CREDIT_CENTS } from "@/domain/money/credit";
 import type { CheckoutItem } from "@/domain/registration/checkout";
 import type { SchedulerInput } from "@/domain/scheduler/types";
@@ -308,11 +308,11 @@ describe("split team balance", () => {
       if (!team.ok) throw new Error(team.error);
       const { teamSeasonId, registrationId, shareCents } = team.value;
       expect(shareCents).toBe(50_000);
-      const pay = (regId: string, userId: UserId, cents: number) =>
+      const pay = (regId: RegistrationId, userId: UserId, cents: number) =>
         recordOffAppPayment(db, {
           userId,
           seasonId: w.season.id,
-          registrationId: regId as never,
+          registrationId: regId,
           items: [shareItem(teamSeasonId, regId, cents)],
           method: "cash",
           note: "",
@@ -938,7 +938,7 @@ describe("season rebates", () => {
       for (const p of payers)
         await recordOffAppPayment(db, {
           userId: p.userId,
-          seasonId: w.season.id as never,
+          seasonId: w.season.id,
           registrationId: p.registrationId,
           items: [
             {
@@ -955,7 +955,7 @@ describe("season rebates", () => {
           now: NOW,
         });
 
-      const board = await rebateBoard(db, w.season.id as never);
+      const board = await rebateBoard(db, w.season.id);
       expect(board.thresholdPct).toBe(25);
       const aces = required(
         board.rows.find((r) => r.teamSeasonId === w.aces.id),
@@ -978,7 +978,7 @@ describe("season rebates", () => {
 
       const issue = () =>
         issueRebate(db, {
-          seasonId: w.season.id as never,
+          seasonId: w.season.id,
           teamSeasonId: w.aces.id,
           actorId: admin,
           now: NOW,
@@ -992,7 +992,7 @@ describe("season rebates", () => {
         expect(await creditBalance(db, p.userId)).toBe(6375);
       expect(
         await issueRebate(db, {
-          seasonId: w.season.id as never,
+          seasonId: w.season.id,
           teamSeasonId: w.bees.id,
           actorId: admin,
           now: NOW,
