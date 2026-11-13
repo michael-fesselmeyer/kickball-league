@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 
@@ -30,21 +30,37 @@ test("a ref scores inning by inning and calls the game", async ({
   // Four complete innings, then 3 runs in the top of the 5th.
   const runs = [1, 0, 2, 2, 0, 1, 3, 0, 3];
   const ordinals = ["1st", "2nd", "3rd", "4th", "5th"];
-  let spectator;
+  let spectator: Page | undefined;
   for (const [i, r] of runs.entries()) {
     const half = `${i % 2 === 0 ? "Top" : "Bottom"} of the ${ordinals[Math.floor(i / 2)]}`;
     await expect(ref.getByRole("heading", { name: half })).toBeVisible();
     await ref.getByRole("button", { name: String(r), exact: true }).click();
-    // A spectator opens the game page once play is under way. (This old
-    // seeded game is outside its time slot, so the page polls because
-    // someone is entering halves now.)
+    // A spectator opens the game page once play is under way. This old
+    // seeded game is outside its time slot, so the page polls only because
+    // a half has been entered; the ref's screen moves on before the half
+    // reaches the server, so wait until the live score the page reads has it.
     if (i === 0) {
-      spectator = await (await browser.newContext()).newPage();
-      await spectator.goto(
+      const path =
         (await ref
           .getByRole("link", { name: "public game page" })
-          .getAttribute("href")) ?? "",
-      );
+          .getAttribute("href")) ?? "";
+      const page = await (await browser.newContext()).newPage();
+      await expect
+        .poll(async () => {
+          const response = await page.request.get(
+            `/api/games/${path.split("/").at(-1)}/live`,
+          );
+          const body: unknown = response.ok() ? await response.json() : null;
+          return typeof body === "object" &&
+            body !== null &&
+            "halves" in body &&
+            Array.isArray(body.halves)
+            ? body.halves.length
+            : 0;
+        })
+        .toBeGreaterThan(0);
+      await page.goto(path);
+      spectator = page;
     }
   }
   if (!spectator) throw new Error("The spectator never opened the game.");
