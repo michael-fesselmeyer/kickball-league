@@ -98,6 +98,21 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     expect(allowed("awards.vote")).toEqual(["player", "captain", "coCaptain"]);
   });
 
+  it("lets team members and admins upload photos, and only the uploader delete theirs", () => {
+    expect(allowed("photos.upload")).toEqual([
+      "player",
+      "captain",
+      "coCaptain",
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("photos.delete_own", { targetUserId: "p" })).toEqual([
+      "player",
+    ]);
+    // Reviewing is for admins only.
+    expect(allowed("photos.manage")).toEqual(["admin", "owner"]);
+  });
+
   it("handles RSVPs: your own on your team, and the team's list for its members", () => {
     expect(
       allowed("rsvp.set", { targetUserId: "p", teamSeasonId: "A" }),

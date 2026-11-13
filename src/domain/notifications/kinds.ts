@@ -82,6 +82,10 @@ export const MESSAGE_KINDS = {
     urgency: "urgent",
     label: "Payment deadline reminders",
   },
+  photo_review: {
+    urgency: "non_urgent",
+    label: "Whether the league used a photo you uploaded",
+  },
   rain_alert: {
     urgency: "urgent",
     label: "Rain alerts for admins the day before games",

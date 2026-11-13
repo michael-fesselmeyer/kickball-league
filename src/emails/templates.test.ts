@@ -247,6 +247,37 @@ describe("rendererFor", () => {
     );
   });
 
+  it("tells a member their photo is up, with a link to where", () => {
+    const result = render("photo_review", {
+      kind: "approved",
+      where: "the team page for Aces",
+      path: "/teams/aces",
+    });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe("Your photo made the cut");
+    expect(result.value.text).toContain(
+      "it now shows on the team page for Aces",
+    );
+    expect(result.value.text).toContain(
+      "https://league.example.test/teams/aces",
+    );
+    expect(
+      render("photo_review", { kind: "approved", where: "x", path: "teams" })
+        .ok,
+    ).toBe(false);
+  });
+
+  it("tells a member their photo wasn't used, never why", () => {
+    const result = render("photo_review", {
+      kind: "rejected",
+      note: "Blurry",
+    });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe("About the photo you uploaded");
+    expect(result.value.text).toContain("has been deleted from the site");
+    expect(result.value.text).not.toContain("Blurry");
+  });
+
   const subGame = {
     seasonName: "Fall 2026",
     seasonSlug: "fall-2026",
