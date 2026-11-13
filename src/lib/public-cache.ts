@@ -1,4 +1,4 @@
-import { updateTag } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 
 /**
  * How long the public schedule, standings and team pages are served as
@@ -34,11 +34,24 @@ export const LIVE_SCORE_LIFE = {
 export const LIVE_SCORE_CDN_SECONDS = 5;
 
 /**
+ * The public routes whose pages show a season's data. Their shells (the
+ * prerendered part of a page that is served at once while the rest renders)
+ * keep the cached data they were built with, under path tags only.
+ */
+export const SEASON_PAGE_ROUTES = ["/seasons/[season]", "/teams/[team]"];
+
+/**
  * From a Server Action: the next request for any public page of this season,
  * including its teams' pages, renders fresh data instead of the cached copy.
+ *
+ * The season tag expires the pages and the cached data. The routes are also
+ * expired by path, because a page whose tag expired is answered from its
+ * route's shell, and the data saved in that shell is not checked against the
+ * season tag (docs/architecture.md, section 3).
  */
 export function refreshSeasonPages(seasonId: string): void {
   updateTag(seasonTag(seasonId));
+  for (const route of SEASON_PAGE_ROUTES) revalidatePath(route, "layout");
 }
 
 /** The events list, the events calendar feed and every event page. */
