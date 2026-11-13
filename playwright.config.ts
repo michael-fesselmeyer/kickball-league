@@ -54,20 +54,15 @@ export default defineConfig({
           },
         },
       ]
-    : [
+    : // `--shard` cuts this list, in this order, into contiguous pieces, so
+      // the flows sit between the two smoke projects: each CI shard gets
+      // half the smoke tests and half the flows.
+      [
         {
           name: "phone",
           testIgnore: ["flows/**", "site-wide/**"],
           use: {
             ...devices["Pixel 7"],
-            baseURL: `http://localhost:${SMOKE_PORT}`,
-          },
-        },
-        {
-          name: "desktop",
-          testIgnore: ["flows/**", "site-wide/**"],
-          use: {
-            ...devices["Desktop Chrome"],
             baseURL: `http://localhost:${SMOKE_PORT}`,
           },
         },
@@ -78,6 +73,14 @@ export default defineConfig({
           use: {
             ...devices["Desktop Chrome"],
             baseURL: `http://localhost:${FLOWS_PORT}`,
+          },
+        },
+        {
+          name: "desktop",
+          testIgnore: ["flows/**", "site-wide/**"],
+          use: {
+            ...devices["Desktop Chrome"],
+            baseURL: `http://localhost:${SMOKE_PORT}`,
           },
         },
       ],
