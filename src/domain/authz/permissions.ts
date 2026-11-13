@@ -216,6 +216,7 @@ const RULES = {
   "photos.manage": isAdmin,
   // The shop's catalog, its orders, the printer's CSV and fulfillment.
   "merch.manage": isAdmin,
+  "friends.manage": isAdmin,
   // The owner alone
   "billing.manage": isOwner,
   // The books (expenses, receipts, permit costs and documents, insurance).
