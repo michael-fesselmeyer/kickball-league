@@ -52,11 +52,13 @@ export default defineConfig({
   webServer: [
     {
       // CI builds once and hands the build to every shard (E2E_PREBUILT);
-      // a local run builds first.
+      // a local run builds first. Both builds read the seeded league, so the
+      // public seasons and teams are prerendered as in production. The web
+      // servers start before the global setup, so a local run seeds here too.
       command:
         process.env.E2E_PREBUILT === "true"
           ? `npm run start -- --port ${SMOKE_PORT}`
-          : `npm run build && npm run start -- --port ${SMOKE_PORT}`,
+          : `npm run --silent seed && npm run build && npm run start -- --port ${SMOKE_PORT}`,
       url: `http://localhost:${SMOKE_PORT}`,
       reuseExistingServer: false,
       timeout: process.env.E2E_PREBUILT === "true" ? 60_000 : 240_000,
