@@ -36,6 +36,11 @@ export const MESSAGE_KINDS = {
     label:
       "An event spot that opened for you, or an event cancelled or moved within a day of its start",
   },
+  event_ticket: {
+    urgency: "urgent",
+    label:
+      "Your event ticket's receipt or refund, or an event spot held for you to buy by a deadline",
+  },
   guarantee_failed: {
     urgency: "urgent",
     label: "A captain's card guarantee that could not be charged",

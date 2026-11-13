@@ -18,6 +18,8 @@ const ACTIONS: Record<string, string> = {
   "event.cancel": "Called off an event",
   "event.create": "Added an event",
   "event.delete": "Deleted an event",
+  "event.ticket_check_in": "Checked in a ticket holder",
+  "event.ticket_refund": "Refunded an event ticket",
   "event.update": "Changed an event",
   "field.create": "Added a field",
   "deal.confirm": "Confirmed a sponsor's deals are current",

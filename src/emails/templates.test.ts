@@ -310,6 +310,57 @@ describe("rendererFor", () => {
     );
   });
 
+  it("renders a ticket receipt, a refund and a waitlist offer", () => {
+    const ticketEvent = {
+      title: "Bowling night",
+      slug: "bowling-night-2027-03-12",
+      when: "Fri, Mar 12, 7:00 – 10:00 PM",
+      place: "Strike Lanes (demo venue)",
+    };
+    const receipt = render("event_ticket", {
+      ...ticketEvent,
+      kind: "receipt",
+      code: "K7M 4QX",
+      paid: "$7 on your card and $5 of league credit",
+    });
+    if (!receipt.ok) throw new Error(receipt.error);
+    expect(receipt.value.subject).toBe("Your ticket: Bowling night");
+    expect(receipt.value.text).toContain("Your check-in code is K7M 4QX.");
+    expect(receipt.value.text).toContain(
+      "You paid $7 on your card and $5 of league credit.",
+    );
+    expect(receipt.value.text).toContain(
+      "https://league.example.test/app/events/bowling-night-2027-03-12",
+    );
+
+    const refunded = render("event_ticket", {
+      ...ticketEvent,
+      kind: "refunded",
+      returned: "$7 back to your card and $5 back to your league credit",
+    });
+    expect(refunded.ok && refunded.value.subject).toBe(
+      "Refunded: Bowling night",
+    );
+    expect(refunded.ok && refunded.value.text).toContain(
+      "$7 back to your card and $5 back to your league credit.",
+    );
+
+    const offered = render("event_ticket", {
+      ...ticketEvent,
+      kind: "offered",
+      expires: "Thursday, March 11 at 7:00 PM",
+    });
+    expect(offered.ok && offered.value.subject).toBe(
+      "A spot opened: Bowling night",
+    );
+    expect(offered.ok && offered.value.text).toContain(
+      "Buy your ticket by Thursday, March 11 at 7:00 PM.",
+    );
+    expect(render("event_ticket", { ...ticketEvent, kind: "nope" }).ok).toBe(
+      false,
+    );
+  });
+
   it("refuses an unknown template", () => {
     expect(render("nope", {})).toEqual({
       ok: false,

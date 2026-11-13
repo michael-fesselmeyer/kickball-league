@@ -6,6 +6,7 @@ import type { Template } from "./define";
 import { digestEmail } from "./digest";
 import { emailBudgetEmail } from "./email-budget";
 import { eventNoticeEmail } from "./event";
+import { eventTicketEmail } from "./event-ticket";
 import { instagramReconnectEmail } from "./instagram-reconnect";
 import { instagramStorageFullEmail } from "./instagram-storage-full";
 import type { RenderContext } from "./layout";
@@ -38,6 +39,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     email_budget: emailBudgetEmail,
     event_news: eventNoticeEmail,
     event_notice: eventNoticeEmail,
+    event_ticket: eventTicketEmail,
     guarantee_failed: guaranteeFailedEmail,
     guarantee_warning: guaranteeWarningEmail,
     instagram_reconnect: instagramReconnectEmail,
