@@ -176,16 +176,28 @@ Motion explains what changed and adds some pride to wins. It is never required t
 
 | Pattern | Where | How |
 |---|---|---|
-| Shared-element page transition | Game card to game page; team badge to team page | React's `<ViewTransition>` (supported in Next.js 16) with named elements; a cross-fade where unsupported |
-| Scoreboard flip | A score changes | The digit slides and fades over `--dur-2`; reduced motion swaps it instantly |
-| Scroll reveal | Home sections, sponsor strip | `animation-timeline: view()`, 16px rise and fade |
+| Shared-element page transition ✔ | Game card and game page scoreboard; a team's standings dot or game page badge and its team page header | React's `<ViewTransition>` with named elements (`Morph`); where the browser lacks the API, the page changes without motion |
+| Page arrival ✔ | The game page, which streams in after its loading state | The content rises 12px and fades in over `--dur-3` (`Arrive`), only after a client navigation |
+| Scoreboard flip ✔ | A run total changes on the live game page or the scorer's screen | The old digit rolls up out of its box and the new one rolls in over `--dur-2` (`Flip`); reduced motion swaps it instantly |
+| Scroll reveal ✔ | Home sections (the sponsor strip can add the class) | `animation-timeline: view()`, a 16px rise, a little later for each card. Transform only: a fade would leave text at the bottom of the screen below its contrast ratio |
 | Hero pennant | Home | One transform-only sweep on load, below the largest element in paint order |
 | Standings reorder | After a result | A view transition moves rows to their new rank |
 | RSVP and payment confirmation | Buttons | A check mark draws in; the button settles |
-| Winner moment | Final score, bracket advance | A short burst of the highlight color, once, never on page load |
+| Winner moment ✔ (final score) | The winning total, when the result arrives while the live game page is open | A short burst of the highlight color, once, never on page load. Bracket advance is still to come |
 | Bracket line draw | Playoffs | Stroke offset animation as a winner advances |
 | Live pulse | In-progress games | A 2-second opacity pulse on a dot beside the word "Live" |
 | Press feedback | All buttons | Scale to 0.98 over `--dur-1` |
+
+### How the motion pass is built
+
+The pieces live in `src/components/motion.tsx` (`Morph`, `Flip`, `revealOrder`), `src/components/arrive.tsx` and `src/app/motion.css`. They add no animation library and almost no JavaScript: React's `<ViewTransition>` hands the work to the browser's View Transitions API, and everything else is CSS.
+
+- **Names are unique per page.** A game card and a team badge carry a name only once on a page; the schedule's desktop grid repeats each game, so its cards set `morph={false}`.
+- **Transform and opacity.** Our keyframes animate only those. For a morph the browser also eases the size of the moving box; that happens on the snapshots in the transition layer, not in the page's layout.
+- **Only named elements move.** The rest of the page swaps at once (`::view-transition-old(root)` is hidden), so a navigation never cross-fades the whole screen.
+- **When a morph plays.** A pair forms only when both pages render in the same commit: a link to a prerendered page (schedule, standings, a team) or a page already in the router's cache. The game page renders on request behind its loading state, so a link into it uses the page arrival instead, and a link out of it to the schedule or a team folds the scoreboard back into its card. The browser's back and forward buttons don't animate, because the router doesn't run them as transitions.
+- **Nothing on the first load.** React's streaming script can run a view transition when a Suspense boundary is revealed, and waits on fonts and images first. `Arrive` turns its animation on only after hydration, so a first load of the game page is never held back or animated.
+- **Reduced motion.** Every view transition finishes at once, the flip and arrival don't run, the burst isn't drawn and the reveal is off.
 
 ### Performance budgets
 
