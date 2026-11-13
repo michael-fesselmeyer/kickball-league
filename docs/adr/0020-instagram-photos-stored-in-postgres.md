@@ -47,5 +47,4 @@ Shrinking uses sharp, which Next.js already installs for its image optimizer, no
 
 - Admins see a "Reconnect Instagram" notice and get one email if Instagram stops accepting the token; photos already synced stay up.
 - A hidden photo leaves every page on its next render, and its address keeps answering from caches for up to five minutes: the photo route and the image optimizer (`images.minimumCacheTTL`) both keep copies that long. The photos are few and small, so the extra requests cost little.
-- Tagging posts to events waits for the events calendar's `event` table, and adds a column then.
 - Tests cover the client against the fixture (token exchange, refresh, refused tokens, media parsing, the CDN allow-list and size limits), the encryption, the sync plan with property tests, and the database rules: sync is idempotent, curation survives syncs, deletions, covers, disconnecting and reconnect notices.

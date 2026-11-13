@@ -25,7 +25,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── events/                         Upcoming and recent public events, and calendar subscribe links (members' and team events never appear here)
 │   ├── calendar.ics                Events calendar feed: every public event, theme weeks as all-day entries
 │   ├── personal/[token]/calendar.ics  A member's private feed: every event they can see; the signed link is the key, reset from /app/events
-│   └── [event]                     Public event page: when, where, spots left or the waitlist, an RSVP button or the invite ("RSVP on partiful.com"), share and save-the-date links
+│   └── [event]                     Public event page: when, where, spots left or the waitlist, an RSVP button or the invite ("RSVP on partiful.com"), share and save-the-date links, tagged Instagram photos
 │       └── calendar.ics            One public event as a calendar file
 ├── sponsors/                       Sponsors, home bar first, with the team of the week
 │   └── [sponsor]                   Sponsor page: deals with when they were confirmed, the team of the week, how to check in
@@ -106,7 +106,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── credit                      League credit: give goodwill credit, who holds credit, what was given lately
     ├── money                       Payments, refunds, credit, promo codes
     ├── audit                       Audit log in plain words, newest first; filter for the platform operator's actions
-    ├── instagram                   Connect, sync, disconnect (keep or remove photos); feature, hide, tag to a team, set a cover, describe each post
+    ├── instagram                   Connect, sync, disconnect (keep or remove photos); feature, hide, tag to a team or event, set a cover, describe each post
     │   ├── callback                Where Instagram's sign-in returns; checks the state, saves the token encrypted, runs the first sync
     │   └── photos/[image]          Any synced photo, hidden ones included, for admins
     ├── league.json                 The whole league as JSON, for owners and the operator
