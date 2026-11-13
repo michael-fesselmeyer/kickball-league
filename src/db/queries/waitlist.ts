@@ -140,6 +140,18 @@ export async function joinWaitlist(
   const spots = await seasonSpots(db, input, now);
   if (spots.myOffer) return err("already_waiting");
   if (mayRegisterTeam(spots, false)) return err("spot_open");
+  // An offer of theirs that ran out sends them to the back of the line.
+  await db
+    .update(waitlistEntry)
+    .set({ status: "expired", decidedAt: now })
+    .where(
+      and(
+        eq(waitlistEntry.seasonId, input.seasonId),
+        eq(waitlistEntry.userId, input.userId),
+        eq(waitlistEntry.status, "offered"),
+        lte(waitlistEntry.offerExpiresAt, now),
+      ),
+    );
   const name = input.teamName.trim().replace(/\s+/g, " ").slice(0, 40);
   const [created] = await db
     .insert(waitlistEntry)

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { creditBalance } from "@/db/queries/credit";
 import { myQuiz } from "@/db/queries/free-agents";
 import { friendsSentence } from "@/domain/matcher/friend-code";
 import {
@@ -121,9 +122,10 @@ async function Season({
   }
 
   const inPool = mine.kind === "free_agent" && !mine.team;
-  const [signed, quiz] = await Promise.all([
+  const [signed, quiz, credit] = await Promise.all([
     hasSignedSeasonWaiver(db, subject.userId, season.id),
     inPool ? myQuiz(db, season.id, subject.userId) : null,
+    creditBalance(db, subject.userId),
   ]);
   const owed = amountOwed(season, mine, now);
   const deadline = season.paymentDeadlineAt
@@ -148,7 +150,8 @@ async function Season({
       {query.paid && !paid && <ConfirmingPayment />}
       {query.payment === "covered" && (
         <p role="status" className="rounded-lg border border-success p-3">
-          Your promo code covered the whole fee. Nothing to pay.
+          Your promo code or league credit covered the whole fee. Nothing to
+          pay.
         </p>
       )}
       {paymentMessage && (
@@ -259,9 +262,15 @@ async function Season({
                   className="w-48 rounded-md border border-border bg-surface px-2 py-1 uppercase"
                 />
               </label>
+              {credit > 0 && (
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" name="useCredit" defaultChecked />
+                  Use my {formatCents(credit)} league credit
+                </label>
+              )}
               <button type="submit" className="btn self-start btn-primary">
-                Pay {owed.ok ? formatCents(owed.cents) : ""} securely with
-                Stripe
+                Pay {owed.ok && credit === 0 ? formatCents(owed.cents) : ""}{" "}
+                securely with Stripe
               </button>
               <span className="text-small text-text-muted">
                 Card, Apple Pay or Google Pay.

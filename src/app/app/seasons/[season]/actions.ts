@@ -22,7 +22,7 @@ import { stripeClient } from "@/services/stripe";
 
 /**
  * Sends the person to Stripe Checkout for what they owe, less any promo code
- * they typed. Nothing is marked paid here: the webhook does that when Stripe
+ * they typed and their league credit unless they unticked it. Nothing is marked paid here: the webhook does that when Stripe
  * confirms the payment. A code that covers the whole price settles it here,
  * because there is nothing to charge.
  */
@@ -65,6 +65,7 @@ export async function startCheckout(
       seasonId: season.id,
       items: items.items,
       promoCode: typeof typed === "string" ? typed : null,
+      useCredit: form.get("useCredit") === "on",
       now,
     }),
   );
