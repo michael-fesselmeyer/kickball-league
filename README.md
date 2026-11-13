@@ -170,7 +170,7 @@ npm run push:keys
 For hosting, copy `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` from `.env.local` into the provider's encrypted settings. `VAPID_SUBJECT` (a `mailto:` address or `https://` URL push services can contact) is optional and defaults to the site's address. Keep the same pair once players have opted in: a new pair means every device has to opt in again. Push needs the service worker, which only production builds register, so try it with `npm run build && npm start`.
 ### Turning on the Instagram connection
 
-The photo sync is off until both `INSTAGRAM_APP_ID` and `INSTAGRAM_APP_SECRET` are set (one without the other is rejected at startup):
+The photo sync is off until both `INSTAGRAM_APP_ID` and `INSTAGRAM_APP_SECRET` are set. Like `DEMO_MODE`, they are read straight from the server's environment and checked where they are used, not in `src/lib/env.ts` or `.env.example`: one without the other, or a malformed value, leaves the connection off, and the server log and the Instagram admin screen name the variable to fix.
 
 1. In Meta's developer dashboard, create an app with the **Instagram API with Instagram Login** product, and add the league's Instagram professional (Business or Creator) account to the app's roles. An app used only by its own account needs no App Review.
 2. Add the redirect URI `<site address>/app/admin/instagram/callback`, for example `http://localhost:3000/app/admin/instagram/callback`.
