@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   check,
   jsonb,
+  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -19,6 +20,13 @@ export type LeagueContact = {
   social?: Record<string, string>;
 };
 
+/** Set only by the platform operator; see src/domain/platform/operator.ts. */
+export const siteStatus = pgEnum("site_status", [
+  "active",
+  "read_only",
+  "paused",
+]);
+
 /**
  * One row per league. A deployment serves one league (docs/architecture.md),
  * but every league-owned table carries league_id so a second league fits later.
@@ -34,6 +42,13 @@ export const league = pgTable(
     timezone: text().notNull().default("America/New_York"),
     branding: jsonb().$type<LeagueBranding>().notNull().default({}),
     contact: jsonb().$type<LeagueContact>().notNull().default({}),
+    /** Whether the site is open, read-only or paused (operator only). */
+    siteStatus: siteStatus().notNull().default("active"),
+    /** Features the operator switched off, by key (operator only). */
+    disabledFeatures: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
