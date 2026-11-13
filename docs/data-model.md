@@ -728,7 +728,7 @@ erDiagram
   notification_preference {
     uuid id PK
     uuid user_id FK
-    enum topic "rainout, schedule_change, game_reminder, payment, sub_request, announcement, score, events, marketing, new_team, discipline, digest, operations"
+    enum topic "rainout, schedule_change, game_reminder, payment, sub_request, announcement, score, events, marketing, new_team, discipline, digest, operations, photos"
     enum channel "email, push (sms is in the enum, unused)"
     bool enabled
   }
@@ -824,6 +824,10 @@ erDiagram
   team_season ||--o| signup_challenge : wins
   league ||--o{ friend_league : "lists"
   friend_league ||--o| friend_logo : "shown with"
+  user ||--o{ member_photo : uploads
+  team ||--o{ member_photo : "tagged in"
+  event ||--o{ member_photo : "tagged in"
+  game ||--o{ member_photo : "tagged in"
 
   sponsor {
     uuid id PK
@@ -1020,6 +1024,26 @@ erDiagram
     int height "at most 192"
     text sha256
   }
+  member_photo {
+    uuid id PK
+    uuid league_id FK
+    uuid uploader_id FK "deleted with the account"
+    enum status "pending, approved, rejected"
+    uuid game_id FK "tag"
+    uuid event_id FK "tag"
+    uuid team_id FK "tag"
+    text caption "up to 200 characters"
+    timestamptz repost_consent_at "the uploader's OK to repost"
+    text content_type "image/jpeg"
+    bytea bytes "one copy up to 1 MB; null once rejected"
+    int byte_size
+    int width "at most 1440"
+    int height "at most 1440"
+    text sha256
+    uuid reviewed_by FK
+    timestamptz reviewed_at
+    text review_note "admins only"
+  }
   post {
     uuid id PK
     uuid league_id FK
@@ -1105,6 +1129,14 @@ Friends of the league, as built (`src/db/schema/friends.ts`, `src/db/queries/fri
 - `links_back` is the admin's note that the league's site links to ours; the public page shows it as "Links to us".
 - `friend_logo` is one small copy of the league's logo, made on the server with sharp (fits in 192 × 192, WebP, metadata dropped) and kept in Postgres like the Instagram photos ([ADR 0023](adr/0023-instagram-photos-stored-in-postgres.md)). Uploads are PNG, JPEG or WebP up to 800 KB. A new upload replaces the row, so its public address changes with the picture. All logos together stay under 5 MB: the save takes a transaction-scoped advisory lock and counts what is stored, minus the logo it replaces.
 - Entries go with the league (`on delete cascade`), so the seed needs no clean-up step for them.
+
+Member photos, as built (`src/db/schema/member-photo.ts`, `src/db/queries/member-photos.ts`, [ADR 0035](adr/0035-member-photos-in-postgres.md)):
+
+- A member on an active roster (or an admin) uploads a photo with the required repost consent (`repost_consent_at`), an optional caption and at least one tag: one of their teams, a published game of one of their teams from the last 30 days through today, or a public event in the same window. A tag goes to null if what it names is deleted.
+- Only one copy is stored: a JPEG at most 1440 px on its longest side and 1 MB, with no metadata, made on the server from a file checked by its bytes (`src/lib/member-photos/process-photo.ts`). Videos are not accepted.
+- Limits: 10 uploads per person in any 24 hours, and 100 MB of stored photos for the league. Uploads for a league take turns under a transaction lock, so two can't both fit the last space.
+- `pending` photos wait in the admins' review queue. `approved` ones show on the public pages of their tags. Rejecting deletes the bytes at once and keeps the row, with the admins' private `review_note`, so the uploader sees it wasn't used. Approving and rejecting each queue one `photo_review` message (topic `photos`, dedupe key `photo_review:<photo>`) that never carries the note.
+- The uploader can delete their own photo at any time, and an admin any photo. Approve, reject and delete write audit rows (`member_photo.*`). Deleting an account deletes every photo the person uploaded.
 
 Sponsors as built (roadmap Phase 2, item 9):
 
@@ -1407,6 +1439,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `insurance_certificate` | check `expires_on > starts_on` | A certificate covers a period |
 | `friend_league` | unique `(league_id, name)`; check `url` starts with `https://` and is at most 300 characters; checks on name, area and description lengths | One entry per league name; only https links reach the page |
 | `friend_logo` | unique `friend_league_id`; check type is WebP or PNG, `byte_size = octet_length(bytes)` up to 100 KB, and both sides at most 192 px | One small logo per entry; the 5 MB total is enforced by the save |
+| `member_photo` | check type is JPEG; `bytes` and `byte_size` are null exactly when `status = 'rejected'`; `byte_size = octet_length(bytes)` up to 1 MB; width and height 1 to 1440; caption up to 200 and note up to 500 characters; `reviewed_at` is null exactly while pending | One small stored copy per photo, none kept once rejected; the 100 MB total and the daily limit are enforced on upload |
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
 | `alert_setting` | check `daily_cap` between 0 and 3; check quiet hours are both null or two different hours from 0 to 23 | A member can only lower the cap, and quiet hours are never empty |
 | `push_subscription` | unique `(endpoint)`; check it starts with `https://` and is at most 2,048 characters; check the key lengths | A device is stored once, and the outbox only ever posts to https |
@@ -1455,6 +1488,7 @@ Indexes for the common reads:
 | `award_poll` | `(season_id, closes_at)` | Open and closed polls of a season |
 | `award_vote` | `(voter_id)` | A player's own votes |
 | `social_post` | `(account_id, taken_at desc)`, `(team_id)`, `(event_id)` | Newest photos for the home page and the admin screen; a team's or an event's photos |
+| `member_photo` | `(league_id, status, created_at desc)`; `(uploader_id, created_at desc)`; `(team_id, created_at desc)`, `(event_id, …)` and `(game_id, …)` where approved | The review queue and the storage total; a person's photos and daily count; each public page's photos |
 | `sportsmanship_rating` | `(rated_team_season_id)`; `(rated_by)` | A team's ratings; a person's own ratings |
 | `incident` | `(status, reported_at)`; `(game_id)` | The review queue; a game's reports |
 | `incident_person` | `(user_id)` | Reports about a person, for the ladder and their export |
@@ -1491,6 +1525,8 @@ Indexes for the common reads:
 | Photos and captions from the league's Instagram, which may show players | `social_post`, `social_image` | Admins; everyone once an admin features a photo. Any player can ask for a photo of them to be hidden, and hiding takes it off public pages on their next render |
 | Expenses, receipts, permit costs and documents, the insurance certificate | `expense`, `books_file`, `permit_window`, `insurance_certificate` | Owners and the platform operator. A game's referee and both captains see that game's permit number and document. The tax CSV names no player |
 | The Instagram access token | `social_account.token_ciphertext`, encrypted | Nobody: only the sync jobs decrypt it, and disconnecting deletes it |
+| Photos members upload, which may show players, with captions | `member_photo` | The uploader and admins; everyone once an admin approves one. The uploader can delete theirs at any time, and deleting their account deletes them all. Metadata such as a phone's location is never stored. Rejected photos' bytes are deleted at once |
+| Why an admin rejected a photo | `member_photo.review_note` | Admins only, never the uploader |
 
 Deleting an account removes the profile and anonymizes the user row. Signatures, payments, consent events and audit rows are kept because the league may need them for legal or accounting reasons; the privacy policy says so.
 
