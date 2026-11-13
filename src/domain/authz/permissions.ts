@@ -170,6 +170,7 @@ const RULES = {
   "audit.read": isAdmin,
   "shirts.manage": isAdmin,
   "awards.manage": isAdmin,
+  "photos.manage": isAdmin,
   // The owner alone
   "billing.manage": isOwner,
   "admins.manage": isOwner,

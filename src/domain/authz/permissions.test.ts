@@ -292,6 +292,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "audit.read",
       "shirts.manage",
       "awards.manage",
+      "photos.manage",
     ] as const)
       expect(allowed(action)).toEqual(["admin", "owner"]);
     for (const action of ["billing.manage", "admins.manage"] as const)

@@ -15,6 +15,8 @@ import {
   registrationSummary,
 } from "@/db/queries/admin-dashboard";
 import { pendingNewTeamCount } from "@/db/queries/new-teams";
+import { currentLeague } from "@/db/queries/seasons";
+import { needsReconnect } from "@/db/queries/social";
 import type { FieldingLevel } from "@/domain/rsvp/fielding";
 import { requirePermission } from "@/lib/auth/permission";
 
@@ -114,13 +116,15 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
     );
   }
 
-  const [day, missing, registrations, others, newTeams] = await Promise.all([
-    nextGameDay(db, current, now),
-    missingScores(db, current, now),
-    registrationSummary(db, current.id),
-    otherSeasons(db, current.id),
-    pendingNewTeamCount(db, current.id),
-  ]);
+  const [day, missing, registrations, others, newTeams, instagram] =
+    await Promise.all([
+      nextGameDay(db, current, now),
+      missingScores(db, current, now),
+      registrationSummary(db, current.id),
+      otherSeasons(db, current.id),
+      pendingNewTeamCount(db, current.id),
+      currentLeague(db).then((l) => (l ? needsReconnect(db, l.id) : null)),
+    ]);
   const base = `/app/admin/seasons/${current.slug}`;
   const dayLabel = (date: string) =>
     new Intl.DateTimeFormat("en-US", {
@@ -187,6 +191,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               [`${base}/rebates`, "Rebates"],
               ["/app/admin/credit", "League credit"],
               ["/app/admin/seasons", "All seasons"],
+              ["/app/admin/instagram", "Instagram"],
               ["/app/admin/audit", "Audit log"],
             ].map(([href, label]) => (
               <li key={label}>
@@ -197,6 +202,15 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
             ))}
           </ul>
         </nav>
+        {instagram && (
+          <p role="status" className="rounded-lg border border-warning p-3">
+            Instagram stopped accepting the connection to @{instagram.username},
+            so new posts aren&apos;t syncing.{" "}
+            <Link href="/app/admin/instagram" className="font-bold underline">
+              Reconnect Instagram
+            </Link>
+          </p>
+        )}
         {isOwner && (
           <p>
             <a href="/app/admin/league.json" className="underline">
