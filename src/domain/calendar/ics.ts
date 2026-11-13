@@ -45,6 +45,8 @@ const PRODID = "-//Kickball League//Team schedule//EN";
 /**
  * Escapes a TEXT value (RFC 5545, section 3.3.11) and drops control
  * characters, which the format does not allow (team names are typed in).
+ * Unicode line breaks (U+0085, U+2028, U+2029) become an escaped newline
+ * too: many parsers end a line at them and would split the property.
  */
 export function escapeText(value: string): string {
   return value
@@ -53,7 +55,7 @@ export function escapeText(value: string): string {
     .replace(/\\/g, "\\\\")
     .replace(/;/g, "\\;")
     .replace(/,/g, "\\,")
-    .replace(/\r\n|\r|\n/g, "\\n");
+    .replace(/\r\n|[\r\n\u0085\u2028\u2029]/g, "\\n");
 }
 
 const octets = (s: string) => new TextEncoder().encode(s).length;
