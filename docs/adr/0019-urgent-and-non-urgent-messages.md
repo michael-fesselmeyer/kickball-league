@@ -32,7 +32,7 @@ Urgent email that cannot go today waits for the next UTC day, as does an email t
 
 ## Alternatives considered
 
-- **Classify per message rather than per kind** (a payment reminder 7 days out can wait; one a day before cannot). More precise, but it scatters the decision across every place that queues a message, and the spec asks for one place a new kind has to choose. Kinds whose messages are mostly time-critical are urgent as a whole: payment reminders (three a season at most), score confirmations (final after 24 hours) and event notices.
+- **Classify per message rather than per kind** (a payment reminder 7 days out can wait; one a day before cannot). More precise, but it scatters the decision across every place that queues a message, and the spec asks for one place a new kind has to choose. Kinds whose messages are mostly time-critical are urgent as a whole: payment reminders (three a season at most), score confirmations (final after 24 hours) and event notices. Where one template carries both, the code that queues it picks one of two kinds, as event notices do (`event_notice` for a cancellation or move within a day, `event_news` otherwise), so the rule stays in the table.
 - **Classify per topic.** Topics are what people opt out of, and one topic mixes urgencies: `score` holds both the confirmation a captain must answer within a day and the reminder that a score is missing.
 - **Decide when queuing.** The person's limits and their sends that day change between queueing and sending, and quiet hours depend on the moment of sending; deciding at send time, as consent already is, keeps one rule.
 - **Pay for more email when a rain-out needs it.** Ruled out by ADR 0021. A second free provider would double the quota and stays an option for the maintainer.
@@ -41,7 +41,7 @@ Urgent email that cannot go today waits for the next UTC day, as does an email t
 
 ## Consequences
 
-- Announcements, new-team answers and missing-score reminders now wait out the night and fold into the digest on busy days. Rain-outs, schedule changes, sub requests and answers, payment reminders, score confirmations, rain alerts and event notices go at once, as before.
+- Announcements, event news, new-team answers, missing-score reminders, league credit and the Instagram notices to admins now wait out the night and fold into the digest on busy days. Rain-outs, sub requests and answers, payment reminders and the card guarantee, waitlist offers, score confirmations, suspensions, rain alerts, and event cancellations or moves within a day go at once, as before.
 - On Vercel's Hobby plan the outbox sweep runs once a day, so it moved from 5:30 am to 9:30 am New York time (after quiet hours end); a message that waited for the morning goes out with the next send or that sweep. The digest job runs once a day after 6 pm.
 - On a big rain-out, people with push get the push at once and an email only if the day's quota has room after everyone without push; people without push past the quota get their email after midnight UTC (8 pm in New York in summer). Admins know, and can share the news by "Copy for WhatsApp".
 - Sign-in links are not counted, only covered by the reserve; a day with many sign-ins and a big rain-out can still hit the provider's limit, which the outbox then treats as the end of the day's quota.
