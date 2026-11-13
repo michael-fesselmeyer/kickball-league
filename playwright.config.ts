@@ -12,7 +12,8 @@ const FLOWS_PORT = 3110;
  * - flows: the core journeys (registration and Checkout, scheduling, scores,
  *   rain-outs) on a second server in demo mode, so each role signs in with
  *   one-tap "view as" (docs/adr/0004-demo-mode.md). Stripe calls go to
- *   stripe-mock on port 12111 (src/services/stripe-mock.ts).
+ *   stripe-mock on port 12111 (src/services/stripe-mock.ts), and Instagram
+ *   is its recorded fixture (src/services/instagram-fixture.ts).
  *
  * The flows change the data, so the database is reseeded before every run
  * and they are not retried.
@@ -86,6 +87,8 @@ export default defineConfig({
         STRIPE_MOCK_URL: "http://localhost:12111",
         // Lets the flows call the scheduled jobs; a placeholder, not a key.
         CRON_SECRET: "e2e-cron-placeholder",
+        // Instagram played back from its recorded fixture, never the network.
+        INSTAGRAM_FIXTURE: "true",
       },
     },
   ],
