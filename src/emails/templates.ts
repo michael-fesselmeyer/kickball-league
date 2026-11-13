@@ -3,6 +3,7 @@ import { err } from "@/domain/result";
 import { announcementEmail } from "./announcement";
 import type { Template } from "./define";
 import { eventNoticeEmail } from "./event";
+import { instagramReconnectEmail } from "./instagram-reconnect";
 import type { RenderContext } from "./layout";
 import { newTeamEmail } from "./new-team";
 import {
@@ -28,6 +29,7 @@ const TEMPLATES: Readonly<Record<string, Template>> = {
   event_notice: eventNoticeEmail,
   guarantee_failed: guaranteeFailedEmail,
   guarantee_warning: guaranteeWarningEmail,
+  instagram_reconnect: instagramReconnectEmail,
   new_team: newTeamEmail,
   payment_reminder: paymentReminderEmail,
   rain_alert: rainAlertEmail,
