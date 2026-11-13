@@ -168,16 +168,17 @@ erDiagram
   }
   free_agent_profile {
     uuid registration_id PK
-    jsonb answers
+    jsonb answers "experience, positions, availability, vibe, captain"
     int skill_score "1 to 5"
     int vibe_score "1 social to 5 competitive"
     bool would_captain
-    text notes
+    text notes "up to 200 characters"
   }
   friend_group {
     uuid id PK
     uuid season_id FK
-    text code UK
+    text code UK "6 characters, no look-alikes"
+    uuid created_by FK
   }
   waiver {
     uuid id PK
@@ -218,6 +219,9 @@ Notes:
 - `registration` is one person's entry in one season and carries the waiver and payment state. `roster_membership` puts a registration on a team and keeps history when someone moves teams mid-season.
 - `profile.lineup_gender` exists because the fielding rule counts two groups. How nonbinary players are counted is the league's call; the default is that the player chooses **(A)**.
 - A captain is a `roster_membership` with `role = captain`. There is no captain column on `team_season`, so there is one source of truth.
+- `free_agent_profile` holds a free agent's quiz answers. The scores are worked out from the answers when they are saved, so admins can sort the pool and the matcher (`src/domain/matcher`) reads them without parsing JSON. The row stays after the player is placed, so the matcher can describe a team's vibe and experience.
+- `friend_group` keeps a few free agents who signed up together on the same team: one starts it and shares the code, the others enter it in their quiz. A group holds up to 4 registrations (`registration.friend_group_id`), checked when someone joins. The code is unique across seasons, so a typo never lands in another season's group.
+- Players on a team built from the free-agent pool keep `registration.kind = free_agent` and pay the free-agent fee; per team, the new team's fixed share is that fee, for anyone the captain invites later ([ADR 0010](adr/0010-free-agent-matching.md)).
 - A team has one main captain, who makes final decisions and handles payment, and commonly one to three co-captains (`role = co_captain`, no limit in the schema). How much say co-captains have varies by team, so it is a per-team permission setting chosen by the main captain (Phase 1), not a schema rule. Paying for and withdrawing the team stay with the main captain.
 
 ### 2.2 Fields, schedule, games, scores
@@ -954,6 +958,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `permit_window` | check `ends_at > starts_at` | A permit has a length |
 | `blackout` | unique `(season_id, on_date, field_id)`, nulls not distinct | One blackout per date for all fields, and one per field |
 | `team_constraint` | check `on_date` or `time_index` is set; check `weight` between 1 and 10 | A constraint says when; weights stay comparable |
+| `free_agent_profile` | check `skill_score` and `vibe_score` between 1 and 5; check `notes` at most 200 characters | Scores stay on their scale |
+| `friend_group` | unique `(code)`; check `code` is 6 of `A-Z` and `2-9` | Codes are unambiguous |
 | `audit_log` | check `action` matches `area.verb` | Actions stay searchable, such as every `schedule.*` |
 | `waiver_signature` | unique `(waiver_id, user_id, season_id)` | One signature per waiver per season |
 | `score_report` | unique `(client_id)` | Retried offline submissions are ignored |
@@ -983,7 +989,8 @@ Indexes for the common reads:
 | `slot` | `(season_id, starts_at)` | Schedule by date |
 | `game_placement` | `(schedule_version_id)` | Loading a version |
 | `roster_membership` | `(team_season_id, status)`, `(registration_id)` | Rosters, "my team" |
-| `registration` | `(season_id, status)`, `(user_id)` | Admin lists, "my seasons" |
+| `registration` | `(season_id, status)`, `(user_id)`, `(friend_group_id)` | Admin lists, "my seasons", a friend group's members |
+| `friend_group` | `(season_id)` | A season's groups |
 | `purchase_item` | `(team_season_id)`, `(registration_id)` | Team balance, who has paid |
 | `message` | `(status, send_after)` where `status = 'queued'` | The outbox worker |
 | `message` | `(user_id, created_at desc)` | Delivery history |
@@ -1006,6 +1013,8 @@ Indexes for the common reads:
 | Gender and lineup gender | `profile` | The person, their captain (for lineups), admins. A sub's lineup gender is copied to `sub_claim`, which the asking team's captains see |
 | Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
 | Emergency contact | `profile` | The person, their captain, admins |
+| Free-agent quiz answers and note | `free_agent_profile` | The person and admins |
+| Friend group | `friend_group`, `registration.friend_group_id` | The person; others in the group see first name and last initial; admins |
 | Waiver signature, IP address | `waiver_signature` | The person, owners |
 | Payment card | Never stored. Stripe holds it; we keep brand and last four digits | The person |
 
@@ -1013,7 +1022,7 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `notification_preference` and `message` rows; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender.
+- **Removed:** the `profile` row; every `session` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `notification_preference` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, announcements and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
