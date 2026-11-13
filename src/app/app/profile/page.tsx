@@ -35,17 +35,25 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
   const subject = await requireSelf("profile.edit", "/app/profile");
   const query = await searchParams;
   const publicKey = env.VAPID_PUBLIC_KEY;
-  const [profile, emailTopics, push, league, balance, history, code, referrals] =
-    await Promise.all([
-      profileOf(db, subject.userId),
-      emailSettingsOf(db, subject.userId),
-      publicKey ? pushSettingsOf(db, subject.userId) : null,
-      currentLeague(db),
-      creditBalance(db, subject.userId),
-      creditHistory(db, subject.userId, 20),
-      existingReferralCode(db, subject.userId),
-      myReferrals(db, subject.userId),
-    ]);
+  const [
+    profile,
+    emailTopics,
+    push,
+    league,
+    balance,
+    history,
+    code,
+    referrals,
+  ] = await Promise.all([
+    profileOf(db, subject.userId),
+    emailSettingsOf(db, subject.userId),
+    publicKey ? pushSettingsOf(db, subject.userId) : null,
+    currentLeague(db),
+    creditBalance(db, subject.userId),
+    creditHistory(db, subject.userId, 20),
+    existingReferralCode(db, subject.userId),
+    myReferrals(db, subject.userId),
+  ]);
   if (!profile) notFound();
   return (
     <>
