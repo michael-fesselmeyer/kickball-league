@@ -228,6 +228,11 @@ async function Account() {
       <Link href="/app/shop" className="btn btn-secondary">
         League shop
       </Link>
+      {can(subject, "photos.upload") && (
+        <Link href="/app/photos" className="btn btn-secondary">
+          Share a photo
+        </Link>
+      )}
       <Link href="/app/profile" className="btn btn-secondary">
         Your profile
       </Link>
