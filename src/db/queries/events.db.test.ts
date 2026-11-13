@@ -331,10 +331,22 @@ describe("cancelEvent", () => {
         going: 0,
         waitlisted: 0,
       });
-      expect(await notices(db, w.cy)).toEqual(["event_notice:cancelled"]);
+      // Six weeks ahead, a cancellation is news that can wait.
+      expect(await notices(db, w.cy)).toEqual(["event_news:cancelled"]);
       expect(
         await cancelEvent(db, { id: id, actorId: w.admin, now: NOW }),
       ).toEqual({ ok: false, error: "already" });
+    });
+  });
+
+  it("hurries the notice when the event was due within a day", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const { id } = await w.create(bbq);
+      await join(db, id, w.cy);
+      const eveBefore = new Date(bbq.startsAt.getTime() - 20 * 3_600_000);
+      await cancelEvent(db, { id, actorId: w.admin, now: eveBefore });
+      expect(await notices(db, w.cy)).toEqual(["event_notice:cancelled"]);
     });
   });
 

@@ -158,6 +158,13 @@ export async function updateEventAction(
             eventId: e.id,
             kind: "updated",
             now: new Date(),
+            change: {
+              timeOrPlace:
+                e.startsAt.getTime() !== read.event.startsAt.getTime() ||
+                e.endsAt.getTime() !== read.event.endsAt.getTime() ||
+                e.place !== read.event.place,
+              startedBefore: e.startsAt,
+            },
           })
         : 0;
     return { updated, told };

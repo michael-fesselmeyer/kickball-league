@@ -26,10 +26,15 @@ export const MESSAGE_KINDS = {
     urgency: "urgent",
     label: "For admins: urgent email waiting for tomorrow's email allowance",
   },
+  event_news: {
+    urgency: "non_urgent",
+    label:
+      "Event announcements, and changes or cancellations more than a day ahead",
+  },
   event_notice: {
     urgency: "urgent",
     label:
-      "An event spot that opened for you, or an event you RSVP'd to called off",
+      "An event spot that opened for you, or an event cancelled or moved within a day of its start",
   },
   guarantee_failed: {
     urgency: "urgent",
@@ -101,6 +106,42 @@ export type MessageKind = keyof typeof MESSAGE_KINDS;
 
 /** The notice to admins that the email quota ran out (email-budget.ts). */
 export const EMAIL_BUDGET_KIND = "email_budget" satisfies MessageKind;
+
+/** How close to an event's start a cancellation or move is urgent. */
+const EVENT_SOON_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Which kind an event notice is (all render with the same template). A spot
+ * that opened for the person is urgent. A cancellation, or a change to the
+ * time or place, is urgent within a day of the start (the earlier of the old
+ * and new start when it moved). Announcements, other edits and anything
+ * further ahead are news that can wait.
+ */
+export function eventNoticeKind({
+  notice,
+  startsAt,
+  startedBefore,
+  timeOrPlaceChanged = false,
+  now,
+}: {
+  notice: "spot_opened" | "cancelled" | "announced" | "updated";
+  startsAt: Date;
+  /** The start before an edit moved it. */
+  startedBefore?: Date | undefined;
+  timeOrPlaceChanged?: boolean;
+  now: Date;
+}): "event_notice" | "event_news" {
+  if (notice === "spot_opened") return "event_notice";
+  const soonest = Math.min(
+    startsAt.getTime(),
+    startedBefore?.getTime() ?? Number.POSITIVE_INFINITY,
+  );
+  const soon = soonest - now.getTime() <= EVENT_SOON_MS;
+  const urgent =
+    soon &&
+    (notice === "cancelled" || (notice === "updated" && timeOrPlaceChanged));
+  return urgent ? "event_notice" : "event_news";
+}
 
 /** The digest is not a kind people get on its own: it carries the others. */
 export const DIGEST_KIND = "digest";
