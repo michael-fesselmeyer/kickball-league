@@ -50,7 +50,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 /operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
 
 /app                                Signed-in home: next game, RSVP, what you owe, alerts
-├── account                         Profile, email and push settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
+├── account                         Profile, email, push and message-limit settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
 │   └── delete                      Delete your account: what is deleted, what the league keeps; a fresh sign-in (passkey or email link) and your typed email address confirm it

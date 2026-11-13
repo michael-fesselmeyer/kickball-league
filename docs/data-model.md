@@ -626,12 +626,14 @@ erDiagram
   user ||--o{ notification_preference : sets
   user ||--o{ message : receives
   user ||--o{ push_subscription : registers
+  user ||--o| alert_setting : limits
   announcement ||--o{ message : "fans out to"
+  message ||--o{ message : "digest lists"
 
   notification_preference {
     uuid id PK
     uuid user_id FK
-    enum topic "rainout, schedule_change, game_reminder, payment, sub_request, announcement, score, events, marketing, new_team, discipline"
+    enum topic "rainout, schedule_change, game_reminder, payment, sub_request, announcement, score, events, marketing, new_team, discipline, digest, operations"
     enum channel "email, push (sms is in the enum, unused)"
     bool enabled
   }
@@ -642,8 +644,8 @@ erDiagram
     enum channel
     text template
     jsonb payload
-    enum status "queued, sending, sent, failed, suppressed"
-    text suppress_reason "for example opted_out, no_device, push_off"
+    enum status "queued, sending, sent, failed, suppressed, held, digested"
+    text suppress_reason "for example opted_out, no_device, push_off, sent_by_email, sent_by_push"
     timestamptz send_after
     timestamptz locked_until "a worker's claim while sending"
     text dedupe_key UK
@@ -651,7 +653,16 @@ erDiagram
     int attempts
     text last_error
     timestamptz sent_at
+    uuid digest_id FK "the digest it went out in"
     uuid announcement_id FK
+  }
+  alert_setting {
+    uuid user_id PK
+    smallint daily_cap "0 to 3, default 3"
+    enum digest "daily, weekly"
+    smallint quiet_start_hour "default 22; null when off"
+    smallint quiet_end_hour "default 8; null when off"
+    timestamptz updated_at
   }
   announcement {
     uuid id PK
@@ -679,6 +690,7 @@ Notes:
 - `message` is the outbox. Code that wants to notify someone inserts a row in the same transaction as the change that caused it; a worker sends it. See [architecture.md](architecture.md). It holds the template name and its payload, not the finished email, and looks up the address when sending.
 - No text messages are sent, because every text is billed and the product runs on free services only ([ADR 0021](adr/0021-free-services-only.md)). The `sms` value of the `message_channel` enum stays in the schema unused, and an `sms_consent_event` table is **not planned**.
 - Push is a channel like email: a person's push choices are `notification_preference` rows with channel `push`, off unless they turned the topic on. A notice about a push topic gets a second `message` row with channel `push` and dedupe key `push:<key>` for each person with a device and that topic on. `suppress_reason` adds `no_device` (every device gone) and `push_off` (no VAPID keys).
+- Alert limits: `alert_setting` holds a person's daily cap on non-urgent messages (per channel), digest frequency and quiet hours, as whole hours in the league's time zone; no row means the defaults (3, daily, 10 pm to 8 am). A non-urgent message over the cap is `held` with `send_after` at the person's next digest; the digest job puts it in a `digest` message (topic `digest`, template `digest`) and marks it `digested` with `digest_id`. A non-urgent message in quiet hours stays `queued` with `send_after` moved to when they end. Which kinds are urgent is in [architecture.md](architecture.md), section 5.
 - `push_subscription` is one browser or installed app. A browser has one endpoint, so the endpoint is unique and moves to whoever subscribed it last. The outbox deletes a row when its push service answers 404 or 410.
 
 ### 2.5 Sponsors, events, community
@@ -1108,6 +1120,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `social_post` | unique `(account_id)` where `cover = 'home'`; unique `(team_id)` where `cover = 'team'` | One cover per page |
 | `social_image` | check type is JPEG, PNG or WebP and `byte_size = octet_length(bytes)` up to 2 MB | Only images are stored and served; the 25 MB total is enforced by the sync |
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
+| `alert_setting` | check `daily_cap` between 0 and 3; check quiet hours are both null or two different hours from 0 to 23 | A member can only lower the cap, and quiet hours are never empty |
 | `push_subscription` | unique `(endpoint)`; check it starts with `https://` and is at most 2,048 characters; check the key lengths | A device is stored once, and the outbox only ever posts to https |
 | `webhook_event` | unique `(provider, event_id)` | Webhooks are processed once |
 | `payment`, `refund`, `purchase` | unique on each Stripe ID | Stripe retries cannot double-record |
@@ -1134,6 +1147,9 @@ Indexes for the common reads:
 | `purchase_item` | `(team_season_id)`, `(registration_id)` | Team balance, who has paid |
 | `message` | `(status, send_after)` where `status = 'queued'` | The outbox worker |
 | `message` | `(user_id, created_at desc)` | Delivery history |
+| `message` | `(status, send_after)` | The digest job, finding held messages that are due (not partial: a migration cannot use the `held` value it adds) |
+| `message` | `(user_id, sent_at)` where `status = 'sent'` | Counting a person's non-urgent messages today, for the cap |
+| `message` | `(digest_id)` | The messages a digest listed |
 | `push_subscription` | `(user_id)` | A person's devices, when the outbox sends |
 | `audit_log` | `(entity_type, entity_id, occurred_at desc)`, `(actor_id, occurred_at desc)` | History of a record, history of a person |
 | `checkin` | `(sponsor_id, on_date)` | Sponsor report |
@@ -1181,7 +1197,7 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `push_subscription` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `alert_setting`, `push_subscription` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.

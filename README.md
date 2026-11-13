@@ -73,6 +73,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 - A transactional outbox: messages are written with the change that caused them, failed sends retry, and nothing sends twice.
 - League and team announcements, with per-person email settings.
+- Alerts without too many: rain-outs, sub spots, payment deadlines and other urgent messages always go at once, while news and reminders that can wait count toward a daily limit (3 by default, lower if a member likes). Anything over it comes in one digest email, every evening or on Sundays. During quiet hours (10 pm to 8 am by default) only urgent news is sent, and it reaches phones silently. Every email and push says why the person got it and links to the setting that changes it ([ADR 0019](docs/adr/0019-urgent-and-non-urgent-messages.md)).
 - Payment reminders 7, 3 and 1 days before the deadline, and missing-score reminders to the ref and then the captains.
 - Web push for rain-outs, sub requests and scores: each player opts in per topic on their profile, and the outbox sends a push to each of their phones alongside the email. Push is off until VAPID keys are set, devices a push service reports gone are removed, and the protocol is written against the standards with Node's crypto ([ADR 0014](docs/adr/0014-web-push-without-a-library.md)).
 
