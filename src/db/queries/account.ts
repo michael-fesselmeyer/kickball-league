@@ -4,6 +4,7 @@ import { err, ok, type Result } from "@/domain/result";
 import { auditLog } from "../schema/audit";
 import { freeAgentProfile } from "../schema/free-agent";
 import { account, session, user, verification } from "../schema/auth";
+import { eventRsvp } from "../schema/event";
 import {
   gameRsvp,
   refereeAssignment,
@@ -29,6 +30,7 @@ import {
 } from "../schema/team";
 import { waiver, waiverSignature } from "../schema/waiver";
 import { recordAudit } from "./audit";
+import { leaveEvent } from "./events";
 import { withdrawSubClaim } from "./subs";
 import type { Db } from "./schedule";
 
@@ -228,6 +230,15 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .from(gameRsvp)
     .where(eq(gameRsvp.userId, userId))
     .orderBy(asc(gameRsvp.updatedAt));
+  const eventRsvps = await db
+    .select({
+      eventId: eventRsvp.eventId,
+      status: eventRsvp.status,
+      createdAt: eventRsvp.createdAt,
+    })
+    .from(eventRsvp)
+    .where(eq(eventRsvp.userId, userId))
+    .orderBy(asc(eventRsvp.createdAt));
   const scoresReported = await db
     .select({
       gameId: scoreReport.gameId,
@@ -370,6 +381,7 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
         .map((x) => without(x, "purchaseId")),
     })),
     rsvps,
+    eventRsvps,
     scoresReported,
     scoreAnswers,
     refereeAssignments: refereeing,
@@ -444,7 +456,8 @@ export type DeleteError = "not_found" | DeleteBlocker["reason"];
  *
  * Removed: the profile (name, phone, gender, shirt size, birth date,
  * emergency contact), every session and sign-in method, pending sign-in
- * links, RSVPs, email settings and messages, and their address on invites.
+ * links, game and event RSVPs (a freed event spot goes to the waitlist),
+ * email settings and messages, and their address on invites.
  * Sub claims for games still to come are withdrawn, which reopens the spot
  * and tells the captains; past claims stay as history without the copied
  * lineup gender.
@@ -506,6 +519,15 @@ export async function deleteAccount(
       sql`position(${`"email":${JSON.stringify(person.email)}`} in ${verification.value}) > 0`,
     );
   await db.delete(gameRsvp).where(eq(gameRsvp.userId, userId));
+  // Give up event spots the way the person would, so the waitlist moves up;
+  // RSVPs for past or called-off events are simply removed.
+  const rsvpd = await db
+    .select({ eventId: eventRsvp.eventId })
+    .from(eventRsvp)
+    .where(eq(eventRsvp.userId, userId));
+  for (const { eventId } of rsvpd)
+    await leaveEvent(db, { eventId, userId, now });
+  await db.delete(eventRsvp).where(eq(eventRsvp.userId, userId));
   await db
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));

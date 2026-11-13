@@ -71,6 +71,11 @@ export const SETTINGS_TOPICS: readonly {
     label: "New-team requests",
     hint: "The league's answer when you ask to start a team, and, for captains, when a player leaves to start one.",
   },
+  {
+    topic: "events",
+    label: "Events",
+    hint: "When a spot opens for an event you're waitlisted for, or an event you RSVP'd to is called off.",
+  },
 ];
 
 export type Choice = { topic: Topic; enabled: boolean };
