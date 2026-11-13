@@ -831,7 +831,7 @@ Awards, as built (`src/db/schema/awards.ts`, `src/db/queries/awards.ts`):
 Sponsors as built (roadmap Phase 2, item 9):
 
 - `sponsor`, `sponsor_member`, `deal`, `checkin`, `deal_redemption` and `team_of_week` exist. `sponsorship` (tiers and amounts), `sponsor_stat_daily` (impressions and clicks) and the logo assets come later.
-- `checkin_secret` is 32 random bytes as hex. It signs the rotating check-in code ([ADR 0013](adr/0013-rotating-check-in-code.md)) and no public query selects it.
+- `checkin_secret` is 32 random bytes as hex. It signs the rotating check-in code ([ADR 0016](adr/0016-rotating-check-in-code.md)) and no public query selects it.
 - Sponsors are hidden with `deleted_at`, never deleted, so their check-ins keep counting and a team of the week keeps its tab sponsor (`team_of_week.sponsor_id` restricts deletes). Hiding a sponsor also clears its home-bar mark.
 - `checkin.team_season_id` is the team the player was on in a season being played when they checked in, so the report can count teams.
 - A check-in and a deal use name the player only for the player's own data export. Deleting an account removes sponsor access and keeps check-ins, under the anonymized user, in the sponsor's counts.

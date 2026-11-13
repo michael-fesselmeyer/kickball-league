@@ -1,5 +1,5 @@
 /**
- * A small QR code encoder for the check-in code (ADR 0013): byte mode,
+ * A small QR code encoder for the check-in code (ADR 0016): byte mode,
  * error correction level M, versions 1 to 10 (up to 213 bytes, plenty for
  * a URL). It runs on the server and the page gets plain SVG, so no QR
  * library ships to the browser or joins the dependencies.

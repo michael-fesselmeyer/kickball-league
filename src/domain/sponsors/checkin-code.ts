@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 /**
- * The rotating check-in code (ADR 0013). The bar shows a QR code that
+ * The rotating check-in code (ADR 0016). The bar shows a QR code that
  * changes every CODE_WINDOW_MS; it is an HMAC of the window's number under
  * the sponsor's secret, so only the server can make or check one. A code
  * from the window before is still accepted, so a scan made just as the

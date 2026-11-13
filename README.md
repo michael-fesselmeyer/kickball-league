@@ -58,7 +58,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 **Home bar and sponsors**
 
 - A sponsors page with the home bar first, and a page for each sponsor with its deals (days, hours, fine print) and the date the sponsor last confirmed them. Both are static HTML and carry structured data for the business.
-- QR check-in with a rotating code ([ADR 0013](docs/adr/0013-rotating-check-in-code.md)): the bar shows a code that changes every 5 minutes, drawn as a QR code on the server. A signed-in player scans it, taps Check in (once a day counts) and can use each of the day's deals once. An old or copied code soon stops working.
+- QR check-in with a rotating code ([ADR 0016](docs/adr/0016-rotating-check-in-code.md)): the bar shows a code that changes every 5 minutes, drawn as a QR code on the server. A signed-in player scans it, taps Check in (once a day counts) and can use each of the day's deals once. An old or copied code soon stops working.
 - A sponsor portal for the sponsor's own people and admins: add, change or turn off deals, confirm in one tap that they are still current, show the check-in code on a screen at the bar, and edit the page's details. Admins add sponsors, choose the home bar and give people access.
 - Weekly numbers for each sponsor: check-ins, different players, teams and deals used by week, with the most used deals and the teams that came by most. Counts only, never names.
 - Team of the week: admins see each game day's best wins (an upset of a higher-ranked team counts most) and name a team, with an optional tab at a sponsor. It shows on the sponsors page and the sponsor's page.
