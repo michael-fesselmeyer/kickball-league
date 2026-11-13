@@ -47,6 +47,7 @@ export async function saveLineupAction(
     teamSeasonId,
     order,
     savedBy: subject.userId,
+    now: new Date(),
   });
   if (!result.ok) redirect(`${page}?error=${result.error}`);
   redirect(`${page}?saved=${result.value.runBreaks}`);

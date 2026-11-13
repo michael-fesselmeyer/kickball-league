@@ -71,7 +71,7 @@ async function Builder({
   )
     notFound();
   const [kickers, saved, previous, rsvps] = await Promise.all([
-    lineupCandidates(db, g.id, teamSeasonId),
+    lineupCandidates(db, g.id, teamSeasonId, new Date()),
     savedLineups(db, g.id),
     previousLineup(db, g.id, teamSeasonId),
     teamRsvps(db, teamSeasonId, [g.id]),
