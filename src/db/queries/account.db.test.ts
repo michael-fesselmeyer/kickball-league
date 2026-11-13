@@ -3,7 +3,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { auditLog } from "../schema/audit";
 import { field, game, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
-import { account, session, user, verification } from "../schema/auth";
+import { account, passkey, session, user, verification } from "../schema/auth";
 import {
   message,
   notificationPreference,
@@ -34,6 +34,7 @@ const SECRET_ACCESS = "provider-access-token-that-must-not-leak";
 const SECRET_PUSH =
   "https://push.example.test/send/endpoint-that-must-not-leak";
 const PUSH_AUTH = "authsecretmustnotleak1";
+const PASSKEY_PUBLIC_KEY = "passkey-public-key-not-exported";
 
 /** Sessions, a linked sign-in, settings and mail for the teammate. */
 async function withAccountData(
@@ -55,6 +56,16 @@ async function withAccountData(
     userId: w.teammate,
     accessToken: SECRET_ACCESS,
     updatedAt: NOW,
+  });
+  await db.insert(passkey).values({
+    userId: w.teammate,
+    name: "My phone",
+    publicKey: PASSKEY_PUBLIC_KEY,
+    credentialID: "credential-1",
+    counter: 0,
+    deviceType: "multiDevice",
+    backedUp: true,
+    createdAt: NOW,
   });
   await db.insert(verification).values({
     identifier: "magic-link:abc",
@@ -106,6 +117,7 @@ describe("the personal data export", () => {
         account: { email },
         profile: { lastName: "Kicker", shirtSize: "l" },
         signInMethods: [{ provider: "google" }],
+        passkeys: [{ name: "My phone", backedUp: true }],
         sessions: [{ ipAddress: "203.0.113.7", userAgent: "Test browser" }],
         registrations: [
           {
@@ -138,6 +150,7 @@ describe("the personal data export", () => {
       expect(text).not.toContain(SECRET_ACCESS);
       expect(text).not.toContain(SECRET_PUSH);
       expect(text).not.toContain(PUSH_AUTH);
+      expect(text).not.toContain(PASSKEY_PUBLIC_KEY);
       expect(text).not.toContain("magic-link:abc");
       expect(text).not.toContain("Robin");
       expect(text).not.toContain(w.emails[0]);
@@ -249,6 +262,9 @@ describe("deleting an account", () => {
       );
       await none(
         db.select().from(account).where(eq(account.userId, w.teammate)),
+      );
+      await none(
+        db.select().from(passkey).where(eq(passkey.userId, w.teammate)),
       );
       await none(
         db
