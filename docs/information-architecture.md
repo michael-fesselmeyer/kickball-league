@@ -29,6 +29,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       └── calendar.ics            One public event as a calendar file
 ├── sponsors/                       Sponsors, home bar first, with the team of the week
 │   └── [sponsor]                   Sponsor page: deals with when they were confirmed, the team of the week, how to check in
+├── friends                         Friends of the league: other local leagues grouped by activity, each linking to its own site, and a "Link to us" snippet
 ├── free-agents                     How solo signup works, with FAQ structured data (P2: quiz)
 ├── history                         Past seasons: champions, final standings and the all-time table; each season links to its standings and schedule
 ├── news/
@@ -43,6 +44,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── legal/terms, legal/privacy
 ├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
 ├── media/instagram/[image]         Our copy of a featured Instagram photo (404 once hidden)
+├── media/friends/[logo]            A friend league's logo, as stored (404 once removed or replaced)
 ├── offline                         Shown by the service worker when a page needs the network; links the saved next game
 ├── paused                          Neutral notice while the site is paused or read-only (operator setting)
 └── sign-in, sign-up                Email link, passkey (button and email-field autofill) or Google

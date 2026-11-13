@@ -822,6 +822,8 @@ erDiagram
   giveaway_entry ||--o| giveaway_winner : "may win"
   season ||--o| signup_challenge : runs
   team_season ||--o| signup_challenge : wins
+  league ||--o{ friend_league : "lists"
+  friend_league ||--o| friend_logo : "shown with"
 
   sponsor {
     uuid id PK
@@ -997,6 +999,27 @@ erDiagram
     int byte_size
     text sha256
   }
+  friend_league {
+    uuid id PK
+    uuid league_id FK
+    text name "unique per league"
+    enum activity "softball, soccer, pool, tabletop, ... other"
+    text area "neighborhood or park"
+    text description "up to 280"
+    text url "https only"
+    boolean links_back
+    uuid created_by FK
+  }
+  friend_logo {
+    uuid id PK
+    uuid friend_league_id FK "unique"
+    text content_type "image/webp (seed: image/png)"
+    bytea bytes "up to 100 KB, 5 MB in all"
+    int byte_size
+    int width "at most 192"
+    int height "at most 192"
+    text sha256
+  }
   post {
     uuid id PK
     uuid league_id FK
@@ -1074,6 +1097,14 @@ Awards, as built (`src/db/schema/awards.ts`, `src/db/queries/awards.ts`):
 
 - An admin opens an `award_poll` for one `game_day` (a weekly poll) or the whole season. Voting runs from `opens_at` until `closes_at`; closing early sets `closes_at` to now. The category decides whether a vote names a player (`nominee_user_id`) or a team (`nominee_team_season_id`), and a check keeps exactly one of them set. Anyone on an active roster that season may vote; a weekly ballot lists only the teams with a game that day (and their players). Totals are read only after `closes_at`, and who voted for whom is never shown to anyone but the voter.
 - Deleting a poll deletes its votes; deleting a season deletes its polls.
+
+Friends of the league, as built (`src/db/schema/friends.ts`, `src/db/queries/friends.ts`):
+
+- `friend_league` is another local league in the public directory at `/friends`, grouped there by `activity`. Only admins add, change or remove entries (`friends.manage`), and each change writes an audit row. A removed entry is deleted with its logo; the audit row keeps what it said.
+- `url` is checked by the form (`src/domain/friends/friend-form.ts`): https only, a host name with a dot that is not an IP address, no user name, password or port, up to 300 characters. The database holds it to https and the length.
+- `links_back` is the admin's note that the league's site links to ours; the public page shows it as "Links to us".
+- `friend_logo` is one small copy of the league's logo, made on the server with sharp (fits in 192 × 192, WebP, metadata dropped) and kept in Postgres like the Instagram photos ([ADR 0023](adr/0023-instagram-photos-stored-in-postgres.md)). Uploads are PNG, JPEG or WebP up to 800 KB. A new upload replaces the row, so its public address changes with the picture. All logos together stay under 5 MB: the save takes a transaction-scoped advisory lock and counts what is stored, minus the logo it replaces.
+- Entries go with the league (`on delete cascade`), so the seed needs no clean-up step for them.
 
 Sponsors as built (roadmap Phase 2, item 9):
 
@@ -1350,6 +1381,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `expense` | check `amount_cents > 0`; index `(season_id, spent_on)` | The ledger reads one season's expenses in date order |
 | `permit_window` | check `cost_cents` is null or at least 0; check the application window closes on or after it opens | A permit's details make sense |
 | `insurance_certificate` | check `expires_on > starts_on` | A certificate covers a period |
+| `friend_league` | unique `(league_id, name)`; check `url` starts with `https://` and is at most 300 characters; checks on name, area and description lengths | One entry per league name; only https links reach the page |
+| `friend_logo` | unique `friend_league_id`; check type is WebP or PNG, `byte_size = octet_length(bytes)` up to 100 KB, and both sides at most 192 px | One small logo per entry; the 5 MB total is enforced by the save |
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
 | `alert_setting` | check `daily_cap` between 0 and 3; check quiet hours are both null or two different hours from 0 to 23 | A member can only lower the cap, and quiet hours are never empty |
 | `push_subscription` | unique `(endpoint)`; check it starts with `https://` and is at most 2,048 characters; check the key lengths | A device is stored once, and the outbox only ever posts to https |
