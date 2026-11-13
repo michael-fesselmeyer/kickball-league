@@ -119,7 +119,7 @@ export async function grantGoodwill(
   const [person] = await db
     .select({ id: user.id })
     .from(user)
-    .where(sql`lower(${user.email}) = ${input.email}`);
+    .where(sql`lower(${user.email}) = ${input.email.trim().toLowerCase()}`);
   if (!person) return err("unknown_player");
   const [created] = await db
     .insert(creditEntry)
