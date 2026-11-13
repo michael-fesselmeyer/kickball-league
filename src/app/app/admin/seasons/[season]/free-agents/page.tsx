@@ -26,6 +26,8 @@ const ERRORS: Record<string, string> = {
   full: "That team has no room for everyone in the suggestion.",
   suspended:
     "Someone in that suggestion is suspended, so they can't be placed until it's served.",
+  on_team_list:
+    "That team added someone in the suggestion to its not-on-my-team list since. The suggestions below are up to date.",
   splits_group:
     "That would split up a friend group. Pick everyone in the group together.",
   nothing_to_apply: "There are no suggestions to apply.",

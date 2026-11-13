@@ -162,6 +162,52 @@ describe("suggestPlacements", () => {
     );
   });
 
+  it("never suggests a team that keeps the player off", () => {
+    const short = team("Short", many(3, { side: "man" }));
+    const result = suggestPlacements(
+      [free("Kit", { side: "woman" })],
+      [
+        { ...short, keepOff: ["r-Kit"] },
+        team("Even", [...many(6, { side: "woman" }), ...many(6)]),
+      ],
+    );
+    expect(result.suggestions.map((s) => s.teamName)).toEqual(["Even"]);
+  });
+
+  it("leaves a player out when every team with room keeps them off", () => {
+    const result = suggestPlacements(
+      [free("Lou")],
+      [{ ...team("Only", many(2)), keepOff: ["r-Lou"] }],
+    );
+    expect(result.suggestions).toEqual([]);
+    expect(result.unplaced[0]?.reason).toBe(
+      "Every team with room has them on its list.",
+    );
+  });
+
+  it("keeps a friend group off a team that lists one of them", () => {
+    const result = suggestPlacements(
+      [free("Mo", { groupId: "g9" }), free("Ned", { groupId: "g9" })],
+      [{ ...team("A", many(4)), keepOff: ["r-Ned"] }, team("B", many(10))],
+    );
+    expect(result.suggestions[0]?.teamName).toBe("B");
+    expect(result.suggestions[0]?.names).toEqual(["Mo", "Ned"]);
+  });
+
+  it("does not send a friend to their group's team when it lists them", () => {
+    const result = suggestPlacements(
+      [free("Oz", { groupId: "g8" })],
+      [
+        { ...team("A", [player({ groupId: "g8" })]), keepOff: ["r-Oz"] },
+        team("B", many(2)),
+      ],
+    );
+    expect(result.suggestions).toEqual([]);
+    expect(result.unplaced[0]?.reason).toBe(
+      "Their friend group is on A, whose captain has them on the team's list.",
+    );
+  });
+
   it("reports before and after counts for each team", () => {
     const result = suggestPlacements(
       [free("Kim", { side: "woman" })],
@@ -264,6 +310,26 @@ describe("suggestPlacements properties", () => {
             expect(where).toBe(home.teamSeasonId);
         }
       }),
+    );
+  });
+
+  it("never places anyone on a team whose list keeps them off", () => {
+    fc.assert(
+      fc.property(
+        world,
+        fc.array(fc.tuple(fc.nat(5), fc.nat(29)), { maxLength: 40 }),
+        ({ teams, pool }, pairs) => {
+          const listed = teams.map((t, i) => ({
+            ...t,
+            keepOff: pairs.filter(([ti]) => ti === i).map(([, r]) => `r${r}`),
+          }));
+          for (const s of suggestPlacements(pool, listed).suggestions) {
+            const t = listed.find((x) => x.teamSeasonId === s.teamSeasonId);
+            for (const id of s.registrationIds)
+              expect(t?.keepOff).not.toContain(id);
+          }
+        },
+      ),
     );
   });
 

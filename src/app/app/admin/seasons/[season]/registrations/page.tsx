@@ -253,6 +253,11 @@ async function Registrations({
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const notice =
     typeof query.notice === "string" ? NOTICES[query.notice] : undefined;
+  // A placement the team's "not on my team" list stopped (ADR 0036).
+  const conflict = board.freeAgents.find(
+    (p) => p.registrationId === query.conflict,
+  );
+  const conflictTeam = board.teams.find((t) => t.teamSeasonId === query.team);
 
   return (
     <>
@@ -297,6 +302,48 @@ async function Registrations({
         <p role="status" className="rounded-lg border border-success p-3">
           {notice}
         </p>
+      )}
+      {conflict && conflictTeam && (
+        <section
+          id="place-conflict"
+          role="alert"
+          aria-labelledby="place-conflict-title"
+          className="flex flex-col gap-2 rounded-lg border border-warning p-3"
+        >
+          <h2 id="place-conflict-title" className="font-bold">
+            {conflictTeam.name} has {conflict.name} on its not-on-my-team list
+          </h2>
+          <p>
+            The team&apos;s captain asked the league not to add them. Nothing
+            was changed. You can still place them; the override goes in the
+            audit log.
+          </p>
+          <div className="flex flex-wrap items-center gap-4">
+            <form
+              action={placeFreeAgentAction.bind(
+                null,
+                slug,
+                conflict.registrationId,
+              )}
+            >
+              <input
+                type="hidden"
+                name="teamSeasonId"
+                value={conflictTeam.teamSeasonId}
+              />
+              <input type="hidden" name="override" value="yes" />
+              <button type="submit" className="btn btn-secondary">
+                Place {conflict.name} on {conflictTeam.name} anyway
+              </button>
+            </form>
+            <Link
+              href={`/app/admin/seasons/${slug}/registrations`}
+              className="inline-flex min-h-11 items-center underline"
+            >
+              Cancel
+            </Link>
+          </div>
+        </section>
       )}
 
       <section aria-labelledby="teams" className="flex flex-col gap-6">

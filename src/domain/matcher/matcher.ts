@@ -22,6 +22,9 @@ import { TURNOUT, vibeLabel, type Availability, type Position } from "./quiz";
  *   and positions.
  *
  * Players with no fielding group in their profile are matched on the rest.
+ *
+ * - A team never gets someone on its "not on my team" list (ADR 0036), nor
+ *   a friend group with them in it.
  */
 
 export type LineupSide = "woman" | "man";
@@ -52,6 +55,8 @@ export type MatchTeam = {
   name: string;
   capacity: number;
   members: readonly Player[];
+  /** Registrations on the team's "not on my team" list. */
+  keepOff?: readonly string[];
 };
 
 export type Suggestion = {
@@ -254,6 +259,12 @@ function score(
 
 const names = (players: readonly PoolPlayer[]) => players.map((p) => p.name);
 
+/** Whether the team's list keeps anyone in `players` off it. */
+export const keepsOff = (
+  team: Pick<MatchTeam, "keepOff">,
+  players: readonly Pick<PoolPlayer, "registrationId">[],
+) => players.some((p) => team.keepOff?.includes(p.registrationId) === true);
+
 function joinNames(list: readonly string[]): string {
   if (list.length <= 2) return list.join(" and ");
   return `${list.slice(0, -1).join(", ")} and ${list.at(-1)}`;
@@ -353,6 +364,14 @@ export function suggestPlacements(
     if (unit.anchor !== null) {
       const home = states.find((s) => s.team.teamSeasonId === unit.anchor);
       if (!home) continue;
+      if (keepsOff(home.team, unit.players)) {
+        unplaced.push({
+          registrationIds: unit.players.map((p) => p.registrationId),
+          names: names(unit.players),
+          reason: `Their friend group is on ${home.team.name}, whose captain has ${size === 1 ? "them" : "one of them"} on the team's list.`,
+        });
+        continue;
+      }
       if (!fits(home)) {
         unplaced.push({
           registrationIds: unit.players.map((p) => p.registrationId),
@@ -380,7 +399,7 @@ export function suggestPlacements(
     }
 
     const candidates = states
-      .filter(fits)
+      .filter((s) => fits(s) && !keepsOff(s.team, unit.players))
       .map((s) => score(s, unit, leagueSkill))
       .sort(byScore);
     const best = candidates[0];
@@ -388,8 +407,9 @@ export function suggestPlacements(
       unplaced.push({
         registrationIds: unit.players.map((p) => p.registrationId),
         names: names(unit.players),
-        reason:
-          size > 1
+        reason: states.some((s) => fits(s))
+          ? `Every team with room has ${size > 1 ? "one of them" : "them"} on its list.`
+          : size > 1
             ? `No team has room for ${who} together.`
             : "Every team is full.",
       });

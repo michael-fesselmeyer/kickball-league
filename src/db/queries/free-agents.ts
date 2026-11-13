@@ -30,6 +30,7 @@ import {
 } from "../schema/team";
 import { recordAudit } from "./audit";
 import { anySuspendedRegistration, suspendedAmong } from "./discipline";
+import { keptOffRegistrations } from "./keep-off";
 import { placeFreeAgent, type PlaceError } from "./registrations-admin";
 import { required } from "./rows";
 import type { Db } from "./schedule";
@@ -272,12 +273,13 @@ export type MatcherTeam = MatchTeam & {
 };
 
 /**
- * Everything the matcher page needs for a season, in three queries: the
- * season's limits, its open teams, and every placeable registration with
- * profile, quiz, group and team.
+ * Everything the matcher page needs for a season, in four queries run
+ * together: the season's limits, its open teams, every placeable
+ * registration with profile, quiz, group and team, and who each team's
+ * "not on my team" list keeps off.
  */
 export async function matcherInput(db: Db, seasonId: SeasonId) {
-  const [limits, entries, people] = await Promise.all([
+  const [limits, entries, people, keepOff] = await Promise.all([
     db
       .select({
         leagueId: season.leagueId,
@@ -344,6 +346,7 @@ export async function matcherInput(db: Db, seasonId: SeasonId) {
         ),
       )
       .orderBy(registration.createdAt, registration.id),
+    keptOffRegistrations(db, seasonId),
   ]);
   const limit = limits[0];
   if (!limit) return null;
@@ -394,6 +397,7 @@ export async function matcherInput(db: Db, seasonId: SeasonId) {
       members: players
         .filter((p) => p.teamSeasonId === e.teamSeasonId)
         .map((p) => p.entry),
+      keepOff: keepOff.get(e.teamSeasonId) ?? [],
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
   const pool = players
@@ -449,6 +453,12 @@ export async function placeTogether(
   if (split) return err("splits_group");
   if (await anySuspendedRegistration(db, ids, input.now))
     return err("suspended");
+  // The matcher never suggests a team that keeps someone off; a suggestion
+  // that has gone stale since is refused, not applied.
+  const listed = (await keptOffRegistrations(db, input.seasonId)).get(
+    input.teamSeasonId,
+  );
+  if (ids.some((id) => listed?.includes(id))) return err("on_team_list");
 
   const [target] = await db
     .select({ rosterMax: season.rosterMax })
