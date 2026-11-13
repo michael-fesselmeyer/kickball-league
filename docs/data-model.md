@@ -48,6 +48,7 @@ erDiagram
   waiver ||--o{ waiver_signature : "signed as"
   user ||--o{ waiver_signature : signs
   season ||--o{ team_formation_request : receives
+  team_formation_request |o--o| team_season : "creates on approval"
 
   profile {
     uuid user_id PK
@@ -204,13 +205,16 @@ erDiagram
     uuid id PK
     uuid season_id FK
     uuid requested_by FK
-    uuid current_team_season_id FK
     text proposed_name
-    bool will_captain
-    jsonb joining_user_ids
+    int expected_size
+    enum payment_mode "full, split"
+    text note
     enum status "pending, approved, declined, withdrawn"
-    timestamptz captain_notified_at
     uuid decided_by FK
+    timestamptz decided_at
+    text decline_reason
+    uuid team_season_id FK "the team approval created"
+    uuid left_team_season_id FK "the team the requester left"
   }
 ```
 
@@ -223,6 +227,7 @@ Notes:
 - `friend_group` keeps a few free agents who signed up together on the same team: one starts it and shares the code, the others enter it in their quiz. A group holds up to 4 registrations (`registration.friend_group_id`), checked when someone joins. The code is unique across seasons, so a typo never lands in another season's group.
 - Players on a team built from the free-agent pool keep `registration.kind = free_agent` and pay the free-agent fee; per team, the new team's fixed share is that fee, for anyone the captain invites later ([ADR 0012](adr/0012-free-agent-matching.md)).
 - A team has one main captain, who makes final decisions and handles payment, and commonly one to three co-captains (`role = co_captain`, no limit in the schema). How much say co-captains have varies by team, so it is a per-team permission setting chosen by the main captain (Phase 1), not a schema rule. Paying for and withdrawing the team stay with the main captain.
+- `team_formation_request` is a player's ask to start a team ([information architecture, 2.7](information-architecture.md#27-start-a-new-team-p2)). A person has at most one `pending` request per season. Approval creates the `team` and its `team_season` in `forming` status, priced as of the day they asked, and makes the requester its captain: their registration is reused (a free agent becomes a team member) or created, and any active spot on another team is ended, with `left_team_season_id` recording which captain was told. A requester who paid for their own spot keeps it as their share, so the team splits its fee; one whose spot was covered by their old captain's team fee owes again ([ADR 0013](adr/0013-new-team-approval-moves-the-player.md)). The request row is locked while an admin answers it, so two admins cannot both decide it.
 
 ### 2.2 Fields, schedule, games, scores
 
@@ -591,7 +596,7 @@ erDiagram
   notification_preference {
     uuid id PK
     uuid user_id FK
-    enum topic "rainout, schedule_change, game_reminder, payment, sub_request, announcement, score, events, marketing"
+    enum topic "rainout, schedule_change, game_reminder, payment, sub_request, announcement, score, events, marketing, new_team"
     enum channel "email, sms, push"
     bool enabled
   }
@@ -971,6 +976,9 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `sub_claim` | unique `(sub_request_id, user_id)` | One claim per person |
 | `sub_request` | unique `(game_id, team_season_id)` where `status in ('open', 'filled')` | One live request per team per game |
 | `sub_request` | check `needed` between 1 and 11; check `women_needed + men_needed <= needed` | Reserved spots fit in the request |
+| `team_formation_request` | unique `(season_id, requested_by)` where `status = 'pending'` | One open new-team request per person per season |
+| `team_formation_request` | check `status in ('approved', 'declined')` exactly when `decided_at` is set; check `status = 'approved'` exactly when `team_season_id` is set | An answer is timestamped; an approval names its team |
+| `team_formation_request` | check `expected_size` between 1 and 60; name 1 to 40 characters; note and reason at most 500 | Requests stay readable |
 | `checkin` | unique `(sponsor_id, user_id, on_date)` | One check-in per bar per day |
 | `award_vote` | unique `(award_poll_id, voter_id)` | One vote per poll |
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
@@ -1000,6 +1008,7 @@ Indexes for the common reads:
 | `game_rsvp` | `(game_id, team_season_id)` | Captain's RSVP board |
 | `sub_request` | `(team_season_id, status)`; `(closes_at)` where `status = 'open'` | A team's requests; open requests for the sub page |
 | `sub_claim` | `(user_id, status)` | A player's offers |
+| `team_formation_request` | `(season_id, status, created_at)`; `(requested_by)` | The admin's waiting list; a player's requests |
 | `event` | `(league_id, starts_at)` | Calendar |
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
 
@@ -1012,6 +1021,7 @@ Indexes for the common reads:
 | Birth date | `profile` | The person and owners. Everyone else sees only "18+ confirmed" |
 | Gender and lineup gender | `profile` | The person, their captain (for lineups), admins. A sub's lineup gender is copied to `sub_claim`, which the asking team's captains see |
 | Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
+| New-team requests, with the player's note | `team_formation_request` | The player and admins |
 | Emergency contact | `profile` | The person, their captain, admins |
 | Free-agent quiz answers and note | `free_agent_profile` | The person and admins |
 | Friend group | `friend_group`, `registration.friend_group_id` | The person; others in the group see first name and last initial; admins |
@@ -1022,9 +1032,9 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `notification_preference` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender.
+- **Removed:** the `profile` row; every `session` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `notification_preference` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
-- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, announcements and the audit log.
+- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
 
 Every deletion writes an `account.delete` audit row with no personal data in it. The person's own export (`personalData`) returns all of the above as JSON, without session tokens, sign-in tokens or provider tokens.

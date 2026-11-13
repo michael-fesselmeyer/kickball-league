@@ -55,6 +55,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── check-in/[code]                 Bar check-in landing from a QR code (P2)
 ├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
 ├── seasons/[season]/team/requests  Captain: dates the team can't play and times it would rather have or avoid, until registration closes
+├── seasons/[season]/new-team       Ask the league to start a new team; see the answer or withdraw while it waits
 ├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps and an optional note) and a friend code to start, join, switch or leave
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref)
@@ -69,6 +70,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── free-agents             Matcher: suggested placements with reasons (apply one or all), the pool with quiz answers and friend groups, and building a new team from the pool
     │   ├── fields                  Fields, permit windows, blackout dates, slots
     │   ├── requests                Every team's conflicts and preferences, read before generating
+    │   ├── new-teams               Players' requests to start a team: approve or decline with a reason
     │   ├── schedule                Generate, metrics, versions, publish; board (desktop) and move-or-swap form
     │   ├── rainout                 Call a rain-out and review makeups
     │   ├── announcements           Email the season or one team
@@ -217,10 +219,11 @@ Rules:
 
 ### 2.7 Start a new team (P2)
 
-1. A rostered player opens "Start a new team" and reads how it works, including that their current captain will be told once the league approves.
-2. They enter a proposed name, whether they will captain, and who is coming with them.
-3. Admins review. On approval the current captain is notified, a team is created in "forming" status, and the founder gets an invite link.
-4. The team becomes "confirmed" when it meets the roster minimum and the fee is covered. Admins can fill it from the free-agent pool.
+1. A signed-in player opens "Start a new team" from their season page and reads how it works, including that, if they play on a team, they will leave it and its captain will be told once the league approves. A captain must hand their team over first; someone not yet registered is pointed to registering a team directly, which needs no approval.
+2. They enter the team's name, how many players they expect, how the team will pay (split or in full; split only if they have already paid for their own spot) and a note for the league. One request at a time, while registration is open; they can withdraw it until it is answered.
+3. Admins see waiting requests on the dashboard and review them on the season's New-team requests screen, with where each requester stands (their team, whether they have paid).
+4. On approval the team is created in "forming" status with the requester as captain and the fee priced as of the day they asked; they leave any team they were on, and that team's captain is emailed. The requester is emailed a link to the team page, where the invite link is. A decline emails them the league's reason, if one was given, and they may ask again.
+5. The team becomes "confirmed" when it meets the roster minimum and the fee is covered. Admins can fill it from the free-agent pool.
 
 ### 2.8 Playoffs
 
