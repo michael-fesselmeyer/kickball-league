@@ -19,7 +19,8 @@ import { auth } from "./index";
 export async function currentSubject(): Promise<Subject> {
   const session = await auth.api.getSession({ headers: await headers() });
   // Account ids are UUIDs; anything else is treated as signed out.
-  return loadSubject(db, parseId<UserId>(session?.user.id));
+  const subject = await loadSubject(db, parseId<UserId>(session?.user.id));
+  return { ...subject, isOperator: isCurrentOperator(subject.userId) };
 }
 
 export type SignedInSubject = Subject & { userId: UserId };

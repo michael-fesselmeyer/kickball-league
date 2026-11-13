@@ -21,6 +21,12 @@ export type Subject = {
   refereeGameIds: readonly string[];
   /** Sponsors this person manages. */
   sponsorIds: readonly string[];
+  /**
+   * The platform operator (ADR 0009), set from the server's environment by
+   * the page or action that asks. Above the owners: what the owners alone
+   * may see, the operator may see too.
+   */
+  isOperator?: boolean;
 };
 
 /** What an action is about. Each action reads only the fields it needs. */
@@ -54,6 +60,7 @@ const signedIn: Rule = (s) => s.userId !== null;
 const isAdmin: Rule = (s) =>
   s.globalRole === "admin" || s.globalRole === "owner";
 const isOwner: Rule = (s) => s.globalRole === "owner";
+const isOperator: Rule = (s) => s.userId !== null && s.isOperator === true;
 const self: Rule = (s, c) => s.userId !== null && c.targetUserId === s.userId;
 const onTeam = (s: Subject, team: string | undefined) =>
   team !== undefined && s.roster.some((m) => m.teamSeasonId === team);
@@ -136,6 +143,9 @@ const RULES = {
   "roster.export": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   "payments.export": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   "score.enter": any(isAdmin, captainsGame, refereesGame),
+  // The park permit for a game, at the field: its ref and both captains.
+  // Admins manage permit windows but never see the permit's document.
+  "permit.view_at_field": any(isOwner, isOperator, captainsGame, refereesGame),
   "score.confirm": any(isAdmin, captainsGame),
   // Inning by inning: the ref, or a captain when the game has no ref.
   "score.live": any(
@@ -191,6 +201,8 @@ const RULES = {
   "photos.manage": isAdmin,
   // The owner alone
   "billing.manage": isOwner,
+  // The books (expenses, receipts, permit costs and documents, insurance).
+  "books.manage": any(isOwner, isOperator),
   "admins.manage": isOwner,
 } satisfies Record<string, Rule>;
 
