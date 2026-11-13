@@ -50,23 +50,23 @@
       "assertions": {
         "categories:performance": [
           "error",
-          { "minScore": 0.95, "aggregationMethod": "median-run" }
+          { "minScore": 0.95, "aggregationMethod": "median" }
         ],
         "categories:accessibility": [
           "error",
-          { "minScore": 1, "aggregationMethod": "median-run" }
+          { "minScore": 1, "aggregationMethod": "median" }
         ],
         "largest-contentful-paint": [
           "error",
-          { "maxNumericValue": 2000, "aggregationMethod": "median-run" }
+          { "maxNumericValue": 2000, "aggregationMethod": "median" }
         ],
         "cumulative-layout-shift": [
           "error",
-          { "maxNumericValue": 0.05, "aggregationMethod": "median-run" }
+          { "maxNumericValue": 0.05, "aggregationMethod": "median" }
         ],
         "total-blocking-time": [
           "error",
-          { "maxNumericValue": 150, "aggregationMethod": "median-run" }
+          { "maxNumericValue": 150, "aggregationMethod": "median" }
         ],
         "resource-summary:script:size": [
           "error",
