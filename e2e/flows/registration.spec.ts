@@ -3,14 +3,17 @@ import { expectNoAxeViolations } from "../support/axe";
 import { completeProfile, pageAs } from "../support/personas";
 import {
   openCheckoutSession,
+  sendChargeRefunded,
   sendCheckoutCompleted,
 } from "../support/stripe-webhook";
 
 /**
  * A new season, from the admin opening registration to a captain paying
- * their share of a split team fee and a free agent paying their fee.
- * Stripe calls go to stripe-mock, and Stripe's webhook is sent by the test,
- * signed with the flows server's test secret, so nothing leaves the machine.
+ * their share of a split team fee, a free agent paying their fee with a
+ * promo code, and the admin refunding part of one payment and all of the
+ * other. Stripe calls go to stripe-mock, and Stripe's webhook is sent by the
+ * test, signed with the flows server's test secret, so nothing leaves the
+ * machine.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -149,6 +152,34 @@ test("Stripe's webhook marks the captain paid once, and a forged one is refused"
   await page.context().close();
 });
 
+test("an admin adds a promo code for the season", async ({ browser }) => {
+  const page = await pageAs(browser, "Admin");
+  await page.goto(`/app/admin/seasons/${SEASON_SLUG}`);
+  await page.getByRole("link", { name: "Promo codes" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Promo codes" }),
+  ).toBeVisible();
+  await expect(page.getByText("No promo codes yet.")).toBeVisible();
+
+  await page
+    .getByRole("textbox", { name: "Code", exact: true })
+    .fill("kickoff10");
+  await page.getByRole("radio", { name: "A percentage" }).check();
+  await page.getByLabel("How much (percent or dollars)").fill("10");
+  await page.getByLabel("How many times it can be used (optional)").fill("5");
+  await page.getByRole("button", { name: "Add promo code" }).click();
+
+  await expect(page.getByRole("status")).toHaveText(
+    "Promo code added. Players can use it at checkout now.",
+  );
+  const row = page.getByRole("row", { name: /KICKOFF10/ });
+  await expect(row).toContainText("10% off");
+  await expect(row).toContainText("0 of 5");
+  await expect(row).toContainText("Live");
+  await expectNoAxeViolations(page);
+  await page.context().close();
+});
+
 test("a player joins the season as a free agent", async ({ browser }) => {
   const page = await pageAs(browser, "Player");
   await completeProfile(page);
@@ -169,7 +200,7 @@ test("a player joins the season as a free agent", async ({ browser }) => {
   await page.context().close();
 });
 
-test("the free agent signs, pays through Checkout and is confirmed by Stripe", async ({
+test("the free agent signs, pays with a promo code and is confirmed by Stripe", async ({
   browser,
 }) => {
   const page = await pageAs(browser, "Player");
@@ -189,13 +220,25 @@ test("the free agent signs, pays through Checkout and is confirmed by Stripe", a
       body: "<!doctype html><title>Stripe Checkout</title><h1>Checkout</h1>",
     }),
   );
-  await page
-    .getByRole("button", { name: "Pay $75 securely with Stripe" })
-    .click();
+  const pay = page.getByRole("button", {
+    name: "Pay $75 securely with Stripe",
+  });
+  await page.getByLabel("Promo code (optional)").fill("NOPE");
+  await pay.click();
+  await expect(
+    page.getByRole("alert").filter({ hasText: "promo code" }),
+  ).toHaveText(
+    "That promo code doesn't exist. Check the spelling and try again.",
+  );
+  await expectNoAxeViolations(page);
+
+  await page.getByLabel("Promo code (optional)").fill("kickoff10");
+  await pay.click();
   await expect(page).toHaveURL(/^https:\/\/checkout\.stripe\.com\//);
 
+  // 10% off $75: Stripe is asked for $67.50.
   const session = await openCheckoutSession("pat.player@example.test");
-  expect(session.totalCents).toBe(7500);
+  expect(session.totalCents).toBe(6750);
   expect(await sendCheckoutCompleted(page.request, session)).toEqual({
     status: 200,
     outcome: "processed",
@@ -203,5 +246,74 @@ test("the free agent signs, pays through Checkout and is confirmed by Stripe", a
   await page.goto(`/app/seasons/${SEASON_SLUG}`);
   await expect(page.getByText(`You're all set for ${SEASON}.`)).toBeVisible();
   await expectNoAxeViolations(page);
+  await page.context().close();
+});
+
+test("an admin refunds part of one payment and all of another through Stripe", async ({
+  browser,
+}) => {
+  const page = await pageAs(browser, "Admin");
+  await page.goto(`/app/admin/seasons/${SEASON_SLUG}/registrations`);
+  const captain = page.getByRole("row", { name: /Casey/ });
+  const freeAgent = page.getByRole("row", { name: /Pat/ });
+  await expect(captain).toContainText("Paid online");
+  await expect(freeAgent).toContainText("Paid online");
+
+  // Part of the captain's $80 share goes back.
+  await captain.locator("summary", { hasText: "Refund" }).click();
+  await captain.getByLabel(/^Amount to refund/).fill("20");
+  await captain.getByLabel(/^Reason for refunding/).fill("Shirt not needed");
+  await expectNoAxeViolations(page);
+  await captain.getByRole("button", { name: "Refund through Stripe" }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Refund sent to Stripe. It shows here once Stripe confirms it.",
+  );
+  await expect(captain).toContainText("Refund of $20 pending");
+
+  const eventId = `evt_e2e_refund_${Date.now()}`;
+  expect(
+    await sendChargeRefunded(
+      page.request,
+      "casey.captain@example.test",
+      eventId,
+    ),
+  ).toEqual({ status: 200, outcome: "processed", refundedCents: 2000 });
+  // A replayed refund event changes nothing.
+  expect(
+    await sendChargeRefunded(
+      page.request,
+      "casey.captain@example.test",
+      eventId,
+    ),
+  ).toEqual({ status: 200, outcome: "duplicate", refundedCents: 2000 });
+  await page.reload();
+  await expect(captain).toContainText("Refunded $20 of $80");
+  await expect(captain).not.toContainText("pending");
+
+  // A blank amount refunds everything left: the free agent's $67.50.
+  await freeAgent.locator("summary", { hasText: "Refund" }).click();
+  await expect(freeAgent.getByLabel(/^Amount to refund/)).toHaveAttribute(
+    "placeholder",
+    "All $67.50",
+  );
+  await freeAgent
+    .getByRole("button", { name: "Refund through Stripe" })
+    .click();
+  await expect(freeAgent).toContainText("Refund of $67.50 pending");
+  expect(
+    await sendChargeRefunded(page.request, "pat.player@example.test"),
+  ).toEqual({ status: 200, outcome: "processed", refundedCents: 6750 });
+  await page.reload();
+  await expect(freeAgent).toContainText("Refunded $67.50");
+  await expect(freeAgent.locator("summary", { hasText: "Refund" })).toHaveCount(
+    0,
+  );
+  await expectNoAxeViolations(page);
+
+  // The promo code counts the free agent's use.
+  await page.goto(`/app/admin/seasons/${SEASON_SLUG}/promo-codes`);
+  await expect(page.getByRole("row", { name: /KICKOFF10/ })).toContainText(
+    "1 of 5",
+  );
   await page.context().close();
 });

@@ -40,29 +40,18 @@ export async function openCheckoutSession(email: string): Promise<{
 
 let sequence = 0;
 
-/**
- * Posts a signed `checkout.session.completed` event, as Stripe does once
- * the card is charged. Sending the same `eventId` again is a replay.
- */
-export async function sendCheckoutCompleted(
+type Delivery = { status: number; outcome: string | undefined };
+
+/** Signs an event with the flows server's test secret and posts it. */
+async function deliver(
   request: APIRequestContext,
-  session: { sessionId: string; totalCents: number },
-  eventId = `evt_e2e_${Date.now()}_${++sequence}`,
-): Promise<{ status: number; outcome: string | undefined }> {
+  event: { id: string; type: string; object: Record<string, unknown> },
+): Promise<Delivery> {
   const payload = JSON.stringify({
-    id: eventId,
+    id: event.id,
     object: "event",
-    type: "checkout.session.completed",
-    data: {
-      object: {
-        id: session.sessionId,
-        object: "checkout.session",
-        payment_status: "paid",
-        payment_intent: `pi_e2e_${session.sessionId}`,
-        amount_total: session.totalCents,
-        created: Math.floor(Date.now() / 1000),
-      },
-    },
+    type: event.type,
+    data: { object: event.object },
   });
   const signature = stripe.webhooks.generateTestHeaderString({
     payload,
@@ -81,4 +70,73 @@ export async function sendCheckoutCompleted(
       ? String(body.outcome)
       : undefined;
   return { status: response.status(), outcome };
+}
+
+const nextEventId = () => `evt_e2e_${Date.now()}_${++sequence}`;
+
+/**
+ * Posts a signed `checkout.session.completed` event, as Stripe does once
+ * the card is charged. Sending the same `eventId` again is a replay.
+ */
+export async function sendCheckoutCompleted(
+  request: APIRequestContext,
+  session: { sessionId: string; totalCents: number },
+  eventId = nextEventId(),
+): Promise<Delivery> {
+  return deliver(request, {
+    id: eventId,
+    type: "checkout.session.completed",
+    object: {
+      id: session.sessionId,
+      object: "checkout.session",
+      payment_status: "paid",
+      payment_intent: `pi_e2e_${session.sessionId}`,
+      amount_total: session.totalCents,
+      created: Math.floor(Date.now() / 1000),
+    },
+  });
+}
+
+/**
+ * Posts a signed `charge.refunded` event for a person's newest Stripe
+ * payment, carrying every refund an admin has sent so far, as Stripe does
+ * once it has returned the money. stripe-mock accepts the refund but does not
+ * remember it, so the total comes from the app's own refund rows.
+ */
+export async function sendChargeRefunded(
+  request: APIRequestContext,
+  email: string,
+  eventId = nextEventId(),
+): Promise<Delivery & { refundedCents: number }> {
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  let row: { intent: string; refunded: number } | undefined;
+  try {
+    const { rows } = await client.query<{ intent: string; refunded: number }>(
+      `select pm.stripe_payment_intent_id as intent,
+              (select coalesce(sum(r.amount_cents), 0)::int
+                 from refund r where r.payment_id = pm.id) as refunded
+         from payment pm
+         join purchase p on p.id = pm.purchase_id
+         join "user" u on u.id = p.user_id
+        where u.email = $1 and pm.method = 'stripe'
+        order by pm.created_at desc limit 1`,
+      [email],
+    );
+    row = rows[0];
+  } finally {
+    await client.end();
+  }
+  if (!row) throw new Error(`No Stripe payment for ${email}`);
+  const delivered = await deliver(request, {
+    id: eventId,
+    type: "charge.refunded",
+    object: {
+      id: `ch_e2e_${row.intent}`,
+      object: "charge",
+      payment_intent: row.intent,
+      amount_refunded: row.refunded,
+    },
+  });
+  return { ...delivered, refundedCents: row.refunded };
 }
