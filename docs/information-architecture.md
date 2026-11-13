@@ -61,7 +61,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 └── admin/
     ├── (dashboard)                 Next game day: weather, games, missing scores, alerts
     ├── seasons/[season]/           Setup, pricing, divisions, rule set, waiver
-    │   ├── registrations           Teams, players, payments, waivers; roster and payment CSV downloads
+    │   ├── registrations           Teams, players, payments, waivers, full or partial refunds; roster and payment CSV downloads
+    │   ├── promo-codes             The season's promo codes: add one, see its uses, turn it off
     │   ├── shirts                  Shirt sizes by team, what is still to order, and each player's shirt: not ordered, ordered or received
     │   ├── free-agents             Pool and matcher (P2)
     │   ├── fields                  Fields, permit windows, blackout dates, slots

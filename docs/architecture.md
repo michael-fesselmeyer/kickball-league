@@ -252,6 +252,8 @@ Rules for every webhook:
 3. Do the work in a transaction, mark the row processed, and return 200. On an error return 500 so the provider retries.
 4. The browser returning from Checkout never marks anything paid. Only the webhook does. The return page shows "confirming your payment" and polls for a few seconds.
 
+Refunds follow the same rule ([ADR 0010](adr/0010-promo-codes-applied-in-app.md)). An admin's refund reserves its amount in a `refund` row under a lock on the payment, then calls Stripe with that row's id as the idempotency key; if Stripe refuses, the row is removed. Only `charge.refunded` moves the payment's refunded total, to Stripe's running total and never lower, so a replay or a late event changes nothing and refunds made in Stripe's dashboard count too. The purchase then becomes `partially_refunded` or `refunded`.
+
 ## 7. Weather
 
 | | National Weather Service API | Open-Meteo |
@@ -324,7 +326,7 @@ Every pull request runs, in this order, and all must pass to merge:
 2. Unit and property tests (Vitest, fast-check) with coverage thresholds.
 3. Migration check: the schema and the migration files agree.
 4. Build.
-5. End-to-end tests (Playwright) against a production build and a freshly seeded Postgres 18 service container, under a 10-minute job limit ([ADR 0007](adr/0007-end-to-end-tests-on-local-services.md)). Smoke tests cover the public pages at a phone size and a desktop size with demo mode off. The core flows run on a second server in demo mode and sign in with one-tap "view as": a captain registers a team with split pay and reaches Stripe Checkout (served by stripe-mock), Stripe's webhook marks the captain's share paid exactly once (the test signs the event with the server's test secret, and a forged one is refused), a player joins as a free agent and pays the same way, an admin generates and publishes a schedule, a ref enters a score that a captain confirms, and an admin calls a rain-out and publishes the makeups. axe checks every key screen against WCAG 2.2 AA and fails on any violation.
+5. End-to-end tests (Playwright) against a production build and a freshly seeded Postgres 18 service container, under a 10-minute job limit ([ADR 0007](adr/0007-end-to-end-tests-on-local-services.md)). Smoke tests cover the public pages at a phone size and a desktop size with demo mode off. The core flows run on a second server in demo mode and sign in with one-tap "view as": a captain registers a team with split pay and reaches Stripe Checkout (served by stripe-mock), Stripe's webhook marks the captain's share paid exactly once (the test signs the event with the server's test secret, and a forged one is refused), an admin adds a promo code, a player joins as a free agent and pays with it, an admin refunds part of one payment and all of another and a signed `charge.refunded` webhook confirms each, an admin generates and publishes a schedule, a ref enters a score that a captain confirms, and an admin calls a rain-out and publishes the makeups. axe checks every key screen against WCAG 2.2 AA and fails on any violation.
 6. Lighthouse CI on a production build against the seeded database: home, sign-in, the content pages, the records page, the public schedule, standings and a team page, with the budgets in [design-system.md](design-system.md#performance-budgets).
 
 Mutation testing on the scheduler runs nightly, not per pull request, because it is slow.

@@ -29,6 +29,8 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - Player profiles with an 18+ check, and versioned waivers signed before payment.
 - Team registration with full or split pay, invite links, and a roster board showing who has joined, signed and paid. Free agents register solo and admins place them on teams.
 - Stripe Checkout with an idempotent webhook (test mode, on once keys are set), plus cash or Venmo payments recorded by admins and captains.
+- Promo codes per season: a percentage or an amount off, with an optional limit on uses and a last day. Players type one when they pay, and Stripe charges the lower price ([ADR 0010](docs/adr/0010-promo-codes-applied-in-app.md)). Admins see how often each code was used and can turn one off.
+- Full or partial refunds from the registrations screen. Stripe payments go back through Stripe and show as refunded once Stripe's `charge.refunded` webhook confirms; cash and Venmo handed back are marked refunded with a note. A refund needs a sign-in from the last 15 minutes, and every refund is in the audit log and in the payments download.
 - Shirt tracking: sizes by team from players' profiles, what is still to order for late joiners, and a received flag per player.
 - CSV downloads of rosters (with shirt sizes) and payments: the whole season for admins, one team for its captains. Cells that a spreadsheet would run as a formula are written as text, and every download is logged.
 - Players download everything the league holds about them as JSON, and can delete their account. Deleting anonymizes the person so past rosters, scores and payments stay correct, and needs a sign-in from the last 15 minutes plus their email address typed again.
@@ -150,7 +152,7 @@ The app talks to Neon through its HTTP and WebSocket drivers, and to a Postgres 
 
 ### End-to-end and Lighthouse tests
 
-`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the core flows (registration with split pay through Stripe Checkout and a signed webhook that marks the payment, free-agent signup and payment, generating and publishing a schedule, entering and confirming a score, a rain-out). Every key screen is checked with axe. It reseeds the database before each run and sends Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so it needs both running locally:
+`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the core flows (registration with split pay through Stripe Checkout and a signed webhook that marks the payment, free-agent signup and payment with a promo code, an admin's partial and full refunds confirmed by a signed `charge.refunded` webhook, generating and publishing a schedule, entering and confirming a score, a rain-out). Every key screen is checked with axe. It reseeds the database before each run and sends Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so it needs both running locally:
 
 ```bash
 PGDATABASE_NAME=kb_e2e_demo scripts/setup-local-postgres.sh
