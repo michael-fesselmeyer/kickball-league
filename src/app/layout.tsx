@@ -11,6 +11,7 @@ import { THEME_COLORS } from "@/lib/pwa/theme-colors";
 import { isIndexable, SITE, siteOrigin } from "@/lib/site";
 import { applySavedThemeScript } from "@/lib/theme";
 import "./globals.css";
+import "./motion.css";
 
 const inter = Inter({
   variable: "--font-inter",
