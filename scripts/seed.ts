@@ -76,6 +76,8 @@ async function main(): Promise<void> {
     waiver,
     waiverSignature,
     friendGroup,
+    teamFormationRequest,
+    announcement,
   } = schema;
 
   try {
@@ -186,6 +188,14 @@ async function main(): Promise<void> {
           await tx
             .delete(waiverSignature)
             .where(inArray(waiverSignature.seasonId, seasonIds));
+          // A demo visitor may have asked for a new team or sent an
+          // announcement; both hold the season and its teams.
+          await tx
+            .delete(teamFormationRequest)
+            .where(inArray(teamFormationRequest.seasonId, seasonIds));
+          await tx
+            .delete(announcement)
+            .where(inArray(announcement.seasonId, seasonIds));
           await tx
             .delete(teamSeason)
             .where(inArray(teamSeason.seasonId, seasonIds));
