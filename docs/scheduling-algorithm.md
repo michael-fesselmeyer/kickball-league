@@ -24,6 +24,7 @@ type SchedulerInput = {
   slots: { id: string; date: string; timeIndex: number; fieldId: string;
            kind: 'regular' | 'makeup_reserve' | 'playoff' }[]
   rounds: number                    // rounds to play; one round = each team plays once (or has a bye)
+  crossoverGames?: number           // games each team plays against the other division (two divisions only)
   gamesPerTeamPerDay: 1 | 2         // 2 = doubleheaders (summer)
   reservePerDay: number             // slots to leave empty each day for makeups
   constraints: { teamId: string; kind: 'unavailable' | 'prefer' | 'avoid';
@@ -62,6 +63,7 @@ A schedule that breaks any of these is invalid. `generate` never returns one; `v
 | H8 | On a doubleheader day a team's two games are against different opponents |
 | H9 | Locked games stay in their slots |
 | H10 | At least `reservePerDay` slots stay empty on each date, when the date has that many spare |
+| H11 | **Crossovers.** A round with a game between two divisions is a crossover round: every game in it is between divisions, and each team plays at most once. Crossovers happen only when `crossoverGames` asks for them and there are exactly two divisions. Each team of the smaller division (both, when they are the same size) plays exactly `crossoverGames` of them, and the larger division's counts differ by at most 1 |
 
 ### Soft constraints
 
@@ -92,7 +94,7 @@ Weights are part of the input, so the league can decide that field balance matte
 | Longest same-slot streak | Most consecutive game days any team plays at the same time index | ≤ 2 | 3 | ≥ 4 |
 | Earliest-slot share | Highest and lowest share of games any team plays in the first slot | within 15 points of each other | within 30 | wider |
 | Doubleheader wait | Total idle slots between a team's two games, all teams, all days | 0 | ≤ 1 per team per season | more |
-| Bye balance | Most byes minus fewest byes | ≤ 1 | — | ≥ 2 |
+| Bye balance | Most byes minus fewest byes within a division, counting division rounds only | ≤ 1 | — | ≥ 2 |
 | Rematch gap | Fewest rounds between any pair's meetings | ≥ teams − 2 | ≥ half of that | less |
 | Preferences honored | Share of soft preferences met | ≥ 80% | ≥ 50% | less |
 | Unplaced games | Games with no slot | 0 | — | ≥ 1 |
@@ -109,6 +111,8 @@ generate(input):
   rng        = seededRng(input.seed)
   pools      = groupByDivision(input.teams)              // one pool if no divisions
   rounds     = for each pool: buildRounds(pool, input.rounds, rng)      // Stage A
+  rounds    += buildCrossoverRounds(pools, input.crossoverGames, rng),  // two divisions only,
+                spread evenly between the division rounds
   repeat:                                                                // Stages B and C1
     days     = assignRoundsToDates(rounds, input, caps, pinnedRounds)
     schedule = constructPlacement(days, input)
@@ -147,6 +151,29 @@ Why this satisfies H5: every cycle is a complete round-robin, and cycles are pla
 Why H7 holds: with the dummy BYE team, each real team meets BYE exactly once per cycle, so after any number of rounds bye counts differ by at most 1.
 
 One known quirk drives the rest of the design: the team in the fixed seat is always in the first pair of every round. If games are dealt into slots in order, that team plays the first slot on the first field every week. Stage C exists to fix that, and the example in section 9 shows it.
+
+### Stage A, continued: crossover rounds
+
+With exactly two divisions and `crossoverGames = k > 0`, Stage A adds `k` crossover rounds, in which every game is between the divisions ([ADR 0035](adr/0035-divisions-and-crossover-games.md)).
+
+```
+buildCrossoverRounds(larger, smaller, k, rng):
+  big = shuffle(larger, rng); small = shuffle(smaller, rng)
+  next = 0
+  repeat k times:
+    turn = the next |small| teams of big, wrapping around      // larger division takes turns
+    next = (next + |small|) mod |big|
+    match small to turn by minimum-cost assignment,
+      cost = times the two teams have already met in a crossover
+    the teams of big not in turn sit the round out
+```
+
+- Every team of the smaller division plays in every crossover round, so it plays exactly `k` crossover games. The larger division's teams take turns in a fixed cyclic order, so their counts differ by at most 1, and equal `k` when the divisions are the same size.
+- Matching on past meetings means nobody meets the same crossover opponent twice while the larger division has one they have not played. Property test P15 checks it.
+- Crossover round `c` (1 to `k`) goes after division round `⌊c × R / (k + 1)⌋` of `R`, so crossovers are spread through the season. Each division still plays its own rounds in order, so H5 holds within each division, and a crossover opponent can never be a team's division opponent on a doubleheader day (H8).
+- With `k = 0` nothing is drawn from the seed, so seasons without crossovers are scheduled exactly as before.
+- Any other number of divisions gets no crossovers and a diagnostic. Teams with no division in a divided season form a pool of their own, so the admin screen asks for every team to be in a division first.
+- Stages B to D need nothing new: a crossover round is a round. Validation finds crossover rounds from the games themselves and checks them under H11 instead of H5 and H7.
 
 ### Stage B: which date each round is played
 
@@ -231,7 +258,7 @@ localSearch(schedule, input, rng):
 |---|---|
 | Odd team count | A BYE entry in Stage A. The team with the bye is listed on the schedule so nobody wonders |
 | Doubleheaders (summer) | Two rounds per date. S4 keeps a team's two games adjacent. H8 holds because the two rounds are different rounds of a round-robin |
-| Divisions | Each division is its own pool with its own rounds; all pools share the slot pool in Stage C, so fairness is balanced across the whole league. Crossover rounds (P3) are extra rounds built from a bipartite pairing between two pools |
+| Divisions | Each division is its own pool with its own rounds; all pools share the slot pool in Stage C, so fairness is balanced across the whole league. Crossover rounds are extra rounds built from a bipartite pairing between the two divisions (Stage A, continued) |
 | Fewer rounds than a full cycle | Stage A simply stops early. H5 holds trivially |
 | More than one cycle | The cycle repeats in the same order with home and away swapped, so each rematch is a full cycle after the first meeting |
 | A field lost mid-season | Its slots are marked cancelled and `reschedule` treats the games in them as postponed |
@@ -429,6 +456,9 @@ A generator produces arbitrary valid inputs: 4 to 24 teams, 1 to 4 fields, 2 to 
 | P12 Minimal change | After `reschedule`, every game that was not postponed is in the same slot as before, and each postponed game appears exactly once (placed or unplaced) |
 | P13 Edits are honest | `applyEdit` returns exactly the violations that `validate` finds on the edited schedule |
 | P14 Slots respect permits | Every slot from `generateSlots` lies inside a permit window, outside every blackout, and overlaps no other slot on its field |
+| P15 Crossover counts | With two divisions of any sizes, each team of the smaller division plays exactly `crossoverGames` crossovers, the larger division's teams play the floor or ceiling of their even share, and no crossover pair meets twice while the larger division has a new opponent |
+| P16 Divisions stay balanced | Within each division, pair meeting counts differ by at most 1 at the end of the season, and every team plays every division round, crossovers or not |
+| P17 Crossovers break nothing | With crossovers, teams' unavailable times and preferences, P1, P3, P4 and P6 still hold |
 
 When a property fails, fast-check shrinks the input to the smallest failing case and prints the seed, which goes straight into a regression test.
 
