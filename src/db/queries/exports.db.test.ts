@@ -77,13 +77,14 @@ describe("the payments export", () => {
           items: "Spring 2027: Kick Bottom",
           method: "cash",
           amountCents: 4500,
+          refundedCents: 0,
           status: "succeeded",
           note: "+1 paid at the field",
           recordedBy: "Robin Example",
         },
       ]);
       const csv = toCsv(PAYMENT_COLUMNS, rows);
-      expect(csv).toContain(",45.00,succeeded,'+1 paid at the field,");
+      expect(csv).toContain(",45.00,0.00,succeeded,'+1 paid at the field,");
     });
   });
 

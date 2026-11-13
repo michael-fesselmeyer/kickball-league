@@ -148,6 +148,8 @@ export type PaymentExportRow = {
   items: string;
   method: string;
   amountCents: number;
+  /** What has gone back to the payer, in full or in part. */
+  refundedCents: number;
   status: string;
   note: string | null;
   recordedBy: string | null;
@@ -190,6 +192,7 @@ export async function paymentsExport(
       createdAt: payment.createdAt,
       method: payment.method,
       amountCents: payment.amountCents,
+      refundedCents: payment.refundedCents,
       status: payment.status,
       note: payment.note,
       recordedBy: payment.recordedBy,
@@ -241,6 +244,7 @@ export async function paymentsExport(
       items: mine.map((i) => i.description).join("; "),
       method: p.method,
       amountCents: p.amountCents,
+      refundedCents: p.refundedCents,
       status: p.status,
       note: p.note,
       recordedBy: p.recordedBy
@@ -258,6 +262,7 @@ export const PAYMENT_COLUMNS: readonly Column<PaymentExportRow>[] = [
   { header: "For", value: (r) => r.items },
   { header: "Method", value: (r) => r.method },
   { header: "Amount", value: (r) => centsToAmount(r.amountCents) },
+  { header: "Refunded", value: (r) => centsToAmount(r.refundedCents) },
   { header: "Status", value: (r) => r.status },
   { header: "Note", value: (r) => r.note },
   { header: "Recorded by", value: (r) => r.recordedBy },
