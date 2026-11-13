@@ -288,8 +288,12 @@ erDiagram
     timestamptz starts_at
     timestamptz ends_at
     text permit_number
-    uuid document_asset_id FK
     enum status "requested, confirmed, lost"
+    int cost_cents "this window's share of the permit's cost"
+    uuid document_file_id FK "books_file, section 2.8"
+    date application_opens_on
+    date application_closes_on
+    date renews_on
   }
   blackout {
     uuid id PK
@@ -1106,6 +1110,54 @@ erDiagram
 Notes:
 - **Not planned:** an `ai_usage` table for AI provider spend and an answer cache. There are no AI features, because every AI provider bills per use ([ADR 0021](adr/0021-free-services-only.md)).
 
+### 2.8 The owners' books and permits
+
+Only owners and the platform operator read these, except a permit's document, which a game's referee and captains see at the field ([ADR 0034](adr/0034-owners-books-and-permits-in-postgres.md)). Income is not stored here: the ledger reads `payment`, `refund` and `purchase` (section 2.3). A payment counts toward the season of its purchase; a purchase with no season (an event ticket) counts toward the season running on the day it was paid.
+
+```mermaid
+erDiagram
+  league ||--o{ books_file : keeps
+  season ||--o{ expense : "spent in"
+  books_file |o--o{ expense : "receipt of"
+  books_file |o--o{ permit_window : "document of"
+  books_file |o--o{ insurance_certificate : "copy of"
+  league ||--o{ insurance_certificate : holds
+
+  books_file {
+    uuid id PK
+    uuid league_id FK
+    enum kind "receipt, permit, insurance"
+    text content_type "image/webp or application/pdf"
+    bytea bytes
+    int byte_size "at most 1 MB"
+    text sha256
+    uuid created_by FK
+  }
+  expense {
+    uuid id PK
+    uuid season_id FK
+    date spent_on
+    int amount_cents
+    enum category "fields_permits, equipment, shirts, refs, events, sponsor_costs, other"
+    text note
+    uuid receipt_file_id FK
+    uuid created_by FK
+  }
+  insurance_certificate {
+    uuid id PK
+    uuid league_id FK
+    text insurer
+    text policy_number
+    date starts_on
+    date expires_on
+    uuid document_file_id FK
+  }
+```
+
+Notes:
+- Windows added together under one permit number share its details. The owners enter the permit's total cost once and it is split across the windows, earliest first, so the shares add up to it exactly; the ledger counts each window's share under "Fields and permits".
+- A photo is stored once, as WebP, at most 1,600 pixels on its longer side, without its metadata; a PDF is kept as uploaded. All of a league's files together are capped at 50 MB, checked under a lock so two uploads at once count each other. Removing an expense or certificate, or replacing a permit's document, deletes the file nothing else uses.
+
 ## 3. Constraints and indexes
 
 Integrity rules the database enforces, so application bugs cannot break them:
@@ -1168,6 +1220,10 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `social_post` | check a hidden post is neither featured nor a cover; check a team cover has a team | Hiding always wins |
 | `social_post` | unique `(account_id)` where `cover = 'home'`; unique `(team_id)` where `cover = 'team'` | One cover per page |
 | `social_image` | check type is JPEG, PNG or WebP and `byte_size = octet_length(bytes)` up to 2 MB | Only images are stored and served; the 25 MB total is enforced by the sync |
+| `books_file` | check type is WebP or PDF and `byte_size = octet_length(bytes)` up to 1 MB | Only resized photos and small PDFs are stored; the 50 MB total is enforced when a file is added |
+| `expense` | check `amount_cents > 0`; index `(season_id, spent_on)` | The ledger reads one season's expenses in date order |
+| `permit_window` | check `cost_cents` is null or at least 0; check the application window closes on or after it opens | A permit's details make sense |
+| `insurance_certificate` | check `expires_on > starts_on` | A certificate covers a period |
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
 | `alert_setting` | check `daily_cap` between 0 and 3; check quiet hours are both null or two different hours from 0 to 23 | A member can only lower the cap, and quiet hours are never empty |
 | `push_subscription` | unique `(endpoint)`; check it starts with `https://` and is at most 2,048 characters; check the key lengths | A device is stored once, and the outbox only ever posts to https |
@@ -1243,6 +1299,7 @@ Indexes for the common reads:
 | Payment card | Never stored. Stripe holds it; we keep brand and last four digits | The person |
 | Push devices | `push_subscription` (endpoint, keys, browser) | Only the outbox. The person's export lists their devices by browser and date, without the endpoint or keys |
 | Photos and captions from the league's Instagram, which may show players | `social_post`, `social_image` | Admins; everyone once an admin features a photo. Any player can ask for a photo of them to be hidden, and hiding takes it off public pages on their next render |
+| Expenses, receipts, permit costs and documents, the insurance certificate | `expense`, `books_file`, `permit_window`, `insurance_certificate` | Owners and the platform operator. A game's referee and both captains see that game's permit number and document. The tax CSV names no player |
 | The Instagram access token | `social_account.token_ciphertext`, encrypted | Nobody: only the sync jobs decrypt it, and disconnecting deletes it |
 
 Deleting an account removes the profile and anonymizes the user row. Signatures, payments, consent events and audit rows are kept because the league may need them for legal or accounting reasons; the privacy policy says so.
