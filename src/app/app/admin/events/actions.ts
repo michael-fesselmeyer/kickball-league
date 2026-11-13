@@ -2,6 +2,7 @@
 
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
+import { announceEvent, audienceChoices } from "@/db/queries/event-audience";
 import {
   cancelEvent,
   createEvent,
@@ -11,16 +12,27 @@ import {
 } from "@/db/queries/events";
 import { currentLeague } from "@/db/queries/seasons";
 import {
+  parseReach,
+  REACH_ERRORS,
+  type ReachForm,
+} from "@/domain/events/audience";
+import {
   EVENT_FORM_ERRORS,
   type EventForm,
   parseEventForm,
 } from "@/domain/events/event";
+import type { LeagueId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { refreshEventPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 
-export type EventFormState = { values: EventForm; error: string | null };
+export type EventFormState = {
+  values: EventForm;
+  reach: ReachForm;
+  announce: boolean;
+  error: string | null;
+};
 
 const FIELDS = [
   "kind",
@@ -36,6 +48,50 @@ const FIELDS = [
 
 const LIST = "/app/admin/events";
 
+/** Who the event is for, as the form sent it. */
+function reachStrings(form: FormData): ReachForm {
+  const text = (key: string) => {
+    const value = form.get(key);
+    return typeof value === "string" ? value : "";
+  };
+  return {
+    audience: text("audience"),
+    season: text("season"),
+    teams: form.getAll("team").filter((v) => typeof v === "string"),
+    inviteUrl: text("inviteUrl"),
+    inAppRsvp: text("inAppRsvp"),
+  };
+}
+
+/**
+ * Checks the whole form: the event, then who it's for against the seasons
+ * and teams the league has.
+ */
+async function readForm(form: FormData, leagueId: LeagueId, timeZone: string) {
+  const values = formStrings(form, FIELDS);
+  const reachValues = reachStrings(form);
+  const announce = form.get("announce") === "yes";
+  const fail = (error: string) => ({
+    ok: false as const,
+    state: { values, reach: reachValues, announce, error },
+  });
+  const parsed = parseEventForm(values, timeZone);
+  if (!parsed.ok) return fail(EVENT_FORM_ERRORS[parsed.error]);
+  const reach = parseReach(
+    reachValues,
+    parsed.value.kind,
+    await audienceChoices(db, leagueId),
+  );
+  if (!reach.ok) return fail(REACH_ERRORS[reach.error]);
+  return {
+    ok: true as const,
+    event: parsed.value,
+    reach: reach.value,
+    announce,
+    fail,
+  };
+}
+
 /** An admin adds an event; it shows on the events page at once. */
 export async function createEventAction(
   _previous: EventFormState,
@@ -46,24 +102,35 @@ export async function createEventAction(
   });
   const league = await currentLeague(db);
   if (!league) notFound();
-  const values = formStrings(form, FIELDS);
-  const parsed = parseEventForm(values, league.timeZone);
-  if (!parsed.ok) return { values, error: EVENT_FORM_ERRORS[parsed.error] };
-  const created = await txDb.transaction((tx) =>
-    createEvent(tx, {
+  const read = await readForm(form, league.id, league.timeZone);
+  if (!read.ok) return read.state;
+  const { created, told } = await txDb.transaction(async (tx) => {
+    const created = await createEvent(tx, {
       leagueId: league.id,
       timeZone: league.timeZone,
-      event: parsed.value,
+      event: read.event,
+      reach: read.reach,
       actorId: subject.userId,
-    }),
-  );
+    });
+    const told = read.announce
+      ? await announceEvent(tx, {
+          eventId: created.id,
+          kind: "announced",
+          now: new Date(),
+        })
+      : 0;
+    return { created, told };
+  });
+  if (told) sendQueuedSoon();
   refreshEventPages(created.slug, { themeWeek: true });
-  redirect(`${LIST}/${created.slug}?saved=created`);
+  redirect(
+    `${LIST}/${created.slug}?saved=created${read.announce ? `&told=${told}` : ""}`,
+  );
 }
 
 /**
  * An admin edits an event. More spots move people up from the waitlist,
- * and they get an email.
+ * and they get an email; the admin can also tell everyone it's for.
  */
 export async function updateEventAction(
   slug: string,
@@ -74,28 +141,44 @@ export async function updateEventAction(
   const subject = await requirePermissionToChange("event.manage", {
     next: page,
   });
-  const e = await eventBySlug(db, slug);
+  const e = await eventBySlug(db, slug, "all");
   if (!e) notFound();
-  const values = formStrings(form, FIELDS);
-  const parsed = parseEventForm(values, e.timeZone);
-  if (!parsed.ok) return { values, error: EVENT_FORM_ERRORS[parsed.error] };
-  const saved = await txDb.transaction((tx) =>
-    updateEvent(tx, { id: e.id, event: parsed.value, actorId: subject.userId }),
-  );
-  if (!saved.ok)
-    return {
-      values,
-      error:
-        saved.error === "has_rsvps"
-          ? "People have RSVP'd, so this can't become a theme week. Make a new theme week instead."
-          : "That event is gone.",
-    };
-  if (saved.value.promoted.length) sendQueuedSoon();
+  const read = await readForm(form, e.leagueId, e.timeZone);
+  if (!read.ok) return read.state;
+  const saved = await txDb.transaction(async (tx) => {
+    const updated = await updateEvent(tx, {
+      id: e.id,
+      event: read.event,
+      reach: read.reach,
+      actorId: subject.userId,
+    });
+    const told =
+      updated.ok && read.announce
+        ? await announceEvent(tx, {
+            eventId: e.id,
+            kind: "updated",
+            now: new Date(),
+          })
+        : 0;
+    return { updated, told };
+  });
+  if (!saved.updated.ok)
+    return read.fail(SAVE_ERRORS[saved.updated.error]).state;
+  const promoted = saved.updated.value.promoted.length;
+  if (promoted || saved.told) sendQueuedSoon();
   refreshEventPages(slug, { themeWeek: true });
   redirect(
-    `${page}?saved=updated${saved.value.promoted.length ? `&promoted=${saved.value.promoted.length}` : ""}`,
+    `${page}?saved=updated${promoted ? `&promoted=${promoted}` : ""}${read.announce ? `&told=${saved.told}` : ""}`,
   );
 }
+
+const SAVE_ERRORS = {
+  has_rsvps:
+    "People have RSVP'd, so this can't become a theme week. Make a new theme week instead.",
+  rsvps_in_app:
+    "People have RSVP'd here, so RSVPs in the app have to stay on for this event.",
+  not_found: "That event is gone.",
+} as const;
 
 /** Calls an event off and emails everyone who RSVP'd. */
 export async function cancelEventAction(
@@ -107,7 +190,7 @@ export async function cancelEventAction(
     next: page,
   });
   if (form.get("confirm") !== "yes") redirect(`${page}?error=confirm`);
-  const e = await eventBySlug(db, slug);
+  const e = await eventBySlug(db, slug, "all");
   if (!e) notFound();
   const result = await txDb.transaction((tx) =>
     cancelEvent(tx, { id: e.id, actorId: subject.userId, now: new Date() }),
@@ -128,7 +211,7 @@ export async function deleteEventAction(
     next: page,
   });
   if (form.get("confirm") !== "yes") redirect(`${page}?error=confirm`);
-  const e = await eventBySlug(db, slug);
+  const e = await eventBySlug(db, slug, "all");
   if (!e) notFound();
   await txDb.transaction((tx) =>
     deleteEvent(tx, { id: e.id, actorId: subject.userId, now: new Date() }),

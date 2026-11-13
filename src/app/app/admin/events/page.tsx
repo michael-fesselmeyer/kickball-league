@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { db } from "@/db/client";
 import { leagueEvents } from "@/db/queries/events";
 import { currentLeague } from "@/db/queries/seasons";
+import { audienceTag } from "@/domain/events/audience";
 import { KIND_LABELS, whenLine } from "@/domain/events/event";
 import { requirePermission } from "@/lib/auth/permission";
 
@@ -23,7 +24,7 @@ async function AdminEvents({ searchParams }: PageProps<"/app/admin/events">) {
   await requirePermission("event.manage", { next: "/app/admin/events" });
   const query = await searchParams;
   const league = await currentLeague(db);
-  const events = league ? await leagueEvents(db, league.id) : [];
+  const events = league ? await leagueEvents(db, league.id, "all") : [];
   const timeZone = league?.timeZone ?? "America/New_York";
   const now = new Date();
   const upcoming = events.filter((e) => e.endsAt > now);
@@ -60,8 +61,13 @@ async function AdminEvents({ searchParams }: PageProps<"/app/admin/events">) {
                   {e.title}
                 </Link>
                 <span className="block text-small text-text-muted">
-                  {KIND_LABELS[e.kind]}
-                  {e.cancelledAt ? " · called off" : ""}
+                  {[
+                    KIND_LABELS[e.kind],
+                    audienceTag(e.audience),
+                    e.cancelledAt ? "called off" : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </span>
               </td>
               <td className="py-2 pr-3 text-small">{whenLine(e, timeZone)}</td>
@@ -93,7 +99,8 @@ async function AdminEvents({ searchParams }: PageProps<"/app/admin/events">) {
         </Link>
         <h1 className="text-h1">Events</h1>
         <p className="text-text-muted">
-          Bar nights, BBQs, tournaments and theme weeks. Theme weeks show on the
+          Parties, bar nights, BBQs, tournaments and theme weeks. Each event is
+          for everyone, all members or chosen teams; theme weeks show on the
           public schedule for their game days.
         </p>
         <p>

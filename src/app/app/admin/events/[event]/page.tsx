@@ -2,10 +2,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { CopyForWhatsApp } from "@/components/share";
 import { db } from "@/db/client";
+import { audienceChoices, audienceNames } from "@/db/queries/event-audience";
 import { eventAttendees, eventBySlug } from "@/db/queries/events";
-import { eventFormValues, whenLine } from "@/domain/events/event";
+import {
+  audienceLine,
+  audienceShareLine,
+  inviteHost,
+  reachFormValues,
+} from "@/domain/events/audience";
+import { eventFormValues, KIND_LABELS, whenLine } from "@/domain/events/event";
+import { eventShareText } from "@/domain/share/share-text";
+import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
+import { absoluteUrl, siteOrigin } from "@/lib/site";
 import {
   cancelEventAction,
   deleteEventAction,
@@ -42,9 +53,16 @@ async function AdminEvent({
   await requirePermission("event.manage", {
     next: `/app/admin/events/${slug}`,
   });
-  const e = await eventBySlug(db, slug);
+  const e = await eventBySlug(db, slug, "all");
   if (!e) notFound();
-  const attendees = await eventAttendees(db, e.id);
+  const [attendees, choices, names] = await Promise.all([
+    eventAttendees(db, e.id),
+    audienceChoices(db, e.leagueId),
+    audienceNames(db, e.audience),
+  ]);
+  const isPublic = e.audience.kind === "public";
+  const told =
+    typeof query.told === "string" ? ` ${toldLine(Number(query.told))}` : "";
   const going = attendees.filter((a) => a.status === "going");
   const waiting = attendees.filter((a) => a.status === "waitlisted");
   const error =
@@ -52,13 +70,29 @@ async function AdminEvent({
   const promoted = Number(query.promoted ?? 0);
   const saved =
     query.saved === "created"
-      ? "Event created. It's on the events page now."
+      ? `Event created. ${isPublic ? "It's on the events page now." : "The people it's for see it in the app now."}${told}`
       : query.saved === "updated"
-        ? `Saved.${promoted > 0 ? ` ${promoted} ${promoted === 1 ? "person" : "people"} moved up from the waitlist and got an email.` : ""}`
+        ? `Saved.${promoted > 0 ? ` ${promoted} ${promoted === 1 ? "person" : "people"} moved up from the waitlist and got an email.` : ""}${told}`
         : query.saved === "cancelled"
           ? `Called off. ${Number(query.notified ?? 0)} people got an email.`
           : undefined;
   const themeWeek = e.kind === "theme_week";
+  const origin = siteOrigin(env.BETTER_AUTH_URL);
+  const shareText = eventShareText({
+    title: e.title,
+    kind: KIND_LABELS[e.kind],
+    when: whenLine(e, e.timeZone),
+    place: e.place,
+    audience: audienceShareLine(e.audience, names),
+    invite: e.inviteUrl
+      ? { host: inviteHost(e.inviteUrl), url: e.inviteUrl }
+      : null,
+    url: absoluteUrl(
+      origin,
+      isPublic ? `/events/${e.slug}` : `/app/events/${e.slug}`,
+    ),
+    cancelled: e.cancelledAt !== null,
+  });
 
   return (
     <>
@@ -71,11 +105,20 @@ async function AdminEvent({
         </Link>
         <h1 className="text-h1">{e.title}</h1>
         <p>{whenLine(e, e.timeZone)}</p>
+        <p>
+          <span className="font-bold">For:</span>{" "}
+          {audienceLine(e.audience, names)}
+        </p>
+        {e.inviteUrl && (
+          <p className="break-all">
+            <span className="font-bold">Invite:</span> {e.inviteUrl}
+          </p>
+        )}
         <Link
-          href={`/events/${e.slug}`}
+          href={isPublic ? `/events/${e.slug}` : `/app/events/${e.slug}`}
           className="inline-flex min-h-11 items-center self-start underline"
         >
-          Public page
+          {isPublic ? "Public page" : "Event page in the app"}
         </Link>
       </header>
 
@@ -95,7 +138,21 @@ async function AdminEvent({
         </p>
       )}
 
-      {!themeWeek && (
+      <section
+        aria-labelledby="share"
+        className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4"
+      >
+        <h2 id="share" className="text-h3">
+          For the group chat
+        </h2>
+        <p className="text-small text-text-muted">
+          A ready-to-paste message with the date, place
+          {e.inviteUrl ? ", invite link" : ""} and the event&apos;s page.
+        </p>
+        <CopyForWhatsApp text={shareText} about={e.title} />
+      </section>
+
+      {!themeWeek && e.inAppRsvp && (
         <section aria-labelledby="who" className="flex flex-col gap-3">
           <h2 id="who" className="text-h2">
             Who&apos;s coming ({going.length}
@@ -130,7 +187,10 @@ async function AdminEvent({
         <EventFormFields
           action={updateEventAction.bind(null, e.slug)}
           values={eventFormValues(e, e.timeZone)}
+          reach={reachFormValues(e, choices)}
+          choices={choices}
           submitLabel="Save changes"
+          announceLabel="Email everyone it's for about this change"
         />
       </section>
 
@@ -194,4 +254,10 @@ async function AdminEvent({
       </section>
     </>
   );
+}
+
+/** How many people the admin's message went to. */
+function toldLine(n: number): string {
+  if (n === 0) return "No one new to email.";
+  return `${n === 1 ? "1 person" : `${n} people`} will get an email.`;
 }

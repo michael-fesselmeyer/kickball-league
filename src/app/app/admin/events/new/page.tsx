@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { db } from "@/db/client";
+import { audienceChoices } from "@/db/queries/event-audience";
+import { currentLeague } from "@/db/queries/seasons";
+import { blankReach } from "@/domain/events/audience";
 import { requirePermission } from "@/lib/auth/permission";
 import { createEventAction } from "../actions";
 import { EventFormFields } from "../event-form";
@@ -40,11 +45,17 @@ export default function NewEventPage() {
 
 async function NewEvent() {
   await requirePermission("event.manage", { next: "/app/admin/events/new" });
+  const league = await currentLeague(db);
+  if (!league) notFound();
+  const choices = await audienceChoices(db, league.id);
   return (
     <EventFormFields
       action={createEventAction}
       values={BLANK}
+      reach={blankReach(choices)}
+      choices={choices}
       submitLabel="Create event"
+      announceLabel="Email everyone it's for"
     />
   );
 }
