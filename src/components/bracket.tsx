@@ -112,11 +112,14 @@ export function BracketBoard({
   bracket,
   link = true,
   headingLevel = 2,
+  name,
 }: {
   bracket: BracketView;
   link?: boolean;
   /** The round names' heading level, below the page's own headings. */
   headingLevel?: 2 | 3;
+  /** Whose bracket, when a page shows one per division. */
+  name?: string;
 }) {
   const Heading = headingLevel === 2 ? "h2" : "h3";
   const columns = boardColumns(bracket.size, bracket.matches);
@@ -125,7 +128,7 @@ export function BracketBoard({
     <div
       className={styles.scroller}
       role="region"
-      aria-label="Playoff bracket; scrolls sideways on small screens"
+      aria-label={`${name ? `${name} bracket` : "Playoff bracket"}; scrolls sideways on small screens`}
       // A scrolling region must be reachable by keyboard, even with no links.
       // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
       tabIndex={0}
@@ -204,7 +207,18 @@ export function BracketBoard({
 }
 
 /** The same bracket as a plain list, round by round. */
-export function BracketList({ bracket }: { bracket: BracketView }) {
+export function BracketList({
+  bracket,
+  headingLevel = 2,
+  idPrefix = "",
+}: {
+  bracket: BracketView;
+  /** The round names' heading level, below the page's own headings. */
+  headingLevel?: 2 | 3;
+  /** Keeps ids unique when a page shows one bracket per division. */
+  idPrefix?: string;
+}) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   const columns = boardColumns(bracket.size, bracket.matches);
   const seedTeam = new Map(bracket.seeds.map((s) => [s.seed, s.team]));
   const name = (side: Side, source: BracketViewMatch["sourceA"]) =>
@@ -216,12 +230,12 @@ export function BracketList({ bracket }: { bracket: BracketView }) {
       {columns.map(({ round, cells }) => (
         <section
           key={round}
-          aria-labelledby={`round-${round}`}
+          aria-labelledby={`${idPrefix}round-${round}`}
           className="flex flex-col gap-2"
         >
-          <h2 id={`round-${round}`} className="text-h3">
+          <Heading id={`${idPrefix}round-${round}`} className="text-h3">
             {roundName(round, bracket.rounds)}
-          </h2>
+          </Heading>
           <ul className="flex flex-col gap-2">
             {cells.map((cell, i) => {
               if (cell.kind === "bye") {
@@ -275,7 +289,8 @@ export function Champion({ bracket }: { bracket: BracketView }) {
   return (
     <p className={`sticker ${styles.champion}`}>
       <span aria-hidden="true">🏆</span>
-      {bracket.champion.name}: champions
+      {bracket.champion.name}:{" "}
+      {bracket.division ? `${bracket.division.name} champions` : "champions"}
     </p>
   );
 }

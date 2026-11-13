@@ -4,7 +4,11 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { BracketBoard, Champion } from "@/components/bracket";
 import { db } from "@/db/client";
-import { bracketView, playoffPreview } from "@/db/queries/playoffs";
+import {
+  bracketViews,
+  playoffPreview,
+  type SeedingRow,
+} from "@/db/queries/playoffs";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import {
   byeSeeds,
@@ -34,7 +38,7 @@ const ERRORS: Record<string, string> = {
   no_schedule: "Publish the regular-season schedule first.",
   already_published: "This season's bracket is already published.",
   too_few_teams:
-    "That many teams can't make it. Pick at least 2 and no more than the teams still in the season.",
+    "That many teams can't make it. Pick at least 2 (1 a division with a combined final) and no more than the teams still in the season, or in the smallest division.",
   no_slots:
     "No free slots on or after that date. Add a permit for playoff day on the fields page.",
   no_bracket: "Make a bracket first.",
@@ -53,10 +57,11 @@ async function Playoffs({
   await requirePermission("schedule.manage", { next: page });
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
-  const [preview, bracket] = await Promise.all([
+  const [preview, brackets] = await Promise.all([
     playoffPreview(db, season.id),
-    bracketView(db, season.id, { includeDraft: true }),
+    bracketViews(db, season.id, { includeDraft: true }),
   ]);
+  const [bracket] = brackets;
   if (!preview) notFound();
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
@@ -65,12 +70,22 @@ async function Playoffs({
     : query.published
       ? "Bracket published. Winners move on as scores become final."
       : null;
-  const canSeed = !bracket || bracket.status === "draft";
-  // Re-seeding starts from the draft's size, or the league's default.
-  const defaultTeams = Math.max(
-    MIN_PLAYOFF_TEAMS,
-    bracket?.size ?? preview.defaultTeams,
+  const canSeed = brackets.every((b) => b.status === "draft");
+  const divided = preview.mode !== "single";
+  // Re-seeding starts from the draft's size, or the league's default; with
+  // two divisions in one bracket, each sends half of it.
+  const lowest = preview.mode === "halves" ? 1 : MIN_PLAYOFF_TEAMS;
+  const drafted = bracket
+    ? preview.mode === "halves"
+      ? bracket.size / 2
+      : bracket.size
+    : null;
+  const defaultTeams = Math.max(lowest, drafted ?? preview.defaultTeams);
+  const highest = Math.min(
+    preview.mode === "halves" ? MAX_PLAYOFF_TEAMS / 2 : MAX_PLAYOFF_TEAMS,
+    preview.eligibleCount,
   );
+  const inBracket = preview.mode === "halves" ? 2 * defaultTeams : defaultTeams;
 
   return (
     <>
@@ -103,12 +118,20 @@ async function Playoffs({
         <section aria-labelledby="bracket" className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 id="bracket" className="text-h2">
-              {bracket.status === "draft" ? "Draft bracket" : "Bracket"}
+              {bracket.status === "draft"
+                ? brackets.length > 1
+                  ? "Draft brackets"
+                  : "Draft bracket"
+                : brackets.length > 1
+                  ? "Brackets"
+                  : "Bracket"}
             </h2>
             {bracket.status === "draft" ? (
               <form action={publishDraftBracket.bind(null, slug)}>
                 <button type="submit" className="btn btn-primary">
-                  Publish the bracket
+                  {brackets.length > 1
+                    ? "Publish the brackets"
+                    : "Publish the bracket"}
                 </button>
               </form>
             ) : (
@@ -120,15 +143,25 @@ async function Playoffs({
               </Link>
             )}
           </div>
-          <Champion bracket={bracket} />
-          {bracket.diagnostics.length > 0 && (
-            <ul className="list-disc pl-5 text-small">
-              {bracket.diagnostics.map((d) => (
-                <li key={d}>{d}</li>
-              ))}
-            </ul>
-          )}
-          <BracketBoard bracket={bracket} link={false} headingLevel={3} />
+          {brackets.map((b) => (
+            <div key={b.id} className="flex flex-col gap-4">
+              {b.division && <h3 className="text-h3">{b.division.name}</h3>}
+              <Champion bracket={b} />
+              {b.diagnostics.length > 0 && (
+                <ul className="list-disc pl-5 text-small">
+                  {b.diagnostics.map((d) => (
+                    <li key={d}>{d}</li>
+                  ))}
+                </ul>
+              )}
+              <BracketBoard
+                bracket={b}
+                link={false}
+                headingLevel={3}
+                {...(b.division ? { name: b.division.name } : {})}
+              />
+            </div>
+          ))}
           {bracket.status === "draft" && (
             <p className="text-small text-text-muted">
               Publishing puts the first games on the schedule and moves the
@@ -162,12 +195,12 @@ async function Playoffs({
               className="flex flex-wrap items-end gap-4"
             >
               <label className="flex flex-col gap-1">
-                Teams in the playoffs
+                {divided ? "Teams from each division" : "Teams in the playoffs"}
                 <input
                   name="teams"
                   type="number"
-                  min={MIN_PLAYOFF_TEAMS}
-                  max={Math.min(MAX_PLAYOFF_TEAMS, preview.eligibleCount)}
+                  min={lowest}
+                  max={highest}
                   required
                   defaultValue={defaultTeams}
                   className="min-h-11 w-24 rounded-input border border-border-strong bg-surface px-3"
@@ -188,61 +221,105 @@ async function Playoffs({
                 </select>
               </label>
               <button type="submit" className="btn btn-primary">
-                {bracket ? "Replace the draft" : "Make the bracket"}
+                {bracket
+                  ? "Replace the draft"
+                  : divided && preview.mode === "per_division"
+                    ? "Make the brackets"
+                    : "Make the bracket"}
               </button>
             </form>
           )}
           <p className="text-small text-text-muted">
-            With {defaultTeams} teams,{" "}
-            {byeSeeds(defaultTeams).length === 0
+            {preview.mode === "halves"
+              ? `Each division's teams fill one half of the bracket, so the division champions meet in the final. With ${inBracket} teams, `
+              : preview.mode === "per_division"
+                ? `Each division gets its own bracket and champion. With ${inBracket} teams in each, `
+                : `With ${inBracket} teams, `}
+            {byeSeeds(inBracket).length === 0
               ? "nobody gets a bye."
-              : `seeds ${byeSeeds(defaultTeams).join(", ")} get a first-round bye.`}{" "}
-            Teams that withdrew are skipped.
+              : `seeds ${byeSeeds(inBracket).join(", ")} get a first-round bye.`}{" "}
+            Teams that withdrew are skipped
+            {divided ? ", and so are teams with no division" : ""}.
           </p>
-          <table className="w-full max-w-xl text-left tabular-nums">
-            <caption className="sr-only">Standings used for seeding</caption>
-            <thead className="text-small text-text-muted">
-              <tr>
-                <th scope="col" className="py-2 pr-2">
-                  #
-                </th>
-                <th scope="col">Team</th>
-                <th scope="col" className="text-right">
-                  W-L-T
-                </th>
-                <th scope="col" className="text-right">
-                  Seed
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                let seed = 0;
-                return preview.standings.map((r) => {
-                  const s = r.eligible ? ++seed : null;
-                  return (
-                    <tr key={r.teamId} className="border-t border-border">
-                      <td className="py-2 pr-2 text-text-muted">{r.rank}</td>
-                      <th scope="row" className="font-normal">
-                        {r.name}
-                        {!r.eligible && (
-                          <span className="text-text-muted"> (withdrawn)</span>
-                        )}
-                      </th>
-                      <td className="text-right">
-                        {r.wins}-{r.losses}-{r.ties}
-                      </td>
-                      <td className="text-right">
-                        {s !== null && s <= defaultTeams ? s : "–"}
-                      </td>
-                    </tr>
-                  );
-                });
-              })()}
-            </tbody>
-          </table>
+          {divided ? (
+            preview.divisions.map((d) => (
+              <section
+                key={d.id}
+                aria-labelledby={`seeding-${d.id}`}
+                className="flex flex-col gap-2"
+              >
+                <h3 id={`seeding-${d.id}`} className="text-h3">
+                  {d.name}
+                </h3>
+                <SeedingTable
+                  rows={d.standings}
+                  cut={defaultTeams}
+                  caption={`${d.name} standings used for seeding`}
+                />
+              </section>
+            ))
+          ) : (
+            <SeedingTable
+              rows={preview.standings}
+              cut={defaultTeams}
+              caption="Standings used for seeding"
+            />
+          )}
         </section>
       )}
     </>
+  );
+}
+
+/** Standings in rank order, with the place each team would be seeded. */
+function SeedingTable({
+  rows,
+  cut,
+  caption,
+}: {
+  rows: SeedingRow[];
+  /** Teams that make it. */
+  cut: number;
+  caption: string;
+}) {
+  let seed = 0;
+  return (
+    <table className="w-full max-w-xl text-left tabular-nums">
+      <caption className="sr-only">{caption}</caption>
+      <thead className="text-small text-text-muted">
+        <tr>
+          <th scope="col" className="py-2 pr-2">
+            #
+          </th>
+          <th scope="col">Team</th>
+          <th scope="col" className="text-right">
+            W-L-T
+          </th>
+          <th scope="col" className="text-right">
+            Seed
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => {
+          const s = r.eligible ? ++seed : null;
+          return (
+            <tr key={r.teamId} className="border-t border-border">
+              <td className="py-2 pr-2 text-text-muted">{r.rank}</td>
+              <th scope="row" className="font-normal">
+                {r.name}
+                {!r.eligible && (
+                  <span className="text-text-muted"> (withdrawn)</span>
+                )}
+              </th>
+              <td className="text-right">
+                {r.wins}-{r.losses}-{r.ties}
+              </td>
+              <td className="text-right">{s !== null && s <= cut ? s : "–"}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
   );
 }
