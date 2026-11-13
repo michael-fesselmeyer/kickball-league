@@ -76,6 +76,7 @@ Rules:
 - Body text meets 4.5:1 and large text and control outlines meet 3:1, which is WCAG 2.2 AA, on every background (`--bg`, `--surface`, `--surface-2`). A unit test (`src/design/tokens.test.ts`) checks every pair in both themes. It caught three values that passed on `--bg` but not on `--surface-2`; `--success`, `--warning` and dark `--border-strong` were adjusted slightly.
 - The theme follows the system setting, with a manual switch stored per device.
 - Color never carries meaning alone. A paid status is a green dot **and** the word "Paid"; a win is bold **and** marked "W".
+- Charts use two series tokens, `--chart-1` (blue: light `#2A78D6`, dark `#3987E5`) and `--chart-2` (orange: light `#D4561F`, dark `#D95926`). The pair was checked for lightness, chroma and separation under each kind of color blindness, and each meets 3:1 on every background (the token test). A chart has at most these two series, always a legend and the numbers beside the bars, so color is never the only cue; charts are drawn on the server (the owner dashboard).
 - Team colors are chosen by captains and are never used for text. They appear as a badge fill or a 4px stripe, and the badge picks dark or light initials by computed contrast.
 
 ## 3. Typography

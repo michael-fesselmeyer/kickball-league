@@ -13,6 +13,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       ├── schedule                Full schedule, filter by team or date; theme weeks marked on their game days
 │       ├── standings               Standings, tiebreaker notes, power rankings and the game of the week
 │       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list)
+│       ├── money                   Where the money goes: the season's spending by category and how each fee divides, only once an owner publishes it (404 until then)
 │       └── register                Register a team, join by invite, or free agent
 ├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries, all-time record and titles, tagged Instagram photos and the team's cover
 │   ├── calendar.ics                Team calendar feed: every published game, in the league's time zone
@@ -92,6 +93,10 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │   │       └── request.csv         The request sheet as a CSV, with the screen's choices
 │   ├── permits                     Opens the newest season's permits (where the reminder emails point)
 │   └── files/[file]                A receipt, permit document or certificate, for owners and the operator
+├── owner/                          Owner dashboard: owners and the platform operator only (404 for everyone else); opens on the newest season past draft
+│   └── [season]                    Membership by season (new, returning, retention), money in and out by season, the season's teams (roster against target, waivers, payments), event turnout and sponsor check-ins by week; "Refresh now"
+│       ├── dashboard.csv           The same numbers, one per line: counts and totals only
+│       └── summary                 The season money summary: fold categories into Other, preview exactly what goes public, publish, publish again or take it down
 ├── ref/                            Assignments, availability, earnings
 ├── sponsor/                        The sponsors a person manages (admins: every sponsor, and add one)
 │   └── [sponsor]/                  Sponsor portal: deals, "still current", details; admins also page address, home bar and people
@@ -333,6 +338,9 @@ Rules:
 | Awards (player) | One card per open poll: the award, when it closes, and a team-grouped picker with one Cast vote button; after voting, your pick and "results when voting closes". Closed polls link to results | Same, picker and button on one line |
 | Award results | The winner (or everyone tied) in a highlighted box, then every nominee with place, votes and a bar | Same |
 | Ref home | Today's assignments with accept and decline; "enter score" on each | Same |
+| Owner dashboard | Four headline numbers per section, then one table per chart: each row's bar sits under its label so nothing scrolls sideways; the week chart with its table in a fold-out | Same, no wider than 896px |
+| Money summary (owners) | What it is and whether it is published, the fold-into-Other checkboxes, the preview in a dashed box, then Publish and Take it down | Same, no wider than 768px |
+| Where the money goes (public) | Collected and spent, a table of categories with a bar and share each, then each fee split into the same lines | Same, no wider than 768px |
 | Books (owners) | The ledger as a two-column table, then "Add an expense" (date, amount, category, note, a receipt photo from the camera or saved photos), then the season's expenses with their receipts | Same, no wider than 768px |
 | Permits (owners) | A red box listing games on a lost permit, with a button to the schedule board; one card per permit with an Edit fold-out; the request form, sheet and copy button; the insurance certificate | Same |
 | Park permit (ref and captains) | The permit number large, the field and hours, then the permit's photo full width (or a button to open its PDF); a saved copy when offline | Same, no wider than a phone |
