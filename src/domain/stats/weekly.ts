@@ -3,7 +3,7 @@ import { localDay, type PublicGame } from "@/domain/schedule/public-game";
 import { gameOfTheWeek, nextGameDay, pickBlurb } from "./game-of-the-week";
 import type { StatGame } from "./games";
 import { powerRankingsWithMovement } from "./power";
-import { type Recap, weeklyRecap } from "./recap";
+import { type Recap, type RecapInput, weeklyRecap } from "./recap";
 import { leagueRecords, recordsSetIn } from "./records";
 import { matchupsFrom, statGamesFrom, teamsFrom } from "./season";
 import { teamStreaks } from "./streaks";
@@ -36,7 +36,13 @@ export type DraftInput = {
   link: string | null;
 };
 
-export function recapDraft(input: DraftInput): Recap {
+/**
+ * Everything the recap is written from, for one game day: what the template
+ * draft reads, plus the season's games through that day.
+ */
+export function recapInputFor(
+  input: DraftInput,
+): RecapInput & { seasonGames: StatGame[] } {
   const dayOf = (d: Date) => localDay(d, input.timeZone);
   const season = statGamesFrom(input.schedule).filter(
     (g) => g.kind === "regular",
@@ -62,7 +68,7 @@ export function recapDraft(input: DraftInput): Recap {
       ? `${name(picked.teamA)} vs ${name(picked.teamB)}, ${fullWhen(picked.startsAt, input.timeZone)}. ${pickBlurb(pick.reason, name(picked.teamA), name(picked.teamB))}`
       : null;
 
-  return weeklyRecap({
+  return {
     seasonName: input.seasonName,
     dayLabel: dayHeading(input.day),
     games: onDay,
@@ -75,5 +81,10 @@ export function recapDraft(input: DraftInput): Recap {
     ),
     nextUp,
     link: input.link,
-  });
+    seasonGames: throughDay,
+  };
+}
+
+export function recapDraft(input: DraftInput): Recap {
+  return weeklyRecap(recapInputFor(input));
 }
