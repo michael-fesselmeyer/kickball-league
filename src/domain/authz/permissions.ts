@@ -166,6 +166,7 @@ const RULES = {
   "refund.issue": isAdmin,
   "audit.read": isAdmin,
   "shirts.manage": isAdmin,
+  "awards.manage": isAdmin,
   // The owner alone
   "billing.manage": isOwner,
   "admins.manage": isOwner,

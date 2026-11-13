@@ -171,6 +171,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Approve referees, assign games, record payouts | — | — | — | — | — | ✓ | ✓ |
 | View own referee earnings | — | — | — | own | — | — | — |
 | Vote in awards | — | ✓ (rostered) | ✓ | — | — | — | — |
+| Open, close and remove awards polls | — | — | — | — | — | ✓ | ✓ |
 | Suspend a player, log an incident | — | — | — | log only, assigned | — | ✓ | ✓ |
 | Issue a refund or league credit | — | — | — | — | — | ✓ | ✓ |
 | Set prices, connect Stripe, change refund policy | — | — | — | — | — | — | ✓ |
