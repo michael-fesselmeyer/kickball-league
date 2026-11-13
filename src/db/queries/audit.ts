@@ -1,5 +1,8 @@
+import { and, desc, eq, like, lt } from "drizzle-orm";
 import type { UserId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
+import { user } from "../schema/auth";
+import { profile } from "../schema/profile";
 import type { Db } from "./schedule";
 
 export type AuditEntry = {
@@ -27,4 +30,67 @@ export async function recordAudit(db: Db, entry: AuditEntry): Promise<void> {
     after: entry.after ?? null,
     ip: entry.ip ?? null,
   });
+}
+
+export type AuditRow = {
+  id: string;
+  action: string;
+  entityType: string;
+  actorEmail: string | null;
+  actorName: string | null;
+  before: unknown;
+  after: unknown;
+  occurredAt: Date;
+};
+
+/**
+ * The audit log, newest first, `limit` at a time. Pass the oldest
+ * `occurredAt` already shown as `before` for the next page. With
+ * `operatorOnly`, just the platform operator's actions (ADR 0009).
+ */
+export async function auditLogPage(
+  db: Db,
+  options: {
+    before?: Date | undefined;
+    limit?: number;
+    operatorOnly?: boolean;
+  } = {},
+): Promise<{ rows: AuditRow[]; more: boolean }> {
+  const limit = options.limit ?? 50;
+  const found = await db
+    .select({
+      id: auditLog.id,
+      action: auditLog.action,
+      entityType: auditLog.entityType,
+      actorEmail: user.email,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      before: auditLog.before,
+      after: auditLog.after,
+      occurredAt: auditLog.occurredAt,
+    })
+    .from(auditLog)
+    .leftJoin(user, eq(user.id, auditLog.actorId))
+    .leftJoin(profile, eq(profile.userId, auditLog.actorId))
+    .where(
+      and(
+        options.before ? lt(auditLog.occurredAt, options.before) : undefined,
+        options.operatorOnly ? like(auditLog.action, "operator.%") : undefined,
+      ),
+    )
+    .orderBy(desc(auditLog.occurredAt), desc(auditLog.id))
+    .limit(limit + 1);
+  return {
+    rows: found.slice(0, limit).map((r) => ({
+      id: r.id,
+      action: r.action,
+      entityType: r.entityType,
+      actorEmail: r.actorEmail,
+      actorName: [r.firstName, r.lastName].filter(Boolean).join(" ") || null,
+      before: r.before,
+      after: r.after,
+      occurredAt: r.occurredAt,
+    })),
+    more: found.length > limit,
+  };
 }
