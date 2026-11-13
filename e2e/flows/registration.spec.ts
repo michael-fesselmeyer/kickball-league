@@ -2,16 +2,20 @@ import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { completeProfile, pageAs } from "../support/personas";
 import {
+  moveDeadline,
   openCheckoutSession,
+  sendCardSaved,
   sendChargeRefunded,
   sendCheckoutCompleted,
+  sendGuaranteeCharged,
 } from "../support/stripe-webhook";
 
 /**
  * A new season, from the admin opening registration to a captain paying
  * their share of a split team fee, a free agent paying their fee with a
  * promo code, and the admin refunding part of one payment and all of the
- * other. Stripe calls go to stripe-mock, and Stripe's webhook is sent by the
+ * other. Then money, part two: league credit, the team waitlist, and the
+ * captain's saved card paying the team's balance at the deadline. Stripe calls go to stripe-mock, and Stripe's webhook is sent by the
  * test, signed with the flows server's test secret, so nothing leaves the
  * machine.
  */
@@ -374,5 +378,157 @@ test("an admin refunds part of one payment and all of another through Stripe", a
   await expect(page.getByRole("row", { name: /KICKOFF10/ })).toContainText(
     "1 of 5",
   );
+  await page.context().close();
+});
+
+test("an admin gives a player league credit, and the player sees it", async ({
+  browser,
+}) => {
+  const admin = await pageAs(browser, "Admin");
+  await admin.goto("/app/admin/credit");
+  await expectNoAxeViolations(admin);
+  await admin.getByLabel("Player's email").fill("pat.player@example.test");
+  await admin.getByLabel("Amount in dollars").fill("10");
+  await admin
+    .getByLabel("Why (the player sees this)")
+    .fill("Thanks for lining the fields");
+  await admin.getByRole("button", { name: "Give credit" }).click();
+  await expect(admin.getByRole("status")).toContainText("Credit given.");
+  await expect(
+    admin.getByRole("region", { name: "Who holds credit" }),
+  ).toContainText("pat.player@example.test");
+  await admin.context().close();
+
+  const player = await pageAs(browser, "Player");
+  await player.goto("/app/profile");
+  const credit = player.getByRole("region", { name: "League credit" });
+  await expect(credit).toContainText("$10 comes off your next fee");
+  await expect(credit).toContainText("Thanks for lining the fields");
+  await player.getByRole("button", { name: "Get my invite link" }).click();
+  await expect(
+    player.getByRole("region", { name: /Bring a friend/ }),
+  ).toContainText(/\/r\/[A-Z2-9]{8}/);
+  await expectNoAxeViolations(player);
+  await player.context().close();
+});
+
+test("a full season sends the next captain to the waitlist, then offers a spot", async ({
+  browser,
+}) => {
+  const admin = await pageAs(browser, "Admin");
+  const setLimit = async (teams: string) => {
+    await admin.goto(`/app/admin/seasons/${SEASON_SLUG}`);
+    await admin.getByLabel("Most teams").fill(teams);
+    await admin.getByRole("button", { name: "Save changes" }).click();
+    await expect(admin).toHaveURL(/\?saved=1/);
+  };
+  await setLimit("1");
+
+  const ref = await pageAs(browser, "Ref");
+  await completeProfile(ref);
+  await ref.goto(`/app/seasons/${SEASON_SLUG}/register`);
+  await expect(ref.getByText("All 1 team spots are taken.")).toBeVisible();
+  await expectNoAxeViolations(ref);
+  await ref.getByLabel("Team name (optional)").fill("Whistle Blowers");
+  await ref.getByRole("button", { name: "Join the waitlist" }).click();
+  await expect(ref.getByRole("status")).toContainText(
+    "You're on the waitlist.",
+  );
+  await expect(ref.getByText("You're #1 on the waitlist")).toBeVisible();
+
+  await admin.goto(`/app/admin/seasons/${SEASON_SLUG}/waitlist`);
+  await expect(
+    admin.getByRole("listitem").filter({ hasText: "Reese" }),
+  ).toContainText("Whistle Blowers");
+  await expectNoAxeViolations(admin);
+
+  // A second spot opens: the first in line is offered it at once.
+  await setLimit("2");
+  await admin.goto(`/app/admin/seasons/${SEASON_SLUG}/waitlist`);
+  await expect(
+    admin.getByRole("listitem").filter({ hasText: "Reese" }),
+  ).toContainText("Offered until");
+  await ref.reload();
+  await expect(ref.getByText("A spot is yours.")).toBeVisible();
+  await expect(
+    ref.getByRole("button", { name: "Register the team" }),
+  ).toBeVisible();
+  await admin.context().close();
+  await ref.context().close();
+});
+
+test("a captain guarantees the team's balance with a saved card", async ({
+  browser,
+}) => {
+  const page = await pageAs(browser, "Captain");
+  await page.goto(`/app/seasons/${SEASON_SLUG}/team`);
+  const fee = page.getByRole("region", { name: "Team fee" });
+  await expect(fee).toContainText("$80 of $1,200 paid.");
+  await expect(fee).toContainText("$1,120 left");
+  await expectNoAxeViolations(page);
+
+  await page.route("https://checkout.stripe.com/**", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: "<!doctype html><title>Stripe Checkout</title><h1>Checkout</h1>",
+    }),
+  );
+  await fee.getByRole("button", { name: "Save a card as guarantee" }).click();
+  await expect(page).toHaveURL(/^https:\/\/checkout\.stripe\.com\//);
+
+  const eventId = `evt_e2e_card_${Date.now()}`;
+  expect(
+    await sendCardSaved(page.request, "casey.captain@example.test", eventId),
+  ).toEqual({ status: 200, outcome: "processed" });
+  expect(
+    await sendCardSaved(page.request, "casey.captain@example.test", eventId),
+  ).toEqual({ status: 200, outcome: "duplicate" });
+  await page.goto(`/app/seasons/${SEASON_SLUG}/team`);
+  await expect(fee).toContainText("Visa ending 4242 guarantees the balance.");
+  await expectNoAxeViolations(page);
+  await page.context().close();
+});
+
+test("at the deadline the captain is warned, then the saved card pays the balance", async ({
+  browser,
+}) => {
+  const page = await pageAs(browser, "Captain");
+  const runJob = async () => {
+    const response = await page.request.get("/api/jobs/guarantee-charges", {
+      headers: { authorization: "Bearer e2e-cron-placeholder" },
+    });
+    expect(response.status()).toBe(200);
+    return (await response.json()) as { warned: number; charged: number };
+  };
+
+  // Three days out, the captain is warned.
+  await moveDeadline(SEASON_SLUG, new Date(Date.now() + 3_600_000));
+  expect(await runJob()).toMatchObject({ warned: 1, charged: 0 });
+  expect(await runJob()).toMatchObject({ warned: 0, charged: 0 });
+  await page.goto(`/app/seasons/${SEASON_SLUG}/team`);
+  const fee = page.getByRole("region", { name: "Team fee" });
+  await expect(fee).toContainText(
+    "It will be charged for whatever is still unpaid on",
+  );
+
+  // 72 hours after the warning, the deadline has passed: one charge.
+  const now = Date.now();
+  await moveDeadline(
+    SEASON_SLUG,
+    new Date(now - 60_000),
+    new Date(now - 73 * 3_600_000),
+  );
+  expect(await runJob()).toMatchObject({ warned: 0, charged: 1 });
+  expect(await runJob()).toMatchObject({ charged: 0 });
+  await page.reload();
+  await expect(fee).toContainText("The deadline charge is processing.");
+
+  expect(
+    await sendGuaranteeCharged(page.request, "casey.captain@example.test"),
+  ).toEqual({ status: 200, outcome: "processed", cents: 112_000 });
+  await page.reload();
+  await expect(fee).toContainText("All paid. You're in!");
+  await expect(fee).toContainText("The deadline charge went through.");
+  await expectNoAxeViolations(page);
   await page.context().close();
 });

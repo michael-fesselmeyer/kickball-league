@@ -140,3 +140,119 @@ export async function sendChargeRefunded(
   });
   return { ...delivered, refundedCents: row.refunded };
 }
+
+/** Runs a query against the flows database. */
+async function sql<Row extends Record<string, unknown>>(
+  text: string,
+  values: unknown[],
+): Promise<Row[]> {
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    return (await client.query<Row>(text, values)).rows;
+  } finally {
+    await client.end();
+  }
+}
+
+/**
+ * Posts a signed `checkout.session.completed` for a Checkout session in
+ * setup mode, as Stripe does when a captain saves a guarantee card. The
+ * SetupIntent comes expanded with a test card, because stripe-mock's own
+ * SetupIntent has none; stripe-mock then describes the card.
+ */
+export async function sendCardSaved(
+  request: APIRequestContext,
+  email: string,
+  eventId = nextEventId(),
+): Promise<Delivery> {
+  const [row] = await sql<{ user_id: string; team_season_id: string }>(
+    `select u.id as user_id, rm.team_season_id
+       from "user" u
+       join registration r on r.user_id = u.id
+       join roster_membership rm on rm.registration_id = r.id
+      where u.email = $1 and rm.role = 'captain' and rm.status = 'active'
+      order by r.created_at desc limit 1`,
+    [email],
+  );
+  if (!row) throw new Error(`No team captained by ${email}`);
+  const session = `cs_e2e_setup_${Date.now()}`;
+  return deliver(request, {
+    id: eventId,
+    type: "checkout.session.completed",
+    object: {
+      id: session,
+      object: "checkout.session",
+      mode: "setup",
+      customer: "cus_e2e",
+      metadata: {
+        kind: "guarantee",
+        userId: row.user_id,
+        teamSeasonId: row.team_season_id,
+      },
+      setup_intent: {
+        id: `seti_${session}`,
+        object: "setup_intent",
+        customer: "cus_e2e",
+        payment_method: "pm_e2e_card",
+      },
+    },
+  });
+}
+
+/**
+ * Moves a season's payment deadline, and the guarantee warnings sent for
+ * it, as if time had passed: the flows cannot wait three days.
+ */
+export async function moveDeadline(
+  seasonSlug: string,
+  deadline: Date,
+  warnedAt?: Date,
+): Promise<void> {
+  await sql(`update season set payment_deadline_at = $2 where slug = $1`, [
+    seasonSlug,
+    deadline,
+  ]);
+  if (warnedAt)
+    await sql(
+      `update saved_payment_method spm
+          set warned_at = $2, warned_for_deadline = $3
+         from team_season ts join season s on s.id = ts.season_id
+        where spm.team_season_id = ts.id and s.slug = $1
+          and spm.removed_at is null and spm.warned_at is not null`,
+      [seasonSlug, warnedAt, deadline],
+    );
+}
+
+/**
+ * Posts a signed `payment_intent.succeeded` for the newest deadline charge
+ * of a captain's guarantee, as Stripe does once the saved card is charged.
+ */
+export async function sendGuaranteeCharged(
+  request: APIRequestContext,
+  email: string,
+  eventId = nextEventId(),
+): Promise<Delivery & { cents: number }> {
+  const [row] = await sql<{ intent: string | null; id: string; cents: number }>(
+    `select p.stripe_payment_intent_id as intent, p.id, p.total_cents as cents
+       from saved_payment_method spm
+       join purchase p on p.id = spm.charge_purchase_id
+       join "user" u on u.id = spm.user_id
+      where u.email = $1
+      order by p.created_at desc limit 1`,
+    [email],
+  );
+  if (!row?.intent) throw new Error(`No deadline charge for ${email}`);
+  const delivered = await deliver(request, {
+    id: eventId,
+    type: "payment_intent.succeeded",
+    object: {
+      id: row.intent,
+      object: "payment_intent",
+      amount: row.cents,
+      amount_received: row.cents,
+      metadata: { purchaseId: row.id },
+    },
+  });
+  return { ...delivered, cents: row.cents };
+}

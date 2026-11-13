@@ -84,6 +84,8 @@ export default defineConfig({
         STRIPE_SECRET_KEY: "sk_test_e2e",
         STRIPE_WEBHOOK_SECRET: "whsec_e2e",
         STRIPE_MOCK_URL: "http://localhost:12111",
+        // Lets the flows call the scheduled jobs; a placeholder, not a key.
+        CRON_SECRET: "e2e-cron-placeholder",
       },
     },
   ],

@@ -20,6 +20,7 @@ import { addSeedAwards } from "../src/seed/awards";
 import { addDemoPersonas, removeDemoPersonas } from "../src/seed/demo-personas";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addFreeAgentPool } from "../src/seed/free-agent-pool";
+import { removeMoneyRecords } from "../src/seed/money";
 import { canSeed } from "../src/seed/guard";
 import { addPastSeasons } from "../src/seed/past-seasons";
 import { addSeedSponsors, removeSeedSponsors } from "../src/seed/sponsors";
@@ -89,6 +90,8 @@ async function main(): Promise<void> {
             .where(eq(season.leagueId, leagueId))
         ).map((r) => r.id);
         if (seasonIds.length) {
+          // Credit, guarantees and the waitlist point at purchases and teams.
+          await removeMoneyRecords(tx, { seasonIds });
           // Money first: purchases point at registrations and teams.
           const purchaseIds = (
             await tx
@@ -209,6 +212,7 @@ async function main(): Promise<void> {
         await tx.select({ id: user.id }).from(user).where(isSeedUser)
       ).map((r) => r.id);
       if (seedUsers.length) {
+        await removeMoneyRecords(tx, { userIds: seedUsers });
         await tx
           .update(registration)
           .set({ waiverSignatureId: null })

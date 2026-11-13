@@ -3,7 +3,7 @@ import { rendererFor } from "./templates";
 
 const render = rendererFor({ siteUrl: "https://league.example.test" });
 
-const text = (name: string, payload: unknown) => {
+const text = (name: string, payload: Record<string, unknown>) => {
   const result = render(name, payload);
   if (!result.ok) throw new Error(result.error);
   return result.value;
