@@ -8,7 +8,6 @@ import { currentLeague } from "@/db/queries/seasons";
 import {
   currentScoreState,
   gameForScoring,
-  type ScoringGame,
   settleGame,
 } from "@/db/queries/scores";
 import { Pickups } from "@/components/pickups";
@@ -16,13 +15,15 @@ import { pickupsFor } from "@/db/queries/subs";
 import { hasReferee } from "@/db/queries/live-scores";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
+import { scoreVersion } from "@/domain/scores/offline";
 import { PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
 import { teamRatingFor } from "@/db/queries/discipline";
 import { canFileFor, canRate } from "@/domain/discipline/discipline";
 import { featureEnabled } from "@/lib/platform/site";
-import { respondAction, submitScoreAction } from "./actions";
+import { respondAction } from "./actions";
 import { rateSportsmanshipAction } from "./rate";
+import { GameOutbox, ScoreForm } from "./score-form";
 import { SportsmanshipForm } from "./sportsmanship-form";
 
 export const metadata: Metadata = { title: "Score" };
@@ -50,71 +51,6 @@ const ERRORS: Record<string, string> = {
   rating_note_too_long: "Keep the note under 200 characters.",
   not_final: "You can rate the other team once the score is final.",
 };
-
-const input =
-  "rounded-md border border-border bg-surface px-3 py-2 text-center text-h2 tabular-nums";
-
-function ScoreForm({ g, label }: { g: ScoringGame; label: string }) {
-  return (
-    <form
-      action={submitScoreAction.bind(null, g.id, randomUUID())}
-      className="flex flex-col gap-4 rounded-lg border border-border p-4"
-    >
-      <div className="grid grid-cols-2 gap-3">
-        {(
-          [
-            ["scoreA", g.teamAName],
-            ["scoreB", g.teamBName],
-          ] as const
-        ).map(([name, team]) => (
-          <label key={name} className="flex flex-col gap-1 text-center">
-            <span className="truncate">{team}</span>
-            <input
-              name={name}
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={99}
-              required
-              className={input}
-            />
-          </label>
-        ))}
-      </div>
-      <label className="flex flex-col gap-1">
-        Result
-        <select
-          name="outcome"
-          defaultValue="normal"
-          className="rounded-md border border-border bg-surface px-2 py-2"
-        >
-          <option value="normal">Played to the end</option>
-          <option value="called">Called early</option>
-          <option value="forfeit_a">{g.teamAName} forfeited</option>
-          <option value="forfeit_b">{g.teamBName} forfeited</option>
-        </select>
-      </label>
-      <label className="flex flex-col gap-1">
-        Complete innings, if called early
-        <input
-          name="inningsPlayed"
-          type="number"
-          inputMode="numeric"
-          min={4}
-          max={20}
-          className="w-24 rounded-md border border-border bg-surface px-2 py-1"
-        />
-        <span className="text-small text-text-muted">
-          A called game counts after 4 complete innings, with the score at the
-          last complete inning. For a forfeit, leave the runs at 0.
-        </span>
-      </label>
-      <button type="submit" className="btn btn-primary">
-        {label}
-      </button>
-    </form>
-  );
-}
 
 /** "Mon, Sep 14, 8:00 PM" in the league's time zone. */
 const whenIn = (timeZone: string) => (d: Date) =>
@@ -192,6 +128,12 @@ async function Score({
         : `${g.teamAName} ${r.scoreA}, ${g.teamBName} ${r.scoreB}${r.outcome === "called" ? ` (called after ${r.inningsPlayed} innings)` : ""}`;
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
+  const form = {
+    g: { id: g.id, teamAName: g.teamAName, teamBName: g.teamBName },
+    clientId: randomUUID(),
+    version: scoreVersion(history.reports, history.responses),
+    userId: subject.userId,
+  };
   const pickups = can(subject, "sub_request.view_pickups", ctx)
     ? (await pickupsFor(db, [g.id])).get(g.id)
     : undefined;
@@ -232,6 +174,7 @@ async function Score({
           Kicking orders
         </Link>
       </header>
+      <GameOutbox gameId={g.id} />
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
           {error}
@@ -335,7 +278,7 @@ async function Score({
 
       {mayEnter &&
         (state.state === "none" ? (
-          <ScoreForm g={g} label="Save the score" />
+          <ScoreForm {...form} label="Save the score" />
         ) : state.state !== "final" || isAdmin ? (
           <details className="rounded-lg border border-border p-3">
             <summary>
@@ -345,7 +288,7 @@ async function Score({
             </summary>
             <div className="mt-3">
               <ScoreForm
-                g={g}
+                {...form}
                 label={isAdmin ? "Save as the final score" : "Save the score"}
               />
             </div>
