@@ -15,6 +15,7 @@ import {
 import type {
   FieldId,
   GameId,
+  GamePeriodId,
   GameRsvpId,
   LeagueId,
   PermitWindowId,
@@ -170,6 +171,13 @@ export const game = pgTable(
       .$type<TeamSeasonId>()
       .references(() => teamSeason.id, { onDelete: "restrict" }),
     finalizedAt: timestamp({ withTimezone: true }),
+    /**
+     * The team that kicks in the top of each inning, decided at the field and
+     * set when live scoring starts. Null until then.
+     */
+    kicksFirst: uuid()
+      .$type<TeamSeasonId>()
+      .references(() => teamSeason.id, { onDelete: "restrict" }),
     ...audit(),
   },
   (t) => [
@@ -185,6 +193,10 @@ export const game = pgTable(
     check(
       "game_final_has_score",
       sql`${t.status} <> 'final' or (${t.scoreA} is not null and ${t.scoreB} is not null and ${t.finalizedAt} is not null)`,
+    ),
+    check(
+      "game_kicks_first_a_team",
+      sql`${t.kicksFirst} is null or ${t.kicksFirst} in (${t.teamAId}, ${t.teamBId})`,
     ),
     check(
       "game_forfeit_by_a_team",
@@ -275,6 +287,38 @@ export const scoreResponse = pgTable(
   (t) => [unique("score_response_once").on(t.scoreReportId, t.teamSeasonId)],
 );
 
+export const periodHalf = pgEnum("game_period_half", ["top", "bottom"]);
+
+/**
+ * The runs scored in one half-inning, entered live by the ref or a captain
+ * (docs/data-model.md, section 2.2). One row per half; a correction updates
+ * the row. Named for periods, not innings, so another sport can reuse it.
+ */
+export const gamePeriod = pgTable(
+  "game_period",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<GamePeriodId>(),
+    gameId: uuid()
+      .notNull()
+      .$type<GameId>()
+      .references(() => game.id, { onDelete: "cascade" }),
+    /** The inning, from 1. */
+    periodNo: integer().notNull(),
+    half: periodHalf().notNull(),
+    runs: integer().notNull(),
+    /** Who entered or last corrected it. */
+    enteredBy: uuid()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "set null" }),
+    enteredAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    unique("game_period_once").on(t.gameId, t.periodNo, t.half),
+    check("game_period_no_range", sql`${t.periodNo} between 1 and 20`),
+    check("game_period_runs_range", sql`${t.runs} between 0 and 99`),
+  ],
+);
+
 export const refereeAssignmentStatus = pgEnum("referee_assignment_status", [
   "offered",
   "accepted",
@@ -351,3 +395,4 @@ export type Field = typeof field.$inferSelect;
 export type Slot = typeof slot.$inferSelect;
 export type Game = typeof game.$inferSelect;
 export type ScoreReport = typeof scoreReport.$inferSelect;
+export type GamePeriod = typeof gamePeriod.$inferSelect;
