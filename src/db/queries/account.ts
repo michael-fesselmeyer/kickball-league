@@ -42,6 +42,7 @@ import {
 import { waiver, waiverSignature } from "../schema/waiver";
 import { waitlistEntry } from "../schema/waitlist";
 import { recordAudit } from "./audit";
+import { myDisciplineRecords, removeDisciplineNotes } from "./discipline";
 import { resetFeed } from "./event-audience";
 import { leaveEvent } from "./events";
 import { creditHistory } from "./credit";
@@ -496,6 +497,7 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     checkIns,
     dealsUsed,
     sponsorsManaged,
+    discipline: await myDisciplineRecords(db, userId, now),
     emailSettings,
     pushDevices,
     messages,
@@ -663,6 +665,9 @@ export async function deleteAccount(
     );
   // Check-ins stay, for the sponsor's counts, under the anonymized user.
   await db.delete(sponsorMember).where(eq(sponsorMember.userId, userId));
+  // Incidents, suspensions and ratings stay as league records; the notes
+  // the person wrote come out.
+  await removeDisciplineNotes(db, userId);
   await db
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));
