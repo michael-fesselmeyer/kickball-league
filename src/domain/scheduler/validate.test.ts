@@ -342,7 +342,7 @@ describe("validate on arbitrary schedules", () => {
         const first = validate(base, schedule);
         expect(validate(base, schedule)).toEqual(first);
         for (const v of first) {
-          expect(v.rule).toMatch(/^H(10|[1-9])$/);
+          expect(v.rule).toMatch(/^H(1[01]|[1-9])$/);
           expect(v.message.length).toBeGreaterThan(0);
         }
       }),
@@ -402,6 +402,127 @@ describe("validate edge cases", () => {
       game(2, "A", "B"),
     ]);
     expect(validate(input, schedule)).toEqual([]);
+  });
+
+  describe("H11: crossover games", () => {
+    const divided = (crossoverGames?: number, extra: string[] = []) => ({
+      ...base,
+      teams: [
+        ...["A", "B", "C"].map((id) => ({ id, divisionId: "north" })),
+        ...["X", "Y", "Z", ...extra].map((id) => ({ id, divisionId: "south" })),
+      ],
+      ...(crossoverGames === undefined ? {} : { crossoverGames }),
+    });
+    const crossoverRound = (round: number) => [
+      game(round, "A", "X"),
+      game(round, "B", "Y"),
+      game(round, "C", "Z"),
+    ];
+
+    it("accepts a crossover round with every team once", () => {
+      expect(validate(divided(1), scheduleOf(crossoverRound(1)))).toEqual([]);
+    });
+
+    it("reports a crossover round that mixes in a division game, or plays a team twice", () => {
+      const schedule = scheduleOf([
+        game(1, "A", "X"),
+        game(1, "A", "Y"),
+        game(1, "B", "C"),
+        game(2, "C", "Z"),
+        game(2, "B", "Z"),
+      ]);
+      expect(
+        validate(divided(1), schedule)
+          .filter((v) => v.rule === "H11")
+          .map((v) => v.message),
+      ).toEqual(
+        expect.arrayContaining([
+          "Crossover round 1 also has games within a division.",
+          "In crossover round 1, team A plays 2 games.",
+        ]),
+      );
+    });
+
+    it("reports crossovers nobody asked for", () => {
+      for (const input of [divided(), divided(0)])
+        expect(
+          validate(input, scheduleOf([game(1, "A", "X")])).map(
+            (v) => v.message,
+          ),
+        ).toEqual([
+          "The season has 1 crossover game but no crossovers were asked for between two divisions.",
+        ]);
+      expect(
+        validate(divided(), scheduleOf(crossoverRound(1))).map(
+          (v) => v.message,
+        ),
+      ).toEqual([
+        "The season has 3 crossover games but no crossovers were asked for between two divisions.",
+      ]);
+    });
+
+    it("reports a team short of its crossover count", () => {
+      const violations = validate(
+        divided(2),
+        scheduleOf([...crossoverRound(1), game(2, "A", "Y")]),
+      );
+      expect(violations.map((v) => v.message)).toEqual([
+        "Team B plays 1 crossover game; it should play 2.",
+        "Team C plays 1 crossover game; it should play 2.",
+        "Team X plays 1 crossover game; it should play 2.",
+        "Team Z plays 1 crossover game; it should play 2.",
+      ]);
+    });
+
+    it("reports a team with no crossover game", () => {
+      const violations = validate(
+        divided(1),
+        scheduleOf([game(1, "A", "X"), game(1, "B", "Y")]),
+      );
+      expect(violations.map((v) => v.message)).toEqual([
+        "Team C plays 0 crossover games; it should play 1.",
+        "Team Z plays 0 crossover games; it should play 1.",
+      ]);
+    });
+
+    it("reports uneven crossover counts in the larger division", () => {
+      // Three against four: W never plays while X plays twice.
+      const input = divided(2, ["W"]);
+      const ok = scheduleOf([
+        ...crossoverRound(1),
+        game(2, "A", "W"),
+        game(2, "B", "X"),
+        game(2, "C", "Y"),
+      ]);
+      expect(validate(input, ok)).toEqual([]);
+      const uneven = scheduleOf([
+        ...crossoverRound(1),
+        game(2, "A", "X"),
+        game(2, "B", "Y"),
+        game(2, "C", "Z"),
+      ]);
+      expect(validate(input, uneven).map((v) => v.message)).toEqual([
+        "Crossover counts in the larger division differ by 2; they should differ by at most 1.",
+      ]);
+    });
+
+    it("leaves crossover rounds out of the division round robin and its byes", () => {
+      // An odd division sitting out a crossover round is not a division bye.
+      const input = divided(1, ["W"]);
+      const schedule: Schedule = {
+        ...scheduleOf([
+          game(1, "A", "B"),
+          game(1, "X", "Y"),
+          game(1, "Z", "W"),
+          ...crossoverRound(2),
+        ]),
+        byes: [
+          { round: 1, teamId: "C" },
+          { round: 2, teamId: "W" },
+        ],
+      };
+      expect(validate(input, schedule)).toEqual([]);
+    });
   });
 
   it("uses the plural for an empty reserve", () => {

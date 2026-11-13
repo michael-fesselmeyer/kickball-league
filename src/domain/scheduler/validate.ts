@@ -1,7 +1,7 @@
 import type { Schedule, ScheduledGame, SchedulerInput, Slot } from "./types";
 
 export type HardRule =
-  "H1" | "H2" | "H3" | "H4" | "H5" | "H6" | "H7" | "H8" | "H9" | "H10";
+  "H1" | "H2" | "H3" | "H4" | "H5" | "H6" | "H7" | "H8" | "H9" | "H10" | "H11";
 
 export type Violation = {
   rule: HardRule;
@@ -24,6 +24,7 @@ const RULE_ORDER: HardRule[] = [
   "H8",
   "H9",
   "H10",
+  "H11",
 ];
 
 /**
@@ -109,7 +110,8 @@ export function validate(
       );
   }
 
-  checkRounds(input, schedule, report);
+  const crossoverRounds = checkCrossovers(input, schedule, report);
+  checkRounds(input, schedule, crossoverRounds, report);
 
   // H6: games per team per day; H8: doubleheader opponents differ.
   const byDay = Map.groupBy(
@@ -162,6 +164,8 @@ type Report = (rule: HardRule, message: string, keys: string[]) => void;
 function checkRounds(
   input: SchedulerInput,
   schedule: Schedule,
+  /** Judged by H11 instead. */
+  crossoverRounds: ReadonlySet<number>,
   report: Report,
 ) {
   const rounds = [
@@ -169,7 +173,9 @@ function checkRounds(
       ...schedule.games.map((g) => g.round),
       ...schedule.byes.map((b) => b.round),
     ]),
-  ].sort((a, b) => a - b);
+  ]
+    .filter((round) => !crossoverRounds.has(round))
+    .sort((a, b) => a - b);
   const pools = Map.groupBy(input.teams, (t) => t.divisionId ?? "");
 
   for (const pool of pools.values()) {
@@ -258,6 +264,90 @@ function checkRounds(
         );
     }
   }
+}
+
+/**
+ * H11 (crossover games): a round with a game between two divisions is a
+ * crossover round, and every game in it is between divisions, with each
+ * team in at most one. Crossovers need `crossoverGames` and exactly two
+ * divisions. Over the season each team of the smaller division (both, when
+ * they are the same size) plays exactly `crossoverGames` of them, and the
+ * larger division's counts differ by at most 1. Returns the crossover rounds.
+ */
+function checkCrossovers(
+  input: SchedulerInput,
+  schedule: Schedule,
+  report: Report,
+): Set<number> {
+  const division = new Map(input.teams.map((t) => [t.id, t.divisionId ?? ""]));
+  const crosses = (g: ScheduledGame) =>
+    division.get(g.teamA) !== division.get(g.teamB);
+  const crossing = schedule.games.filter(crosses);
+  const rounds = new Set(crossing.map((g) => g.round));
+  for (const round of [...rounds].sort((a, b) => a - b)) {
+    const games = schedule.games.filter((g) => g.round === round);
+    const inside = games.filter((g) => !crosses(g));
+    if (inside.length > 0)
+      report(
+        "H11",
+        `Crossover round ${round} also has games within a division.`,
+        inside.map((g) => g.key),
+      );
+    const teams = games.flatMap((g) => [g.teamA, g.teamB]);
+    for (const [team, times] of Map.groupBy(teams, (t) => t))
+      if (times.length > 1)
+        report(
+          "H11",
+          `In crossover round ${round}, team ${team} plays ${times.length} games.`,
+          games
+            .filter((g) => g.teamA === team || g.teamB === team)
+            .map((g) => g.key),
+        );
+  }
+
+  const wanted = input.crossoverGames ?? 0;
+  const pools = [...Map.groupBy(input.teams, (t) => t.divisionId ?? "")];
+  if (wanted === 0 || pools.length !== 2) {
+    if (crossing.length > 0)
+      report(
+        "H11",
+        `The season has ${crossing.length} crossover game${crossing.length === 1 ? "" : "s"} but no crossovers were asked for between two divisions.`,
+        crossing.map((g) => g.key),
+      );
+    return rounds;
+  }
+
+  const count = new Map<string, number>();
+  for (const g of crossing)
+    for (const team of [g.teamA, g.teamB])
+      count.set(team, (count.get(team) ?? 0) + 1);
+  const sizes = pools.map(([, members]) => members.length);
+  const smallest = Math.min(...sizes);
+  for (const [, members] of pools) {
+    const counts = members.map((t) => count.get(t.id) ?? 0);
+    if (members.length === smallest) {
+      for (const t of members) {
+        const plays = count.get(t.id) ?? 0;
+        if (plays !== wanted)
+          report(
+            "H11",
+            `Team ${t.id} plays ${plays} crossover game${plays === 1 ? "" : "s"}; it should play ${wanted}.`,
+            crossing
+              .filter((g) => g.teamA === t.id || g.teamB === t.id)
+              .map((g) => g.key),
+          );
+      }
+    } else {
+      const spread = Math.max(...counts) - Math.min(...counts);
+      if (spread > 1)
+        report(
+          "H11",
+          `Crossover counts in the larger division differ by ${spread}; they should differ by at most 1.`,
+          [],
+        );
+    }
+  }
+  return rounds;
 }
 
 /**

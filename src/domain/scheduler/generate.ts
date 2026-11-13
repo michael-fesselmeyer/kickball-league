@@ -1,6 +1,11 @@
 import { seededRandom } from "../random";
 import { constructPlacement } from "./placement";
-import { assignRoundsToDates, buildRounds, type Round } from "./rounds";
+import {
+  assignRoundsToDates,
+  buildCrossoverRounds,
+  buildRounds,
+  type Round,
+} from "./rounds";
 import { localSearch, type SearchOptions } from "./search";
 import { gameKey, type Schedule, type SchedulerInput } from "./types";
 import { validate } from "./validate";
@@ -10,7 +15,8 @@ import { validate } from "./validate";
  *
  * Stage A builds round-robin rounds for each division pool; rounds with the
  * same number are played together, so every pool shares the slots and
- * fairness is balanced league-wide. Stage B gives rounds dates, C1 places
+ * fairness is balanced league-wide. Crossover rounds between two divisions
+ * are spread through the season. Stage B gives rounds dates, C1 places
  * each day, C2 improves the whole season, and D validates the result
  * independently. The same input always gives the same schedule.
  *
@@ -34,17 +40,53 @@ export function generate(
     ),
   );
 
-  const rounds: Round[] = [];
-  const byes: Schedule["byes"] = [];
+  // Rounds with the same number are played together, so the pools share
+  // the slots.
+  const divisionRounds: { games: Round["games"]; byes: string[] }[] = [];
   for (let r = 1; r <= input.rounds; r++) {
     const parts = poolRounds
       .map((p) => p[r - 1])
       .filter((p) => p !== undefined);
     if (parts.length === 0) break;
-    rounds.push({ round: r, games: parts.flatMap((p) => p.games), bye: null });
-    for (const part of parts)
-      if (part.bye !== null) byes.push({ round: r, teamId: part.bye });
+    divisionRounds.push({
+      games: parts.flatMap((p) => p.games),
+      byes: parts.flatMap((p) => (p.bye === null ? [] : [p.bye])),
+    });
   }
+
+  // Crossover rounds between two divisions, spread evenly through the
+  // season; each team's division rounds keep their order, so H5 holds.
+  const crossoverGames = input.crossoverGames ?? 0;
+  const notes: string[] = [];
+  const [first, second] = pools;
+  const crossovers =
+    pools.length === 2 && first && second
+      ? buildCrossoverRounds(
+          first.map((t) => t.id),
+          second.map((t) => t.id),
+          crossoverGames,
+          random,
+        )
+      : [];
+  if (crossoverGames > 0 && pools.length !== 2)
+    notes.push(
+      "Crossover games need exactly two divisions, so none were scheduled.",
+    );
+  const sequence = [...divisionRounds];
+  for (const [c, crossover] of [...crossovers.entries()].reverse()) {
+    const after = Math.floor(
+      ((c + 1) * divisionRounds.length) / (crossovers.length + 1),
+    );
+    sequence.splice(after, 0, crossover);
+  }
+  const rounds: Round[] = sequence.map((part, i) => ({
+    round: i + 1,
+    games: part.games,
+    bye: null,
+  }));
+  const byes: Schedule["byes"] = sequence.flatMap((part, i) =>
+    part.byes.map((teamId) => ({ round: i + 1, teamId })),
+  );
 
   // Stage B can give a date rounds that no placement fits, for example two
   // rounds when a team can make only some of the times, or one round with a
@@ -102,6 +144,7 @@ export function generate(
   return {
     ...searched,
     diagnostics: [
+      ...notes,
       ...dated.diagnostics,
       ...placed.diagnostics,
       ...violations.map((v) => `${v.rule}: ${v.message}`),

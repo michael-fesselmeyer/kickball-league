@@ -13,6 +13,12 @@ export type LeagueShape = {
   rounds?: number;
   /** Split teams into this many divisions. */
   divisions?: number;
+  /**
+   * With two divisions, how many teams the first one has; left out, teams
+   * alternate between divisions.
+   */
+  split?: number;
+  crossoverGames?: number;
   seed?: number;
 };
 
@@ -31,9 +37,16 @@ export function league(shape: LeagueShape): SchedulerInput {
     }),
   );
   const divisions = shape.divisions ?? 1;
+  const { split } = shape;
+  const divisionOf = (i: number) =>
+    divisions === 2 && split !== undefined
+      ? i < split
+        ? "D0"
+        : "D1"
+      : `D${i % divisions}`;
   return {
     teams: ids.map((id, i) =>
-      divisions > 1 ? { id, divisionId: `D${i % divisions}` } : { id },
+      divisions > 1 ? { id, divisionId: divisionOf(i) } : { id },
     ),
     slots,
     rounds: shape.rounds ?? shape.teams,
@@ -43,8 +56,66 @@ export function league(shape: LeagueShape): SchedulerInput {
     locked: [],
     weights: DEFAULT_WEIGHTS,
     seed: shape.seed ?? 1,
+    ...(shape.crossoverGames === undefined
+      ? {}
+      : { crossoverGames: shape.crossoverGames }),
   };
 }
+
+/**
+ * Random two-division leagues with crossover games: 6 to 14 teams split
+ * anywhere that leaves each division at least 3, and 1 to 3 crossover games
+ * a team.
+ */
+export const arbitraryCrossoverLeague = () =>
+  fc
+    .record({
+      teams: fc.integer({ min: 6, max: 14 }),
+      cut: fc.nat(),
+      crossoverGames: fc.integer({ min: 1, max: 3 }),
+      rounds: fc.integer({ min: 2, max: 8 }),
+      fields: fc.integer({ min: 1, max: 3 }),
+      times: fc.integer({ min: 2, max: 4 }),
+      dates: fc.integer({ min: 4, max: 12 }),
+      gamesPerTeamPerDay: fc.constantFrom(1 as const, 2 as const),
+      reservePerDay: fc.integer({ min: 0, max: 2 }),
+      unavailable: fc.array(
+        fc.record({ team: fc.nat(), date: fc.nat(), time: fc.nat() }),
+        { maxLength: 4 },
+      ),
+      prefer: fc.array(
+        fc.record({
+          team: fc.nat(),
+          time: fc.nat(),
+          kind: fc.constantFrom("prefer" as const, "avoid" as const),
+        }),
+        { maxLength: 3 },
+      ),
+      seed: fc.integer(),
+    })
+    .map(({ cut, unavailable, prefer, ...shape }): SchedulerInput => {
+      const split = 3 + (cut % (shape.teams - 5));
+      const input = league({ ...shape, divisions: 2, split });
+      const dates = [...new Set(input.slots.map((s) => s.date))];
+      const teamAt = (n: number) =>
+        input.teams[n % input.teams.length]?.id as string;
+      return {
+        ...input,
+        constraints: [
+          ...unavailable.map((u) => ({
+            teamId: teamAt(u.team),
+            kind: "unavailable" as const,
+            date: dates[u.date % dates.length] as string,
+            timeIndex: u.time % shape.times,
+          })),
+          ...prefer.map((p) => ({
+            teamId: teamAt(p.team),
+            kind: p.kind,
+            timeIndex: p.time % shape.times,
+          })),
+        ],
+      };
+    });
 
 /** Random leagues: 4 to 12 teams, 1 to 3 fields, 2 to 4 times, 4 to 10 dates. */
 export const arbitraryLeague = (options: { divisions?: boolean } = {}) =>

@@ -75,6 +75,11 @@ export type SchedulerInput = {
   slots: Slot[];
   /** Rounds to play; in one round each team plays once or has a bye. */
   rounds: number;
+  /**
+   * Crossover games each team plays against the other division, on top of
+   * `rounds`. Needs exactly two divisions; 0 or left out means none.
+   */
+  crossoverGames?: number;
   /** 2 means doubleheaders (summer). */
   gamesPerTeamPerDay: 1 | 2;
   /** Slots to leave empty each day for makeups. */

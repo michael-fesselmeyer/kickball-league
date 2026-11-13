@@ -1,4 +1,5 @@
 import type { Random } from "../random";
+import { minCostAssignment } from "./assignment";
 import type { SchedulerInput } from "./types";
 
 /** One round: every team plays once, except at most one team with a bye. */
@@ -60,6 +61,58 @@ export function buildRounds(
     }
   }
   return result;
+}
+
+/** One crossover round: games between two divisions, and who sits it out. */
+export type CrossoverRound = {
+  games: [teamA: string, teamB: string][];
+  byes: string[];
+};
+
+/**
+ * Crossover rounds (scheduling-algorithm.md, section 5): extra rounds in
+ * which every game is between the two divisions.
+ *
+ * In each round every team of the smaller division plays one team of the
+ * larger, so each of them plays exactly `count` crossover games. The larger
+ * division's teams take turns in a fixed order, so their crossover counts
+ * differ by at most 1 (and equal `count` when the divisions are the same
+ * size); the rest sit the round out. Within a round, opponents are matched
+ * to keep repeat meetings to a minimum, so nobody meets the same crossover
+ * opponent twice while a new one is free.
+ */
+export function buildCrossoverRounds(
+  first: readonly string[],
+  second: readonly string[],
+  count: number,
+  random: Random,
+): CrossoverRound[] {
+  if (count <= 0 || first.length === 0 || second.length === 0) return [];
+  const [larger, smaller] =
+    first.length >= second.length ? [first, second] : [second, first];
+  const big = random.shuffle(larger);
+  const small = random.shuffle(smaller);
+  const met = new Map<string, number>();
+  const pair = (a: string, b: string) => `${a}\u0000${b}`;
+
+  const rounds: CrossoverRound[] = [];
+  let next = 0;
+  for (let r = 0; r < count; r++) {
+    // The next teams of the larger division in turn, wrapping around.
+    const turn = small.map((_, i) => big[(next + i) % big.length] as string);
+    next = (next + small.length) % big.length;
+    const columns = minCostAssignment(
+      small.map((s) => turn.map((b) => met.get(pair(s, b)) ?? 0)),
+    ) as number[];
+    const games = small.map((s, i): [string, string] => {
+      const b = turn[columns[i] as number] as string;
+      met.set(pair(s, b), (met.get(pair(s, b)) ?? 0) + 1);
+      return [b, s];
+    });
+    const playing = new Set(turn);
+    rounds.push({ games, byes: big.filter((b) => !playing.has(b)) });
+  }
+  return rounds;
 }
 
 export type RoundDays = {

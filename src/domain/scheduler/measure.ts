@@ -83,8 +83,17 @@ export function measure(input: SchedulerInput, schedule: Schedule): Metrics {
     (a, b) => a.localeCompare(b),
   );
 
+  // Byes in division rounds; sitting out a crossover round is not a bye a
+  // division shares out (H11 balances those).
+  const division = new Map(input.teams.map((t) => [t.id, t.divisionId ?? ""]));
+  const crossoverRounds = new Set(
+    schedule.games
+      .filter((g) => division.get(g.teamA) !== division.get(g.teamB))
+      .map((g) => g.round),
+  );
+  const byes = schedule.byes.filter((b) => !crossoverRounds.has(b.round));
   const teams = input.teams.map((team) =>
-    teamMetrics(team.id, placed, schedule, timeIndexes, fields),
+    teamMetrics(team.id, placed, byes, timeIndexes, fields),
   );
   const playing = teams.filter((t) => t.games > 0);
 
@@ -110,7 +119,13 @@ export function measure(input: SchedulerInput, schedule: Schedule): Metrics {
   const highest = shares.length ? Math.max(...shares) : 0;
   const lowest = shares.length ? Math.min(...shares) : 0;
   const wait = teams.reduce((sum, t) => sum + t.doubleheaderWait, 0);
-  const byeSpread = spreadOf(teams.map((t) => t.byes));
+  // Bye counts are compared within each division.
+  const byeSpread = Math.max(
+    0,
+    ...[...Map.groupBy(teams, (t) => division.get(t.teamId)).values()].map(
+      (pool) => spreadOf(pool.map((t) => t.byes)),
+    ),
+  );
   const unplaced = schedule.games.filter((g) => g.slotId === null).length;
 
   const byDate = [...Map.groupBy(seasonSlots, (s) => s.date)]
@@ -160,7 +175,7 @@ export function measure(input: SchedulerInput, schedule: Schedule): Metrics {
 function teamMetrics(
   teamId: string,
   placed: Placed[],
-  schedule: Schedule,
+  byes: Schedule["byes"],
   timeIndexes: number[],
   fields: string[],
 ): TeamMetrics {
@@ -213,7 +228,7 @@ function teamMetrics(
         ? 0
         : own.filter((p) => p.slot.timeIndex === first).length / own.length,
     doubleheaderWait,
-    byes: schedule.byes.filter((b) => b.teamId === teamId).length,
+    byes: byes.filter((b) => b.teamId === teamId).length,
   };
 }
 
