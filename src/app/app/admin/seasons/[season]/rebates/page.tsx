@@ -88,7 +88,14 @@ async function Rebates({
       {rows.length === 0 ? (
         <p className="text-text-muted">No teams in this season yet.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div
+          role="region"
+          aria-label="Rebates by team"
+          // A scrolling region must be reachable by keyboard, even with no links.
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
+          className="relative overflow-x-auto"
+        >
           <table className="w-full min-w-[36rem] text-left">
             <thead className="text-text-muted">
               <tr>
