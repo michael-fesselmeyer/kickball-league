@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { ConfirmItsYou } from "@/components/confirm-its-you";
 import { db } from "@/db/client";
 import { deleteBlocker } from "@/db/queries/account";
+import { hasPasskey } from "@/db/queries/passkeys";
 import { profileOf } from "@/db/queries/profile";
 import { isFreshSession, SESSION_FRESH_AGE_SECONDS } from "@/lib/auth/config";
 import { requireSelf, sessionSignedInAt } from "@/lib/auth/permission";
 import { demoStatus } from "@/lib/demo/guard";
-import { deleteAccountAction, sendConfirmLinkAction } from "./actions";
+import { deleteAccountAction } from "./actions";
 
 export const metadata: Metadata = { title: "Delete your account" };
 
@@ -30,7 +32,6 @@ const ERRORS: Record<string, string> = {
   confirm:
     "The email address you typed does not match your account. Nothing was deleted.",
   stale: `Your sign-in is more than ${FRESH_MINUTES} minutes old. Confirm it's you again, then delete. Nothing was deleted.`,
-  link: "We couldn't send the link just now. Try again in a minute.",
   demo: "Account deletion is turned off in the demo.",
   captain:
     "You captain a team in a season that is not over. Nothing was deleted.",
@@ -141,25 +142,13 @@ async function DeleteAccount({
             delete your account.
           </p>
         ) : !fresh ? (
-          <div className="flex flex-col gap-3">
-            <p>
-              To delete your account, first confirm it&apos;s you. We&apos;ll
-              email a sign-in link to <strong>{me.email}</strong>. Open it, and
-              it brings you back here. You then have {FRESH_MINUTES} minutes to
-              delete.
-            </p>
-            {query.sent ? (
-              <p role="status" className="rounded-lg border border-success p-3">
-                Link sent to {me.email}. Open it on this device to continue.
-              </p>
-            ) : (
-              <form action={sendConfirmLinkAction}>
-                <button type="submit" className="btn btn-secondary">
-                  Email me a sign-in link
-                </button>
-              </form>
-            )}
-          </div>
+          <ConfirmItsYou
+            what="delete your account"
+            email={me.email}
+            next="/app/profile/delete"
+            confirm={query.confirm}
+            hasPasskey={await hasPasskey(db, subject.userId)}
+          />
         ) : (
           <form action={deleteAccountAction} className="flex flex-col gap-3">
             <label htmlFor="confirm-email" className="font-medium">

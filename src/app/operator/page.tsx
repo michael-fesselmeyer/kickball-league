@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Suspense } from "react";
+import { ConfirmItsYou } from "@/components/confirm-its-you";
 import { db } from "@/db/client";
+import { hasPasskey } from "@/db/queries/passkeys";
 import { siteSettings, staff } from "@/db/queries/platform";
+import { profileOf } from "@/db/queries/profile";
 import {
   FEATURE_KEYS,
   FEATURES,
@@ -47,6 +49,7 @@ const ERRORS: Record<string, string> = {
   bad_status: "Pick a site status.",
   bad_feature: "That feature doesn't exist.",
   no_league: "There is no league yet.",
+  stale: "Confirm it's you first. Nothing was changed.",
 };
 
 export default function OperatorPage(props: PageProps<"/operator">) {
@@ -60,12 +63,14 @@ export default function OperatorPage(props: PageProps<"/operator">) {
 }
 
 async function Console({ searchParams }: PageProps<"/operator">) {
-  await requireOperator();
+  const operator = await requireOperator();
   const query = await searchParams;
-  const [site, people, fresh] = await Promise.all([
+  const [site, people, fresh, me, withPasskey] = await Promise.all([
     siteSettings(db),
     staff(db),
     operatorIsFresh(),
+    profileOf(db, operator.userId),
+    hasPasskey(db, operator.userId),
   ]);
   const saved = typeof query.saved === "string" ? SAVED[query.saved] : null;
   const error = typeof query.error === "string" ? ERRORS[query.error] : null;
@@ -80,14 +85,14 @@ async function Console({ searchParams }: PageProps<"/operator">) {
         </p>
       </header>
 
-      {!fresh && (
-        <p role="alert" className="rounded-lg border border-danger p-3">
-          To change anything, sign in again first: changes need a sign-in from
-          the last 15 minutes.{" "}
-          <Link href="/sign-in?next=%2Foperator&fresh=1" className="underline">
-            Sign in again
-          </Link>
-        </p>
+      {!fresh && me && (
+        <ConfirmItsYou
+          what="change anything"
+          email={me.email}
+          next="/operator"
+          confirm={query.confirm}
+          hasPasskey={withPasskey}
+        />
       )}
       {saved && (
         <p role="status" className="rounded-lg border border-success p-3">
