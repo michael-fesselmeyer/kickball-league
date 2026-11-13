@@ -17,6 +17,7 @@ import {
   SEED_LEAGUE_SLUG,
 } from "../src/seed/generate";
 import { addDemoPersonas, removeDemoPersonas } from "../src/seed/demo-personas";
+import { addFreeAgentPool } from "../src/seed/free-agent-pool";
 import { canSeed } from "../src/seed/guard";
 import { addPastSeasons } from "../src/seed/past-seasons";
 import { seedPublishedSchedule } from "../src/seed/published-schedule";
@@ -65,6 +66,7 @@ async function main(): Promise<void> {
     profile,
     waiver,
     waiverSignature,
+    friendGroup,
   } = schema;
 
   try {
@@ -164,6 +166,9 @@ async function main(): Promise<void> {
             .delete(registration)
             .where(inArray(registration.seasonId, seasonIds));
           await tx
+            .delete(friendGroup)
+            .where(inArray(friendGroup.seasonId, seasonIds));
+          await tx
             .delete(waiverSignature)
             .where(inArray(waiverSignature.seasonId, seasonIds));
           await tx
@@ -231,6 +236,7 @@ async function main(): Promise<void> {
       await tx.insert(teamConstraint).values(data.teamConstraints);
       await addDemoPersonas(tx, data);
       await addPastSeasons(tx, data);
+      await addFreeAgentPool(tx, data);
     });
     const played = data.games.filter((g) => g.status === "final").length;
     console.info(
