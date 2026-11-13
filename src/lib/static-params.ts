@@ -1,4 +1,5 @@
 import { db } from "@/db/client";
+import { publicDivisionPages } from "@/db/queries/divisions";
 import { publicEventSlugs } from "@/db/queries/events";
 import { publishedSummarySeasons } from "@/db/queries/owner-dashboard";
 import { publicSeasons, publicTeams } from "@/db/queries/sitemap";
@@ -106,4 +107,27 @@ export async function moneySummaryParams(): Promise<{ season: string }[]> {
     );
   }
   return [{ season: NO_SEASON }];
+}
+
+/** As NO_SEASON, for division pages. */
+export const NO_DIVISION = "_";
+
+/**
+ * The divisions of every public season, to prerender their schedules at
+ * build time, on the same terms as `publicSeasonParams`.
+ */
+export async function publicDivisionParams(): Promise<
+  { season: string; division: string }[]
+> {
+  try {
+    const pages = await publicDivisionPages(db);
+    if (pages.length > 0) return pages;
+  } catch (error) {
+    console.warn(
+      `[build] No divisions prerendered: the database could not be read (${
+        error instanceof Error ? error.message : String(error)
+      }).`,
+    );
+  }
+  return [{ season: NO_SEASON, division: NO_DIVISION }];
 }

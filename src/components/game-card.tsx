@@ -21,6 +21,8 @@ type Props = {
   highlight?: string | null | undefined;
   /** Leave out the time and field, when a grid's headers already say them. */
   compact?: boolean;
+  /** A short label on the card, such as "Crossover" for a game between divisions. */
+  note?: string | undefined;
   /**
    * Grow into the game page's scoreboard on the way there. Turn it off for a
    * second card of the same game on one page, since a name is used once.
@@ -35,6 +37,7 @@ export function GameCard({
   showDay,
   highlight,
   compact,
+  note,
   morph = true,
 }: Props) {
   const done = hasResult(game);
@@ -87,6 +90,7 @@ export function GameCard({
           won={winner === game.teamB.id}
           mine={game.teamB.id === highlight}
         />
+        {note && <span className="text-small text-text-muted">{note}</span>}
       </span>
       {label && (
         <span

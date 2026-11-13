@@ -6,8 +6,12 @@ import { Morph, teamMorph } from "@/components/motion";
 import { StandingsStats } from "@/components/stats/standings-stats";
 import { db } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
-import { seasonStandings } from "@/db/queries/standings";
-import type { Tiebreaker } from "@/domain/standings/standings";
+import {
+  seasonDivisionStandings,
+  type StandingsTeam,
+} from "@/db/queries/standings";
+import { ruleSetSummary } from "@/domain/season/divisions";
+import type { StandingsRow, Tiebreaker } from "@/domain/standings/standings";
 import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 import { NO_SEASON, publicSeasonParams } from "@/lib/static-params";
 
@@ -68,14 +72,20 @@ async function SeasonStandings({ slug }: { slug: string }) {
   // Drafts are the league's work in progress, not public.
   if (!season || season.status === "draft") notFound();
   cacheTag(seasonTag(season.id));
-  const { rows, teams } = await seasonStandings(db, season.id);
-  // Rows a tiebreaker (not just win percentage) placed below the row above.
-  const notes = rows.flatMap((r) =>
-    r.separatedBy && r.separatedBy !== "win_pct"
-      ? [{ teamId: r.teamId, by: r.separatedBy }]
-      : [],
+  const { tables, teams, crossoversCount } = await seasonDivisionStandings(
+    db,
+    season.id,
   );
-  const played = rows.some((r) => r.played > 0);
+  const divided = tables.some((t) => t.division !== null);
+  // Rows a tiebreaker (not just win percentage) placed below the row above.
+  const notes = tables.flatMap((t) =>
+    t.rows.flatMap((r) =>
+      r.separatedBy && r.separatedBy !== "win_pct"
+        ? [{ teamId: r.teamId, by: r.separatedBy }]
+        : [],
+    ),
+  );
+  const played = tables.some((t) => t.rows.some((r) => r.played > 0));
 
   return (
     <>
@@ -102,101 +112,50 @@ async function SeasonStandings({ slug }: { slug: string }) {
           No games played yet. The table fills in as scores come in.
         </p>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left tabular-nums">
-          <caption className="sr-only">
-            {season.name} standings: wins, losses, ties, win percentage, runs
-            and recent form
-          </caption>
-          <thead className="text-small text-text-muted">
-            <tr>
-              <th scope="col" className="py-2 pr-2">
-                <abbr title="Rank">#</abbr>
-              </th>
-              <th scope="col">Team</th>
-              <th scope="col" className="text-right">
-                <abbr title="Wins">W</abbr>
-              </th>
-              <th scope="col" className="text-right">
-                <abbr title="Losses">L</abbr>
-              </th>
-              <th scope="col" className="text-right">
-                <abbr title="Ties">T</abbr>
-              </th>
-              <th scope="col" className="hidden text-right sm:table-cell">
-                <abbr title="Win percentage, a tie counting as half a win">
-                  PCT
-                </abbr>
-              </th>
-              <th scope="col" className="hidden text-right sm:table-cell">
-                <abbr title="Runs scored">RF</abbr>
-              </th>
-              <th scope="col" className="hidden text-right sm:table-cell">
-                <abbr title="Runs allowed">RA</abbr>
-              </th>
-              <th scope="col" className="text-right">
-                <abbr title="Run difference, capped at 10 a game">DIFF</abbr>
-              </th>
-              <th scope="col" className="hidden text-right md:table-cell">
-                <abbr title="Current streak">STRK</abbr>
-              </th>
-              <th scope="col" className="hidden text-right md:table-cell">
-                <abbr title="Last five games, oldest first">L5</abbr>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const t = teams.get(r.teamId);
-              return (
-                <tr key={r.teamId} className="border-t border-border">
-                  <td className="py-2 pr-2 text-text-muted">{r.rank}</td>
-                  <th scope="row" className="font-normal">
-                    <span className="flex items-center gap-2">
-                      <Morph name={teamMorph(r.teamId)}>
-                        <span
-                          aria-hidden="true"
-                          className="inline-block size-3 shrink-0 rounded-full border border-border"
-                          style={{ background: t?.colorHex ?? "transparent" }}
-                        />
-                      </Morph>
-                      {t ? (
-                        <Link
-                          href={`/teams/${t.slug}`}
-                          className="inline-flex min-h-6 items-center underline"
-                        >
-                          {t.name}
-                        </Link>
-                      ) : (
-                        "Team"
-                      )}
-                    </span>
-                  </th>
-                  <td className="text-right">{r.wins}</td>
-                  <td className="text-right">{r.losses}</td>
-                  <td className="text-right">{r.ties}</td>
-                  <td className="hidden text-right sm:table-cell">
-                    {pct(r.winPct)}
-                  </td>
-                  <td className="hidden text-right sm:table-cell">
-                    {r.runsFor}
-                  </td>
-                  <td className="hidden text-right sm:table-cell">
-                    {r.runsAgainst}
-                  </td>
-                  <td className="text-right">{signed(r.runDifference)}</td>
-                  <td className="hidden text-right md:table-cell">
-                    {r.streak || "–"}
-                  </td>
-                  <td className="hidden text-right font-mono md:table-cell">
-                    {r.lastFive || "–"}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {divided ? (
+        tables.map((t, i) => {
+          const id = `division-${t.division?.slug ?? `none-${i}`}`;
+          const name = t.division?.name ?? "No division";
+          return (
+            <section
+              key={id}
+              aria-labelledby={id}
+              className="flex flex-col gap-2"
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+                <h2 id={id} className="text-h2">
+                  {name}
+                </h2>
+                {t.division && (
+                  <Link
+                    href={`/seasons/${season.slug}/schedule/division/${t.division.slug}`}
+                    className="inline-flex min-h-11 items-center text-brand underline"
+                  >
+                    {name} schedule
+                  </Link>
+                )}
+              </div>
+              {t.division?.ruleSet && ruleSetSummary(t.division.ruleSet) && (
+                <p className="text-small text-text-muted">
+                  {t.division.ruleSet.name}:{" "}
+                  {ruleSetSummary(t.division.ruleSet)}
+                </p>
+              )}
+              <StandingsTable
+                rows={t.rows}
+                teams={teams}
+                caption={`${season.name} ${name} standings: wins, losses, ties, win percentage, runs and recent form`}
+              />
+            </section>
+          );
+        })
+      ) : (
+        <StandingsTable
+          rows={tables[0]?.rows ?? []}
+          teams={teams}
+          caption={`${season.name} standings: wins, losses, ties, win percentage, runs and recent form`}
+        />
+      )}
       {notes.length > 0 && (
         <section aria-labelledby="tiebreakers" className="flex flex-col gap-1">
           <h2 id="tiebreakers" className="text-h3">
@@ -217,10 +176,118 @@ async function SeasonStandings({ slug }: { slug: string }) {
         A tie counts as half a win. Ties in the table are broken by
         head-to-head, then run difference (capped at 10 a game), then runs
         allowed, then a coin flip.{" "}
+        {divided &&
+          (crossoversCount
+            ? "Each team is ranked within its division, and games against the other division count toward its record. "
+            : "Each team is ranked within its division on its division games only. ")}
         <Link href="/" className="underline">
           Home
         </Link>
       </p>
     </>
+  );
+}
+
+/** One standings table, in rank order. */
+function StandingsTable({
+  rows,
+  teams,
+  caption,
+}: {
+  rows: StandingsRow[];
+  teams: Map<string, StandingsTeam>;
+  caption: string;
+}) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left tabular-nums">
+        <caption className="sr-only">{caption}</caption>
+        <thead className="text-small text-text-muted">
+          <tr>
+            <th scope="col" className="py-2 pr-2">
+              <abbr title="Rank">#</abbr>
+            </th>
+            <th scope="col">Team</th>
+            <th scope="col" className="text-right">
+              <abbr title="Wins">W</abbr>
+            </th>
+            <th scope="col" className="text-right">
+              <abbr title="Losses">L</abbr>
+            </th>
+            <th scope="col" className="text-right">
+              <abbr title="Ties">T</abbr>
+            </th>
+            <th scope="col" className="hidden text-right sm:table-cell">
+              <abbr title="Win percentage, a tie counting as half a win">
+                PCT
+              </abbr>
+            </th>
+            <th scope="col" className="hidden text-right sm:table-cell">
+              <abbr title="Runs scored">RF</abbr>
+            </th>
+            <th scope="col" className="hidden text-right sm:table-cell">
+              <abbr title="Runs allowed">RA</abbr>
+            </th>
+            <th scope="col" className="text-right">
+              <abbr title="Run difference, capped at 10 a game">DIFF</abbr>
+            </th>
+            <th scope="col" className="hidden text-right md:table-cell">
+              <abbr title="Current streak">STRK</abbr>
+            </th>
+            <th scope="col" className="hidden text-right md:table-cell">
+              <abbr title="Last five games, oldest first">L5</abbr>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const t = teams.get(r.teamId);
+            return (
+              <tr key={r.teamId} className="border-t border-border">
+                <td className="py-2 pr-2 text-text-muted">{r.rank}</td>
+                <th scope="row" className="font-normal">
+                  <span className="flex items-center gap-2">
+                    <Morph name={teamMorph(r.teamId)}>
+                      <span
+                        aria-hidden="true"
+                        className="inline-block size-3 shrink-0 rounded-full border border-border"
+                        style={{ background: t?.colorHex ?? "transparent" }}
+                      />
+                    </Morph>
+                    {t ? (
+                      <Link
+                        href={`/teams/${t.slug}`}
+                        className="inline-flex min-h-6 items-center underline"
+                      >
+                        {t.name}
+                      </Link>
+                    ) : (
+                      "Team"
+                    )}
+                  </span>
+                </th>
+                <td className="text-right">{r.wins}</td>
+                <td className="text-right">{r.losses}</td>
+                <td className="text-right">{r.ties}</td>
+                <td className="hidden text-right sm:table-cell">
+                  {pct(r.winPct)}
+                </td>
+                <td className="hidden text-right sm:table-cell">{r.runsFor}</td>
+                <td className="hidden text-right sm:table-cell">
+                  {r.runsAgainst}
+                </td>
+                <td className="text-right">{signed(r.runDifference)}</td>
+                <td className="hidden text-right md:table-cell">
+                  {r.streak || "–"}
+                </td>
+                <td className="hidden text-right font-mono md:table-cell">
+                  {r.lastFive || "–"}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

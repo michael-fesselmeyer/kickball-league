@@ -16,6 +16,7 @@
         "http://localhost:3200/seasons/fall-2026/schedule",
         "http://localhost:3200/seasons/fall-2026/standings",
         "http://localhost:3200/seasons/fall-2026/money",
+        "http://localhost:3200/seasons/summer-2026/schedule/division/competitive",
         "http://localhost:3200/teams/the-big-kicks",
         "http://localhost:3200/records",
         "http://localhost:3200/events",
