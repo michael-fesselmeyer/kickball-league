@@ -160,6 +160,11 @@ async function Account() {
       <Link href="/app/profile" className="btn btn-secondary">
         Your profile
       </Link>
+      {subject.sponsorIds.length > 0 && (
+        <Link href="/app/sponsor" className="btn btn-secondary">
+          Your sponsor page
+        </Link>
+      )}
       {isAdmin && (
         <Link href="/app/admin" className="btn btn-primary">
           League admin
