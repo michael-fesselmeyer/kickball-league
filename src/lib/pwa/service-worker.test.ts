@@ -209,10 +209,14 @@ function loadWorker(
                   typeof data === "string" ? JSON.parse(data) : data,
               },
       }),
-    click: (path: unknown) => {
+    click: (path: unknown, action = "", settingsPath?: unknown) => {
       const closed: boolean[] = [];
       return dispatch("notificationclick", {
-        notification: { data: { path }, close: () => closed.push(true) },
+        action,
+        notification: {
+          data: { path, settingsPath },
+          close: () => closed.push(true),
+        },
       }).then(() => closed.length);
     },
     fetch: (request: Req) => dispatch("fetch", { request }),
@@ -523,33 +527,44 @@ describe("service worker: push notifications", () => {
     worker = loadWorker(network, storage, screen);
   });
 
-  it("shows a league push with its text, tag and page", async () => {
+  const pushSettings = "/app/profile#push";
+
+  it("shows a league push with its text, why it came, tag and page", async () => {
     await worker.push({
       title: "Your game is postponed",
       body: "Aces vs Bees (Sun 7 PM) is rained out.",
+      reason: "Because you play in this game in Fall 2026.",
       path: "/app/seasons/fall-2026",
+      settingsPath: pushSettings,
       tag: "abc123",
     });
     expect(screen.shown).toEqual([
       {
         title: "Your game is postponed",
         options: {
-          body: "Aces vs Bees (Sun 7 PM) is rained out.",
+          body: "Aces vs Bees (Sun 7 PM) is rained out.\nBecause you play in this game in Fall 2026.",
           tag: "abc123",
           icon: "/icons/icon-192.png",
           badge: "/icons/icon-192.png",
-          data: { path: "/app/seasons/fall-2026" },
+          silent: false,
+          actions: [{ action: "settings", title: "Change alerts" }],
+          data: { path: "/app/seasons/fall-2026", settingsPath: pushSettings },
         },
       },
     ]);
+  });
+
+  it("shows a push sent in quiet hours without sound", async () => {
+    await worker.push({ title: "Rained out", silent: true });
+    expect(screen.shown[0]?.options.silent).toBe(true);
   });
 
   it("still shows something for an empty or unreadable push", async () => {
     await worker.push(null);
     await worker.push("not json");
     expect(screen.shown.map((s) => [s.title, s.options.data])).toEqual([
-      ["Kickball league", { path: "/app" }],
-      ["Kickball league", { path: "/app" }],
+      ["Kickball league", { path: "/app", settingsPath: pushSettings }],
+      ["Kickball league", { path: "/app", settingsPath: pushSettings }],
     ]);
   });
 
@@ -564,7 +579,10 @@ describe("service worker: push notifications", () => {
       await worker.push({ title: "Hi", path });
     }
     expect(screen.shown.map((s) => s.options.data)).toEqual(
-      Array.from({ length: 5 }, () => ({ path: "/app" })),
+      Array.from({ length: 5 }, () => ({
+        path: "/app",
+        settingsPath: pushSettings,
+      })),
     );
   });
 
@@ -580,5 +598,12 @@ describe("service worker: push notifications", () => {
 
     await worker.click("https://evil.example.test/");
     expect(screen.open).toEqual([{ url: `${ORIGIN}/app` }]);
+  });
+
+  it("opens the push settings from the Change alerts button", async () => {
+    await worker.click("/app/subs", "settings", pushSettings);
+    expect(screen.opened).toEqual([`${ORIGIN}${pushSettings}`]);
+    await worker.click("/app/subs", "settings", "https://evil.example.test/");
+    expect(screen.opened.at(-1)).toBe(`${ORIGIN}/app`);
   });
 });
