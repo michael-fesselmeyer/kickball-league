@@ -122,6 +122,7 @@ test("the page fits a phone screen without sideways scrolling", async ({
     "/nyc-kickball-league",
     "/free-agents",
     "/news/how-to-play-kickball",
+    "/friends",
     "/sign-in",
     "/style",
   ]) {
