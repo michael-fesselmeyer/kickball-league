@@ -369,6 +369,10 @@ Thresholds are season settings. The rule only recommends; an admin decides. Buil
 
 **Check-in at the bar** ([ADR 0016](adr/0016-rotating-check-in-code.md)). The sponsor's screen at `/app/sponsor/[sponsor]/code` draws a QR code on the server for `/app/check-in/[sponsor]/[code]`, where the code is an HMAC of the current 5-minute window under the sponsor's secret. A small client island fetches the page again after each turnover and asks the device to keep the screen on. The player's tap runs a Server Action that checks the code again (this window or the one before) and inserts the day's check-in, ignoring a repeat; using a deal checks that it is the sponsor's, turned on and good at that local time, once per visit. Neither touches the cached public pages.
 
+**Event giveaways** ([ADR 0035](adr/0035-free-giveaways-and-the-sign-up-challenge.md)). The admin's screen at `/app/admin/events/[event]/giveaway/code` draws the same rotating QR code under the giveaway's own secret, for `/app/events/[event]/giveaway/enter/[code]`. The player's tap runs a Server Action that checks the code again, then the domain's entry rule (`mayEnter`: the event's audience, not called off, not ticketed, inside the entry window, not entered yet), then inserts the entry under a share lock on the giveaway, ignoring a repeat. The draw is a Server Action too: it locks the giveaway, reads every entry in entry order, picks winners with `crypto.randomInt`, writes them, the audit row and one `giveaway_win` message per winner in one transaction, and asks the outbox to send soon. Nothing in it reads a payment.
+
+**The sign-up challenge** reads every team's active roster spots, with when each player joined and signed the season's waiver, in one query per season (`seasonSignups`), and the domain ranks them (`rankTeams`). The team page, the leaderboard at `/app/seasons/[season]/challenge`, the admin's challenge page and the admin dashboard all use it; only the confirmed winner is stored. All of these are signed-in pages, read at request time.
+
 ## 8. Caching summary
 
 | Layer | What | Lifetime |
@@ -479,6 +483,11 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `/app/sponsor/[sponsor]`, `/code`, `/report` | `sponsors` |
 | `/app/check-in/[sponsor]` | `screens` |
 | `/app/check-in/[sponsor]/[code]` | `sponsors` |
+| `/app/admin/events/[event]/giveaway`, `/code` | `drive` (add a giveaway, show its code, close entry, draw) |
+| `/app/events/[event]/giveaway`, `/enter/[code]` | `drive` (a made-up code, enter once, scan again) |
+| `/app/admin/seasons/[season]/challenge` | `drive` (start the challenge, confirm the winner) |
+| `/app/seasons/[season]/challenge` | `drive` (the leaderboard, the winner) |
+| `/app` (giveaway won), `/app/seasons/[season]/team` (challenge progress), `/app/admin` (sign-up rate) | `drive` |
 | `/operator` | `admin-tools` (export, roles); `site-wide/operator` (read-only, paused, features); `screens` |
 
 Flows that run side by side share the four personas, so each works in its own season or on data no other flow checks, and the Stripe helpers pick a person's payment by season.
@@ -570,6 +579,7 @@ Third-party material stays out of the public repository until the league agrees:
 | Score reports | 10 per game per user |
 | Waitlist and interest signups | 5 per hour per IP |
 | Bar check-ins | 1 per sponsor per user per day (also a unique index) |
+| Giveaway entries | 1 per giveaway per user (a unique index), only with a current code from the event |
 | Everything else by IP | Vercel Firewall rule as a coarse backstop |
 
 ### Notifications: channels and opt-out
