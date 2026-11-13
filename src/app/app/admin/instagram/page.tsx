@@ -13,6 +13,7 @@ import {
 import { altFor, isShown } from "@/domain/social/sync-plan";
 import { requirePermission } from "@/lib/auth/permission";
 import { instagramConfig } from "@/lib/social/instagram-app";
+import { instagramSettings } from "@/lib/social/instagram-settings";
 import {
   connectInstagramAction,
   disconnectInstagramAction,
@@ -91,6 +92,8 @@ async function Instagram({ searchParams }: PageProps<"/app/admin/instagram">) {
     taggableTeams(db, league.id),
   ]);
   const config = instagramConfig();
+  // Names a half or malformed setting (never its value) for whoever fixes it.
+  const settingsProblem = config ? null : instagramSettings(process.env);
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const done = typeof query.done === "string" ? DONE[query.done] : undefined;
@@ -138,6 +141,11 @@ async function Instagram({ searchParams }: PageProps<"/app/admin/instagram">) {
             app for the league&apos;s professional account; once its ID and
             secret are added to the site&apos;s settings, you can connect here.
             {account && " Photos synced earlier stay as they are."}
+          </p>
+        )}
+        {settingsProblem && !settingsProblem.on && settingsProblem.reason && (
+          <p className="max-w-prose text-text-muted">
+            {settingsProblem.reason}
           </p>
         )}
         {account && account.status !== "disconnected" ? (
