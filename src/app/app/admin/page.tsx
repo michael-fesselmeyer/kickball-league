@@ -14,6 +14,7 @@ import {
   otherSeasons,
   registrationSummary,
 } from "@/db/queries/admin-dashboard";
+import { pendingNewTeamCount } from "@/db/queries/new-teams";
 import type { FieldingLevel } from "@/domain/rsvp/fielding";
 import { requirePermission } from "@/lib/auth/permission";
 
@@ -110,11 +111,12 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
     );
   }
 
-  const [day, missing, registrations, others] = await Promise.all([
+  const [day, missing, registrations, others, newTeams] = await Promise.all([
     nextGameDay(db, current, now),
     missingScores(db, current, now),
     registrationSummary(db, current.id),
     otherSeasons(db, current.id),
+    pendingNewTeamCount(db, current.id),
   ]);
   const base = `/app/admin/seasons/${current.slug}`;
   const dayLabel = (date: string) =>
@@ -251,6 +253,17 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
           </>
         )}
       </section>
+
+      {newTeams > 0 && (
+        <p role="status" className="rounded-lg border border-warning p-3">
+          <Link href={`${base}/new-teams`} className="underline">
+            {newTeams === 1
+              ? "1 new-team request is"
+              : `${newTeams} new-team requests are`}{" "}
+            waiting for an answer
+          </Link>
+        </p>
+      )}
 
       <Registrations summary={registrations} href={`${base}/registrations`} />
     </>
