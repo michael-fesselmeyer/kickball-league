@@ -6,7 +6,6 @@ import {
   type InstagramFetch,
 } from "@/services/instagram";
 import {
-  FIXTURE_CODE,
   fixtureFetch,
   usesInstagramFixture,
 } from "@/services/instagram-fixture";
@@ -44,20 +43,6 @@ export const CALLBACK_PATH = "/app/admin/instagram/callback";
 export const redirectUri = () =>
   new URL(CALLBACK_PATH, env.BETTER_AUTH_URL).toString();
 
-/**
- * Where "Connect Instagram" sends the admin: Instagram's sign-in, or with
- * the fixture straight back to the callback as if they had signed in.
- */
-export function signInUrl(config: InstagramConfig, state: string): string {
-  if (config.fixture) {
-    const url = new URL(CALLBACK_PATH, env.BETTER_AUTH_URL);
-    url.searchParams.set("code", FIXTURE_CODE);
-    url.searchParams.set("state", state);
-    return url.toString();
-  }
-  return authorizeUrl({
-    appId: config.appId,
-    redirectUri: redirectUri(),
-    state,
-  });
-}
+/** Where "Connect Instagram" sends the admin: Instagram's own sign-in. */
+export const signInUrl = (config: InstagramConfig, state: string): string =>
+  authorizeUrl({ appId: config.appId, redirectUri: redirectUri(), state });
