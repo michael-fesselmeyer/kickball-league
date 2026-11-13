@@ -1,5 +1,6 @@
 "use server";
 
+import { updateTag } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import {
@@ -18,7 +19,7 @@ import {
 } from "@/domain/ids";
 import { OUTCOMES, PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
 import { requirePermissionToChange } from "@/lib/auth/permission";
-import { refreshSeasonPages } from "@/lib/public-cache";
+import { gameTag, refreshSeasonPages } from "@/lib/public-cache";
 
 const pageFor = (gameId: string) => `/app/games/${gameId}/score`;
 
@@ -99,6 +100,7 @@ export async function submitScoreAction(
     );
   // An admin's score is final at once; anyone's shows as reported.
   refreshSeasonPages(g.seasonId);
+  updateTag(gameTag(g.id));
   redirect(`${page}?saved=1`);
 }
 
@@ -145,5 +147,6 @@ export async function respondAction(
   );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
   refreshSeasonPages(g.seasonId);
+  updateTag(gameTag(g.id));
   redirect(`${page}?${status}=1`);
 }

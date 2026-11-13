@@ -13,6 +13,7 @@ import {
 } from "@/db/queries/scores";
 import { Pickups } from "@/components/pickups";
 import { pickupsFor } from "@/db/queries/subs";
+import { hasReferee } from "@/db/queries/live-scores";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
@@ -138,6 +139,14 @@ async function Score({
     game: { id: g.id, teamSeasonIds: [g.teamAId, g.teamBId] as const },
   };
   const mayEnter = can(subject, "score.enter", ctx);
+  const mayScoreLive =
+    g.status !== "final" &&
+    g.status !== "forfeit" &&
+    g.status !== "cancelled" &&
+    (!g.startsAt || g.startsAt <= now) &&
+    can(subject, "score.live", {
+      game: { ...ctx.game, hasReferee: await hasReferee(db, g.id) },
+    });
   const isAdmin = can(subject, "score.override", {});
   if (!mayEnter && !can(subject, "score.confirm", ctx)) notFound();
   const { state, history } = await currentScoreState(db, g, now);
@@ -291,6 +300,12 @@ async function Score({
             An admin will set the final score.
           </p>
         </section>
+      )}
+
+      {mayScoreLive && state.state === "none" && (
+        <Link href={`/app/games/${g.id}/live`} className="btn btn-primary">
+          Score it inning by inning
+        </Link>
       )}
 
       {mayEnter &&
