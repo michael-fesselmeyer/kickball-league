@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { StatGame } from "@/domain/stats/games";
-import { suggestionReason, suggestTeamsOfWeek } from "./team-of-week";
+import {
+  parseTeamOfWeekForm,
+  suggestionReason,
+  suggestTeamsOfWeek,
+} from "./team-of-week";
 
 const dayOf = (d: Date) => d.toISOString().slice(0, 10);
 let n = 0;
@@ -99,5 +103,51 @@ describe("team of the week suggestions", () => {
     expect(close && suggestionReason(close, "Bunts")).toBe(
       "Edged Bunts 5–4 in the day's tightest finish.",
     );
+  });
+});
+
+describe("the team of the week form", () => {
+  const form = {
+    day: "2026-11-10",
+    team: "team-id",
+    sponsor: "",
+    tab: "",
+    reason: "  Took down No. 1. ",
+  };
+
+  it("reads an honor with no tab", () => {
+    expect(parseTeamOfWeekForm(form)).toEqual({
+      ok: true,
+      value: {
+        weekOf: "2026-11-10",
+        teamSeasonId: "team-id",
+        sponsorId: null,
+        tabCents: null,
+        reason: "Took down No. 1.",
+      },
+    });
+  });
+
+  it("reads a tab in dollars, from a sponsor", () => {
+    const parsed = parseTeamOfWeekForm({
+      ...form,
+      sponsor: "bar-id",
+      tab: "$50.5",
+    });
+    expect(parsed.ok && parsed.value.tabCents).toBe(5050);
+  });
+
+  it("names what is wrong", () => {
+    const wrong = (over: Partial<typeof form>) => {
+      const parsed = parseTeamOfWeekForm({ ...form, ...over });
+      return parsed.ok ? null : parsed.error;
+    };
+    expect(wrong({ day: "next week" })).toBe("bad_day");
+    expect(wrong({ team: "" })).toBe("no_team");
+    expect(wrong({ reason: " " })).toBe("reason_missing");
+    expect(wrong({ reason: "x".repeat(281) })).toBe("reason_too_long");
+    expect(wrong({ sponsor: "bar-id", tab: "lots" })).toBe("bad_tab");
+    expect(wrong({ sponsor: "bar-id", tab: "1000.01" })).toBe("bad_tab");
+    expect(wrong({ tab: "50" })).toBe("tab_needs_sponsor");
   });
 });

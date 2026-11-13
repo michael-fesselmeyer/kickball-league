@@ -1,3 +1,4 @@
+import { err, ok, type Result } from "@/domain/result";
 import { type StatGame, sideOf, winnerOf } from "@/domain/stats/games";
 import { powerRankings } from "@/domain/stats/power";
 
@@ -81,3 +82,63 @@ export function suggestionReason(s: Suggestion, opponentName: string): string {
     return `Edged ${opponentName} ${score} in the day's tightest finish.`;
   return `Beat ${opponentName} ${score}.`;
 }
+
+export type TeamOfWeekForm = {
+  weekOf: string;
+  teamSeasonId: string;
+  sponsorId: string | null;
+  tabCents: number | null;
+  reason: string;
+};
+
+export type TeamOfWeekFormError =
+  | "bad_day"
+  | "no_team"
+  | "reason_missing"
+  | "reason_too_long"
+  | "bad_tab"
+  | "tab_needs_sponsor";
+
+/** Reads the team of the week form. The tab is in whole or decimal dollars. */
+export function parseTeamOfWeekForm(fields: {
+  day: string;
+  team: string;
+  sponsor: string;
+  tab: string;
+  reason: string;
+}): Result<TeamOfWeekForm, TeamOfWeekFormError> {
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(fields.day) ||
+    Number.isNaN(Date.parse(fields.day))
+  )
+    return err("bad_day");
+  if (!fields.team) return err("no_team");
+  const reason = fields.reason.trim();
+  if (!reason) return err("reason_missing");
+  if (reason.length > 280) return err("reason_too_long");
+  const tab = fields.tab.trim().replace(/^\$/, "");
+  let tabCents: number | null = null;
+  if (tab) {
+    if (!/^\d+(\.\d{1,2})?$/.test(tab)) return err("bad_tab");
+    tabCents = Math.round(Number(tab) * 100);
+    if (tabCents < 1 || tabCents > 100_000) return err("bad_tab");
+  }
+  const sponsorId = fields.sponsor || null;
+  if (tabCents !== null && sponsorId === null) return err("tab_needs_sponsor");
+  return ok({
+    weekOf: fields.day,
+    teamSeasonId: fields.team,
+    sponsorId,
+    tabCents,
+    reason,
+  });
+}
+
+export const TEAM_OF_WEEK_ERRORS: Record<TeamOfWeekFormError, string> = {
+  bad_day: "Pick a game day.",
+  no_team: "Pick a team.",
+  reason_missing: "Say why they earned it, in a line.",
+  reason_too_long: "Keep the reason to 280 characters.",
+  bad_tab: "Give the tab in dollars, up to $1,000, or leave it empty.",
+  tab_needs_sponsor: "Say which sponsor is putting up the tab.",
+};
