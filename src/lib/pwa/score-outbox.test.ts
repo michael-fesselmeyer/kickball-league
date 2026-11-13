@@ -6,6 +6,9 @@ import {
   type OutboxWorker,
   type QueuedEntry,
   readOutbox,
+  RETRY_FIRST_MS,
+  RETRY_MAX_MS,
+  retryDelay,
   saveOffline,
   SEND_TAG,
   sendWaiting,
@@ -125,6 +128,14 @@ describe("the score screens' outbox", () => {
       { type: "send-scores" },
       { type: "dismiss-outcome", key: entry.key },
     ]);
+  });
+
+  it("waits longer between tries to send, up to a cap", () => {
+    expect([0, 1, 2, 3, 4, 5, 6].map(retryDelay)).toEqual([
+      2_000, 4_000, 8_000, 16_000, 30_000, 30_000, 30_000,
+    ]);
+    expect(retryDelay(-1)).toBe(RETRY_FIRST_MS);
+    expect(retryDelay(1_000)).toBe(RETRY_MAX_MS);
   });
 
   it("makes a new random key each time", () => {

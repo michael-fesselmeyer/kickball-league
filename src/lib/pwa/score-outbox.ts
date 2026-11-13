@@ -125,6 +125,21 @@ export async function readOutbox(container = worker()): Promise<Outbox> {
   };
 }
 
+/** The first wait before asking the worker to send again, in milliseconds. */
+export const RETRY_FIRST_MS = 2_000;
+/** The longest wait between tries while entries are waiting. */
+export const RETRY_MAX_MS = 30_000;
+
+/**
+ * How long to wait before try number `attempt` (from 0): 2 seconds, then
+ * twice as long each time, up to 30. The browser's `online` event often comes before the connection
+ * works, and the worker can still be offline when the page is not, so one
+ * try when the signal returns is not enough.
+ */
+export function retryDelay(attempt: number): number {
+  return Math.min(RETRY_MAX_MS, RETRY_FIRST_MS * 2 ** Math.max(0, attempt));
+}
+
 /** Asks the worker to send what is waiting, as when the signal comes back. */
 export function sendWaiting(container = worker()): void {
   container?.controller?.postMessage({ type: "send-scores" }, []);
