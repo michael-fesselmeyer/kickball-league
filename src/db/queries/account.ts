@@ -22,6 +22,13 @@ import { payment, purchase, purchaseItem } from "../schema/money";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { teamFormationRequest } from "../schema/formation";
+import {
+  checkin,
+  deal,
+  dealRedemption,
+  sponsor,
+  sponsorMember,
+} from "../schema/sponsor";
 import { subClaim, subRequest } from "../schema/subs";
 import {
   invite,
@@ -336,6 +343,28 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .from(teamFormationRequest)
     .where(eq(teamFormationRequest.requestedBy, userId))
     .orderBy(asc(teamFormationRequest.createdAt));
+  const checkIns = await db
+    .select({
+      sponsor: sponsor.name,
+      onDate: checkin.onDate,
+      checkedInAt: checkin.checkedInAt,
+    })
+    .from(checkin)
+    .innerJoin(sponsor, eq(checkin.sponsorId, sponsor.id))
+    .where(eq(checkin.userId, userId))
+    .orderBy(asc(checkin.checkedInAt));
+  const dealsUsed = await db
+    .select({ deal: deal.title, redeemedAt: dealRedemption.redeemedAt })
+    .from(dealRedemption)
+    .innerJoin(deal, eq(dealRedemption.dealId, deal.id))
+    .where(eq(dealRedemption.userId, userId))
+    .orderBy(asc(dealRedemption.redeemedAt));
+  const sponsorsManaged = await db
+    .select({ sponsor: sponsor.name, since: sponsorMember.createdAt })
+    .from(sponsorMember)
+    .innerJoin(sponsor, eq(sponsorMember.sponsorId, sponsor.id))
+    .where(eq(sponsorMember.userId, userId))
+    .orderBy(asc(sponsorMember.createdAt));
 
   const emailSettings = await db
     .select({
@@ -434,6 +463,9 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
       castAt: v.castAt,
       pick: v.pickedPlayer ?? v.pickedTeam,
     })),
+    checkIns,
+    dealsUsed,
+    sponsorsManaged,
     emailSettings,
     pushDevices,
     messages,
@@ -504,8 +536,9 @@ export type DeleteError = "not_found" | DeleteBlocker["reason"];
  * Removed: the profile (name, phone, gender, shirt size, birth date,
  * emergency contact), every session, passkey and sign-in method, pending
  * sign-in links, game and event RSVPs (a freed event spot goes to the waitlist),
- * email and push settings, push devices and messages, and their address on
- * invites.
+ * sponsor portal access, email and push settings, push devices and messages,
+ * and their address on invites. Check-ins stay, unnamed, in the sponsor's
+ * counts.
  * Sub claims for games still to come are withdrawn, which reopens the spot
  * and tells the captains; past claims stay as history without the copied
  * lineup gender.
@@ -594,6 +627,8 @@ export async function deleteAccount(
         ),
       ),
     );
+  // Check-ins stay, for the sponsor's counts, under the anonymized user.
+  await db.delete(sponsorMember).where(eq(sponsorMember.userId, userId));
   await db
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));

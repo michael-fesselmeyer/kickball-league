@@ -89,12 +89,8 @@ describe("saying when a deal applies", () => {
     );
   });
 
-  it("says how long ago the deals were confirmed", () => {
-    expect(confirmedLabel(TUESDAY, TUESDAY)).toBe("Confirmed today");
-    expect(confirmedLabel(TUESDAY, WEDNESDAY)).toBe("Confirmed yesterday");
-    expect(confirmedLabel("2026-11-01", WEDNESDAY)).toBe(
-      "Confirmed November 1",
-    );
+  it("says when the deals were last confirmed, as a date", () => {
+    expect(confirmedLabel(TUESDAY)).toBe("Confirmed Nov 10");
   });
 });
 

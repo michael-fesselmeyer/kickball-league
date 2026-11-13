@@ -17,6 +17,8 @@ export const PUBLIC_PAGE_LIFE = {
 export const seasonTag = (seasonId: string) => `season:${seasonId}`;
 export const teamTag = (teamSlug: string) => `team:${teamSlug}`;
 export const gameTag = (gameId: string) => `game:${gameId}`;
+/** Every sponsor page and the sponsors list: there are only a handful. */
+export const SPONSORS_TAG = "sponsors";
 
 /**
  * How long a game's live score is kept on the server between saves
@@ -77,4 +79,13 @@ export function refreshEventPages(
     updateTag(THEME_WEEKS_TAG);
     revalidatePath("/seasons/[season]", "layout");
   }
+}
+
+/**
+ * From a Server Action: the sponsors list and every sponsor page render
+ * fresh data on their next request, after a sponsor, deal or team of the
+ * week changes.
+ */
+export function refreshSponsorPages(): void {
+  updateTag(SPONSORS_TAG);
 }

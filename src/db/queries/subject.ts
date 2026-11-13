@@ -5,11 +5,12 @@ import { refereeAssignment } from "../schema/game";
 import { profile } from "../schema/profile";
 import { registration, rosterMembership } from "../schema/team";
 import type { Db } from "./schedule";
+import { sponsorIdsOf } from "./sponsors";
 
 /**
  * Who a person is for permission checks: their global role and active roster
- * roles, and the games they referee. Sponsor memberships join this when that
- * table arrives. A missing user is treated as a visitor.
+ * roles, the games they referee and the sponsors they manage. A missing
+ * user is treated as a visitor.
  */
 export async function loadSubject(
   db: Db,
@@ -48,6 +49,7 @@ export async function loadSubject(
       ),
     )
     .orderBy(refereeAssignment.gameId);
+  const sponsorIds = await sponsorIdsOf(db, userId);
   return {
     ...VISITOR,
     userId,
@@ -55,5 +57,6 @@ export async function loadSubject(
     roster,
     isReferee: refereeing.length > 0,
     refereeGameIds: refereeing.map((r) => r.gameId),
+    sponsorIds,
   };
 }
