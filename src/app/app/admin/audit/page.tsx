@@ -13,6 +13,10 @@ import { requirePermission } from "@/lib/auth/permission";
 
 export const metadata: Metadata = { title: "Audit log" };
 
+/** The current filter is a filled pill, so it doesn't rely on aria-current alone. */
+const filterLink =
+  "inline-flex min-h-11 items-center rounded-full border-2 border-text px-4 font-semibold aria-[current=page]:bg-brand aria-[current=page]:text-on-brand";
+
 export default function AuditPage(props: PageProps<"/app/admin/audit">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
@@ -60,25 +64,29 @@ async function Audit({ searchParams }: PageProps<"/app/admin/audit">) {
           Every change admins, captains and the platform operator made, and
           every data download, newest first.
         </p>
-        <p className="flex flex-wrap gap-3">
+        <nav aria-label="Show" className="flex flex-wrap gap-2">
           <Link
             href="/app/admin/audit"
             aria-current={operatorOnly ? undefined : "page"}
-            className="underline"
+            className={filterLink}
           >
             Everything
           </Link>
           <Link
             href="/app/admin/audit?only=operator"
             aria-current={operatorOnly ? "page" : undefined}
-            className="underline"
+            className={filterLink}
           >
             Platform operator only
           </Link>
-        </p>
+        </nav>
       </header>
       {page.rows.length === 0 ? (
-        <p className="text-text-muted">Nothing recorded here yet.</p>
+        <p className="text-text-muted">
+          {operatorOnly
+            ? "The platform operator hasn't changed anything yet."
+            : "Nothing recorded yet. Changes and downloads show up here as they happen."}
+        </p>
       ) : (
         <ol className="flex flex-col gap-2">
           {page.rows.map((row) => {
