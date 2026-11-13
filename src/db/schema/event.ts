@@ -15,13 +15,16 @@ import {
 import type {
   EventId,
   EventRsvpId,
+  EventTicketId,
   LeagueId,
+  PurchaseId,
   SeasonId,
   TeamId,
   UserId,
 } from "@/domain/ids";
 import { user } from "./auth";
 import { league } from "./league";
+import { purchase } from "./money";
 import { season } from "./season";
 import { team } from "./team";
 
@@ -88,6 +91,13 @@ export const event = pgTable(
     inviteUrl: text(),
     /** Off when people RSVP only through the invite link. */
     inAppRsvp: boolean().notNull().default(true),
+    /**
+     * A ticketed event's price; null for a free one. A spot then comes with
+     * a ticket bought through Stripe Checkout (event_ticket).
+     */
+    ticketPriceCents: integer(),
+    /** A lower price for members; null means members pay the ticket price. */
+    memberPriceCents: integer(),
     /** Called off: the page stays up and says so; RSVPs are closed. */
     cancelledAt: timestamp({ withTimezone: true }),
     /** Removed by an admin: gone from every page. */
@@ -123,6 +133,21 @@ export const event = pgTable(
     check(
       "event_invite_url_https",
       sql`${t.inviteUrl} is null or (${t.inviteUrl} ~ '^https://' and length(${t.inviteUrl}) <= 500)`,
+    ),
+    // Stripe takes no card payment under 50 cents; a member price may be
+    // free, which issues the ticket with no payment at all.
+    check(
+      "event_price_range",
+      sql`${t.ticketPriceCents} is null or ${t.ticketPriceCents} between 50 and 50000`,
+    ),
+    check(
+      "event_member_price",
+      sql`${t.memberPriceCents} is null or (${t.ticketPriceCents} is not null and ${t.memberPriceCents} <= ${t.ticketPriceCents} and (${t.memberPriceCents} = 0 or ${t.memberPriceCents} >= 50))`,
+    ),
+    // Tickets are sold in the app, and a theme week has nothing to attend.
+    check(
+      "event_ticket_sold_in_app",
+      sql`${t.ticketPriceCents} is null or (${t.inAppRsvp} and ${t.kind} <> 'theme_week')`,
     ),
     index("event_league_starts_idx").on(t.leagueId, t.startsAt),
   ],
@@ -200,5 +225,79 @@ export const eventRsvp = pgTable(
   ],
 );
 
+/**
+ * offered: a spot held for the next person on a ticketed event's waitlist
+ * until held_until. held: a spot held while its Checkout is open, until
+ * held_until. paid: a ticket (the person also has a going RSVP). refunded:
+ * the league gave the money back and the spot went to the waitlist.
+ * released: an offer or a checkout that ended unpaid. cancelled: given up
+ * when its holder deleted their account.
+ */
+export const eventTicketStatus = pgEnum("event_ticket_status", [
+  "offered",
+  "held",
+  "paid",
+  "refunded",
+  "released",
+  "cancelled",
+]);
+
+/**
+ * A spot on a ticketed event, from an offer or a checkout's hold to a paid
+ * ticket. Only the Stripe webhook (or credit that covers the whole price)
+ * makes it paid. A spot counts against the capacity while it is paid, or
+ * offered or held until held_until.
+ */
+export const eventTicket = pgTable(
+  "event_ticket",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<EventTicketId>(),
+    eventId: uuid()
+      .notNull()
+      .$type<EventId>()
+      .references(() => event.id, { onDelete: "restrict" }),
+    userId: uuid()
+      .notNull()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "restrict" }),
+    /** The checkout that pays for it; an offer has none yet. */
+    purchaseId: uuid()
+      .$type<PurchaseId>()
+      .references(() => purchase.id, { onDelete: "restrict" }),
+    status: eventTicketStatus().notNull(),
+    /** The price before league credit: the member price or the full one. */
+    priceCents: integer(),
+    /** Shown on the ticket and read out at the door. */
+    code: text().notNull(),
+    heldUntil: timestamp({ withTimezone: true }),
+    checkedInAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    unique("event_ticket_code_unique").on(t.eventId, t.code),
+    unique("event_ticket_purchase_unique").on(t.purchaseId),
+    index("event_ticket_event_status_idx").on(t.eventId, t.status),
+    index("event_ticket_user_idx").on(t.userId),
+    check("event_ticket_code_format", sql`${t.code} ~ '^[A-HJ-NP-Z2-9]{6}$'`),
+    check(
+      "event_ticket_held_until",
+      sql`(${t.status} in ('offered', 'held')) = (${t.heldUntil} is not null)`,
+    ),
+    check(
+      "event_ticket_purchase",
+      sql`${t.status} in ('offered', 'released', 'cancelled') or (${t.purchaseId} is not null and ${t.priceCents} is not null)`,
+    ),
+    check(
+      "event_ticket_price_cents",
+      sql`${t.priceCents} is null or ${t.priceCents} >= 0`,
+    ),
+  ],
+);
+
 export type Event = typeof event.$inferSelect;
+export type EventTicket = typeof eventTicket.$inferSelect;
 export type EventRsvp = typeof eventRsvp.$inferSelect;
