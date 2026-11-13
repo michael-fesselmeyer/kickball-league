@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { NEXT_GAME_CACHE, NEXT_GAME_INFO, savedGame } from "./offline-cache";
+import { OUTBOX_DB, SEND_TAG } from "./score-outbox";
 
 /**
  * The caching rules of public/sw.js, run as written against an in-memory
@@ -113,6 +114,130 @@ class FakeNetwork {
   }
 }
 
+/**
+ * Just enough IndexedDB for the worker's outbox: object stores with a key
+ * path, auto-increment, and add, put, delete, clear and getAll. Each request
+ * applies at once; the transaction completes on the next turn, as a real
+ * one does once its requests are done.
+ */
+type Row = Record<string, unknown>;
+
+class FakeStore {
+  readonly rows = new Map<number | string, Row>();
+  private next = 1;
+  constructor(
+    readonly keyPath: string,
+    readonly autoIncrement: boolean,
+  ) {}
+  keyOf(row: Row) {
+    if (this.autoIncrement && row[this.keyPath] === undefined)
+      return { ...row, [this.keyPath]: this.next++ };
+    return row;
+  }
+  all() {
+    return [...this.rows.entries()]
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([, row]) => structuredClone(row));
+  }
+}
+
+class FakeRequest {
+  result: unknown = undefined;
+  error: unknown = null;
+  onsuccess: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  onupgradeneeded: (() => void) | null = null;
+}
+
+class FakeTransaction {
+  error: unknown = null;
+  oncomplete: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  onabort: (() => void) | null = null;
+  constructor(readonly objectStore: (name: string) => unknown) {}
+}
+
+class FakeIndexedDB {
+  readonly stores = new Map<string, FakeStore>();
+  private created = false;
+  /** Make every transaction fail, as when the phone's storage is full. */
+  broken = false;
+
+  open = () => {
+    const request = new FakeRequest();
+    setTimeout(() => {
+      request.result = this.connection();
+      if (!this.created) {
+        this.created = true;
+        request.onupgradeneeded?.();
+      }
+      request.onsuccess?.();
+    }, 0);
+    return request;
+  };
+
+  rows(name: string) {
+    return this.stores.get(name)?.all() ?? [];
+  }
+
+  private connection() {
+    return {
+      objectStoreNames: { contains: (name: string) => this.stores.has(name) },
+      createObjectStore: (
+        name: string,
+        options: { keyPath: string; autoIncrement?: boolean },
+      ) =>
+        this.stores.set(
+          name,
+          new FakeStore(options.keyPath, !!options.autoIncrement),
+        ),
+      close: () => {},
+      transaction: () => {
+        const tx = new FakeTransaction((name) => this.storeApi(name));
+        setTimeout(() => {
+          if (this.broken) {
+            tx.error = new Error("QuotaExceededError");
+            tx.onabort?.();
+          } else tx.oncomplete?.();
+        }, 0);
+        return tx;
+      },
+    };
+  }
+
+  private storeApi(name: string) {
+    const store = this.stores.get(name);
+    if (!store) throw new Error(`No store ${name}`);
+    const done = (result: unknown) => {
+      const request = new FakeRequest();
+      request.result = result;
+      return request;
+    };
+    const key = (row: Row) => {
+      const value = row[store.keyPath];
+      if (typeof value !== "number" && typeof value !== "string")
+        throw new Error("No key");
+      return value;
+    };
+    return {
+      add: (value: Row) => {
+        const row = store.keyOf(structuredClone(value));
+        if (store.rows.has(key(row))) throw new Error("ConstraintError");
+        store.rows.set(key(row), row);
+        return done(key(row));
+      },
+      put: (value: Row) => {
+        const row = store.keyOf(structuredClone(value));
+        store.rows.set(key(row), row);
+        return done(key(row));
+      },
+      delete: (id: number | string) => done(store.rows.delete(id)),
+      clear: () => done(store.rows.clear()),
+      getAll: () => done(store.all()),
+    };
+  }
+}
+
 type Listener = (event: unknown) => void;
 
 type Shown = { title: string; options: NotificationOptions };
@@ -120,6 +245,10 @@ type Shown = { title: string; options: NotificationOptions };
 /** The windows the worker can see, and what it did with them. */
 class FakeWindows {
   readonly shown: Shown[] = [];
+  /** Messages the worker sent the open pages. */
+  readonly told: unknown[] = [];
+  /** Background Sync tags the worker registered. */
+  readonly syncs: string[] = [];
   readonly opened: string[] = [];
   readonly focused: string[] = [];
   open: { url: string }[] = [];
@@ -135,6 +264,9 @@ class FakeWindows {
       focus: async () => {
         this.focused.push(w.url);
       },
+      postMessage: (message: unknown) => {
+        this.told.push(message);
+      },
     }));
 }
 
@@ -142,6 +274,7 @@ function loadWorker(
   network: FakeNetwork,
   storage: FakeCacheStorage,
   screen: FakeWindows = new FakeWindows(),
+  idb: FakeIndexedDB = new FakeIndexedDB(),
 ) {
   const listeners = new Map<string, Listener>();
   const self = {
@@ -152,6 +285,11 @@ function loadWorker(
     registration: {
       showNotification: async (title: string, options: NotificationOptions) => {
         screen.shown.push({ title, options });
+      },
+      sync: {
+        register: async (tag: string) => {
+          screen.syncs.push(tag);
+        },
       },
     },
     clients: {
@@ -167,13 +305,18 @@ function loadWorker(
     "self",
     "caches",
     "fetch",
-    `${source}\nreturn { routeFor, VERSION, SHELL_CACHE, NEXT_GAME_CACHE, NEXT_GAME_INFO };`,
-  )(self, storage, network.fetch) as {
+    "indexedDB",
+    `${source}\nreturn { routeFor, VERSION, SHELL_CACHE, NEXT_GAME_CACHE, NEXT_GAME_INFO, OUTBOX_DB, SEND_TAG, ENTRIES, OUTCOMES };`,
+  )(self, storage, network.fetch, idb) as {
     routeFor: (request: Req) => string;
     VERSION: string;
     SHELL_CACHE: string;
     NEXT_GAME_CACHE: string;
     NEXT_GAME_INFO: string;
+    OUTBOX_DB: string;
+    SEND_TAG: string;
+    ENTRIES: string;
+    OUTCOMES: string;
   };
 
   /** Dispatches an event and waits for everything it asked to wait for. */
@@ -199,6 +342,16 @@ function loadWorker(
     install: () => dispatch("install"),
     activate: () => dispatch("activate"),
     message: (data: unknown) => dispatch("message", { data }),
+    /** A message that expects an answer, as the score screens send. */
+    ask: async (data: unknown) => {
+      const answers: unknown[] = [];
+      await dispatch("message", {
+        data,
+        ports: [{ postMessage: (answer: unknown) => answers.push(answer) }],
+      });
+      return answers[0];
+    },
+    sync: (tag: string) => dispatch("sync", { tag }),
     push: (data: unknown) =>
       dispatch("push", {
         data:
@@ -605,5 +758,213 @@ describe("service worker: push notifications", () => {
     expect(screen.opened).toEqual([`${ORIGIN}${pushSettings}`]);
     await worker.click("/app/subs", "settings", "https://evil.example.test/");
     expect(screen.opened.at(-1)).toBe(`${ORIGIN}/app`);
+  });
+});
+
+describe("service worker: scores saved with no signal", () => {
+  const GAME_ID = "0f3c2b9e-1d4a-4c8e-9b7a-2e5f6a7b8c9d";
+  const API = `/api/games/${GAME_ID}/offline`;
+  let screen: FakeWindows;
+  let idb: FakeIndexedDB;
+
+  const entry = (n: number, fields: object = {}) => ({
+    kind: "half",
+    key: `00000000-0000-4000-8000-00000000000${n}`,
+    gameId: GAME_ID,
+    userId: "11111111-1111-4111-8111-111111111111",
+    enteredAt: "2026-09-14T00:30:00.000Z",
+    inning: 1,
+    half: n % 2 === 1 ? "top" : "bottom",
+    runs: n,
+    was: null,
+    summary: `Half ${n}`,
+    ...fields,
+  });
+
+  /** The server's answers, in order; a function answers every request. */
+  function answer(...responses: (() => Response)[]) {
+    network.pages.set(API, () => {
+      const next = responses.length > 1 ? responses.shift() : responses[0];
+      if (!next) throw new Error("No answer");
+      return next();
+    });
+  }
+  const saved =
+    (message = "Saved.") =>
+    () =>
+      Response.json({ status: "saved", message });
+
+  const sentKeys = () =>
+    network.fetched(API).map((c) => {
+      const body: unknown = JSON.parse(String(c.init?.body));
+      return typeof body === "object" && body !== null && "key" in body
+        ? body.key
+        : null;
+    });
+  const waiting = () => idb.rows(worker.ENTRIES);
+  const outcomes = () => idb.rows(worker.OUTCOMES);
+
+  beforeEach(() => {
+    screen = new FakeWindows();
+    screen.open = [{ url: `${ORIGIN}/app/games/${GAME_ID}/score` }];
+    idb = new FakeIndexedDB();
+    worker = loadWorker(network, storage, screen, idb);
+  });
+
+  it("uses the names the score screens use", () => {
+    expect(worker.OUTBOX_DB).toBe(OUTBOX_DB);
+    expect(worker.SEND_TAG).toBe(SEND_TAG);
+  });
+
+  it("saves an entry with no signal and asks Background Sync to send it", async () => {
+    network.online = false;
+    expect(await worker.ask({ type: "queue-score", entry: entry(1) })).toEqual({
+      ok: true,
+    });
+    expect(waiting()).toEqual([{ ...entry(1), problem: null, seq: 1 }]);
+    expect(screen.syncs).toEqual([SEND_TAG]);
+    expect(screen.told).toContainEqual({ type: "outbox-changed" });
+    expect(await worker.ask({ type: "outbox" })).toEqual({
+      entries: [{ ...entry(1), problem: null, seq: 1 }],
+      outcomes: [],
+    });
+  });
+
+  it("sends at once when it can, and keeps the server's answer", async () => {
+    answer(saved("Saved 1 run in the top of the 1st."));
+    await worker.ask({ type: "queue-score", entry: entry(1) });
+    expect(sentKeys()).toEqual([entry(1).key]);
+    const sent = network.fetched(API)[0]?.init;
+    expect(sent?.method).toBe("POST");
+    // The server gets the entry, not the phone's own bookkeeping.
+    expect(JSON.parse(String(sent?.body))).not.toHaveProperty("summary");
+    expect(waiting()).toEqual([]);
+    expect(outcomes()).toEqual([
+      {
+        key: entry(1).key,
+        gameId: GAME_ID,
+        kind: "half",
+        summary: "Half 1",
+        status: "saved",
+        message: "Saved 1 run in the top of the 1st.",
+      },
+    ]);
+  });
+
+  it("keeps one copy of an entry handed over twice", async () => {
+    network.online = false;
+    await worker.ask({ type: "queue-score", entry: entry(1) });
+    await worker.ask({ type: "queue-score", entry: entry(1) });
+    expect(waiting()).toHaveLength(1);
+  });
+
+  it("refuses something that is not an entry", async () => {
+    for (const bad of [null, "score", { ...entry(1), key: "abc" }, {}])
+      expect(await worker.ask({ type: "queue-score", entry: bad })).toEqual({
+        ok: false,
+      });
+    expect(waiting()).toEqual([]);
+  });
+
+  it("says so when the phone can't save it", async () => {
+    idb.broken = true;
+    network.online = false;
+    expect(await worker.ask({ type: "queue-score", entry: entry(1) })).toEqual({
+      ok: false,
+    });
+  });
+
+  it("sends waiting entries in the order they were made when signal returns", async () => {
+    network.online = false;
+    for (const n of [1, 2, 3])
+      await worker.ask({ type: "queue-score", entry: entry(n) });
+    network.calls.splice(0);
+    network.online = true;
+    answer(saved());
+    await worker.sync(SEND_TAG);
+    expect(sentKeys()).toEqual([1, 2, 3].map((n) => entry(n).key));
+    expect(waiting()).toEqual([]);
+    expect(outcomes().map((o) => o.key)).toEqual(
+      [1, 2, 3].map((n) => entry(n).key),
+    );
+  });
+
+  it("sends when a page asks, as on iPhones, which have no Background Sync", async () => {
+    network.online = false;
+    await worker.ask({ type: "queue-score", entry: entry(1) });
+    network.online = true;
+    answer(saved());
+    await worker.message({ type: "send-scores" });
+    expect(waiting()).toEqual([]);
+  });
+
+  it("stops at the first entry that can't go yet, so order holds", async () => {
+    network.online = false;
+    for (const n of [1, 2])
+      await worker.ask({ type: "queue-score", entry: entry(n) });
+    network.calls.splice(0);
+    network.online = true;
+    answer(() =>
+      Response.json(
+        { status: "refused", message: "Sign in to send it." },
+        { status: 401 },
+      ),
+    );
+    // Rejecting tells the browser to run the sync again later.
+    await expect(worker.sync(SEND_TAG)).rejects.toThrow();
+    expect(sentKeys()).toEqual([entry(1).key]);
+    expect(waiting().map((e) => e.problem)).toEqual([
+      "Sign in to send it.",
+      null,
+    ]);
+
+    answer(() => new Response("Server error", { status: 500 }));
+    await expect(worker.sync(SEND_TAG)).rejects.toThrow();
+    expect(waiting()).toHaveLength(2);
+
+    answer(saved());
+    await worker.sync(SEND_TAG);
+    expect(waiting()).toEqual([]);
+  });
+
+  it("drops an entry the server can never read, with the reason", async () => {
+    network.online = false;
+    await worker.ask({ type: "queue-score", entry: entry(1) });
+    network.online = true;
+    answer(() =>
+      Response.json(
+        { status: "refused", message: "This entry couldn't be read." },
+        { status: 400 },
+      ),
+    );
+    await worker.sync(SEND_TAG);
+    expect(waiting()).toEqual([]);
+    expect(outcomes()[0]).toMatchObject({
+      status: "refused",
+      message: "This entry couldn't be read.",
+    });
+  });
+
+  it("ignores other sync tags", async () => {
+    network.online = false;
+    await worker.ask({ type: "queue-score", entry: entry(1) });
+    network.online = true;
+    await worker.sync("something-else");
+    expect(waiting()).toHaveLength(1);
+  });
+
+  it("forgets an answer once it has been read", async () => {
+    answer(saved());
+    await worker.ask({ type: "queue-score", entry: entry(1) });
+    await worker.message({ type: "dismiss-outcome", key: entry(1).key });
+    expect(outcomes()).toEqual([]);
+  });
+
+  it("drops everything on sign-out: the entries are that person's", async () => {
+    network.online = false;
+    await worker.ask({ type: "queue-score", entry: entry(1) });
+    await worker.message({ type: "forget" });
+    expect(waiting()).toEqual([]);
+    expect(outcomes()).toEqual([]);
   });
 });

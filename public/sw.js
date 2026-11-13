@@ -17,6 +17,13 @@
  *
  * It also shows the league's push notifications (rain-outs, sub requests,
  * scores) and opens the right page when one is tapped.
+ *
+ * And it keeps the outbox for score entries made with no signal (ADR 0025):
+ * the score screens hand each entry here, it is saved in IndexedDB, and it
+ * is sent to the server in the order it was made, by Background Sync where
+ * the browser has it and whenever a page asks (on opening and on coming
+ * back online, since iOS has no Background Sync). Each entry carries a key
+ * made on the phone, so sending one twice is harmless.
  */
 
 // Bump to drop every cache from an older worker when it activates.
@@ -33,6 +40,12 @@ const SHELL_FILES = [
   "/icons/maskable-512.png",
   "/icons/apple-touch-icon.png",
 ];
+// The score screens use these names too (src/lib/pwa/score-outbox.ts).
+const OUTBOX_DB = "kb-outbox";
+const ENTRIES = "entries";
+const OUTCOMES = "outcomes";
+const SEND_TAG = "kb-send-scores";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const GAME_PAGE = /^\/games\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const STATIC_ASSET = /\/_next\/static\/[^"'\s)<>\\]+/g;
 
@@ -91,8 +104,41 @@ self.addEventListener("message", (event) => {
     if (path !== null && !GAME_PAGE.test(path)) return;
     event.waitUntil(saveForOffline(path, label));
   } else if (data.type === "forget") {
-    event.waitUntil(caches.delete(NEXT_GAME_CACHE));
+    // Signing out also drops entries not sent yet: they are that person's.
+    event.waitUntil(
+      Promise.all([caches.delete(NEXT_GAME_CACHE), clearOutbox()]),
+    );
+  } else if (data.type === "queue-score") {
+    event.waitUntil(
+      queueEntry(data.entry).then(
+        (queued) => {
+          reply(event, { ok: queued });
+          return queued ? sendSoon() : undefined;
+        },
+        () => reply(event, { ok: false }),
+      ),
+    );
+  } else if (data.type === "outbox") {
+    event.waitUntil(
+      readOutbox().then(
+        (outbox) => reply(event, outbox),
+        () => reply(event, { entries: [], outcomes: [] }),
+      ),
+    );
+  } else if (data.type === "send-scores") {
+    event.waitUntil(sendSoon());
+  } else if (data.type === "dismiss-outcome" && typeof data.key === "string") {
+    event.waitUntil(
+      inStore(OUTCOMES, "readwrite", (store) => store.delete(data.key))
+        .then(tellPages)
+        .catch(() => undefined),
+    );
   }
+});
+
+self.addEventListener("sync", (event) => {
+  // A rejection asks the browser to try again later.
+  if (event.tag === SEND_TAG) event.waitUntil(sendOutbox());
 });
 
 /**
@@ -341,4 +387,182 @@ async function saveForOffline(path, label) {
     }
   }
   await refreshShell();
+}
+
+/** Answers a page that asked over a MessageChannel. */
+function reply(event, message) {
+  event.ports?.[0]?.postMessage(message);
+}
+
+function openOutbox() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(OUTBOX_DB, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(ENTRIES))
+        db.createObjectStore(ENTRIES, { keyPath: "seq", autoIncrement: true });
+      if (!db.objectStoreNames.contains(OUTCOMES))
+        db.createObjectStore(OUTCOMES, { keyPath: "key" });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Runs one request against a store and resolves with its result once the
+ * transaction has committed, so a caller never acts on a write that failed.
+ */
+async function inStore(name, mode, run) {
+  const db = await openOutbox();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(name, mode);
+      const request = run(tx.objectStore(name));
+      tx.oncomplete = () => resolve(request?.result);
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  } finally {
+    db.close();
+  }
+}
+
+/**
+ * Saves an entry from a score screen. The page made its key and checked its
+ * fields; the server checks them again. Saving the same key twice keeps one.
+ */
+async function queueEntry(entry) {
+  if (
+    !entry ||
+    typeof entry !== "object" ||
+    !UUID.test(entry.key) ||
+    !UUID.test(entry.gameId) ||
+    typeof entry.kind !== "string"
+  )
+    return false;
+  const { entries } = await readOutbox();
+  if (entries.some((e) => e.key === entry.key)) return true;
+  await inStore(ENTRIES, "readwrite", (store) =>
+    store.add({ ...entry, problem: null }),
+  );
+  await tellPages();
+  return true;
+}
+
+async function readOutbox() {
+  const entries = await inStore(ENTRIES, "readonly", (store) => store.getAll());
+  const outcomes = await inStore(OUTCOMES, "readonly", (store) =>
+    store.getAll(),
+  );
+  return { entries: entries ?? [], outcomes: outcomes ?? [] };
+}
+
+async function clearOutbox() {
+  await inStore(ENTRIES, "readwrite", (store) => store.clear());
+  await inStore(OUTCOMES, "readwrite", (store) => store.clear());
+  await tellPages();
+}
+
+/** Tells every open page that the outbox changed, so it shows the latest. */
+async function tellPages() {
+  const windows = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+  for (const w of windows) w.postMessage({ type: "outbox-changed" });
+}
+
+/** Sends now if it can; with no signal, Background Sync tries later. */
+async function sendSoon() {
+  try {
+    await sendOutbox();
+  } catch {
+    await self.registration.sync?.register(SEND_TAG).catch(() => undefined);
+  }
+}
+
+let sending = null;
+
+/**
+ * Sends saved entries one at a time, oldest first, and stops at the first
+ * one that can't go yet, so live halves reach the server in order. An entry
+ * the server has answered is done: it moves to the outcomes the score
+ * screens show. Rejects while entries are left, so Background Sync retries.
+ * One run at a time: a second call waits for the run in progress.
+ */
+function sendOutbox() {
+  sending ??= sendAll().finally(() => {
+    sending = null;
+  });
+  return sending;
+}
+
+async function sendAll() {
+  const { entries } = await readOutbox();
+  for (const stored of entries) {
+    // The phone's own bookkeeping stays on the phone.
+    const { seq, summary } = stored;
+    const entry = { ...stored };
+    for (const own of ["seq", "summary", "problem"]) delete entry[own];
+    let response;
+    try {
+      response = await fetch(`/api/games/${entry.gameId}/offline`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+        credentials: "same-origin",
+        cache: "no-store",
+      });
+    } catch {
+      throw new Error("No signal yet.");
+    }
+    if (response.status !== 200 && response.status !== 400) {
+      // Signed out, the site paused, or a server error: keep it, and say why.
+      const answer = await readAnswer(response);
+      await inStore(ENTRIES, "readwrite", (store) =>
+        store.put({ ...stored, problem: answer?.message ?? null }),
+      );
+      await tellPages();
+      throw new Error("Not sent yet.");
+    }
+    const answer = (await readAnswer(response)) ?? {
+      status: "refused",
+      message: "The server's answer couldn't be read.",
+    };
+    const db = await openOutbox();
+    try {
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction([ENTRIES, OUTCOMES], "readwrite");
+        tx.objectStore(ENTRIES).delete(seq);
+        tx.objectStore(OUTCOMES).put({
+          key: entry.key,
+          gameId: entry.gameId,
+          kind: entry.kind,
+          summary,
+          ...answer,
+        });
+        tx.oncomplete = () => resolve(undefined);
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    } finally {
+      db.close();
+    }
+    await tellPages();
+  }
+}
+
+/** The server's JSON answer, or null when there is none to read. */
+async function readAnswer(response) {
+  try {
+    const body = await response.json();
+    return body &&
+      typeof body.status === "string" &&
+      typeof body.message === "string"
+      ? { status: body.status, message: body.message.slice(0, 500) }
+      : null;
+  } catch {
+    return null;
+  }
 }
