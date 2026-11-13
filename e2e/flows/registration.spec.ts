@@ -305,6 +305,8 @@ test("an admin applies the matcher's suggestion", async ({ browser }) => {
   await expect(
     page.getByRole("article", { name: TEAM }).getByRole("row"),
   ).toHaveCount(3);
+  await page.context().close();
+});
 
 test("an admin refunds part of one payment and all of another through Stripe", async ({
   browser,
