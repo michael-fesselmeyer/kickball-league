@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { aiBudget, monthSpend } from "@/db/queries/ai";
 import { siteSettings, staff } from "@/db/queries/platform";
+import { centsToMicrodollars } from "@/domain/ai/budget";
+import { formatDollars } from "@/domain/ai/models";
 import {
   FEATURE_KEYS,
   FEATURES,
@@ -15,6 +18,7 @@ import {
   requireOperator,
 } from "@/lib/platform/require-operator";
 import {
+  setAiBudgetAction,
   setFeatureAction,
   setRoleAction,
   setSiteStatusAction,
@@ -40,6 +44,7 @@ const SAVED: Record<string, string> = {
   status: "Site status saved.",
   feature: "Feature switch saved.",
   role: "Role saved.",
+  ai_budget: "AI budget saved.",
 };
 const ERRORS: Record<string, string> = {
   no_account: "No account uses that email address.",
@@ -47,6 +52,7 @@ const ERRORS: Record<string, string> = {
   bad_status: "Pick a site status.",
   bad_feature: "That feature doesn't exist.",
   no_league: "There is no league yet.",
+  bad_budget: "Enter a budget in dollars, from 0 to 1,000.",
 };
 
 export default function OperatorPage(props: PageProps<"/operator">) {
@@ -62,11 +68,15 @@ export default function OperatorPage(props: PageProps<"/operator">) {
 async function Console({ searchParams }: PageProps<"/operator">) {
   await requireOperator();
   const query = await searchParams;
-  const [site, people, fresh] = await Promise.all([
+  const [site, people, fresh, budget] = await Promise.all([
     siteSettings(db),
     staff(db),
     operatorIsFresh(),
+    aiBudget(db),
   ]);
+  const spent = budget
+    ? await monthSpend(db, budget.leagueId, new Date())
+    : 0;
   const saved = typeof query.saved === "string" ? SAVED[query.saved] : null;
   const error = typeof query.error === "string" ? ERRORS[query.error] : null;
 
@@ -173,6 +183,40 @@ async function Console({ searchParams }: PageProps<"/operator">) {
               );
             })}
           </ul>
+        </section>
+      )}
+
+      {budget && (
+        <section aria-labelledby="ai-budget" className="flex flex-col gap-3">
+          <h2 id="ai-budget" className="text-h2">
+            AI budget
+          </h2>
+          <p>
+            Spent this month: <strong>{formatDollars(spent)}</strong> of{" "}
+            {formatDollars(centsToMicrodollars(budget.budgetCents))}. At the
+            budget, AI recap drafts switch off until the next month (UTC) and
+            admins see why. They only show at all when an API key is set.
+          </p>
+          <form action={setAiBudgetAction} className="flex flex-col gap-2">
+            <fieldset className="flex flex-col gap-2" disabled={!fresh}>
+              <label className="flex flex-col gap-1">
+                Monthly budget in dollars
+                <input
+                  name="dollars"
+                  inputMode="decimal"
+                  required
+                  defaultValue={(budget.budgetCents / 100).toFixed(2)}
+                  className="min-h-11 max-w-40 rounded-lg border border-border px-3"
+                />
+              </label>
+              <button
+                type="submit"
+                className="min-h-11 self-start rounded-full border-2 border-text px-5 font-semibold"
+              >
+                Save budget
+              </button>
+            </fieldset>
+          </form>
         </section>
       )}
 

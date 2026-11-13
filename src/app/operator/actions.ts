@@ -2,12 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
+import { setAiBudget } from "@/db/queries/ai";
 import {
   setFeature,
   setGlobalRole,
   setSiteStatus,
   siteSettings,
 } from "@/db/queries/platform";
+import { parseBudgetDollars } from "@/domain/ai/budget";
 import {
   isFeature,
   isGrantableRole,
@@ -60,6 +62,23 @@ export async function setFeatureAction(form: FormData): Promise<void> {
   );
   forgetSite();
   back("saved=feature");
+}
+
+/** Sets what the AI features may spend in a month. */
+export async function setAiBudgetAction(form: FormData): Promise<void> {
+  const operator = await requireFreshOperator();
+  const { dollars } = formStrings(form, ["dollars"] as const);
+  const cents = parseBudgetDollars(dollars);
+  if (cents === null) back("error=bad_budget");
+  const site = await league();
+  await txDb.transaction((tx) =>
+    setAiBudget(tx, {
+      leagueId: site.leagueId,
+      budgetCents: cents,
+      actorId: operator.userId,
+    }),
+  );
+  back("saved=ai_budget");
 }
 
 /** Makes a person a player, an admin or an owner. */
