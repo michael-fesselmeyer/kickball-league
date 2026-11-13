@@ -51,6 +51,12 @@ async function Season({
             Fields and permits
           </Link>
           <Link
+            href={`/app/admin/seasons/${slug}/divisions`}
+            className="underline"
+          >
+            Divisions
+          </Link>
+          <Link
             href={`/app/admin/seasons/${slug}/schedule`}
             className="underline"
           >
