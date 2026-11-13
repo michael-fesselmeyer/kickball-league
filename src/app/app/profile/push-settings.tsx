@@ -1,6 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import {
+  type FormEvent,
+  startTransition,
+  useActionState,
+  useEffect,
+  useState,
+} from "react";
 import {
   browserPushGlobals,
   type DeviceState,
@@ -53,8 +59,12 @@ export function PushSettings({
 
   // The outcome of whichever button was pressed last.
   const [notice, setNotice] = useState<PushSettingsState>({ status: "idle" });
+
+  // Devices with push on, kept current by each save.
+  const [deviceCount, setDeviceCount] = useState(devices);
   const done = (result: PushSettingsState) => {
     setNotice(result);
+    if (result.devices !== undefined) setDeviceCount(result.devices);
     return result;
   };
 
@@ -120,12 +130,24 @@ export function PushSettings({
           : device.state === "on"
             ? "Push is on for this device."
             : device.state === "off"
-              ? devices > 0
-                ? `Push is on for ${devices === 1 ? "1 other device" : `${devices} devices`}, not this one. Tick a topic and save to add this one.`
+              ? deviceCount > 0
+                ? `Push is on for ${deviceCount === 1 ? "1 other device" : `${deviceCount} other devices`}, not this one. Tick a topic and save to add this one.`
                 : "Push is off. Tick a topic and save, and your browser will ask to allow notifications."
               : NOT_SUBSCRIBED[device.state]}
       </p>
-      <form action={save} className="flex flex-col gap-3">
+      {/*
+        Submitted from onSubmit rather than `action`: React resets a form
+        after its action, which would untick what was just saved. Push
+        needs JavaScript anyway.
+      */}
+      <form
+        onSubmit={(event: FormEvent<HTMLFormElement>) => {
+          event.preventDefault();
+          const form = new FormData(event.currentTarget);
+          startTransition(() => save(form));
+        }}
+        className="flex flex-col gap-3"
+      >
         <fieldset className="flex flex-col gap-3" disabled={cannot}>
           <legend className="sr-only">Push notification topics</legend>
           {topics.map((t) => (

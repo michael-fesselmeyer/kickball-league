@@ -16,9 +16,18 @@ import type { Db } from "./schedule";
  * service says it is gone.
  */
 
+/** How many devices get this person's pushes. */
+export async function countPushDevices(db: Db, userId: UserId) {
+  const [row] = await db
+    .select({ n: count() })
+    .from(pushSubscription)
+    .where(eq(pushSubscription.userId, userId));
+  return row?.n ?? 0;
+}
+
 /** The push section of the profile page: each push topic, and how many devices. */
 export async function pushSettingsOf(db: Db, userId: UserId) {
-  const [choices, [devices]] = await Promise.all([
+  const [choices, devices] = await Promise.all([
     db
       .select({
         topic: notificationPreference.topic,
@@ -31,13 +40,10 @@ export async function pushSettingsOf(db: Db, userId: UserId) {
           eq(notificationPreference.channel, "push"),
         ),
       ) as Promise<Choice[]>,
-    db
-      .select({ n: count() })
-      .from(pushSubscription)
-      .where(eq(pushSubscription.userId, userId)),
+    countPushDevices(db, userId),
   ]);
   return {
-    devices: devices?.n ?? 0,
+    devices,
     topics: PUSH_TOPICS.map((t) => ({
       ...t,
       enabled: wantsPush(choices, t.topic),

@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { saveEmailSettings } from "@/db/queries/notifications";
 import {
+  countPushDevices,
   removePushSubscription,
   savePushSettings,
   savePushSubscription,
@@ -66,6 +67,8 @@ export async function saveEmailSettingsAction(form: FormData): Promise<void> {
 export type PushSettingsState = {
   status: "idle" | "saved" | "error";
   message?: string;
+  /** How many devices get the person's pushes now, after the change. */
+  devices?: number;
 };
 
 /**
@@ -93,11 +96,12 @@ export async function savePushSettingsAction(
       status: "error",
       message: "This browser sent a subscription we can't use. Try again.",
     };
-  await txDb.transaction(async (tx) => {
+  const devices = await txDb.transaction(async (tx) => {
     if (device) await savePushSubscription(tx, subject.userId, device);
     await savePushSettings(tx, subject.userId, enabled);
+    return countPushDevices(tx, subject.userId);
   });
-  return { status: "saved", message: "Push settings saved." };
+  return { status: "saved", message: "Push settings saved.", devices };
 }
 
 /** Forgets this device, after the page has unsubscribed it in the browser. */
@@ -109,5 +113,9 @@ export async function forgetPushDeviceAction(
   const endpoint = form.get("endpoint");
   if (typeof endpoint === "string" && endpoint.length <= 2048)
     await removePushSubscription(db, subject.userId, endpoint);
-  return { status: "saved", message: "Push is off on this device." };
+  return {
+    status: "saved",
+    message: "Push is off on this device.",
+    devices: await countPushDevices(db, subject.userId),
+  };
 }
