@@ -50,8 +50,15 @@ export type LiveGame = {
   scoreB: number | null;
   /** Set for a called game: the innings that count. */
   inningsPlayed: number | null;
-  /** Someone has reported a final score, final or not yet. */
-  reported: boolean;
+  /** When a half was last entered or corrected. */
+  lastEntryAt: Date | null;
+  /** The latest final score someone reported, confirmed or not. */
+  latestReport: {
+    outcome: "normal" | "called" | "forfeit_a" | "forfeit_b";
+    scoreA: number;
+    scoreB: number;
+    inningsPlayed: number | null;
+  } | null;
   halves: HalfInning[];
 };
 
@@ -71,10 +78,22 @@ export async function liveGame(
       scoreB: game.scoreB,
       inningsPlayed: game.inningsPlayed,
       startsAt: slot.startsAt,
-      reported: sql<boolean>`exists (select 1 from ${scoreReport} where ${scoreReport.gameId} = ${game.id})`,
+      latestReport: sql<LiveGame["latestReport"]>`(
+        select json_build_object(
+          'outcome', ${scoreReport.outcome},
+          'scoreA', ${scoreReport.scoreA},
+          'scoreB', ${scoreReport.scoreB},
+          'inningsPlayed', ${scoreReport.inningsPlayed}
+        )
+        from ${scoreReport}
+        where ${scoreReport.gameId} = ${game.id}
+        order by ${scoreReport.reportedAt} desc
+        limit 1
+      )`,
       inning: gamePeriod.periodNo,
       half: gamePeriod.half,
       runs: gamePeriod.runs,
+      enteredAt: gamePeriod.enteredAt,
     })
     .from(game)
     .leftJoin(slot, eq(game.slotId, slot.id))
@@ -99,7 +118,12 @@ export async function liveGame(
     scoreA: first.scoreA,
     scoreB: first.scoreB,
     inningsPlayed: first.inningsPlayed,
-    reported: first.reported,
+    latestReport: first.latestReport,
+    lastEntryAt: rows.reduce<Date | null>(
+      (latest, r) =>
+        r.enteredAt && (!latest || r.enteredAt > latest) ? r.enteredAt : latest,
+      null,
+    ),
     halves: rows.flatMap((r) =>
       r.inning !== null && r.half !== null && r.runs !== null
         ? [{ inning: r.inning, half: r.half, runs: r.runs }]
@@ -110,11 +134,24 @@ export async function liveGame(
 
 /** What the public game page shows and polls for. */
 export function snapshotOf(live: LiveGame): LiveSnapshot {
+  const closed = isClosed(live.status);
+  const report = live.latestReport;
   return {
     kicksFirst: live.kicksFirst,
     halves: live.halves,
-    closed: isClosed(live.status),
-    reported: live.reported,
+    closed,
+    reported: report !== null,
+    lastEntryAt: live.lastEntryAt?.toISOString() ?? null,
+    pending:
+      !closed &&
+      report &&
+      (report.outcome === "normal" || report.outcome === "called")
+        ? {
+            scoreA: report.scoreA,
+            scoreB: report.scoreB,
+            inningsPlayed: report.inningsPlayed,
+          }
+        : null,
     result:
       live.status === "final" && live.scoreA !== null && live.scoreB !== null
         ? {
