@@ -103,27 +103,34 @@ function BallotCard({
         </p>
       </div>
       {ballot.myVote ? (
-        <p
-          role={justVoted ? "status" : undefined}
-          className="font-bold text-success"
-        >
-          You voted for {pick?.name ?? "your pick"}. Results show when voting
-          closes.
+        <p role={justVoted ? "status" : undefined} className="flex flex-col">
+          <span className="font-bold text-success">
+            Your vote: {pick?.name ?? "in"}
+          </span>
+          <span className="text-small text-text-muted">
+            Results show when voting closes.
+          </span>
         </p>
       ) : (
         <form
           action={castVoteAction.bind(null, poll.id)}
           className="flex flex-col gap-3 sm:flex-row sm:items-end"
         >
-          <label className="flex grow flex-col gap-1">
-            Your pick
-            <select name="nominee" required defaultValue="" className={field}>
+          <div className="flex grow flex-col gap-1">
+            <label htmlFor={`pick-${poll.id}`}>Your pick</label>
+            <select
+              id={`pick-${poll.id}`}
+              name="nominee"
+              required
+              defaultValue=""
+              className={field}
+            >
               <option value="" disabled>
                 Choose {award.nominee === "team" ? "a team" : "a player"}
               </option>
               <Choices ballot={ballot} me={me} />
             </select>
-          </label>
+          </div>
           <button type="submit" className="btn btn-primary">
             Cast vote
           </button>

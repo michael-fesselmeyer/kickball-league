@@ -129,7 +129,8 @@ async function Awards({
     new Date(now.getTime() + 3 * 86_400_000),
     season.timeZone,
   );
-  const open = polls.filter((p) => pollState(p, now) !== "closed");
+  // Open polls soonest to close first; closed ones newest first.
+  const open = polls.filter((p) => pollState(p, now) !== "closed").reverse();
   const closed = polls.filter((p) => pollState(p, now) === "closed");
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
@@ -194,9 +195,12 @@ async function Awards({
               No games are on the schedule yet, so only season awards can open.
             </p>
           ) : (
-            <label className="flex flex-col gap-1">
-              Game day (for a game-day award)
+            <div className="flex flex-col gap-1">
+              <label htmlFor="poll-game-day">
+                Game day (for a game-day award)
+              </label>
               <select
+                id="poll-game-day"
                 name="gameDay"
                 defaultValue={lastPlayed}
                 className={field}
@@ -207,11 +211,16 @@ async function Awards({
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
           )}
-          <label className="flex flex-col gap-1">
-            Award
-            <select name="category" defaultValue="mvp" className={field}>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="poll-category">Award</label>
+            <select
+              id="poll-category"
+              name="category"
+              defaultValue="mvp"
+              className={field}
+            >
               {CATEGORY_KEYS.map((c) => (
                 <option key={c} value={c}>
                   {CATEGORIES[c].label}
@@ -219,7 +228,7 @@ async function Awards({
                 </option>
               ))}
             </select>
-          </label>
+          </div>
           <label className="flex flex-col gap-1">
             Title (optional)
             <input
