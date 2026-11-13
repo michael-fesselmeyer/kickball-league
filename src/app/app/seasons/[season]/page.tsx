@@ -271,6 +271,14 @@ async function Season({
           )}
         </Step>
       </ol>
+      {mine.team?.role !== "captain" && (
+        <p className="text-text-muted">
+          Want to start your own team?{" "}
+          <Link href={`/app/seasons/${slug}/new-team`} className="underline">
+            Ask the league
+          </Link>
+        </p>
+      )}
     </>
   );
 }
