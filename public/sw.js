@@ -105,11 +105,18 @@ self.addEventListener("push", (event) => {
   const message = readPush(event.data);
   event.waitUntil(
     self.registration.showNotification(message.title, {
-      body: message.body,
+      // The second line says why the person got it.
+      body: message.reason
+        ? `${message.body}\n${message.reason}`.trim()
+        : message.body,
       tag: message.tag,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
-      data: { path: message.path },
+      // Quiet hours: urgent news still arrives, without sound or buzz.
+      silent: message.silent,
+      // Browsers that show buttons get one to the push settings.
+      actions: [{ action: "settings", title: "Change alerts" }],
+      data: { path: message.path, settingsPath: message.settingsPath },
     }),
   );
 });
@@ -131,6 +138,9 @@ function readPush(data) {
     body: text(raw?.body, 300) ?? "",
     tag: text(raw?.tag, 64) ?? undefined,
     path: safePath(raw?.path),
+    reason: text(raw?.reason, 120) ?? "",
+    settingsPath: safePath(raw?.settingsPath ?? "/app/profile#push"),
+    silent: raw?.silent === true,
   };
 }
 
@@ -144,10 +154,16 @@ function safePath(path) {
     : "/app";
 }
 
-/** A tap opens the notification's page, reusing an open window when there is one. */
+/**
+ * A tap opens the notification's page, reusing an open window when there is
+ * one; its "Change alerts" button opens the push settings instead.
+ */
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const path = safePath(event.notification.data?.path);
+  const data = event.notification.data ?? {};
+  const path = safePath(
+    event.action === "settings" ? data.settingsPath : data.path,
+  );
   event.waitUntil(
     (async () => {
       const url = new URL(path, self.location.origin).href;
