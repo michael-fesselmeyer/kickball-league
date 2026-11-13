@@ -1,4 +1,4 @@
-import { type Column, centsToAmount } from "../export/csv";
+import type { Column } from "../export/csv";
 import { CATEGORY_LABELS, type ExpenseCategory } from "./ledger";
 
 /**
@@ -22,7 +22,9 @@ export const LEDGER_COLUMNS: readonly Column<LedgerLine>[] = [
   { header: "Type", value: (l) => l.type },
   { header: "Category", value: (l) => l.category },
   { header: "Description", value: (l) => l.description },
-  { header: "Amount", value: (l) => centsToAmount(l.amountCents) },
+  // A number, not text: a spreadsheet adds it up, and the formula guard
+  // would otherwise mark a negative amount as text.
+  { header: "Amount", value: (l) => Math.round(l.amountCents) / 100 },
   {
     header: "Receipt",
     value: (l) => (l.receipt === null ? "" : l.receipt),
