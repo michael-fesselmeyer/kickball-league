@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { auditLog } from "../schema/audit";
-import { field, game, slot, venue } from "../schema/game";
+import { field, game, offlineReceipt, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
 import { account, passkey, session, user, verification } from "../schema/auth";
 import {
@@ -92,6 +92,23 @@ async function withAccountData(
     template: "payment-reminder",
     payload: { amount: "45.00" },
     dedupeKey: `test-${w.teammate}`,
+  });
+  const [scored] = await db
+    .insert(game)
+    .values({
+      seasonId: w.season.id,
+      teamAId: w.teamSeasonId,
+      teamBId: w.otherTeamSeasonId,
+    })
+    .returning({ id: game.id });
+  if (!scored) throw new Error("no game");
+  await db.insert(offlineReceipt).values({
+    key: "00000000-0000-4000-8000-0000000000aa",
+    userId: w.teammate,
+    gameId: scored.id,
+    kind: "score",
+    result: { status: "kept", message: "The other captain reported first." },
+    enteredAt: NOW,
   });
   await db.insert(invite).values({
     teamSeasonId: w.otherTeamSeasonId,
@@ -286,6 +303,12 @@ describe("deleting an account", () => {
           .select()
           .from(pushSubscription)
           .where(eq(pushSubscription.userId, w.teammate)),
+      );
+      await none(
+        db
+          .select()
+          .from(offlineReceipt)
+          .where(eq(offlineReceipt.userId, w.teammate)),
       );
       const [inv] = await db
         .select({ email: invite.email, status: invite.status })
