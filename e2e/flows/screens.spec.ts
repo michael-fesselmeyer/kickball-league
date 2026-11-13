@@ -7,7 +7,15 @@ import { type Persona, viewAs } from "../support/personas";
  * width in both themes. They only read data, so they are safe to run
  * alongside the flows.
  */
-const SCREENS: [Persona, string, string][] = [
+const SCREENS: [Persona, string, string | RegExp][] = [
+  // The admin home is headed with the current season's name.
+  ["Admin", "/app/admin", /\S/],
+  ["Admin", "/app/admin/seasons", "Seasons"],
+  ["Admin", "/app/admin/events", "Events"],
+  ["Admin", "/app/admin/seasons/fall-2026/referees", "Referees"],
+  ["Admin", "/app/admin/seasons/fall-2026/scores", "Scores"],
+  ["Admin", "/app/admin/seasons/fall-2026/shirts", "Shirts"],
+  ["Admin", "/app/admin/seasons/fall-2026/recap", "Weekly recap"],
   ["Admin", "/operator", "Operator"],
   ["Admin", "/app/admin/audit", "Audit log"],
   [
@@ -21,6 +29,7 @@ const SCREENS: [Persona, string, string][] = [
   ["Captain", "/app/seasons/fall-2026/team/requests", "Scheduling requests"],
   ["Captain", "/app/seasons/fall-2026/team/subs", "Find subs"],
   ["Player", "/app/subs", "Sub for a team"],
+  ["Player", "/app/events", "Events"],
 ];
 
 for (const colorScheme of ["light", "dark"] as const) {
