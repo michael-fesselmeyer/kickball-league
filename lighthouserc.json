@@ -21,6 +21,7 @@
         "http://localhost:3200/events/spring-kickoff-bbq-2027-04-10",
         "http://localhost:3200/sponsors",
         "http://localhost:3200/sponsors/the-corner-pocket",
+        "http://localhost:3200/friends",
         "http://localhost:3200/offline"
       ],
       "numberOfRuns": 5,
