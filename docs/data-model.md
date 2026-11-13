@@ -20,7 +20,7 @@ The tables Better Auth owns (`user`, `session`, `account`, `verification`, and `
 - `session` is one signed-in browser. The account page lists a person's live sessions as their signed-in devices (named from `user_agent`) and deletes one to sign that device out. Signing in again on a browser that already holds a session for the same account ends the old session, so each browser appears once.
 - `passkey` holds a person's passkeys: the public key, the WebAuthn credential id (indexed, for sign-in), a signature counter, `device_type` (`singleDevice` or `multiDevice`), `backed_up`, `transports`, the authenticator model (`aaguid`) and a `name` the person can change. Deleting the user cascades to it.
 
-A change history is kept two ways: `audit_log` records who changed what for admin-visible actions, and append-only tables (`waiver_signature`, `sms_consent_event`, `credit_entry`, `score_report`, `schedule_version`) are their own history.
+A change history is kept two ways: `audit_log` records who changed what for admin-visible actions, and append-only tables (`waiver_signature`, `credit_entry`, `score_report`, `schedule_version`) are their own history.
 
 ## 2. Entity diagrams
 
@@ -591,7 +591,6 @@ Notes:
 ```mermaid
 erDiagram
   user ||--o{ notification_preference : sets
-  user ||--o{ sms_consent_event : "consents by"
   user ||--o{ message : receives
   user ||--o{ push_subscription : registers
   announcement ||--o{ message : "fans out to"
@@ -600,18 +599,8 @@ erDiagram
     uuid id PK
     uuid user_id FK
     enum topic "rainout, schedule_change, game_reminder, payment, sub_request, announcement, score, events, marketing, new_team"
-    enum channel "email, sms, push"
+    enum channel "email, push (sms is in the enum, unused)"
     bool enabled
-  }
-  sms_consent_event {
-    uuid id PK
-    uuid user_id FK
-    text phone_e164
-    enum action "opt_in, confirm, opt_out, help"
-    enum source "web_form, keyword, stop_reply, admin, carrier"
-    text disclosure_version "the exact consent text shown"
-    inet ip
-    timestamptz occurred_at
   }
   message {
     uuid id PK
@@ -621,7 +610,7 @@ erDiagram
     text template
     jsonb payload
     enum status "queued, sending, sent, failed, suppressed"
-    text suppress_reason "opted out, no consent, quiet hours, budget"
+    text suppress_reason "for example opted_out, no_device, push_off"
     timestamptz send_after
     timestamptz locked_until "a worker's claim while sending"
     text dedupe_key UK
@@ -654,8 +643,8 @@ erDiagram
 ```
 
 Notes:
-- `message` is the outbox. Code that wants to notify someone inserts a row in the same transaction as the change that caused it; a worker sends it. See [architecture.md](architecture.md). It holds the template name and its payload, not the finished email, and looks up the address when sending. `segments` and `cost_micros` arrive with SMS.
-- Current SMS consent is the latest `sms_consent_event` for a phone number. The log is append-only so the league can show when and how someone agreed.
+- `message` is the outbox. Code that wants to notify someone inserts a row in the same transaction as the change that caused it; a worker sends it. See [architecture.md](architecture.md). It holds the template name and its payload, not the finished email, and looks up the address when sending.
+- No text messages are sent, because every text is billed and the product runs on free services only ([ADR 0021](adr/0021-free-services-only.md)). The `sms` value of the `message_channel` enum stays in the schema unused, and an `sms_consent_event` table is **not planned**.
 - Push is a channel like email: a person's push choices are `notification_preference` rows with channel `push`, off unless they turned the topic on. A notice about a push topic gets a second `message` row with channel `push` and dedupe key `push:<key>` for each person with a device and that topic on. `suppress_reason` adds `no_device` (every device gone) and `push_off` (no VAPID keys).
 - `push_subscription` is one browser or installed app. A browser has one endpoint, so the endpoint is unique and moves to whoever subscribed it last. The outbox deletes a row when its push service answers 404 or 410.
 
@@ -922,25 +911,12 @@ erDiagram
   }
   webhook_event {
     uuid id PK
-    text provider "stripe, twilio, resend"
+    text provider "stripe, resend"
     text event_id UK
     text type
     jsonb payload
     enum status "received, processed, failed"
     timestamptz processed_at
-  }
-  ai_usage {
-    uuid id PK
-    uuid user_id FK
-    enum feature "rulebook_question, recap_draft"
-    text model
-    int input_tokens
-    int cached_input_tokens
-    int output_tokens
-    int cost_micros
-    text question_hash "for the answer cache"
-    jsonb answer "answer text and cited rule numbers"
-    timestamptz occurred_at
   }
   incident {
     uuid id PK
@@ -962,6 +938,9 @@ erDiagram
     uuid issued_by FK
   }
 ```
+
+Notes:
+- **Not planned:** an `ai_usage` table for AI provider spend and an answer cache. There are no AI features, because every AI provider bills per use ([ADR 0021](adr/0021-free-services-only.md)).
 
 ## 3. Constraints and indexes
 
@@ -1031,7 +1010,6 @@ Indexes for the common reads:
 | `push_subscription` | `(user_id)` | A person's devices, when the outbox sends |
 | `audit_log` | `(entity_type, entity_id, occurred_at desc)`, `(actor_id, occurred_at desc)` | History of a record, history of a person |
 | `checkin` | `(sponsor_id, on_date)` | Sponsor report |
-| `sms_consent_event` | `(phone_e164, occurred_at desc)` | Current consent |
 | `game_rsvp` | `(game_id, team_season_id)` | Captain's RSVP board |
 | `sub_request` | `(team_season_id, status)`; `(closes_at)` where `status = 'open'` | A team's requests; open requests for the sub page |
 | `sub_claim` | `(user_id, status)` | A player's offers |
@@ -1047,7 +1025,7 @@ Indexes for the common reads:
 | Data | Where | Who can read it |
 |---|---|---|
 | Email, name | `user`, `profile` | The person, their captain, admins |
-| Phone | `profile`, `sms_consent_event` | The person, admins, their captain; teammates only if `shares_contact` |
+| Phone | `profile` | The person, admins, their captain; teammates only if `shares_contact` |
 | Birth date | `profile` | The person and owners. Everyone else sees only "18+ confirmed" |
 | Gender and lineup gender | `profile` | The person, their captain (for lineups), admins. A sub's lineup gender is copied to `sub_claim`, which the asking team's captains see |
 | Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
