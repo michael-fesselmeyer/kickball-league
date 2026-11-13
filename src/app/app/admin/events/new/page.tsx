@@ -6,6 +6,7 @@ import { db } from "@/db/client";
 import { audienceChoices } from "@/db/queries/event-audience";
 import { currentLeague } from "@/db/queries/seasons";
 import { blankReach } from "@/domain/events/audience";
+import { FREE, ticketPriceFormValues } from "@/domain/events/tickets";
 import { requirePermission } from "@/lib/auth/permission";
 import { createEventAction } from "../actions";
 import { EventFormFields } from "../event-form";
@@ -53,6 +54,7 @@ async function NewEvent() {
       action={createEventAction}
       values={BLANK}
       reach={blankReach(choices)}
+      prices={ticketPriceFormValues(FREE)}
       choices={choices}
       submitLabel="Create event"
       announceLabel="Email everyone it's for"

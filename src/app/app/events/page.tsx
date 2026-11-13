@@ -4,10 +4,12 @@ import { Suspense } from "react";
 import { EventCard } from "@/components/event-card";
 import { db } from "@/db/client";
 import { eventsFor, feedVersion } from "@/db/queries/event-audience";
+import { myUpcomingTickets } from "@/db/queries/event-tickets";
 import { myEventRsvps } from "@/db/queries/events";
 import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { audienceTag } from "@/domain/events/audience";
+import { formatCode } from "@/domain/events/tickets";
 import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
 import { feedLinks } from "@/lib/calendar-links";
@@ -50,10 +52,12 @@ async function MyEvents({ searchParams }: PageProps<"/app/events">) {
   const league = await currentLeague(db);
   const now = new Date();
   const staff = can(subject, "event.manage", {});
-  const [events, version] = await Promise.all([
+  const [events, version, tickets] = await Promise.all([
     league ? eventsFor(db, league.id, subject.userId, staff) : [],
     feedVersion(db, subject.userId),
+    myUpcomingTickets(db, subject.userId, now),
   ]);
+  const codes = new Map(tickets.map((t) => [t.eventId, t.code]));
   const upcoming = events.filter((e) => e.endsAt > now);
   const mine = await myEventRsvps(
     db,
@@ -78,6 +82,7 @@ async function MyEvents({ searchParams }: PageProps<"/app/events">) {
         <ul className="flex flex-col gap-3">
           {upcoming.map((e) => {
             const status = mine.get(e.id);
+            const code = codes.get(e.id);
             return (
               <li key={e.id}>
                 <EventCard
@@ -89,7 +94,13 @@ async function MyEvents({ searchParams }: PageProps<"/app/events">) {
                       ? `/events/${e.slug}`
                       : `/app/events/${e.slug}`
                   }
-                  note={status ? NOTES[status] : null}
+                  note={
+                    code
+                      ? `Your ticket: ${formatCode(code)}`
+                      : status
+                        ? NOTES[status]
+                        : null
+                  }
                   tag={audienceTag(e.audience)}
                 />
               </li>

@@ -5,7 +5,13 @@ import { Suspense } from "react";
 import { InviteButton } from "@/components/invite-button";
 import { CopyForWhatsApp } from "@/components/share";
 import { db } from "@/db/client";
-import { audienceNames, visibleEvent } from "@/db/queries/event-audience";
+import { creditBalance } from "@/db/queries/credit";
+import {
+  audienceNames,
+  viewerOf,
+  visibleEvent,
+} from "@/db/queries/event-audience";
+import { myTicket, spotCounts } from "@/db/queries/event-tickets";
 import { myEventRsvp } from "@/db/queries/events";
 import { can } from "@/domain/authz/permissions";
 import { audienceShareLine, inviteHost } from "@/domain/events/audience";
@@ -17,12 +23,14 @@ import {
   themeWeekDays,
   whenLine,
 } from "@/domain/events/event";
+import { isTicketed } from "@/domain/events/tickets";
 import { eventShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
 import { googleEventLink } from "@/lib/calendar-links";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { joinEventAction, leaveEventAction } from "../actions";
+import { TicketPanel } from "./ticket";
 
 export const metadata: Metadata = { title: "RSVP" };
 
@@ -32,6 +40,16 @@ const ERRORS: Record<string, string> = {
   over: "This event is over.",
   no_rsvp: "Theme weeks don't need an RSVP. Just show up on game day.",
   invite_only: "This event takes RSVPs on its invite, not here.",
+  ticketed: "This event needs a ticket. Buy one below.",
+  has_ticket:
+    "You have a ticket. To give it up, ask the league for a refund; your spot goes to the waitlist.",
+  free: "This event is free now: just RSVP.",
+  going: "You already have a spot.",
+  payments_off:
+    "Online payment isn't set up yet, so tickets can't be sold right now.",
+  checkout_failed:
+    "We couldn't start the checkout. Nothing was charged; try again.",
+  checkout_open: "Your checkout is still open. Try again in a moment.",
 };
 
 const DONE: Record<string, string> = {
@@ -39,6 +57,11 @@ const DONE: Record<string, string> = {
   waitlisted:
     "It's full, so you're on the waitlist. We'll email you if a spot opens.",
   left: "Done. Your RSVP is cleared.",
+};
+
+const TICKET: Record<string, string> = {
+  paid: "Thanks! Your ticket is below.",
+  cancelled: "Checkout cancelled. Nothing was charged.",
 };
 
 export default function EventRsvpPage(props: PageProps<"/app/events/[event]">) {
@@ -67,11 +90,23 @@ async function EventRsvp({
     can(subject, "event.manage", {}),
   );
   if (!e) notFound();
-  const [mine, names] = await Promise.all([
+  const now = new Date();
+  const ticketed = isTicketed(e);
+  const [mine, names, ticket, viewer, credit, spots] = await Promise.all([
     myEventRsvp(db, e.id, subject.userId),
     audienceNames(db, e.audience),
+    ticketed ? myTicket(db, e.id, subject.userId, now) : null,
+    ticketed
+      ? viewerOf(
+          db,
+          e.leagueId,
+          subject.userId,
+          can(subject, "event.manage", {}),
+        )
+      : null,
+    ticketed ? creditBalance(db, subject.userId) : 0,
+    ticketed ? spotCounts(db, e, now) : null,
   ]);
-  const now = new Date();
   const window = rsvpWindow(e, now);
   const isPublic = e.audience.kind === "public";
   const when = whenLine(e, e.timeZone);
@@ -98,6 +133,13 @@ async function EventRsvp({
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const done = typeof query.done === "string" ? DONE[query.done] : undefined;
+  const returned = typeof query.ticket === "string" ? query.ticket : null;
+  const ticketDone =
+    returned === "paid" && ticket?.status === "paid"
+      ? TICKET.paid
+      : returned === "cancelled"
+        ? TICKET.cancelled
+        : undefined;
 
   return (
     <>
@@ -145,9 +187,9 @@ async function EventRsvp({
           {error}
         </p>
       )}
-      {done && (
+      {(done ?? ticketDone) && (
         <p role="status" className="rounded-lg border border-success p-3">
-          {done}
+          {done ?? ticketDone}
         </p>
       )}
 
@@ -156,9 +198,21 @@ async function EventRsvp({
         className="flex flex-col items-start gap-3 rounded-card border border-border bg-surface p-4"
       >
         <h2 id="rsvp" className="text-h2">
-          Your RSVP
+          {ticketed ? "Your ticket" : "Your RSVP"}
         </h2>
-        {window === "no_rsvp" ? (
+        {window === "open" && ticketed && spots && viewer ? (
+          <TicketPanel
+            slug={e.slug}
+            prices={e}
+            member={viewer.member}
+            ticket={ticket}
+            rsvp={mine}
+            spots={spots}
+            creditCents={credit}
+            timeZone={e.timeZone}
+            returned={returned}
+          />
+        ) : window === "no_rsvp" ? (
           <p>{ERRORS.no_rsvp}</p>
         ) : window === "invite_only" ? (
           e.inviteUrl ? (
