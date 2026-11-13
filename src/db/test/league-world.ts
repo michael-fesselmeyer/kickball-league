@@ -160,6 +160,7 @@ export async function leagueWorld(db: Db) {
   };
 
   return {
+    leagueId: lg.id,
     season: s,
     emails: people.map((p) => p.email),
     captain,
