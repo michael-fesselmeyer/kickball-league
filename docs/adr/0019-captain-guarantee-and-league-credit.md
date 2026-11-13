@@ -1,4 +1,4 @@
-# ADR 0017: Charge the captain guarantee off-session, and hold league credit when checkout starts
+# ADR 0019: Charge the captain guarantee off-session, and hold league credit when checkout starts
 
 - Status: accepted
 - Date: 2026-11-13
