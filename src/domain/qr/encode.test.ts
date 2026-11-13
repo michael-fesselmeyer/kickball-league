@@ -13,7 +13,9 @@ import {
 describe("the QR encoder's building blocks", () => {
   it("computes Reed-Solomon codewords as in the standard's worked example", () => {
     // ISO/IEC 18004 annex I: "01234567" at 1-M.
-    const data = [16, 32, 12, 86, 97, 128, 236, 17, 236, 17, 236, 17, 236, 17, 236, 17];
+    const data = [
+      16, 32, 12, 86, 97, 128, 236, 17, 236, 17, 236, 17, 236, 17, 236, 17,
+    ];
     expect(reedSolomon(data, 10)).toEqual([
       165, 36, 212, 193, 237, 54, 199, 135, 44, 85,
     ]);
@@ -46,13 +48,17 @@ describe("the QR encoder's building blocks", () => {
 });
 
 describe("encodeQr", () => {
-  const url = "https://league.example.test/app/check-in/the-corner-pocket/abcdefghjk";
+  const url =
+    "https://league.example.test/app/check-in/the-corner-pocket/abcdefghjk";
 
   it("draws the finder patterns and the timing lines", () => {
     const code = encodeQr(url);
     expect(code.size).toBe(code.version * 4 + 17);
     const row = (y: number) =>
-      code.modules[y]?.slice(0, 7).map((d) => (d ? 1 : 0)).join("");
+      code.modules[y]
+        ?.slice(0, 7)
+        .map((d) => (d ? 1 : 0))
+        .join("");
     expect([0, 1, 2, 3, 4, 5, 6].map(row)).toEqual([
       "1111111",
       "1000001",

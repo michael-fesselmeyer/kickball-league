@@ -40,9 +40,7 @@ const totalCodewords = (version: number) =>
 
 export function dataCodewords(version: number): number {
   const i = version - 1;
-  return (
-    totalCodewords(version) - (ECC_PER_BLOCK[i] ?? 0) * (BLOCKS[i] ?? 0)
-  );
+  return totalCodewords(version) - (ECC_PER_BLOCK[i] ?? 0) * (BLOCKS[i] ?? 0);
 }
 
 // GF(256) with the QR polynomial x^8 + x^4 + x^3 + x^2 + 1.
@@ -82,7 +80,8 @@ export function reedSolomon(data: readonly number[], degree: number): number[] {
   for (const byte of data) {
     const factor = byte ^ (rem.shift() ?? 0);
     rem.push(0);
-    for (let i = 0; i < degree; i++) rem[i] = (rem[i] ?? 0) ^ mul(gen[i] ?? 0, factor);
+    for (let i = 0; i < degree; i++)
+      rem[i] = (rem[i] ?? 0) ^ mul(gen[i] ?? 0, factor);
   }
   return rem;
 }
@@ -116,7 +115,10 @@ function dataBytes(bytes: Uint8Array, version: number): number[] {
 }
 
 /** Splits the data into blocks, adds error correction and interleaves them. */
-function withErrorCorrection(data: readonly number[], version: number): number[] {
+function withErrorCorrection(
+  data: readonly number[],
+  version: number,
+): number[] {
   const blocks = BLOCKS[version - 1] ?? 1;
   const ecc = ECC_PER_BLOCK[version - 1] ?? 0;
   const raw = totalCodewords(version);
@@ -133,7 +135,8 @@ function withErrorCorrection(data: readonly number[], version: number): number[]
   }
   const out: number[] = [];
   for (let i = 0; i <= shortLength; i++)
-    for (const block of dataBlocks) if (i < block.length) out.push(block[i] ?? 0);
+    for (const block of dataBlocks)
+      if (i < block.length) out.push(block[i] ?? 0);
   for (let i = 0; i < ecc; i++)
     for (const block of eccBlocks) out.push(block[i] ?? 0);
   return out;
@@ -222,11 +225,19 @@ function drawFunctionPatterns(grid: Grid, version: number) {
   centers.forEach((cy, i) =>
     centers.forEach((cx, j) => {
       // Not where a finder sits.
-      if ((i === 0 && j === 0) || (i === 0 && j === last) || (i === last && j === 0))
+      if (
+        (i === 0 && j === 0) ||
+        (i === 0 && j === last) ||
+        (i === last && j === 0)
+      )
         return;
       for (let dy = -2; dy <= 2; dy++)
         for (let dx = -2; dx <= 2; dx++)
-          grid.set(cx + dx, cy + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+          grid.set(
+            cx + dx,
+            cy + dy,
+            Math.max(Math.abs(dx), Math.abs(dy)) !== 1,
+          );
     }),
   );
   drawFormat(grid, 0);
@@ -311,7 +322,8 @@ export function penalty(modules: readonly (readonly boolean[])[]): number {
       }
       for (let j = 0; j + 11 <= size; j++)
         for (const pattern of FINDER_LIKE)
-          if (pattern.every((p, k) => line(i, j + k) === (p === 1))) score += 40;
+          if (pattern.every((p, k) => line(i, j + k) === (p === 1)))
+            score += 40;
     }
   }
   let dark = 0;
@@ -370,7 +382,9 @@ export function qrPath(code: QrCode, quiet = 4): string {
       }
       const start = x;
       while (x < code.size && row[x]) x++;
-      parts.push(`M${start + quiet} ${y + quiet}h${x - start}v1h-${x - start}z`);
+      parts.push(
+        `M${start + quiet} ${y + quiet}h${x - start}v1h-${x - start}z`,
+      );
     }
   });
   return parts.join("");
