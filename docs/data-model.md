@@ -641,16 +641,20 @@ erDiagram
   push_subscription {
     uuid id PK
     uuid user_id FK
-    text endpoint UK
-    text p256dh
-    text auth
+    text endpoint UK "https only"
+    text p256dh "device public key, base64url"
+    text auth "device auth secret, base64url"
     text user_agent
+    timestamptz created_at
+    timestamptz last_success_at
   }
 ```
 
 Notes:
 - `message` is the outbox. Code that wants to notify someone inserts a row in the same transaction as the change that caused it; a worker sends it. See [architecture.md](architecture.md). It holds the template name and its payload, not the finished email, and looks up the address when sending. `segments` and `cost_micros` arrive with SMS.
 - Current SMS consent is the latest `sms_consent_event` for a phone number. The log is append-only so the league can show when and how someone agreed.
+- Push is a channel like email: a person's push choices are `notification_preference` rows with channel `push`, off unless they turned the topic on. A notice about a push topic gets a second `message` row with channel `push` and dedupe key `push:<key>` for each person with a device and that topic on. `suppress_reason` adds `no_device` (every device gone) and `push_off` (no VAPID keys).
+- `push_subscription` is one browser or installed app. A browser has one endpoint, so the endpoint is unique and moves to whoever subscribed it last. The outbox deletes a row when its push service answers 404 or 410.
 
 ### 2.5 Sponsors, events, community
 
@@ -1000,6 +1004,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `award_vote` | unique `(award_poll_id, voter_id)`; check exactly one nominee; check `nominee_user_id <> voter_id` | One vote per player per poll, for one person or team, never yourself |
 | `award_poll` | check `closes_at > opens_at`; check `game_day` is set exactly when `kind = 'weekly'` | A poll has a voting window; weekly polls name their game day |
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
+| `push_subscription` | unique `(endpoint)`; check it starts with `https://` and is at most 2,048 characters; check the key lengths | A device is stored once, and the outbox only ever posts to https |
 | `webhook_event` | unique `(provider, event_id)` | Webhooks are processed once |
 | `payment`, `refund`, `purchase` | unique on each Stripe ID | Stripe retries cannot double-record |
 | `payment` | check `0 <= refunded_cents <= amount_cents` | Never refund more than was paid |
@@ -1020,6 +1025,7 @@ Indexes for the common reads:
 | `purchase_item` | `(team_season_id)`, `(registration_id)` | Team balance, who has paid |
 | `message` | `(status, send_after)` where `status = 'queued'` | The outbox worker |
 | `message` | `(user_id, created_at desc)` | Delivery history |
+| `push_subscription` | `(user_id)` | A person's devices, when the outbox sends |
 | `audit_log` | `(entity_type, entity_id, occurred_at desc)`, `(actor_id, occurred_at desc)` | History of a record, history of a person |
 | `checkin` | `(sponsor_id, on_date)` | Sponsor report |
 | `sms_consent_event` | `(phone_e164, occurred_at desc)` | Current consent |
@@ -1049,12 +1055,13 @@ Indexes for the common reads:
 | Friend group | `friend_group`, `registration.friend_group_id` | The person; others in the group see first name and last initial; admins |
 | Waiver signature, IP address | `waiver_signature` | The person, owners |
 | Payment card | Never stored. Stripe holds it; we keep brand and last four digits | The person |
+| Push devices | `push_subscription` (endpoint, keys, browser) | Only the outbox. The person's export lists their devices by browser and date, without the endpoint or keys |
 
 Deleting an account removes the profile and anonymizes the user row. Signatures, payments, consent events and audit rows are kept because the league may need them for legal or accounting reasons; the privacy policy says so.
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn.
+- **Removed:** the `profile` row; every `session` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `push_subscription` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.

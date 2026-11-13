@@ -47,7 +47,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 /operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
 
 /app                                Signed-in home: next game, RSVP, what you owe, alerts
-├── account                         Profile, notification settings, waivers, payments, credit (built at /app/profile)
+├── account                         Profile, email and push settings, waivers, payments, credit (built at /app/profile)
 │   ├── export                      Download your data: everything the league holds about you, as JSON
 │   └── delete                      Delete your account: what is deleted, what the league keeps; a fresh sign-in and your typed email address confirm it
 ├── seasons/[season]/export/        CSV downloads: roster.csv (with shirt sizes) and payments.csv; the whole season for admins, ?team= for one team (its captains too)
