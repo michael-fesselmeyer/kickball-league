@@ -94,7 +94,7 @@ export async function openSeasons(db: Db, leagueId: LeagueId, now: Date) {
 }
 
 /** Teams still in the running take a spot; withdrawn ones do not. */
-async function teamsEntered(db: Db, seasonId: SeasonId) {
+export async function teamsEntered(db: Db, seasonId: SeasonId) {
   const rows = await db
     .select({ id: teamSeason.id })
     .from(teamSeason)

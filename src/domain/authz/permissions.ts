@@ -159,6 +159,7 @@ const RULES = {
   "schedule.manage": isAdmin,
   "rainout.declare": isAdmin,
   "free_agents.place": isAdmin,
+  "team.approve_new": isAdmin,
   "event.manage": isAdmin,
   "referee.manage": isAdmin,
   "player.suspend": isAdmin,
