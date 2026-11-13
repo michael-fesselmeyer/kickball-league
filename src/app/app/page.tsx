@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { db } from "@/db/client";
 import { ballotsWaiting } from "@/db/queries/awards";
 import { fieldPermitForGame } from "@/db/queries/books";
+import { myGiveawayWins } from "@/db/queries/giveaways";
 import { publishedGamesFor } from "@/db/queries/public-schedule";
 import { gamesToReferee } from "@/db/queries/referees";
 import { openSeasons } from "@/db/queries/registration";
@@ -67,6 +68,11 @@ async function Account() {
     if (!(await featureEnabled("awards"))) return 0;
     return ballotsWaiting(db, id, new Date());
   })();
+  // Giveaways this person won at league events, started early too.
+  const wins = (async () => {
+    const id = parseId<UserId>(subject.userId);
+    return id ? myGiveawayWins(db, id) : [];
+  })();
   const isAdmin = can(subject, "season.manage", {});
   const league = await currentLeague(db);
   const now = new Date();
@@ -97,6 +103,7 @@ async function Account() {
     }) &&
     (await fieldPermitForGame(db, nextGameId)) !== null;
   const ballots = await waiting;
+  const won = await wins;
   const timeZone = league?.timeZone ?? "America/New_York";
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
@@ -117,6 +124,28 @@ async function Account() {
         </p>
       </div>
       {offeredInstall(subject) && <AllOutboxStatus />}
+      {won.length > 0 && (
+        <section
+          aria-labelledby="won"
+          className="flex flex-col gap-2 rounded-card border-2 border-success p-4"
+        >
+          <h2 id="won" className="text-h3">
+            <span aria-hidden="true">🎉 </span>You won
+          </h2>
+          <ul className="flex flex-col gap-1">
+            {won.map((w) => (
+              <li key={`${w.eventSlug}-${w.drawnAt.getTime()}`}>
+                <Link
+                  href={`/app/events/${w.eventSlug}/giveaway`}
+                  className="inline-flex min-h-11 items-center underline"
+                >
+                  {w.prize}, at {w.eventTitle}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {refereeing.length > 0 && (
         <section aria-labelledby="refereeing" className="flex flex-col gap-2">
           <h2 id="refereeing" className="text-h3">
