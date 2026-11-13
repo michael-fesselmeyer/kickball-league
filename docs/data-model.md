@@ -753,6 +753,12 @@ erDiagram
   social_post ||--o| social_image : "stored as"
   team ||--o{ social_post : "tagged in"
   event ||--o{ social_post : "tagged in"
+  event ||--o| giveaway : "may hold"
+  giveaway ||--o{ giveaway_entry : collects
+  user ||--o{ giveaway_entry : enters
+  giveaway_entry ||--o| giveaway_winner : "may win"
+  season ||--o| signup_challenge : runs
+  team_season ||--o| signup_challenge : wins
 
   sponsor {
     uuid id PK
@@ -938,6 +944,43 @@ erDiagram
     uuid cover_asset_id FK
     timestamptz published_at
   }
+  giveaway {
+    uuid id PK
+    uuid event_id FK "unique: one per event"
+    text prize
+    text donated_by
+    smallint winner_count "1 to 20"
+    timestamptz opens_at
+    timestamptz closes_at "after opens_at"
+    text official_rules "must say no purchase is necessary"
+    text checkin_secret "signs the rotating entry code"
+    timestamptz drawn_at
+  }
+  giveaway_entry {
+    uuid id PK
+    uuid giveaway_id FK
+    uuid user_id FK
+    timestamptz entered_at
+  }
+  giveaway_winner {
+    uuid id PK
+    uuid giveaway_id FK
+    uuid entry_id FK "unique per giveaway: wins once"
+    smallint round "1 = the draw, then each redraw"
+    uuid drawn_by FK
+    timestamptz replaced_at
+    text replaced_reason "set together with replaced_at"
+  }
+  signup_challenge {
+    uuid id PK
+    uuid season_id FK "unique: one per season"
+    text prize
+    timestamptz deadline
+    uuid winner_team_season_id FK "only once confirmed"
+    timestamptz winner_completed_at
+    timestamptz confirmed_at
+    uuid confirmed_by FK
+  }
 ```
 
 Events, as built (`src/db/schema/event.ts`, `src/db/queries/events.ts`):
@@ -952,6 +995,17 @@ Events, as built (`src/db/schema/event.ts`, `src/db/queries/events.ts`):
 - `calendar_feed` holds the version of a person's private events calendar link. The link is the user id and an HMAC of the id and version with the server's secret, so nothing secret is stored; a reset (or deleting the account) moves the version on and the old link stops working.
 - Paid tickets ([ADR 0027](adr/0027-event-tickets-hold-their-spot.md)): an event with a `ticket_price_cents` sells one `event_ticket` per person instead of free RSVPs; `member_price_cents` is what members (registered in any season) pay. A ticket is `held` from the moment its checkout starts until `held_until` (an hour past Stripe Checkout's 31-minute expiry), `paid` once the webhook or covering credit settles its purchase (a `purchase` with no season and one `event_ticket` item), and `refunded` when an admin refunds it. A paid ticket also gives its holder a `going` RSVP, so a spot taken is always going RSVPs plus holds and offers whose `held_until` is still ahead. A spot that opens on a ticketed event is `offered` to the earliest person on the waitlist (their waitlist row becomes the offer) for a day or until the event ends. An offer or hold that runs out is `released`; a paid ticket given up by deleting the account is `cancelled`. Every change locks the event row first. An event with paid tickets or open checkouts can't be called off, deleted or made free. Refunded credit comes back as a `released` ledger row.
 - Planned later: a sponsor or venue link, a cover image, guests.
+
+The sign-up drive, as built (`src/db/schema/drive.ts`, `src/db/queries/giveaways.ts`, `src/db/queries/challenges.ts`; [ADR 0035](adr/0035-free-giveaways-and-the-sign-up-challenge.md)):
+
+- A `giveaway` belongs to one event (a unique constraint) and is free to enter. Nothing in the three giveaway tables can point at a purchase, payment, ticket or registration, and an event that sells tickets, or a theme week, can't hold one. The official rules are required and must say no purchase is necessary.
+- A player enters by scanning the giveaway's rotating code at the event: the sponsors' check-in code ([ADR 0016](adr/0016-rotating-check-in-code.md)) under the giveaway's own `checkin_secret`, which no public query selects. The event's audience decides who may enter; admins see every event but enter only one that is for them. `giveaway_entry` is unique on `(giveaway_id, user_id)`, and an entry first takes a share lock on the giveaway row, so a draw (which takes an update lock) never misses an entry or lets one in after it starts.
+- The draw happens once, after `closes_at`: every entry in the order people entered, through a partial Fisher-Yates shuffle over `crypto.randomInt`, with no seed kept. It writes the winners (`round` 1), sets `drawn_at` and writes a `giveaway.draw` audit row with the entry count, the method, the drawn positions and the winners' entry and account ids. After the draw the giveaway can't change.
+- A redraw replaces one current winner: `replaced_at` and `replaced_reason` (5 to 300 characters) are set together, and one new winner is drawn from the entries that never won (`giveaway_winner` is unique on `(giveaway_id, entry_id)`), with the next `round`. It writes a `giveaway.redraw` audit row with the reason.
+- Each new winner gets one `giveaway_win` message (non-urgent, topic `events`, dedupe key `giveaway_win/<giveaway>/<user>`) and sees the win on the app's home screen. The giveaway page never names a winner.
+- Removing an event removes its giveaway, entries and winners. Deleting an account removes its entries in giveaways not drawn yet; a drawn giveaway keeps them, under the anonymized user, so its draw record still adds up.
+- A `signup_challenge` belongs to one season (a unique constraint). A team's progress is never stored: one query reads every active roster spot with when the player joined and when they signed the season's waiver, and the domain counts players signed up (on the roster, waiver signed) out of the team's target roster size, or the season's minimum when it has none, or the roster when it is bigger. A team is complete when all of them are, at the moment its last player finished signing up. Withdrawn and waitlisted teams don't count.
+- The leaderboard ranks teams complete by the deadline first, earliest completion first (so a tie on 100% goes to the team whose last player joined first), then everyone else by percent. An admin confirms the winner, a team at rank 1 that completed by the deadline: `winner_team_season_id`, `winner_completed_at`, `confirmed_at` and `confirmed_by` are set and a `challenge.confirm` audit row records the standings as team ids and counts. A confirmed challenge can't change.
 
 Awards, as built (`src/db/schema/awards.ts`, `src/db/queries/awards.ts`):
 
@@ -1212,6 +1266,10 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `award_vote` | unique `(award_poll_id, voter_id)`; check exactly one nominee; check `nominee_user_id <> voter_id` | One vote per player per poll, for one person or team, never yourself |
 | `award_poll` | check `closes_at > opens_at`; check `game_day` is set exactly when `kind = 'weekly'` | A poll has a voting window; weekly polls name their game day |
 | `deal_redemption` | unique `(deal_id, checkin_id)` | A deal once per visit |
+| `giveaway` | unique `(event_id)`; check `closes_at > opens_at`; check `winner_count` between 1 and 20; check the rules' length | One giveaway per event, with a real entry window |
+| `giveaway_entry` | unique `(giveaway_id, user_id)` | One entry per person, even when the same check-in lands twice at once |
+| `giveaway_winner` | unique `(giveaway_id, entry_id)`; check `replaced_at` and `replaced_reason` are set together | An entry wins once, so a replaced winner is never drawn again; every redraw has a reason |
+| `signup_challenge` | unique `(season_id)`; check a winner only once confirmed | One challenge per season; a winner is always confirmed |
 | `sponsor` | unique `(league_id, slug)`; unique `league_id` where `is_home_bar and deleted_at is null`; check `url` starts with `https://` | One page address each, one home bar |
 | `deal` | check `valid_days <@ {1..7}`; check `valid_from` and `valid_to` both set or both null | Days and hours make sense |
 | `team_of_week` | unique `(season_id, week_of)`; check a tab has a sponsor and is $0.01 to $1,000 | One team per game day |
@@ -1276,6 +1334,8 @@ Indexes for the common reads:
 | `incident_note` | `(incident_id, written_at)`; `(author_id)` | A report's notes in order; a person's notes, removed with their account |
 | `suspension` | `(user_id)` | Is this player suspended? |
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
+| `giveaway_entry` | `(user_id)` | A person's entries, for the export and account deletion |
+| `giveaway_winner` | `(entry_id)` | Removing an entry removes its win |
 
 ## 4. Personal data
 
@@ -1291,6 +1351,7 @@ Indexes for the common reads:
 | Sportsmanship ratings | `sportsmanship_rating` | Admins see each team's average and the notes, never which game or team they came from; a captain sees their own team's average over whole blocks of 3 ratings. The captain who rated sees their team's rating |
 | Incident reports | `incident`, `incident_person`, `incident_note` | Admins. The person filing sees what they filed in their export; a person named sees the reports about them in their export, without the other people named or the admins' notes |
 | Suspensions | `suspension` | The player and admins see the length and why; the player's captains see only that they are suspended and for how long still |
+| Giveaway entries and wins | `giveaway_entry`, `giveaway_winner` | The player and admins. Admins see winners' names to hand over the prize; the giveaway page shows only counts. The audit log holds entry and account ids, no names |
 | Award votes | `award_vote` | The voter alone sees whom they picked; everyone sees only the totals after a poll closes. Deleting an account withdraws votes in polls still open |
 | Emergency contact | `profile` | The person, their captain, admins |
 | Free-agent quiz answers and note | `free_agent_profile` | The person and admins |
@@ -1306,9 +1367,9 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
-- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
+- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, entries and wins in drawn giveaways, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
 
 Every deletion writes an `account.delete` audit row with no personal data in it. The person's own export (`personalData`) returns all of the above as JSON, including each passkey's name, type and date, without session tokens, sign-in tokens, provider tokens or passkey key material.

@@ -49,7 +49,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 
 /operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
 
-/app                                Signed-in home: next game, RSVP, what you owe, alerts
+/app                                Signed-in home: next game, RSVP, what you owe, alerts, and any giveaway you won
 ├── account                         Profile, email, push and message-limit settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
@@ -58,7 +58,9 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── team/[teamSeason]               Roster, RSVPs, payments, invites, subs, announcements (captain view adds controls and roster and payment CSV downloads)
 ├── subs                            Sub requests I can claim, and games I'm subbing in
 ├── events/                         Upcoming events I can see (public, members-only and my teams'), my RSVP or my ticket's check-in code, and my private calendar link with a reset
-│   └── [event]                     RSVP, join the waitlist and see my place in line, or drop out; for a members' or team event also its details, who it's for, the invite, Google Calendar and "Copy for WhatsApp". A ticketed event instead shows my price (member or full), buys a ticket through Stripe Checkout with league credit, takes me back to an open checkout, shows a spot offered to me from the waitlist (buy it or pass), and once paid shows my ticket and check-in code
+│   └── [event]                     RSVP, join the waitlist and see my place in line, or drop out; for a members' or team event also its details, who it's for, the invite, Google Calendar and "Copy for WhatsApp". A ticketed event instead shows my price (member or full), buys a ticket through Stripe Checkout with league credit, takes me back to an open checkout, shows a spot offered to me from the waitlist (buy it or pass), and once paid shows my ticket and check-in code; a box for the event's free giveaway when it has one
+│       └── giveaway/               The event's free giveaway: prize, "no purchase necessary", how to enter, my entry or my win, entry and winner counts (never names), and the official rules
+│           └── enter/[code]        Where the giveaway's QR code at the event lands: one tap to enter, once (an expired code says so)
 ├── vote                            Awards: open ballots (one vote each, never for yourself or your own team) and closed polls
 │   └── [poll]                      Results after voting closes, ties sharing a place; until then, only when it closes
 ├── check-in/[sponsor]/[code]       Where the bar's QR code lands: one tap to check in (an expired code says so)
@@ -67,6 +69,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/[season]/team/requests  Captain: dates the team can't play and times it would rather have or avoid, until registration closes
 ├── seasons/[season]/new-team       Ask the league to start a new team; see the answer or withdraw while it waits
 ├── seasons/[season]/register       Register a team or join as a free agent; when the season is full, the team waitlist: join, see your place, leave, or take a held spot
+├── seasons/[season]/team (challenge) The season's sign-up challenge on the team page: "9 of 12 signed up", a bar, the prize and a link to the leaderboard
+├── seasons/[season]/challenge      The sign-up challenge leaderboard: teams by the share of their roster with an account and a signed waiver (team names and counts only), my team marked, the winner once confirmed
 ├── seasons/[season]/team (fee)     Split-pay captains: the team fee, what is paid and left, pay the rest, and the card that guarantees it
 ├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps and an optional note) and a friend code to start, join, switch or leave
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; with no signal, saved on the phone and sent later; once final, a captain rates the other team's sportsmanship; a link to report an incident
@@ -89,7 +93,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       ├── code                    The rotating check-in code, full screen, for a screen at the bar
 │       └── report                  Weekly numbers: check-ins, players, teams and deals used by week
 └── admin/
-    ├── (dashboard)                 Next game day: weather, games, missing scores, alerts
+    ├── (dashboard)                 Next game day: weather, games, missing scores, alerts; sign-up rate per team, lowest first, with how many players each still needs
     ├── seasons/[season]/           Setup, pricing, divisions, rule set, waiver
     │   ├── registrations           Teams, players, payments, waivers, full or partial refunds; roster and payment CSV downloads
     │   ├── promo-codes             The season's promo codes: add one, see its uses, turn it off
@@ -107,6 +111,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── announcements           Email the season or one team
     │   ├── recap                   Weekly recap drafted from the scores; edit, then send as an announcement
     │   ├── team-of-the-week        The game day's best wins; name a team with an optional tab at a sponsor
+    │   ├── challenge               Team sign-up challenge: start it (prize, deadline) or change it, every team's progress with who needs a nudge, and confirm the winner (pick between teams in a dead heat)
     │   └── playoffs                Seed from standings, place on fields, publish the bracket
     ├── games                       Scores, forfeits, corrections
     ├── incidents/                  Review queue (open reports oldest first), everyone suspended now, recently resolved
@@ -116,6 +121,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── events/                     Every event with who it's for, going and waitlist counts
     │   ├── new                     Create an event or theme week: who it's for (everyone, all members, or teams from a season or any), an invite link, RSVPs in the app or not, and an optional email to everyone it's for
     │   └── [event]                 Edit (and optionally email the change, including the ticket and member prices), who's coming and the waitlist in order, "Copy for WhatsApp", call off or delete. A ticketed event adds its ticket list: holders with their code and what they paid on card and in credit, checkouts and offers open now, a check-in box for the door, and a full refund per ticket
+    │       └── giveaway/           Add or change the event's free giveaway (prize, donor, winners, entry window, official rules), entry count, draw the winners once entry closes, and replace a winner with a reason; refused for a ticketed event or a theme week
+    │           └── code            The giveaway's rotating entry code, full screen, for a phone or screen at the event
     ├── news
     ├── messages                    Announcements and delivery log
     ├── credit                      League credit: give goodwill credit, who holds credit, what was given lately
