@@ -66,6 +66,39 @@ describe("rendererFor", () => {
     expect(waiting.value.text).toContain("no makeup time yet");
   });
 
+  it("tells a waitlisted player a spot opened, or that an event is called off", () => {
+    const about = {
+      title: "Spring kickoff BBQ",
+      slug: "spring-kickoff-bbq-2027-04-10",
+      when: "Sat, Apr 10, 12:00 PM – 4:00 PM",
+      place: "McCarren Park, north picnic area",
+    };
+    const spot = render("event_notice", { ...about, kind: "spot_opened" });
+    if (!spot.ok) throw new Error(spot.error);
+    expect(spot.value.subject).toBe("You're in: Spring kickoff BBQ");
+    expect(spot.value.text).toContain(
+      "(Sat, Apr 10, 12:00 PM – 4:00 PM, McCarren Park, north picnic area)",
+    );
+    expect(spot.value.text).toContain(
+      "https://league.example.test/app/events/spring-kickoff-bbq-2027-04-10",
+    );
+    expect(spot.value.text).toContain(
+      "because you joined this event's waitlist",
+    );
+
+    const off = render("event_notice", {
+      ...about,
+      place: null,
+      kind: "cancelled",
+    });
+    if (!off.ok) throw new Error(off.error);
+    expect(off.value.subject).toBe("Called off: Spring kickoff BBQ");
+    expect(off.value.text).toContain(
+      "called off Spring kickoff BBQ (Sat, Apr 10, 12:00 PM – 4:00 PM).",
+    );
+    expect(off.value.text).toContain("https://league.example.test/events");
+  });
+
   it("refuses a payload that does not match its template", () => {
     expect(render("announcement", { subject: "Hi" })).toEqual({
       ok: false,
