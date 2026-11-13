@@ -11,6 +11,7 @@ import { eventRsvp } from "../schema/event";
 import { gameLineup, gameLineupSpot } from "../schema/lineup";
 import {
   gameRsvp,
+  offlineReceipt,
   refereeAssignment,
   scoreReport,
   scoreResponse,
@@ -698,6 +699,8 @@ export async function deleteAccount(
     .where(eq(notificationPreference.userId, userId));
   await db.delete(alertSetting).where(eq(alertSetting.userId, userId));
   await db.delete(pushSubscription).where(eq(pushSubscription.userId, userId));
+  // Answers to scores sent from their phone can name the other captain.
+  await db.delete(offlineReceipt).where(eq(offlineReceipt.userId, userId));
   // A new version, so a private calendar link handed out before stops working.
   await resetFeed(db, userId);
   await db.delete(message).where(eq(message.userId, userId));

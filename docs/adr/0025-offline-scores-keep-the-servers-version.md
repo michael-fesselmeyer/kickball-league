@@ -30,7 +30,7 @@ Offline entries get the same checks as the score screens: the person must be sig
 
 ## Consequences
 
-- One small row per offline entry. Receipts go with their game or their person when either is deleted.
+- One small row per offline entry. Receipts go with their game, and deleting an account deletes its receipts, because an answer can name the other captain.
 - An entry saved on a phone stays there until it is sent or the person signs out. Signing out drops entries not yet sent, because they are that person's, and the server refuses an entry from anyone but the person who saved it.
 - On an iPhone, a score entered offline reaches the server only when the app is opened again with signal. The home screen sends anything waiting and shows what happened to it.
 - Taking back a half and switching who kicks first still need a signal; with none, the screen says so and points to changing a half's runs instead, which works offline.
