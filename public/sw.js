@@ -14,6 +14,9 @@
  * ever served from here. With no signal, a page that is not saved gets the
  * offline page instead. The rules are tested in
  * src/lib/pwa/service-worker.test.ts.
+ *
+ * It also shows the league's push notifications (rain-outs, sub requests,
+ * scores) and opens the right page when one is tapped.
  */
 
 // Bump to drop every cache from an older worker when it activates.
@@ -90,6 +93,76 @@ self.addEventListener("message", (event) => {
   } else if (data.type === "forget") {
     event.waitUntil(caches.delete(NEXT_GAME_CACHE));
   }
+});
+
+/**
+ * A league push (src/services/push.ts): shows it as a notification. The tag
+ * is the message id, so a repeat of the same message replaces the first.
+ * A push that cannot be read still shows something, because a push the
+ * person was promised must always be visible.
+ */
+self.addEventListener("push", (event) => {
+  const message = readPush(event.data);
+  event.waitUntil(
+    self.registration.showNotification(message.title, {
+      body: message.body,
+      tag: message.tag,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { path: message.path },
+    }),
+  );
+});
+
+/** The notification's text and where a tap goes, from a push's JSON. */
+function readPush(data) {
+  let raw = null;
+  try {
+    raw = data ? data.json() : null;
+  } catch {
+    raw = null;
+  }
+  const text = (value, max) =>
+    typeof value === "string" && value.trim() !== ""
+      ? value.slice(0, max)
+      : null;
+  return {
+    title: text(raw?.title, 120) ?? "Kickball league",
+    body: text(raw?.body, 300) ?? "",
+    tag: text(raw?.tag, 64) ?? undefined,
+    path: safePath(raw?.path),
+  };
+}
+
+/** Only a path on this site; anything else opens the home screen. */
+function safePath(path) {
+  return typeof path === "string" &&
+    path.startsWith("/") &&
+    !path.startsWith("//") &&
+    !path.includes("\\")
+    ? path
+    : "/app";
+}
+
+/** A tap opens the notification's page, reusing an open window when there is one. */
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const path = safePath(event.notification.data?.path);
+  event.waitUntil(
+    (async () => {
+      const url = new URL(path, self.location.origin).href;
+      const windows = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      const open = windows.find((w) => w.url === url) ?? windows[0];
+      if (open) {
+        if (open.url !== url && "navigate" in open) await open.navigate(url);
+        return open.focus();
+      }
+      return self.clients.openWindow(url);
+    })(),
+  );
 });
 
 async function fromCacheFirst(request) {
