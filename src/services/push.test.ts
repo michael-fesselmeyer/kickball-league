@@ -106,7 +106,9 @@ describe("webPushSender", () => {
 
 describe("pushSenderFrom", () => {
   it("is off until both keys are set", () => {
-    expect(pushSenderFrom({ subject: "https://league.example.test" })).toBeNull();
+    expect(
+      pushSenderFrom({ subject: "https://league.example.test" }),
+    ).toBeNull();
     expect(
       pushSenderFrom({
         publicKey: vapid.publicKey,

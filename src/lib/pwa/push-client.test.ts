@@ -12,11 +12,17 @@ const ENDPOINT = "https://push.example.test/send/device-1";
 
 /** A browser with a service worker, a push manager and a permission prompt. */
 function browser({
-  permission = "default" as NotificationPermission,
-  answer = "granted" as NotificationPermission,
+  permission = "default",
+  answer = "granted",
   subscribed = false,
   failSubscribe = false,
   worker = true,
+}: {
+  permission?: NotificationPermission;
+  answer?: NotificationPermission;
+  subscribed?: boolean;
+  failSubscribe?: boolean;
+  worker?: boolean;
 } = {}) {
   const calls = { prompts: 0, subscribeKeys: [] as Uint8Array[], removed: 0 };
   let current: { endpoint: string } | null = subscribed
@@ -86,9 +92,9 @@ describe("deviceState", () => {
   });
 
   it("says when notifications are blocked", async () => {
-    expect(await deviceState(browser({ permission: "denied" }).globals)).toEqual(
-      { state: "blocked" },
-    );
+    expect(
+      await deviceState(browser({ permission: "denied" }).globals),
+    ).toEqual({ state: "blocked" });
   });
 
   it("is on only with a subscription and permission", async () => {
@@ -97,9 +103,9 @@ describe("deviceState", () => {
         browser({ permission: "granted", subscribed: true }).globals,
       ),
     ).toEqual({ state: "on", endpoint: ENDPOINT });
-    expect(await deviceState(browser({ permission: "granted" }).globals)).toEqual(
-      { state: "off" },
-    );
+    expect(
+      await deviceState(browser({ permission: "granted" }).globals),
+    ).toEqual({ state: "off" });
   });
 });
 
@@ -139,7 +145,10 @@ describe("subscribeDevice", () => {
       await subscribeDevice(browser({ answer: "default" }).globals, publicKey),
     ).toEqual({ ok: false, reason: "blocked" });
     expect(
-      await subscribeDevice(browser({ failSubscribe: true }).globals, publicKey),
+      await subscribeDevice(
+        browser({ failSubscribe: true }).globals,
+        publicKey,
+      ),
     ).toEqual({ ok: false, reason: "failed" });
     expect(
       await subscribeDevice(browser({ worker: false }).globals, publicKey),

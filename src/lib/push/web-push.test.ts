@@ -88,14 +88,14 @@ describe("VAPID", () => {
       now,
     );
     const match = /^vapid t=([^.]+)\.([^.]+)\.([^,]+), k=(.+)$/.exec(header);
-    expect(match).not.toBeNull();
-    const [, head, claims, signature, k] = match as unknown as string[];
+    if (!match) throw new Error("not a VAPID header");
+    const [, head = "", claims = "", signature = "", k] = match;
     expect(k).toBe(keys.publicKey);
-    expect(JSON.parse(b64url.decode(head as string).toString())).toEqual({
+    expect(JSON.parse(b64url.decode(head).toString())).toEqual({
       typ: "JWT",
       alg: "ES256",
     });
-    expect(JSON.parse(b64url.decode(claims as string).toString())).toEqual({
+    expect(JSON.parse(b64url.decode(claims).toString())).toEqual({
       aud: "https://push.example.test",
       exp: now.getTime() / 1000 + 12 * 3600,
       sub: "mailto:league@example.test",
@@ -115,7 +115,7 @@ describe("VAPID", () => {
         "sha256",
         Buffer.from(`${head}.${claims}`),
         { key, dsaEncoding: "ieee-p1363" },
-        b64url.decode(signature as string),
+        b64url.decode(signature),
       ),
     ).toBe(true);
   });
