@@ -17,8 +17,9 @@ async function splitIntoDivisions(page: Page) {
   await expectNoAxeViolations(page);
 
   const ruleSets = page.getByRole("region", { name: "Rule sets" });
-  await ruleSets.getByLabel("Rule set name").fill("Social rules");
-  await ruleSets.getByLabel("Innings").fill("5");
+  // The seed's rule sets serve every season; this one is new.
+  await ruleSets.getByLabel("Rule set name").fill("Spring social rules");
+  await ruleSets.getByLabel("Innings").fill("6");
   await ruleSets.getByLabel("Bunting").check();
   await ruleSets.getByRole("button", { name: "Add rule set" }).click();
   await expect(page.getByRole("status")).toHaveText(
@@ -28,11 +29,15 @@ async function splitIntoDivisions(page: Page) {
   const divisions = page.getByRole("region", { name: "Divisions" });
   for (const [name, rules] of [
     ["Competitive", "No rule set"],
-    ["Social", "Social rules"],
+    ["Social", "Spring social rules"],
   ] as const) {
     await divisions.getByLabel("New division").fill(name);
     await divisions.getByLabel("Its rule set").selectOption({ label: rules });
     await divisions.getByRole("button", { name: "Add division" }).click();
+    // The notice reads the same for both, so wait for the division itself.
+    await expect(
+      divisions.getByRole("button", { name: `Save ${name}` }),
+    ).toBeVisible();
     await expect(page.getByRole("status")).toHaveText(
       "Division added. Put teams in it below.",
     );
@@ -152,7 +157,9 @@ test("an admin splits a season into divisions and publishes its schedule", async
     ).toBeVisible();
     await expect(section.getByRole("row")).toHaveCount(5);
   }
-  await expect(visitor.getByText("Social rules: 5 innings")).toBeVisible();
+  await expect(
+    visitor.getByText("Spring social rules: 6 innings"),
+  ).toBeVisible();
   await expectNoAxeViolations(visitor);
 
   // The earlier visitor sees the games on their next visit too, not the copy
