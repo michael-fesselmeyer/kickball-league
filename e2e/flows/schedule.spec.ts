@@ -12,11 +12,12 @@ test("an admin generates and publishes a schedule", async ({
 }) => {
   // The build prerendered the season's schedule from the seeded league. An
   // earlier visitor (in a browser of their own, so the one below starts with
-  // nothing saved) gets that stored page until publishing refreshes it.
+  // nothing saved) gets that stored page until publishing refreshes it. They
+  // keep their browser, with its stored copy and the league's service worker.
   const earlier = await browser.newPage();
   await earlier.goto("/seasons/spring-2027/schedule");
   await expect(earlier.getByText("Coming soon", { exact: true })).toBeVisible();
-  await earlier.context().close();
+  await earlier.waitForFunction(() => navigator.serviceWorker.controller);
 
   const page = await pageAs(browser, "Admin");
   await page.goto("/app/admin/seasons/spring-2027/schedule");
@@ -52,4 +53,12 @@ test("an admin generates and publishes a schedule", async ({
     /^Showing all \d+ games\.$/,
   );
   await expectNoAxeViolations(visitor);
+
+  // The earlier visitor sees the games on their next visit too, not the copy
+  // their browser stored before publishing (#204).
+  await earlier.goto("/seasons/spring-2027/schedule");
+  await expect(earlier.getByRole("status")).toHaveText(
+    /^Showing all \d+ games\.$/,
+  );
+  await earlier.context().close();
 });
