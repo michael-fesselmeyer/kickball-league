@@ -1,11 +1,16 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { completeProfile, pageAs } from "../support/personas";
+import {
+  openCheckoutSession,
+  sendCheckoutCompleted,
+} from "../support/stripe-webhook";
 
 /**
- * A new season, from the admin opening registration to a captain reaching
- * Stripe Checkout for a split team fee and a player joining as a free agent.
- * Stripe calls go to stripe-mock, so nothing leaves the machine.
+ * A new season, from the admin opening registration to a captain paying
+ * their share of a split team fee and a free agent paying their fee.
+ * Stripe calls go to stripe-mock, and Stripe's webhook is sent by the test,
+ * signed with the flows server's test secret, so nothing leaves the machine.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -109,6 +114,41 @@ test("a captain registers a team with split pay and reaches Checkout", async ({
   await page.context().close();
 });
 
+test("Stripe's webhook marks the captain paid once, and a forged one is refused", async ({
+  browser,
+}) => {
+  const page = await pageAs(browser, "Captain");
+  const session = await openCheckoutSession("casey.captain@example.test");
+  expect(session.totalCents).toBe(8000);
+
+  const forged = await page.request.post("/api/stripe/webhook", {
+    data: JSON.stringify({
+      id: "evt_forged",
+      type: "checkout.session.completed",
+    }),
+    headers: { "stripe-signature": "t=1,v1=not-a-signature" },
+  });
+  expect(forged.status()).toBe(400);
+
+  const eventId = `evt_e2e_captain_${Date.now()}`;
+  expect(await sendCheckoutCompleted(page.request, session, eventId)).toEqual({
+    status: 200,
+    outcome: "processed",
+  });
+  // Stripe retries deliveries; the same event changes nothing the second time.
+  expect(await sendCheckoutCompleted(page.request, session, eventId)).toEqual({
+    status: 200,
+    outcome: "duplicate",
+  });
+
+  await page.goto(`/app/seasons/${SEASON_SLUG}`);
+  await expect(page.getByText(`You're all set for ${SEASON}.`)).toBeVisible();
+  await page.goto(`/app/seasons/${SEASON_SLUG}/team`);
+  await expect(page.getByText(/1 signed the waiver, 1 paid\./)).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.context().close();
+});
+
 test("a player joins the season as a free agent", async ({ browser }) => {
   const page = await pageAs(browser, "Player");
   await completeProfile(page);
@@ -125,6 +165,43 @@ test("a player joins the season as a free agent", async ({ browser }) => {
     "You're in the free-agent pool",
   );
   await expect(page.getByText("Registered as a free agent")).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.context().close();
+});
+
+test("the free agent signs, pays through Checkout and is confirmed by Stripe", async ({
+  browser,
+}) => {
+  const page = await pageAs(browser, "Player");
+  await page.goto(`/app/seasons/${SEASON_SLUG}`);
+  await page.getByRole("link", { name: "Read and sign the waiver" }).click();
+  await page
+    .getByLabel("I have read the whole waiver and I agree to it.")
+    .check();
+  await page.getByLabel("Type your full name to sign").fill("Pat Player");
+  await page.getByRole("button", { name: "Sign the waiver" }).click();
+  await expect(page.getByRole("status")).toContainText("Signed.");
+
+  await page.goto(`/app/seasons/${SEASON_SLUG}`);
+  await page.route("https://checkout.stripe.com/**", (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: "<!doctype html><title>Stripe Checkout</title><h1>Checkout</h1>",
+    }),
+  );
+  await page
+    .getByRole("button", { name: "Pay $75 securely with Stripe" })
+    .click();
+  await expect(page).toHaveURL(/^https:\/\/checkout\.stripe\.com\//);
+
+  const session = await openCheckoutSession("pat.player@example.test");
+  expect(session.totalCents).toBe(7500);
+  expect(await sendCheckoutCompleted(page.request, session)).toEqual({
+    status: 200,
+    outcome: "processed",
+  });
+  await page.goto(`/app/seasons/${SEASON_SLUG}`);
+  await expect(page.getByText(`You're all set for ${SEASON}.`)).toBeVisible();
   await expectNoAxeViolations(page);
   await page.context().close();
 });
