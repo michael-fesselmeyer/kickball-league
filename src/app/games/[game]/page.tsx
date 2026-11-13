@@ -5,9 +5,12 @@ import { Suspense } from "react";
 import { LogoBadge } from "@/components/logo-badge";
 import { ForecastChip } from "@/components/forecast-chip";
 import { ShareButtons } from "@/components/share";
+import { LiveLine } from "@/components/line-score";
+import { LiveScore } from "@/components/live-score";
 import { GameStats } from "@/components/stats/game-stats";
 import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
+import { liveGame, snapshotOf } from "@/db/queries/live-scores";
 import { publishedGame } from "@/db/queries/public-schedule";
 import type { Hex } from "@/domain/color/contrast";
 import { type GameId, parseId } from "@/domain/ids";
@@ -71,6 +74,19 @@ export default function GamePage(props: PageProps<"/games/[game]">) {
   );
 }
 
+/**
+ * When the page asks for the live score: from half an hour before the start
+ * until three hours after the slot ends, which covers a late start and the
+ * time it takes to report the final score.
+ */
+function pollWindow(startsAt: Date, endsAt: Date | null) {
+  const end = endsAt ?? new Date(startsAt.getTime() + 90 * 60_000);
+  return {
+    pollFrom: new Date(startsAt.getTime() - 30 * 60_000).toISOString(),
+    pollUntil: new Date(end.getTime() + 3 * 3_600_000).toISOString(),
+  };
+}
+
 /** A Google Maps link to the park: its pin when known, else its address. */
 function mapLink(venue: NonNullable<PublicGame["venue"]>) {
   const query =
@@ -81,9 +97,15 @@ function mapLink(venue: NonNullable<PublicGame["venue"]>) {
 }
 
 async function Game({ params }: PageProps<"/games/[game]">) {
-  const found = await load((await params).game);
+  const param = (await params).game;
+  const id = parseId<GameId>(param);
+  const [found, live] = await Promise.all([
+    load(param),
+    id ? liveGame(db, id) : null,
+  ]);
   if (!found) notFound();
   const { game, timeZone } = found;
+  const snapshot = live ? snapshotOf(live) : null;
   const done = hasResult(game);
   const calledOff = isCalledOff(game);
   const label = statusLabel(game);
@@ -138,6 +160,23 @@ async function Game({ params }: PageProps<"/games/[game]">) {
         </div>
         {result && <p className="text-center text-body-lg">{result}</p>}
       </header>
+
+      {snapshot &&
+        (snapshot.closed || !game.startsAt ? (
+          <LiveLine
+            teamA={game.teamA.name}
+            teamB={game.teamB.name}
+            snapshot={snapshot}
+          />
+        ) : (
+          <LiveScore
+            gameId={game.id}
+            teamA={game.teamA.name}
+            teamB={game.teamB.name}
+            initial={snapshot}
+            {...pollWindow(game.startsAt, game.endsAt)}
+          />
+        ))}
 
       <dl className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1 rounded-card border border-border bg-surface p-4">
