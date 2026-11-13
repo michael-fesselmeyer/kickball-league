@@ -31,7 +31,7 @@ import { registration, teamSeason } from "./team";
  * Money (docs/data-model.md, section 2.3). `purchase` is our record of what
  * was bought; `payment` mirrors what Stripe says happened. A purchase is
  * marked paid only by the Stripe webhook, never by the browser returning
- * from Checkout. League credit arrives in a later migration.
+ * from Checkout. League credit is in ./credit.ts.
  */
 export const purchaseStatus = pgEnum("purchase_status", [
   "open",
@@ -104,6 +104,11 @@ export const purchase = pgTable(
       .$type<PromoCodeId>()
       .references(() => promoCode.id, { onDelete: "restrict" }),
     stripeCheckoutSessionId: text(),
+    /**
+     * For a charge the app makes itself, such as the captain guarantee's
+     * deadline charge: the PaymentIntent whose webhook settles it.
+     */
+    stripePaymentIntentId: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -112,6 +117,7 @@ export const purchase = pgTable(
   },
   (t) => [
     unique("purchase_checkout_session_unique").on(t.stripeCheckoutSessionId),
+    unique("purchase_payment_intent_unique").on(t.stripePaymentIntentId),
     index("purchase_user_idx").on(t.userId),
     index("purchase_promo_code_idx").on(t.promoCodeId),
     check(

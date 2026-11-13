@@ -62,6 +62,11 @@ export type DealId = Brand<string, "DealId">;
 export type CheckinId = Brand<string, "CheckinId">;
 export type DealRedemptionId = Brand<string, "DealRedemptionId">;
 export type TeamOfWeekId = Brand<string, "TeamOfWeekId">;
+export type CreditEntryId = Brand<string, "CreditEntryId">;
+export type SeasonRebateId = Brand<string, "SeasonRebateId">;
+export type ReferralId = Brand<string, "ReferralId">;
+export type SavedPaymentMethodId = Brand<string, "SavedPaymentMethodId">;
+export type WaitlistEntryId = Brand<string, "WaitlistEntryId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
