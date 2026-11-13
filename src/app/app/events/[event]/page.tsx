@@ -1,0 +1,151 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { db } from "@/db/client";
+import { eventBySlug, myEventRsvp } from "@/db/queries/events";
+import {
+  KIND_LABELS,
+  rsvpWindow,
+  spotsLeft,
+  whenLine,
+} from "@/domain/events/event";
+import { requirePermission } from "@/lib/auth/permission";
+import { joinEventAction, leaveEventAction } from "../actions";
+
+export const metadata: Metadata = { title: "RSVP" };
+
+const ERRORS: Record<string, string> = {
+  not_found: "That event is gone.",
+  cancelled: "The league called this event off.",
+  over: "This event is over.",
+  no_rsvp: "Theme weeks don't need an RSVP. Just show up on game day.",
+};
+
+const DONE: Record<string, string> = {
+  going: "You're going. See you there!",
+  waitlisted:
+    "It's full, so you're on the waitlist. We'll email you if a spot opens.",
+  left: "Done. Your RSVP is cleared.",
+};
+
+export default function EventRsvpPage(props: PageProps<"/app/events/[event]">) {
+  return (
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
+      <Suspense fallback={<p className="min-h-svh">Loading the event…</p>}>
+        <EventRsvp {...props} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function EventRsvp({
+  params,
+  searchParams,
+}: PageProps<"/app/events/[event]">) {
+  const { event: slug } = await params;
+  const query = await searchParams;
+  const subject = await requirePermission("event.rsvp", {
+    next: `/app/events/${slug}`,
+  });
+  const e = await eventBySlug(db, slug);
+  if (!e) notFound();
+  const mine = await myEventRsvp(db, e.id, subject.userId);
+  const window = rsvpWindow(e, new Date());
+  const left = spotsLeft(e.capacity, e.going);
+  const error =
+    typeof query.error === "string" ? ERRORS[query.error] : undefined;
+  const done = typeof query.done === "string" ? DONE[query.done] : undefined;
+
+  return (
+    <>
+      <nav aria-label="Breadcrumb" className="text-small">
+        <Link
+          href="/app/events"
+          className="inline-flex min-h-11 items-center underline"
+        >
+          Your events
+        </Link>
+      </nav>
+      <header className="flex flex-col gap-1">
+        <p className="text-small font-bold text-text-muted">
+          {KIND_LABELS[e.kind]}
+        </p>
+        <h1 className="text-h1">{e.title}</h1>
+        <p>{whenLine(e, e.timeZone)}</p>
+        {e.place && <p className="text-text-muted">{e.place}</p>}
+        <Link href={`/events/${e.slug}`} className="self-start underline">
+          Event details
+        </Link>
+      </header>
+
+      {error && (
+        <p role="alert" className="rounded-lg border border-danger p-3">
+          {error}
+        </p>
+      )}
+      {done && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          {done}
+        </p>
+      )}
+
+      <section
+        aria-labelledby="rsvp"
+        className="flex flex-col items-start gap-3 rounded-card border border-border bg-surface p-4"
+      >
+        <h2 id="rsvp" className="text-h2">
+          Your RSVP
+        </h2>
+        {window === "no_rsvp" ? (
+          <p>{ERRORS.no_rsvp}</p>
+        ) : window !== "open" ? (
+          <p>{ERRORS[window]}</p>
+        ) : mine?.status === "going" ? (
+          <>
+            <p className="text-body-lg font-bold">You&apos;re going.</p>
+            <p className="text-text-muted">
+              Plans changed? Drop your spot so the next person on the waitlist
+              gets it.
+            </p>
+            <form action={leaveEventAction.bind(null, e.slug)}>
+              <button type="submit" className="btn btn-secondary">
+                I can&apos;t make it
+              </button>
+            </form>
+          </>
+        ) : mine?.status === "waitlisted" ? (
+          <>
+            <p className="text-body-lg font-bold">
+              You&apos;re number {mine.position} on the waitlist.
+            </p>
+            <p className="text-text-muted">
+              If someone drops out, the first person in line gets their spot and
+              an email.
+            </p>
+            <form action={leaveEventAction.bind(null, e.slug)}>
+              <button type="submit" className="btn btn-secondary">
+                Leave the waitlist
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            <p className="text-text-muted">
+              {left === null
+                ? "No limit on this one: bring your team."
+                : left === 0
+                  ? `All ${e.capacity} spots are taken. Join the waitlist and you'll get the next one that opens.`
+                  : `${left} of ${e.capacity} spots left.`}
+            </p>
+            <form action={joinEventAction.bind(null, e.slug)}>
+              <button type="submit" className="btn btn-primary">
+                {left === 0 ? "Join the waitlist" : "I'm going"}
+              </button>
+            </form>
+          </>
+        )}
+      </section>
+    </>
+  );
+}

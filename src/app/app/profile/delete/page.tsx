@@ -83,7 +83,9 @@ async function DeleteAccount({
             on every device and cannot sign in to this account again.
           </li>
           <li>
-            Your game RSVPs, email settings and emails waiting to be sent.
+            Your game and event RSVPs, email settings and emails waiting to be
+            sent. If you had a spot at an event, the next person on its waitlist
+            gets it.
           </li>
           <li>
             Your sub offers for games still to come. The captain is told you
