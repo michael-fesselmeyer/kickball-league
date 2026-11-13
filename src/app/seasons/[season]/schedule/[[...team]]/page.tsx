@@ -6,15 +6,21 @@ import { Suspense } from "react";
 import { GameCard } from "@/components/game-card";
 import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
+import { themeWeeks } from "@/db/queries/events";
 import { publishedSchedule } from "@/db/queries/public-schedule";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { themeFor } from "@/domain/events/event";
 import { dayHeading, kickoff } from "@/domain/schedule/format";
 import {
   groupByDay,
   type PublicGame,
   type PublicTeam,
 } from "@/domain/schedule/public-game";
-import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
+import {
+  PUBLIC_PAGE_LIFE,
+  seasonTag,
+  THEME_WEEKS_TAG,
+} from "@/lib/public-cache";
 import { NO_SEASON, publicSeasonParams } from "@/lib/static-params";
 
 type Props = PageProps<"/seasons/[season]/schedule/[[...team]]">;
@@ -94,8 +100,11 @@ async function SeasonSchedule({
   const season = await seasonBySlug(db, slug);
   // Drafts are the league's work in progress, not public.
   if (!season || season.status === "draft") notFound();
-  cacheTag(seasonTag(season.id));
-  const all = await publishedSchedule(db, season.id);
+  cacheTag(seasonTag(season.id), THEME_WEEKS_TAG);
+  const [all, themes] = await Promise.all([
+    publishedSchedule(db, season.id),
+    themeWeeks(db, season.leagueId, season.timeZone),
+  ]);
   const teams = teamsOf(all);
   const picked = teamSlug
     ? (teams.find((t) => t.slug === teamSlug) ?? null)
@@ -176,33 +185,47 @@ async function SeasonSchedule({
               : `Showing all ${games.length} games.`}
           </p>
 
-          {days.map(({ day, games: dayGames }) => (
-            <section
-              key={day}
-              aria-labelledby={`day-${day}`}
-              className="flex flex-col gap-3"
-            >
-              <h2 id={`day-${day}`} className="text-h3">
-                {dayHeading(day)}
-              </h2>
-              {!picked && (
-                <DayGrid games={dayGames} timeZone={season.timeZone} />
-              )}
-              <ul
-                className={`grid gap-3 sm:grid-cols-2 ${picked ? "" : "lg:hidden"}`}
+          {days.map(({ day, games: dayGames }) => {
+            const theme = themeFor(day, themes);
+            return (
+              <section
+                key={day}
+                aria-labelledby={`day-${day}`}
+                className="flex flex-col gap-3"
               >
-                {dayGames.map((g) => (
-                  <li key={g.id}>
-                    <GameCard
-                      game={g}
-                      timeZone={season.timeZone}
-                      highlight={picked?.id}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h2 id={`day-${day}`} className="text-h3">
+                    {dayHeading(day)}
+                  </h2>
+                  {theme && (
+                    <Link
+                      href={`/events/${theme.slug}`}
+                      className="sticker inline-flex min-h-11 items-center hover:underline"
+                    >
+                      <span className="sr-only">Theme week: </span>
+                      {theme.title}
+                    </Link>
+                  )}
+                </div>
+                {!picked && (
+                  <DayGrid games={dayGames} timeZone={season.timeZone} />
+                )}
+                <ul
+                  className={`grid gap-3 sm:grid-cols-2 ${picked ? "" : "lg:hidden"}`}
+                >
+                  {dayGames.map((g) => (
+                    <li key={g.id}>
+                      <GameCard
+                        game={g}
+                        timeZone={season.timeZone}
+                        highlight={picked?.id}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
 
           {unplaced.length > 0 && (
             <section aria-labelledby="unplaced" className="flex flex-col gap-3">
