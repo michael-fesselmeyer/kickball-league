@@ -173,7 +173,10 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | View own referee earnings | — | — | — | own | — | — | — |
 | Vote in awards | — | ✓ (rostered) | ✓ | — | — | — | — |
 | Open, close and remove awards polls | — | — | — | — | — | ✓ | ✓ |
-| Suspend a player, log an incident | — | — | — | log only, assigned | — | ✓ | ✓ |
+| Log an incident | — | — | own team's games | assigned | — | ✓ | ✓ |
+| Review incidents, suspend a player or lift a suspension | — | — | — | — | — | ✓ | ✓ |
+| Rate the other team's sportsmanship after a final score | — | — | own team's games | — | — | — | — |
+| See sportsmanship averages | — | — | own team, in blocks of 3 ratings | — | — | ✓ (every team, with notes) | ✓ (every team, with notes) |
 | Issue a refund or league credit | — | — | — | — | — | ✓ | ✓ |
 | Set prices, connect Stripe, change refund policy | — | — | — | — | — | — | ✓ |
 | Add or remove admins | — | — | — | — | — | — | ✓ |
