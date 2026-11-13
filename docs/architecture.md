@@ -153,6 +153,7 @@ With Cache Components, a page's static parts and cached data are prerendered int
 | `opengraph-image` for games and teams | Generated with `next/og`, cached | Same as the page | Same as the page |
 | `/teams/[team]/calendar.ics` | Route handler, cached | `schedule:{seasonId}` | Schedule published |
 | `/events/calendar.ics`, `/events/[event]/calendar.ics` | Route handlers; the CDN keeps a copy for five minutes ✔ | — | — |
+| `/events/personal/[token]/calendar.ics` | Route handler; never cached (`private, no-store`). The token is the person's id and an HMAC of it and a version with the server's secret, so the link is the key and a reset stops the old one ✔ | — | — |
 | `/api/games/[game]/live` | Route handler; `use cache` for 5 seconds (`LIVE_SCORE_LIFE`) and a 5-second CDN copy ✔ | `game:{id}` | A half-inning is entered, corrected or taken back; who kicks first changes; a score is reported or answered |
 | `sitemap.xml`, `robots.txt` | `sitemap.ts`, `robots.ts`, cached daily | `league` | — |
 | `/app/**` | Dynamic, streamed with Suspense; never cached across users | — | — |

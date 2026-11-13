@@ -77,10 +77,13 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 **Events**
 
-- An events calendar for bar nights, BBQs, tournaments and theme weeks. Admins create an event with a place, time, capacity and description, edit it, call it off (everyone who RSVP'd is emailed) or delete it.
+- An events calendar for parties and prom, bar nights, BBQs, tournaments and theme weeks. Admins create an event with a place, time, capacity and description, edit it, call it off (everyone who RSVP'd is emailed) or delete it.
+- Each event is for everyone, all members, or chosen teams from the active season, another season or every season. Members-only and team events never reach public pages, the public feed or the sitemap; the people they're for see them in the app, and admins see everything.
+- An optional external invite link (Partiful or any https page) shows as an "RSVP on partiful.com" button, alongside or instead of RSVPs in the app. The link is only shown and shared, never fetched.
+- When posting or changing an event, an admin can email everyone it's for through the outbox (event emails can be turned off), and copy a ready-made message for the WhatsApp group.
 - Players RSVP from the app. When an event is full they join a waitlist, see their place in line, and move up in order when someone drops out or the admin adds spots, with an email when they do. A spot is never taken from anyone when capacity shrinks.
-- A public events page and a page for every event (static HTML with `SocialEvent` structured data), all in the sitemap. Theme weeks mark their game days on the public schedule.
-- Calendar export: a subscribed `.ics` feed of every event (theme weeks as all-day entries), plus "save the date" links for one event to Apple Calendar, Outlook or Google Calendar.
+- A public events page and a page for every public event (static HTML with `SocialEvent` structured data), all in the sitemap, with share buttons. Theme weeks mark their game days on the public schedule.
+- Calendar export: a subscribed `.ics` feed of every public event (theme weeks as all-day entries), a private feed per member with every event they can see (its link can be reset), plus "save the date" links for one event to Apple Calendar, Outlook or Google Calendar.
 
 **Admin**
 
