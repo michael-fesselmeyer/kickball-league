@@ -3,8 +3,8 @@
  * cost money per use, so they show only when every condition holds:
  * an API key is configured, the operator left the feature on, and the
  * month's spend leaves room for one more call at its worst case. The
- * budget is per calendar month in UTC, the way the provider bills.
- * See ADR 0013.
+ * budget is per calendar month in UTC.
+ * See ADR 0017.
  *
  * Pure: the caller passes the clock and the numbers.
  */

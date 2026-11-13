@@ -52,7 +52,7 @@ export const league = pgTable(
       .default(sql`'{}'::text[]`),
     /**
      * What the AI features may spend in a calendar month, in cents (operator
-     * only). At this amount they switch off until the next month. ADR 0013.
+     * only). At this amount they switch off until the next month. ADR 0017.
      */
     aiMonthlyBudgetCents: integer().notNull().default(500),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

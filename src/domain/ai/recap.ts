@@ -13,7 +13,7 @@ import { streakNote } from "@/domain/stats/streaks";
  * The AI-written weekly recap: the facts the model is given, the prompt,
  * and the checks its answer must pass before an admin sees it. The model
  * gets only these structured facts, computed by the stats module, so the
- * story is the model's but every number comes from us. See ADR 0013.
+ * story is the model's but every number comes from us. See ADR 0017.
  *
  * Pure: no clock, no network.
  */

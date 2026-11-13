@@ -75,6 +75,7 @@ erDiagram
     jsonb contact "email, phone, social links, WhatsApp link"
     enum site_status "active, read_only, paused; operator only"
     text_array disabled_features "features the operator switched off"
+    int ai_monthly_budget_cents "AI spend allowed per calendar month; default 500; operator only"
   }
   season {
     uuid id PK
@@ -904,16 +905,27 @@ erDiagram
   }
   ai_usage {
     uuid id PK
-    uuid user_id FK
-    enum feature "rulebook_question, recap_draft"
+    uuid league_id FK
+    text feature "recap; rulebook later"
     text model
     int input_tokens
-    int cached_input_tokens
     int output_tokens
-    int cost_micros
-    text question_hash "for the answer cache"
-    jsonb answer "answer text and cited rule numbers"
-    timestamptz occurred_at
+    int cache_read_tokens
+    int cache_write_tokens
+    int cost_microdollars "worst case while pending, then the real cost"
+    text outcome "pending, accepted, rejected, failed"
+    uuid actor_id FK
+    timestamptz created_at
+  }
+  recap_draft {
+    uuid id PK
+    uuid season_id FK
+    date day "the game day, league time"
+    text subject
+    text body
+    text model
+    uuid created_by FK
+    timestamptz created_at
   }
   incident {
     uuid id PK
@@ -980,6 +992,9 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `refund` | check `amount_cents > 0` | A refund returns money |
 | `promo_code` | unique `(season_id, code)`; check `code = upper(code)`; check a percent is 1 to 100 and an amount is above 0 | Codes match without regard to case and never take off more than the price |
 | `credit_entry` | check that exactly one of `user_id`, `team_season_id` is set | Credit has one owner |
+| `ai_usage` | check `outcome` is `pending`, `accepted`, `rejected` or `failed`; check token counts and cost are not negative | Spend adds up |
+| `recap_draft` | unique `(season_id, day)`; check the subject is 1 to 120 characters and the body 1 to 5,000 | One AI draft per game day that fits an announcement |
+| `league` | check `ai_monthly_budget_cents` between 0 and 100,000 | The AI budget stays between $0 and $1,000 |
 
 Indexes for the common reads:
 
@@ -1002,6 +1017,7 @@ Indexes for the common reads:
 | `sub_claim` | `(user_id, status)` | A player's offers |
 | `event` | `(league_id, starts_at)` | Calendar |
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
+| `ai_usage` | `(league_id, created_at)` | The month's AI spend |
 
 ## 4. Personal data
 

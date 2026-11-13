@@ -42,7 +42,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── paused                          Neutral notice while the site is paused or read-only (operator setting)
 └── sign-in, sign-up
 
-/operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
+/operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, AI budget, league export
 
 /app                                Signed-in home: next game, RSVP, what you owe, alerts
 ├── account                         Profile, notification settings, waivers, payments, credit (built at /app/profile)
@@ -72,7 +72,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── schedule                Generate, metrics, versions, publish; board (desktop) and move-or-swap form
     │   ├── rainout                 Call a rain-out and review makeups
     │   ├── announcements           Email the season or one team
-    │   ├── recap                   Weekly recap drafted from the scores; edit, then send as an announcement
+    │   ├── recap                   Weekly recap drafted from the scores, plus an optional AI draft; edit, then send as an announcement
     │   └── playoffs                Seed from standings, place on fields, publish the bracket
     ├── games                       Scores, forfeits, corrections
     ├── people                      Players, roles, suspensions

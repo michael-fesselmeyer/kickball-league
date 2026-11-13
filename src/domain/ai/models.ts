@@ -2,7 +2,7 @@
  * The models the AI features may use and their list prices, so every call's
  * cost can be worked out from its token usage. A model that is not listed
  * here cannot be configured (src/lib/env.ts), because its cost could not be
- * counted against the monthly budget. See ADR 0013.
+ * counted against the monthly budget. See ADR 0017.
  *
  * Pure: no clock, no network.
  */

@@ -6,7 +6,7 @@ import { err, ok, type Result } from "@/domain/result";
  * The AI provider's Messages API, called from server code only, so the key
  * never reaches a browser. One request in, one JSON answer out, with the
  * response's token usage so every call can be costed. Tests pass their own
- * `AiCall` and never reach the network. See ADR 0013.
+ * `AiCall` and never reach the network. See ADR 0017.
  */
 
 export const AI_API_URL = "https://api.anthropic.com/v1/messages";

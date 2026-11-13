@@ -29,7 +29,7 @@ import { season } from "./season";
  * because every answered call is billed. The month's spend is the sum of
  * `cost_microdollars`, and the features switch off at the league's monthly
  * budget.
- * See docs/data-model.md, section 2.10, and ADR 0013.
+ * See docs/data-model.md, section 2.7, and ADR 0017.
  */
 export const aiUsage = pgTable(
   "ai_usage",

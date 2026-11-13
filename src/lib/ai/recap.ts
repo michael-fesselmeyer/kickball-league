@@ -22,7 +22,7 @@ import type { AiCall } from "@/services/ai";
  * Writes one AI recap draft: reserve the call's worst-case cost against the
  * month's budget, call the model, record what it really cost, check the
  * answer, and keep it for the admin to edit. Nothing is sent from here.
- * See ADR 0013.
+ * See ADR 0017.
  */
 
 /** Room for the model's answer, its reasoning included. */

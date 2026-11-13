@@ -471,16 +471,16 @@ Two features made the cut because each saves real time. Neither is needed to run
 | Feature | What it does | Who triggers it |
 |---|---|---|
 | **Ask the rulebook** | Answers a rules question using only the league's rulebook, quotes the rule, and links each cited rule number to `/rules`. When the rulebook does not cover the question it says so. Every answer ends with "the referee's call is final" | Signed-in players, at the field |
-| **Recap draft** | Turns a week's results, standings changes and streaks into a draft recap in the post editor. An admin edits and publishes it; nothing is published automatically | Admins, once a week |
+| **Recap draft** (built) | Turns a game day's results, rankings, streaks and records into a draft on the weekly recap screen, next to the template draft. An admin edits it and sends it as an announcement; nothing is sent automatically | Admins, once a week |
 
 ### Design
 
-- **SDK.** The official Anthropic TypeScript SDK (`@anthropic-ai/sdk`), called only from server code in `services/ai`. The API key never reaches the browser.
-- **Model.** Read from `AI_MODEL`, defaulting to `claude-opus-5-5`. `claude-haiku-5-5` is the low-cost alternative; which to use is your call (see the cost table).
+- **Client.** A small HTTP client for the provider's Messages API in `src/services/ai.ts`, called only from server code, so the API key never reaches the browser. It takes an injected `fetch`, so tests never touch the network ([ADR 0017](adr/0017-ai-recap-draft-with-a-reserved-budget.md)).
+- **Model.** Read from `AI_MODEL`, defaulting to `claude-opus-5-5`. Only models with a price in `src/domain/ai/models.ts` are accepted, so every call can be costed. `claude-haiku-5-5` is the low-cost alternative (see the cost table). Requests use low effort.
 - **Grounding.** The full rulebook (about 6,000 tokens) goes in the system prompt with prompt caching, so repeat questions read it from cache. The model is told to answer only from that text.
 - **Checked output.** The answer comes back as structured output (answer text plus a list of rule numbers), validated with Zod. Every cited rule number must exist in the rulebook or the answer is discarded and the player is pointed to rulebook search.
 - **Untrusted input.** A player's question is data, not instructions. It cannot change the system prompt, and the model has no tools and no access to league data.
-- **Recap input.** The model receives structured facts computed by the standings module, not free text, so it cannot invent a score.
+- **Recap input.** The model receives structured facts computed by the stats module (results, rankings with records, streaks, new records, next week's game of the week, the standings link), not free text. Its answer is checked before an admin sees it: within the announcement limits, every quoted score or record a real one, and no link but the standings page. A failed draft is discarded and the template draft stays. The newest accepted draft per game day is kept in `recap_draft`.
 - **Quality check.** A fixed set of about 30 questions with expected rule numbers is run on demand, not in CI, because each run costs money.
 
 ### Cost controls
@@ -489,8 +489,8 @@ There is no monthly fee. The API is prepaid and billed per use.
 
 | Control | Detail |
 |---|---|
-| Off by default | With no `ANTHROPIC_API_KEY`, both features are hidden |
-| Monthly cap | A budget in league settings, default $5. Spend is recorded from each response's token usage in `ai_usage`. At the cap, both features switch off until the next month and admins are told |
+| Off by default | With no `ANTHROPIC_API_KEY`, both features are hidden. The operator can also switch them off (ADR 0009) |
+| Monthly cap | A budget on the league row, default $5 per calendar month (UTC), set by the operator in the console. Each call first reserves its worst-case cost in `ai_usage` under a lock, then records the real cost from the response's token usage. Once the next call could pass the budget, the features switch off until the next month and admins see why |
 | Per-person limit | 10 rulebook questions a day |
 | Answer cache | Identical questions are answered from a stored answer, at no cost |
 | Signed-in only | No anonymous use |

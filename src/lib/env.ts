@@ -62,7 +62,7 @@ export const envSchema = z.object({
     .string()
     .min(16, { error: "must be at least 16 characters" })
     .optional(),
-  // Optional: without a key the AI features stay hidden (ADR 0013).
+  // Optional: without a key the AI features stay hidden (ADR 0017).
   ANTHROPIC_API_KEY: z
     .string()
     .startsWith("sk-ant-", {
