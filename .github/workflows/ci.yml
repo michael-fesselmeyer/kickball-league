@@ -12,6 +12,18 @@ concurrency:
 permissions:
   contents: read
 
+# How the jobs fit together (docs/architecture.md, section 11):
+#
+#   Lint, types, tests, build
+#   Migrations
+#   Production build ─┬─ End-to-end shards ─── End-to-end
+#                     └─ Lighthouse shards ─── Lighthouse
+#   Secret scan
+#
+# The names in .github/rulesets/main.json are the required checks. The
+# sharded work reports through one job with that exact name, so the ruleset
+# never waits on a check that no longer exists.
+
 jobs:
   verify:
     name: Lint, types, tests, build
@@ -27,7 +39,16 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test:coverage
-      - run: npm run build
+      - name: Restore the Next.js build cache
+        uses: actions/cache@v6
+        with:
+          path: .next/cache
+          key: next-verify-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'public/**', 'assets/**', 'next.config.ts', 'tsconfig.json') }}
+          restore-keys: next-verify-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+      # A build with no database to read, the way src/lib/static-params.ts
+      # falls back when one cannot be reached. The placeholder connects nowhere.
+      - name: Build without a database
+        run: npm run build
         env:
           # Placeholders that pass validation (src/lib/env.ts). The build only
           # checks their shape; nothing connects to them. Real values live in Vercel.
@@ -35,10 +56,65 @@ jobs:
           BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
           BETTER_AUTH_URL: http://localhost:3000
 
-  e2e:
-    name: End-to-end
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ci" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # The seeded league, so the public seasons and teams are prerendered
+      # (src/lib/static-params.ts) the way Lighthouse must measure them. The
+      # seed is deterministic, so every shard seeds the same league again.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
+      # The end-to-end smoke server's address. Each server is started with its
+      # own address at run time; the prerendered pages carry this one in their
+      # metadata, which neither Playwright nor Lighthouse's audits read.
+      BETTER_AUTH_URL: http://localhost:3100
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run db:migrate
+      - run: npm run seed
+      - name: Restore the Next.js build cache
+        uses: actions/cache@v6
+        with:
+          path: .next/cache
+          key: next-seeded-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'public/**', 'assets/**', 'next.config.ts', 'tsconfig.json') }}
+          restore-keys: next-seeded-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+      - run: npm run build
+      - name: Pack the build (without its cache)
+        run: tar --zstd -cf next-build.tar.zst --exclude=.next/cache .next
+      - uses: actions/upload-artifact@v7
+        with:
+          name: next-build
+          path: next-build.tar.zst
+          compression-level: 0
+          overwrite: true
+          retention-days: 1
+
+  e2e-shard:
+    name: End-to-end shard ${{ matrix.shard }} of 2
+    needs: build
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     services:
       postgres:
         image: postgres:18
@@ -60,6 +136,8 @@ jobs:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/kickball_e2e_demo
       BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
       BETTER_AUTH_URL: http://localhost:3100
+      # Start the shared build instead of building again.
+      E2E_PREBUILT: "true"
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -67,24 +145,53 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - name: Restore Playwright's browser
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v8
+        with:
+          name: next-build
+      - run: tar --zstd -xf next-build.tar.zst && rm next-build.tar.zst
       - run: npm run db:migrate
       - name: Smoke tests and core flows with axe (seeds the database first)
-        run: npm run test:e2e
+        run: npm run test:e2e -- --shard=${{ matrix.shard }}/2
       - name: Upload the report when something fails
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
           retention-days: 7
 
-  lighthouse:
-    name: Lighthouse
+  e2e:
+    name: End-to-end
+    needs: [build, e2e-shard]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every shard passed
+        env:
+          BUILD: ${{ needs.build.result }}
+          SHARDS: ${{ needs.e2e-shard.result }}
+        run: |
+          echo "Production build: $BUILD. End-to-end shards: $SHARDS."
+          [ "$BUILD" = success ] && [ "$SHARDS" = success ]
+
+  lighthouse-shard:
+    name: Lighthouse shard ${{ matrix.shard }} of 3
+    needs: build
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     services:
       postgres:
         image: postgres:18
@@ -96,7 +203,7 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U ci" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      # The seeded league behind the schedule, standings and team pages.
+      # The same seeded league the build was prerendered from.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
       BETTER_AUTH_URL: http://localhost:3200
@@ -109,16 +216,36 @@ jobs:
       - run: npm ci
       - run: npm run db:migrate
       - run: npm run seed
-      - run: npm run build
+      - uses: actions/download-artifact@v8
+        with:
+          name: next-build
+      - run: tar --zstd -xf next-build.tar.zst && rm next-build.tar.zst
+      - name: This shard's pages, with every budget in lighthouserc.json
+        run: node scripts/lighthouse-shard.mjs ${{ matrix.shard }} 3
       - name: Performance and accessibility budgets (throttled phone)
-        run: npm run lighthouse
+        run: npm run lighthouse -- --config=.lighthouseci/shard.json
       - name: Upload the Lighthouse reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: lighthouse-reports
+          name: lighthouse-reports-${{ matrix.shard }}
           path: .lighthouseci/
+          include-hidden-files: true
           retention-days: 14
+
+  lighthouse:
+    name: Lighthouse
+    needs: [build, lighthouse-shard]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every shard passed
+        env:
+          BUILD: ${{ needs.build.result }}
+          SHARDS: ${{ needs.lighthouse-shard.result }}
+        run: |
+          echo "Production build: $BUILD. Lighthouse shards: $SHARDS."
+          [ "$BUILD" = success ] && [ "$SHARDS" = success ]
 
   secrets:
     name: Secret scan
