@@ -330,7 +330,14 @@ async function Registrations({
                 · {t.status === "confirmed" ? "confirmed" : "forming"}
               </span>
             </h3>
-            <div className="overflow-x-auto">
+            <div
+              role="region"
+              aria-label={`${t.name} players`}
+              // A scrolling region must be reachable by keyboard, even with no links.
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+              tabIndex={0}
+              className="overflow-x-auto"
+            >
               <table className="w-full min-w-[34rem] text-left">
                 <thead className="text-text-muted">
                   <tr>
@@ -388,7 +395,14 @@ async function Registrations({
         {board.freeAgents.length === 0 ? (
           <p className="text-text-muted">Nobody in the pool.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div
+            role="region"
+            aria-label="Free agents table"
+            // A scrolling region must be reachable by keyboard, even with no links.
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+            tabIndex={0}
+            className="overflow-x-auto"
+          >
             <table className="w-full min-w-[40rem] text-left">
               <thead className="text-text-muted">
                 <tr>
