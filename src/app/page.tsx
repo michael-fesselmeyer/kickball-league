@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { JsonLd } from "@/components/json-ld";
 import { Kickball } from "@/components/kickball";
+import { revealOrder } from "@/components/motion";
 import { env } from "@/env";
 import { leagueInfo } from "@/lib/seo/league";
 import { leagueJsonLd, websiteJsonLd } from "@/lib/seo/structured-data";
@@ -101,10 +102,11 @@ export default function Home() {
           The basics
         </h2>
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FACTS.map((fact) => (
+          {FACTS.map((fact, i) => (
             <div
               key={fact.term}
-              className="flex flex-col gap-2 rounded-card border-2 border-text bg-surface p-4"
+              className="reveal flex flex-col gap-2 rounded-card border-2 border-text bg-surface p-4"
+              style={revealOrder(i)}
             >
               <dt className="text-micro font-bold tracking-wider text-text-muted uppercase">
                 {fact.term}
@@ -133,7 +135,8 @@ export default function Home() {
           {WAYS_IN.map((way, i) => (
             <li
               key={way.title}
-              className="flex flex-col gap-2 rounded-card bg-surface-2 p-4"
+              className="reveal flex flex-col gap-2 rounded-card bg-surface-2 p-4"
+              style={revealOrder(i)}
             >
               <span
                 aria-hidden="true"
@@ -158,7 +161,7 @@ export default function Home() {
 
       <section
         aria-labelledby="after"
-        className="flex flex-col gap-4 rounded-card border-2 border-text bg-surface p-6 md:p-8"
+        className="reveal flex flex-col gap-4 rounded-card border-2 border-text bg-surface p-6 md:p-8"
       >
         <h2 id="after" className="text-h2">
           The game is half of it
