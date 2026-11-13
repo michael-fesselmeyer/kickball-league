@@ -1,8 +1,15 @@
 "use server";
 
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { saveEmailSettings } from "@/db/queries/notifications";
+import {
+  removePushSubscription,
+  savePushSettings,
+  savePushSubscription,
+} from "@/db/queries/push";
+import { parseDeviceSubscription } from "@/domain/notifications/push";
 import { saveProfile } from "@/db/queries/profile";
 import { currentLeague } from "@/db/queries/seasons";
 import {
@@ -13,6 +20,7 @@ import {
 } from "@/domain/profile/profile-form";
 import { localDate } from "@/domain/scheduler/slots";
 import { requireSelfToChange } from "@/lib/auth/permission";
+import { env } from "@/env";
 import { formStrings } from "@/lib/form";
 
 export type ProfileFormState = {
@@ -53,4 +61,53 @@ export async function saveEmailSettingsAction(form: FormData): Promise<void> {
     saveEmailSettings(tx, subject.userId, enabled),
   );
   redirect("/app/profile?emails=saved#notifications");
+}
+
+export type PushSettingsState = {
+  status: "idle" | "saved" | "error";
+  message?: string;
+};
+
+/**
+ * Saves which topics the signed-in person gets pushes about and, when the
+ * page subscribed this device, remembers the device. Both in one
+ * transaction, so a saved choice always has the device it was made on.
+ */
+export async function savePushSettingsAction(
+  _previous: PushSettingsState,
+  form: FormData,
+): Promise<PushSettingsState> {
+  const subject = await requireSelfToChange("profile.edit", "/app/profile");
+  if (!env.VAPID_PUBLIC_KEY)
+    return { status: "error", message: "Push isn't set up for the league." };
+  const enabled = new Set(
+    form.getAll("topic").filter((v): v is string => typeof v === "string"),
+  );
+  const raw = form.get("subscription");
+  const device =
+    raw === null || raw === ""
+      ? null
+      : parseDeviceSubscription(raw, (await headers()).get("user-agent"));
+  if (raw !== null && raw !== "" && !device)
+    return {
+      status: "error",
+      message: "This browser sent a subscription we can't use. Try again.",
+    };
+  await txDb.transaction(async (tx) => {
+    if (device) await savePushSubscription(tx, subject.userId, device);
+    await savePushSettings(tx, subject.userId, enabled);
+  });
+  return { status: "saved", message: "Push settings saved." };
+}
+
+/** Forgets this device, after the page has unsubscribed it in the browser. */
+export async function forgetPushDeviceAction(
+  _previous: PushSettingsState,
+  form: FormData,
+): Promise<PushSettingsState> {
+  const subject = await requireSelfToChange("profile.edit", "/app/profile");
+  const endpoint = form.get("endpoint");
+  if (typeof endpoint === "string" && endpoint.length <= 2048)
+    await removePushSubscription(db, subject.userId, endpoint);
+  return { status: "saved", message: "Push is off on this device." };
 }
