@@ -23,6 +23,7 @@ import {
 } from "../schema/team";
 import { waiverSignature } from "../schema/waiver";
 import { recordAudit } from "./audit";
+import { acceptOffer, checkTeamSpot } from "./waitlist";
 import type { Db } from "./schedule";
 import { required } from "./rows";
 
@@ -230,7 +231,11 @@ export async function registerTeam(
   },
 ): Promise<
   Result<
-    { teamSeasonId: TeamSeasonId; shareCents: number | null },
+    {
+      teamSeasonId: TeamSeasonId;
+      registrationId: RegistrationId;
+      shareCents: number | null;
+    },
     RegisterError
   >
 > {
@@ -254,8 +259,13 @@ export async function registerTeam(
     now,
   );
   if (!price.ok) return err("no_price");
-  if (s.maxTeams !== null && (await teamsEntered(db, s.id)) >= s.maxTeams)
-    return err("season_full");
+  // Nobody jumps the waitlist: a spot goes to whoever holds its offer.
+  const spot = await checkTeamSpot(
+    db,
+    { seasonId: s.id, maxTeams: s.maxTeams, userId },
+    now,
+  );
+  if (!spot) return err("season_full");
 
   let teamId: TeamId;
   if (t.teamId) {
@@ -305,6 +315,7 @@ export async function registerTeam(
     })
     .returning({ id: teamSeason.id });
   const teamSeasonId = required(entry, "team season").id;
+  if (spot.offerId) await acceptOffer(db, spot.offerId, now);
   const [own] = await db
     .insert(registration)
     .values({
@@ -315,9 +326,10 @@ export async function registerTeam(
       createdBy: userId,
     })
     .returning({ id: registration.id });
+  const registrationId = required(own, "registration").id;
   await db.insert(rosterMembership).values({
     teamSeasonId,
-    registrationId: required(own, "registration").id,
+    registrationId,
     role: "captain",
     status: "active",
     startedAt: now,
@@ -336,7 +348,7 @@ export async function registerTeam(
       rosterSize: t.rosterSize,
     },
   });
-  return ok({ teamSeasonId, shareCents: price.shareCents });
+  return ok({ teamSeasonId, registrationId, shareCents: price.shareCents });
 }
 
 /** The person's registration for a season, with their team if any. */

@@ -83,3 +83,15 @@ export function parseGoodwillForm(
   if (Object.keys(errors).length > 0 || cents === null) return err(errors);
   return ok({ email, cents, note });
 }
+
+/** A time as the league writes it in emails: "Monday, March 1 at 12:00 AM". */
+export function formatMoment(instant: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  }).format(instant);
+}

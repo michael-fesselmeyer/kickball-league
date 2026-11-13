@@ -5,6 +5,13 @@ import type { Template } from "./define";
 import { eventNoticeEmail } from "./event";
 import type { RenderContext } from "./layout";
 import { newTeamEmail } from "./new-team";
+import {
+  guaranteeFailedEmail,
+  guaranteeWarningEmail,
+  rebateCreditEmail,
+  referralCreditEmail,
+  waitlistOfferEmail,
+} from "./money";
 import { paymentReminderEmail } from "./payment-reminder";
 import { rainAlertEmail } from "./rain-alert";
 import { rainoutNoticeEmail } from "./rainout-notice";
@@ -19,14 +26,19 @@ import { subRequestEmail, subUpdateEmail } from "./sub-request";
 const TEMPLATES: Readonly<Record<string, Template>> = {
   announcement: announcementEmail,
   event_notice: eventNoticeEmail,
+  guarantee_failed: guaranteeFailedEmail,
+  guarantee_warning: guaranteeWarningEmail,
   new_team: newTeamEmail,
   payment_reminder: paymentReminderEmail,
   rain_alert: rainAlertEmail,
   rainout_notice: rainoutNoticeEmail,
+  rebate_credit: rebateCreditEmail,
+  referral_credit: referralCreditEmail,
   score_confirmation: scoreConfirmationEmail,
   score_reminder: scoreReminderEmail,
   sub_request: subRequestEmail,
   sub_update: subUpdateEmail,
+  waitlist_offer: waitlistOfferEmail,
 };
 
 /** The outbox's renderer for this site. */
