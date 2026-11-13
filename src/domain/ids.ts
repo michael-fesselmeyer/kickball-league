@@ -85,6 +85,9 @@ export type GiveawayEntryId = Brand<string, "GiveawayEntryId">;
 export type GiveawayWinnerId = Brand<string, "GiveawayWinnerId">;
 export type SignupChallengeId = Brand<string, "SignupChallengeId">;
 export type KeepOffId = Brand<string, "KeepOffId">;
+export type MerchItemId = Brand<string, "MerchItemId">;
+export type MerchImageId = Brand<string, "MerchImageId">;
+export type MerchOrderId = Brand<string, "MerchOrderId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

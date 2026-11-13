@@ -13,6 +13,7 @@ export * from "./guarantee";
 export * from "./keep-off";
 export * from "./league";
 export * from "./lineup";
+export * from "./merch";
 export * from "./message";
 export * from "./money";
 export * from "./playoffs";
