@@ -3,6 +3,7 @@ import type { PublicGame } from "../schedule/public-game";
 import {
   announcementShareText,
   bold,
+  eventShareText,
   gameShareText,
   rainoutShareText,
   teamShareText,
@@ -173,6 +174,49 @@ describe("announcementShareText", () => {
     ).toBe("*Jerseys are in*\n\nPick them up Sunday.\n\nu");
     expect(announcementShareText({ subject: "Hi", body: "There" })).toBe(
       "*Hi*\n\nThere",
+    );
+  });
+});
+
+describe("eventShareText", () => {
+  const event = {
+    title: "Spring *prom*",
+    kind: "Party",
+    when: "Sat, Mar 6, 8:00 – 11:00 PM",
+    place: "The Example Ballroom, 1 Example St",
+    audience: "Sun Kickers and Foul Play, Fall 2026",
+    invite: {
+      host: "partiful.example.test",
+      url: "https://partiful.example.test/e/prom",
+    },
+    url: "https://league.example.test/app/events/spring-prom-2027-03-06",
+    cancelled: false,
+  };
+
+  it("lists when, where, who it's for, the invite and the page", () => {
+    expect(eventShareText(event)).toBe(
+      [
+        "*Spring prom* · Party",
+        "Sat, Mar 6, 8:00 – 11:00 PM",
+        "The Example Ballroom, 1 Example St",
+        "For Sun Kickers and Foul Play, Fall 2026",
+        "RSVP on partiful.example.test: https://partiful.example.test/e/prom",
+        "https://league.example.test/app/events/spring-prom-2027-03-06",
+      ].join("\n"),
+    );
+  });
+
+  it("leaves out what a public event without a place or link doesn't have", () => {
+    expect(
+      eventShareText({ ...event, place: null, audience: null, invite: null }),
+    ).toBe(
+      "*Spring prom* · Party\nSat, Mar 6, 8:00 – 11:00 PM\nhttps://league.example.test/app/events/spring-prom-2027-03-06",
+    );
+  });
+
+  it("says plainly when the event is called off", () => {
+    expect(eventShareText({ ...event, cancelled: true })).toBe(
+      "Called off: *Spring prom* (Sat, Mar 6, 8:00 – 11:00 PM)\nhttps://league.example.test/app/events/spring-prom-2027-03-06",
     );
   });
 });
