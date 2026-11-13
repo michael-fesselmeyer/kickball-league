@@ -21,7 +21,7 @@ The project has no Blob store yet: section 9 of the architecture plans Vercel Bl
 
 **A recorded fixture stands in for Instagram** in tests, development and the demo. `src/services/instagram-fixture.ts` answers each endpoint with JSON recorded in the real API's shape (`src/services/fixtures/instagram`) and draws a small PNG for each photo address, so no binary file and no real photo is committed. Tests inject it; `INSTAGRAM_FIXTURE=true` uses it in the running app, where "Connect" goes straight back to the callback with the fixture's code. It is ignored when a real app is configured, and in a production build unless demo mode is on, so the league's site can never show fixture photos.
 
-**Off by default.** Without `INSTAGRAM_APP_ID` and `INSTAGRAM_APP_SECRET` (validated as a pair at startup), or the fixture, the jobs skip, the admin screen explains what is missing, and the public photo areas render nothing.
+**Off by default, read from the raw environment.** The connection needs `INSTAGRAM_APP_ID` (the Instagram app's numeric ID) and `INSTAGRAM_APP_SECRET`, or `INSTAGRAM_FIXTURE=true` for the recorded fixture. Like `DEMO_MODE` (ADR 0004) and `OPERATOR_USER_IDS` (ADR 0009), they are optional and stay out of the validated schema and `.env.example`; `src/lib/social/instagram-settings.ts` checks them where they are used. Unset, the jobs skip, the admin screen explains what is missing, and the public photo areas render nothing. Half a pair or a malformed value fails safe the same way, and the server log and admin screen name the variable, never its value.
 
 ## Alternatives considered
 
@@ -29,6 +29,7 @@ The project has no Blob store yet: section 9 of the architecture plans Vercel Bl
 - **Linking to Instagram's image addresses.** They expire within days, and every page view would load from Meta's CDN.
 - **Instagram's embed script.** A third-party script on public pages breaks the performance budgets and the "no third-party scripts" rule, and tracks visitors.
 - **A dedicated encryption key variable.** One more secret to set and rotate for a single token; deriving from the auth secret costs a reconnect at worst.
+- **Validating the app ID and secret at startup** with the other variables in `src/lib/env.ts`. A typo would then stop the whole site for an optional feature, and every schema variable must be listed in `.env.example`. Checking them where they are used keeps the site up and the feature off.
 - **Reading every post with paging.** The site shows recent photos; 25 posts is one request. The cost is that a post older than the page that is deleted on Instagram stays until an admin hides it.
 
 ## Consequences
