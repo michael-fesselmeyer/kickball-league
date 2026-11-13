@@ -25,6 +25,11 @@ import {
 import { addKeepOffPerson, removeKeepOffPerson } from "../src/seed/keep-off";
 import { addAudienceDemo } from "../src/seed/event-audience";
 import { addSeedBooks, removeSeedBooks } from "../src/seed/books";
+import {
+  addSeedFeePayments,
+  addSeedMoneySummary,
+  removeSeedMoneySummaries,
+} from "../src/seed/money-summary";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addSeedFriends } from "../src/seed/friends";
 import { addSeedLineups } from "../src/seed/lineups";
@@ -108,6 +113,7 @@ async function main(): Promise<void> {
         await removeSeedEvents(tx, leagueId);
         // Expenses hold seasons; the books' files belong to the league.
         await removeSeedBooks(tx, leagueId);
+        await removeSeedMoneySummaries(tx, leagueId);
         const seasonIds = (
           await tx
             .select({ id: season.id })
@@ -294,7 +300,10 @@ async function main(): Promise<void> {
       await addInstagramPhotos(tx, data);
       await addSeedBooks(tx, data);
       await addSeedFriends(tx, data);
+      await addSeedFeePayments(tx, data);
     });
+    // After the commit, on the pool: the summary reads its totals in parallel.
+    await addSeedMoneySummary(db, data);
     const played = data.games.filter((g) => g.status === "final").length;
     console.info(
       `Seeded "${data.league.name}": ${data.teams.length} teams, ${data.users.length} people, ${data.slots.length} slots, ${data.games.length} games (${played} played), and ${data.nextSeason.name} ready to schedule (${data.nextSlots.length} slots).`,
