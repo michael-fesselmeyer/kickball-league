@@ -258,6 +258,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `merch_update` | non-urgent | Your league shop order is ready, or was refunded |
 | `new_team` | non-urgent | Answers to new-team requests |
 | `payment_reminder` | urgent | Payment deadline reminders |
+| `photo_review` | non-urgent | Whether the league used a photo you uploaded |
 | `rain_alert` | urgent | Rain alerts for admins the day before games |
 | `rainout_notice` | urgent | Rain-outs and makeup times |
 | `rebate_credit` | non-urgent | League credit for rained-out games |

@@ -107,6 +107,11 @@ const RULES = {
   "merch.order": signedIn,
   "sub_request.claim": (s, c) => signedIn(s, c) && c.eligibleToSub === true,
   "awards.vote": (s) => s.roster.length > 0,
+  // Photos for the league's socials: anyone on a team, and admins. What
+  // they may tag is checked against their own teams, games and events.
+  "photos.upload": any(isAdmin, (s) => s.roster.length > 0),
+  // The uploader deletes their own photo at any time.
+  "photos.delete_own": self,
   // Players on a team
   "rsvp.set": (s, c) => self(s, c) && onTeam(s, c.teamSeasonId),
   "rsvp.view_team": any(isAdmin, (s, c) => onTeam(s, c.teamSeasonId)),

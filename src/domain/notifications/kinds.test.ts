@@ -34,6 +34,7 @@ describe("MESSAGE_KINDS", () => {
       "instagram_storage_full",
       "merch_update",
       "new_team",
+      "photo_review",
       "rebate_credit",
       "referral_credit",
       "score_reminder",
