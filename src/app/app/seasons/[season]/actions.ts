@@ -4,9 +4,9 @@ import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import {
   attachCheckoutSession,
-  createPurchase,
   expirePurchases,
   openCheckoutsFor,
+  startPurchase,
 } from "@/db/queries/payments";
 import { profileOf } from "@/db/queries/profile";
 import {
@@ -21,10 +21,15 @@ import { requireSelfToChange } from "@/lib/auth/permission";
 import { stripeClient } from "@/services/stripe";
 
 /**
- * Sends the person to Stripe Checkout for what they owe. Nothing is marked
- * paid here: the webhook does that when Stripe confirms the payment.
+ * Sends the person to Stripe Checkout for what they owe, less any promo code
+ * they typed. Nothing is marked paid here: the webhook does that when Stripe
+ * confirms the payment. A code that covers the whole price settles it here,
+ * because there is nothing to charge.
  */
-export async function startCheckout(slug: string): Promise<void> {
+export async function startCheckout(
+  slug: string,
+  form: FormData,
+): Promise<void> {
   const page = `/app/seasons/${slug}`;
   const subject = await requireSelfToChange("payment.pay_own", page);
   const league = await currentLeague(db);
@@ -53,13 +58,19 @@ export async function startCheckout(slug: string): Promise<void> {
     stale.map((s) => s.id),
   );
 
-  const purchaseId = await txDb.transaction((tx) =>
-    createPurchase(tx, {
+  const typed = form.get("promoCode");
+  const started = await txDb.transaction((tx) =>
+    startPurchase(tx, {
       userId: subject.userId,
       seasonId: season.id,
       items: items.items,
+      promoCode: typeof typed === "string" ? typed : null,
+      now,
     }),
   );
+  if (!started.ok) redirect(`${page}?payment=${started.error}`);
+  const { purchaseId, totalCents, chargeCents } = started.value;
+  if (totalCents === 0) redirect(`${page}?payment=covered`);
   const person = await profileOf(db, subject.userId);
   const session = await stripe.checkout.sessions.create(
     {
@@ -67,11 +78,11 @@ export async function startCheckout(slug: string): Promise<void> {
       client_reference_id: purchaseId,
       metadata: { purchaseId },
       ...(person?.email ? { customer_email: person.email } : {}),
-      line_items: items.items.map((i) => ({
+      line_items: items.items.map((i, n) => ({
         quantity: 1,
         price_data: {
           currency: "usd",
-          unit_amount: i.amountCents,
+          unit_amount: chargeCents[n] ?? i.amountCents,
           product_data: { name: i.description },
         },
       })),
