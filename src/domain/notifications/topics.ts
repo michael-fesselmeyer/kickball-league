@@ -23,6 +23,9 @@ export const TOPICS = [
   // The digest of held non-urgent messages (limits.ts). Not offered on the
   // settings page: the person already wanted each message inside it.
   "digest",
+  // Notices about the league's own running, such as the email quota, for
+  // admins. Not offered on the settings page.
+  "operations",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -40,6 +43,7 @@ export const DEFAULT_ENABLED: Readonly<Record<Topic, boolean>> = {
   new_team: true,
   discipline: true,
   digest: true,
+  operations: true,
 };
 
 /**

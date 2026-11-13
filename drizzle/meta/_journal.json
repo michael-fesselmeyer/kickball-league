@@ -225,6 +225,13 @@
       "when": 1794590333295,
       "tag": "0031_discipline",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794590807165,
+      "tag": "0032_alert_limits",
+      "breakpoints": true
     }
   ]
 }

@@ -240,6 +240,7 @@ describe("drainOutbox with push", () => {
         suppressed: 0,
         waiting: 0,
         held: 0,
+        nextDay: 0,
       });
       expect(mail.sent).toHaveLength(1);
       const [row] = await pushRows(db, pat);

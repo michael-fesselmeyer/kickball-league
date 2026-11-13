@@ -22,6 +22,10 @@ export const MESSAGE_KINDS = {
     urgency: "non_urgent",
     label: "Announcements from admins and captains",
   },
+  email_budget: {
+    urgency: "urgent",
+    label: "For admins: urgent email waiting for tomorrow's email allowance",
+  },
   event_notice: {
     urgency: "urgent",
     label:
@@ -94,6 +98,9 @@ export const MESSAGE_KINDS = {
 } as const satisfies Record<string, { urgency: Urgency; label: string }>;
 
 export type MessageKind = keyof typeof MESSAGE_KINDS;
+
+/** The notice to admins that the email quota ran out (email-budget.ts). */
+export const EMAIL_BUDGET_KIND = "email_budget" satisfies MessageKind;
 
 /** The digest is not a kind people get on its own: it carries the others. */
 export const DIGEST_KIND = "digest";

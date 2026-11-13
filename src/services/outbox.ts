@@ -8,6 +8,7 @@ import {
   emptyDrain,
 } from "@/db/queries/outbox";
 import { currentLeague } from "@/db/queries/seasons";
+import { emailBudgetFrom } from "@/domain/notifications/email-budget";
 import { ok } from "@/domain/result";
 import { rendererFor } from "@/emails/templates";
 import { env } from "@/env";
@@ -52,6 +53,13 @@ const sender = outboxSender({
   nodeEnv: process.env.NODE_ENV,
 });
 
+/**
+ * The email provider's quota: Resend's free plan unless EMAIL_DAILY_LIMIT,
+ * EMAIL_MONTHLY_LIMIT or EMAIL_RESERVE say otherwise (read straight from
+ * the environment; all optional).
+ */
+const emailBudget = emailBudgetFrom(process.env);
+
 /** Web push when VAPID keys are set; otherwise push copies are suppressed. */
 const pushSender = pushSenderFrom({
   publicKey: env.VAPID_PUBLIC_KEY,
@@ -79,6 +87,7 @@ export async function drainOutboxNow(
       render,
       now,
       timeZone,
+      emailBudget,
     });
     for (const key of Object.keys(total) as (keyof DrainResult)[])
       total[key] += r[key];

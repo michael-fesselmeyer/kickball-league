@@ -4,6 +4,8 @@ import { err, ok, type Result } from "@/domain/result";
 /** The parts of Resend's reply this sender reads; anything else is ignored. */
 const resendReply = z.object({
   id: z.string().optional(),
+  /** The error's name, such as `daily_quota_exceeded`. */
+  name: z.string().optional(),
   message: z.string().optional(),
 });
 
@@ -54,6 +56,9 @@ export function resendSender({
     const body = parsed.success ? parsed.data : {};
     if (response.ok && body.id !== undefined) return ok({ id: body.id });
     const reason = body.message ?? response.statusText;
-    return err(`Resend refused the email (${response.status}): ${reason}`);
+    const name = body.name ? ` ${body.name}` : "";
+    return err(
+      `Resend refused the email (${response.status}${name}): ${reason}`,
+    );
   };
 }

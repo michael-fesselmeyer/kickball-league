@@ -41,6 +41,7 @@ export const messageTopic = pgEnum("message_topic", [
   "new_team",
   "discipline",
   "digest",
+  "operations",
 ]);
 
 /** Email and web push today; text arrives later behind the same outbox. */
@@ -121,6 +122,9 @@ export const message = pgTable(
     // it adds in the same transaction.
     index("message_status_send_after_idx").on(t.status, t.sendAfter),
     index("message_digest_idx").on(t.digestId),
+    index("message_email_sent_idx")
+      .on(t.sentAt)
+      .where(sql`${t.status} = 'sent' and ${t.channel} = 'email'`),
     index("message_sent_today_idx")
       .on(t.userId, t.sentAt)
       .where(sql`${t.status} = 'sent'`),
