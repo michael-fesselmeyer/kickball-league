@@ -213,12 +213,29 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
           </p>
         )}
         {isOwner && (
+          <p className="flex flex-wrap items-center gap-3">
+            <Link
+              href={`/app/books/${current.slug}`}
+              className="btn btn-secondary"
+            >
+              Books
+            </Link>
+            <Link
+              href={`/app/books/${current.slug}/permits`}
+              className="btn btn-secondary"
+            >
+              Permits
+            </Link>
+          </p>
+        )}
+        {isOwner && (
           <p>
             <a href="/app/admin/league.json" className="underline">
               Download all league data
             </a>{" "}
             <span className="text-text-muted">
-              (seasons, teams, rosters, games, scores and payments, as JSON)
+              (seasons, teams, rosters, games, scores, payments and the books,
+              as JSON)
             </span>
           </p>
         )}

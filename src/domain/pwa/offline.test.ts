@@ -77,7 +77,11 @@ describe("offlineGame", () => {
     expect(offlineGame(game, "America/New_York")).toEqual({
       path: `/games/${game.id}`,
       label: "Kickers vs Sluggers, Mon, Sep 14 at 8:00 PM",
+      permit: null,
     });
+    expect(offlineGame(game, "America/New_York", true).permit).toBe(
+      `/app/games/${game.id}/permit`,
+    );
   });
 
   it("leaves the time out when the game has none", () => {

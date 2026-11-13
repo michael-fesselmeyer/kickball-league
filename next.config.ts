@@ -20,6 +20,14 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 300,
   },
   partialPrefetching: true,
+  experimental: {
+    serverActions: {
+      // A receipt photo or permit PDF (ADR 0034). Photos are shrunk in the
+      // browser first; this covers a 1 MB PDF and a photo sent without
+      // JavaScript. Under Vercel's 4.5 MB request limit.
+      bodySizeLimit: "4mb",
+    },
+  },
   async headers() {
     return [
       {

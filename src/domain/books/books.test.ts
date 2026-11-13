@@ -94,7 +94,11 @@ describe("buildRequestSheet", () => {
 
   it("asks for the fewest fields and spreads the games evenly", () => {
     // 12 teams play 6 games a day; 6 hours fit 6 slots on one field.
-    const one = buildRequestSheet({ ...base, teams: 12, gamesPerTeamPerDay: 1 });
+    const one = buildRequestSheet({
+      ...base,
+      teams: 12,
+      gamesPerTeamPerDay: 1,
+    });
     expect(one.ok && one.value.fieldsNeeded).toBe(1);
     // 14 teams play 7 games: two fields, 4 and 3 games, not 6 and 1.
     const sheet = buildRequestSheet({
@@ -107,10 +111,38 @@ describe("buildRequestSheet", () => {
     expect(sheet.value.gamesPerDay).toBe(7);
     expect(sheet.value.fieldsNeeded).toBe(2);
     expect(sheet.value.rows).toEqual([
-      { date: "2027-04-10", field: "Great Lawn 1", start: "12:00", end: "16:00", minutes: 240, games: 4 },
-      { date: "2027-04-10", field: "Field 2", start: "12:00", end: "15:00", minutes: 180, games: 3 },
-      { date: "2027-04-17", field: "Great Lawn 1", start: "12:00", end: "16:00", minutes: 240, games: 4 },
-      { date: "2027-04-17", field: "Field 2", start: "12:00", end: "15:00", minutes: 180, games: 3 },
+      {
+        date: "2027-04-10",
+        field: "Great Lawn 1",
+        start: "12:00",
+        end: "16:00",
+        minutes: 240,
+        games: 4,
+      },
+      {
+        date: "2027-04-10",
+        field: "Field 2",
+        start: "12:00",
+        end: "15:00",
+        minutes: 180,
+        games: 3,
+      },
+      {
+        date: "2027-04-17",
+        field: "Great Lawn 1",
+        start: "12:00",
+        end: "16:00",
+        minutes: 240,
+        games: 4,
+      },
+      {
+        date: "2027-04-17",
+        field: "Field 2",
+        start: "12:00",
+        end: "15:00",
+        minutes: 180,
+        games: 3,
+      },
     ]);
     expect(sheet.value.totalFieldHours).toBe(14);
   });
@@ -150,20 +182,48 @@ describe("buildRequestSheet", () => {
   });
 
   it("names what is missing", () => {
-    expect(buildRequestSheet({ ...base, teams: 1, gamesPerTeamPerDay: 1 })).toEqual({ ok: false, error: "no_teams" });
-    expect(buildRequestSheet({ ...base, dates: [], teams: 8, gamesPerTeamPerDay: 1 })).toEqual({ ok: false, error: "no_dates" });
-    expect(buildRequestSheet({ ...base, latestEnd: "11:00", teams: 8, gamesPerTeamPerDay: 1 })).toEqual({ ok: false, error: "bad_time" });
-    expect(buildRequestSheet({ ...base, slotMinutes: 5, teams: 8, gamesPerTeamPerDay: 1 })).toEqual({ ok: false, error: "bad_length" });
-    expect(buildRequestSheet({ ...base, latestEnd: "12:30", teams: 8, gamesPerTeamPerDay: 1 })).toEqual({ ok: false, error: "day_too_short" });
+    expect(
+      buildRequestSheet({ ...base, teams: 1, gamesPerTeamPerDay: 1 }),
+    ).toEqual({ ok: false, error: "no_teams" });
+    expect(
+      buildRequestSheet({
+        ...base,
+        dates: [],
+        teams: 8,
+        gamesPerTeamPerDay: 1,
+      }),
+    ).toEqual({ ok: false, error: "no_dates" });
+    expect(
+      buildRequestSheet({
+        ...base,
+        latestEnd: "11:00",
+        teams: 8,
+        gamesPerTeamPerDay: 1,
+      }),
+    ).toEqual({ ok: false, error: "bad_time" });
+    expect(
+      buildRequestSheet({
+        ...base,
+        slotMinutes: 5,
+        teams: 8,
+        gamesPerTeamPerDay: 1,
+      }),
+    ).toEqual({ ok: false, error: "bad_length" });
+    expect(
+      buildRequestSheet({
+        ...base,
+        latestEnd: "12:30",
+        teams: 8,
+        gamesPerTeamPerDay: 1,
+      }),
+    ).toEqual({ ok: false, error: "day_too_short" });
   });
 
   it("lists the season's game days without blackouts", () => {
     // 2027-04-03 is a Saturday.
-    expect(gameDates("2027-04-01", "2027-04-30", 6, new Set(["2027-04-17"]))).toEqual([
-      "2027-04-03",
-      "2027-04-10",
-      "2027-04-24",
-    ]);
+    expect(
+      gameDates("2027-04-01", "2027-04-30", 6, new Set(["2027-04-17"])),
+    ).toEqual(["2027-04-03", "2027-04-10", "2027-04-24"]);
     expect(gameDates("2027-04-05", "2027-04-04", 1)).toEqual([]);
   });
 });

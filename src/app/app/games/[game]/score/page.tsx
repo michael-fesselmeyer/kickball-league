@@ -173,6 +173,14 @@ async function Score({
         >
           Kicking orders
         </Link>
+        {can(subject, "permit.view_at_field", ctx) && (
+          <Link
+            href={`/app/games/${g.id}/permit`}
+            className="inline-flex min-h-11 items-center self-start underline"
+          >
+            Park permit for this game
+          </Link>
+        )}
       </header>
       <GameOutbox gameId={g.id} />
       {error && (

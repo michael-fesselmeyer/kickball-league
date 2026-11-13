@@ -32,7 +32,12 @@ export function parseExpenseForm(form: {
   if (!isOneOf(EXPENSE_CATEGORIES, form.category)) return err("category");
   const note = form.note.trim();
   if (note.length > 200) return err("note");
-  return ok({ spentOn: form.spentOn, amountCents, category: form.category, note });
+  return ok({
+    spentOn: form.spentOn,
+    amountCents,
+    category: form.category,
+    note,
+  });
 }
 
 /** An optional date field: empty is null, anything else must be a date. */

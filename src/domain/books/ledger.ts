@@ -77,10 +77,14 @@ const sum = (values: readonly number[]) =>
 
 export function buildLedger(input: LedgerInput): Ledger {
   const inAppCents = sum(
-    input.payments.filter((p) => p.method === "stripe").map((p) => p.amountCents),
+    input.payments
+      .filter((p) => p.method === "stripe")
+      .map((p) => p.amountCents),
   );
   const offAppCents = sum(
-    input.payments.filter((p) => p.method !== "stripe").map((p) => p.amountCents),
+    input.payments
+      .filter((p) => p.method !== "stripe")
+      .map((p) => p.amountCents),
   );
   const refundsCents = sum(input.payments.map((p) => p.refundedCents));
   const totalIn = inAppCents + offAppCents - refundsCents;

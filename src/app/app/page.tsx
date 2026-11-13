@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { ballotsWaiting } from "@/db/queries/awards";
+import { fieldPermitForGame } from "@/db/queries/books";
 import { publishedGamesFor } from "@/db/queries/public-schedule";
 import { gamesToReferee } from "@/db/queries/referees";
 import { openSeasons } from "@/db/queries/registration";
@@ -83,6 +84,18 @@ async function Account() {
     refereeing.map((g) => g.id),
   );
   const nextGame = pickNextGame(await myGames, now);
+  // The next game's park permit, for its ref and captains (ADR 0034).
+  const nextGameId = parseId<GameId>(nextGame?.id);
+  const permitShown =
+    nextGame !== null &&
+    nextGameId !== null &&
+    can(subject, "permit.view_at_field", {
+      game: {
+        id: nextGame.id,
+        teamSeasonIds: [nextGame.teamA.id, nextGame.teamB.id],
+      },
+    }) &&
+    (await fieldPermitForGame(db, nextGameId)) !== null;
   const ballots = await waiting;
   const timeZone = league?.timeZone ?? "America/New_York";
   const when = (d: Date) =>
@@ -164,6 +177,14 @@ async function Account() {
           {s.name}: register or check your spot
         </Link>
       ))}
+      {permitShown && nextGame && (
+        <Link
+          href={`/app/games/${nextGame.id}/permit`}
+          className="btn btn-secondary"
+        >
+          Park permit for your next game
+        </Link>
+      )}
       {ballots > 0 && (
         <Link href="/app/vote" className="btn btn-primary">
           Vote for awards ({ballots} open)
@@ -192,7 +213,11 @@ async function Account() {
       <OfflineSync
         game={
           nextGame
-            ? offlineGame(nextGame, league?.timeZone ?? "America/New_York")
+            ? offlineGame(
+                nextGame,
+                league?.timeZone ?? "America/New_York",
+                permitShown,
+              )
             : null
         }
       />

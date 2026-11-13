@@ -3,7 +3,11 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { seasonBooks, storedBytes } from "@/db/queries/books";
-import { FILE_MESSAGES, type FileProblem, storageLine } from "@/domain/books/files";
+import {
+  FILE_MESSAGES,
+  type FileProblem,
+  storageLine,
+} from "@/domain/books/files";
 import {
   CATEGORY_LABELS,
   EXPENSE_CATEGORIES,
@@ -43,10 +47,12 @@ const NOTICES: Record<string, string> = {
   removed: "Expense removed.",
 };
 
-const input =
-  "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
+const input = "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
 
-async function Books({ params, searchParams }: PageProps<"/app/books/[season]">) {
+async function Books({
+  params,
+  searchParams,
+}: PageProps<"/app/books/[season]">) {
   const { season: slug } = await params;
   const page = `/app/books/${slug}`;
   await requirePermission("books.manage", { next: page });
@@ -81,8 +87,8 @@ async function Books({ params, searchParams }: PageProps<"/app/books/[season]">)
         </Link>
         <h1 className="text-h1">Books: {season.name}</h1>
         <p className="text-text-muted">
-          Money in comes from the payments the app records. Add what the
-          league spends, with a photo of the receipt. Only owners see this.
+          Money in comes from the payments the app records. Add what the league
+          spends, with a photo of the receipt. Only owners see this.
         </p>
         <nav aria-label="Books" className="flex flex-wrap gap-3">
           <SeasonPicker
@@ -90,7 +96,10 @@ async function Books({ params, searchParams }: PageProps<"/app/books/[season]">)
             current={season.slug}
             path={(s) => `/app/books/${s}`}
           />
-          <Link href={`/app/books/${slug}/permits`} className="btn btn-secondary">
+          <Link
+            href={`/app/books/${slug}/permits`}
+            className="btn btn-secondary"
+          >
             Permits and insurance
           </Link>
           <a
@@ -151,8 +160,7 @@ async function Books({ params, searchParams }: PageProps<"/app/books/[season]">)
                   {e.category === "fields_permits" &&
                     ledger.permitCostCents > 0 && (
                       <span className="block text-small text-text-muted">
-                        Includes {money(ledger.permitCostCents)} of permit
-                        costs
+                        Includes {money(ledger.permitCostCents)} of permit costs
                       </span>
                     )}
                 </th>

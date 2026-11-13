@@ -11,9 +11,10 @@ import { tellWorker } from "@/lib/pwa/offline-cache";
 export function OfflineSync({ game }: { game: OfflineGame | null }) {
   const path = game?.path ?? null;
   const label = game?.label ?? "";
+  const permit = game?.permit ?? null;
   useEffect(() => {
-    void tellWorker({ type: "next-game", path, label });
-  }, [path, label]);
+    void tellWorker({ type: "next-game", path, label, permit });
+  }, [path, label, permit]);
   return null;
 }
 

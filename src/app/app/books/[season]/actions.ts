@@ -12,7 +12,9 @@ import { booksSeason, text, upload } from "../load";
 const pageFor = (slug: string) => `/app/books/${slug}`;
 
 function back(slug: string, query: Record<string, string>): never {
-  redirect(`${pageFor(slug)}?${new URLSearchParams(query).toString()}#expenses`);
+  redirect(
+    `${pageFor(slug)}?${new URLSearchParams(query).toString()}#expenses`,
+  );
 }
 
 export async function addExpenseAction(slug: string, form: FormData) {

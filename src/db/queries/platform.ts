@@ -19,6 +19,7 @@ import {
   teamSeason,
 } from "../schema/team";
 import { recordAudit } from "./audit";
+import { booksExport } from "./books";
 import type { Db } from "./schedule";
 
 export type SiteSettings = {
@@ -263,5 +264,7 @@ export async function leagueExport(db: Db, leagueId: LeagueId) {
     scores,
     purchases,
     payments,
+    // Expenses, permit details, insurance and file details (not the files).
+    books: await booksExport(db, leagueId),
   };
 }

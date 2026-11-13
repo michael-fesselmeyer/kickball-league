@@ -53,17 +53,20 @@ function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-export const booksReminderEmail = defineTemplate(booksReminderPayload, (p, ctx) => {
-  const words = WORDS[p.kind];
-  const subject = words.subject(p.subject, when(p.daysLeft));
-  return renderEmail(
-    {
-      subject,
-      heading: subject,
-      paragraphs: [`The date is ${longDate(p.on)}.`, words.advice],
-      action: { label: "Open permits", path: "/app/books/permits" },
-      reason: "you are an owner of the league",
-    },
-    ctx,
-  );
-});
+export const booksReminderEmail = defineTemplate(
+  booksReminderPayload,
+  (p, ctx) => {
+    const words = WORDS[p.kind];
+    const subject = words.subject(p.subject, when(p.daysLeft));
+    return renderEmail(
+      {
+        subject,
+        heading: subject,
+        paragraphs: [`The date is ${longDate(p.on)}.`, words.advice],
+        action: { label: "Open permits", path: "/app/books/permits" },
+        reason: "you are an owner of the league",
+      },
+      ctx,
+    );
+  },
+);

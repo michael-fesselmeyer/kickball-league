@@ -1,4 +1,4 @@
-import { and, desc, eq, like, lt } from "drizzle-orm";
+import { and, desc, eq, like, lt, notLike } from "drizzle-orm";
 import type { UserId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
@@ -46,7 +46,9 @@ export type AuditRow = {
 /**
  * The audit log, newest first, `limit` at a time. Pass the oldest
  * `occurredAt` already shown as `before` for the next page. With
- * `operatorOnly`, just the platform operator's actions (ADR 0009).
+ * `operatorOnly`, just the platform operator's actions (ADR 0009). The
+ * owners' books (`books.*`, ADR 0034) are left out unless `withBooks`, so
+ * admins who read the log never see them.
  */
 export async function auditLogPage(
   db: Db,
@@ -54,6 +56,7 @@ export async function auditLogPage(
     before?: Date | undefined;
     limit?: number;
     operatorOnly?: boolean;
+    withBooks?: boolean;
   } = {},
 ): Promise<{ rows: AuditRow[]; more: boolean }> {
   const limit = options.limit ?? 50;
@@ -76,6 +79,7 @@ export async function auditLogPage(
       and(
         options.before ? lt(auditLog.occurredAt, options.before) : undefined,
         options.operatorOnly ? like(auditLog.action, "operator.%") : undefined,
+        options.withBooks ? undefined : notLike(auditLog.action, "books.%"),
       ),
     )
     .orderBy(desc(auditLog.occurredAt), desc(auditLog.id))

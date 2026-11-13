@@ -29,6 +29,15 @@ export function SavedGameLink() {
       <a href={game.path} className="font-bold text-brand underline">
         {game.label}
       </a>
+      {game.permit && (
+        <>
+          {" "}
+          and its{" "}
+          <a href={game.permit} className="font-bold text-brand underline">
+            park permit
+          </a>
+        </>
+      )}
     </p>
   );
 }

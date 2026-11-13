@@ -29,5 +29,8 @@ export async function GET(
   if (!id || !league) return notFound();
   const found = await booksFileOf(db, league.id, id);
   if (!found) return notFound();
-  return privateFileResponse({ ...found, name: `${found.kind}-${id.slice(0, 8)}` });
+  return privateFileResponse({
+    ...found,
+    name: `${found.kind}-${id.slice(0, 8)}`,
+  });
 }

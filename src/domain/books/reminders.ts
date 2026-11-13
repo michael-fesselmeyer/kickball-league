@@ -12,7 +12,8 @@
 
 export const LEAD_DAYS = [30, 7] as const;
 
-export type DeadlineKind = "application_opens" | "permit_renews" | "insurance_expires";
+export type DeadlineKind =
+  "application_opens" | "permit_renews" | "insurance_expires";
 
 export type Deadline = {
   kind: DeadlineKind;
@@ -31,8 +32,7 @@ const DAY_MS = 86_400_000;
 /** Whole days from `today` to `on`, both YYYY-MM-DD; negative once past. */
 export function daysUntil(today: string, on: string): number {
   return Math.round(
-    (Date.parse(`${on}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) /
-      DAY_MS,
+    (Date.parse(`${on}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`)) / DAY_MS,
   );
 }
 

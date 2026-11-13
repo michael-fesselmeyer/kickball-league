@@ -5,7 +5,8 @@
 export const NEXT_GAME_CACHE = "kb-next-game-v1";
 export const NEXT_GAME_INFO = "/offline/next-game.json";
 
-export type SavedGame = { path: string; label: string };
+/** `permit` is the game's permit page, saved for its ref and captains. */
+export type SavedGame = { path: string; label: string; permit?: string };
 
 const isSavedGame = (value: unknown): value is SavedGame =>
   typeof value === "object" &&
@@ -14,7 +15,10 @@ const isSavedGame = (value: unknown): value is SavedGame =>
   "label" in value &&
   typeof value.path === "string" &&
   value.path.startsWith("/games/") &&
-  typeof value.label === "string";
+  typeof value.label === "string" &&
+  (!("permit" in value) ||
+    (typeof value.permit === "string" &&
+      value.permit.startsWith("/app/games/")));
 
 /** The part of Cache Storage the offline page reads. */
 type CacheReader = {
@@ -45,7 +49,13 @@ export async function savedGame(
 
 /** Messages the pages send the service worker. */
 export type WorkerMessage =
-  | { type: "next-game"; path: string | null; label: string }
+  | {
+      type: "next-game";
+      path: string | null;
+      label: string;
+      /** The game's permit page, only for its ref and captains. */
+      permit: string | null;
+    }
   | { type: "forget" };
 
 /** The part of navigator.serviceWorker the pages use. */
