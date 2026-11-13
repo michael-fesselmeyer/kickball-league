@@ -366,6 +366,14 @@ async function Registrations({
         <h2 id="free-agents" className="text-h2">
           Free agents
         </h2>
+        {board.freeAgents.length > 0 && (
+          <Link
+            href={`/app/admin/seasons/${slug}/free-agents`}
+            className="underline"
+          >
+            See suggested placements and build a team from the pool
+          </Link>
+        )}
         {board.freeAgents.length === 0 ? (
           <p className="text-text-muted">Nobody in the pool.</p>
         ) : (
