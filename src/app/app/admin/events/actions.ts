@@ -21,6 +21,11 @@ import {
   type EventForm,
   parseEventForm,
 } from "@/domain/events/event";
+import {
+  parseTicketPrices,
+  TICKET_PRICE_ERRORS,
+  type TicketPriceForm,
+} from "@/domain/events/tickets";
 import type { LeagueId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
@@ -30,6 +35,7 @@ import { sendQueuedSoon } from "@/services/outbox";
 export type EventFormState = {
   values: EventForm;
   reach: ReachForm;
+  prices: TicketPriceForm;
   announce: boolean;
   error: string | null;
 };
@@ -70,10 +76,17 @@ function reachStrings(form: FormData): ReachForm {
 async function readForm(form: FormData, leagueId: LeagueId, timeZone: string) {
   const values = formStrings(form, FIELDS);
   const reachValues = reachStrings(form);
+  const priceValues = formStrings(form, ["price", "memberPrice"] as const);
   const announce = form.get("announce") === "yes";
   const fail = (error: string) => ({
     ok: false as const,
-    state: { values, reach: reachValues, announce, error },
+    state: {
+      values,
+      reach: reachValues,
+      prices: priceValues,
+      announce,
+      error,
+    },
   });
   const parsed = parseEventForm(values, timeZone);
   if (!parsed.ok) return fail(EVENT_FORM_ERRORS[parsed.error]);
@@ -83,10 +96,17 @@ async function readForm(form: FormData, leagueId: LeagueId, timeZone: string) {
     await audienceChoices(db, leagueId),
   );
   if (!reach.ok) return fail(REACH_ERRORS[reach.error]);
+  const prices = parseTicketPrices(priceValues, parsed.value.kind);
+  if (!prices.ok) return fail(TICKET_PRICE_ERRORS[prices.error]);
+  if (prices.value.ticketPriceCents !== null && !reach.value.inAppRsvp)
+    return fail(
+      "Tickets are sold in the app, so keep RSVPs in the app on for a ticketed event.",
+    );
   return {
     ok: true as const,
     event: parsed.value,
     reach: reach.value,
+    prices: prices.value,
     announce,
     fail,
   };
@@ -110,6 +130,7 @@ export async function createEventAction(
       timeZone: league.timeZone,
       event: read.event,
       reach: read.reach,
+      prices: read.prices,
       actorId: subject.userId,
     });
     const told = read.announce
@@ -150,7 +171,9 @@ export async function updateEventAction(
       id: e.id,
       event: read.event,
       reach: read.reach,
+      prices: read.prices,
       actorId: subject.userId,
+      now: new Date(),
     });
     const told =
       updated.ok && read.announce
@@ -184,6 +207,8 @@ const SAVE_ERRORS = {
     "People have RSVP'd, so this can't become a theme week. Make a new theme week instead.",
   rsvps_in_app:
     "People have RSVP'd here, so RSVPs in the app have to stay on for this event.",
+  has_tickets:
+    "People have tickets, so this event stays paid. Refund the tickets first to make it free.",
   not_found: "That event is gone.",
 } as const;
 
@@ -220,9 +245,10 @@ export async function deleteEventAction(
   if (form.get("confirm") !== "yes") redirect(`${page}?error=confirm`);
   const e = await eventBySlug(db, slug, "all");
   if (!e) notFound();
-  await txDb.transaction((tx) =>
+  const result = await txDb.transaction((tx) =>
     deleteEvent(tx, { id: e.id, actorId: subject.userId, now: new Date() }),
   );
+  if (!result.ok) redirect(`${page}?error=${result.error}`);
   refreshEventPages(slug, { themeWeek: true });
   redirect(`${LIST}?deleted=1`);
 }

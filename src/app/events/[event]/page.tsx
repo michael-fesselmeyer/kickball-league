@@ -20,6 +20,7 @@ import {
   whenLine,
 } from "@/domain/events/event";
 import { inviteHost } from "@/domain/events/audience";
+import { priceLine } from "@/domain/events/tickets";
 import { eventShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
 import { googleEventLink } from "@/lib/calendar-links";
@@ -110,6 +111,7 @@ async function EventDetails({ slug }: { slug: string }) {
   const window = rsvpWindow(e, now);
   const left = spotsLeft(e.capacity, e.going);
   const full = left === 0;
+  const price = priceLine(e);
   const when = whenLine(e, e.timeZone);
   const google = googleEventLink({
     title: e.title,
@@ -141,6 +143,7 @@ async function EventDetails({ slug }: { slug: string }) {
               cancelled: e.cancelledAt !== null,
               capacity: e.capacity ?? undefined,
               spotsLeft: left ?? undefined,
+              priceCents: e.ticketPriceCents ?? undefined,
             },
             leagueInfo(origin),
           ),
@@ -201,6 +204,14 @@ async function EventDetails({ slug }: { slug: string }) {
             </dd>
           </div>
         )}
+        {price && (
+          <div className="flex flex-col gap-1 rounded-card border border-border bg-surface p-4 sm:col-span-2">
+            <dt className="text-micro font-bold tracking-wide text-text-muted uppercase">
+              Tickets
+            </dt>
+            <dd>{price}</dd>
+          </div>
+        )}
         {!themeWeek && e.inAppRsvp && (
           <div className="flex flex-col gap-1 rounded-card border border-border bg-surface p-4 sm:col-span-2">
             <dt className="text-micro font-bold tracking-wide text-text-muted uppercase">
@@ -256,12 +267,16 @@ async function EventDetails({ slug }: { slug: string }) {
           </h2>
           <p className="text-small text-text-muted">
             {full
-              ? "Join the waitlist and we'll email you if someone drops out."
-              : "RSVP so the league knows how many to plan for. You can change your mind any time."}
+              ? price
+                ? "Join the waitlist and you'll get a day to buy the next ticket that opens."
+                : "Join the waitlist and we'll email you if someone drops out."
+              : price
+                ? "Buy your ticket by card or with league credit. Sign in first."
+                : "RSVP so the league knows how many to plan for. You can change your mind any time."}
           </p>
           <div className="flex flex-wrap gap-2">
             <Link href={`/app/events/${e.slug}`} className="btn btn-primary">
-              {full ? "Join the waitlist" : "RSVP"}
+              {full ? "Join the waitlist" : price ? "Get a ticket" : "RSVP"}
             </Link>
             {e.inviteUrl && <InviteButton url={e.inviteUrl} />}
           </div>

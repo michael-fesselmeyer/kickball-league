@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { CopyForWhatsApp } from "@/components/share";
 import { db } from "@/db/client";
 import { audienceChoices, audienceNames } from "@/db/queries/event-audience";
+import { eventTickets } from "@/db/queries/event-tickets";
 import { eventAttendees, eventBySlug } from "@/db/queries/events";
 import {
   audienceLine,
@@ -13,6 +14,7 @@ import {
   reachFormValues,
 } from "@/domain/events/audience";
 import { eventFormValues, KIND_LABELS, whenLine } from "@/domain/events/event";
+import { isTicketed, ticketPriceFormValues } from "@/domain/events/tickets";
 import { eventShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
@@ -23,6 +25,7 @@ import {
   updateEventAction,
 } from "../actions";
 import { EventFormFields } from "../event-form";
+import { EventTickets } from "./tickets";
 
 export const metadata: Metadata = { title: "Edit event" };
 
@@ -30,6 +33,19 @@ const ERRORS: Record<string, string> = {
   confirm: "Tick the box to confirm first.",
   already: "That event was already called off.",
   not_found: "That event is gone.",
+  has_tickets:
+    "People hold tickets or are checking out right now. Refund every ticket first; a checkout runs out within the hour.",
+  stale: "For your security, sign in again before refunding a ticket.",
+  not_paid: "That ticket isn't paid, so there's nothing to refund.",
+  nothing_left: "That ticket's payment is already refunded.",
+  bad_amount: "That refund amount doesn't work.",
+  too_much: "That's more than is left on the payment.",
+  refund_failed: "Stripe didn't take the refund. Nothing changed; try again.",
+  payments_off:
+    "Online payments aren't set up, so Stripe refunds can't go out.",
+  bad_code: "A check-in code is 6 letters and numbers, like K7M 4QX.",
+  unknown_code: "No paid ticket for this event has that code.",
+  already_in: "That ticket is already checked in.",
 };
 
 export default function AdminEventPage(
@@ -55,11 +71,14 @@ async function AdminEvent({
   });
   const e = await eventBySlug(db, slug, "all");
   if (!e) notFound();
-  const [attendees, choices, names] = await Promise.all([
+  const now = new Date();
+  const [attendees, choices, names, tickets] = await Promise.all([
     eventAttendees(db, e.id),
     audienceChoices(db, e.leagueId),
     audienceNames(db, e.audience),
+    eventTickets(db, e.id, now),
   ]);
+  const ticketed = isTicketed(e) || tickets.holders.length > 0;
   const isPublic = e.audience.kind === "public";
   const told =
     typeof query.told === "string" ? ` ${toldLine(Number(query.told))}` : "";
@@ -75,7 +94,9 @@ async function AdminEvent({
         ? `Saved.${promoted > 0 ? ` ${promoted} ${promoted === 1 ? "person" : "people"} moved up from the waitlist and got an email.` : ""}${told}`
         : query.saved === "cancelled"
           ? `Called off. ${Number(query.notified ?? 0)} people got an email.`
-          : undefined;
+          : query.saved === "refunded"
+            ? "Refunded. The ticket is cancelled, the buyer got an email, and the spot went to the waitlist."
+            : undefined;
   const themeWeek = e.kind === "theme_week";
   const origin = siteOrigin(env.BETTER_AUTH_URL);
   const shareText = eventShareText({
@@ -180,6 +201,21 @@ async function AdminEvent({
         </section>
       )}
 
+      {ticketed && (
+        <EventTickets
+          slug={e.slug}
+          prices={e}
+          capacity={e.capacity}
+          holders={tickets.holders}
+          checkingOut={tickets.checkingOut}
+          offered={tickets.offered}
+          timeZone={e.timeZone}
+          checkedIn={
+            typeof query.checkedIn === "string" ? query.checkedIn : null
+          }
+        />
+      )}
+
       <section aria-labelledby="edit" className="flex flex-col gap-3">
         <h2 id="edit" className="text-h2">
           Edit
@@ -188,6 +224,7 @@ async function AdminEvent({
           action={updateEventAction.bind(null, e.slug)}
           values={eventFormValues(e, e.timeZone)}
           reach={reachFormValues(e, choices)}
+          prices={ticketPriceFormValues(e)}
           choices={choices}
           submitLabel="Save changes"
           announceLabel="Email everyone it's for about this change"

@@ -6,6 +6,7 @@ import {
   spotsLeft,
   whenLine,
 } from "@/domain/events/event";
+import { priceLine } from "@/domain/events/tickets";
 
 export type EventCardData = {
   slug: string;
@@ -19,13 +20,28 @@ export type EventCardData = {
   going: number;
   inAppRsvp: boolean;
   inviteUrl: string | null;
+  /** A ticketed event's prices; a free event has none. */
+  ticketPriceCents?: number | null;
+  memberPriceCents?: number | null;
 };
 
 /**
  * "6 spots left", "Full: waitlist open", "RSVP on partiful.com", or nothing
- * when there is no limit.
+ * when there is no limit; a ticketed event leads with its price: "$15 · 6
+ * spots left".
  */
 export function spotsLine(e: EventCardData, now: Date): string | null {
+  const spots = roomLine(e, now);
+  if (e.cancelledAt || e.endsAt <= now) return spots;
+  const price = priceLine({
+    ticketPriceCents: e.ticketPriceCents ?? null,
+    memberPriceCents: e.memberPriceCents ?? null,
+  });
+  if (!price) return spots;
+  return spots ? `${price} · ${spots}` : price;
+}
+
+function roomLine(e: EventCardData, now: Date): string | null {
   if (e.cancelledAt) return "Called off";
   if (e.endsAt <= now) return null;
   if (e.kind === "theme_week") return null;

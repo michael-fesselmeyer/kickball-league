@@ -213,6 +213,8 @@ export type SocialEventInfo = {
   cancelled: boolean;
   capacity?: number | undefined;
   spotsLeft?: number | undefined;
+  /** A ticketed event's full price, in cents; left out for a free one. */
+  priceCents?: number | undefined;
 };
 
 /** A league social event: a bar night, a BBQ, a tournament or a theme week. */
@@ -237,7 +239,20 @@ export function socialEventJsonLd(
       : undefined,
     maximumAttendeeCapacity: e.capacity,
     remainingAttendeeCapacity: e.spotsLeft,
-    isAccessibleForFree: true,
+    isAccessibleForFree: e.priceCents === undefined,
+    offers:
+      e.priceCents === undefined
+        ? undefined
+        : {
+            "@type": "Offer",
+            price: (e.priceCents / 100).toFixed(2),
+            priceCurrency: "USD",
+            url: e.url,
+            availability:
+              e.spotsLeft === 0
+                ? "https://schema.org/SoldOut"
+                : "https://schema.org/InStock",
+          },
     organizer: leagueRef(league),
   });
 }

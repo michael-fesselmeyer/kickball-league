@@ -16,6 +16,7 @@ import {
   MAX_PLACE_LENGTH,
   MAX_TITLE_LENGTH,
 } from "@/domain/events/event";
+import type { TicketPriceForm } from "@/domain/events/tickets";
 import type { EventFormState } from "./actions";
 
 const control =
@@ -192,6 +193,7 @@ export function EventFormFields({
   action,
   values,
   reach,
+  prices,
   choices,
   submitLabel,
   announceLabel,
@@ -199,6 +201,7 @@ export function EventFormFields({
   action: (previous: EventFormState, form: FormData) => Promise<EventFormState>;
   values: EventForm;
   reach: ReachForm;
+  prices: TicketPriceForm;
   choices: AudienceChoices;
   submitLabel: string;
   announceLabel: string;
@@ -206,6 +209,7 @@ export function EventFormFields({
   const [state, formAction, pending] = useActionState(action, {
     values,
     reach,
+    prices,
     announce: false,
     error: null,
   });
@@ -338,6 +342,49 @@ export function EventFormFields({
           />
         )}
       </Field>
+      <fieldset
+        className="flex flex-col gap-3 rounded-card border border-border p-4"
+        hidden={themeWeek}
+      >
+        <legend className="px-1 font-bold">Tickets</legend>
+        <p className="text-small text-text-muted">
+          Leave the price blank for a free RSVP. With a price, players buy a
+          ticket by card or league credit, and the capacity counts tickets.
+          Stripe&apos;s fee comes out of each ticket.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field
+            label="Ticket price (optional)"
+            hint="In dollars, such as 15 or 12.50."
+          >
+            {(props) => (
+              <input
+                {...props}
+                name="price"
+                inputMode="decimal"
+                autoComplete="off"
+                defaultValue={state.prices.price}
+                className={control}
+              />
+            )}
+          </Field>
+          <Field
+            label="Member price (optional)"
+            hint="For anyone registered in any season. 0 makes it free for members."
+          >
+            {(props) => (
+              <input
+                {...props}
+                name="memberPrice"
+                inputMode="decimal"
+                autoComplete="off"
+                defaultValue={state.prices.memberPrice}
+                className={control}
+              />
+            )}
+          </Field>
+        </div>
+      </fieldset>
       <Field label="Description">
         {(props) => (
           <textarea

@@ -60,6 +60,7 @@ const REQUIRED: Record<string, readonly string[]> = {
   BreadcrumbList: ["itemListElement"],
   ListItem: ["position", "name", "item"],
   Article: ["headline", "url", "datePublished", "author", "publisher"],
+  Offer: ["price", "priceCurrency", "url", "availability"],
   Thing: ["name"],
 };
 
@@ -605,5 +606,31 @@ describe("socialEventJsonLd", () => {
       "remainingAttendeeCapacity",
     ])
       expect(data).not.toHaveProperty(key);
+  });
+
+  it("is free unless it has a ticket price, which becomes an offer", () => {
+    expect(socialEventJsonLd(bbq, league)).toMatchObject({
+      isAccessibleForFree: true,
+    });
+    expect(socialEventJsonLd(bbq, league)).not.toHaveProperty("offers");
+    const ticketed = socialEventJsonLd({ ...bbq, priceCents: 1250 }, league);
+    expectValid(ticketed);
+    expect(ticketed).toMatchObject({
+      isAccessibleForFree: false,
+      offers: {
+        "@type": "Offer",
+        price: "12.50",
+        priceCurrency: "USD",
+        url: bbq.url,
+        availability: "https://schema.org/InStock",
+      },
+    });
+    const soldOut = socialEventJsonLd(
+      { ...bbq, priceCents: 1000, spotsLeft: 0 },
+      league,
+    );
+    expect(soldOut).toMatchObject({
+      offers: { availability: "https://schema.org/SoldOut" },
+    });
   });
 });
