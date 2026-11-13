@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { challengeForSeason } from "@/db/queries/challenges";
 import { openTeamInvite, rosterBoard } from "@/db/queries/invites";
 import { mySpots, savedFor } from "@/db/queries/lineups";
 import { myRsvps, type TeamRsvps, teamRsvps } from "@/db/queries/rsvps";
@@ -20,6 +21,7 @@ import { formatMoment } from "@/domain/money/credit";
 import { chargeTime } from "@/domain/money/guarantee";
 import { stripeClient } from "@/services/stripe";
 import { can } from "@/domain/authz/permissions";
+import { progressLine, teamProgress } from "@/domain/drive/challenge";
 import { ordinal } from "@/domain/lineup/order";
 import { formatCents } from "@/domain/registration/pricing";
 import { Pickups } from "@/components/pickups";
@@ -237,6 +239,19 @@ async function Team({
   const error =
     typeof query.error === "string" ? PAYMENT_ERRORS[query.error] : undefined;
   const paid = board.filter((m) => m.paid).length;
+  // The season's sign-up challenge, if there is one: this team's progress.
+  const challenge = can(subject, "challenge.view_team", { teamSeasonId })
+    ? await challengeForSeason(db, season.id)
+    : null;
+  const signups = challenge
+    ? teamProgress(
+        board.map((m) => ({
+          joinedAt: m.joinedAt ?? now,
+          signedAt: m.signed ? (m.joinedAt ?? now) : null,
+        })),
+        mine.team.targetRosterSize ?? season.rosterMin,
+      )
+    : null;
   const signed = board.filter((m) => m.signed).length;
   // A split team's fee and its guarantee, for the team's captains.
   const guarantees = can(subject, "guarantee.manage", { teamSeasonId });
@@ -352,6 +367,38 @@ async function Team({
             typeof query.guarantee === "string" ? query.guarantee : undefined
           }
         />
+      )}
+
+      {challenge && signups && (
+        <section
+          aria-labelledby="challenge"
+          className="flex flex-col gap-2 rounded-card border-2 border-brand p-4"
+        >
+          <h2 id="challenge" className="text-h3">
+            Sign-up challenge: {progressLine(signups)}
+          </h2>
+          <div
+            aria-hidden="true"
+            className="h-2 w-full overflow-hidden rounded-full bg-surface-2"
+          >
+            <div
+              className={`h-full rounded-full ${signups.percent === 100 ? "bg-success" : "bg-brand"}`}
+              style={{ width: `${signups.percent}%` }}
+            />
+          </div>
+          <p>
+            {signups.percent === 100
+              ? "Your whole roster is signed up!"
+              : "Get every player to make an account and sign the waiver."}{" "}
+            First team to 100% wins {challenge.prize}.
+          </p>
+          <Link
+            href={`/app/seasons/${slug}/challenge`}
+            className="inline-flex min-h-11 items-center self-start underline"
+          >
+            See the leaderboard
+          </Link>
+        </section>
       )}
 
       {manages && (
