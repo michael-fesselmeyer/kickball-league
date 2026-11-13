@@ -106,6 +106,9 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
           <Link href="/app/admin/waivers" className="btn btn-secondary">
             Waivers
           </Link>
+          <Link href="/app/admin/events" className="btn btn-secondary">
+            Events
+          </Link>
         </p>
       </>
     );
@@ -175,6 +178,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               [`${base}/schedule`, "Schedule"],
               [`${base}/registrations`, "Registrations"],
               ["/app/admin/waivers", "Waivers"],
+              ["/app/admin/events", "Events"],
               [`${base}/referees`, "Referees"],
               [`${base}/scores`, "Scores"],
               [`${base}/rainout`, "Rain-out"],
