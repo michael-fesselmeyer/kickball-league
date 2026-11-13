@@ -4,6 +4,7 @@ export * from "./awards";
 export * from "./books";
 export * from "./credit";
 export * from "./discipline";
+export * from "./drive";
 export * from "./event";
 export * from "./formation";
 export * from "./free-agent";
