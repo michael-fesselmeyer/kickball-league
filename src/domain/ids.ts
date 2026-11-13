@@ -80,6 +80,10 @@ export type GameLineupSpotId = Brand<string, "GameLineupSpotId">;
 export type BooksFileId = Brand<string, "BooksFileId">;
 export type ExpenseId = Brand<string, "ExpenseId">;
 export type InsuranceCertificateId = Brand<string, "InsuranceCertificateId">;
+export type GiveawayId = Brand<string, "GiveawayId">;
+export type GiveawayEntryId = Brand<string, "GiveawayEntryId">;
+export type GiveawayWinnerId = Brand<string, "GiveawayWinnerId">;
+export type SignupChallengeId = Brand<string, "SignupChallengeId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
