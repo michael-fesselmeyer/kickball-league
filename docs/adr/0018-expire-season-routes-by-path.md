@@ -11,7 +11,7 @@ For a prerendered page that is not enough. Once its tag expires, Next.js answers
 
 ## Decision
 
-**`refreshSeasonPages` also expires the routes by path.** After `updateTag` for the season, it calls `revalidatePath` with `"layout"` for `/seasons/[season]` and `/teams/[team]`. Every page and shell under those routes carries those path tags, so the shells are rebuilt from fresh data on the next visit. Like `updateTag`, `revalidatePath` from a Server Action expires at once.
+**`refreshSeasonPages` also expires the routes by path.** After `updateTag` for the season, it calls `revalidatePath` with `"layout"` for `/seasons/[season]` and `/teams/[team]`. Every page and shell under those routes carries those path tags, so the shells are rebuilt from fresh data on the next visit. Like `updateTag`, `revalidatePath` from a Server Action expires at once. `refreshEventPages` follows the same rule: it expires `/events/[event]` by path, and `/seasons/[season]` too when a theme week changes, because the schedule page's cached data carries the `theme-weeks` tag.
 
 **The end-to-end build reads the seeded league**, as production does, so the flows run against prerendered pages. The schedule flow checks that a visitor sees "Coming soon" before publishing and the games on the first load after.
 
