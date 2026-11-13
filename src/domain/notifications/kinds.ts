@@ -27,6 +27,22 @@ export const MESSAGE_KINDS = {
     label:
       "An event spot that opened for you, or an event you RSVP'd to called off",
   },
+  guarantee_failed: {
+    urgency: "urgent",
+    label: "A captain's card guarantee that could not be charged",
+  },
+  guarantee_warning: {
+    urgency: "urgent",
+    label: "A warning before a captain's card guarantee is charged",
+  },
+  instagram_reconnect: {
+    urgency: "non_urgent",
+    label: "For admins: the Instagram connection needs reconnecting",
+  },
+  instagram_storage_full: {
+    urgency: "non_urgent",
+    label: "For admins: Instagram photo storage is full",
+  },
   new_team: {
     urgency: "non_urgent",
     label: "Answers to new-team requests",
@@ -43,6 +59,14 @@ export const MESSAGE_KINDS = {
     urgency: "urgent",
     label: "Rain-outs and makeup times",
   },
+  rebate_credit: {
+    urgency: "non_urgent",
+    label: "League credit for rained-out games",
+  },
+  referral_credit: {
+    urgency: "non_urgent",
+    label: "League credit for a friend you referred",
+  },
   score_confirmation: {
     urgency: "urgent",
     label: "Scores waiting for your confirmation",
@@ -58,6 +82,14 @@ export const MESSAGE_KINDS = {
   sub_update: {
     urgency: "urgent",
     label: "Answers to your sub offers",
+  },
+  suspension: {
+    urgency: "urgent",
+    label: "A suspension, its games and how to appeal",
+  },
+  waitlist_offer: {
+    urgency: "urgent",
+    label: "A team spot held for you from the waitlist",
   },
 } as const satisfies Record<string, { urgency: Urgency; label: string }>;
 

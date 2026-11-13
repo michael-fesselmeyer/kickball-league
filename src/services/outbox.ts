@@ -1,6 +1,13 @@
 import { after } from "next/server";
 import { txDb } from "@/db/client";
-import { type DrainResult, drainOutbox, emptyDrain } from "@/db/queries/outbox";
+import { buildDigests, type DigestResult } from "@/db/queries/digests";
+import {
+  DEFAULT_TIME_ZONE,
+  type DrainResult,
+  drainOutbox,
+  emptyDrain,
+} from "@/db/queries/outbox";
+import { currentLeague } from "@/db/queries/seasons";
 import { ok } from "@/domain/result";
 import { rendererFor } from "@/emails/templates";
 import { env } from "@/env";
@@ -62,6 +69,8 @@ export async function drainOutboxNow(
 ): Promise<DrainResult | null> {
   if (!sender && !pushSender) return null;
   const render = rendererFor({ siteUrl: env.BETTER_AUTH_URL });
+  // Quiet hours and the daily cap follow the league's clock.
+  const timeZone = (await currentLeague(txDb))?.timeZone ?? DEFAULT_TIME_ZONE;
   const total = emptyDrain();
   for (let batch = 0; batch < maxBatches; batch++) {
     const r = await drainOutbox(txDb, {
@@ -69,10 +78,37 @@ export async function drainOutboxNow(
       push: pushSender,
       render,
       now,
+      timeZone,
     });
     for (const key of Object.keys(total) as (keyof DrainResult)[])
       total[key] += r[key];
     if (Object.values(r).every((n) => n === 0)) break;
+  }
+  return total;
+}
+
+/**
+ * Queues every digest that is due, in batches of 500 held messages, each
+ * batch in its own transaction. The caller then drains the outbox.
+ */
+export async function buildDigestsNow(
+  now: Date = new Date(),
+  maxBatches = 10,
+): Promise<DigestResult> {
+  const render = rendererFor({ siteUrl: env.BETTER_AUTH_URL });
+  const total: DigestResult = {
+    digests: 0,
+    messages: 0,
+    suppressed: 0,
+    failed: 0,
+  };
+  for (let batch = 0; batch < maxBatches; batch++) {
+    const r = await txDb.transaction((tx) => buildDigests(tx, { render, now }));
+    total.digests += r.digests;
+    total.messages += r.messages;
+    total.suppressed += r.suppressed;
+    total.failed += r.failed;
+    if (r.messages + r.suppressed + r.failed === 0) break;
   }
   return total;
 }

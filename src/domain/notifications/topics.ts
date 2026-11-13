@@ -20,6 +20,9 @@ export const TOPICS = [
    * be able to tell a player they are suspended and how to appeal.
    */
   "discipline",
+  // The digest of held non-urgent messages (limits.ts). Not offered on the
+  // settings page: the person already wanted each message inside it.
+  "digest",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -36,6 +39,7 @@ export const DEFAULT_ENABLED: Readonly<Record<Topic, boolean>> = {
   marketing: false,
   new_team: true,
   discipline: true,
+  digest: true,
 };
 
 /**

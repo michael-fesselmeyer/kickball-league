@@ -1,10 +1,12 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   index,
   integer,
   jsonb,
+  smallint,
   pgEnum,
   pgTable,
   text,
@@ -38,6 +40,7 @@ export const messageTopic = pgEnum("message_topic", [
   "marketing",
   "new_team",
   "discipline",
+  "digest",
 ]);
 
 /** Email and web push today; text arrives later behind the same outbox. */
@@ -51,7 +54,9 @@ export const messageChannel = pgEnum("message_channel", [
  * queued: waiting for send_after. sending: claimed by a worker until
  * locked_until. sent: the provider accepted it. failed: gave up after the
  * last attempt, or the message cannot be built. suppressed: not sent on
- * purpose (suppress_reason says why).
+ * purpose (suppress_reason says why). held: a non-urgent message over the
+ * person's daily cap, waiting for the digest due at send_after. digested:
+ * went out inside the digest message digest_id.
  */
 export const messageStatus = pgEnum("message_status", [
   "queued",
@@ -59,7 +64,12 @@ export const messageStatus = pgEnum("message_status", [
   "sent",
   "failed",
   "suppressed",
+  "held",
+  "digested",
 ]);
+
+/** How often a person's held messages come together in one email. */
+export const digestFrequency = pgEnum("digest_frequency", ["daily", "weekly"]);
 
 /**
  * The outbox: every notice the league sends is a row here, inserted in the
@@ -90,6 +100,10 @@ export const message = pgTable(
     dedupeKey: text().notNull(),
     providerMessageId: text(),
     sentAt: timestamp({ withTimezone: true }),
+    /** Set when the message went out inside a digest: the digest's row. */
+    digestId: uuid()
+      .$type<MessageId>()
+      .references((): AnyPgColumn => message.id, { onDelete: "set null" }),
     /** Set when the message is one copy of an announcement. */
     announcementId: uuid()
       .$type<AnnouncementId>()
@@ -103,6 +117,13 @@ export const message = pgTable(
       .on(t.sendAfter)
       .where(sql`${t.status} = 'queued'`),
     index("message_user_idx").on(t.userId, t.createdAt.desc()),
+    // Not partial on status = 'held': a migration cannot use an enum value
+    // it adds in the same transaction.
+    index("message_status_send_after_idx").on(t.status, t.sendAfter),
+    index("message_digest_idx").on(t.digestId),
+    index("message_sent_today_idx")
+      .on(t.userId, t.sentAt)
+      .where(sql`${t.status} = 'sent'`),
     check("message_attempts_non_negative", sql`${t.attempts} >= 0`),
     check(
       "message_sending_has_lock",
@@ -137,6 +158,38 @@ export const notificationPreference = pgTable(
   },
   (t) => [
     unique("notification_preference_once").on(t.userId, t.topic, t.channel),
+  ],
+);
+
+/**
+ * A person's limits on non-urgent messages: the daily cap per channel,
+ * how often held messages come as a digest, and quiet hours in the
+ * league's time zone. No row means the defaults (3 a day, a daily digest,
+ * quiet from 10 pm to 8 am). See src/domain/notifications/limits.ts.
+ */
+export const alertSetting = pgTable(
+  "alert_setting",
+  {
+    userId: uuid()
+      .primaryKey()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "cascade" }),
+    dailyCap: smallint().notNull().default(3),
+    digest: digestFrequency().notNull().default("daily"),
+    /** Whole local hours; both null when quiet hours are off. */
+    quietStartHour: smallint().default(22),
+    quietEndHour: smallint().default(8),
+    updatedAt: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    check("alert_setting_daily_cap", sql`${t.dailyCap} between 0 and 3`),
+    check(
+      "alert_setting_quiet_hours",
+      sql`(${t.quietStartHour} is null and ${t.quietEndHour} is null) or (${t.quietStartHour} between 0 and 23 and ${t.quietEndHour} between 0 and 23 and ${t.quietStartHour} <> ${t.quietEndHour})`,
+    ),
   ],
 );
 

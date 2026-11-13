@@ -22,6 +22,12 @@ export type PushNotification = {
   body: string;
   path: string;
   tag: string;
+  /** "Because you play in this game.", shown under the text. */
+  reason?: string;
+  /** Where the notification's "Change alerts" button goes. */
+  settingsPath?: string;
+  /** Sent in quiet hours: show it without sound or vibration. */
+  silent?: boolean;
 };
 
 export type PushOutcome =

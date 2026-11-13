@@ -16,6 +16,7 @@ import {
 } from "../schema/game";
 import {
   announcement,
+  alertSetting,
   message,
   notificationPreference,
   pushSubscription,
@@ -382,6 +383,15 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .from(notificationPreference)
     .where(eq(notificationPreference.userId, userId))
     .orderBy(asc(notificationPreference.topic));
+  const [alertLimits = null] = await db
+    .select({
+      dailyCap: alertSetting.dailyCap,
+      digest: alertSetting.digest,
+      quietStartHour: alertSetting.quietStartHour,
+      quietEndHour: alertSetting.quietEndHour,
+    })
+    .from(alertSetting)
+    .where(eq(alertSetting.userId, userId));
   // Which browsers get push, without the endpoint or keys: those only
   // let a push service reach the device.
   const pushDevices = await db
@@ -499,6 +509,7 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     sponsorsManaged,
     discipline: await myDisciplineRecords(db, userId, now),
     emailSettings,
+    alertLimits,
     pushDevices,
     messages,
     announcementsSent,
@@ -572,9 +583,9 @@ export type DeleteError = "not_found" | DeleteBlocker["reason"];
  * Removed: the profile (name, phone, gender, shirt size, birth date,
  * emergency contact), every session, passkey and sign-in method, pending
  * sign-in links, game and event RSVPs (a freed event spot goes to the waitlist),
- * sponsor portal access, email and push settings, push devices and messages,
- * and their address on invites. Check-ins stay, unnamed, in the sponsor's
- * counts.
+ * sponsor portal access, email, push and alert-limit settings, push devices
+ * and messages, and their address on invites. Check-ins stay, unnamed, in
+ * the sponsor's counts.
  * Sub claims for games still to come are withdrawn, which reopens the spot
  * and tells the captains; past claims stay as history without the copied
  * lineup gender.
@@ -671,6 +682,7 @@ export async function deleteAccount(
   await db
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));
+  await db.delete(alertSetting).where(eq(alertSetting.userId, userId));
   await db.delete(pushSubscription).where(eq(pushSubscription.userId, userId));
   // A new version, so a private calendar link handed out before stops working.
   await resetFeed(db, userId);

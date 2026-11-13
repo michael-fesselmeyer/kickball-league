@@ -233,7 +233,14 @@ describe("drainOutbox with push", () => {
           render,
           now: NOW,
         }),
-      ).toEqual({ sent: 2, retrying: 0, failed: 0, suppressed: 0 });
+      ).toEqual({
+        sent: 2,
+        retrying: 0,
+        failed: 0,
+        suppressed: 0,
+        waiting: 0,
+        held: 0,
+      });
       expect(mail.sent).toHaveLength(1);
       const [row] = await pushRows(db, pat);
       const tag = required(row, "push row").id.replaceAll("-", "");
@@ -245,7 +252,10 @@ describe("drainOutbox with push", () => {
           title: "Your game has a new time",
           body: "Aces vs Bees (Sun, Sep 13, 7:00 PM, Field 2) is rained out.",
           path: "/app/seasons/fall-2026",
+          reason: "Because you play in this game in Fall 2026.",
           tag,
+          silent: false,
+          settingsPath: "/app/profile#push",
         });
         expect(got.headers).toMatchObject({
           Urgency: "high",

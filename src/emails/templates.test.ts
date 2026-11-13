@@ -317,3 +317,61 @@ describe("rendererFor", () => {
     });
   });
 });
+
+describe("the digest", () => {
+  const items = [
+    {
+      title: "Field change Saturday",
+      text: "We moved to Field 3.",
+      path: "/app/seasons/fall-2026",
+    },
+    {
+      title: "What was the final score?",
+      text: "Aces vs Bees has no score yet.",
+      path: "/app/games/g1/score",
+    },
+  ];
+
+  it("lists each held message with a link, and says why it came", () => {
+    const result = render("digest", { frequency: "daily", dailyCap: 3, items });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe("League news: 2 updates");
+    expect(result.value.text).toContain("- Field change Saturday");
+    expect(result.value.text).toContain(
+      "https://league.example.test/app/games/g1/score",
+    );
+    expect(result.value.text).toContain(
+      "you get at most 3 league emails a day that can wait, and these came after that",
+    );
+    expect(result.value.text).toContain(
+      "Change your daily limit, digest or quiet hours: https://league.example.test/app/profile#alert-limits",
+    );
+  });
+
+  it("speaks to someone who wants everything in the digest", () => {
+    const result = render("digest", {
+      frequency: "weekly",
+      dailyCap: 0,
+      items: items.slice(0, 1),
+    });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe("League news: 1 update");
+    expect(result.value.text).toContain("Your league news this week");
+    expect(result.value.text).toContain(
+      "you chose to get news that can wait in one weekly email",
+    );
+  });
+
+  it("refuses an empty digest or a link off the site", () => {
+    expect(
+      render("digest", { frequency: "daily", dailyCap: 3, items: [] }).ok,
+    ).toBe(false);
+    expect(
+      render("digest", {
+        frequency: "daily",
+        dailyCap: 3,
+        items: [{ title: "x", text: "", path: "https://evil.example.test" }],
+      }).ok,
+    ).toBe(false);
+  });
+});
