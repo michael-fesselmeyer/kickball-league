@@ -8,6 +8,7 @@ import {
   type AdminPost,
   adminPosts,
   instagramAccount,
+  taggableEvents,
   taggableTeams,
 } from "@/db/queries/social";
 import { altFor, isShown } from "@/domain/social/sync-plan";
@@ -50,6 +51,7 @@ const ERRORS: Record<string, string> = {
   sync: "The sync didn't finish. The reason is shown on the connection card.",
   not_found: "That post is gone; it may have been deleted on Instagram.",
   unknown_team: "Pick one of the league's teams.",
+  unknown_event: "Pick one of the league's events.",
   cover_needs_team: "Tag a team before making the photo that team's cover.",
   alt_too_long: "Keep the description under 300 characters.",
 };
@@ -86,10 +88,11 @@ async function Instagram({ searchParams }: PageProps<"/app/admin/instagram">) {
   const query = await searchParams;
   const league = await currentLeague(db);
   if (!league) notFound();
-  const [account, posts, teams] = await Promise.all([
+  const [account, posts, teams, events] = await Promise.all([
     instagramAccount(db, league.id),
     adminPosts(db, league.id),
     taggableTeams(db, league.id),
+    taggableEvents(db, league.id),
   ]);
   const config = instagramConfig();
   // Names a half or malformed setting (never its value) for whoever fixes it.
@@ -265,6 +268,7 @@ async function Instagram({ searchParams }: PageProps<"/app/admin/instagram">) {
                 key={post.id}
                 post={post}
                 teams={teams}
+                events={events}
                 showNewest={showNewest}
               />
             ))}
@@ -278,10 +282,12 @@ async function Instagram({ searchParams }: PageProps<"/app/admin/instagram">) {
 function PostCard({
   post,
   teams,
+  events,
   showNewest,
 }: {
   post: AdminPost;
   teams: { id: string; name: string }[];
+  events: { id: string; title: string; startsAt: Date }[];
   showNewest: boolean;
 }) {
   const shown = isShown(post, showNewest);
@@ -361,7 +367,7 @@ function PostCard({
       </div>
       <details>
         <summary className="min-h-11 cursor-pointer content-center font-bold">
-          Team, cover and description
+          Team, event, cover and description
         </summary>
         <form
           action={savePostDetailsAction.bind(null, post.id)}
@@ -378,6 +384,21 @@ function PostCard({
               {teams.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-small font-bold">
+            Event
+            <select
+              name="eventId"
+              defaultValue={post.eventId ?? ""}
+              className={input}
+            >
+              <option value="">No event</option>
+              {events.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.title} ({day(e.startsAt)})
                 </option>
               ))}
             </select>

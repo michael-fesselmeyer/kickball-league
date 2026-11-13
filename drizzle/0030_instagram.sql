@@ -46,6 +46,7 @@ CREATE TABLE "social_post" (
 	"featured" boolean DEFAULT false NOT NULL,
 	"hidden" boolean DEFAULT false NOT NULL,
 	"team_id" uuid,
+	"event_id" uuid,
 	"cover" "social_cover",
 	"alt_text" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -61,7 +62,9 @@ ALTER TABLE "social_account" ADD CONSTRAINT "social_account_connected_by_user_id
 ALTER TABLE "social_image" ADD CONSTRAINT "social_image_post_id_social_post_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."social_post"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "social_post" ADD CONSTRAINT "social_post_account_id_social_account_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."social_account"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "social_post" ADD CONSTRAINT "social_post_team_id_team_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."team"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "social_post" ADD CONSTRAINT "social_post_event_id_event_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."event"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "social_post_account_taken" ON "social_post" USING btree ("account_id","taken_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "social_post_team" ON "social_post" USING btree ("team_id");--> statement-breakpoint
+CREATE INDEX "social_post_event" ON "social_post" USING btree ("event_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "social_post_one_home_cover" ON "social_post" USING btree ("account_id") WHERE "social_post"."cover" = 'home';--> statement-breakpoint
 CREATE UNIQUE INDEX "social_post_one_team_cover" ON "social_post" USING btree ("team_id") WHERE "social_post"."cover" = 'team';

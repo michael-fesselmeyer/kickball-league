@@ -14,6 +14,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type {
+  EventId,
   LeagueId,
   SocialAccountId,
   SocialImageId,
@@ -22,6 +23,7 @@ import type {
   UserId,
 } from "@/domain/ids";
 import { user } from "./auth";
+import { event } from "./event";
 import { league } from "./league";
 import { team } from "./team";
 
@@ -133,6 +135,9 @@ export const socialPost = pgTable(
     teamId: uuid()
       .$type<TeamId>()
       .references(() => team.id, { onDelete: "set null" }),
+    eventId: uuid()
+      .$type<EventId>()
+      .references(() => event.id, { onDelete: "set null" }),
     cover: socialCover(),
     /** Alt text an admin wrote; the caption stands in until then. */
     altText: text(),
@@ -146,6 +151,7 @@ export const socialPost = pgTable(
     unique("social_post_once").on(t.accountId, t.externalId),
     index("social_post_account_taken").on(t.accountId, t.takenAt.desc()),
     index("social_post_team").on(t.teamId),
+    index("social_post_event").on(t.eventId),
     check(
       "social_post_https_permalink",
       sql`${t.permalink} ~ '^https://www\\.instagram\\.com/'`,

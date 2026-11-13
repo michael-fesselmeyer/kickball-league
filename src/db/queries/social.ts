@@ -11,6 +11,7 @@ import {
   sql,
 } from "drizzle-orm";
 import type {
+  EventId,
   LeagueId,
   SocialAccountId,
   SocialImageId,
@@ -36,6 +37,7 @@ import type {
   Token,
 } from "@/services/instagram";
 import { user } from "../schema/auth";
+import { event } from "../schema/event";
 import { profile } from "../schema/profile";
 import { socialAccount, socialImage, socialPost } from "../schema/social";
 import { team } from "../schema/team";
@@ -560,6 +562,7 @@ export type AdminPost = {
   featured: boolean;
   hidden: boolean;
   teamId: TeamId | null;
+  eventId: EventId | null;
   cover: "home" | "team" | null;
 };
 
@@ -580,6 +583,7 @@ export async function adminPosts(
       featured: socialPost.featured,
       hidden: socialPost.hidden,
       teamId: socialPost.teamId,
+      eventId: socialPost.eventId,
       cover: socialPost.cover,
     })
     .from(socialPost)
@@ -598,15 +602,29 @@ export async function taggableTeams(db: Db, leagueId: LeagueId) {
     .orderBy(asc(team.name));
 }
 
+/** The league's events, newest first, to tag posts with. */
+export async function taggableEvents(db: Db, leagueId: LeagueId) {
+  return db
+    .select({ id: event.id, title: event.title, startsAt: event.startsAt })
+    .from(event)
+    .where(and(eq(event.leagueId, leagueId), sql`${event.deletedAt} is null`))
+    .orderBy(desc(event.startsAt));
+}
+
 export type Curation =
   | { kind: "feature"; on: boolean }
   | { kind: "hide"; on: boolean }
   | { kind: "team"; teamId: TeamId | null }
+  | { kind: "event"; eventId: EventId | null }
   | { kind: "cover"; cover: "home" | "team" | null }
   | { kind: "alt"; text: string };
 
 export type CurationError =
-  "not_found" | "unknown_team" | "cover_needs_team" | "alt_too_long";
+  | "not_found"
+  | "unknown_team"
+  | "unknown_event"
+  | "cover_needs_team"
+  | "alt_too_long";
 
 /**
  * One admin change to a post. Hiding also unfeatures it and drops its
@@ -630,6 +648,7 @@ export async function curatePost(
       featured: socialPost.featured,
       hidden: socialPost.hidden,
       teamId: socialPost.teamId,
+      eventId: socialPost.eventId,
       cover: socialPost.cover,
       altText: socialPost.altText,
     })
@@ -648,6 +667,7 @@ export async function curatePost(
     featured: post.featured,
     hidden: post.hidden,
     teamId: post.teamId,
+    eventId: post.eventId,
     cover: post.cover,
     altText: post.altText,
   };
@@ -678,6 +698,22 @@ export async function curatePost(
       next.teamId = change.teamId;
       if (next.cover === "team" && next.teamId !== before.teamId)
         next.cover = null;
+      break;
+    case "event":
+      if (change.eventId) {
+        const [found] = await db
+          .select({ id: event.id })
+          .from(event)
+          .where(
+            and(
+              eq(event.id, change.eventId),
+              eq(event.leagueId, input.leagueId),
+              sql`${event.deletedAt} is null`,
+            ),
+          );
+        if (!found) return err("unknown_event");
+      }
+      next.eventId = change.eventId;
       break;
     case "cover":
       if (change.cover === "team" && !next.teamId)
@@ -815,6 +851,23 @@ export async function teamPhotos(
     cover: coverRow ? toPhoto(coverRow) : null,
     photos: rows.filter((r) => r !== coverRow).map(toPhoto),
   };
+}
+
+/** An event page's photos: the newest tagged posts shown. */
+export async function eventPhotos(
+  db: Db,
+  eventId: EventId,
+  limit = 8,
+): Promise<PublicPhoto[]> {
+  const rows = await db
+    .select(PUBLIC_FIELDS)
+    .from(socialPost)
+    .innerJoin(socialAccount, eq(socialPost.accountId, socialAccount.id))
+    .innerJoin(socialImage, eq(socialImage.postId, socialPost.id))
+    .where(and(shown, eq(socialPost.eventId, eventId)))
+    .orderBy(desc(socialPost.takenAt))
+    .limit(limit);
+  return rows.map(toPhoto);
 }
 
 /**

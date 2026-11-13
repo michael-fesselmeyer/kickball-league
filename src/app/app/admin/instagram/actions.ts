@@ -1,6 +1,5 @@
 "use server";
 
-import { updateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
@@ -12,10 +11,15 @@ import {
   disconnect,
   setShowNewest,
 } from "@/db/queries/social";
-import { parseId, type SocialPostId, type TeamId } from "@/domain/ids";
+import {
+  type EventId,
+  parseId,
+  type SocialPostId,
+  type TeamId,
+} from "@/domain/ids";
 import { env } from "@/env";
 import { requirePermissionToChange } from "@/lib/auth/permission";
-import { PHOTOS_TAG } from "@/lib/public-cache";
+import { refreshPhotoPages } from "@/lib/public-cache";
 import { completeConnection } from "@/lib/social/connect";
 import { instagramConfig, signInUrl } from "@/lib/social/instagram-app";
 import {
@@ -59,7 +63,7 @@ export async function connectInstagramAction() {
       leagueId: league.id,
       actorId: subject.userId,
     });
-    updateTag(PHOTOS_TAG);
+    refreshPhotoPages();
     redirect(`${PAGE}?${result}`);
   }
   const state = newState();
@@ -84,7 +88,7 @@ export async function disconnectInstagramAction(form: FormData) {
       actorId: subject.userId,
     }),
   );
-  updateTag(PHOTOS_TAG);
+  refreshPhotoPages();
   redirect(`${PAGE}?done=${keepPhotos ? "disconnected" : "removed"}`);
 }
 
@@ -99,7 +103,7 @@ export async function syncNowAction() {
   ).find((a) => a.leagueId === league.id);
   if (!account) redirect(`${PAGE}?error=not_connected`);
   const outcome = await syncAccount(txDb, config, account, now);
-  updateTag(PHOTOS_TAG);
+  refreshPhotoPages();
   if ("error" in outcome) {
     sendQueuedSoon();
     redirect(`${PAGE}?error=sync`);
@@ -113,7 +117,7 @@ export async function showNewestAction(form: FormData) {
   await txDb.transaction((tx) =>
     setShowNewest(tx, { leagueId: league.id, on, actorId: subject.userId }),
   );
-  updateTag(PHOTOS_TAG);
+  refreshPhotoPages();
   redirect(`${PAGE}?done=${on ? "newest_on" : "newest_off"}`);
 }
 
@@ -135,11 +139,11 @@ export async function togglePostAction(
     }),
   );
   if (!result.ok) redirect(`${PAGE}?error=${result.error}#post-${id}`);
-  updateTag(PHOTOS_TAG);
+  refreshPhotoPages();
   redirect(`${PAGE}?done=saved#post-${id}`);
 }
 
-/** Saves a post's team, cover and alt text together, in that order. */
+/** Saves a post's team, event, cover and alt text together, in that order. */
 export async function savePostDetailsAction(postId: string, form: FormData) {
   const { subject, league } = await adminOfLeague();
   const id = parseId<SocialPostId>(postId);
@@ -147,9 +151,14 @@ export async function savePostDetailsAction(postId: string, form: FormData) {
   const chosenTeam = text(form, "teamId");
   const teamId = chosenTeam ? parseId<TeamId>(chosenTeam) : null;
   if (chosenTeam && !teamId) redirect(`${PAGE}?error=unknown_team#post-${id}`);
+  const chosenEvent = text(form, "eventId");
+  const eventId = chosenEvent ? parseId<EventId>(chosenEvent) : null;
+  if (chosenEvent && !eventId)
+    redirect(`${PAGE}?error=unknown_event#post-${id}`);
   const cover = text(form, "cover");
   const changes: Curation[] = [
     { kind: "team", teamId },
+    { kind: "event", eventId },
     {
       kind: "cover",
       cover: cover === "home" || cover === "team" ? cover : null,
@@ -177,6 +186,6 @@ export async function savePostDetailsAction(postId: string, form: FormData) {
     if (!error) throw e;
   }
   if (error) redirect(`${PAGE}?error=${error}#post-${id}`);
-  updateTag(PHOTOS_TAG);
+  refreshPhotoPages();
   redirect(`${PAGE}?done=saved#post-${id}`);
 }
