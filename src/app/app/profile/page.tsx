@@ -66,6 +66,20 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
           devices={push.devices}
         />
       )}
+      <section aria-labelledby="signing-in" className="flex flex-col gap-3">
+        <h2 id="signing-in" className="text-h2">
+          Signing in
+        </h2>
+        <p>
+          Add a passkey to sign in with Face ID, Touch ID or your device PIN,
+          and see every device you&apos;re signed in on.
+        </p>
+        <p>
+          <Link href="/app/profile/security" className="underline">
+            Passkeys and devices
+          </Link>
+        </p>
+      </section>
       <section aria-labelledby="your-data" className="flex flex-col gap-3">
         <h2 id="your-data" className="text-h2">
           Your data
