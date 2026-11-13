@@ -320,14 +320,35 @@ No Redis in the MVP. Rate limits that need a counter use a small Postgres table.
 
 ## 11. Continuous integration
 
-Every pull request runs, in this order, and all must pass to merge:
+Every pull request runs these checks, and all must pass to merge:
 
 1. Type check, lint, format check.
 2. Unit and property tests (Vitest, fast-check) with coverage thresholds.
 3. Migration check: the schema and the migration files agree.
-4. Build.
+4. Build, twice: once with no database to read, which proves the fallback in `src/lib/static-params.ts`, and once against the seeded database, which the end-to-end and Lighthouse checks share.
 5. End-to-end tests (Playwright) against a production build and a freshly seeded Postgres 18 service container, under a 10-minute job limit ([ADR 0007](adr/0007-end-to-end-tests-on-local-services.md)). Smoke tests cover the public pages at a phone size and a desktop size with demo mode off. The core flows run on a second server in demo mode and sign in with one-tap "view as": a captain registers a team with split pay and reaches Stripe Checkout (served by stripe-mock), Stripe's webhook marks the captain's share paid exactly once (the test signs the event with the server's test secret, and a forged one is refused), an admin adds a promo code, a player joins as a free agent and pays with it, an admin refunds part of one payment and all of another and a signed `charge.refunded` webhook confirms each, an admin generates and publishes a schedule, a ref enters a score that a captain confirms, and an admin calls a rain-out and publishes the makeups. axe checks every key screen against WCAG 2.2 AA and fails on any violation.
-6. Lighthouse CI on a production build against the seeded database: home, sign-in, the content pages, the records page, the public schedule, standings and a team page, with the budgets in [design-system.md](design-system.md#performance-budgets).
+6. Lighthouse CI on the shared production build against the seeded database: home, sign-in, the content pages, the records page, the public schedule, standings and a team page, with the budgets in [design-system.md](design-system.md#performance-budgets).
+
+### How the checks run
+
+The workflow is `.github/workflows/ci.yml`; pull request hygiene (branch, commits and text) is a separate workflow. The jobs are arranged so the slowest work runs side by side and nothing is built twice for the same purpose:
+
+| Job | What it does | Runs after |
+|---|---|---|
+| What changed | Lists the files the pull request changes on `main` and decides whether they can reach the app | — |
+| Lint, types, tests, build | Format check, ESLint, `tsc`, unit tests with coverage, and the build with no database | What changed |
+| Migrations | Migration consistency, schema drift, apply twice, database tests, seed twice | What changed |
+| Production build | Migrates and seeds a Postgres service, builds once, and uploads `.next` (without its cache) as an artifact | What changed |
+| End-to-end shard 1–2 | Downloads the build, seeds its own database, starts both servers and runs half the Playwright tests (`--shard`) | Production build |
+| Lighthouse shard 1–3 | Downloads the build, seeds its own database and audits every third page of `lighthouserc.json` with the same five runs and the same budgets (`scripts/lighthouse-shard.mjs`) | Production build |
+| End-to-end, Lighthouse | Pass only when every shard passed | Their shards |
+| Secret scan | gitleaks over the whole history | — |
+
+- **Required check names stay fixed.** `main`'s ruleset (`.github/rulesets/main.json`) requires `Lint, types, tests, build`, `Migrations`, `End-to-end`, `Lighthouse` and `Secret scan`. The shards report through one aggregating job with the required name, so adding or removing a shard never changes what the ruleset waits for.
+- **One build, every shard.** The seed is deterministic, so a shard that reseeds its own database serves exactly the league the build was prerendered from. The build reads the seeded database (the end-to-end tests used to build before their seed ran), so both checks now test the pages as production builds them. Playwright starts the shared build when `E2E_PREBUILT=true`; a local run still builds first.
+- **Caches.** `setup-node` caches npm's download cache, each build restores `.next/cache` (Turbopack's build cache) keyed on the lockfile and the sources, and the end-to-end shards cache Playwright's Chromium.
+- **Documentation-only changes.** When every changed file is Markdown or under `docs/`, outside `src/`, `e2e/`, `drizzle/`, `scripts/`, `public/`, `assets/` and `.github/`, the build, unit tests, migrations, end-to-end and Lighthouse work is skipped and the required checks report success. The format check (Prettier also checks Markdown), the secret scan and pull request hygiene still run. Anything else, including any config file or `package*.json`, runs everything, and so does every push to `main`.
+- **Timing.** Before this layout a pull request took about 12–14 minutes, almost all of it Lighthouse auditing 13 pages × 5 runs on one runner. The pull request that introduced it records the before and after times.
 
 Mutation testing on the scheduler runs nightly, not per pull request, because it is slow.
 
