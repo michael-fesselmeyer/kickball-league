@@ -155,8 +155,7 @@ export function generateFreeAgentPool(data: SeedData) {
         seasonId,
         userId,
         kind: "free_agent" as const,
-        status:
-          i % 4 === 3 ? ("pending_payment" as const) : ("active" as const),
+        status: "pending_waiver" as const,
         friendGroupId: a.group ? groups[a.group].id : null,
       },
       quiz: parsed?.ok
