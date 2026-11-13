@@ -24,6 +24,8 @@ export const colorTokens = [
   "danger",
   "info",
   "focus",
+  "chart-1",
+  "chart-2",
 ] as const;
 
 export type ColorToken = (typeof colorTokens)[number];
@@ -48,6 +50,8 @@ export const light: Theme = {
   danger: "#B3261E",
   info: "#1F5FBF",
   focus: "#1F3A8A",
+  "chart-1": "#2A78D6",
+  "chart-2": "#D4561F",
 };
 
 export const dark: Theme = {
@@ -69,6 +73,8 @@ export const dark: Theme = {
   danger: "#FF7A6E",
   info: "#7FB0FF",
   focus: "#FFC93C",
+  "chart-1": "#3987E5",
+  "chart-2": "#D95926",
 };
 
 type Pair = { fg: ColorToken; bg: ColorToken; min: number; why: string };
@@ -90,6 +96,8 @@ export const contrastPairs: readonly Pair[] = [
       why: "control outlines",
     },
     { fg: "focus" as const, bg, min: AA.nonText, why: "focus ring" },
+    { fg: "chart-1" as const, bg, min: AA.nonText, why: "chart marks" },
+    { fg: "chart-2" as const, bg, min: AA.nonText, why: "chart marks" },
   ]),
   { fg: "on-brand", bg: "brand", min: AA.text, why: "primary buttons" },
   { fg: "on-accent", bg: "accent", min: AA.text, why: "accent buttons" },

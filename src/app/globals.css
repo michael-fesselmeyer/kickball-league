@@ -43,6 +43,8 @@
   --danger: #b3261e;
   --info: #1f5fbf;
   --focus: #1f3a8a;
+  --chart-1: #2a78d6;
+  --chart-2: #d4561f;
 }
 
 /* tokens:dark */
@@ -65,6 +67,8 @@
   --danger: #ff7a6e;
   --info: #7fb0ff;
   --focus: #ffc93c;
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
 }
 
 /* The system dark setting repeats the dark values (CSS cannot share a block
@@ -90,6 +94,8 @@
     --danger: #ff7a6e;
     --info: #7fb0ff;
     --focus: #ffc93c;
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
   }
 }
 
@@ -124,6 +130,8 @@
   --color-danger: var(--danger);
   --color-info: var(--info);
   --color-focus: var(--focus);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
   --color-transparent: transparent;
   --color-current: currentColor;
 
