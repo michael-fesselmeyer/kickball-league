@@ -32,6 +32,7 @@ describe("MESSAGE_KINDS", () => {
       "giveaway_win",
       "instagram_reconnect",
       "instagram_storage_full",
+      "merch_update",
       "new_team",
       "rebate_credit",
       "referral_credit",

@@ -1,6 +1,7 @@
 import { and, eq, exists, sql } from "drizzle-orm";
 import type {
   EventId,
+  MerchOrderId,
   PaymentId,
   RefundId,
   SeasonId,
@@ -9,6 +10,7 @@ import type {
 import { type RefundError, refundAmount } from "@/domain/registration/refund";
 import { err, ok, type Result } from "@/domain/result";
 import { eventTicket } from "../schema/event";
+import { merchOrder } from "../schema/merch";
 import { payment, purchase, refund } from "../schema/money";
 import { recordAudit } from "./audit";
 import { refreshRefundStatus } from "./payments";
@@ -44,6 +46,8 @@ export async function startRefund(
     | { seasonId: SeasonId }
     /** A payment for a ticket to this event. */
     | { eventId: EventId }
+    /** The payment for this merch order. */
+    | { merchOrderId: MerchOrderId }
   ) & {
     paymentId: PaymentId;
     amount: unknown;
@@ -54,17 +58,29 @@ export async function startRefund(
   const scope =
     "seasonId" in input
       ? eq(purchase.seasonId, input.seasonId)
-      : exists(
-          db
-            .select({ id: eventTicket.id })
-            .from(eventTicket)
-            .where(
-              and(
-                eq(eventTicket.purchaseId, purchase.id),
-                eq(eventTicket.eventId, input.eventId),
+      : "merchOrderId" in input
+        ? exists(
+            db
+              .select({ id: merchOrder.id })
+              .from(merchOrder)
+              .where(
+                and(
+                  eq(merchOrder.purchaseId, purchase.id),
+                  eq(merchOrder.id, input.merchOrderId),
+                ),
               ),
-            ),
-        );
+          )
+        : exists(
+            db
+              .select({ id: eventTicket.id })
+              .from(eventTicket)
+              .where(
+                and(
+                  eq(eventTicket.purchaseId, purchase.id),
+                  eq(eventTicket.eventId, input.eventId),
+                ),
+              ),
+          );
   const [found] = await db
     .select({
       id: payment.id,

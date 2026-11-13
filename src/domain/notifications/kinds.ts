@@ -66,6 +66,14 @@ export const MESSAGE_KINDS = {
     urgency: "non_urgent",
     label: "For admins: Instagram photo storage is full",
   },
+  merch_receipt: {
+    urgency: "urgent",
+    label: "Your receipt for an order from the league shop",
+  },
+  merch_update: {
+    urgency: "non_urgent",
+    label: "Your league shop order is ready, or was refunded",
+  },
   new_team: {
     urgency: "non_urgent",
     label: "Answers to new-team requests",

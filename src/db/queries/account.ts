@@ -10,6 +10,7 @@ import { account, passkey, session, user, verification } from "../schema/auth";
 import { giveaway, giveawayEntry } from "../schema/drive";
 import { event, eventRsvp, eventTicket } from "../schema/event";
 import { gameLineup, gameLineupSpot } from "../schema/lineup";
+import { merchItem, merchOrder } from "../schema/merch";
 import {
   gameRsvp,
   offlineReceipt,
@@ -54,6 +55,8 @@ import {
   myKeepOffEntries,
   removeKeepOffsFor,
 } from "./keep-off";
+import { heldMerchPurchases } from "./merch";
+import { expirePurchases } from "./payments";
 import { creditHistory } from "./credit";
 import { myGiveawayWins } from "./giveaways";
 import { myReferrals } from "./referrals";
@@ -299,6 +302,21 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .from(eventTicket)
     .where(eq(eventTicket.userId, userId))
     .orderBy(asc(eventTicket.createdAt));
+  const merchOrders = await db
+    .select({
+      item: merchItem.name,
+      size: merchOrder.size,
+      quantity: merchOrder.quantity,
+      team: merchOrder.teamName,
+      status: merchOrder.status,
+      unitPriceCents: merchOrder.unitPriceCents,
+      createdAt: merchOrder.createdAt,
+      fulfilledAt: merchOrder.fulfilledAt,
+    })
+    .from(merchOrder)
+    .innerJoin(merchItem, eq(merchItem.id, merchOrder.itemId))
+    .where(eq(merchOrder.userId, userId))
+    .orderBy(asc(merchOrder.createdAt));
   const scoresReported = await db
     .select({
       gameId: scoreReport.gameId,
@@ -539,6 +557,7 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     kickingOrder,
     eventRsvps,
     eventTickets,
+    merchOrders,
     scoresReported,
     scoreAnswers,
     refereeAssignments: refereeing,
@@ -729,6 +748,9 @@ export async function deleteAccount(
   for (const { eventId } of rsvpd)
     await leaveEvent(db, { eventId, userId, now, giveUpTicket: true });
   await db.delete(eventRsvp).where(eq(eventRsvp.userId, userId));
+  // Merch stock held for an open checkout goes back; paid orders stay, as
+  // records of money paid, and the league still hands them out.
+  await expirePurchases(db, await heldMerchPurchases(db, userId), now);
   // Votes in polls still open come out of the count; closed totals stay.
   await db
     .delete(awardVote)
