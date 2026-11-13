@@ -8,6 +8,8 @@
     { "path": "/api/jobs/guarantee-charges", "schedule": "0 15 * * *" },
     { "path": "/api/jobs/waitlist-offers", "schedule": "0 16 * * *" },
     { "path": "/api/jobs/missing-scores", "schedule": "0 4 * * *" },
-    { "path": "/api/jobs/rain-alerts", "schedule": "0 22 * * *" }
+    { "path": "/api/jobs/rain-alerts", "schedule": "0 22 * * *" },
+    { "path": "/api/jobs/instagram-sync", "schedule": "0 11 * * *" },
+    { "path": "/api/jobs/instagram-token", "schedule": "0 12 * * 1" }
   ]
 }
