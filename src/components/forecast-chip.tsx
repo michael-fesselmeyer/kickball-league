@@ -3,6 +3,7 @@ import {
   gameForecast,
   WATCH_AT,
 } from "@/domain/weather/forecast";
+import { featureEnabled } from "@/lib/platform/site";
 import { cachedForecast } from "@/lib/weather";
 
 const icon = (f: GameForecast) =>
@@ -48,6 +49,7 @@ export async function ForecastChip({
   startsAt: Date;
   endsAt: Date;
 }) {
+  if (!(await featureEnabled("weather"))) return null;
   const hours = await cachedForecast(lat, lng);
   const forecast = hours ? gameForecast(hours, { startsAt, endsAt }) : null;
   return forecast ? <ForecastChipView forecast={forecast} /> : null;

@@ -27,6 +27,7 @@ import {
   decideClaimAction,
   postSubRequestAction,
 } from "./actions";
+import { requireFeature } from "@/lib/platform/site";
 
 export const metadata: Metadata = { title: "Find subs" };
 
@@ -170,6 +171,7 @@ async function TeamSubs({
   params,
   searchParams,
 }: PageProps<"/app/seasons/[season]/team/subs">) {
+  await requireFeature("subs");
   const { season: slug } = await params;
   const query = await searchParams;
   const page = `/app/seasons/${slug}/team/subs`;

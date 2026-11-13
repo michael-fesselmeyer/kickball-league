@@ -6,6 +6,7 @@ import { type OpenRequest, subRequestsFor } from "@/db/queries/subs";
 import { describeSpots } from "@/domain/subs/eligibility";
 import { requirePermission } from "@/lib/auth/permission";
 import { claimAction, withdrawAction } from "./actions";
+import { requireFeature } from "@/lib/platform/site";
 
 export const metadata: Metadata = { title: "Sub for a team" };
 
@@ -115,6 +116,7 @@ function RequestCard({ r }: { r: OpenRequest }) {
 }
 
 async function Subs({ searchParams }: PageProps<"/app/subs">) {
+  await requireFeature("subs");
   const query = await searchParams;
   const subject = await requirePermission("registration.join", {
     next: "/app/subs",
