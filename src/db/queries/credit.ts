@@ -37,6 +37,37 @@ export async function lockCredit(db: Db, userId: UserId): Promise<void> {
     .for("update");
 }
 
+/**
+ * Gives league credit spent on a paid purchase back to its buyer, once, as
+ * a `released` row: a refunded ticket or merch order. Returns how much.
+ */
+export async function returnSpentCredit(
+  db: Db,
+  purchaseId: PurchaseId,
+): Promise<number> {
+  const [spent] = await db
+    .select({ userId: creditEntry.userId, cents: creditEntry.deltaCents })
+    .from(creditEntry)
+    .where(
+      and(
+        eq(creditEntry.purchaseId, purchaseId),
+        eq(creditEntry.reason, "spent"),
+      ),
+    );
+  if (!spent) return 0;
+  const [given] = await db
+    .insert(creditEntry)
+    .values({
+      userId: spent.userId,
+      deltaCents: -spent.cents,
+      reason: "released",
+      purchaseId,
+    })
+    .onConflictDoNothing()
+    .returning({ cents: creditEntry.deltaCents });
+  return given?.cents ?? 0;
+}
+
 /** Records credit used at checkout. Call after lockCredit, in one transaction. */
 export async function spendCredit(
   db: Db,

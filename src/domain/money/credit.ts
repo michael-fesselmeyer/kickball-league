@@ -1,3 +1,4 @@
+import { formatCents } from "../registration/pricing";
 import { CARD_MINIMUM_CENTS } from "../registration/promo";
 import { err, ok, type Result } from "../result";
 
@@ -94,4 +95,18 @@ export function formatMoment(instant: Date, timeZone: string): string {
     minute: "2-digit",
     timeZone,
   }).format(instant);
+}
+
+/** "$15 on your card and $5 of league credit"; undefined when both are 0. */
+export function moneyLine(
+  cardCents: number,
+  creditCents: number,
+  card: string,
+  credit: string,
+): string | undefined {
+  const parts = [
+    ...(cardCents > 0 ? [`${formatCents(cardCents)} ${card}`] : []),
+    ...(creditCents > 0 ? [`${formatCents(creditCents)} ${credit}`] : []),
+  ];
+  return parts.length > 0 ? parts.join(" and ") : undefined;
 }
