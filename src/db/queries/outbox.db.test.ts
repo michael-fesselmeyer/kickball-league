@@ -27,7 +27,7 @@ const NOW = new Date("2026-09-14T12:00:00Z");
 const later = (minutes: number) => new Date(NOW.getTime() + minutes * 60_000);
 
 const render: Renderer = (template, payload) =>
-  template === "hello"
+  template === "sub_update"
     ? ok({
         subject: `Hello ${String(payload.name)}`,
         html: "<p>Hi</p>",
@@ -63,7 +63,7 @@ const hello = (
 ): OutboxMessage => ({
   userId,
   topic: "announcement",
-  template: "hello",
+  template: "sub_update",
   payload: { name: "Pat" },
   dedupeKey: key,
   sendAfter,
@@ -196,7 +196,7 @@ describe("drainOutbox", () => {
     await inRolledBackDb(async (db) => {
       const pat = await person(db);
       await enqueueMessages(db, [
-        { ...hello(pat, "broken"), template: "missing" },
+        { ...hello(pat, "broken"), template: "rain_alert" },
       ]);
       const { sent, send } = recorder();
       expect(await drainOutbox(db, { send, render, now: NOW })).toMatchObject({
@@ -205,7 +205,7 @@ describe("drainOutbox", () => {
       expect(sent).toHaveLength(0);
       expect((await rowsOf(db, pat))[0]).toMatchObject({
         status: "failed",
-        lastError: "Unknown template missing",
+        lastError: "Unknown template rain_alert",
       });
     });
   });

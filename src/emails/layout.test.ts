@@ -30,7 +30,7 @@ describe("renderEmail", () => {
       "Open: https://league.example.test/app/seasons/fall",
     );
     expect(email.text).toContain(
-      "Choose which emails you get: https://league.example.test/app/profile#notifications",
+      "Choose which emails you get and when: https://league.example.test/app/profile#notifications",
     );
   });
 
@@ -45,5 +45,43 @@ describe("renderEmail", () => {
 
   it("keeps the subject as plain text", () => {
     expect(email.subject).toBe("Hi <team>");
+  });
+
+  it("gives the phone notification the same reason, as its own line", () => {
+    expect(email.push).toEqual({
+      title: "Bring <snacks>",
+      body: "Line one line two",
+      path: "/app/seasons/fall",
+      reason: "Because you play on Kick Assets.",
+    });
+  });
+
+  it("lists linked items and can point at its own setting", () => {
+    const digest = renderEmail(
+      {
+        subject: "News",
+        heading: "News",
+        paragraphs: ["Two things."],
+        items: [
+          { title: "Field <3>", text: "Moved.", path: "/news/a" },
+          { title: "Bye week", text: "", path: "/news/b" },
+        ],
+        reason: "you asked for a digest",
+        settings: {
+          label: "Change your digest",
+          path: "/app/profile#alert-limits",
+        },
+      },
+      site,
+    );
+    expect(digest.html).toContain(
+      '<a href="https://league.example.test/news/a" style="color:#1d1b18;font-weight:700">Field &lt;3&gt;</a><br>Moved.',
+    );
+    expect(digest.text).toContain(
+      "- Bye week\n  https://league.example.test/news/b",
+    );
+    expect(digest.text).toContain(
+      "Change your digest: https://league.example.test/app/profile#alert-limits",
+    );
   });
 });

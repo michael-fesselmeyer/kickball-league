@@ -1,5 +1,16 @@
-import { and, eq, inArray, lte, or, sql } from "drizzle-orm";
+import { and, count, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
 import type { MessageId, UserId } from "@/domain/ids";
+import {
+  deliveryClassOf,
+  type MessageKind,
+  NON_URGENT_KINDS,
+} from "@/domain/notifications/kinds";
+import {
+  type AlertLimits,
+  DEFAULT_LIMITS,
+  decide,
+  startOfLocalDay,
+} from "@/domain/notifications/limits";
 import {
   type Choice,
   isPushTopic,
@@ -13,6 +24,7 @@ import type { EmailSender } from "@/services/email";
 import type { PushSender } from "@/services/push";
 import { user } from "../schema/auth";
 import {
+  alertSetting,
   message,
   type NewMessage,
   notificationPreference,
@@ -35,14 +47,11 @@ import type { Db } from "./schedule";
 
 export type OutboxMessage = Pick<
   NewMessage,
-  | "userId"
-  | "topic"
-  | "template"
-  | "payload"
-  | "dedupeKey"
-  | "sendAfter"
-  | "announcementId"
->;
+  "userId" | "topic" | "payload" | "dedupeKey" | "sendAfter" | "announcementId"
+> & {
+  /** Its kind says whether it is urgent (src/domain/notifications/kinds.ts). */
+  template: MessageKind;
+};
 
 /**
  * Queues messages. A message whose dedupe key is already in the outbox is
@@ -126,6 +135,8 @@ export type PushContent = {
   body: string;
   /** The page a tap opens, on this site. */
   path: string;
+  /** "Because you play in this game.": why the person got it. */
+  reason?: string;
 };
 
 export type Rendered = {
@@ -224,6 +235,10 @@ export type DrainResult = {
   failed: number;
   /** Not sent on purpose: the person turned it off, or has no device left. */
   suppressed: number;
+  /** Non-urgent, queued again for when the person's quiet hours end. */
+  waiting: number;
+  /** Non-urgent and over the person's daily cap: held for their digest. */
+  held: number;
 };
 
 export const emptyDrain = (): DrainResult => ({
@@ -231,7 +246,66 @@ export const emptyDrain = (): DrainResult => ({
   retrying: 0,
   failed: 0,
   suppressed: 0,
+  waiting: 0,
+  held: 0,
 });
+
+/** The league's time zone when the caller does not name one. */
+export const DEFAULT_TIME_ZONE = "America/New_York";
+
+/** Each person's alert limits; people without a saved row get the defaults. */
+export async function alertLimitsOf(
+  db: Db,
+  userIds: readonly UserId[],
+): Promise<Map<UserId, AlertLimits>> {
+  const limits = new Map<UserId, AlertLimits>(
+    userIds.map((id) => [id, DEFAULT_LIMITS]),
+  );
+  if (userIds.length === 0) return limits;
+  const rows = await db
+    .select()
+    .from(alertSetting)
+    .where(inArray(alertSetting.userId, [...userIds]));
+  for (const row of rows)
+    limits.set(row.userId, {
+      dailyCap: row.dailyCap,
+      digest: row.digest,
+      quietHours:
+        row.quietStartHour === null || row.quietEndHour === null
+          ? null
+          : { startHour: row.quietStartHour, endHour: row.quietEndHour },
+    });
+  return limits;
+}
+
+/**
+ * How many non-urgent messages each person has been sent since local
+ * midnight, per channel, as `<userId>/<channel>`. One query for the batch.
+ */
+async function sentTodayOf(
+  db: Db,
+  userIds: readonly UserId[],
+  now: Date,
+  timeZone: string,
+): Promise<Map<string, number>> {
+  const rows = await db
+    .select({
+      userId: message.userId,
+      channel: message.channel,
+      sent: count(),
+    })
+    .from(message)
+    .where(
+      and(
+        inArray(message.userId, [...userIds]),
+        eq(message.status, "sent"),
+        gte(message.sentAt, startOfLocalDay(now, timeZone)),
+        inArray(message.template, [...NON_URGENT_KINDS]),
+      ),
+    )
+    .groupBy(message.userId, message.channel);
+  return new Map(rows.map((r) => [`${r.userId}/${r.channel}`, r.sent]));
+}
 
 /** Records a failed attempt: a retry after backoff, or failed for good. */
 async function retryOrFail(
@@ -256,6 +330,13 @@ async function retryOrFail(
  *
  * Without an email sender only push rows are claimed, and email waits.
  * Without a push sender, push rows are suppressed (`push_off`).
+ *
+ * Each wanted message then goes through the person's alert limits
+ * (src/domain/notifications/limits.ts) in the league's time zone: urgent
+ * ones are sent (a push silently in quiet hours), and non-urgent ones are
+ * sent, queued again for the end of quiet hours, or held for the digest
+ * once the day's cap is reached. Waiting and holding give the claim's
+ * attempt back, since nothing was tried.
  */
 export async function drainOutbox(
   db: Db,
@@ -264,12 +345,14 @@ export async function drainOutbox(
     push = null,
     render,
     now,
+    timeZone = DEFAULT_TIME_ZONE,
     limit = 50,
   }: {
     send: EmailSender | null;
     push?: PushSender | null;
     render: Renderer;
     now: Date;
+    timeZone?: string;
     limit?: number;
   },
 ): Promise<DrainResult> {
@@ -322,19 +405,16 @@ export async function drainOutbox(
           .where(inArray(pushSubscription.userId, pushUsers))
       : [];
 
+  const limits = await alertLimitsOf(db, userIds);
+  const sentToday = claimed.some(
+    (m) => deliveryClassOf(m.template) === "non_urgent",
+  )
+    ? await sentTodayOf(db, userIds, now, timeZone)
+    : new Map<string, number>();
+
   for (const m of claimed) {
-    if (m.channel === "push") {
-      await deliverPush(db, m, {
-        wanted: wantsPush(choicesOf(m.userId, "push"), m.topic),
-        push,
-        render,
-        devices: devices.filter((d) => d.userId === m.userId),
-        now,
-        result,
-      });
-      continue;
-    }
-    if (m.channel !== "email" || !send) {
+    const channel = m.channel;
+    if (channel === "sms" || (channel === "email" && !send)) {
       // Nothing sends this channel yet; it is not claimed in practice.
       await settle(db, m, {
         status: "suppressed",
@@ -343,7 +423,11 @@ export async function drainOutbox(
       result.suppressed++;
       continue;
     }
-    if (!wantsEmail(choicesOf(m.userId, "email"), m.topic)) {
+    const wanted =
+      channel === "push"
+        ? wantsPush(choicesOf(m.userId, "push"), m.topic)
+        : wantsEmail(choicesOf(m.userId, "email"), m.topic);
+    if (!wanted) {
       await settle(db, m, {
         status: "suppressed",
         suppressReason: "opted_out",
@@ -351,39 +435,104 @@ export async function drainOutbox(
       result.suppressed++;
       continue;
     }
-    const rendered = render(m.template, m.payload);
-    const to = emailOf.get(m.userId);
-    if (!rendered.ok || !to) {
-      // Retrying cannot fix a message that cannot be built.
-      await settle(db, m, {
-        status: "failed",
-        lastError: rendered.ok ? "No email address" : rendered.error,
-      });
-      result.failed++;
-      continue;
-    }
-    const { subject, html, text } = rendered.value;
-    const sent = await send({
-      to,
-      subject,
-      html,
-      text,
-      idempotencyKey: `message/${m.id}`,
+    const kind = deliveryClassOf(m.template);
+    const counted = `${m.userId}/${channel}`;
+    const decision = decide({
+      class: kind,
+      channel,
+      now,
+      timeZone,
+      limits: limits.get(m.userId) ?? DEFAULT_LIMITS,
+      sentToday: sentToday.get(counted) ?? 0,
     });
-    if (sent.ok) {
+    if (decision.action !== "send") {
       await settle(db, m, {
-        status: "sent",
-        providerMessageId: sent.value.id,
-        sentAt: now,
-        lastError: null,
+        status: decision.action === "wait" ? "queued" : "held",
+        sendAfter: decision.until,
+        attempts: m.attempts - 1,
       });
-      result.sent++;
+      if (decision.action === "wait") result.waiting++;
+      else result.held++;
       continue;
     }
-    await retryOrFail(db, m, sent.error, now, result);
+    const delivered =
+      channel === "push"
+        ? await deliverPush(db, m, {
+            push,
+            render,
+            devices: devices.filter((d) => d.userId === m.userId),
+            silent: decision.silent,
+            urgent: kind === "urgent",
+            now,
+            result,
+          })
+        : send
+          ? await deliverEmail(db, m, {
+              send,
+              render,
+              to: emailOf.get(m.userId),
+              now,
+              result,
+            })
+          : false;
+    if (delivered && kind === "non_urgent")
+      sentToday.set(counted, (sentToday.get(counted) ?? 0) + 1);
   }
   return result;
 }
+
+/** Sends one email. True when the provider accepted it. */
+async function deliverEmail(
+  db: Db,
+  m: ClaimedMessage,
+  {
+    send,
+    render,
+    to,
+    now,
+    result,
+  }: {
+    send: EmailSender;
+    render: Renderer;
+    to: string | undefined;
+    now: Date;
+    result: DrainResult;
+  },
+): Promise<boolean> {
+  const rendered = render(m.template, m.payload);
+  if (!rendered.ok || !to) {
+    // Retrying cannot fix a message that cannot be built.
+    await settle(db, m, {
+      status: "failed",
+      lastError: rendered.ok ? "No email address" : rendered.error,
+    });
+    result.failed++;
+    return false;
+  }
+  const { subject, html, text } = rendered.value;
+  const sent = await send({
+    to,
+    subject,
+    html,
+    text,
+    idempotencyKey: `message/${m.id}`,
+  });
+  if (sent.ok) {
+    await settle(db, m, {
+      status: "sent",
+      providerMessageId: sent.value.id,
+      sentAt: now,
+      lastError: null,
+    });
+    result.sent++;
+    return true;
+  }
+  await retryOrFail(db, m, sent.error, now, result);
+  return false;
+}
+
+/** Where a push's "Change alerts" button goes: the push settings. */
+export const PUSH_SETTINGS_PATH = "/app/profile#push";
 
 /** How long a push service keeps trying an offline phone. */
 const PUSH_TTL_SECONDS = 24 * 60 * 60;
@@ -394,20 +543,20 @@ const PUSH_TTL_SECONDS = 24 * 60 * 60;
  * 410) is deleted; suppressed when no device is left; retried when every
  * device failed for another reason. A retry goes to every device again, so
  * the push topic (the message id) and the notification tag make a repeat
- * replace the first copy instead of showing twice.
+ * replace the first copy instead of showing twice. True when sent.
  */
 async function deliverPush(
   db: Db,
   m: ClaimedMessage,
   {
-    wanted,
     push,
     render,
     devices,
+    silent,
+    urgent,
     now,
     result,
   }: {
-    wanted: boolean;
     push: PushSender | null;
     render: Renderer;
     devices: {
@@ -416,22 +565,25 @@ async function deliverPush(
       p256dh: string;
       auth: string;
     }[];
+    /** Quiet hours: show it without sound or vibration. */
+    silent: boolean;
+    urgent: boolean;
     now: Date;
     result: DrainResult;
   },
-): Promise<void> {
+): Promise<boolean> {
   const suppress = async (reason: string) => {
     await settle(db, m, { status: "suppressed", suppressReason: reason });
     result.suppressed++;
+    return false;
   };
-  if (!wanted) return suppress("opted_out");
   if (!push) return suppress("push_off");
   if (devices.length === 0) return suppress("no_device");
   const rendered = render(m.template, m.payload);
   if (!rendered.ok) {
     await settle(db, m, { status: "failed", lastError: rendered.error });
     result.failed++;
-    return;
+    return false;
   }
   const content = rendered.value.push ?? {
     title: rendered.value.subject,
@@ -439,7 +591,12 @@ async function deliverPush(
     path: "/app",
   };
   const tag = m.id.replaceAll("-", "");
-  const notification = { ...content, tag };
+  const notification = {
+    ...content,
+    tag,
+    silent,
+    settingsPath: PUSH_SETTINGS_PATH,
+  };
   const errors: string[] = [];
   const gone: (typeof devices)[number]["id"][] = [];
   const delivered: (typeof devices)[number]["id"][] = [];
@@ -448,7 +605,7 @@ async function deliverPush(
     const outcome = await push(device, notification, {
       topic: tag,
       ttl: PUSH_TTL_SECONDS,
-      urgency: m.topic === "rainout" ? "high" : "normal",
+      urgency: urgent ? "high" : "normal",
     });
     if (outcome.ok) {
       delivered.push(device.id);
@@ -470,8 +627,9 @@ async function deliverPush(
       lastError: null,
     });
     result.sent++;
-    return;
+    return true;
   }
   if (errors.length === 0) return suppress("no_device");
   await retryOrFail(db, m, errors.join("; "), now, result);
+  return false;
 }

@@ -56,7 +56,10 @@ describe("queueScoreReminders", () => {
       );
 
       const { sent, send } = recorder();
+      // 11 pm in New York is quiet hours: the reminders wait until 8 am.
       await drainOutbox(db, { send, render, now: after(180) });
+      expect(sent).toEqual([]);
+      await drainOutbox(db, { send, render, now: after(12 * 60) });
       expect(sent.map((e) => e.to).sort()).toEqual(
         [ref.email, w.aces.captain.email, w.bees.captain.email].sort(),
       );
