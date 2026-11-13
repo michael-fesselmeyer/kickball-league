@@ -253,6 +253,7 @@ erDiagram
   game ||--o{ score_report : receives
   game ||--o{ score_confirmation : needs
   game ||--o{ game_period : "scored by"
+  game ||--o{ offline_receipt : "sent offline"
   game ||--o{ game_rsvp : collects
   game ||--o{ game_lineup : "kicks in"
   game_lineup ||--o{ game_lineup_spot : holds
@@ -399,6 +400,15 @@ erDiagram
     uuid user_id FK
     bool pickup "an approved sub, who kicks last"
   }
+  offline_receipt {
+    uuid key PK "made on the phone"
+    uuid user_id FK "who saved it"
+    uuid game_id FK
+    enum kind "score, half, end"
+    jsonb result "the answer the phone got"
+    timestamptz entered_at "by the phone's clock"
+    timestamptz received_at
+  }
   game_rsvp {
     uuid id PK
     uuid game_id FK
@@ -481,6 +491,7 @@ Notes:
 - Team A and team B are neutral names because home and away are decided at the field.
 - `game_period` is named for periods, not innings, so a second sport can reuse it. It holds live scoring ([ADR 0011](adr/0011-live-scores-by-polling.md)): one row per half-inning, entered in order and corrected in place. The line score and the score at the last complete inning are worked out from these rows, never stored. Which team kicks in the top half is on the game (`kicks_first`, one of its two teams), set when live scoring starts. The final score still comes from a `score_report`, so a game scored live is confirmed like any other.
 - Kicking orders ([ADR 0030](adr/0030-kicking-order-sides.md)): a team has at most one `game_lineup` per game, and saving again replaces its `game_lineup_spot` rows in one transaction. Only players who said they're in, and approved pickups, can be saved into it. Players' lineup genders are never copied into it; they are read from `profile` (or `sub_claim` for a pickup) when the team's captains open the builder. `run_breaks` records how many runs of more than two of one side the order had when saved, so the ref and the other captain see that the order breaks the rule without seeing anyone's side. A saved order is never blocked for breaking the rule.
+- `offline_receipt` holds one row per score entry made on a phone with no signal and sent later ([ADR 0025](adr/0025-offline-scores-keep-the-servers-version.md)): a final score (`score`), a half-inning (`half`) or ending a live-scored game (`end`). It is written before the entry is applied, in the same transaction, and keeps the answer the phone got, so a resend of the same key gets that answer again and changes nothing. A final score from the phone also uses the key as its report's `client_id`. Rows go with their game or their person.
 - Standings are computed from `game` rows on demand and cached (see [architecture.md](architecture.md)). There is no standings table to drift out of date.
 - A playoff `game` (`kind = playoff`, `round_no` null) exists only once both its teams are known, so a game never has an empty side. Until then its `bracket_match` holds the slot the bracket placement reserved, and that slot's kind becomes `playoff` so rain-out makeups and new regular-season schedules leave it alone. Divisions, when they arrive, add a `division_id` to `bracket`.
 - Schedule versions keep playoff placements apart from the round robin: the round-robin rules never judge a bracket, and a version made from another (an edit or a rain-out) carries the parent's playoff placements over. When a result fills both sides of the next match, its game is created and a new `playoffs` version with it is published by the league itself (`published_by` null).
@@ -1112,6 +1123,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `event_audience_team` | primary key `(event_id, team_id)` | A team is listed once per event |
 | `event_rsvp` | unique `(event_id, user_id)` | One RSVP per person per event |
 | `game_period` | unique `(game_id, period_no, half)` | One row per half-inning |
+| `offline_receipt` | primary key `key`; index `game_id` | Each offline entry is taken once |
 | `game_period` | check `period_no` between 1 and 20; check `runs` between 0 and 99 | Innings and runs stay in range |
 | `game_lineup` | unique `(game_id, team_season_id)`; check `run_breaks` ≥ 0 | One kicking order per team per game |
 | `game_lineup_spot` | unique `(lineup_id, position)`; unique `(lineup_id, user_id)`; check `position` between 1 and 40 | Each spot once, each kicker once |
