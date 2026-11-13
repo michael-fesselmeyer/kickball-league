@@ -2,6 +2,7 @@ export * from "./audit";
 export * from "./auth";
 export * from "./awards";
 export * from "./credit";
+export * from "./discipline";
 export * from "./event";
 export * from "./formation";
 export * from "./free-agent";

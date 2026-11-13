@@ -37,6 +37,7 @@ export const messageTopic = pgEnum("message_topic", [
   "events",
   "marketing",
   "new_team",
+  "discipline",
 ]);
 
 /** Email and web push today; text arrives later behind the same outbox. */
