@@ -4,7 +4,7 @@ import { err, ok, type Result } from "@/domain/result";
 import { auditLog } from "../schema/audit";
 import { awardPoll, awardVote } from "../schema/awards";
 import { freeAgentProfile } from "../schema/free-agent";
-import { account, session, user, verification } from "../schema/auth";
+import { account, passkey, session, user, verification } from "../schema/auth";
 import { eventRsvp } from "../schema/event";
 import {
   gameRsvp,
@@ -101,6 +101,17 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .from(account)
     .where(eq(account.userId, userId))
     .orderBy(asc(account.createdAt));
+
+  const passkeys = await db
+    .select({
+      name: passkey.name,
+      deviceType: passkey.deviceType,
+      backedUp: passkey.backedUp,
+      createdAt: passkey.createdAt,
+    })
+    .from(passkey)
+    .where(eq(passkey.userId, userId))
+    .orderBy(asc(passkey.createdAt));
 
   const sessions = await db
     .select({
@@ -389,6 +400,7 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     },
     profile: me ?? null,
     signInMethods,
+    passkeys,
     sessions,
     registrations: registrations.map((r) => ({
       ...without(r, "id"),
@@ -490,8 +502,8 @@ export type DeleteError = "not_found" | DeleteBlocker["reason"];
  * section 4). Call it inside a transaction.
  *
  * Removed: the profile (name, phone, gender, shirt size, birth date,
- * emergency contact), every session and sign-in method, pending sign-in
- * links, game and event RSVPs (a freed event spot goes to the waitlist),
+ * emergency contact), every session, passkey and sign-in method, pending
+ * sign-in links, game and event RSVPs (a freed event spot goes to the waitlist),
  * email and push settings, push devices and messages, and their address on
  * invites.
  * Sub claims for games still to come are withdrawn, which reopens the spot
@@ -550,6 +562,7 @@ export async function deleteAccount(
 
   await db.delete(session).where(eq(session.userId, userId));
   await db.delete(account).where(eq(account.userId, userId));
+  await db.delete(passkey).where(eq(passkey.userId, userId));
   // Unused sign-in links name the address in their stored value.
   await db
     .delete(verification)
