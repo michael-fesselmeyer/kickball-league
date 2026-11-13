@@ -69,6 +69,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 - Public schedule, team and game pages. Anyone can see the season schedule (filter by team), each team's record, next game, results and roster (first name and last initial), and each game's time, field and score. Pages read only the published schedule version, never a draft.
 - A playoff bracket page that draws winners' lines as it loads (still under reduced motion), with a plain list view of the same bracket.
+- Motion that explains what changed: a game card grows into the game page's scoreboard and folds back into the schedule, a team's badge moves into its page header, run totals roll like a scoreboard during a live game, the winning total gets a burst of gold when the result comes in, and home sections rise into place as they scroll in. All of it is CSS and the browser's View Transitions API, and all of it is off under reduced motion.
 - Team calendar feeds: every team has an `.ics` feed that Apple Calendar, Google Calendar and Outlook can subscribe to. Moved or rained-out games update in place.
 - Home, About, FAQ and a park page, with a generated sitemap, robots file and structured data for the league, teams and games.
 - Search landing pages: a city-wide page with subway routes and rough travel times from every borough, a free-agent page that explains joining without a team, and a "how to play kickball" guide. Each carries its own metadata and structured data (league, FAQ and article) and is linked from the home page and the sitemap.
