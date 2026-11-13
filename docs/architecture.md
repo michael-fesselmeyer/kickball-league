@@ -247,6 +247,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `event_news` | non-urgent | Event announcements, and changes or cancellations more than a day ahead |
 | `event_notice` | urgent | An event spot that opened for you, or an event cancelled or moved within a day of its start |
 | `event_ticket` | urgent | Your event ticket's receipt or refund, or an event spot held for you to buy by a deadline |
+| `giveaway_win` | non-urgent | A giveaway you won at a league event |
 | `guarantee_failed` | urgent | A captain's card guarantee that could not be charged |
 | `guarantee_warning` | urgent | A warning before a captain's card guarantee is charged |
 | `instagram_reconnect` | non-urgent | For admins: the Instagram connection needs reconnecting |
