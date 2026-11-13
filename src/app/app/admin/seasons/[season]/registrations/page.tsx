@@ -4,14 +4,21 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import {
+  type BoardPayment,
   type BoardPerson,
   registrationsBoard,
 } from "@/db/queries/registrations-admin";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { can } from "@/domain/authz/permissions";
 import { formatCents } from "@/domain/registration/pricing";
+import { refundableCents } from "@/domain/registration/refund";
 import { requirePermission } from "@/lib/auth/permission";
 import { RECORD_PAYMENT_MESSAGES } from "@/app/app/seasons/[season]/record-payment";
-import { placeFreeAgentAction, recordPaymentAction } from "./actions";
+import {
+  placeFreeAgentAction,
+  recordPaymentAction,
+  refundPaymentAction,
+} from "./actions";
 
 export const metadata: Metadata = { title: "Registrations" };
 
@@ -32,9 +39,20 @@ const ERRORS: Record<string, string> = {
   unknown_team: "Pick one of this season's teams.",
   already_on_team: "That player is already on a team.",
   full: "That team's roster is full.",
+  unknown_payment: "That payment is gone.",
+  bad_amount:
+    "Enter the refund in dollars, such as 20 or 12.50, or leave it blank to refund everything left.",
+  too_much: "That is more than is left to refund on this payment.",
+  nothing_left: "This payment has already been refunded in full.",
+  refund_failed:
+    "Stripe did not take the refund. Nothing was refunded; try again in a minute.",
+  payments_off:
+    "Online payments are not set up, so Stripe refunds cannot be sent.",
 };
 const NOTICES: Record<string, string> = {
   payment_recorded: "Payment recorded. They're paid up.",
+  refund_sent: "Refund sent to Stripe. It shows here once Stripe confirms it.",
+  refund_recorded: "Refund recorded.",
   placed: "Free agent placed on the team.",
 };
 const ROLE: Record<string, string> = {
@@ -100,6 +118,68 @@ function RecordPayment({
   );
 }
 
+/** What went back on a payment: refunded, partly, or waiting on Stripe. */
+function RefundState({ payment }: { payment: BoardPayment }) {
+  const { amountCents, refundedCents, requestedCents } = payment;
+  const pending = requestedCents - refundedCents;
+  return (
+    <>
+      {refundedCents > 0 && (
+        <span className="block text-small text-text-muted">
+          {refundedCents >= amountCents
+            ? `Refunded ${formatCents(refundedCents)}`
+            : `Refunded ${formatCents(refundedCents)} of ${formatCents(amountCents)}`}
+        </span>
+      )}
+      {pending > 0 && (
+        <span className="block text-small text-text-muted">
+          Refund of {formatCents(pending)} pending
+        </span>
+      )}
+    </>
+  );
+}
+
+/** Full or partial refund of each payment that has money left on it. */
+function Refund({ slug, person }: { slug: string; person: BoardPerson }) {
+  const open = person.payments.flatMap((p) => {
+    const left = refundableCents(
+      p.amountCents,
+      Math.max(p.refundedCents, p.requestedCents),
+    );
+    return left > 0 ? [{ ...p, left }] : [];
+  });
+  return open.map((p) => (
+    <details key={p.paymentId}>
+      <summary className="cursor-pointer underline">
+        Refund {person.name}
+      </summary>
+      <form
+        action={refundPaymentAction.bind(null, slug, p.paymentId)}
+        className="mt-2 flex flex-wrap items-center gap-2"
+      >
+        <input
+          name="amount"
+          inputMode="decimal"
+          placeholder={`All ${formatCents(p.left)}`}
+          aria-label={`Amount to refund ${person.name}, in dollars (blank refunds ${formatCents(p.left)})`}
+          className={`${input} w-28`}
+        />
+        <input
+          name="reason"
+          maxLength={200}
+          placeholder="Reason (optional)"
+          aria-label={`Reason for refunding ${person.name}`}
+          className={`${input} w-40`}
+        />
+        <button type="submit" className="underline">
+          {p.method === "stripe" ? "Refund through Stripe" : "Mark refunded"}
+        </button>
+      </form>
+    </details>
+  ));
+}
+
 function Status({ person }: { person: BoardPerson }) {
   return (
     <>
@@ -114,7 +194,28 @@ function Status({ person }: { person: BoardPerson }) {
         ) : (
           <Mark yes={false} label="Paid" />
         )}
+        {person.payments.map((p) => (
+          <RefundState key={p.paymentId} payment={p} />
+        ))}
       </td>
+    </>
+  );
+}
+
+/** Record an off-app payment, or refund one that was made. */
+function PaymentActions({
+  slug,
+  person,
+  refunds,
+}: {
+  slug: string;
+  person: BoardPerson;
+  refunds: boolean;
+}) {
+  return (
+    <>
+      <RecordPayment slug={slug} person={person} />
+      {refunds && <Refund slug={slug} person={person} />}
     </>
   );
 }
@@ -125,9 +226,10 @@ async function Registrations({
 }: PageProps<"/app/admin/seasons/[season]/registrations">) {
   const { season: slug } = await params;
   const query = await searchParams;
-  await requirePermission("season.manage", {
+  const subject = await requirePermission("season.manage", {
     next: `/app/admin/seasons/${slug}/registrations`,
   });
+  const refunds = can(subject, "refund.issue", {});
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
   const board = await registrationsBoard(db, season.id);
@@ -224,7 +326,7 @@ async function Registrations({
                     <th scope="col">Waiver</th>
                     <th scope="col">Paid</th>
                     <th scope="col">
-                      <span className="sr-only">Record a payment</span>
+                      <span className="sr-only">Payments and refunds</span>
                     </th>
                   </tr>
                 </thead>
@@ -242,7 +344,11 @@ async function Registrations({
                         {board.feeModel === "per_player" ||
                         t.paymentMode === "split" ||
                         m.role === "captain" ? (
-                          <RecordPayment slug={slug} person={m} />
+                          <PaymentActions
+                            slug={slug}
+                            person={m}
+                            refunds={refunds}
+                          />
                         ) : null}
                       </td>
                     </tr>
@@ -270,7 +376,7 @@ async function Registrations({
                   <th scope="col">Paid</th>
                   <th scope="col">Place on a team</th>
                   <th scope="col">
-                    <span className="sr-only">Record a payment</span>
+                    <span className="sr-only">Payments and refunds</span>
                   </th>
                 </tr>
               </thead>
@@ -310,7 +416,11 @@ async function Registrations({
                       )}
                     </td>
                     <td>
-                      <RecordPayment slug={slug} person={p} />
+                      <PaymentActions
+                        slug={slug}
+                        person={p}
+                        refunds={refunds}
+                      />
                     </td>
                   </tr>
                 ))}
