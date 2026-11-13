@@ -24,17 +24,16 @@ import type {
   RefundId,
   UserId,
 } from "@/domain/ids";
-import { formatMoment } from "@/domain/money/credit";
-import { formatCents } from "@/domain/registration/pricing";
+import { formatMoment, moneyLine } from "@/domain/money/credit";
 import { err, ok, type Result } from "@/domain/result";
 import type { EventTicketPayload } from "@/emails/event-ticket";
 import { user } from "../schema/auth";
-import { creditEntry } from "../schema/credit";
 import { event, eventRsvp, eventTicket } from "../schema/event";
 import { league } from "../schema/league";
 import { payment, purchase } from "../schema/money";
 import { profile } from "../schema/profile";
 import { recordAudit } from "./audit";
+import { returnSpentCredit } from "./credit";
 import { counts, type LockedEvent, lockEvent, type RsvpError } from "./events";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
 import { closePurchases, startPurchase } from "./payments";
@@ -236,20 +235,6 @@ export async function releaseTicketHolds(
   return offered;
 }
 
-/** "$15 on your card and $5 of league credit". */
-function moneyLine(
-  cardCents: number,
-  creditCents: number,
-  card: string,
-  credit: string,
-): string | undefined {
-  const parts = [
-    ...(cardCents > 0 ? [`${formatCents(cardCents)} ${card}`] : []),
-    ...(creditCents > 0 ? [`${formatCents(creditCents)} ${credit}`] : []),
-  ];
-  return parts.length > 0 ? parts.join(" and ") : undefined;
-}
-
 /** The event a ticket is for, with what its email needs. */
 async function ticketEvent(db: Db, eventId: EventId) {
   const [found] = await db
@@ -341,37 +326,6 @@ export async function settleTickets(
 }
 
 /**
- * Gives league credit spent on a ticket back to its buyer, once, as a
- * `released` row. Returns how much.
- */
-async function returnTicketCredit(
-  db: Db,
-  purchaseId: PurchaseId,
-): Promise<number> {
-  const [spent] = await db
-    .select({ userId: creditEntry.userId, cents: creditEntry.deltaCents })
-    .from(creditEntry)
-    .where(
-      and(
-        eq(creditEntry.purchaseId, purchaseId),
-        eq(creditEntry.reason, "spent"),
-      ),
-    );
-  if (!spent) return 0;
-  const [given] = await db
-    .insert(creditEntry)
-    .values({
-      userId: spent.userId,
-      deltaCents: -spent.cents,
-      reason: "released",
-      purchaseId,
-    })
-    .onConflictDoNothing()
-    .returning({ cents: creditEntry.deltaCents });
-  return given?.cents ?? 0;
-}
-
-/**
  * Ends a paid ticket: refunded by the league, or given up with a deleted
  * account. Its holder stops going, credit spent on it goes back, and the
  * spot is offered to the waitlist. Only a paid ticket changes, so calling
@@ -417,7 +371,7 @@ async function endTicket(
         and(eq(eventRsvp.eventId, e.id), eq(eventRsvp.userId, ended.userId)),
       );
   const creditCents = ended.purchaseId
-    ? await returnTicketCredit(db, ended.purchaseId)
+    ? await returnSpentCredit(db, ended.purchaseId)
     : 0;
   if (input.status === "refunded" && e.endsAt > input.now)
     await enqueueMessages(db, [
