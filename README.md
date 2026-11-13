@@ -73,6 +73,10 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 - Turned on only by a server environment flag and refused in production: a banner on every page and one-tap "view as" a player, captain, ref or admin, plus a reset script that reseeds the demo database.
 
+**Platform operator**
+
+- A role above the league's owners for whoever runs the platform, set only in the server's environment ([ADR 0009](docs/adr/0009-platform-operator.md)). From a hidden console it sets owners and admins, makes the site read-only or pauses it (enforced on the server), switches features off, and downloads the whole league as JSON. Owners see every operator action in the audit log and can always download the same data.
+
 **Sign-in**
 
 - Email links and, when configured, Google.

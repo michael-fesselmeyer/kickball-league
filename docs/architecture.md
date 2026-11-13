@@ -178,9 +178,11 @@ Mutations are Server Actions. An action that changes public data calls `updateTa
 - A global role on the profile: player, admin or owner.
 - Scoped memberships: captain or co-captain of a team-season, referee for a season, member of a sponsor.
 
+**The platform operator** sits above both, and is not a database role ([ADR 0009](adr/0009-platform-operator.md)). `OPERATOR_USER_IDS` in the server's environment names the operator's accounts. The console at `/operator` returns 404 to everyone else and needs a sign-in from the last 15 minutes to change anything. From it the operator sets owners and admins, sets the site status (active, read-only or paused), switches features off, and downloads the league export. Enforcement is on the server: `requirePermission` and `requireSelf` stop every Server Action but the operator's while the site is read-only or paused; scheduled jobs skip their run; and the proxy shows public pages the `/paused` notice while paused. Owners see every operator action in the audit log and can download the same export.
+
 **Checks.** One pure function, `can(actor, action, resource)`, in `domain/authz`. Rules:
 1. Every Server Action and every query function that returns non-public data calls it. There is no other way to reach the data layer.
-2. `proxy.ts` only redirects signed-out users away from `/app`. It is never the only check.
+2. `proxy.ts` only redirects signed-out users away from `/app`, and shows public pages the paused notice while the operator has the site paused. It is never the only check.
 3. The permissions matrix in the product spec is encoded as a table-driven test: every row and column is asserted.
 
 Postgres row-level security is not used. The app connects as one database role through a pooled HTTP driver, and a single tested policy function is easier to reason about than policy split across two layers.
