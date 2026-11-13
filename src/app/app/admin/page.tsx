@@ -18,6 +18,7 @@ import { pendingNewTeamCount } from "@/db/queries/new-teams";
 import { currentLeague } from "@/db/queries/seasons";
 import { needsReconnect } from "@/db/queries/social";
 import type { FieldingLevel } from "@/domain/rsvp/fielding";
+import { can } from "@/domain/authz/permissions";
 import { requirePermission } from "@/lib/auth/permission";
 
 export const metadata: Metadata = { title: "League admin" };
@@ -212,7 +213,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
             </Link>
           </p>
         )}
-        {isOwner && (
+        {can(subject, "books.manage") && (
           <p className="flex flex-wrap items-center gap-3">
             <Link
               href={`/app/books/${current.slug}`}
