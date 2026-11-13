@@ -144,6 +144,7 @@ With Cache Components, a page's static parts and cached data are prerendered int
 | `/seasons/[season]` | Prerendered; price and spots-left cached for minutes | `season:{id}` | Season edited, registration paid |
 | `/seasons/[season]/schedule` | Static HTML, prerendered at build for every public season, refreshed in the background each minute ✔. `?team=` is rewritten to a path segment. The whole page is in the first paint; a view the build didn't list is rendered in full on its first visit (`ensureStatic = "navigation"`, [ADR 0029](adr/0029-season-pages-paint-without-a-loading-state.md)) ✔ | `season:{seasonId}`, `theme-weeks` | A schedule version is published (including a rain-out), a score is reported or answered, the season is edited, a theme week is added, changed or removed |
 | `/seasons/[season]/standings` | Static HTML, prerendered at build for every public season, refreshed in the background each minute ✔. Painted in full like the schedule ✔ | `season:{seasonId}` | As the schedule |
+| `/seasons/[season]/money` | Static HTML, prerendered at build for every season with a published money summary, refreshed in the background each minute; painted in full like the standings. A season with none is not found ✔ | `season:{seasonId}` | An owner publishes or takes down the season's summary ([ADR 0035](adr/0035-season-money-summary.md)) |
 | `/seasons/[season]/bracket` | Prerendered; cached | `standings:{seasonId}` | A game becomes final or is corrected |
 | `/teams/[team]` | Static HTML, prerendered at build for every public team (current season), refreshed in the background each minute ✔. `?season=` is rewritten to a path segment. Painted in full like the schedule ✔ | `team:{slug}`, `season:{seasonId}` | As the schedule; roster changes show within a minute |
 | `/games/[game]` | Rendered on request behind its loading state. While the game is on, a small client island polls the live JSON every 10 seconds; a finished game's line score is plain server HTML ✔ | — | — |
@@ -158,6 +159,7 @@ With Cache Components, a page's static parts and cached data are prerendered int
 | `sitemap.xml`, `robots.txt` | `sitemap.ts`, `robots.ts`, cached daily | `league` | — |
 | `/app/**` | Dynamic, streamed with Suspense; never cached across users | — | — |
 | `/app/admin/**` | Dynamic. The schedule board is a lazily loaded client component | — | — |
+| `/app/owner/[season]` | Dynamic (the permission check reads the session); the dashboard's numbers come from one `use cache` read of ten grouped queries in parallel, kept up to five minutes (`OWNER_DASHBOARD_LIFE`, `src/lib/owner-dashboard-cache.ts`). No client script: bars are elements sized in tables and the week chart is server SVG ✔ | `owner-dashboard`, `season:{id}` for every season shown | An expense or a permit cost changes, a summary is published or taken down, the owner presses "Refresh now", or any action that refreshes a season's public pages |
 
 Public pages show the same thing to everyone. "My team" highlighting and the signed-in header are client islands, so a signed-in player still gets the cached page.
 
@@ -385,6 +387,7 @@ Thresholds are season settings. The rule only recommends; an admin decides. Buil
 | Data cache | Query functions marked `'use cache'` with tags | Minutes to days by `cacheLife`, and on demand by tag |
 | Forecasts ✔ | NWS grid square and hourly forecast, `'use cache'` | Grid square for weeks; forecast refreshed in the background after an hour |
 | Standings | Computed from games inside a cached function | Invalidated when any game in the season is finalized |
+| Owner dashboard ✔ | The dashboard's numbers, `use cache` tagged `owner-dashboard` and each season's tag | At most five minutes; expired at once by the books' actions, publishing a summary and "Refresh now" |
 | Live score JSON ✔ | `use cache` tagged `game:{id}`, then the CDN | 5 seconds on the server, expired at once by every save; 5 more at the CDN |
 | Browser | Service worker: the app shell (offline page, manifest, icons and the versioned files they load) and one public page, the signed-in person's next game (section 14) | Refreshed on each visit to the signed-in home screen and whenever the saved game is opened online |
 
@@ -458,7 +461,8 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `/app/seasons/[season]/team/subs` | `season-journey` (post a request, approve the claim); `screens` |
 | `/app/seasons/[season]/team/announcements` | `announcements` |
 | `/app/seasons/[season]/export/roster.csv`, `payments.csv` | `admin-tools` (team and season files) |
-| `/app/admin` | `screens` |
+| `/app/admin` | `screens`; `owner-dashboard` (Owner dashboard link) |
+| `/app/owner/[season]`, `dashboard.csv`, `summary`; `/seasons/[season]/money` | `owner-dashboard` (read, download, fold a category, publish, a visitor reads it; a captain finds nothing) |
 | `/app/admin/credit` | `registration` (league credit) |
 | `/app/admin/audit` | `admin-tools` (export and role changes, operator filter); `site-wide/operator` (status and feature switches); `screens` |
 | `/app/admin/events`, `/new`, `/[event]` | `screens`; `events` (create, attendees) |

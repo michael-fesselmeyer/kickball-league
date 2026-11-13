@@ -1306,6 +1306,30 @@ Notes:
 - Windows added together under one permit number share its details. The owners enter the permit's total cost once and it is split across the windows, earliest first, so the shares add up to it exactly; the ledger counts each window's share under "Fields and permits".
 - A photo is stored once, as WebP, at most 1,600 pixels on its longer side, without its metadata; a PDF is kept as uploaded. All of a league's files together are capped at 50 MB, checked under a lock so two uploads at once count each other. Removing an expense or certificate, or replacing a permit's document, deletes the file nothing else uses.
 
+### 2.9 The owner dashboard and the season money summary
+
+The dashboard stores nothing: it adds up `registration`, `roster_membership`, `payment`, `purchase`, `expense`, `permit_window`, `event_rsvp`, `event_ticket` and `checkin` when it is read. A season's members are its registrations that are not cancelled, waitlisted or refunded. A member is new in the first season (by start date) they appear in; retention is the share of the season before's members who are members again. Money is counted as the books count it (section 2.8). Draft seasons are left out.
+
+The one table is the money summary an owner chose to publish ([ADR 0035](adr/0035-season-money-summary.md)):
+
+```mermaid
+erDiagram
+  season ||--o| money_summary : "published as"
+
+  money_summary {
+    uuid season_id PK,FK
+    enum_array folded "expense categories shown inside Other"
+    jsonb summary "collected, spent, category totals and shares, fee splits"
+    timestamptz published_at
+    uuid published_by FK
+  }
+```
+
+Notes:
+- No row means nothing is published, the default. Publishing writes the row (again, to replace it); taking it down deletes it. Both are audited (`money_summary.publish`, `money_summary.unpublish`).
+- `summary` is a copy of the numbers as previewed, worked out on the server when the owner publishes, so the public page shows exactly the preview and a later expense changes nothing until an owner publishes again. It holds category totals and fee splits only: no names, counts of people, notes or single payments.
+- A season needs at least ten members before its summary can be published, so the money collected never stands for one person's payment. `folded` never contains `other` (a check).
+
 ## 3. Constraints and indexes
 
 Integrity rules the database enforces, so application bugs cannot break them:
@@ -1460,6 +1484,7 @@ Indexes for the common reads:
 | Emergency contact | `profile` | The person, their captain, admins |
 | Free-agent quiz answers and note | `free_agent_profile` | The person and admins |
 | Friend group | `friend_group`, `registration.friend_group_id` | The person; others in the group see first name and last initial; admins |
+| A published season money summary | `money_summary` | Everyone, once an owner publishes it. It holds category totals and how each fee divides, never a person's amount, name, birth date or contact details; owners can fold a category into "Other" when its total would point at one person |
 | Waiver signature, IP address | `waiver_signature` | The person, owners |
 | Payment card | Never stored. Stripe holds it; we keep brand and last four digits | The person |
 | Push devices | `push_subscription` (endpoint, keys, browser) | Only the outbox. The person's export lists their devices by browser and date, without the endpoint or keys |
