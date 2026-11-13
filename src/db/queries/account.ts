@@ -49,6 +49,11 @@ import { recordAudit } from "./audit";
 import { myDisciplineRecords, removeDisciplineNotes } from "./discipline";
 import { resetFeed } from "./event-audience";
 import { leaveEvent } from "./events";
+import {
+  exportsKeepOffEntries,
+  myKeepOffEntries,
+  removeKeepOffsFor,
+} from "./keep-off";
 import { creditHistory } from "./credit";
 import { myGiveawayWins } from "./giveaways";
 import { myReferrals } from "./referrals";
@@ -551,6 +556,13 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     dealsUsed,
     sponsorsManaged,
     discipline: await myDisciplineRecords(db, userId, now),
+    // Entries the person added to a team's "not on my team" list, and,
+    // only if the league's owners chose so, entries about them (ADR 0036).
+    notOnMyTeamLists: await myKeepOffEntries(
+      db,
+      userId,
+      await exportsKeepOffEntries(db),
+    ),
     emailSettings,
     alertLimits,
     pushDevices,
@@ -629,6 +641,8 @@ export type DeleteError = "not_found" | DeleteBlocker["reason"];
  * sponsor portal access, email, push and alert-limit settings, push devices
  * and messages, and their address on invites. Check-ins stay, unnamed, in
  * the sponsor's counts.
+ * Entries on a team's "not on my team" list, about them or added by them,
+ * are removed.
  * Sub claims for games still to come are withdrawn, which reopens the spot
  * and tells the captains; past claims stay as history without the copied
  * lineup gender.
@@ -751,6 +765,8 @@ export async function deleteAccount(
   // Incidents, suspensions and ratings stay as league records; the notes
   // the person wrote come out.
   await removeDisciplineNotes(db, userId);
+  // "Not on my team" entries about them, and the ones they added, go.
+  await removeKeepOffsFor(db, userId);
   await db
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));
