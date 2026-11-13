@@ -30,12 +30,16 @@ import { ownAverage } from "@/domain/discipline/discipline";
 import { requirePermission } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
 import { RECORD_PAYMENT_MESSAGES } from "../record-payment";
+import { teamKeepOffList } from "@/db/queries/keep-off";
 import {
+  addKeepOffAction,
   createInviteAction,
   recordTeamPaymentAction,
+  removeKeepOffAction,
   rsvpAction,
 } from "./actions";
 import { InviteLink } from "./invite-link";
+import { KeepOffSection } from "./keep-off";
 import { type GuaranteeView, TeamMoney } from "./team-money";
 
 export const metadata: Metadata = { title: "Your team" };
@@ -263,6 +267,9 @@ async function Team({
       ])
     : [undefined, null, 0];
   const timeZone = league?.timeZone ?? "America/New_York";
+  // The private "not on my team" list, for the team's captains only.
+  const keepsOff = can(subject, "keep_off.manage", { teamSeasonId });
+  const keepOff = keepsOff ? await teamKeepOffList(db, teamSeasonId) : [];
   const deadline = season.paymentDeadlineAt;
   const guaranteeView: GuaranteeView = guarantee
     ? {
@@ -519,6 +526,25 @@ async function Team({
           </tbody>
         </table>
       </section>
+
+      {keepsOff && (
+        <KeepOffSection
+          entries={keepOff}
+          notice={
+            typeof query.keep_off === "string" ? query.keep_off : undefined
+          }
+          add={addKeepOffAction.bind(null, slug)}
+          remove={(id) => removeKeepOffAction.bind(null, slug, id)}
+          when={(d) =>
+            new Intl.DateTimeFormat("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              timeZone,
+            }).format(d)
+          }
+        />
+      )}
 
       {ownRatings && (
         <section
