@@ -7,6 +7,7 @@ import { parseExpenseForm } from "@/domain/books/forms";
 import { type ExpenseId, parseId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { prepareUpload } from "@/lib/books/store-file";
+import { refreshOwnerDashboard } from "@/lib/owner-dashboard-cache";
 import { booksSeason, text, upload } from "../load";
 
 const pageFor = (slug: string) => `/app/books/${slug}`;
@@ -49,6 +50,7 @@ export async function addExpenseAction(slug: string, form: FormData) {
     ),
   );
   if (!result.ok) back(slug, { error: result.error });
+  refreshOwnerDashboard();
   back(slug, { notice: "added" });
 }
 
@@ -63,5 +65,6 @@ export async function removeExpenseAction(slug: string, form: FormData) {
     removeExpense(tx, { leagueId: league.id, expenseId }, subject.userId),
   );
   if (!result.ok) back(slug, { error: result.error });
+  refreshOwnerDashboard();
   back(slug, { notice: "removed" });
 }

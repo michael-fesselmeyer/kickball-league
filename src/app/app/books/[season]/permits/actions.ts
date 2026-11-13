@@ -11,6 +11,7 @@ import { optionalCents, optionalDate } from "@/domain/books/forms";
 import { type InsuranceCertificateId, parseId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { prepareUpload, type PreparedFile } from "@/lib/books/store-file";
+import { refreshOwnerDashboard } from "@/lib/owner-dashboard-cache";
 import { booksSeason, text, upload } from "../../load";
 
 const pageFor = (slug: string) => `/app/books/${slug}/permits`;
@@ -72,6 +73,8 @@ export async function savePermitDetailsAction(slug: string, form: FormData) {
     ),
   );
   if (!result.ok) back(slug, "permits", { error: result.error });
+  // A permit's cost is part of the dashboard's money out.
+  refreshOwnerDashboard();
   back(slug, "permits", { notice: "permit_saved" });
 }
 
