@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   pgEnum,
@@ -14,6 +15,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import type {
+  DivisionId,
   FriendGroupId,
   LeagueId,
   RegistrationId,
@@ -26,6 +28,7 @@ import type {
   WaiverSignatureId,
 } from "@/domain/ids";
 import { user } from "./auth";
+import { division } from "./division";
 import { league } from "./league";
 import { season } from "./season";
 import { waiverSignature } from "./waiver";
@@ -100,10 +103,19 @@ export const teamSeason = pgTable(
     targetRosterSize: integer(),
     seed: integer(),
     vibe: text(),
+    /** Null in a season without divisions, or before the admin assigns one. */
+    divisionId: uuid().$type<DivisionId>(),
     ...audit(),
   },
   (t) => [
     unique("team_season_team_season_unique").on(t.teamId, t.seasonId),
+    // A team can only be in a division of its own season.
+    foreignKey({
+      name: "team_season_division_fk",
+      columns: [t.divisionId, t.seasonId],
+      foreignColumns: [division.id, division.seasonId],
+    }),
+    index("team_season_division_idx").on(t.divisionId),
     index("team_season_season_status_idx").on(t.seasonId, t.status),
     check(
       "team_season_share_non_negative",

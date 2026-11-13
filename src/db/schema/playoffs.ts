@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import type {
   BracketId,
+  DivisionId,
   BracketMatchId,
   GameId,
   ScheduleVersionId,
@@ -23,6 +24,7 @@ import type {
 } from "@/domain/ids";
 import type { MatchSource } from "@/domain/playoffs/playoffs";
 import { user } from "./auth";
+import { division } from "./division";
 import { game, slot } from "./game";
 import { scheduleVersion } from "./schedule";
 import { season } from "./season";
@@ -62,6 +64,13 @@ export const bracket = pgTable(
       .notNull()
       .$type<SeasonId>()
       .references(() => season.id, { onDelete: "restrict" }),
+    /**
+     * The division this bracket crowns. Null for the season's only bracket,
+     * which with two divisions seeds each into its own half (ADR 0035).
+     */
+    divisionId: uuid()
+      .$type<DivisionId>()
+      .references(() => division.id, { onDelete: "restrict" }),
     format: bracketFormat().notNull().default("single_elimination"),
     status: bracketStatus().notNull().default("draft"),
     /** Teams in the bracket; byes fill it to the next power of two. */
@@ -78,7 +87,9 @@ export const bracket = pgTable(
     ...audit(),
   },
   (t) => [
-    unique("bracket_season_unique").on(t.seasonId),
+    unique("bracket_season_division_unique")
+      .on(t.seasonId, t.divisionId)
+      .nullsNotDistinct(),
     check("bracket_size_range", sql`${t.size} between 2 and 32`),
     check(
       "bracket_complete_has_champion",
