@@ -166,6 +166,8 @@ npm run test:e2e
 
 The database's name must contain `demo`, because the flows sign in with one-tap "view as". `npm run lighthouse` measures a production build (`npm run build` first) against the same seeded database, with the budgets in [design-system.md](docs/design-system.md#performance-budgets).
 
+In CI, one job builds the app against the seeded database and the end-to-end and Lighthouse checks share that build: Playwright runs on two shards (`E2E_PREBUILT=true` starts the existing build instead of building again), and Lighthouse's pages are split across three runners (`node scripts/lighthouse-shard.mjs <shard> 3` writes one shard's config, with the same five runs and budgets). A pull request that changes only Markdown or `docs/` skips that work and still reports every required check as passed. The layout is in [architecture](docs/architecture.md#11-continuous-integration).
+
 ## Scripts
 
 | Command                 | What it does                                                     |
