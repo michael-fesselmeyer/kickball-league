@@ -631,7 +631,7 @@ erDiagram
   notification_preference {
     uuid id PK
     uuid user_id FK
-    enum topic "rainout, schedule_change, game_reminder, payment, sub_request, announcement, score, events, marketing, new_team"
+    enum topic "rainout, schedule_change, game_reminder, payment, sub_request, announcement, score, events, marketing, new_team, discipline"
     enum channel "email, push (sms is in the enum, unused)"
     bool enabled
   }
@@ -964,6 +964,10 @@ erDiagram
   user ||--o{ audit_log : acts
   user ||--o{ suspension : "may receive"
   game ||--o{ incident : "may have"
+  incident ||--o{ incident_person : names
+  incident ||--o{ incident_note : "reviewed in"
+  incident ||--o{ suspension : "leads to"
+  game ||--o{ sportsmanship_rating : "rated in"
 
   asset {
     uuid id PK
@@ -995,24 +999,51 @@ erDiagram
     enum status "received, processed, failed"
     timestamptz processed_at
   }
+  sportsmanship_rating {
+    uuid id PK
+    uuid game_id FK
+    uuid team_season_id FK "the team whose captain rated"
+    uuid rated_team_season_id FK
+    smallint score "1 to 5"
+    text note "at most 200 characters; admins only"
+    uuid rated_by FK
+    timestamptz rated_at
+  }
   incident {
     uuid id PK
     uuid game_id FK
+    enum kind "ejection, forfeit_related, unsportsmanlike, outside_alcohol, safety, other"
+    text details "1 to 2000 characters"
     uuid reported_by FK
-    uuid subject_user_id FK
-    uuid subject_team_season_id FK
-    enum kind "ejection, taunting_warning, conduct, outside_alcohol, injury, other"
-    text details
+    enum reporter_role "referee, captain, admin"
+    enum status "open, resolved"
+    timestamptz reported_at
+    uuid resolved_by FK
+    timestamptz resolved_at
+  }
+  incident_person {
+    uuid incident_id PK, FK
+    uuid user_id PK, FK
+    uuid team_season_id FK "the team they played for"
+  }
+  incident_note {
+    uuid id PK
+    uuid incident_id FK
+    uuid author_id FK
+    text body "1 to 1000 characters"
+    timestamptz written_at
   }
   suspension {
     uuid id PK
     uuid user_id FK
     uuid incident_id FK
+    uuid season_id FK
     enum scope "games, season, permanent"
-    int games
-    date starts_on
-    date ends_on
+    int games "1 to 20, only for games"
+    timestamptz starts_at
     uuid issued_by FK
+    timestamptz lifted_at
+    uuid lifted_by FK
   }
 ```
 
@@ -1055,6 +1086,10 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `game_period` | check `period_no` between 1 and 20; check `runs` between 0 and 99 | Innings and runs stay in range |
 | `game` | check `kicks_first` is null or one of `team_a_id`, `team_b_id` | Only a team in the game kicks first |
 | `sub_claim` | unique `(sub_request_id, user_id)` | One claim per person |
+| `sportsmanship_rating` | unique `(game_id, team_season_id)`; check `score` between 1 and 5; check the rated team is the other one; check `note` at most 200 characters | One rating per team per game, on the scale |
+| `incident` | check `details` 1 to 2000 characters; check `resolved_at` is set exactly when `status = 'resolved'` | Reports say something; resolution is timestamped |
+| `incident_person` | primary key `(incident_id, user_id)` | A person is named once per report |
+| `suspension` | unique `(incident_id, user_id)`; check `games` is set exactly for `scope = 'games'`, between 1 and 20 | One suspension per person per report; a games suspension says how many |
 | `sub_request` | unique `(game_id, team_season_id)` where `status in ('open', 'filled')` | One live request per team per game |
 | `sub_request` | check `needed` between 1 and 11; check `women_needed + men_needed <= needed` | Reserved spots fit in the request |
 | `team_formation_request` | unique `(season_id, requested_by)` where `status = 'pending'` | One open new-team request per person per season |
@@ -1112,6 +1147,11 @@ Indexes for the common reads:
 | `award_poll` | `(season_id, closes_at)` | Open and closed polls of a season |
 | `award_vote` | `(voter_id)` | A player's own votes |
 | `social_post` | `(account_id, taken_at desc)`, `(team_id)`, `(event_id)` | Newest photos for the home page and the admin screen; a team's or an event's photos |
+| `sportsmanship_rating` | `(rated_team_season_id)`; `(rated_by)` | A team's ratings; a person's own ratings |
+| `incident` | `(status, reported_at)`; `(game_id)` | The review queue; a game's reports |
+| `incident_person` | `(user_id)` | Reports about a person, for the ladder and their export |
+| `incident_note` | `(incident_id, written_at)`; `(author_id)` | A report's notes in order; a person's notes, removed with their account |
+| `suspension` | `(user_id)` | Is this player suspended? |
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
 
 ## 4. Personal data
@@ -1124,6 +1164,9 @@ Indexes for the common reads:
 | Gender and lineup gender | `profile` | The person, their captain (for lineups), admins. A sub's lineup gender is copied to `sub_claim`, which the asking team's captains see |
 | Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
 | New-team requests, with the player's note | `team_formation_request` | The player and admins |
+| Sportsmanship ratings | `sportsmanship_rating` | Admins see each team's average and the notes, never which game or team they came from; a captain sees their own team's average over whole blocks of 3 ratings. The captain who rated sees their team's rating |
+| Incident reports | `incident`, `incident_person`, `incident_note` | Admins. The person filing sees what they filed in their export; a person named sees the reports about them in their export, without the other people named or the admins' notes |
+| Suspensions | `suspension` | The player and admins see the length and why; the player's captains see only that they are suspended and for how long still |
 | Award votes | `award_vote` | The voter alone sees whom they picked; everyone sees only the totals after a poll closes. Deleting an account withdraws votes in polls still open |
 | Emergency contact | `profile` | The person, their captain, admins |
 | Free-agent quiz answers and note | `free_agent_profile` | The person and admins |
@@ -1138,9 +1181,9 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `push_subscription` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version).
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `push_subscription` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
-- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements and the audit log.
+- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
 
 Every deletion writes an `account.delete` audit row with no personal data in it. The person's own export (`personalData`) returns all of the above as JSON, including each passkey's name, type and date, without session tokens, sign-in tokens, provider tokens or passkey key material.

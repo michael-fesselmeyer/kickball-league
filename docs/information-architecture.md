@@ -69,7 +69,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/[season]/register       Register a team or join as a free agent; when the season is full, the team waitlist: join, see your place, leave, or take a held spot
 ├── seasons/[season]/team (fee)     Split-pay captains: the team fee, what is paid and left, pay the rest, and the card that guarantees it
 ├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps and an optional note) and a friend code to start, join, switch or leave
-├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups
+├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; once final, a captain rates the other team's sportsmanship; a link to report an incident
+├── games/[game]/incident           Report an incident: kind, the people involved from either team, what happened (the game's ref, either captain, an admin; from kickoff on)
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref)
 ├── ref/                            Assignments, availability, earnings
 ├── sponsor/                        The sponsors a person manages (admins: every sponsor, and add one)
@@ -85,6 +86,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── rebates                 Rain-out rebates: each team's games lost and money paid; issue the pro-rata rebate as league credit
     │   ├── shirts                  Shirt sizes by team, what is still to order, and each player's shirt: not ordered, ordered or received
     │   ├── awards                  Open a game-day or season poll, close one early, remove one; results after close
+    │   ├── sportsmanship           Each team's average sportsmanship rating and the notes left for admins, lowest first, never saying who rated
     │   ├── free-agents             Matcher: suggested placements with reasons (apply one or all), the pool with quiz answers and friend groups, and building a new team from the pool
     │   ├── fields                  Fields, permit windows, blackout dates, slots
     │   ├── requests                Every team's conflicts and preferences, read before generating
@@ -96,7 +98,9 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── team-of-the-week        The game day's best wins; name a team with an optional tab at a sponsor
     │   └── playoffs                Seed from standings, place on fields, publish the bracket
     ├── games                       Scores, forfeits, corrections
-    ├── people                      Players, roles, suspensions
+    ├── incidents/                  Review queue (open reports oldest first), everyone suspended now, recently resolved
+    │   └── [incident]              What happened and who; notes; suspend someone named (the outside-alcohol ladder suggested) or lift a suspension; resolve or reopen
+    ├── people                      Players, roles
     ├── refs                        Referee pool and assignments
     ├── events/                     Every event with who it's for, going and waitlist counts
     │   ├── new                     Create an event or theme week: who it's for (everyone, all members, or teams from a season or any), an invite link, RSVPs in the app or not, and an optional email to everyone it's for
@@ -274,6 +278,8 @@ Rules:
 | Signed-in Home | Next game card with RSVP buttons; "you owe" card; alerts; quick links by role | Dashboard grid of the same cards |
 | Team (captain) | Tabs: Roster, RSVPs, Payments, Subs. Remind and invite buttons pinned to the bottom | All four as panels on one screen |
 | Score entry | One screen; two large counters; inning stepper (P2); submit pinned to the bottom | Same layout, centered, no wider than a phone |
+| Incident report | Kind, a checkbox list of each team's players, what happened, one send button | Same, no wider than a phone |
+| Incident review (admin) | What happened and who, suspensions with a lift button, a suspend form per person with the ladder's suggestion, notes, resolve | Same, one column |
 | Checkout | Stripe's hosted page | Stripe's hosted page |
 | Admin: next game day | Weather risk, game list with status dots, missing scores, rain-out button | Same with the field grid |
 | Admin: schedule | Read-only list, metrics, and move-by-form; full editing is a desktop job | Board from 1024px wide: one row per date and time, one column per field. Drag a game to move or swap it, or use the arrow keys, Enter and Escape; a side panel shows the new hard-rule problems and metric changes for the slot under the pointer or focus, then the unsaved changes with Undo, Discard and Save as one new draft. The board's code loads only at that width; the move-or-swap form stays below it |
