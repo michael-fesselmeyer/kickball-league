@@ -522,7 +522,7 @@ erDiagram
   purchase {
     uuid id PK
     uuid user_id FK
-    uuid season_id FK
+    uuid season_id FK "null for an event ticket"
     enum status "open, paid, failed, expired, refunded, partially_refunded"
     int subtotal_cents
     int discount_cents
@@ -736,6 +736,8 @@ erDiagram
   season ||--o{ team_of_week : names
   league ||--o{ event : hosts
   event ||--o{ event_rsvp : collects
+  event ||--o{ event_ticket : sells
+  purchase ||--o| event_ticket : "pays for"
   event ||--o{ event_audience_team : "is for"
   team ||--o{ event_audience_team : "is invited to"
   user ||--o| calendar_feed : "subscribes with"
@@ -833,6 +835,8 @@ erDiagram
     uuid audience_season_id FK "teams audience: null for any season"
     text invite_url "https://, shown and shared, never fetched"
     bool in_app_rsvp "false: RSVPs only on the invite"
+    int ticket_price_cents "null: a free RSVP"
+    int member_price_cents "null: members pay the ticket price"
     timestamptz cancelled_at
     timestamptz deleted_at
     uuid created_by FK
@@ -851,6 +855,17 @@ erDiagram
     uuid user_id FK
     enum status "going, waitlisted"
     timestamptz created_at "waitlist order"
+  }
+  event_ticket {
+    uuid id PK
+    uuid event_id FK
+    uuid user_id FK
+    uuid purchase_id FK,UK "null for an offer"
+    enum status "offered, held, paid, refunded, released, cancelled"
+    int price_cents "member or full price, before credit"
+    text code "six characters, unique per event"
+    timestamptz held_until "offered and held: when the spot is free again"
+    timestamptz checked_in_at
   }
   award_poll {
     uuid id PK
@@ -931,7 +946,8 @@ Events, as built (`src/db/schema/event.ts`, `src/db/queries/events.ts`):
 - `invite_url` is an external invite (Partiful has no public API, so it is shown and shared, not synced): https only, a host name with a dot, no user name or password, up to 500 characters. With `in_app_rsvp` off the app takes no RSVPs and points to the invite; it can be turned off only while no one has an RSVP.
 - An admin can tell an event's audience when they create or change it: one `event_notice` per person through the outbox with the `events` topic (dedupe key `event_announced/<event>/new/<user>` once per event, or `event_updated/<event>/<time>/<user>` per change). A public event is announced to all members.
 - `calendar_feed` holds the version of a person's private events calendar link. The link is the user id and an HMAC of the id and version with the server's secret, so nothing secret is stored; a reset (or deleting the account) moves the version on and the old link stops working.
-- Planned later: a sponsor or venue link, a cover image, guests and paid tickets (`ticket_price_cents`, `purchase_item_id`).
+- Paid tickets ([ADR 0027](adr/0027-event-tickets-hold-their-spot.md)): an event with a `ticket_price_cents` sells one `event_ticket` per person instead of free RSVPs; `member_price_cents` is what members (registered in any season) pay. A ticket is `held` from the moment its checkout starts until `held_until` (an hour past Stripe Checkout's 31-minute expiry), `paid` once the webhook or covering credit settles its purchase (a `purchase` with no season and one `event_ticket` item), and `refunded` when an admin refunds it. A paid ticket also gives its holder a `going` RSVP, so a spot taken is always going RSVPs plus holds and offers whose `held_until` is still ahead. A spot that opens on a ticketed event is `offered` to the earliest person on the waitlist (their waitlist row becomes the offer) for a day or until the event ends. An offer or hold that runs out is `released`; a paid ticket given up by deleting the account is `cancelled`. Every change locks the event row first. An event with paid tickets or open checkouts can't be called off, deleted or made free. Refunded credit comes back as a `released` ledger row.
+- Planned later: a sponsor or venue link, a cover image, guests.
 
 Awards, as built (`src/db/schema/awards.ts`, `src/db/queries/awards.ts`):
 
@@ -1122,6 +1138,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `event` | unique `slug`; check `ends_at > starts_at`; check `capacity` is null or positive; check a theme week has no capacity and is public; check `audience_season_id` is set only for a teams audience; check `invite_url` starts with `https://` and is at most 500 characters | Stable links; an event has a length; theme weeks take no RSVPs and mark the public schedule; an invite link is never another scheme |
 | `event_audience_team` | primary key `(event_id, team_id)` | A team is listed once per event |
 | `event_rsvp` | unique `(event_id, user_id)` | One RSVP per person per event |
+| `event` | check `ticket_price_cents` is null or $0.50 to $500; check `member_price_cents` is null or at most the ticket price, and $0 or at least $0.50; check a ticketed event takes RSVPs in the app and is not a theme week | Stripe can charge every price; tickets are sold in the app |
+| `event_ticket` | unique `(event_id, code)`; unique `purchase_id`; check `code` is six of `A-H J-N P-Z 2-9`; check `held_until` is set exactly while offered or held; check a held, paid or refunded ticket has a purchase and a price | Codes can be read out at the door; a checkout pays for one ticket; a hold or offer always runs out |
 | `game_period` | unique `(game_id, period_no, half)` | One row per half-inning |
 | `offline_receipt` | primary key `key`; index `game_id` | Each offline entry is taken once |
 | `game_period` | check `period_no` between 1 and 20; check `runs` between 0 and 99 | Innings and runs stay in range |
@@ -1191,6 +1209,7 @@ Indexes for the common reads:
 | `team_formation_request` | `(season_id, status, created_at)`; `(requested_by)` | The admin's waiting list; a player's requests |
 | `event` | `(league_id, starts_at)` | Calendar |
 | `event_rsvp` | `(event_id, status, created_at)`; `(user_id)` | Counts and the waitlist in order; a person's RSVPs |
+| `event_ticket` | `(event_id, status)`; `(user_id)` | Held spots and the admin's ticket list; a person's tickets |
 | `event_audience_team` | `(team_id)` | Team events for a team |
 | `award_poll` | `(season_id, closes_at)` | Open and closed polls of a season |
 | `award_vote` | `(voter_id)` | A player's own votes |
@@ -1230,7 +1249,7 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
