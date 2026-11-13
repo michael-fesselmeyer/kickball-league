@@ -9,6 +9,7 @@ import {
   parkJsonLd,
   serializeJsonLd,
   socialEventJsonLd,
+  friendsJsonLd,
   sponsorJsonLd,
   teamJsonLd,
   websiteJsonLd,
@@ -58,6 +59,7 @@ const REQUIRED: Record<string, readonly string[]> = {
   Question: ["name", "acceptedAnswer"],
   Answer: ["text"],
   BreadcrumbList: ["itemListElement"],
+  ItemList: ["itemListElement"],
   ListItem: ["position", "name", "item"],
   Article: ["headline", "url", "datePublished", "author", "publisher"],
   Offer: ["price", "priceCurrency", "url", "availability"],
@@ -118,7 +120,9 @@ function validate(node: unknown, path = "$", errors: string[] = []): string[] {
     const at = `${path}.${key}`;
     if (value === undefined || value === null || value === "")
       errors.push(`${at}: empty value`);
-    if (URL_KEYS.has(key)) {
+    // A list item is either a page's URL or the thing itself.
+    const isNode = key === "item" && typeof value === "object";
+    if (URL_KEYS.has(key) && !isNode) {
       for (const url of [value].flat()) {
         if (typeof url !== "string" || !/^https?:\/\/[^/]+/.test(url))
           errors.push(`${at}: not an absolute URL: ${String(url)}`);
@@ -461,6 +465,56 @@ describe("sponsorJsonLd", () => {
     expectValid(data);
     expect(data["@type"]).toBe("Organization");
     expect(data).not.toHaveProperty("address");
+  });
+});
+
+describe("friendsJsonLd", () => {
+  const page = { name: "Friends of the league", url: `${ORIGIN}/friends` };
+
+  it("lists each league in order, pointing at its own site", () => {
+    const data = friendsJsonLd(page, [
+      {
+        name: "Greenpoint Slow-Pitch Social",
+        url: "https://slow-pitch-social.example.test/",
+        sport: "Softball",
+        description: "Saturday mornings.",
+        logo: `${ORIGIN}/media/friends/1`,
+        area: "McCarren Park",
+      },
+      {
+        name: "Meeple Night Collective",
+        url: "https://meeple-night.example.test/",
+        sport: null,
+      },
+    ]);
+    expectValid(data);
+    expect(data).toMatchObject({
+      "@type": "ItemList",
+      numberOfItems: 2,
+      itemListElement: [
+        {
+          position: 1,
+          name: "Greenpoint Slow-Pitch Social",
+          item: {
+            "@type": "SportsOrganization",
+            sport: "Softball",
+            url: "https://slow-pitch-social.example.test/",
+            areaServed: "McCarren Park",
+          },
+        },
+        {
+          position: 2,
+          item: { "@type": "Organization", name: "Meeple Night Collective" },
+        },
+      ],
+    });
+    // A league that plays games rather than a sport names no sport.
+    expect(serializeJsonLd(data)).not.toContain('"sport":null');
+  });
+
+  it("is an empty list before any league is added", () => {
+    const data = friendsJsonLd(page, []);
+    expect(data).toMatchObject({ numberOfItems: 0, itemListElement: [] });
   });
 });
 
