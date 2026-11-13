@@ -9,6 +9,7 @@ import { currentLeague } from "@/db/queries/seasons";
 import {
   FRIEND_GROUP_MAX,
   formatFriendCode,
+  friendsSentence,
 } from "@/domain/matcher/friend-code";
 import { NOTES_MAX, QUESTIONS, type QuizAnswers } from "@/domain/matcher/quiz";
 import { requireSelf } from "@/lib/auth/permission";
@@ -35,6 +36,12 @@ const ERRORS: Record<string, string> = {
   group_full: `That group is full: a friend code holds up to ${FRIEND_GROUP_MAX} people.`,
   already_in_group: "You're already in that group.",
 };
+const GROUP_ERRORS = new Set([
+  "bad_code",
+  "unknown_code",
+  "group_full",
+  "already_in_group",
+]);
 const NOTICES: Record<string, string> = {
   group_started: "Group started. Share the code with your friends.",
   group_joined: "You're in. We'll keep you together.",
@@ -126,6 +133,9 @@ async function Quiz({
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const notice =
     typeof query.notice === "string" ? NOTICES[query.notice] : undefined;
+  // Friend-code messages show in the friends section, where the page lands.
+  const aboutGroup =
+    typeof query.error === "string" && GROUP_ERRORS.has(query.error);
 
   const header = (
     <header className="flex flex-col gap-2">
@@ -159,14 +169,9 @@ async function Quiz({
   return (
     <>
       {header}
-      {error && (
+      {error && !aboutGroup && (
         <p role="alert" className="rounded-lg border border-danger p-3">
           {error}
-        </p>
-      )}
-      {notice && (
-        <p role="status" className="rounded-lg border border-success p-3">
-          {notice}
         </p>
       )}
 
@@ -202,6 +207,16 @@ async function Quiz({
         <h2 id="friends-title" className="text-h2">
           Signing up with friends?
         </h2>
+        {error && aboutGroup && (
+          <p role="alert" className="rounded-lg border border-danger p-3">
+            {error}
+          </p>
+        )}
+        {notice && (
+          <p role="status" className="rounded-lg border border-success p-3">
+            {notice}
+          </p>
+        )}
         {mine.code ? (
           <>
             <p>
@@ -215,7 +230,7 @@ async function Quiz({
             <p className="text-text-muted">
               {mine.friends.length === 0
                 ? "Nobody has joined yet."
-                : `In your group: ${mine.friends.join(", ")}.`}
+                : friendsSentence("In your group:", mine.friends)}
             </p>
             <form action={leaveGroupAction.bind(null, slug)}>
               <button type="submit" className="underline">

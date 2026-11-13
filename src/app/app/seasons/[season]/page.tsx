@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { myQuiz } from "@/db/queries/free-agents";
+import { friendsSentence } from "@/domain/matcher/friend-code";
 import {
   amountOwed,
   myRegistration,
@@ -203,7 +204,7 @@ async function Season({
               <p className="text-text-muted">
                 {quiz.friends.length === 0
                   ? "Your friend group is waiting for friends to join."
-                  : `Staying together with ${quiz.friends.join(", ")}.`}
+                  : friendsSentence("Staying together with", quiz.friends)}
               </p>
             )}
           </Step>

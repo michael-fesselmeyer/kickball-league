@@ -4,6 +4,7 @@ import {
   CODE_ALPHABET,
   CODE_LENGTH,
   formatFriendCode,
+  friendsSentence,
   newFriendCode,
   normalizeFriendCode,
 } from "./friend-code";
@@ -106,5 +107,15 @@ describe("friend codes", () => {
     expect(normalizeFriendCode("ABCDE0")).toBeNull();
     expect(normalizeFriendCode("ABCDEFG")).toBeNull();
     expect(formatFriendCode("ABCDEF")).toBe("ABC-DEF");
+  });
+
+  it("lists friends in a sentence without a doubled period", () => {
+    expect(friendsSentence("With", ["Ana B."])).toBe("With Ana B.");
+    expect(friendsSentence("With", ["Ana B.", "Cy"])).toBe(
+      "With Ana B. and Cy.",
+    );
+    expect(friendsSentence("With", ["A", "B", "C D."])).toBe(
+      "With A, B and C D.",
+    );
   });
 });
