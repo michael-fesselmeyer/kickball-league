@@ -11,6 +11,7 @@ import { localTime, zonedInstant } from "@/domain/time/zoned";
 
 export const EVENT_KINDS = [
   "social",
+  "party",
   "bar_night",
   "bbq",
   "tournament",
@@ -25,6 +26,7 @@ export const KIND_LABELS: Readonly<Record<EventKind, string>> = {
   bbq: "BBQ",
   tournament: "Tournament",
   theme_week: "Theme week",
+  party: "Party",
 };
 
 export const MAX_TITLE_LENGTH = 80;
@@ -274,20 +276,27 @@ export function spotsLeft(capacity: number | null, going: number) {
   return capacity === null ? null : Math.max(0, capacity - going);
 }
 
-export type RsvpWindow = "open" | "cancelled" | "over" | "no_rsvp";
+export type RsvpWindow =
+  "open" | "cancelled" | "over" | "no_rsvp" | "invite_only";
 
 /**
  * Whether people can RSVP now. Changes are taken until the event ends, so
- * someone can still drop out (and free a spot) after it starts.
+ * someone can still drop out (and free a spot) after it starts. An event
+ * whose admin turned in-app RSVPs off takes them only on its invite link.
  */
 export function rsvpWindow(
-  e: { kind: EventKind; endsAt: Date; cancelledAt: Date | null },
+  e: {
+    kind: EventKind;
+    endsAt: Date;
+    cancelledAt: Date | null;
+    inAppRsvp: boolean;
+  },
   now: Date,
 ): RsvpWindow {
   if (e.kind === "theme_week") return "no_rsvp";
   if (e.cancelledAt) return "cancelled";
   if (e.endsAt <= now) return "over";
-  return "open";
+  return e.inAppRsvp ? "open" : "invite_only";
 }
 
 /**
