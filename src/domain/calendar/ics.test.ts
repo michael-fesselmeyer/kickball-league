@@ -18,6 +18,10 @@ describe("escapeText", () => {
   it("escapes backslashes, semicolons, commas and newlines", () => {
     expect(escapeText("a\\b;c,d\ne\r\nf")).toBe("a\\\\b\\;c\\,d\\ne\\nf");
   });
+
+  it("writes Unicode line breaks as an escaped newline", () => {
+    expect(escapeText("a\u2028b\u2029c\u0085d")).toBe("a\\nb\\nc\\nd");
+  });
 });
 
 describe("foldLine", () => {
@@ -204,6 +208,20 @@ describe("buildCalendar", () => {
     expect(lines).toContain("STATUS:CANCELLED");
     expect(lines.some((l) => l.startsWith("LOCATION"))).toBe(false);
     expect(lines.some((l) => l.startsWith("SEQUENCE"))).toBe(false);
+  });
+
+  it("stays valid for a summary that is a Unicode line separator", () => {
+    // The property below found this: many parsers end a line at U+2028.
+    const ics = buildCalendar({
+      name: "\u2028",
+      timeZone: NY,
+      generatedAt,
+      events: [{ ...event, summary: "\u2028", location: "" }],
+    });
+    expect(problems(ics)).toEqual([]);
+    expect(unfold(ics)).toEqual(
+      expect.arrayContaining(["X-WR-CALNAME:\\n", "SUMMARY:\\n"]),
+    );
   });
 
   it("stays valid for any summary and location text", () => {
