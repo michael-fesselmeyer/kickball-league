@@ -18,6 +18,7 @@ import { HALVES } from "@/domain/scores/live";
 import { PLAYOFF_TIE } from "@/domain/scores/scores";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { gameTag, refreshSeasonPages } from "@/lib/public-cache";
+import { sendQueuedSoon } from "@/services/outbox";
 
 const pageFor = (gameId: string) => `/app/games/${gameId}/live`;
 
@@ -144,5 +145,7 @@ export async function endGameAction(
     );
   updateTag(gameTag(g.id));
   refreshSeasonPages(g.seasonId);
+  // The final score goes out for confirmation like any reported score.
+  sendQueuedSoon();
   redirect(`/app/games/${g.id}/score?saved=1`);
 }
