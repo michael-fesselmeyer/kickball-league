@@ -26,6 +26,7 @@ import {
   describeSpots,
   type Held,
   hasSpotFor,
+  hiddenFrom,
   type Ineligible,
   isFreeAgent,
   type LineupGender,
@@ -51,6 +52,7 @@ import {
   teamSeason,
 } from "../schema/team";
 import { suspendedAmong } from "./discipline";
+import { keptOffAmong } from "./keep-off";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
 import type { Db } from "./schedule";
 
@@ -71,6 +73,7 @@ export const MAX_OPEN_PER_TEAM = 3;
 
 export type SubGameInfo = SubGame & {
   id: GameId;
+  teamSeasonIds: readonly [TeamSeasonId, TeamSeasonId];
   seasonId: SeasonId;
   seasonName: string;
   seasonSlug: string;
@@ -229,11 +232,19 @@ async function candidatesFor(
           );
 
   // Suspended players can't take a spot, and aren't told about requests.
-  const suspended = await suspendedAmong(
-    db,
-    people.map((p) => p.userId),
-    new Date(),
-  );
+  // A team's "not on my team" list hides that team's requests only.
+  const [suspended, keptOff] = await Promise.all([
+    suspendedAmong(
+      db,
+      people.map((p) => p.userId),
+      new Date(),
+    ),
+    keptOffAmong(
+      db,
+      g.teamSeasonIds,
+      people.map((p) => p.userId),
+    ),
+  ]);
 
   return people.map((p) => {
     const teamSeasonId = teamOf.get(p.registrationId) ?? null;
@@ -253,6 +264,7 @@ async function candidatesFor(
       lineupGender: p.lineupGender,
       commitments,
       suspended: suspended.has(p.userId),
+      keptOffBy: keptOff.get(p.userId) ?? [],
     };
   });
 }
@@ -414,7 +426,9 @@ export async function postSubRequest(
 
     const reachable = (await candidatesFor(tx, g)).filter(
       (c) =>
-        checkEligibility(c, g).ok && hasSpotFor(spots, NOBODY, c.lineupGender),
+        !hiddenFrom(c, input.teamSeasonId) &&
+        checkEligibility(c, g).ok &&
+        hasSpotFor(spots, NOBODY, c.lineupGender),
     );
     // Respect email settings now, so the count is who will really hear;
     // the outbox checks again at send time.
@@ -513,6 +527,9 @@ export async function claimSubSpot(
     const { request, game: g } = found;
     if (!isOpen(request, now) || g.kind === "playoff") return err("closed");
     const [me] = await candidatesFor(tx, g, input.userId);
+    // Someone the team keeps off is told what anyone is for a request that
+    // isn't there.
+    if (me && hiddenFrom(me, request.teamSeasonId)) return err("not_found");
     const eligible = me
       ? checkEligibility(me, g)
       : err("not_registered" as const);
@@ -910,9 +927,11 @@ export async function subRequestsFor(
     const eligible: Result<void, Ineligible> = me
       ? checkEligibility(me, g)
       : err("not_registered");
-    // The team asking never sees its own request here.
+    // The team asking never sees its own request here, and nor does anyone
+    // the team keeps off.
     if (!eligible.ok && eligible.error === "plays_in_game" && mine === null)
       continue;
+    if (me && hiddenFrom(me, r.teamSeasonId) && mine === null) continue;
     result.push({
       id: r.id,
       game: g,

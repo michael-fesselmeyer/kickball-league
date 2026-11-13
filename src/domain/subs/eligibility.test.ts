@@ -7,6 +7,7 @@ import {
   describeSpots,
   type Held,
   hasSpotFor,
+  hiddenFrom,
   hold,
   isFreeAgent,
   type LineupGender,
@@ -133,6 +134,27 @@ describe("who may sub", () => {
     // Back to back is fine: the earlier game ends as this one starts.
     expect(busy("18:00", "19:00")).toEqual(ok(undefined));
     expect(busy("20:00", "21:00")).toEqual(ok(undefined));
+  });
+});
+
+describe("a team's not-on-my-team list", () => {
+  const listed = player({ keptOffBy: ["aces"] });
+
+  it("hides that team's requests from the person", () => {
+    expect(hiddenFrom(listed, "aces")).toBe(true);
+  });
+
+  it("leaves the other team in the same game alone", () => {
+    expect(hiddenFrom(listed, "bees")).toBe(false);
+  });
+
+  it("does not change whether they may sub at all", () => {
+    expect(checkEligibility(listed, game)).toEqual(ok(undefined));
+  });
+
+  it("hides nothing from someone on no list", () => {
+    expect(hiddenFrom(player(), "aces")).toBe(false);
+    expect(hiddenFrom(player({ keptOffBy: [] }), "aces")).toBe(false);
   });
 });
 
