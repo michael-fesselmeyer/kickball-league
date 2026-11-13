@@ -8,7 +8,7 @@ import type { MerchSize } from "@/domain/merch/catalog";
 import type { SeedData } from "./generate";
 
 /**
- * The demo shop (ADR 0035): a league shirt sold from stock with a member
+ * The demo shop (ADR 0037): a league shirt sold from stock with a member
  * price, a replacement team jersey made to order, and a hat. No photos, so
  * nothing binary is committed; nobody has ordered yet.
  */

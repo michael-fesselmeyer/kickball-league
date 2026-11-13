@@ -14,7 +14,7 @@ function csvLines(text: string): string[] {
 }
 
 /**
- * Merch and replacement jerseys (ADR 0035). An admin adds a replacement
+ * Merch and replacement jerseys (ADR 0037). An admin adds a replacement
  * jersey made to order and gives Casey Captain some league credit. Casey
  * orders one in their team's color, in the size on their profile, with the
  * credit applied, and pays the rest through Stripe (stripe-mock, with the

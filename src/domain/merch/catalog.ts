@@ -8,7 +8,7 @@ import { zonedInstant } from "@/domain/time/zoned";
 
 /**
  * Merch and replacement jersey orders (docs/product-spec.md, section 6;
- * ADR 0035). The league keeps a small catalog; a player orders one item in
+ * ADR 0037). The league keeps a small catalog; a player orders one item in
  * one size per checkout. An item either has a stock per size, or is made
  * to order and has no limit. Pure, so the rules are tested without a
  * database.

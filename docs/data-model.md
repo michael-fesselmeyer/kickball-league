@@ -533,11 +533,18 @@ erDiagram
   season ||--o{ waitlist_entry : queues
   user ||--o| referral_code : shares
   user ||--o{ referral : refers
+  league ||--o{ merch_item : sells
+  merch_item ||--o{ merch_item_size : "comes in"
+  merch_item ||--o{ merch_image : "shown by"
+  merch_item ||--o{ merch_order : "ordered as"
+  user ||--o{ merch_order : places
+  purchase ||--o| merch_order : "pays for"
+  team_season ||--o{ merch_order : "jersey for"
 
   purchase {
     uuid id PK
     uuid user_id FK
-    uuid season_id FK "null for an event ticket"
+    uuid season_id FK "null for an event ticket or a merch order"
     enum status "open, paid, failed, expired, refunded, partially_refunded"
     int subtotal_cents
     int discount_cents
@@ -646,6 +653,50 @@ erDiagram
     enum status "pending, credited"
     timestamptz credited_at
   }
+  merch_item {
+    uuid id PK
+    uuid league_id FK
+    enum kind "league, team_jersey"
+    text name
+    text description
+    int price_cents
+    int member_price_cents "null: members pay the price"
+    bool made_to_order "no stock limit"
+    timestamptz order_deadline
+    timestamptz hidden_at
+    uuid created_by FK
+  }
+  merch_item_size {
+    uuid item_id PK,FK
+    enum size PK "xs, s, m, l, xl, xxl, one_size"
+    int stock "how many the league has, sold or not"
+  }
+  merch_image {
+    uuid id PK
+    uuid item_id FK
+    int position
+    text alt
+    text content_type "image/webp"
+    bytea bytes
+    int byte_size
+    text sha256
+  }
+  merch_order {
+    uuid id PK
+    uuid item_id FK
+    uuid user_id FK
+    uuid purchase_id FK,UK
+    enum status "held, paid, fulfilled, refunded, released"
+    enum size
+    int quantity "1 to 5"
+    int unit_price_cents
+    uuid team_season_id FK "a team jersey's team"
+    text team_name "as ordered"
+    text color_hex "as ordered"
+    timestamptz held_until
+    timestamptz fulfilled_at
+    uuid fulfilled_by FK
+  }
 ```
 
 Notes:
@@ -660,6 +711,7 @@ Notes:
 - `waitlist_entry` is the team line for a full season. An offer holds a spot until `offer_expires_at` (48 hours, never past registration closing) and counts as expired the moment that passes. While anyone waits or holds a live offer, registering a team takes a lock on the season row and only the offer's holder may take the spot.
 - A `referral` is made when someone registers for the first time after arriving through `/r/<code>` (a 30-day cookie). It is credited once, with $10 of `referral` credit to the referrer, when that registration is paid.
 - Promo codes are applied by the app, not by Stripe ([ADR 0010](adr/0010-promo-codes-applied-in-app.md)). Checkout locks the code's row, counts its uses and writes the purchase with `discount_cents` and `promo_code_id`; Stripe is sent the discounted line items. A use is a purchase that is open, paid or refunded, so an abandoned or failed checkout gives its use back. A code that covers the whole price settles the purchase at once with no `payment` row. A percentage rounds down to the cent, and a code never leaves a charge under Stripe's 50-cent minimum. Turning a code off sets `disabled_at`; purchases that used it keep their discount.
+- Merch ([ADR 0037](adr/0037-merch-orders-hold-stock-at-checkout.md)): a `merch_order` is one item in one size, bought in one `purchase` with no season and one `merch` item. It is `held` from the moment its checkout starts until `held_until` (an hour past Stripe Checkout's 31-minute expiry), `paid` once the webhook or covering credit settles its purchase, `fulfilled` when an admin hands it out, `refunded` when an admin refunds it in full, and `released` when its checkout ends unpaid. What is left of a size is `merch_item_size.stock` less the quantity of paid, fulfilled and still-held orders; nothing is decremented, and an item `made_to_order` has no limit. Every order and every change to stock locks the `merch_item` row first. A replacement jersey (`team_jersey`) is for one of the buyer's teams in a season not yet over, and keeps that team's name and color as ordered. `unit_price_cents` is the member price for anyone registered in any season. Photos are stored like the Instagram copies: at most 4 per item and 10 MB for all of them. A paid order stays when its buyer deletes their account; an open checkout is released.
 - A refund never cancels a registration; an admin removes a player separately. `payment.refunded_cents` is what has gone back. For Stripe payments only the `charge.refunded` webhook moves it, to Stripe's running total (never lower, so replays and late events are harmless), and refunds made in Stripe's dashboard count too. An admin's Stripe refund writes its `refund` row first, under a lock on the payment, then calls Stripe with the row's id as the idempotency key and stores `stripe_refund_id`; if Stripe refuses, the row is deleted. Off-app refunds (cash or Venmo handed back) add to `refunded_cents` at once. The purchase then becomes `partially_refunded` or `refunded`. Every refund writes an audit row (`refund.issue`).
 
 ### 2.4 Notifications and consent
@@ -1258,6 +1310,10 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `event_rsvp` | unique `(event_id, user_id)` | One RSVP per person per event |
 | `event` | check `ticket_price_cents` is null or $0.50 to $500; check `member_price_cents` is null or at most the ticket price, and $0 or at least $0.50; check a ticketed event takes RSVPs in the app and is not a theme week | Stripe can charge every price; tickets are sold in the app |
 | `event_ticket` | unique `(event_id, code)`; unique `purchase_id`; check `code` is six of `A-H J-N P-Z 2-9`; check `held_until` is set exactly while offered or held; check a held, paid or refunded ticket has a purchase and a price | Codes can be read out at the door; a checkout pays for one ticket; a hold or offer always runs out |
+| `merch_item` | check `name` is 1 to 80 characters; check `price_cents` is $0.50 to $500 and `member_price_cents` is null or between $0 and the price | Stripe can charge every price |
+| `merch_item_size` | primary key `(item_id, size)`; check `stock` between 0 and 10,000 | One stock count per size |
+| `merch_image` | unique `(item_id, position)`; check the type is WebP, `byte_size` matches the bytes and is at most 2 MB; check `alt` is 1 to 200 characters | Stored copies are small and described |
+| `merch_order` | unique `purchase_id`; check `quantity` between 1 and 5; check `held_until` is set exactly while held; check a fulfilled order has `fulfilled_at`; check `color_hex` is `#RRGGBB` | A checkout pays for one order; a hold always runs out |
 | `game_period` | unique `(game_id, period_no, half)` | One row per half-inning |
 | `offline_receipt` | primary key `key`; index `game_id` | Each offline entry is taken once |
 | `game_period` | check `period_no` between 1 and 20; check `runs` between 0 and 99 | Innings and runs stay in range |
@@ -1337,6 +1393,8 @@ Indexes for the common reads:
 | `event_rsvp` | `(event_id, status, created_at)`; `(user_id)` | Counts and the waitlist in order; a person's RSVPs |
 | `event_ticket` | `(event_id, status)`; `(user_id)` | Held spots and the admin's ticket list; a person's tickets |
 | `event_audience_team` | `(team_id)` | Team events for a team |
+| `merch_item` | `(league_id)` | The shop |
+| `merch_order` | `(item_id, status)`; `(user_id)` | Stock left and the admin's order list; a person's orders |
 | `award_poll` | `(season_id, closes_at)` | Open and closed polls of a season |
 | `award_vote` | `(voter_id)` | A player's own votes |
 | `social_post` | `(account_id, taken_at desc)`, `(team_id)`, `(event_id)` | Newest photos for the home page and the admin screen; a team's or an event's photos |
