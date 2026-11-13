@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { GameCard } from "@/components/game-card";
 import { InstagramPhotos } from "@/components/instagram-photos";
 import { AllTimeRecord } from "@/components/history/all-time-record";
@@ -10,7 +9,6 @@ import { LogoBadge } from "@/components/logo-badge";
 import { Morph, teamMorph } from "@/components/motion";
 import { ShareButtons } from "@/components/share";
 import { TeamStats } from "@/components/stats/team-stats";
-import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import {
   publicRoster,
@@ -44,6 +42,16 @@ import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { NO_TEAM, publicTeamParams } from "@/lib/static-params";
 
 type Props = PageProps<"/teams/[team]/[[...season]]">;
+
+/**
+ * The whole page is static, and a view the build didn't list is rendered in
+ * full on its first visit instead of streaming in behind a loading state.
+ * Without a <Suspense> boundary around it, the team is part of the first
+ * paint: React moves a finished boundary larger than its progressive chunk
+ * (12.8 kB) to the end of the document, and the browser could paint the
+ * fallback first and reveal the team up to 300 ms later.
+ */
+export const ensureStatic = "navigation";
 
 /**
  * Each public team's page (its current season) is prerendered at build
@@ -86,9 +94,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default function TeamPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 md:px-6">
-      <Suspense fallback={<PageLoading>Loading the team…</PageLoading>}>
-        <Team {...props} />
-      </Suspense>
+      <Team {...props} />
     </main>
   );
 }

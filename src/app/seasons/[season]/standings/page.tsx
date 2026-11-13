@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cacheLife, cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { Morph, teamMorph } from "@/components/motion";
 import { StandingsStats } from "@/components/stats/standings-stats";
-import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { seasonStandings } from "@/db/queries/standings";
@@ -14,6 +12,16 @@ import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 import { NO_SEASON, publicSeasonParams } from "@/lib/static-params";
 
 export const metadata: Metadata = { title: "Standings" };
+
+/**
+ * The whole page is static, and a view the build didn't list is rendered in
+ * full on its first visit instead of streaming in behind a loading state.
+ * Without a <Suspense> boundary around it, the table is part of the first
+ * paint: React moves a finished boundary larger than its progressive chunk
+ * (12.8 kB) to the end of the document, and the browser could paint the
+ * fallback first and reveal the table up to 300 ms later.
+ */
+export const ensureStatic = "navigation";
 
 /** Each public season's standings are prerendered at build time. */
 export async function generateStaticParams() {
@@ -25,9 +33,7 @@ export default function StandingsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-10">
-      <Suspense fallback={<PageLoading>Loading standings…</PageLoading>}>
-        <Standings {...props} />
-      </Suspense>
+      <Standings {...props} />
     </main>
   );
 }
