@@ -10,6 +10,7 @@ import type {
 import { savedPaymentMethod } from "../schema/guarantee";
 import { league } from "../schema/league";
 import { purchase, purchaseItem } from "../schema/money";
+import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
@@ -345,4 +346,31 @@ export async function failCharge(
     },
   ]);
   return true;
+}
+
+/** The person's Stripe customer id, if they have one. */
+export async function stripeCustomerOf(
+  db: Db,
+  userId: UserId,
+): Promise<string | null> {
+  const [found] = await db
+    .select({ id: profile.stripeCustomerId })
+    .from(profile)
+    .where(eq(profile.userId, userId));
+  return found?.id ?? null;
+}
+
+/** Remembers the person's Stripe customer, so cards save to one place. */
+export async function setStripeCustomer(
+  db: Db,
+  userId: UserId,
+  customerId: string,
+): Promise<void> {
+  await db
+    .insert(profile)
+    .values({ userId, stripeCustomerId: customerId })
+    .onConflictDoUpdate({
+      target: profile.userId,
+      set: { stripeCustomerId: customerId },
+    });
 }

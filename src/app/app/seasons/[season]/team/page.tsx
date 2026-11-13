@@ -12,6 +12,12 @@ import {
 } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { pickupsFor } from "@/db/queries/subs";
+import { creditBalance } from "@/db/queries/credit";
+import { describeCard, teamGuarantee } from "@/db/queries/guarantee";
+import { teamBalances } from "@/db/queries/team-balance";
+import { formatMoment } from "@/domain/money/credit";
+import { chargeTime } from "@/domain/money/guarantee";
+import { stripeClient } from "@/services/stripe";
 import { can } from "@/domain/authz/permissions";
 import { formatCents } from "@/domain/registration/pricing";
 import { Pickups } from "@/components/pickups";
@@ -23,6 +29,7 @@ import {
   rsvpAction,
 } from "./actions";
 import { InviteLink } from "./invite-link";
+import { type GuaranteeView, TeamMoney } from "./team-money";
 
 export const metadata: Metadata = { title: "Your team" };
 
@@ -197,6 +204,36 @@ async function Team({
     typeof query.error === "string" ? PAYMENT_ERRORS[query.error] : undefined;
   const paid = board.filter((m) => m.paid).length;
   const signed = board.filter((m) => m.signed).length;
+  // A split team's fee and its guarantee, for the team's captains.
+  const guarantees = can(subject, "guarantee.manage", { teamSeasonId });
+  const [balance, guarantee, credit] = guarantees
+    ? await Promise.all([
+        teamBalances(db, [teamSeasonId]).then((m) => m.get(teamSeasonId)),
+        teamGuarantee(db, teamSeasonId),
+        creditBalance(db, subject.userId),
+      ])
+    : [undefined, null, 0];
+  const timeZone = league?.timeZone ?? "America/New_York";
+  const deadline = season.paymentDeadlineAt;
+  const guaranteeView: GuaranteeView = guarantee
+    ? {
+        card: describeCard(guarantee.brand, guarantee.last4),
+        chargeOn:
+          deadline &&
+          guarantee.warnedAt &&
+          guarantee.warnedForDeadline?.getTime() === deadline.getTime()
+            ? formatMoment(chargeTime(deadline, guarantee.warnedAt), timeZone)
+            : null,
+        charge:
+          guarantee.chargeStatus === null
+            ? "none"
+            : guarantee.chargeStatus === "open"
+              ? "pending"
+              : guarantee.chargeStatus === "failed"
+                ? "declined"
+                : "paid",
+      }
+    : null;
 
   return (
     <>
@@ -254,6 +291,27 @@ async function Team({
           </Link>
         )}
       </header>
+
+      {balance && (
+        <TeamMoney
+          slug={slug}
+          balance={balance}
+          deadline={
+            deadline
+              ? new Intl.DateTimeFormat("en-US", {
+                  dateStyle: "long",
+                  timeZone,
+                }).format(deadline)
+              : null
+          }
+          guarantee={guaranteeView}
+          creditCents={credit}
+          paymentsOn={stripeClient() !== null}
+          notice={
+            typeof query.guarantee === "string" ? query.guarantee : undefined
+          }
+        />
+      )}
 
       {manages && (
         <section aria-labelledby="invite" className="flex flex-col gap-3">

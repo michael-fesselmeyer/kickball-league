@@ -7,7 +7,11 @@ import { type PricedSeason, priceFor } from "./pricing";
  */
 
 export type ItemKind =
-  "team_fee" | "player_share" | "player_fee" | "free_agent_fee";
+  | "team_fee"
+  | "player_share"
+  | "player_fee"
+  | "free_agent_fee"
+  | "balance";
 
 export type CheckoutRegistration = {
   id: string;
