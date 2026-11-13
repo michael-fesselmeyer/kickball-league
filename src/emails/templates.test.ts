@@ -220,6 +220,22 @@ describe("rendererFor", () => {
     ).toBe(false);
   });
 
+  it("asks admins to reconnect Instagram, saying the photos stay up", () => {
+    const result = render("instagram_reconnect", {
+      username: "league.example",
+      reason: "Instagram no longer accepts the connection",
+    });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe("Reconnect Instagram (@league.example)");
+    expect(result.value.text).toContain(
+      "Instagram no longer accepts the connection, so new posts from @league.example have stopped syncing. The photos already on the site stay up.",
+    );
+    expect(result.value.text).toContain(
+      "Reconnect Instagram: https://league.example.test/app/admin/instagram",
+    );
+    expect(render("instagram_reconnect", { username: "" }).ok).toBe(false);
+  });
+
   const subGame = {
     seasonName: "Fall 2026",
     seasonSlug: "fall-2026",
