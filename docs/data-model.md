@@ -221,7 +221,7 @@ Notes:
 - A captain is a `roster_membership` with `role = captain`. There is no captain column on `team_season`, so there is one source of truth.
 - `free_agent_profile` holds a free agent's quiz answers. The scores are worked out from the answers when they are saved, so admins can sort the pool and the matcher (`src/domain/matcher`) reads them without parsing JSON. The row stays after the player is placed, so the matcher can describe a team's vibe and experience.
 - `friend_group` keeps a few free agents who signed up together on the same team: one starts it and shares the code, the others enter it in their quiz. A group holds up to 4 registrations (`registration.friend_group_id`), checked when someone joins. The code is unique across seasons, so a typo never lands in another season's group.
-- Players on a team built from the free-agent pool keep `registration.kind = free_agent` and pay the free-agent fee; per team, the new team's fixed share is that fee, for anyone the captain invites later ([ADR 0010](adr/0010-free-agent-matching.md)).
+- Players on a team built from the free-agent pool keep `registration.kind = free_agent` and pay the free-agent fee; per team, the new team's fixed share is that fee, for anyone the captain invites later ([ADR 0012](adr/0012-free-agent-matching.md)).
 - A team has one main captain, who makes final decisions and handles payment, and commonly one to three co-captains (`role = co_captain`, no limit in the schema). How much say co-captains have varies by team, so it is a per-team permission setting chosen by the main captain (Phase 1), not a schema rule. Paying for and withdrawing the team stay with the main captain.
 
 ### 2.2 Fields, schedule, games, scores

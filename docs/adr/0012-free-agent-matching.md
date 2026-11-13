@@ -1,4 +1,4 @@
-# ADR 0010: Free-agent matching and teams built from the pool
+# ADR 0012: Free-agent matching and teams built from the pool
 
 - Status: accepted
 - Date: 2026-11-12
