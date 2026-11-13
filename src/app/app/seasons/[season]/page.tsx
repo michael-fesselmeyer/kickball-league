@@ -26,6 +26,10 @@ const PAYMENT_MESSAGES: Record<string, string> = {
   already_paid: "You have already paid.",
   captain_pays: "Your captain is paying the team fee.",
   no_price: "The league has not set a price for this yet.",
+  unknown_code:
+    "That promo code doesn't exist. Check the spelling and try again.",
+  expired: "That promo code has expired.",
+  used_up: "That promo code has been used as many times as it allows.",
 };
 
 export default function SeasonPage(props: PageProps<"/app/seasons/[season]">) {
@@ -136,6 +140,11 @@ async function Season({
     <>
       {header}
       {query.paid && !paid && <ConfirmingPayment />}
+      {query.payment === "covered" && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          Your promo code covered the whole fee. Nothing to pay.
+        </p>
+      )}
       {paymentMessage && (
         <p role="alert" className="rounded-lg border border-warning p-3">
           {paymentMessage}
@@ -211,6 +220,17 @@ async function Season({
               action={startCheckout.bind(null, slug)}
               className="flex flex-col gap-2"
             >
+              <label className="flex flex-col gap-1 self-start">
+                <span className="text-small">Promo code (optional)</span>
+                <input
+                  name="promoCode"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  maxLength={24}
+                  className="w-48 rounded-md border border-border bg-surface px-2 py-1 uppercase"
+                />
+              </label>
               <button type="submit" className="btn self-start btn-primary">
                 Pay {owed.ok ? formatCents(owed.cents) : ""} securely with
                 Stripe
