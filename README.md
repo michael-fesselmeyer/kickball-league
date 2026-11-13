@@ -115,6 +115,8 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 Next.js 16 (App Router, Cache Components) · React 19 · TypeScript (strict) · Tailwind CSS v4 · Drizzle on Neon Postgres · Better Auth · Stripe · Resend · Vercel (with cron jobs)
 
+Every service runs on its free tier, and no feature needs a paid plan, a paid API key or a monthly bill ([ADR 0021](docs/adr/0021-free-services-only.md)). Stripe has no monthly fee; its per-payment fees come out of the league's own payments. Each free limit and what the site does near it is in the [free-tier budget](docs/architecture.md#15-free-tier-budget).
+
 Quality: Vitest (unit, property and database tests) · Playwright with axe · Lighthouse CI · gitleaks secret scanning · GitHub Actions
 
 ## Getting started
