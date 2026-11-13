@@ -289,3 +289,33 @@ export async function openTicketCheckout(
     throw new Error(`No open ticket checkout for ${email} at ${eventSlug}`);
   return { sessionId: row.session, totalCents: row.total };
 }
+
+/** The Checkout session of a person's open merch checkout for an item. */
+export async function openMerchCheckout(
+  email: string,
+  itemName: string,
+): Promise<{ sessionId: string; totalCents: number; creditCents: number }> {
+  const [row] = await sql<{
+    session: string | null;
+    total: number;
+    credit: number;
+  }>(
+    `select p.stripe_checkout_session_id as session, p.total_cents as total,
+            p.credit_applied_cents as credit
+       from merch_order o
+       join merch_item i on i.id = o.item_id
+       join purchase p on p.id = o.purchase_id
+       join "user" u on u.id = o.user_id
+      where u.email = $1 and i.name = $2 and o.status = 'held'
+        and p.status = 'open'
+      order by p.created_at desc limit 1`,
+    [email, itemName],
+  );
+  if (!row?.session)
+    throw new Error(`No open merch checkout for ${email}: ${itemName}`);
+  return {
+    sessionId: row.session,
+    totalCents: row.total,
+    creditCents: row.credit,
+  };
+}
