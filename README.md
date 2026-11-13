@@ -206,40 +206,43 @@ The app talks to Neon through its HTTP and WebSocket drivers, and to a Postgres 
 
 ### End-to-end and Lighthouse tests
 
-`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the core flows (registration with split pay through Stripe Checkout and a signed webhook that marks the payment, free-agent signup and payment with a promo code, the quiz and a friend code, applying a matcher suggestion, an admin's partial and full refunds confirmed by a signed `charge.refunded` webhook, goodwill credit on a player's account, a full season's waitlist and its offer, a captain's guarantee card saved through a signed setup webhook and charged by the deadline job, generating and publishing a schedule, entering and confirming a score, scoring a game inning by inning while a spectator watches, a rain-out). Every key screen is checked with axe, and screens no flow visits are also checked in the dark theme and at a phone width. It seeds the database before building, so the public season and team pages are prerendered as in production and the flows check that their actions refresh them, reseeds before the tests, and sends Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so it needs both running locally:
+`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the flows, which reach every signed-in screen (the list is in [architecture](docs/architecture.md#end-to-end-coverage)). One of them walks a whole season: an admin sets up a season and its fields, a captain registers a team with split pay and pays through a signed Stripe webhook, a player joins by invite and pays their share, a free agent is placed on a new team, the schedule is published, a sub picks up a spot, a score is confirmed and counted in the standings, and a rain-out notice goes out. Every key screen is checked with axe, and screens no flow visits are also checked in the dark theme and at a phone width. `npm run test:e2e:site-wide` then runs the operator's read-only, paused and feature switches on their own, since they change the site for every other test. `npm run test:e2e` seeds the database before building, so the public season and team pages are prerendered as in production and the flows check that their actions refresh them. Both reseed the database before the tests and send Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so they need both running locally:
 
 ```bash
 PGDATABASE_NAME=kb_e2e_demo scripts/setup-local-postgres.sh
 docker run -d --rm -p 12111:12111 stripe/stripe-mock:v0.197.0
 export DATABASE_URL=postgresql://ci:ci@localhost:5432/kb_e2e_demo
 npm run test:e2e
+# Reuses the build the first command made.
+E2E_PREBUILT=true npm run test:e2e:site-wide
 ```
 
-The database's name must contain `demo`, because the flows sign in with one-tap "view as". `npm run lighthouse` measures a production build (`npm run build` first) against the same seeded database, with the budgets in [design-system.md](docs/design-system.md#performance-budgets).
+The database's name must contain `demo`, because the flows sign in with one-tap "view as". To run beside another checkout's tests on the same machine, set `E2E_SMOKE_PORT` and `E2E_FLOWS_PORT` (3100 and 3110 by default). `npm run lighthouse` measures a production build (`npm run build` first) against the same seeded database, with the budgets in [design-system.md](docs/design-system.md#performance-budgets).
 
 In CI, the end-to-end and Lighthouse checks each build the app once and share that build across their shards: Playwright runs on two shards (`E2E_PREBUILT=true` starts the existing build instead of building again), and Lighthouse's pages are split across three runners (`node scripts/lighthouse-shard.mjs <shard> 3` writes one shard's config, with the same five runs and budgets). A pull request that changes only Markdown or `docs/` skips that work and still reports every required check as passed. The layout is in [architecture](docs/architecture.md#11-continuous-integration).
 
 ## Scripts
 
-| Command                 | What it does                                                     |
-| ----------------------- | ---------------------------------------------------------------- |
-| `npm run dev`           | Start the development server                                     |
-| `npm test`              | Run unit tests once                                              |
-| `npm run test:coverage` | Run unit tests with coverage of `src/domain` and `src/lib`       |
-| `npm run db:generate`   | Generate a SQL migration from `src/db/schema`                    |
-| `npm run db:migrate`    | Apply pending migrations to `DATABASE_URL`                       |
-| `npm run db:check`      | Check migration files are consistent                             |
-| `npm run db:studio`     | Browse the database in Drizzle Studio                            |
-| `npm run test:db`       | Database constraint tests (each rolls back)                      |
-| `npm run seed`          | Replace the demo league with fresh seed data; refuses production |
-| `npm run demo:reset`    | Reseed the demo deployment; refuses unless demo mode is on       |
-| `npm run push:keys`     | Add a new VAPID key pair for web push to `.env.local`            |
-| `npm run lint`          | ESLint, failing on any warning                                   |
-| `npm run typecheck`     | Generate route types and run `tsc`                               |
-| `npm run format:check`  | Check Prettier formatting                                        |
-| `npm run build`         | Production build                                                 |
-| `npm run test:e2e`      | Seed, build, then smoke tests and core flows with axe            |
-| `npm run lighthouse`    | Lighthouse budgets on the public pages of the last build         |
+| Command                      | What it does                                                     |
+| ---------------------------- | ---------------------------------------------------------------- |
+| `npm run dev`                | Start the development server                                     |
+| `npm test`                   | Run unit tests once                                              |
+| `npm run test:coverage`      | Run unit tests with coverage of `src/domain` and `src/lib`       |
+| `npm run db:generate`        | Generate a SQL migration from `src/db/schema`                    |
+| `npm run db:migrate`         | Apply pending migrations to `DATABASE_URL`                       |
+| `npm run db:check`           | Check migration files are consistent                             |
+| `npm run db:studio`          | Browse the database in Drizzle Studio                            |
+| `npm run test:db`            | Database constraint tests (each rolls back)                      |
+| `npm run seed`               | Replace the demo league with fresh seed data; refuses production |
+| `npm run demo:reset`         | Reseed the demo deployment; refuses unless demo mode is on       |
+| `npm run push:keys`          | Add a new VAPID key pair for web push to `.env.local`            |
+| `npm run lint`               | ESLint, failing on any warning                                   |
+| `npm run typecheck`          | Generate route types and run `tsc`                               |
+| `npm run format:check`       | Check Prettier formatting                                        |
+| `npm run build`              | Production build                                                 |
+| `npm run test:e2e`           | Seed, build, then smoke tests and core flows with axe            |
+| `npm run test:e2e:site-wide` | Reseed, then the operator's site-wide switches on their own      |
+| `npm run lighthouse`         | Lighthouse budgets on the public pages of the last build         |
 
 ## How changes land
 
