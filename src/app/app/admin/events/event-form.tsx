@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId, useState } from "react";
 import {
   EVENT_KINDS,
   type EventForm,
@@ -12,12 +12,51 @@ import {
 } from "@/domain/events/event";
 import type { EventFormState } from "./actions";
 
-const input =
+const control =
   "min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body";
 
 /**
+ * A labelled control with an optional hint. The hint sits outside the label
+ * and is tied to the control with aria-describedby, so the field's name stays
+ * short ("Place") and the hint is read after it.
+ */
+function Field({
+  label,
+  hint,
+  hidden,
+  className = "",
+  children,
+}: {
+  label: string;
+  hint?: string;
+  hidden?: boolean;
+  className?: string;
+  children: (props: {
+    id: string;
+    "aria-describedby"?: string;
+  }) => React.ReactNode;
+}) {
+  const id = useId();
+  const hintId = `${id}-hint`;
+  return (
+    <div className={`flex flex-col gap-1 ${className}`} hidden={hidden}>
+      <label htmlFor={id} className="font-bold">
+        {label}
+      </label>
+      {children(hint ? { id, "aria-describedby": hintId } : { id })}
+      {hint && (
+        <p id={hintId} className="text-small text-text-muted">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
  * The admin's event form. A theme week needs only its days, so the time and
- * capacity fields hide while it is picked (CSS only, no script).
+ * capacity fields hide while it is picked. Hidden fields are still sent and
+ * ignored, so switching back keeps what was typed.
  */
 export function EventFormFields({
   action,
@@ -33,138 +72,146 @@ export function EventFormFields({
     error: null,
   });
   const v = state.values;
-  const timed = "group-has-[option[value=theme_week]:checked]:hidden";
+  const [kind, setKind] = useState(v.kind);
+  const themeWeek = kind === "theme_week";
   return (
-    <form action={formAction} className="group flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-4">
       {state.error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
           {state.error}
         </p>
       )}
-      <label className="flex flex-col gap-1 font-bold">
-        Kind
-        <select
-          name="kind"
-          defaultValue={v.kind}
-          className={`${input} font-normal`}
-        >
-          {EVENT_KINDS.map((k) => (
-            <option key={k} value={k}>
-              {KIND_LABELS[k]}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 font-bold">
-        Name
-        <input
-          name="title"
-          required
-          maxLength={MAX_TITLE_LENGTH}
-          defaultValue={v.title}
-          className={`${input} font-normal`}
-        />
-      </label>
-      <label className="flex flex-col gap-1 font-bold">
-        Place
-        <input
-          name="place"
-          maxLength={MAX_PLACE_LENGTH}
-          defaultValue={v.place}
-          aria-describedby="place-hint"
-          className={`${input} font-normal`}
-        />
-        <span
-          id="place-hint"
-          className="text-small font-normal text-text-muted"
-        >
-          A name and address, such as &ldquo;The Example Tavern, 123 Example
-          St&rdquo;. Optional for a theme week.
-        </span>
-      </label>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 font-bold">
-          Date
+      <Field label="Kind">
+        {(props) => (
+          <select
+            {...props}
+            name="kind"
+            value={kind}
+            onChange={(e) => setKind(e.target.value)}
+            className={control}
+          >
+            {EVENT_KINDS.map((k) => (
+              <option key={k} value={k}>
+                {KIND_LABELS[k]}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
+      <Field label="Name">
+        {(props) => (
           <input
-            type="date"
-            name="startsOn"
+            {...props}
+            name="title"
             required
-            defaultValue={v.startsOn}
-            className={`${input} font-normal`}
+            maxLength={MAX_TITLE_LENGTH}
+            defaultValue={v.title}
+            className={control}
           />
-        </label>
-        <label className="flex flex-col gap-1 font-bold">
-          End date (optional)
+        )}
+      </Field>
+      <Field
+        label="Place"
+        hint={`A name and address, such as "The Example Tavern, 123 Example St". Optional for a theme week.`}
+      >
+        {(props) => (
           <input
-            type="date"
-            name="endsOn"
-            defaultValue={v.endsOn}
-            aria-describedby="ends-hint"
-            className={`${input} font-normal`}
+            {...props}
+            name="place"
+            maxLength={MAX_PLACE_LENGTH}
+            defaultValue={v.place}
+            className={control}
           />
-          <span
-            id="ends-hint"
-            className="text-small font-normal text-text-muted"
-          >
-            For a theme week, its last day. Otherwise only for events that run
-            over more than one night.
-          </span>
-        </label>
-        <label className={`flex flex-col gap-1 font-bold ${timed}`}>
-          Starts at
-          <input
-            type="time"
-            name="startTime"
-            defaultValue={v.startTime}
-            className={`${input} font-normal`}
-          />
-        </label>
-        <label className={`flex flex-col gap-1 font-bold ${timed}`}>
-          Ends at
-          <input
-            type="time"
-            name="endTime"
-            defaultValue={v.endTime}
-            aria-describedby="end-time-hint"
-            className={`${input} font-normal`}
-          />
-          <span
-            id="end-time-hint"
-            className="text-small font-normal text-text-muted"
-          >
-            An end time earlier than the start runs past midnight.
-          </span>
-        </label>
-      </div>
-      <label className={`flex flex-col gap-1 font-bold ${timed}`}>
-        Capacity (optional)
-        <input
-          type="number"
-          name="capacity"
-          min={1}
-          max={MAX_CAPACITY}
-          inputMode="numeric"
-          defaultValue={v.capacity}
-          aria-describedby="capacity-hint"
-          className={`${input} font-normal sm:max-w-40`}
-        />
-        <span
-          id="capacity-hint"
-          className="text-small font-normal text-text-muted"
+        )}
+      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label={themeWeek ? "First day" : "Date"}>
+          {(props) => (
+            <input
+              {...props}
+              type="date"
+              name="startsOn"
+              required
+              defaultValue={v.startsOn}
+              className={control}
+            />
+          )}
+        </Field>
+        <Field
+          label={themeWeek ? "Last day" : "End date (optional)"}
+          hint={
+            themeWeek
+              ? "Blank for a one-day theme."
+              : "Only for an event that runs over more than one night."
+          }
         >
-          Leave blank for no limit. When it fills, players can join a waitlist.
-        </span>
-      </label>
-      <label className="flex flex-col gap-1 font-bold">
-        Description
-        <textarea
-          name="description"
-          rows={6}
-          maxLength={MAX_DESCRIPTION_LENGTH}
-          defaultValue={v.description}
-          className="rounded-input border border-border-strong bg-surface px-3 py-2 text-body font-normal"
-        />
-      </label>
+          {(props) => (
+            <input
+              {...props}
+              type="date"
+              name="endsOn"
+              defaultValue={v.endsOn}
+              className={control}
+            />
+          )}
+        </Field>
+        <Field label="Starts at" hidden={themeWeek}>
+          {(props) => (
+            <input
+              {...props}
+              type="time"
+              name="startTime"
+              defaultValue={v.startTime}
+              className={control}
+            />
+          )}
+        </Field>
+        <Field
+          label="Ends at"
+          hint="An end time earlier than the start runs past midnight."
+          hidden={themeWeek}
+        >
+          {(props) => (
+            <input
+              {...props}
+              type="time"
+              name="endTime"
+              defaultValue={v.endTime}
+              className={control}
+            />
+          )}
+        </Field>
+      </div>
+      <Field
+        label="Capacity (optional)"
+        hint="Leave blank for no limit. When it fills, players can join a waitlist."
+        hidden={themeWeek}
+      >
+        {(props) => (
+          <input
+            {...props}
+            type="number"
+            name="capacity"
+            min={1}
+            max={MAX_CAPACITY}
+            inputMode="numeric"
+            defaultValue={v.capacity}
+            className={`${control} sm:max-w-40`}
+          />
+        )}
+      </Field>
+      <Field label="Description">
+        {(props) => (
+          <textarea
+            {...props}
+            name="description"
+            rows={6}
+            maxLength={MAX_DESCRIPTION_LENGTH}
+            defaultValue={v.description}
+            className="rounded-input border border-border-strong bg-surface px-3 py-2 text-body"
+          />
+        )}
+      </Field>
       <button
         type="submit"
         disabled={pending}
