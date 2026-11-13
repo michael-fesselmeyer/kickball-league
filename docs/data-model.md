@@ -863,7 +863,7 @@ erDiagram
     uuid id PK
     uuid post_id FK "unique"
     text content_type "image/jpeg, image/png, image/webp"
-    bytea bytes "our copy; up to 8 MB"
+    bytea bytes "our copy; up to 2 MB, 25 MB in all"
     int byte_size
     text sha256
   }
@@ -1069,7 +1069,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `social_post` | unique `(account_id, external_id)`; check `permalink` starts `https://www.instagram.com/` | A post is stored once, and links only to Instagram |
 | `social_post` | check a hidden post is neither featured nor a cover; check a team cover has a team | Hiding always wins |
 | `social_post` | unique `(account_id)` where `cover = 'home'`; unique `(team_id)` where `cover = 'team'` | One cover per page |
-| `social_image` | check type is JPEG, PNG or WebP and `byte_size = octet_length(bytes)` up to 8 MB | Only images are stored and served |
+| `social_image` | check type is JPEG, PNG or WebP and `byte_size = octet_length(bytes)` up to 2 MB | Only images are stored and served; the 25 MB total is enforced by the sync |
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
 | `push_subscription` | unique `(endpoint)`; check it starts with `https://` and is at most 2,048 characters; check the key lengths | A device is stored once, and the outbox only ever posts to https |
 | `webhook_event` | unique `(provider, event_id)` | Webhooks are processed once |
