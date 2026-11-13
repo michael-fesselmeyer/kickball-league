@@ -671,16 +671,14 @@ erDiagram
     uuid id PK
     uuid league_id FK
     text name
-    text slug UK
+    text slug "unique in the league"
     enum kind "bar, restaurant, brand, other"
-    bool is_home_bar
+    bool is_home_bar "one per league"
+    text blurb
     text address
-    numeric lat
-    numeric lng
-    text url
-    uuid logo_asset_id FK
-    uuid logo_square_asset_id FK
+    text url "https only"
     text checkin_secret "signs the rotating QR code"
+    timestamptz deleted_at
   }
   sponsorship {
     uuid id PK
@@ -701,10 +699,11 @@ erDiagram
     uuid sponsor_id FK
     text title
     text terms
-    jsonb valid_days
+    smallint_array valid_days "ISO weekdays; empty is every day"
     time valid_from
-    time valid_to
+    time valid_to "before valid_from runs past midnight"
     bool active
+    timestamptz confirmed_at "last said still current"
   }
   checkin {
     uuid id PK
@@ -732,9 +731,9 @@ erDiagram
   team_of_week {
     uuid id PK
     uuid season_id FK
-    date week_of
+    date week_of "the game day"
     uuid team_season_id FK
-    uuid sponsor_id FK
+    uuid sponsor_id FK "who puts up the tab"
     int tab_cents
     text reason
   }
@@ -828,6 +827,14 @@ Awards, as built (`src/db/schema/awards.ts`, `src/db/queries/awards.ts`):
 
 - An admin opens an `award_poll` for one `game_day` (a weekly poll) or the whole season. Voting runs from `opens_at` until `closes_at`; closing early sets `closes_at` to now. The category decides whether a vote names a player (`nominee_user_id`) or a team (`nominee_team_season_id`), and a check keeps exactly one of them set. Anyone on an active roster that season may vote; a weekly ballot lists only the teams with a game that day (and their players). Totals are read only after `closes_at`, and who voted for whom is never shown to anyone but the voter.
 - Deleting a poll deletes its votes; deleting a season deletes its polls.
+
+Sponsors as built (roadmap Phase 2, item 9):
+
+- `sponsor`, `sponsor_member`, `deal`, `checkin`, `deal_redemption` and `team_of_week` exist. `sponsorship` (tiers and amounts), `sponsor_stat_daily` (impressions and clicks) and the logo assets come later.
+- `checkin_secret` is 32 random bytes as hex. It signs the rotating check-in code ([ADR 0013](adr/0013-rotating-check-in-code.md)) and no public query selects it.
+- Sponsors are hidden with `deleted_at`, never deleted, so their check-ins keep counting and a team of the week keeps its tab sponsor (`team_of_week.sponsor_id` restricts deletes). Hiding a sponsor also clears its home-bar mark.
+- `checkin.team_season_id` is the team the player was on in a season being played when they checked in, so the report can count teams.
+- A check-in and a deal use name the player only for the player's own data export. Deleting an account removes sponsor access and keeps check-ins, under the anonymized user, in the sponsor's counts.
 
 ### 2.6 Referees (pending owner approval)
 
@@ -985,6 +992,10 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `checkin` | unique `(sponsor_id, user_id, on_date)` | One check-in per bar per day |
 | `award_vote` | unique `(award_poll_id, voter_id)`; check exactly one nominee; check `nominee_user_id <> voter_id` | One vote per player per poll, for one person or team, never yourself |
 | `award_poll` | check `closes_at > opens_at`; check `game_day` is set exactly when `kind = 'weekly'` | A poll has a voting window; weekly polls name their game day |
+| `deal_redemption` | unique `(deal_id, checkin_id)` | A deal once per visit |
+| `sponsor` | unique `(league_id, slug)`; unique `league_id` where `is_home_bar and deleted_at is null`; check `url` starts with `https://` | One page address each, one home bar |
+| `deal` | check `valid_days <@ {1..7}`; check `valid_from` and `valid_to` both set or both null | Days and hours make sense |
+| `team_of_week` | unique `(season_id, week_of)`; check a tab has a sponsor and is $0.01 to $1,000 | One team per game day |
 | `message` | unique `(dedupe_key)` | The same notice is never sent twice |
 | `push_subscription` | unique `(endpoint)`; check it starts with `https://` and is at most 2,048 characters; check the key lengths | A device is stored once, and the outbox only ever posts to https |
 | `webhook_event` | unique `(provider, event_id)` | Webhooks are processed once |

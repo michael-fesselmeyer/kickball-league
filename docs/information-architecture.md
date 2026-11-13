@@ -26,8 +26,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │   ├── calendar.ics                Events calendar feed: every event, theme weeks as all-day entries
 │   └── [event]                     Event page: when, where, spots left or the waitlist, an RSVP button, save-the-date links
 │       └── calendar.ics            One event as a calendar file
-├── sponsors/                       Sponsor list (logo slots)
-│   └── [sponsor]                   Sponsor page with deals (P2)
+├── sponsors/                       Sponsors, home bar first, with the team of the week
+│   └── [sponsor]                   Sponsor page: deals with when they were confirmed, the team of the week, how to check in
 ├── free-agents                     How solo signup works, with FAQ structured data (P2: quiz)
 ├── history                         Past seasons: champions, final standings and the all-time table; each season links to its standings and schedule
 ├── news/
@@ -58,7 +58,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │   └── [event]                     RSVP, join the waitlist and see my place in line, or drop out
 ├── vote                            Awards: open ballots (one vote each, never for yourself or your own team) and closed polls
 │   └── [poll]                      Results after voting closes, ties sharing a place; until then, only when it closes
-├── check-in/[code]                 Bar check-in landing from a QR code (P2)
+├── check-in/[sponsor]/[code]       Where the bar's QR code lands: one tap to check in (an expired code says so)
+├── check-in/[sponsor]              Today's visit: checked in or not, today's deals and "Use this deal"
 ├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
 ├── seasons/[season]/team/requests  Captain: dates the team can't play and times it would rather have or avoid, until registration closes
 ├── seasons/[season]/new-team       Ask the league to start a new team; see the answer or withdraw while it waits
@@ -66,7 +67,10 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref)
 ├── ref/                            Assignments, availability, earnings
-├── sponsor/                        Sponsor portal: page editor, deals, report (P3)
+├── sponsor/                        The sponsors a person manages (admins: every sponsor, and add one)
+│   └── [sponsor]/                  Sponsor portal: deals, "still current", details; admins also page address, home bar and people
+│       ├── code                    The rotating check-in code, full screen, for a screen at the bar
+│       └── report                  Weekly numbers: check-ins, players, teams and deals used by week
 └── admin/
     ├── (dashboard)                 Next game day: weather, games, missing scores, alerts
     ├── seasons/[season]/           Setup, pricing, divisions, rule set, waiver
@@ -82,6 +86,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── rainout                 Call a rain-out and review makeups
     │   ├── announcements           Email the season or one team
     │   ├── recap                   Weekly recap drafted from the scores; edit, then send as an announcement
+    │   ├── team-of-the-week        The game day's best wins; name a team with an optional tab at a sponsor
     │   └── playoffs                Seed from standings, place on fields, publish the bracket
     ├── games                       Scores, forfeits, corrections
     ├── people                      Players, roles, suspensions
@@ -89,7 +94,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── events/                     Every event with going and waitlist counts
     │   ├── new                     Create an event or theme week
     │   └── [event]                 Edit, who's coming and the waitlist in order, call off or delete
-    ├── sponsors, news
+    ├── news
     ├── messages                    Announcements and delivery log
     ├── money                       Payments, refunds, credit, promo codes
     ├── audit                       Audit log in plain words, newest first; filter for the platform operator's actions
@@ -267,7 +272,9 @@ Rules:
 | Awards (player) | One card per open poll: the award, when it closes, and a team-grouped picker with one Cast vote button; after voting, your pick and "results when voting closes". Closed polls link to results | Same, picker and button on one line |
 | Award results | The winner (or everyone tied) in a highlighted box, then every nominee with place, votes and a bar | Same |
 | Ref home | Today's assignments with accept and decline; "enter score" on each | Same |
-| Sponsor report (P3) | Three numbers and a weekly bar chart | Adds a table by week and deal |
+| Sponsor report | Three numbers for this week, a weekly bar chart and a table by week, then deals used and the teams that came by most | Same, wider |
+| Check-in code (bar screen) | The QR code as large as fits, the code in text, and how often it changes | Same, centered |
+| Check-in and visit | One Check in button; then today's deals, each with "Use this deal" or when it was used | Same, no wider than a phone |
 
 ### Empty, loading and error states
 

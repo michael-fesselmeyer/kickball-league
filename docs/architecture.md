@@ -148,7 +148,8 @@ With Cache Components, a page's static parts and cached data are prerendered int
 | `/teams/[team]` | Static HTML, prerendered at build for every public team (current season), refreshed in the background each minute ✔. `?season=` is rewritten to a path segment | `team:{slug}`, `season:{seasonId}` | As the schedule; roster changes show within a minute |
 | `/games/[game]` | Rendered on request behind its loading state. While the game is on, a small client island polls the live JSON every 10 seconds; a finished game's line score is plain server HTML ✔ | — | — |
 | `/events`, `/events/[event]` | Static HTML, prerendered at build for every event, refreshed in the background each minute ✔ | `events`, `event:{slug}` | An admin creates, edits, calls off or deletes an event; an RSVP or drop-out (spots left) |
-| `/sponsors/*`, `/news/*`, `/history/*` | Prerendered; cached | `sponsor:{id}`, `posts` | Admin edits |
+| `/sponsors`, `/sponsors/[sponsor]` | Static HTML from one cached read of every sponsor, its active deals and the latest team of the week; every sponsor page prerendered at build, refreshed in the background each minute ✔ | `sponsors` | A sponsor, deal or team of the week changes, deals are confirmed |
+| `/news/*`, `/history/*` | Prerendered; cached | `posts` | Admin edits |
 | `opengraph-image` for games and teams | Generated with `next/og`, cached | Same as the page | Same as the page |
 | `/teams/[team]/calendar.ics` | Route handler, cached | `schedule:{seasonId}` | Schedule published |
 | `/events/calendar.ics`, `/events/[event]/calendar.ics` | Route handlers; the CDN keeps a copy for five minutes ✔ | — | — |
@@ -302,6 +303,8 @@ How it is built:
 | Low | Otherwise |
 
 Thresholds are season settings. The rule only recommends; an admin decides. Built so far ✔: the probability and thunderstorm parts, with the thresholds as constants in `src/domain/weather/forecast.ts`. The wet-field rule, severe-weather alerts and per-season thresholds come later.
+
+**Check-in at the bar** ([ADR 0013](adr/0013-rotating-check-in-code.md)). The sponsor's screen at `/app/sponsor/[sponsor]/code` draws a QR code on the server for `/app/check-in/[sponsor]/[code]`, where the code is an HMAC of the current 5-minute window under the sponsor's secret. A small client island fetches the page again after each turnover and asks the device to keep the screen on. The player's tap runs a Server Action that checks the code again (this window or the one before) and inserts the day's check-in, ignoring a repeat; using a deal checks that it is the sponsor's, turned on and good at that local time, once per visit. Neither touches the cached public pages.
 
 ## 8. Caching summary
 
