@@ -13,6 +13,7 @@ import {
 } from "@/db/queries/event-audience";
 import { myTicket, spotCounts } from "@/db/queries/event-tickets";
 import { myEventRsvp } from "@/db/queries/events";
+import { giveawayForEvent } from "@/db/queries/giveaways";
 import { can } from "@/domain/authz/permissions";
 import { audienceShareLine, inviteHost } from "@/domain/events/audience";
 import {
@@ -92,21 +93,23 @@ async function EventRsvp({
   if (!e) notFound();
   const now = new Date();
   const ticketed = isTicketed(e);
-  const [mine, names, ticket, viewer, credit, spots] = await Promise.all([
-    myEventRsvp(db, e.id, subject.userId),
-    audienceNames(db, e.audience),
-    ticketed ? myTicket(db, e.id, subject.userId, now) : null,
-    ticketed
-      ? viewerOf(
-          db,
-          e.leagueId,
-          subject.userId,
-          can(subject, "event.manage", {}),
-        )
-      : null,
-    ticketed ? creditBalance(db, subject.userId) : 0,
-    ticketed ? spotCounts(db, e, now) : null,
-  ]);
+  const [mine, names, ticket, viewer, credit, spots, giveaway] =
+    await Promise.all([
+      myEventRsvp(db, e.id, subject.userId),
+      audienceNames(db, e.audience),
+      ticketed ? myTicket(db, e.id, subject.userId, now) : null,
+      ticketed
+        ? viewerOf(
+            db,
+            e.leagueId,
+            subject.userId,
+            can(subject, "event.manage", {}),
+          )
+        : null,
+      ticketed ? creditBalance(db, subject.userId) : 0,
+      ticketed ? spotCounts(db, e, now) : null,
+      giveawayForEvent(db, e.id),
+    ]);
   const window = rsvpWindow(e, now);
   const isPublic = e.audience.kind === "public";
   const when = whenLine(e, e.timeZone);
@@ -191,6 +194,27 @@ async function EventRsvp({
         <p role="status" className="rounded-lg border border-success p-3">
           {done ?? ticketDone}
         </p>
+      )}
+
+      {giveaway && (
+        <section
+          aria-labelledby="giveaway"
+          className="flex flex-col items-start gap-2 rounded-card border-2 border-brand p-4"
+        >
+          <h2 id="giveaway" className="text-h2">
+            Free giveaway: {giveaway.prize}
+          </h2>
+          <p>
+            Check in at the event with the giveaway code to enter. No purchase
+            necessary.
+          </p>
+          <Link
+            href={`/app/events/${e.slug}/giveaway`}
+            className="inline-flex min-h-11 items-center underline"
+          >
+            Official rules and your entry
+          </Link>
+        </section>
       )}
 
       <section
