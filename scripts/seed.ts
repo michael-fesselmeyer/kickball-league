@@ -22,6 +22,7 @@ import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addFreeAgentPool } from "../src/seed/free-agent-pool";
 import { canSeed } from "../src/seed/guard";
 import { addPastSeasons } from "../src/seed/past-seasons";
+import { addSeedSponsors, removeSeedSponsors } from "../src/seed/sponsors";
 import { seedPublishedSchedule } from "../src/seed/published-schedule";
 
 if (!process.env.DATABASE_URL && existsSync(".env.local"))
@@ -79,6 +80,8 @@ async function main(): Promise<void> {
         .from(league)
         .where(eq(league.slug, SEED_LEAGUE_SLUG));
       for (const { id: leagueId } of old) {
+        // Sponsors hold check-ins by seed users and point at the league.
+        await removeSeedSponsors(tx, leagueId);
         const seasonIds = (
           await tx
             .select({ id: season.id })
@@ -242,6 +245,7 @@ async function main(): Promise<void> {
       await addFreeAgentPool(tx, data);
       await addSeedEvents(tx, data);
       await addSeedAwards(tx, data, new Date());
+      await addSeedSponsors(tx, data);
     });
     const played = data.games.filter((g) => g.status === "final").length;
     console.info(
