@@ -3,6 +3,18 @@ import { defineConfig, devices } from "@playwright/test";
 // Another worker's run on the same machine can pick other ports.
 const SMOKE_PORT = Number(process.env.E2E_SMOKE_PORT ?? 3100);
 const FLOWS_PORT = Number(process.env.E2E_FLOWS_PORT ?? 3110);
+// CI builds once and hands the build to every shard (E2E_PREBUILT); a local
+// run builds first. Both builds read the seeded league, so the public
+// seasons and teams are prerendered as in production. The web servers start
+// before the global setup, so a local run seeds here too.
+const PREBUILT = process.env.E2E_PREBUILT === "true";
+const BUILD_FIRST = PREBUILT
+  ? ""
+  : "npm run --silent seed && npm run build && ";
+// The operator's site-wide switches (read-only, paused, features) change the
+// site for every test at once, so they run on their own, after the rest:
+// `npm run test:e2e:site-wide` sets this.
+const SITE_WIDE = process.env.E2E_SITE_WIDE === "true";
 
 /**
  * End-to-end tests against a production build (`next start`) and a seeded
@@ -16,6 +28,9 @@ const FLOWS_PORT = Number(process.env.E2E_FLOWS_PORT ?? 3110);
  *   stripe-mock on port 12111 (src/services/stripe-mock.ts), and Instagram
  *   is its recorded fixture (src/services/instagram-fixture.ts).
  *
+ * - site-wide: the operator console's read-only, paused and feature
+ *   switches, on the flows server, in a run of their own.
+ *
  * The flows change the data, so the database is reseeded before every run
  * and they are not retried.
  */
@@ -27,53 +42,66 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
   use: { trace: "retain-on-failure" },
-  projects: [
-    {
-      name: "phone",
-      testIgnore: "flows/**",
-      use: { ...devices["Pixel 7"], baseURL: `http://localhost:${SMOKE_PORT}` },
-    },
-    {
-      name: "desktop",
-      testIgnore: "flows/**",
-      use: {
-        ...devices["Desktop Chrome"],
-        baseURL: `http://localhost:${SMOKE_PORT}`,
-      },
-    },
-    {
-      name: "flows",
-      testMatch: "flows/**/*.spec.ts",
-      retries: 0,
-      use: {
-        ...devices["Desktop Chrome"],
-        baseURL: `http://localhost:${FLOWS_PORT}`,
-      },
-    },
-  ],
+  projects: SITE_WIDE
+    ? [
+        {
+          name: "site-wide",
+          testMatch: "site-wide/**/*.spec.ts",
+          retries: 0,
+          use: {
+            ...devices["Desktop Chrome"],
+            baseURL: `http://localhost:${FLOWS_PORT}`,
+          },
+        },
+      ]
+    : [
+        {
+          name: "phone",
+          testIgnore: ["flows/**", "site-wide/**"],
+          use: {
+            ...devices["Pixel 7"],
+            baseURL: `http://localhost:${SMOKE_PORT}`,
+          },
+        },
+        {
+          name: "desktop",
+          testIgnore: ["flows/**", "site-wide/**"],
+          use: {
+            ...devices["Desktop Chrome"],
+            baseURL: `http://localhost:${SMOKE_PORT}`,
+          },
+        },
+        {
+          name: "flows",
+          testMatch: "flows/**/*.spec.ts",
+          retries: 0,
+          use: {
+            ...devices["Desktop Chrome"],
+            baseURL: `http://localhost:${FLOWS_PORT}`,
+          },
+        },
+      ],
   webServer: [
+    ...(SITE_WIDE
+      ? []
+      : [
+          {
+            command: `${BUILD_FIRST}npm run start -- --port ${SMOKE_PORT}`,
+            url: `http://localhost:${SMOKE_PORT}`,
+            reuseExistingServer: false,
+            timeout: PREBUILT ? 60_000 : 240_000,
+            stdout: "ignore" as const,
+            stderr: "pipe" as const,
+            env: { BETTER_AUTH_URL: `http://localhost:${SMOKE_PORT}` },
+          },
+        ]),
     {
-      // CI builds once and hands the build to every shard (E2E_PREBUILT);
-      // a local run builds first. Both builds read the seeded league, so the
-      // public seasons and teams are prerendered as in production. The web
-      // servers start before the global setup, so a local run seeds here too.
-      command:
-        process.env.E2E_PREBUILT === "true"
-          ? `npm run start -- --port ${SMOKE_PORT}`
-          : `npm run --silent seed && npm run build && npm run start -- --port ${SMOKE_PORT}`,
-      url: `http://localhost:${SMOKE_PORT}`,
-      reuseExistingServer: false,
-      timeout: process.env.E2E_PREBUILT === "true" ? 60_000 : 240_000,
-      stdout: "ignore",
-      stderr: "pipe",
-      env: { BETTER_AUTH_URL: `http://localhost:${SMOKE_PORT}` },
-    },
-    {
-      // Starts after the first server, so the build is already there.
-      command: `npm run start -- --port ${FLOWS_PORT}`,
+      // In the full run it starts after the first server, so the build is
+      // already there; the site-wide run starts only this one.
+      command: `${SITE_WIDE ? BUILD_FIRST : ""}npm run start -- --port ${FLOWS_PORT}`,
       url: `http://localhost:${FLOWS_PORT}`,
       reuseExistingServer: false,
-      timeout: 60_000,
+      timeout: SITE_WIDE && !PREBUILT ? 240_000 : 60_000,
       stdout: "ignore",
       stderr: "pipe",
       env: {

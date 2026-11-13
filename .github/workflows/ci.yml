@@ -238,6 +238,11 @@ jobs:
       - run: npm run db:migrate
       - name: Smoke tests and core flows with axe (seeds the database first)
         run: npm run test:e2e -- --shard=${{ matrix.shard }}/2
+      # Read-only and paused change the site for every test at once, so the
+      # operator's site-wide switches run alone, after the rest, on one shard.
+      - name: The operator's site-wide switches (reseeds the database first)
+        if: matrix.shard == 1
+        run: npm run test:e2e:site-wide
       - name: Upload the report when something fails
         if: failure()
         uses: actions/upload-artifact@v7
