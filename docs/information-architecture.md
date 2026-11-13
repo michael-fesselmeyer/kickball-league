@@ -39,7 +39,10 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── legal/terms, legal/privacy, legal/sms-terms
 ├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
 ├── offline                         Shown by the service worker when a page needs the network; links the saved next game
+├── paused                          Neutral notice while the site is paused or read-only (operator setting)
 └── sign-in, sign-up
+
+/operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
 
 /app                                Signed-in home: next game, RSVP, what you owe, alerts
 ├── account                         Profile, notification settings, waivers, payments, credit (built at /app/profile)
@@ -75,6 +78,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── messages                    Announcements and delivery log
     ├── money                       Payments, refunds, credit, promo codes
     ├── audit                       Audit log
+    ├── league.json                 The whole league as JSON, for owners and the operator
     └── settings                    League name, branding, contacts, Stripe (owner)
 ```
 

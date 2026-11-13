@@ -73,6 +73,8 @@ erDiagram
     text timezone
     jsonb branding "colors, logo asset ids"
     jsonb contact "email, phone, social links, WhatsApp link"
+    enum site_status "active, read_only, paused; operator only"
+    text_array disabled_features "features the operator switched off"
   }
   season {
     uuid id PK

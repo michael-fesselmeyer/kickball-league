@@ -176,6 +176,8 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Read the audit log | — | — | — | — | — | ✓ | ✓ |
 | Export or delete personal data | — | own | own | own | own | — | ✓ |
 
+Above every role in the matrix is the **platform operator**, who runs the software and its hosting rather than the league. The operator isn't a role anyone can be given in the app. They can set who the owners and admins are, make the whole site read-only or pause it, switch features off, and download all of the league's data. Owners see each of those actions in the audit log and can download the same data themselves. See [ADR 0009](adr/0009-platform-operator.md).
+
 One person can hold several roles at once: a captain who also refs and is a league admin is common. Permissions are the union of global role (player, admin, owner) and scoped memberships (captain of a team, referee for a season, member of a sponsor).
 
 ## 6. Feature list
