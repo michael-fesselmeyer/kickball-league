@@ -1,5 +1,6 @@
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import type {
+  PaymentId,
   RegistrationId,
   SeasonId,
   TeamSeasonId,
@@ -7,7 +8,7 @@ import type {
 } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { user } from "../schema/auth";
-import { payment, purchase, purchaseItem } from "../schema/money";
+import { payment, purchase, purchaseItem, refund } from "../schema/money";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import {
@@ -26,6 +27,17 @@ import type { Db } from "./schedule";
  * product-spec.md, "League admin").
  */
 
+/** A payment someone made, with what has gone back or is on its way. */
+export type BoardPayment = {
+  paymentId: PaymentId;
+  method: "stripe" | "cash" | "venmo" | "other";
+  amountCents: number;
+  /** Refunded, as Stripe confirmed or as recorded for off-app money. */
+  refundedCents: number;
+  /** Refunds asked for here, including any Stripe has not confirmed yet. */
+  requestedCents: number;
+};
+
 export type BoardPerson = {
   registrationId: RegistrationId;
   userId: UserId;
@@ -37,6 +49,7 @@ export type BoardPerson = {
   paid: boolean;
   /** How they paid, when they did: "stripe", "cash", "venmo" or "other". */
   paidBy: string | null;
+  payments: BoardPayment[];
 };
 
 export type BoardTeam = {
@@ -100,14 +113,28 @@ export async function registrationsBoard(
       ),
     );
   const paidBy = await db
-    .select({
+    .selectDistinct({
       registrationId: purchaseItem.registrationId,
+      paymentId: payment.id,
       method: payment.method,
+      amountCents: payment.amountCents,
+      refundedCents: payment.refundedCents,
+      requestedCents:
+        sql<number>`(select coalesce(sum(${refund.amountCents}), 0) from ${refund} where ${refund.paymentId} = ${payment.id})`.mapWith(
+          Number,
+        ),
+      createdAt: payment.createdAt,
     })
     .from(purchaseItem)
     .innerJoin(purchase, eq(purchaseItem.purchaseId, purchase.id))
     .innerJoin(payment, eq(payment.purchaseId, purchase.id))
-    .where(and(eq(purchase.seasonId, seasonId), eq(purchase.status, "paid")))
+    .where(
+      and(
+        eq(purchase.seasonId, seasonId),
+        inArray(purchase.status, ["paid", "partially_refunded", "refunded"]),
+        eq(payment.status, "succeeded"),
+      ),
+    )
     .orderBy(desc(payment.createdAt));
   const entries = await db
     .select({
@@ -130,9 +157,21 @@ export async function registrationsBoard(
 
   const spotOf = new Map(spots.map((s) => [s.registrationId, s]));
   const methodOf = new Map<string, string>();
-  for (const p of paidBy)
-    if (p.registrationId && !methodOf.has(p.registrationId))
+  const paymentsOf = new Map<string, BoardPayment[]>();
+  for (const p of paidBy) {
+    if (!p.registrationId) continue;
+    if (!methodOf.has(p.registrationId))
       methodOf.set(p.registrationId, p.method);
+    const list = paymentsOf.get(p.registrationId) ?? [];
+    list.push({
+      paymentId: p.paymentId,
+      method: p.method,
+      amountCents: p.amountCents,
+      refundedCents: p.refundedCents,
+      requestedCents: p.requestedCents,
+    });
+    paymentsOf.set(p.registrationId, list);
+  }
 
   const toPerson = (p: (typeof people)[number]): BoardPerson => ({
     registrationId: p.registrationId,
@@ -147,6 +186,7 @@ export async function registrationsBoard(
     signed: p.waiverSignatureId !== null || p.status !== "pending_waiver",
     paid: p.status === "active",
     paidBy: methodOf.get(p.registrationId) ?? null,
+    payments: paymentsOf.get(p.registrationId) ?? [],
   });
 
   const teams = entries
