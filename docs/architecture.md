@@ -1,6 +1,6 @@
 # Architecture
 
-Status: draft v1, 2026-11-11. Library facts marked ✔ were checked against current documentation through Context7 or Vercel's docs on this date. Prices are list prices as I understand them and should be re-checked before anyone budgets from them.
+Status: draft v1, 2026-11-11. Library facts marked ✔ were checked against current documentation through Context7 or Vercel's docs on this date. The product runs on free services only ([ADR 0021](adr/0021-free-services-only.md)); the free limits in section 15 were checked against each provider's own pages on 2026-11-13 and should be checked again before launch.
 
 ## 1. Stack decisions
 
@@ -16,14 +16,15 @@ Status: draft v1, 2026-11-11. Library facts marked ✔ were checked against curr
 | Errors | Domain functions return a typed result (`ok`, or a named failure); only unexpected failures throw | Callers must handle "team is full" or "deadline passed" explicitly, and the UI can show the right message |
 | Mutations | Server Actions, each a thin wrapper: validate with Zod, authorize, call a service function. Route handlers only for webhooks, jobs and feeds | Least code for a web-only product; the service layer can sit behind an API later without a rewrite |
 | Forms | Native form elements with `useActionState`; no form library outside the admin schedule board | Works before JavaScript loads and keeps bundles small |
-| AI (P2, optional) | Anthropic TypeScript SDK, server-side only, behind a monthly spend cap | See section 16 |
+| AI | None. No feature calls an AI provider; the weekly recap is drafted from templates | AI providers bill per use, and the product runs on free services only (section 16) |
 | UI | Tailwind CSS v4 with tokens in CSS; shadcn/ui components restyled to the design system | Accessible primitives without shipping a component library's runtime |
 | Validation | Zod at every boundary: forms, server actions, webhooks, environment variables | One schema per input, shared by client and server |
 | Payments | Stripe Checkout (hosted) and webhooks | Card data never touches our servers |
 | Email | Resend through its REST API, templates as functions returning HTML and text ✔ | Simple API, good deliverability. Next.js keeps `react-dom/server` out of server components, so templates build escaped strings; React Email can come back for the outbox's richer messages if a template outgrows that |
-| SMS (P3) | Twilio Messaging Service | Handles STOP and HELP at the carrier-facing layer, supports A2P 10DLC registration |
+| Push | The Web Push protocol with the league's own VAPID keys (section 14) | Free on every browser, with no account at a push service |
+| Text messages | None | Every text is billed per message; notices go by email and web push |
 | Weather | **National Weather Service API** first, Open-Meteo behind the same interface as a fallback | See section 7 |
-| Files | Vercel Blob | Same platform, signed client uploads |
+| Files | Vercel Blob, within the Hobby plan's included storage | Same platform, signed client uploads |
 | Jobs | A Postgres outbox drained by scheduled invocations, plus `after()` ✔ for immediate sends | No extra vendor; the message is written in the same transaction as the change that caused it |
 | Tests | Vitest, fast-check, Playwright with axe, Lighthouse CI | Unit and property tests for domain logic, real-browser tests for flows and accessibility |
 | Lint and format | ESLint (flat config) with `jsx-a11y`, Prettier | Accessibility lint rules matter for the WCAG target |
@@ -44,11 +45,12 @@ An `as` tells the compiler to stop checking, so the code avoids them and lint en
 
 | Flag | Why it matters | Recommendation |
 |---|---|---|
-| Vercel Hobby plan | It is for personal, non-commercial use and limits scheduled jobs to once a day. A league that takes payments is commercial | Build on Hobby; move production to Pro (about $20 a month) before taking real money |
+| Vercel Hobby plan | Its terms allow only personal or non-commercial use, and it runs scheduled jobs at most once a day | Stay on Hobby. Whether it may host the live league, which takes payments, is open for launch (section 15, "Hosting and commercial use"). A paid plan is not used |
 | Open-Meteo | Its free tier is for non-commercial use | Use the NWS API as primary (US government, free, no key, no commercial restriction) |
-| Resend free tier | About 100 emails a day. One rain-out notice to 180 players exceeds it | Pro tier (about $20 a month) for production |
-| Sign in with Apple | Requires an Apple Developer account (about $99 a year) | Ship Google, email link and password in the MVP; add Apple in P2 if the league wants it |
-| SMS in the plan | Carrier registration needs the league's legal business details and takes weeks | Start registration as soon as the owners agree; build SMS in P3 |
+| Resend free tier | 100 emails a day and 3,000 a month. One notice to all 180 players of a 12-team league exceeds a day's quota | Stay on the free tier. Push first, email kept for what must go by email, and large sends spread over days (section 15) |
+| Sign in with Apple | Requires a paid Apple Developer account | Not planned. Google, email link and passkeys cover sign-in |
+| Text messages | Billed per message, with paid carrier registration | Not planned. Notices go by email and free web push |
+| AI features | Every AI provider bills per use | Not planned (section 16) |
 | Stripe Connect for referees | Monthly per-account and per-payout fees are large next to a $20 game fee | Track what refs are owed in the app; pay by Venmo or cash; revisit Connect only at volume |
 | Vercel Cron Jobs | Vercel's docs now describe Cron Jobs as legacy, being migrated to "Schedules" ✔ | Use whichever is current at build time; the handlers are the same route handlers either way |
 
@@ -84,9 +86,9 @@ flowchart LR
   subgraph External
     ST[Stripe]
     RS[Resend]
-    TW[Twilio P3]
+    PS[Browser push services]
     WX[NWS API<br/>Open-Meteo fallback]
-    GO[Google and Apple sign-in]
+    GO[Google sign-in]
     SE[Sentry]
   end
 
@@ -101,11 +103,10 @@ flowchart LR
   APP --> BLOB
   APP -- Checkout session --> ST
   ST -- webhooks --> RH
-  TW -- inbound SMS, delivery status --> RH
   RS -- bounces, complaints --> RH
   SCHED --> RH
   RH -- send --> RS
-  RH -- send --> TW
+  RH -- push --> PS
   RH -- forecast --> WX
   APP --> GO
   APP --> SE
@@ -121,7 +122,7 @@ src/
   domain/              pure TypeScript, no imports from app/, db/ or next/*
     scheduler/  standings/  pricing/  authz/  matching/  weather/  fielding/
   db/                  Drizzle schema, migrations, query functions
-  services/            I/O adapters: stripe, email, sms, weather, blob, push
+  services/            I/O adapters: stripe, email, weather, blob, push
   jobs/                job handlers called by route handlers
   emails/              email templates (HTML and plain text)
 tests/  e2e/  scripts/seed.ts
@@ -201,12 +202,12 @@ Postgres row-level security is not used. The app connects as one database role t
 
 ### The outbox
 
-Anything that should happen after a change (an email, a text, a push) is a row in `message`, inserted in the same transaction as the change. This guarantees a notice is never sent for a change that rolled back, and never lost for one that committed.
+Anything that should happen after a change (an email or a push) is a row in `message`, inserted in the same transaction as the change. This guarantees a notice is never sent for a change that rolled back, and never lost for one that committed.
 
 1. The action commits its change and its `message` rows.
 2. `after()` drains those rows immediately, so the usual delay is under a second.
 3. A scheduled job sweeps every minute for rows that are queued and due, which covers retries, delayed sends (`send_after`) and anything `after()` missed.
-4. The worker claims rows with `select … for update skip locked`, applies consent, quiet hours, the monthly budget and the per-user cap, sends, and records the provider's ID, segments and cost.
+4. The worker claims rows with `select … for update skip locked`, applies the person's choices, sends, and records the provider's ID. How it stays inside the email provider's free daily quota is in section 15.
 5. Failures retry with backoff up to five attempts, then stay `failed` and appear on the admin health card.
 
 How a message is never sent twice (`src/db/queries/outbox.ts`, tested in `outbox.db.test.ts`):
@@ -237,7 +238,7 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Job | When | Does |
 |---|---|---|
 | Outbox sweep | Every minute | Sends due messages, retries failures |
-| Rain alerts ✔ | Daily 18:00 (`/api/jobs/rain-alerts`); more often on Pro | Checks the forecast for each game day whose first game starts in the next 30 hours and alerts every admin on "watch" or "likely", once per level per game day |
+| Rain alerts ✔ | Daily 18:00 (`/api/jobs/rain-alerts`) | Checks the forecast for each game day whose first game starts in the next 30 hours and alerts every admin on "watch" or "likely", once per level per game day |
 | Game reminders | Two days before game day, 18:00 | Reminds players of their next game and asks for an RSVP |
 | RSVP nudge | The day before game day, 12:00 | Nudges players who have not answered; tells captains where they stand |
 | Missing scores | Game days, every 30 minutes from the first slot until midnight | Reminds the ref 30 minutes after a slot ends, both captains (and co-captains) after 2 hours, once each. Games that ended more than two days ago stay on the admin scores list but are not emailed about |
@@ -254,7 +255,7 @@ Sub requests need no expiry job: a request closes when its game starts (`sub_req
 
 Every job is a route handler under `/api/jobs/*` that checks an `Authorization: Bearer ${CRON_SECRET}` header ✔, is safe to run twice, and logs a heartbeat.
 
-While the project is on Vercel's Hobby plan, `vercel.json` schedules each job once a day, because Hobby refuses to deploy anything more frequent. Each job works out what is due from the data whenever it runs, so moving to Pro only means changing the schedules in `vercel.json` to the frequencies above; no code changes. Until then the outbox relies on `after()` for immediate sends and the daily sweep for retries.
+On Vercel's Hobby plan `vercel.json` schedules each job once a day, because Hobby refuses to deploy anything more frequent. Each job works out what is due from the data whenever it runs, so running a job more often never needs code changes. The outbox relies on `after()` for immediate sends and the daily sweep for retries. If a job needs the frequency above, a free way is a scheduled GitHub Actions workflow that calls the same route with the `CRON_SECRET`, which costs nothing in a public repository; a paid hosting plan is not used ([ADR 0021](adr/0021-free-services-only.md)).
 
 If orchestration grows beyond this (multi-step flows with waits), Vercel's Workflow and Queues products exist ✔ and Inngest is a common alternative. Nothing in the MVP or P2 needs them.
 
@@ -263,7 +264,6 @@ If orchestration grows beyond this (multi-step flows with waits), Vercel's Workf
 | Source | Events | Handling |
 |---|---|---|
 | Stripe | `checkout.session.completed`, `checkout.session.expired`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`, `charge.dispute.created` | Marks purchases paid or failed, activates registrations and roster spots, records refunds, alerts admins on disputes |
-| Twilio (P3) | Inbound messages; delivery status callbacks | STOP, HELP and the join keyword update `sms_consent_event`; statuses update `message`; carrier "unreachable" codes suppress the number |
 | Resend | Bounced, complained | Suppresses that address for non-essential mail and flags the profile |
 
 Rules for every webhook:
@@ -330,9 +330,9 @@ No Redis in the MVP. Rate limits that need a counter use a small Postgres table.
 | Environment | Hosting | Database | Payments and messages |
 |---|---|---|---|
 | Local | `next dev` | A personal Neon branch, or a Postgres in Docker | Stripe test mode with the Stripe CLI forwarding webhooks; emails rendered to the console |
-| Preview (every pull request) | Vercel preview deployment | A Neon branch created for the preview by the Neon–Vercel integration, migrated and seeded | Stripe test mode; email to a sandbox inbox; scheduled jobs off |
-| Demo | A second Vercel project from the same repository, `DEMO_MODE=true` ([ADR 0004](adr/0004-demo-mode.md)) | Its own Neon database, reseeded nightly | Stripe test mode with test cards; no real email or SMS; a banner and one-tap "view as" role switching |
-| Production | Vercel Pro, custom domain | Neon main branch with point-in-time restore | Stripe live; Resend; Twilio |
+| Preview (every pull request) | Vercel preview deployment | A Neon branch created for the preview through Neon's API ([ADR 0003](adr/0003-free-hosting-and-secrets.md)), migrated and seeded | Stripe test mode; email to a sandbox inbox; scheduled jobs off |
+| Demo | A second Vercel project from the same repository, `DEMO_MODE=true` ([ADR 0004](adr/0004-demo-mode.md)) | Its own Neon database, reseeded nightly | Stripe test mode with test cards; no real email; a banner and one-tap "view as" role switching |
+| Production | A free hosting plan (section 15, "Hosting and commercial use"), the league's own domain | The production branch on Neon's free plan, with its restore window | Stripe live; Resend's free tier; web push |
 
 - **Until launch, automatic deployments are off** (`git.deploymentEnabled: false` in `vercel.json`): features are built and checked locally and in CI first, and pushes to pull requests or `main` don't build on Vercel. The live address keeps the last build made before that. Turning them back on, with previews for pull requests and `main` to production, is a launch milestone ([roadmap.md](roadmap.md), section 6).
 - Environment variables are validated with a Zod schema at build and at boot; a missing variable fails the build.
@@ -395,14 +395,14 @@ Third-party material stays out of the public repository until the league agrees:
 
 | Need | Tool |
 |---|---|
-| Errors, with release and user role attached (never email or name) | Sentry |
-| Real-user Core Web Vitals | Vercel Speed Insights |
-| Traffic | Vercel Web Analytics (cookieless) |
+| Errors, with release and user role attached (never email or name) | Sentry's free Developer plan |
+| Real-user Core Web Vitals | Vercel Speed Insights, within Hobby's included events |
+| Traffic | Vercel Web Analytics (cookieless), within Hobby's included events |
 | Logs | Structured JSON with a request ID, viewable in Vercel |
 | Job health | Heartbeat row per job; admin health card shows last run, outbox backlog, failed messages, failed webhooks |
-| Alerts | Sentry alerts to email for: webhook failures, outbox backlog older than 5 minutes, a job that missed two runs, a Stripe dispute |
-| Uptime | An external ping on `/api/health`, which checks the database |
-| Business numbers | Admin dashboard: registrations, revenue, unpaid balances, message cost this month |
+| Alerts | Free email alerts from Sentry's Developer plan for: webhook failures, outbox backlog older than 5 minutes, a job that missed two runs, a Stripe dispute. The admin health card shows the same, and a free limit nearing its end (section 15) |
+| Uptime | The one uptime monitor included in Sentry's free plan, on `/api/health`, which checks the database |
+| Business numbers | Admin dashboard: registrations, revenue, unpaid balances, emails sent today and this month against the free quota |
 
 ## 13. Security
 
@@ -420,7 +420,7 @@ Third-party material stays out of the public repository until the league agrees:
 | Uploads | Type and size checked; SVG admin-only and sanitized; private documents served through authorized routes |
 | Audit | `audit_log` for every admin and captain change, with before and after |
 | Admin safety | Destructive actions need a typed confirmation; refunds over a set amount need an owner |
-| Backups | Neon point-in-time restore; a monthly restore test into a branch |
+| Backups | Neon's restore window (6 hours on the free plan) and its one free manual snapshot; a monthly restore test into a branch |
 | Dependencies | Dependabot and `npm audit` in CI |
 | Demo | Separate database and keys; cannot reach production data |
 
@@ -439,19 +439,14 @@ Third-party material stays out of the public repository until the league agrees:
 | Bar check-ins | 1 per sponsor per user per day (also a unique index) |
 | Everything else by IP | Vercel Firewall rule as a coarse backstop |
 
-### Notifications: compliance and cost (SMS, P3)
+### Notifications: channels and opt-out
 
 | Topic | Design |
 |---|---|
-| Consent | A separate, unchecked checkbox with the full disclosure (who is texting, what about, message frequency, "message and data rates may apply", STOP and HELP). Never bundled with the terms of service. Each consent stores the exact text version, time, IP and source |
-| Confirmation | A first text confirms enrollment and repeats STOP and HELP |
-| Opt-out | STOP and its standard variants are honored by Twilio at once and mirrored into `sms_consent_event` by webhook. Opt-out is also a toggle in account settings. Any other clear request to stop is honored by an admin within days |
-| HELP | Replies with the league name, a support email and STOP instructions |
-| Quiet hours | No texts before 9:00 or after 20:00 Eastern. Queued messages wait. Same-day rain-out notices may send from 7:00 because that is the purpose the player signed up for; the disclosure says so |
-| Registration | A2P 10DLC brand and campaign registered through Twilio before any message is sent. Needs the league's legal name, tax ID, website, privacy policy and SMS terms pages, a description of the opt-in flow and sample messages. Allow several weeks |
-| Cost controls | Plain GSM-7 text under 160 characters so each message is one segment; a monthly budget with a hard stop and an admin alert at 80%; a per-user daily cap; duplicates blocked by `dedupe_key`; low-urgency topics go by email or push only |
-| Fallback | If SMS is off, unconsented, undeliverable or over budget, the same message goes by email |
-| Growing the list | "Text KICK to the league number" on field signs and bar coasters, answered with a link to finish signing up; a QR code at the home bar; the consent checkbox at registration; the waitlist form |
+| Channels | Email and web push. Both are free; text messages are not used because every text is billed ([ADR 0021](adr/0021-free-services-only.md)) |
+| Opt-out | Every email has a one-click unsubscribe for its topic, in the body and in the `List-Unsubscribe` header, so leaving a topic is as quick as replying STOP to a text. Game-critical notices (rain-outs, schedule changes) stay on by default but can be switched to push or to the site only |
+| Quiet hours | Push waits until 9:00 Eastern, except same-day rain-out notices, which may go from 7:00 |
+| Group chats | "Copy for WhatsApp" puts a ready-made message on the clipboard for a captain or admin to paste into the team or league chat. It costs nothing and reaches everyone the chat reaches |
 | Push ✔ | `push_subscription` rows and the Web Push protocol with VAPID keys, sent by the outbox alongside email (section 14, "Push notifications") |
 
 ## 14. Mobile app: PWA first
@@ -493,68 +488,49 @@ Build it the way Next.js documents ✔: `app/manifest.ts`, a small hand-written 
 
 Revisit Expo only if, after a season, captains or refs report missed notifications, or the league wants a store presence.
 
-## 15. Estimated monthly cost
+## 15. Free-tier budget
 
-Assumptions: about 15 players per team (180, 750 and 3,000 players). Half of players opt in to SMS and receive about 8 texts a month in season. A season is roughly 10 weeks.
+The product costs nothing to run ([ADR 0021](adr/0021-free-services-only.md)). No service has a payment method on file, so a free limit can stop a service but never bill it. This section lists each service's free limit, from the provider's own page as read on 2026-11-13, what the app does as it nears that limit, and the expected use at three league sizes.
 
-| Item | 12 teams | 50 teams | 200 teams | Notes |
-|---|---|---|---|---|
-| Vercel Pro | $20 | $20 | $20–40 | One seat; usage beyond the included amounts is unlikely before 200 teams |
-| Neon Postgres | $0–10 | $15–25 | $30–70 | Free tier works for the demo; production should be on a paid plan for restore history |
-| Resend | $20 | $20 | $20–35 | Free tier's daily cap is too low for one league-wide notice |
-| Twilio SMS (P3) | about $12 | about $40 | about $150 | Roughly 1.2 cents per text including carrier fees, plus a number and campaign fee of a few dollars |
-| Sentry | $0 | $0–26 | $26 | Free tier covers a small league |
-| Vercel Blob, analytics | $0 | $0 | $0–10 | Within included usage |
-| Domain | about $1.50 | about $1.50 | about $1.50 | About $15–20 a year |
-| Apple Developer (optional) | about $8 | about $8 | about $8 | $99 a year, only for Sign in with Apple |
-| **Total without SMS** | **about $40–55** | **about $60–90** | **about $100–190** | Excludes the optional Apple fee |
-| **Total with SMS** | **about $55–65** | **about $100–130** | **about $250–340** | |
+Assumptions for the estimates (rough, to be replaced with real numbers after a season):
 
-The optional AI features (section 16) have no subscription and are capped at $5 a month by default; realistic use is well under $1 a month.
+- About 15 players per team: 180, 750 and 3,000 players. A season is about 10 weeks with one game day a week, and a team plays once a game day.
+- In season, a player opens the site about 5 times a week and views about 5 pages each time. A page view is about 10 requests, most of them for files the browser then keeps.
+- Live scoring: about 2,000 polls of the live score route per game, from the phones watching it (ADR 0011).
+- Email: about 3 emails a player a week in season (a game reminder, an RSVP nudge or a score confirmation, an announcement), plus sign-in links and payment reminders around registration.
 
-Not a monthly cost, but the largest number: **Stripe fees** of 2.9% plus 30 cents per card payment. At $85 per player that is about $2.77 per registration: roughly $500 a season at 12 teams, $2,100 at 50 and $8,300 at 200. The league can absorb it, add it as a visible processing fee, or price it in. One-time costs: SMS brand and campaign registration (tens of dollars).
+| Service | Free limit (source) | 12 teams | 50 teams | 200 teams | As the limit nears |
+|---|---|---|---|---|---|
+| **Hosting**: Vercel Hobby | A month includes 1,000,000 function invocations, 4 hours of Active CPU, 360 GB-hours of memory, 100 GB of Fast Data Transfer, 1,000,000 CDN requests and 5,000 image transformations. Scheduled jobs run at most once a day. Over a limit, the feature stops until 30 days have passed; nothing is billed ([Hobby plan](https://vercel.com/docs/plans/hobby), [Cron Jobs usage](https://vercel.com/docs/cron-jobs/usage-and-pricing)) | About 250,000 CDN requests, 50,000 invocations and under an hour of CPU | About 1,000,000 CDN requests, 200,000 invocations and about 2 hours of CPU: at the limit | 3 to 4 million CDN requests, 800,000 invocations and 6 or more hours of CPU: over the limit | Public pages stay static (section 3), so most views cost a CDN request and no function. In season an admin checks the usage page in Vercel's dashboard each week. Planned: near the limit, the live score poll slows from 10 to 30 seconds and link prefetching is turned off for signed-in screens. At 200 teams the free plan does not fit, and the league must choose a different free host or the maintainer must authorize a paid plan |
+| **Database**: Neon Free | 1 GB of storage per project; 100 CU-hours of compute per project a month (about 400 hours at 0.25 CU), scaling to zero after 5 minutes idle; 5 GB of public network transfer a month; a 6-hour restore window. Out of compute or transfer, the database is suspended until the next month; over storage, writes are blocked. Nothing is billed ([Neon plans](https://neon.com/docs/introduction/plans), [Neon pricing](https://neon.com/pricing)) | Under 100 MB stored; about 45 CU-hours (awake about 6 hours a day at 0.25 CU) | Under 300 MB; about 90 CU-hours (awake about 12 hours a day): near the limit | Under 1 GB without photos; 150 or more CU-hours: over the limit | Compute is capped at 0.25 CU so a busy hour cannot use up the month. Public pages read cached data and do not wake the database. Photos are kept out of Postgres where possible, because storage is shared with every table. In season an admin checks CU-hours in Neon's console each week. When compute is suspended, public pages still serve from the CDN, but signed-in screens cannot load until the next month |
+| **Email**: Resend Free | 100 emails a day (a UTC day) and 3,000 a month, 3 domains, 10 requests a second. Over quota a send is refused with `daily_quota_exceeded` or `monthly_quota_exceeded`, not queued and not billed ([Resend pricing](https://resend.com/pricing), [account quotas and limits](https://resend.com/docs/knowledge-base/account-quotas-and-limits)) | About 2,300 a month, but one reminder to all 180 players is more than a day's quota | About 9,700 a month: three times the limit | About 39,000 a month: thirteen times the limit | Planned outbox rules: a refusal for quota waits until the next UTC day instead of failing; part of each day's quota is kept for sign-in links and payment receipts; rain-outs and schedule changes go next, then reminders; reminders are spread over the three days before game day; people with push on get routine notices by push only; non-urgent news goes in a weekly digest. At 50 teams and above, email carries sign-in links, receipts and the digest, while rain-outs reach everyone by push, the site banner and "Copy for WhatsApp". A second free provider (Mailjet's free plan: 200 a day and 6,000 a month, [Mailjet pricing](https://www.mailjet.com/pricing/)) is an option the maintainer can approve |
+| **Web push**: browsers' push services | No fee and no account: the app signs each push with its own VAPID keys ([RFC 8292](https://www.rfc-editor.org/rfc/rfc8292)), as Safari does too ([Apple: sending web push](https://developer.apple.com/documentation/usernotifications/sending-web-push-notifications-in-web-apps-and-browsers)). No provider publishes a sending quota | A few hundred pushes a week | A few thousand a week | Over ten thousand a week | Nothing to manage. Each push is one request from the outbox, so it counts as part of the hosting invocations above |
+| **Weather**: National Weather Service API | No fee and no key; a `User-Agent` is required. The rate limit is not published; a request over it can be retried after about 5 seconds ([NWS API](https://www.weather.gov/documentation/services-web-api)) | Under 100 requests a day: one park, with the grid square cached for weeks and the forecast for an hour | The same | The same, per park | Forecasts are cached (section 7), so pages never call the API. On an error the game page shows no forecast and the rain-alert job tries again on its next run |
+| **File storage**: Vercel Blob on Hobby | 1 GB stored, 10,000 simple and 2,000 advanced operations, and 10 GB of data transfer a month. Over a limit, Blob cannot be used until 30 days have passed; nothing is billed ([Blob usage and pricing](https://vercel.com/docs/vercel-blob/usage-and-pricing)) | Logos and sponsor images: about 50 MB | About 200 MB, more with player photos | Photo uploads would pass 1 GB | Uploads are limited to 2 MB (section 9). Planned: images are resized on upload, rejected and replaced files are deleted, and photo uploads close at 80% of the limit until an admin downloads and removes older photos |
+| **Error monitoring**: Sentry Developer | 1 user, 5,000 errors, 1 uptime monitor, 1 cron monitor, email alerts, 30 days of history ([Sentry pricing](https://sentry.io/pricing/)). Events over quota are not accepted ([quotas](https://docs.sentry.io/pricing/quotas/)) | Tens of errors a month | Hundreds | Under a thousand, barring a bad release | Planned with the Sentry setup: the same error is grouped, and browser errors are sampled. A burst from one bad release can use up the quota, so the admin health card also lists failed webhooks, jobs and messages, which needs no outside service |
+| **Analytics**: Vercel Web Analytics and Speed Insights on Hobby | Web Analytics: 50,000 events a month; Hobby cannot buy more, and collection stops after a 3-day grace period ([Web Analytics limits](https://vercel.com/docs/analytics/limits-and-pricing)). Speed Insights: 10,000 events over the last 30 days, then collection pauses ([Speed Insights limits](https://vercel.com/docs/speed-insights/limits-and-pricing)) | About 20,000 page views a month | About 80,000: over the limit | About 325,000: over the limit | Planned with the analytics setup: only public pages are counted, which are the ones search and sign-up depend on, and Speed Insights samples a share of visits. The site keeps working when collection stops |
+| **CI**: GitHub Actions | Free on standard GitHub-hosted runners in public repositories ([GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions)) | No charge | No charge | No charge | The repository stays public. A private repository would have only a small included allowance and would need the checks cut down |
+| **Payments**: Stripe | No setup or monthly fee. 2.9% + 30¢ per successful domestic card payment, 1.5% more for an international card, $15 per dispute ([Stripe pricing](https://stripe.com/pricing)) | About $500 in fees a season (180 payments of $85) | About $2,100 | About $8,300 | Fees come out of each payment the league receives, so the product itself never pays Stripe. The league chooses to absorb them, add them as a visible processing fee, or price them in. Paid Stripe add-ons, such as a custom domain for Checkout, are not used |
 
-## 16. AI features (P2, optional, off by default)
+Not in the table, because they cost the product nothing: the league's domain, which the league already owns and renews; Google sign-in; and the National Weather Service fallback, Open-Meteo, whose free tier is for non-commercial use only and stays unused unless that changes.
 
-Two features made the cut because each saves real time. Neither is needed to run a season, and both disappear from the interface when no API key is configured.
+### Hosting and commercial use
 
-| Feature | What it does | Who triggers it |
+Vercel's Terms of Service allow the Hobby plan only for "personal or non-commercial use" ([Vercel Terms of Service](https://vercel.com/legal/terms), section 4). Neither the terms nor the [fair use guidelines](https://vercel.com/docs/limits/fair-use-guidelines) define commercial use, but a site that takes registration fees for a league may well count. Payments go through Stripe's hosted Checkout to the league's own account, which does not change that.
+
+Free alternatives, from each provider's own pages:
+
+| Host | Free allowance | Fit |
 |---|---|---|
-| **Ask the rulebook** | Answers a rules question using only the league's rulebook, quotes the rule, and links each cited rule number to `/rules`. When the rulebook does not cover the question it says so. Every answer ends with "the referee's call is final" | Signed-in players, at the field |
-| **Recap draft** | Turns a week's results, standings changes and streaks into a draft recap in the post editor. An admin edits and publishes it; nothing is published automatically | Admins, once a week |
+| Cloudflare Workers, with the OpenNext adapter for Next.js | 100,000 requests a day, 10 ms of CPU per request, 5 scheduled triggers ([Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/), [limits](https://developers.cloudflare.com/workers/platform/limits/)). OpenNext supports Next.js 16 ([OpenNext for Cloudflare](https://opennext.js.org/cloudflare)). The [self-serve agreement](https://www.cloudflare.com/terms/) has no non-commercial clause | Scheduled jobs could run more often than once a day. The 10 ms CPU limit is tight for server rendering (Cloudflare says rendering typically takes 10 to 20 ms), and OpenNext gives the free plan a 3 MiB compressed size limit. Both need a trial build |
+| Netlify Free | 300 credits, spent on bandwidth, compute, requests and deploys ([Netlify pricing](https://www.netlify.com/pricing/)) | Commercial use on the free plan is not stated on the pricing page; its subscription agreement needs reading |
+| Render Free | Web services sleep after 15 minutes idle and take about a minute to wake; 750 hours a month ([Render free instances](https://render.com/docs/free)) | Render says not to use free instances for production, so it does not fit |
 
-### Design
+Also possible: ask Vercel whether a volunteer-run league's registration site fits the Hobby plan. **Open question for launch** ([open-questions.md](open-questions.md), question 51): the maintainer decides which host serves the live league before real payments start. The app depends on Vercel only through `vercel.json` (its scheduled jobs and deployment settings), the address Vercel gives each deployment (`src/lib/env.ts`) and the environment variables in its dashboard, so moving is mostly a deployment change, after a trial build on the new host.
 
-- **SDK.** The official Anthropic TypeScript SDK (`@anthropic-ai/sdk`), called only from server code in `services/ai`. The API key never reaches the browser.
-- **Model.** Read from `AI_MODEL`, defaulting to `claude-opus-5-5`. `claude-haiku-5-5` is the low-cost alternative; which to use is your call (see the cost table).
-- **Grounding.** The full rulebook (about 6,000 tokens) goes in the system prompt with prompt caching, so repeat questions read it from cache. The model is told to answer only from that text.
-- **Checked output.** The answer comes back as structured output (answer text plus a list of rule numbers), validated with Zod. Every cited rule number must exist in the rulebook or the answer is discarded and the player is pointed to rulebook search.
-- **Untrusted input.** A player's question is data, not instructions. It cannot change the system prompt, and the model has no tools and no access to league data.
-- **Recap input.** The model receives structured facts computed by the standings module, not free text, so it cannot invent a score.
-- **Quality check.** A fixed set of about 30 questions with expected rule numbers is run on demand, not in CI, because each run costs money.
+## 16. AI features: not planned
 
-### Cost controls
-
-There is no monthly fee. The API is prepaid and billed per use.
-
-| Control | Detail |
-|---|---|
-| Off by default | With no `ANTHROPIC_API_KEY`, both features are hidden |
-| Monthly cap | A budget in league settings, default $5. Spend is recorded from each response's token usage in `ai_usage`. At the cap, both features switch off until the next month and admins are told |
-| Per-person limit | 10 rulebook questions a day |
-| Answer cache | Identical questions are answered from a stored answer, at no cost |
-| Signed-in only | No anonymous use |
-
-### Estimated cost
-
-List prices as of November 2026: Claude Opus 5.5 at $4 per million input tokens and $20 per million output tokens; Claude Haiku 5.5 at $0.10 and $0.50.
-
-| Use | Tokens | Claude Opus 5.5 | Claude Haiku 5.5 |
-|---|---|---|---|
-| One recap draft | About 3,000 in, 800 out | About 3 cents | Under a tenth of a cent |
-| Recaps for a 10-week season | — | About 30 cents | Under 1 cent |
-| One rulebook question | About 6,000 in (mostly cached after the first), 400 out | 1 to 3 cents | Under a tenth of a cent |
-| 500 rulebook questions in a season | — | $5 to $15, held to the cap | About 40 cents |
+No feature calls an AI provider, because every provider bills per use and the product runs on free services only ([ADR 0021](adr/0021-free-services-only.md)). The rulebook is a searchable page instead ([product-spec.md](product-spec.md), section 6), and the weekly recap is drafted from templates over the week's results, rankings, streaks and records (`src/domain/stats/recap.ts`), for an admin to edit and send.
 
 ## 17. Instagram connection (P2)
 
