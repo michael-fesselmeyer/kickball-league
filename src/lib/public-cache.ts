@@ -49,6 +49,27 @@ export function refreshPhotoPagesInBackground(): void {
   for (const [route, type] of PHOTO_PAGE_ROUTES) revalidatePath(route, type);
 }
 
+/** Members' approved photos, on the team, event and game pages. */
+export const MEMBER_PHOTOS_TAG = "member-photos";
+
+/** The routes that show members' photos. */
+const MEMBER_PHOTO_ROUTES = [
+  ["/teams/[team]/[[...season]]", "page"],
+  ["/events/[event]", "page"],
+  ["/games/[game]", "page"],
+] as const;
+
+/**
+ * From a Server Action: an approved, taken-down or deleted member photo
+ * shows or goes on the next request for every page it is tagged to. As with
+ * `refreshPhotoPages`, the prerendered routes are expired by path too, so
+ * their shells don't serve the photos they were built with.
+ */
+export function refreshMemberPhotoPages(): void {
+  updateTag(MEMBER_PHOTOS_TAG);
+  for (const [route, type] of MEMBER_PHOTO_ROUTES) revalidatePath(route, type);
+}
+
 /**
  * How long a game's live score is kept on the server between saves
  * (docs/architecture.md, section 3). Saving a half-inning expires it at once

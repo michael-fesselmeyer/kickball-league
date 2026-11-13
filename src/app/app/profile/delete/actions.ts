@@ -8,6 +8,7 @@ import { profileOf } from "@/db/queries/profile";
 import { isFreshSession } from "@/lib/auth/config";
 import { requireSelfToChange, sessionSignedInAt } from "@/lib/auth/permission";
 import { demoStatus } from "@/lib/demo/guard";
+import { refreshMemberPhotoPages } from "@/lib/public-cache";
 
 const PAGE = "/app/profile/delete";
 
@@ -33,6 +34,8 @@ export async function deleteAccountAction(form: FormData): Promise<void> {
     deleteAccount(tx, subject.userId, new Date()),
   );
   if (!result.ok) redirect(`${PAGE}?error=${result.error}`);
+  // Their photos are gone, so pages that showed one drop it.
+  refreshMemberPhotoPages();
   // The sessions are gone from the database; clear the browser's cookies too.
   const jar = await cookies();
   for (const { name } of jar.getAll())
