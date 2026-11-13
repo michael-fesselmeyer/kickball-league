@@ -11,6 +11,7 @@ const ACTIONS: Record<string, string> = {
   "bracket.create": "Seeded the playoff bracket",
   "bracket.publish": "Published the playoff bracket",
   "field.create": "Added a field",
+  "free_agents.build_team": "Built a team from the free-agent pool",
   "free_agents.place": "Placed a free agent on a team",
   "invite.create": "Created a team invite",
   "league.export": "Downloaded the league's data",
