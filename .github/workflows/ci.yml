@@ -128,18 +128,17 @@ jobs:
     strategy:
       matrix:
         include:
-          # Against the migrated, empty database, as Playwright built before
-          # its global setup seeded it: the public seasons and teams are
-          # rendered on their first visit, after the flows change them.
+          # Both builds read the seeded league, as production builds against
+          # the real database, so the public seasons and teams are
+          # prerendered (src/lib/static-params.ts): the flows check that their
+          # actions refresh those pages, and Lighthouse measures them as
+          # served. The seed is deterministic, so each shard seeds the same
+          # league again.
           - check: end-to-end
             artifact: next-build-e2e
             database: kickball_e2e_demo
             address: http://localhost:3100
-            seed: false
-          # Against the seeded league, so the public seasons and teams are
-          # prerendered (src/lib/static-params.ts) the way Lighthouse must
-          # measure them. The seed is deterministic, so each shard seeds the
-          # same league again.
+            seed: true
           - check: Lighthouse
             artifact: next-build-lighthouse
             database: ci
