@@ -2,6 +2,7 @@ import { and, asc, count, eq, gt, inArray, ne, sql } from "drizzle-orm";
 import type { UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { auditLog } from "../schema/audit";
+import { awardPoll, awardVote } from "../schema/awards";
 import { freeAgentProfile } from "../schema/free-agent";
 import { account, session, user, verification } from "../schema/auth";
 import { eventRsvp } from "../schema/event";
@@ -281,6 +282,22 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .innerJoin(subRequest, eq(subClaim.subRequestId, subRequest.id))
     .where(eq(subClaim.userId, userId))
     .orderBy(asc(subClaim.claimedAt));
+  // Their own ballots: the poll and whom they picked, a person or a team.
+  const awardVotes = await db
+    .select({
+      poll: awardPoll.title,
+      castAt: awardVote.castAt,
+      pickedPlayer: sql<
+        string | null
+      >`(select concat_ws(' ', ${profile.firstName}, left(${profile.lastName}, 1) || '.') from ${profile} where ${profile.userId} = ${awardVote.nomineeUserId})`,
+      pickedTeam: sql<
+        string | null
+      >`(select ${team.name} from ${teamSeason} join ${team} on ${team.id} = ${teamSeason.teamId} where ${teamSeason.id} = ${awardVote.nomineeTeamSeasonId})`,
+    })
+    .from(awardVote)
+    .innerJoin(awardPoll, eq(awardVote.awardPollId, awardPoll.id))
+    .where(eq(awardVote.voterId, userId))
+    .orderBy(asc(awardVote.castAt));
   const subRequestsPosted = await db
     .select({
       gameId: subRequest.gameId,
@@ -388,6 +405,11 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     subClaims,
     subRequestsPosted,
     newTeamRequests,
+    awardVotes: awardVotes.map((v) => ({
+      poll: v.poll,
+      castAt: v.castAt,
+      pick: v.pickedPlayer ?? v.pickedTeam,
+    })),
     emailSettings,
     messages,
     announcementsSent,
@@ -461,6 +483,8 @@ export type DeleteError = "not_found" | DeleteBlocker["reason"];
  * Sub claims for games still to come are withdrawn, which reopens the spot
  * and tells the captains; past claims stay as history without the copied
  * lineup gender.
+ * Votes in awards polls still open are withdrawn; closed polls keep their
+ * totals.
  * The user row stays, renamed and with an address that cannot receive
  * mail, so registrations, rosters, scores, payments, waiver signatures and
  * the audit log keep pointing at it.
@@ -528,6 +552,21 @@ export async function deleteAccount(
   for (const { eventId } of rsvpd)
     await leaveEvent(db, { eventId, userId, now });
   await db.delete(eventRsvp).where(eq(eventRsvp.userId, userId));
+  // Votes in polls still open come out of the count; closed totals stay.
+  await db
+    .delete(awardVote)
+    .where(
+      and(
+        eq(awardVote.voterId, userId),
+        inArray(
+          awardVote.awardPollId,
+          db
+            .select({ id: awardPoll.id })
+            .from(awardPoll)
+            .where(gt(awardPoll.closesAt, now)),
+        ),
+      ),
+    );
   await db
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));
