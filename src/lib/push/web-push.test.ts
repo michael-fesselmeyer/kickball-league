@@ -127,6 +127,16 @@ describe("VAPID", () => {
     expect(isVapidPair(keys.publicKey, "not a key")).toBe(false);
   });
 
+  it("always writes the private key as 32 bytes, even with a leading zero", () => {
+    // About one key in 256 has a leading zero byte; 3,000 keys all but
+    // guarantee a few.
+    for (let i = 0; i < 3000; i++) {
+      const pair = generateVapidKeys();
+      expect(pair.privateKey).toHaveLength(43);
+      expect(isVapidPair(pair.publicKey, pair.privateKey)).toBe(true);
+    }
+  });
+
   it("makes 65-byte public and 32-byte private keys", () => {
     expect(b64url.decode(keys.publicKey)).toHaveLength(65);
     expect(b64url.decode(keys.privateKey)).toHaveLength(32);

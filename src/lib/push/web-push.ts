@@ -51,9 +51,14 @@ export function generateVapidKeys(): Pick<
 > {
   const ecdh = createECDH("prime256v1");
   ecdh.generateKeys();
+  // Node drops leading zero bytes from the private scalar (about one key in
+  // 256); VAPID keys are always the full 32 bytes.
+  const scalar = ecdh.getPrivateKey();
   return {
     publicKey: b64url.encode(ecdh.getPublicKey()),
-    privateKey: b64url.encode(ecdh.getPrivateKey()),
+    privateKey: b64url.encode(
+      Buffer.concat([Buffer.alloc(32 - scalar.length), scalar]),
+    ),
   };
 }
 
