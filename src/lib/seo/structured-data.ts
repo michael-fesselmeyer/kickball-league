@@ -308,6 +308,43 @@ export function breadcrumbJsonLd(
   };
 }
 
+export type SponsorInfo = {
+  name: string;
+  kind: "bar" | "restaurant" | "brand" | "other";
+  /** The sponsor's page on this site. */
+  url: string;
+  /** The business's own website. */
+  sameAs?: string | undefined;
+  /** One line, as the sponsor wrote it. */
+  address?: string | undefined;
+  description?: string | undefined;
+};
+
+const SPONSOR_TYPES: Record<SponsorInfo["kind"], string> = {
+  bar: "BarOrPub",
+  restaurant: "Restaurant",
+  brand: "Organization",
+  other: "Organization",
+};
+
+/**
+ * A sponsor's page: a bar or restaurant is a LocalBusiness with premises
+ * (BarOrPub, Restaurant); any other sponsor is an Organization.
+ */
+export function sponsorJsonLd(sponsor: SponsorInfo): JsonLd {
+  return {
+    "@context": CONTEXT,
+    ...compact({
+      "@type": SPONSOR_TYPES[sponsor.kind],
+      name: sponsor.name,
+      url: sponsor.url,
+      sameAs: sponsor.sameAs,
+      address: sponsor.address,
+      description: sponsor.description,
+    }),
+  };
+}
+
 /**
  * JSON for a <script type="application/ld+json"> tag. Characters that could
  * close the tag or start markup are escaped, so a team named "</script>" is

@@ -9,6 +9,7 @@ import {
   parkJsonLd,
   serializeJsonLd,
   socialEventJsonLd,
+  sponsorJsonLd,
   teamJsonLd,
   websiteJsonLd,
   type GameInfo,
@@ -47,6 +48,9 @@ const REQUIRED: Record<string, readonly string[]> = {
   ],
   Place: ["name", "address"],
   Park: ["name", "address"],
+  BarOrPub: ["name", "url"],
+  Restaurant: ["name", "url"],
+  Organization: ["name", "url"],
   PostalAddress: ["streetAddress", "addressLocality", "addressCountry"],
   GeoCoordinates: ["latitude", "longitude"],
   City: ["name"],
@@ -427,6 +431,35 @@ describe("parkJsonLd", () => {
     expectValid(data);
     expect(data).not.toHaveProperty("geo");
     expect(data).not.toHaveProperty("hasMap");
+  });
+});
+
+describe("sponsorJsonLd", () => {
+  it("is a bar with its address and its own website", () => {
+    const data = sponsorJsonLd({
+      name: "The Corner Pocket",
+      kind: "bar",
+      url: `${ORIGIN}/sponsors/the-corner-pocket`,
+      sameAs: "https://corner-pocket.example.test",
+      address: "1 Example St, Brooklyn, NY",
+    });
+    expectValid(data);
+    expect(data).toMatchObject({
+      "@type": "BarOrPub",
+      address: "1 Example St, Brooklyn, NY",
+    });
+    expect(data).not.toHaveProperty("description");
+  });
+
+  it("is an organization for a sponsor without premises", () => {
+    const data = sponsorJsonLd({
+      name: "Bounce Supply",
+      kind: "brand",
+      url: `${ORIGIN}/sponsors/bounce-supply`,
+    });
+    expectValid(data);
+    expect(data["@type"]).toBe("Organization");
+    expect(data).not.toHaveProperty("address");
   });
 });
 

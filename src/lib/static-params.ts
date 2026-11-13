@@ -1,6 +1,7 @@
 import { db } from "@/db/client";
 import { publicEventSlugs } from "@/db/queries/events";
 import { publicSeasons, publicTeams } from "@/db/queries/sitemap";
+import { publicSponsorPages } from "@/db/queries/sponsors";
 
 /**
  * A slug no season can have (slugs are lowercase words joined by hyphens),
@@ -11,6 +12,9 @@ export const NO_SEASON = "_";
 
 /** As NO_SEASON, for team pages. */
 export const NO_TEAM = "_";
+
+/** As NO_SEASON, for sponsor pages. */
+export const NO_SPONSOR = "_";
 
 /**
  * The public seasons to prerender at build time, so the first visit to
@@ -68,4 +72,19 @@ export async function publicEventParams(): Promise<{ event: string }[]> {
     );
   }
   return [{ event: NO_EVENT }];
+}
+
+/** The sponsor pages to prerender at build time, on the same terms. */
+export async function publicSponsorParams(): Promise<{ sponsor: string }[]> {
+  try {
+    const sponsors = await publicSponsorPages(db);
+    if (sponsors.length > 0) return sponsors.map((s) => ({ sponsor: s.slug }));
+  } catch (error) {
+    console.warn(
+      `[build] No sponsors prerendered: the database could not be read (${
+        error instanceof Error ? error.message : String(error)
+      }).`,
+    );
+  }
+  return [{ sponsor: NO_SPONSOR }];
 }
