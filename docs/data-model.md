@@ -15,7 +15,10 @@ Status: draft v1, 2026-11-11. Postgres on Neon, schema defined in Drizzle. Table
 | Flexible settings | `jsonb` with a Zod schema in code; nothing queried often lives in JSON |
 | Names | Tables singular, snake_case |
 
-The four tables Better Auth owns (`user`, `session`, `account`, `verification`) keep its names and shapes. Everything about a person that the league cares about is in `profile`.
+The tables Better Auth owns (`user`, `session`, `account`, `verification`, and `passkey` from its passkey plugin) keep its names and shapes. Everything about a person that the league cares about is in `profile`.
+
+- `session` is one signed-in browser. The account page lists a person's live sessions as their signed-in devices (named from `user_agent`) and deletes one to sign that device out. Signing in again on a browser that already holds a session for the same account ends the old session, so each browser appears once.
+- `passkey` holds a person's passkeys: the public key, the WebAuthn credential id (indexed, for sign-in), a signature counter, `device_type` (`singleDevice` or `multiDevice`), `backed_up`, `transports`, the authenticator model (`aaguid`) and a `name` the person can change. Deleting the user cascades to it.
 
 A change history is kept two ways: `audit_log` records who changed what for admin-visible actions, and append-only tables (`waiver_signature`, `sms_consent_event`, `credit_entry`, `score_report`, `schedule_version`) are their own history.
 
@@ -1061,9 +1064,9 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `push_subscription` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up), `notification_preference`, `push_subscription` and `message` rows; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, announcements and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
 
-Every deletion writes an `account.delete` audit row with no personal data in it. The person's own export (`personalData`) returns all of the above as JSON, without session tokens, sign-in tokens or provider tokens.
+Every deletion writes an `account.delete` audit row with no personal data in it. The person's own export (`personalData`) returns all of the above as JSON, including each passkey's name, type and date, without session tokens, sign-in tokens, provider tokens or passkey key material.

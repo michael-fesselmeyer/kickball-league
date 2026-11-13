@@ -36,6 +36,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - Shirt tracking: sizes by team from players' profiles, what is still to order for late joiners, and a received flag per player.
 - CSV downloads of rosters (with shirt sizes) and payments: the whole season for admins, one team for its captains. Cells that a spreadsheet would run as a formula are written as text, and every download is logged.
 - Players download everything the league holds about them as JSON, and can delete their account. Deleting anonymizes the person so past rosters, scores and payments stay correct, and needs a sign-in from the last 15 minutes plus their email address typed again.
+- Passkeys: after signing in once, a player adds a passkey and signs in with Face ID, Touch ID or their device PIN, from a button or the email field's autofill. The account page lists every signed-in device and signs one, or all the others, out. Sensitive actions (adding or removing a passkey, deleting the account, the operator's changes) ask for a confirmation from the last 15 minutes, which a passkey gives in one tap.
 
 **Game day**
 
