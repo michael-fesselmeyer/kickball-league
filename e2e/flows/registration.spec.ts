@@ -249,6 +249,63 @@ test("the free agent signs, pays with a promo code and is confirmed by Stripe", 
   await page.context().close();
 });
 
+test("the free agent takes the quiz and starts a friend group", async ({
+  browser,
+}) => {
+  const page = await pageAs(browser, "Player");
+  await page.goto(`/app/seasons/${SEASON_SLUG}`);
+  await page
+    .getByRole("link", {
+      name: "Five quick questions and an optional friend code",
+    })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Find your team" }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  await page.getByRole("radio", { name: "A season or two" }).check();
+  await page.getByRole("checkbox", { name: "Outfield" }).check();
+  await page.getByRole("radio", { name: "Most weeks" }).check();
+  await page
+    .getByRole("radio", { name: "Fun first, but I'd like to win some" })
+    .check();
+  await page.getByRole("radio", { name: "I'd help a captain" }).check();
+  await page.getByRole("button", { name: "Save my answers" }).click();
+  await expect(page).toHaveURL(/\?quiz=saved/);
+  await expect(page.getByText("Take the team-fit quiz")).toBeVisible();
+
+  await page.goto(`/app/seasons/${SEASON_SLUG}/quiz`);
+  await page.getByRole("button", { name: "Start a group" }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Group started. Share the code with your friends.",
+  );
+  await expect(
+    page.getByText(/Your friend code is [A-Z2-9]{3}-[A-Z2-9]{3}/),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+  await page.context().close();
+});
+
+test("an admin applies the matcher's suggestion", async ({ browser }) => {
+  const page = await pageAs(browser, "Admin");
+  await page.goto(`/app/admin/seasons/${SEASON_SLUG}/free-agents`);
+  await expect(
+    page.getByRole("heading", { name: "Free-agent matcher" }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  const apply = page.getByRole("button", { name: new RegExp(`to ${TEAM}$`) });
+  await expect(apply).toHaveCount(1);
+  await apply.click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Suggestion applied. They're on the team.",
+  );
+  await page.goto(`/app/admin/seasons/${SEASON_SLUG}/registrations`);
+  await expect(
+    page.getByRole("article", { name: TEAM }).getByRole("row"),
+  ).toHaveCount(3);
+
 test("an admin refunds part of one payment and all of another through Stripe", async ({
   browser,
 }) => {
