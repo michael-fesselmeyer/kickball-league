@@ -23,6 +23,11 @@ const worldSite = async (
   leagueId: w.leagueId,
 });
 
+/**
+ * Audit rows for one entity and action. Inside a test's transaction every
+ * row has the same occurred_at and ids are random, so nothing records the
+ * order they were written in: compare them as a set.
+ */
 const auditFor = (db: Db, entityId: string, action: string) =>
   db
     .select({
@@ -66,11 +71,22 @@ describe("operator settings", () => {
       await setFeature(db, off);
       await setFeature(db, off);
       await setFeature(db, { ...off, feature: "weather" });
-      const audit = await auditFor(db, leagueId, "operator.feature");
-      expect(audit.at(-1)?.after).toEqual({ disabled: ["subs", "weather"] });
       await setFeature(db, { ...off, on: true });
-      const after = await auditFor(db, leagueId, "operator.feature");
-      expect(after.at(-1)?.after).toEqual({ disabled: ["weather"] });
+      const change = (before: string[], after: string[]) => ({
+        actorId: w.admin,
+        before: { disabled: before },
+        after: { disabled: after },
+      });
+      const audit = await auditFor(db, leagueId, "operator.feature");
+      expect(audit).toHaveLength(4);
+      expect(audit).toEqual(
+        expect.arrayContaining([
+          change([], ["subs"]),
+          change(["subs"], ["subs"]),
+          change(["subs"], ["subs", "weather"]),
+          change(["subs", "weather"], ["weather"]),
+        ]),
+      );
     }));
 
   it("gives a person a role by email, with an audit row, and reports unknown emails", () =>
