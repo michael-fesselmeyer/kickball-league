@@ -243,17 +243,26 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 |---|---|---|
 | `announcement` | non-urgent | Announcements from admins and captains |
 | `email_budget` | urgent | For admins: urgent email waiting for tomorrow's email allowance |
-| `event_notice` | urgent | An event spot that opened for you, or an event you RSVP'd to called off |
+| `event_news` | non-urgent | Event announcements, and changes or cancellations more than a day ahead |
+| `event_notice` | urgent | An event spot that opened for you, or an event cancelled or moved within a day of its start |
+| `guarantee_failed` | urgent | A captain's card guarantee that could not be charged |
+| `guarantee_warning` | urgent | A warning before a captain's card guarantee is charged |
+| `instagram_reconnect` | non-urgent | For admins: the Instagram connection needs reconnecting |
+| `instagram_storage_full` | non-urgent | For admins: Instagram photo storage is full |
 | `new_team` | non-urgent | Answers to new-team requests |
 | `payment_reminder` | urgent | Payment deadline reminders |
 | `rain_alert` | urgent | Rain alerts for admins the day before games |
 | `rainout_notice` | urgent | Rain-outs and makeup times |
+| `rebate_credit` | non-urgent | League credit for rained-out games |
+| `referral_credit` | non-urgent | League credit for a friend you referred |
 | `score_confirmation` | urgent | Scores waiting for your confirmation |
 | `score_reminder` | non-urgent | Reminders about games with no score yet |
 | `sub_request` | urgent | Teams that need a sub when you're free |
 | `sub_update` | urgent | Answers to your sub offers |
+| `suspension` | urgent | A suspension, its games and how to appeal |
+| `waitlist_offer` | urgent | A team spot held for you from the waitlist |
 
-The `digest` template carries held messages and is neither: it is never capped but waits out quiet hours.
+The `digest` template carries held messages and is neither: it is never capped but waits out quiet hours. Event notices pick their kind when they are queued (`eventNoticeKind`): a spot that opened for the person, or a cancellation or a change to the time or place within 24 hours of the start (the earlier of the old and new start), is `event_notice`; announcements, other edits and anything further ahead are `event_news`. Both render with the same email.
 
 **The rules** (`decide` in `src/domain/notifications/limits.ts`, unit and property tested) run in the drain, after consent, for each message and channel, in the league's time zone:
 
