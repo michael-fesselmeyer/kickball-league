@@ -1,5 +1,5 @@
 import { db } from "@/db/client";
-import { publicSeasons } from "@/db/queries/sitemap";
+import { publicSeasons, publicTeams } from "@/db/queries/sitemap";
 
 /**
  * A slug no season can have (slugs are lowercase words joined by hyphens),
@@ -7,6 +7,9 @@ import { publicSeasons } from "@/db/queries/sitemap";
  * must list at least one param at build time.
  */
 export const NO_SEASON = "_";
+
+/** As NO_SEASON, for team pages. */
+export const NO_TEAM = "_";
 
 /**
  * The public seasons to prerender at build time, so the first visit to
@@ -28,4 +31,22 @@ export async function publicSeasonParams(): Promise<{ season: string }[]> {
     );
   }
   return [{ season: NO_SEASON }];
+}
+
+/**
+ * The public teams to prerender at build time (their current-season view),
+ * on the same terms as `publicSeasonParams`.
+ */
+export async function publicTeamParams(): Promise<{ team: string }[]> {
+  try {
+    const teams = await publicTeams(db);
+    if (teams.length > 0) return teams.map((t) => ({ team: t.slug }));
+  } catch (error) {
+    console.warn(
+      `[build] No teams prerendered: the database could not be read (${
+        error instanceof Error ? error.message : String(error)
+      }).`,
+    );
+  }
+  return [{ team: NO_TEAM }];
 }
