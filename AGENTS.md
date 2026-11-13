@@ -62,6 +62,15 @@ Players mostly use the app on phones, and a slow page is one they stop opening. 
 - Fetch a page's data in as few queries as it needs, in parallel where they are independent; never one query per row.
 - A loading state holds the space its content will take, so nothing jumps when the content arrives.
 
+## Free services only
+
+The site must cost nothing to run ([ADR 0021](docs/adr/0021-free-services-only.md)):
+
+- No feature may need a paid plan, a paid API key or a monthly bill.
+- Use a service's free tier and stay inside its limit. As usage nears a limit, the feature degrades gracefully (it waits, slows down or falls back) instead of failing or costing money.
+- If a feature has no free option, it is out.
+- Never add a provider without adding its free limit, with a link to the provider's own page, to the free-tier budget in `docs/architecture.md` (section 15).
+
 ## Working in parallel
 
 Several changes are often in progress at once. These rules keep them from colliding.
