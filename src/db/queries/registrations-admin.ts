@@ -18,6 +18,7 @@ import {
   teamSeason,
 } from "../schema/team";
 import { recordAudit } from "./audit";
+import { anySuspendedRegistration } from "./discipline";
 import { settleCoveredRegistrations } from "./payments";
 import type { Db } from "./schedule";
 
@@ -212,7 +213,11 @@ export async function registrationsBoard(
 }
 
 export type PlaceError =
-  "unknown_registration" | "already_on_team" | "unknown_team" | "full";
+  | "unknown_registration"
+  | "already_on_team"
+  | "unknown_team"
+  | "full"
+  | "suspended";
 
 /** Puts a free agent on a team in the same season (free_agents.place). */
 export async function placeFreeAgent(
@@ -246,6 +251,9 @@ export async function placeFreeAgent(
       ),
     );
   if (spot) return err("already_on_team");
+  // A suspended player can't be placed from the pool.
+  if (await anySuspendedRegistration(db, [input.registrationId], input.now))
+    return err("suspended");
   const [target] = await db
     .select({ rosterMax: season.rosterMax })
     .from(teamSeason)

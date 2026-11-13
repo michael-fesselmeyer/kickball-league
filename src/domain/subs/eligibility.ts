@@ -3,9 +3,9 @@
  * with a signed waiver, and sub requests are disabled for playoff games").
  *
  * - A request is for one upcoming, placed, non-playoff game.
- * - A sub is registered this season with the waiver signed, is not on
- *   either team in the game, and is not playing or refereeing another game
- *   at an overlapping time.
+ * - A sub is registered this season with the waiver signed, is not
+ *   suspended, is not on either team in the game, and is not playing or
+ *   refereeing another game at an overlapping time.
  * - A request can reserve spots for women or men, for the fielding rule.
  *   A claim holds a spot until the captain answers, so the spots left are
  *   the spots asked for minus claims that are pending or approved.
@@ -63,10 +63,12 @@ export type SubCandidate = {
   lineupGender: LineupGender | null;
   /** Other games this season they play in or referee, by time. */
   commitments: readonly { startsAt: Date; endsAt: Date }[];
+  /** Suspended by the league right now (src/domain/discipline). */
+  suspended?: boolean;
 };
 
 export type Ineligible =
-  "not_registered" | "waiver_unsigned" | "plays_in_game" | "busy";
+  "not_registered" | "waiver_unsigned" | "suspended" | "plays_in_game" | "busy";
 
 /** Statuses that mean registered with the waiver signed. */
 const SIGNED: readonly RegistrationStatus[] = ["pending_payment", "active"];
@@ -85,6 +87,7 @@ export function checkEligibility(
   if (!r || ["waitlisted", "cancelled", "refunded"].includes(r.status))
     return err("not_registered");
   if (!SIGNED.includes(r.status)) return err("waiver_unsigned");
+  if (person.suspended === true) return err("suspended");
   if (person.teamSeasonId && game.teamSeasonIds.includes(person.teamSeasonId))
     return err("plays_in_game");
   const { startsAt, endsAt } = game;

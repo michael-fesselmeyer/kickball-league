@@ -38,6 +38,8 @@ const ERRORS: Record<string, string> = {
   ...RECORD_PAYMENT_MESSAGES,
   unknown_team: "Pick one of this season's teams.",
   already_on_team: "That player is already on a team.",
+  suspended:
+    "That player is suspended, so they can't be placed until it's served.",
   full: "That team's roster is full.",
   unknown_payment: "That payment is gone.",
   bad_amount:

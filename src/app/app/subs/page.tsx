@@ -29,6 +29,7 @@ const ERRORS: Record<string, string> = {
   declined_before: "The captain already passed on your offer for that game.",
   not_registered: "Register for the season to sub.",
   waiver_unsigned: "Sign this season's waiver first.",
+  suspended: "You're suspended, so you can't sub until it's served.",
   plays_in_game: "You play in that game already.",
   busy: "You're playing or reffing at that time.",
 };
@@ -44,6 +45,7 @@ const BLOCKED: Record<NonNullable<OpenRequest["blocked"]>, string> = {
   full: "The spots left are taken or reserved for another fielding group.",
   not_registered: "Register for this season to sub.",
   waiver_unsigned: "Sign this season's waiver to sub.",
+  suspended: "You're suspended, so you can't sub until it's served.",
   plays_in_game: "You play in this game.",
   busy: "You're playing or reffing at that time.",
 };

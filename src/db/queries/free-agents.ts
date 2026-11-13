@@ -29,6 +29,7 @@ import {
   teamSeason,
 } from "../schema/team";
 import { recordAudit } from "./audit";
+import { anySuspendedRegistration, suspendedAmong } from "./discipline";
 import { placeFreeAgent, type PlaceError } from "./registrations-admin";
 import { required } from "./rows";
 import type { Db } from "./schedule";
@@ -319,6 +320,7 @@ export async function matcherInput(db: Db, seasonId: SeasonId) {
         vibe: freeAgentProfile.vibeScore,
         notes: freeAgentProfile.notes,
         teamSeasonId: rosterMembership.teamSeasonId,
+        userId: registration.userId,
       })
       .from(registration)
       .innerJoin(user, eq(registration.userId, user.id))
@@ -345,11 +347,18 @@ export async function matcherInput(db: Db, seasonId: SeasonId) {
   ]);
   const limit = limits[0];
   if (!limit) return null;
+  // Suspended players stay out of the pool until they are free to play.
+  const suspended = await suspendedAmong(
+    db,
+    people.filter((p) => p.teamSeasonId === null).map((p) => p.userId),
+    new Date(),
+  );
 
   const players = people.map((p, order) => {
     const answers = readAnswers(p.answers);
     return {
       teamSeasonId: p.teamSeasonId,
+      userId: p.userId,
       entry: {
         registrationId: p.registrationId,
         name:
@@ -388,7 +397,7 @@ export async function matcherInput(db: Db, seasonId: SeasonId) {
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
   const pool = players
-    .filter((p) => p.teamSeasonId === null)
+    .filter((p) => p.teamSeasonId === null && !suspended.has(p.userId))
     .map((p) => p.entry);
   return { ...limit, teams, pool };
 }
@@ -438,6 +447,8 @@ export async function placeTogether(
   if (found.some((f) => f.spot !== null)) return err("already_on_team");
   const split = await groupMembersLeftOut(db, found, ids);
   if (split) return err("splits_group");
+  if (await anySuspendedRegistration(db, ids, input.now))
+    return err("suspended");
 
   const [target] = await db
     .select({ rosterMax: season.rosterMax })
@@ -578,6 +589,8 @@ export async function buildTeamFromPool(
   if (found.length !== ids.length) return err("unknown_registration");
   if (found.some((f) => f.spot !== null)) return err("already_on_team");
   if (await groupMembersLeftOut(db, found, ids)) return err("splits_group");
+  if (await anySuspendedRegistration(db, ids, input.now))
+    return err("suspended");
 
   const [taken] = await db
     .select({ id: team.id })

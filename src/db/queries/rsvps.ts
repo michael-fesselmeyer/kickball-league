@@ -11,15 +11,19 @@ import { game, gameRsvp } from "../schema/game";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { registration, rosterMembership } from "../schema/team";
+import { isSuspended } from "./discipline";
 import type { Db } from "./schedule";
 
 /** Game-day RSVPs (roadmap week 5). */
 
 export type RsvpStatus = "in" | "out" | "maybe";
 
-export type RsvpError = "not_your_game" | "game_over";
+export type RsvpError = "not_your_game" | "game_over" | "suspended";
 
-/** Sets a player's answer for a game their team plays; changing it is fine. */
+/**
+ * Sets a player's answer for a game their team plays; changing it is fine.
+ * A suspended player can say "out" or "maybe", never "in".
+ */
 export async function setRsvp(
   db: Db,
   input: {
@@ -28,6 +32,7 @@ export async function setRsvp(
     teamSeasonId: TeamSeasonId;
     status: RsvpStatus;
   },
+  now: Date = new Date(),
 ): Promise<Result<void, RsvpError>> {
   const [found] = await db
     .select({ status: game.status })
@@ -58,6 +63,8 @@ export async function setRsvp(
   if (!found || !member) return err("not_your_game");
   if (["final", "forfeit", "cancelled"].includes(found.status))
     return err("game_over");
+  if (input.status === "in" && (await isSuspended(db, input.userId, now)))
+    return err("suspended");
   await db
     .insert(gameRsvp)
     .values(input)

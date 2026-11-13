@@ -82,6 +82,15 @@ describe("who may sub", () => {
     expect(isFreeAgent(player())).toBe(false);
   });
 
+  it("turns away a suspended player", () => {
+    expect(checkEligibility(player({ suspended: true }), game)).toEqual(
+      err("suspended"),
+    );
+    expect(checkEligibility(player({ suspended: false }), game)).toEqual(
+      ok(undefined),
+    );
+  });
+
   it("needs a registration this season with the waiver signed", () => {
     expect(checkEligibility(player({ registration: null }), game)).toEqual(
       err("not_registered"),
