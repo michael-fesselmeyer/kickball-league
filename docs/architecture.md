@@ -145,11 +145,11 @@ With Cache Components, a page's static parts and cached data are prerendered int
 | `/seasons/[season]/standings` | Static HTML, prerendered at build for every public season, refreshed in the background each minute ✔ | `season:{seasonId}` | As the schedule |
 | `/seasons/[season]/bracket` | Prerendered; cached | `standings:{seasonId}` | A game becomes final or is corrected |
 | `/teams/[team]` | Static HTML, prerendered at build for every public team (current season), refreshed in the background each minute ✔. `?season=` is rewritten to a path segment | `team:{slug}`, `season:{seasonId}` | As the schedule; roster changes show within a minute |
-| `/games/[game]` | Prerendered; cached. A small client island polls live JSON while the game is in progress | `game:{id}` | Score reported |
+| `/games/[game]` | Rendered on request behind its loading state. While the game is on, a small client island polls the live JSON every 10 seconds; a finished game's line score is plain server HTML ✔ | — | — |
 | `/events`, `/events/[event]`, `/sponsors/*`, `/news/*`, `/history/*` | Prerendered; cached | `events`, `sponsor:{id}`, `posts` | Admin edits |
 | `opengraph-image` for games and teams | Generated with `next/og`, cached | Same as the page | Same as the page |
 | `/teams/[team]/calendar.ics` | Route handler, cached | `schedule:{seasonId}` | Schedule published |
-| `/api/games/[game]/live` | Route handler, CDN cache of a few seconds | `game:{id}` | Score reported |
+| `/api/games/[game]/live` | Route handler; `use cache` for 5 seconds (`LIVE_SCORE_LIFE`) and a 5-second CDN copy ✔ | `game:{id}` | A half-inning is entered, corrected or taken back; who kicks first changes; a score is reported or answered |
 | `sitemap.xml`, `robots.txt` | `sitemap.ts`, `robots.ts`, cached daily | `league` | — |
 | `/app/**` | Dynamic, streamed with Suspense; never cached across users | — | — |
 | `/app/admin/**` | Dynamic. The schedule board is a lazily loaded client component | — | — |
@@ -160,7 +160,7 @@ Public pages show the same thing to everyone. "My team" highlighting and the sig
 
 Mutations are Server Actions. An action that changes public data calls `updateTag` so the person who made the change sees it immediately; webhooks and jobs call `revalidateTag`.
 
-**Live scores** use polling, not WebSockets: while a game is in progress the game page fetches a small JSON document every 15 seconds while the tab is visible. With at most six games at once and a CDN-cached endpoint, this costs almost nothing and has no connection state to manage. Server-sent events are the upgrade path if it ever feels slow.
+**Live scores** ([ADR 0010](adr/0010-live-scores-by-polling.md)) use polling, not WebSockets. The scorer saves each half-inning with a Server Action, which expires `game:{id}`. While a game is on (from half an hour before its slot until three hours after it ends, or within two hours of the last half entered) the game page asks `/api/games/[game]/live` for a small JSON document every 10 seconds while the tab is visible, and stops once the game is final. The server keeps that answer for 5 seconds and a CDN may keep it 5 more, so a spectator sees a new half within about 15 seconds and a crowd costs one query per game every few seconds. Server-sent events are the upgrade path if it ever feels slow.
 
 ## 4. Authentication and authorization
 
@@ -291,7 +291,7 @@ Thresholds are season settings. The rule only recommends; an admin decides. Buil
 | Data cache | Query functions marked `'use cache'` with tags | Minutes to days by `cacheLife`, and on demand by tag |
 | Forecasts ✔ | NWS grid square and hourly forecast, `'use cache'` | Grid square for weeks; forecast refreshed in the background after an hour |
 | Standings | Computed from games inside a cached function | Invalidated when any game in the season is finalized |
-| Live score JSON | CDN | About 5 seconds |
+| Live score JSON ✔ | `use cache` tagged `game:{id}`, then the CDN | 5 seconds on the server, expired at once by every save; 5 more at the CDN |
 | Browser | Service worker: the app shell (offline page, manifest, icons and the versioned files they load) and one public page, the signed-in person's next game (section 14) | Refreshed on each visit to the signed-in home screen and whenever the saved game is opened online |
 
 No Redis in the MVP. Rate limits that need a counter use a small Postgres table.

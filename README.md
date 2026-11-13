@@ -38,6 +38,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 **Game day**
 
 - Refs see their assigned games and enter scores from their phone. Captains confirm or dispute, and undisputed scores become final.
+- Live scoring: the ref, or a captain when there is no ref, taps in the runs after each half-inning. The public game page shows the line score and updates within 15 seconds without a reload. A called game goes back to the score at the last complete inning, and the final score is confirmed like any other.
 - Players answer in, out or maybe, and captains see a warning when the fielding rule is at risk.
 - A sub finder: a short-handed captain asks for subs for a game, with spots reserved for women or men when the fielding rule needs them. Registered players with a signed waiver who are free at that time hear about it by email (free agents first, and only if sub alerts are on). A player's "I'm in" holds a spot until the captain approves or declines, so two players can never take the last spot at once. Both captains and the ref see who is playing as a pickup. Not offered for playoff games.
 - Public standings with the configured tiebreakers.
@@ -152,7 +153,7 @@ The app talks to Neon through its HTTP and WebSocket drivers, and to a Postgres 
 
 ### End-to-end and Lighthouse tests
 
-`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the core flows (registration with split pay through Stripe Checkout and a signed webhook that marks the payment, free-agent signup and payment with a promo code, an admin's partial and full refunds confirmed by a signed `charge.refunded` webhook, generating and publishing a schedule, entering and confirming a score, a rain-out). Every key screen is checked with axe. It reseeds the database before each run and sends Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so it needs both running locally:
+`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the core flows (registration with split pay through Stripe Checkout and a signed webhook that marks the payment, free-agent signup and payment with a promo code, an admin's partial and full refunds confirmed by a signed `charge.refunded` webhook, generating and publishing a schedule, entering and confirming a score, scoring a game inning by inning while a spectator watches, a rain-out). Every key screen is checked with axe. It reseeds the database before each run and sends Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so it needs both running locally:
 
 ```bash
 PGDATABASE_NAME=kb_e2e_demo scripts/setup-local-postgres.sh

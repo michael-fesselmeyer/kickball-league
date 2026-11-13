@@ -324,6 +324,7 @@ erDiagram
     int innings_played
     uuid forfeit_by FK "team_season"
     timestamptz finalized_at
+    uuid kicks_first FK "team_season kicking in the top of each inning"
   }
   game_placement {
     uuid id PK
@@ -364,9 +365,11 @@ erDiagram
   game_period {
     uuid id PK
     uuid game_id FK
-    int period_no "inning number"
+    int period_no "inning number, 1 to 20"
     enum half "top, bottom"
-    int runs
+    int runs "0 to 99"
+    uuid entered_by FK "who entered or last corrected it"
+    timestamptz entered_at
   }
   game_rsvp {
     uuid id PK
@@ -448,7 +451,7 @@ Notes:
 - `game.slot_id` copies the placement from the published version so public pages need one join. It is written only when a version is published, inside the same transaction.
 - Slots are cut from requested and confirmed permit windows, minus blackouts, when an admin asks (the fields screen). Cutting again keeps a slot's id when its field and start are unchanged, so versions that use it stay intact. A slot no permit covers any more is deleted, or set to `cancelled` when a version uses it. Slots entered without a permit are left alone. A cancelled slot stays cancelled, because a rain-out cancels slots the same way.
 - Team A and team B are neutral names because home and away are decided at the field.
-- `game_period` is named for periods, not innings, so a second sport can reuse it.
+- `game_period` is named for periods, not innings, so a second sport can reuse it. It holds live scoring ([ADR 0010](adr/0010-live-scores-by-polling.md)): one row per half-inning, entered in order and corrected in place. The line score and the score at the last complete inning are worked out from these rows, never stored. Which team kicks in the top half is on the game (`kicks_first`, one of its two teams), set when live scoring starts. The final score still comes from a `score_report`, so a game scored live is confirmed like any other.
 - Standings are computed from `game` rows on demand and cached (see [architecture.md](architecture.md)). There is no standings table to drift out of date.
 - A playoff `game` (`kind = playoff`, `round_no` null) exists only once both its teams are known, so a game never has an empty side. Until then its `bracket_match` holds the slot the bracket placement reserved, and that slot's kind becomes `playoff` so rain-out makeups and new regular-season schedules leave it alone. Divisions, when they arrive, add a `division_id` to `bracket`.
 - Schedule versions keep playoff placements apart from the round robin: the round-robin rules never judge a bracket, and a version made from another (an edit or a rain-out) carries the parent's playoff placements over. When a result fills both sides of the next match, its game is created and a new `playoffs` version with it is published by the league itself (`published_by` null).
@@ -957,6 +960,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `score_confirmation` | unique `(game_id, team_season_id)` | One answer per team |
 | `game_rsvp` | unique `(game_id, user_id)` | One RSVP per game |
 | `game_period` | unique `(game_id, period_no, half)` | One row per half-inning |
+| `game_period` | check `period_no` between 1 and 20; check `runs` between 0 and 99 | Innings and runs stay in range |
+| `game` | check `kicks_first` is null or one of `team_a_id`, `team_b_id` | Only a team in the game kicks first |
 | `sub_claim` | unique `(sub_request_id, user_id)` | One claim per person |
 | `sub_request` | unique `(game_id, team_season_id)` where `status in ('open', 'filled')` | One live request per team per game |
 | `sub_request` | check `needed` between 1 and 11; check `women_needed + men_needed <= needed` | Reserved spots fit in the request |
