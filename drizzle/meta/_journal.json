@@ -239,6 +239,13 @@
       "when": 1794598244263,
       "tag": "0033_lineup",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794598936693,
+      "tag": "0034_offline_receipts",
+      "breakpoints": true
     }
   ]
 }

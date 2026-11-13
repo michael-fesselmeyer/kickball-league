@@ -3,6 +3,7 @@ import {
   check,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -396,3 +397,37 @@ export type Slot = typeof slot.$inferSelect;
 export type Game = typeof game.$inferSelect;
 export type ScoreReport = typeof scoreReport.$inferSelect;
 export type GamePeriod = typeof gamePeriod.$inferSelect;
+
+export const offlineEntryKind = pgEnum("offline_entry_kind", [
+  "score",
+  "half",
+  "end",
+]);
+
+/**
+ * One score entry made on a phone with no signal and sent later
+ * (docs/data-model.md, section 2.2; ADR 0025). The key is made on the phone,
+ * so the server takes each entry once: a resend finds its receipt and gets
+ * the same answer, and changes nothing.
+ */
+export const offlineReceipt = pgTable(
+  "offline_receipt",
+  {
+    key: uuid().primaryKey(),
+    userId: uuid()
+      .notNull()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "cascade" }),
+    gameId: uuid()
+      .notNull()
+      .$type<GameId>()
+      .references(() => game.id, { onDelete: "cascade" }),
+    kind: offlineEntryKind().notNull(),
+    /** What the server did with it, as sent back to the phone. */
+    result: jsonb().notNull(),
+    /** When the phone saved it, as the phone's clock tells it. */
+    enteredAt: timestamp({ withTimezone: true }).notNull(),
+    receivedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("offline_receipt_game_idx").on(t.gameId)],
+);
