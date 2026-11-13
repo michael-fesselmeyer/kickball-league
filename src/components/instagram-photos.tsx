@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { getImageProps } from "next/image";
 import type { PublicPhoto } from "@/db/queries/social";
 import { altFor } from "@/domain/social/sync-plan";
 
@@ -7,6 +7,8 @@ import { altFor } from "@/domain/social/sync-plan";
  * an optional cover, then a grid of squares. Every photo links back to its
  * post. Below the fold, so every image loads lazily at the size its cell
  * needs, and the cells hold their shape so nothing shifts as they arrive.
+ * The image optimizer's props are worked out here on the server
+ * (`getImageProps`), so the page ships no image component JavaScript.
  * Renders nothing without photos.
  */
 export function InstagramPhotos({
@@ -66,14 +68,20 @@ function PhotoLink({
       rel="noopener noreferrer"
       className={`relative block overflow-hidden rounded-card border-2 border-text bg-surface-2 ${className}`}
     >
-      <Image
-        src={`/media/instagram/${photo.imageId}`}
-        alt={altFor(photo)}
-        fill
-        sizes={sizes}
-        className="object-cover"
-      />
+      {/* A plain img with the optimizer's srcset: no client component. */}
+      {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
+      <img {...imageProps(photo, sizes)} className="object-cover" />
       <span className="sr-only"> (opens the post on Instagram)</span>
     </a>
   );
+}
+
+function imageProps(photo: PublicPhoto, sizes: string) {
+  const { props } = getImageProps({
+    src: `/media/instagram/${photo.imageId}`,
+    alt: altFor(photo),
+    fill: true,
+    sizes,
+  });
+  return props;
 }
