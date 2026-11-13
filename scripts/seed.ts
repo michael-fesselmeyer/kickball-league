@@ -60,6 +60,7 @@ async function main(): Promise<void> {
     invite,
     purchase,
     payment,
+    refund,
     user,
     profile,
     waiver,
@@ -89,6 +90,18 @@ async function main(): Promise<void> {
               .where(inArray(purchase.seasonId, seasonIds))
           ).map((r) => r.id);
           if (purchaseIds.length) {
+            // Refunds point at payments.
+            await tx
+              .delete(refund)
+              .where(
+                inArray(
+                  refund.paymentId,
+                  tx
+                    .select({ id: payment.id })
+                    .from(payment)
+                    .where(inArray(payment.purchaseId, purchaseIds)),
+                ),
+              );
             await tx
               .delete(payment)
               .where(inArray(payment.purchaseId, purchaseIds));
