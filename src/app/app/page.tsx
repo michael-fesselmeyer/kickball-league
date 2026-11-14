@@ -31,6 +31,7 @@ import { featureEnabled } from "@/lib/platform/site";
 import { signOut } from "./actions";
 import { checkInAsRefereeAction } from "./referee-actions";
 import { InstallPrompt } from "./install-prompt";
+import { cardsVisible } from "@/domain/emergency/emergency";
 import { OfflineSync, SignOutForm } from "./offline-sync";
 
 export const metadata: Metadata = { title: "Home" };
@@ -101,6 +102,29 @@ async function Account() {
       },
     }) &&
     (await fieldPermitForGame(db, nextGameId)) !== null;
+  // On its day, the next game's emergency contacts, for its ref and
+  // captains (ADR 0041); kept on the phone until midnight after.
+  const emergency =
+    nextGame !== null
+      ? cardsVisible(
+          {
+            status: nextGame.status,
+            startsAt: nextGame.startsAt,
+            timeZone: league?.timeZone ?? "America/New_York",
+          },
+          {
+            captainsGame: can(subject, "emergency_contact.view", {
+              game: {
+                id: nextGame.id,
+                teamSeasonIds: [nextGame.teamA.id, nextGame.teamB.id],
+              },
+            }),
+            refereesGame: false,
+          },
+          now,
+        )
+      : null;
+  const emergencyUntil = emergency?.ok ? emergency.until : null;
   const ballots = await waiting;
   const won = await wins;
   const timeZone = league?.timeZone ?? "America/New_York";
@@ -222,6 +246,14 @@ async function Account() {
           {s.name}: register or check your spot
         </Link>
       ))}
+      {emergencyUntil && nextGame && (
+        <Link
+          href={`/app/games/${nextGame.id}/emergency`}
+          className="btn btn-secondary"
+        >
+          Emergency contacts for today&apos;s game
+        </Link>
+      )}
       {permitShown && nextGame && (
         <Link
           href={`/app/games/${nextGame.id}/permit`}
@@ -270,6 +302,7 @@ async function Account() {
                 nextGame,
                 league?.timeZone ?? "America/New_York",
                 permitShown,
+                emergencyUntil,
               )
             : null
         }

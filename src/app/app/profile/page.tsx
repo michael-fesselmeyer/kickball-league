@@ -12,7 +12,9 @@ import { pushSettingsOf } from "@/db/queries/push";
 import { existingReferralCode, myReferrals } from "@/db/queries/referrals";
 import { currentLeague } from "@/db/queries/seasons";
 import { REFERRAL_CREDIT_CENTS } from "@/domain/money/credit";
-import { toProfileForm } from "@/domain/profile/profile-form";
+import { emergencyCardOf } from "@/db/queries/emergency";
+import { toEmergencyForm } from "@/domain/emergency/emergency";
+import { formatPhone, toProfileForm } from "@/domain/profile/profile-form";
 import { env } from "@/env";
 import { requireSelf } from "@/lib/auth/permission";
 import { siteOrigin } from "@/lib/site";
@@ -62,6 +64,11 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
     alertLimitsFor(db, subject.userId),
     awaySeasonsFor(db, subject.userId, new Date()),
   ]);
+  const emergency = await emergencyCardOf(
+    db,
+    subject.userId,
+    env.BETTER_AUTH_SECRET,
+  );
   if (!profile) notFound();
   return (
     <>
@@ -80,7 +87,12 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
           Saved.
         </p>
       )}
-      <ProfileSettingsForm values={toProfileForm(profile)} />
+      <ProfileSettingsForm
+        values={{
+          ...toProfileForm(profile),
+          ...toEmergencyForm(emergency, formatPhone),
+        }}
+      />
       <AwayWeeks
         seasons={away}
         status={typeof query.away === "string" ? query.away : null}

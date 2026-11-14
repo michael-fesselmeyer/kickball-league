@@ -14,7 +14,7 @@ import { currentLeague } from "@/db/queries/seasons";
 import { myWaitlistEntry, seasonSpots } from "@/db/queries/waitlist";
 import { formatMoment } from "@/domain/money/credit";
 import { mayRegisterTeam } from "@/domain/money/waitlist";
-import { parseProfileForm, toProfileForm } from "@/domain/profile/profile-form";
+import { readyToRegister } from "@/domain/profile/profile-form";
 import {
   formatCents,
   priceFor,
@@ -70,8 +70,7 @@ async function Register({
   const window = registrationWindow(season, now);
   const person = await profileOf(db, subject.userId);
   const complete =
-    person !== null &&
-    parseProfileForm(toProfileForm(person), localDate(now, league.timeZone)).ok;
+    person !== null && readyToRegister(person, localDate(now, league.timeZone));
   const header = (
     <header className="flex flex-col gap-1">
       <p className="text-text-muted">{season.name}</p>

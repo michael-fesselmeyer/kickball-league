@@ -23,7 +23,7 @@ import {
   normalizeReferralCode,
   REFERRAL_COOKIE,
 } from "@/domain/money/referral";
-import { parseProfileForm, toProfileForm } from "@/domain/profile/profile-form";
+import { readyToRegister } from "@/domain/profile/profile-form";
 import { ageMessage } from "@/domain/registration/age";
 import { localDate } from "@/domain/scheduler/slots";
 import { requirePermissionToChange } from "@/lib/auth/permission";
@@ -67,8 +67,7 @@ async function context(slug: string) {
   if (!league || !season) notFound();
   const person = await profileOf(db, subject.userId);
   const today = localDate(new Date(), league.timeZone);
-  const complete =
-    person !== null && parseProfileForm(toProfileForm(person), today).ok;
+  const complete = person !== null && readyToRegister(person, today);
   return { subject, league, season, complete };
 }
 

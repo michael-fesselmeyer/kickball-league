@@ -20,6 +20,7 @@ import { PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
 import { teamRatingFor } from "@/db/queries/discipline";
 import { canFileFor, canRate } from "@/domain/discipline/discipline";
+import { cardsVisible } from "@/domain/emergency/emergency";
 import { featureEnabled } from "@/lib/platform/site";
 import { respondAction } from "./actions";
 import { rateSportsmanshipAction } from "./rate";
@@ -156,6 +157,15 @@ async function Score({
   const myRating = rates ? await teamRatingFor(db, g.id, myTeam) : null;
   const reports =
     discipline && canFileFor(g, now).ok && can(subject, "incident.log", ctx);
+  // On game day, the players' emergency contacts (ADR 0041).
+  const emergencyShown = cardsVisible(
+    { status: g.status, startsAt: g.startsAt, timeZone: tz },
+    {
+      captainsGame: can(subject, "emergency_contact.view", ctx),
+      refereesGame: false,
+    },
+    now,
+  ).ok;
 
   return (
     <>
@@ -322,6 +332,11 @@ async function Score({
           opponent={myTeam === g.teamAId ? g.teamBName : g.teamAName}
           current={myRating}
         />
+      )}
+      {emergencyShown && (
+        <Link href={`/app/games/${g.id}/emergency`} className="underline">
+          Emergency contacts
+        </Link>
       )}
       {reports && (
         <Link href={`/app/games/${g.id}/incident`} className="underline">
