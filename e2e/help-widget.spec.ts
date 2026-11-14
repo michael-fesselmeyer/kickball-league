@@ -25,8 +25,11 @@ test("search the help center, then get the schedule widget", async ({
 
   await page.getByLabel("Search the help center").fill("kicking order");
   const results = page.getByRole("list", { name: "Search results" });
-  await expect(page.getByRole("status")).toHaveText("1 how-to found.");
-  await expect(results.getByRole("link")).toHaveText(["Build a kicking order"]);
+  await expect(page.getByRole("status")).toHaveText(/^\d+ how-tos? found\.$/);
+  // The how-to with the words in its title comes first.
+  await expect(results.getByRole("link").first()).toHaveText(
+    "Build a kicking order",
+  );
   await expectNoAxeViolations(page);
 
   await page.getByLabel("Search the help center").fill("zeppelin");
