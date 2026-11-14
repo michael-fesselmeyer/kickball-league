@@ -110,6 +110,9 @@ export const SEASON_PAGE_ROUTES = [
   "/embed/schedule",
 ];
 
+/** The list of seasons on /seasons. */
+export const SEASONS_TAG = "seasons";
+
 /**
  * From a Server Action: the next request for any public page of this season,
  * including its teams' pages, renders fresh data instead of the cached copy.
@@ -121,6 +124,9 @@ export const SEASON_PAGE_ROUTES = [
  */
 export function refreshSeasonPages(seasonId: string): void {
   updateTag(seasonTag(seasonId));
+  // The season list (/seasons) shows every season's name, dates and status.
+  updateTag(SEASONS_TAG);
+  revalidatePath("/seasons");
   for (const route of SEASON_PAGE_ROUTES) revalidatePath(route, "layout");
 }
 

@@ -10,6 +10,7 @@ import { absoluteUrl } from "../site";
 export const CONTENT_PAGES = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/parks/mccarren-park", changeFrequency: "monthly", priority: 0.8 },
+  { path: "/seasons", changeFrequency: "weekly", priority: 0.8 },
   { path: "/faq", changeFrequency: "monthly", priority: 0.7 },
   { path: "/nyc-kickball-league", changeFrequency: "monthly", priority: 0.7 },
   { path: "/free-agents", changeFrequency: "monthly", priority: 0.7 },
