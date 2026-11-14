@@ -53,6 +53,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── r/[code]                        A player's referral link: remembers who sent the visitor for 30 days, then opens the home page
 ├── legal/terms, legal/privacy
 ├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
+├── unsubscribe/[token]             An email's "Stop emails about …" link: asks, then turns that topic's email off; the signed link is the key, no sign-in (its one-click POST is /api/unsubscribe/[token])
 ├── media/instagram/[image]         Our copy of a featured Instagram photo (404 once hidden)
 ├── media/friends/[logo]            A friend league's logo, as stored (404 once removed or replaced)
 ├── media/photos/[photo]            A member's approved photo (404 while waiting, once rejected or deleted)
