@@ -9,7 +9,7 @@ import { KIND_LABELS, whenLine } from "@/domain/events/event";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
 
-export const metadata: Metadata = { title: "Events" };
+export const metadata: Metadata = { title: "Manage events" };
 
 export default function AdminEventsPage(props: PageProps<"/app/admin/events">) {
   return (

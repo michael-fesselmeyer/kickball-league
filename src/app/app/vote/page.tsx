@@ -9,7 +9,7 @@ import { requireFeature } from "@/lib/platform/site";
 import { castVoteAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 
-export const metadata: Metadata = { title: "Awards" };
+export const metadata: Metadata = { title: "Vote for awards" };
 
 export default function VotePage(props: PageProps<"/app/vote">) {
   return (

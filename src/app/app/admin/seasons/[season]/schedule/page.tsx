@@ -19,7 +19,7 @@ import type { BoardSlot } from "./board-model";
 import { metricRows, readable } from "./labels";
 import { PageLoading } from "@/components/page-loading";
 
-export const metadata: Metadata = { title: "Schedule" };
+export const metadata: Metadata = { title: "Build the schedule" };
 
 export default function SchedulePage(
   props: PageProps<"/app/admin/seasons/[season]/schedule">,
