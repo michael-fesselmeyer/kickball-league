@@ -24,6 +24,7 @@ export * from "./merch";
 export * from "./message";
 export * from "./money";
 export * from "./money-summary";
+export * from "./pickem";
 export * from "./playoffs";
 export * from "./profile";
 export * from "./schedule";
