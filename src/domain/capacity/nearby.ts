@@ -1,7 +1,7 @@
 /**
  * Fields worth applying for: NYC Parks fields suited to kickball near the
  * league's parks, from the NYC Open Data snapshot in
- * src/data/nyc-park-fields.json (refreshed by scripts/fetch-park-fields.ts).
+ * src/domain/capacity/nyc-park-fields.json (refreshed by scripts/fetch-park-fields.ts).
  */
 
 export type ParkField = {
