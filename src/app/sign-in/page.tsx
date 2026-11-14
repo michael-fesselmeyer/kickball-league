@@ -31,30 +31,63 @@ export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
 async function FormForRequest({
   searchParams,
 }: Pick<PageProps<"/sign-in">, "searchParams">) {
-  const { next } = await searchParams;
+  const { next, google } = await searchParams;
   return (
-    <SignInOptions next={safeNextPath(next)} google={isGoogleEnabled(env)} />
+    <SignInOptions
+      next={safeNextPath(next)}
+      google={isGoogleEnabled(env)}
+      googleError={
+        google === "rate_limited" || google === "failed"
+          ? GOOGLE_ERRORS[google]
+          : undefined
+      }
+    />
   );
 }
 
-function SignInOptions({ next, google }: { next: string; google: boolean }) {
+const GOOGLE_ERRORS = {
+  rate_limited:
+    "That's a lot of sign-ins at once. Wait a few seconds, then try again.",
+  failed: "We couldn't reach Google just now. Try again, or use an email link.",
+} as const;
+
+function SignInOptions({
+  next,
+  google,
+  googleError,
+}: {
+  next: string;
+  google: boolean;
+  googleError?: string | undefined;
+}) {
   return (
     <>
       <SignInForm next={next} />
       <PasskeySignIn next={next} />
-      {google && <GoogleSignIn next={next} />}
+      {google && <GoogleSignIn next={next} error={googleError} />}
     </>
   );
 }
 
 /** A plain form posting to a Server Action: works before JavaScript loads. */
-function GoogleSignIn({ next }: { next: string }) {
+function GoogleSignIn({
+  next,
+  error,
+}: {
+  next: string;
+  error?: string | undefined;
+}) {
   return (
     <form action={signInWithGoogle} className="flex flex-col gap-3">
       <input type="hidden" name="next" value={next} />
       <SubmitButton className="btn btn-secondary">
         Continue with Google
       </SubmitButton>
+      {error && (
+        <p role="alert" className="text-small text-danger">
+          {error}
+        </p>
+      )}
     </form>
   );
 }

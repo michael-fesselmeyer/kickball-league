@@ -1,10 +1,11 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { env } from "@/env";
 import { auth } from "@/lib/auth";
+import { parseSetCookie, requestGoogleSignIn } from "@/lib/auth/request-google";
 import { requestSignInLink } from "@/lib/auth/request-link";
 import { safeNextPath } from "@/lib/safe-next";
 
@@ -51,12 +52,26 @@ export async function sendSignInLink(
   return { status: "sent", email: parsed.data.email };
 }
 
-/** Starts Google sign-in on the server and sends the browser to Google. */
+/**
+ * Starts Google sign-in through Better Auth's router, so its sign-in rate
+ * limit applies, and sends the browser to Google with the state cookie the
+ * callback checks.
+ */
 export async function signInWithGoogle(form: FormData): Promise<void> {
-  const { url } = await auth.api.signInSocial({
-    body: { provider: "google", callbackURL: safeNextPath(form.get("next")) },
+  const next = safeNextPath(form.get("next"));
+  const start = await requestGoogleSignIn(auth.handler, {
+    baseURL: env.BETTER_AUTH_URL,
+    callbackURL: next,
     headers: await headers(),
-  });
-  if (!url) throw new Error("Google sign-in did not return a URL.");
-  redirect(url);
+  }).catch(() => ({ outcome: "failed" as const }));
+  if (start.outcome !== "redirect")
+    redirect(
+      `/sign-in?${new URLSearchParams({ google: start.outcome, next }).toString()}`,
+    );
+  const jar = await cookies();
+  for (const header of start.setCookies) {
+    const cookie = parseSetCookie(header);
+    if (cookie) jar.set(cookie.name, cookie.value, cookie.options);
+  }
+  redirect(start.url);
 }
