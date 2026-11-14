@@ -379,6 +379,43 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     expect(allowed("keep_off.export_policy")).toEqual(["owner"]);
   });
 
+  it("keeps the captaincy and co-captains to the team's captain and admins", () => {
+    expect(allowed("captaincy.manage", { teamSeasonId: "A" })).toEqual([
+      "captain",
+      "admin",
+      "owner",
+    ]);
+    // A co-captain has the team's tools but can't hand the team over.
+    expect(allowed("captaincy.manage", { teamSeasonId: "B" })).toEqual([
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("captaincy.respond", { targetUserId: "cc" })).toEqual([
+      "coCaptain",
+    ]);
+  });
+
+  it("gives co-captains every captain's team tool except the captaincy", () => {
+    const tools = [
+      "lineup.edit",
+      "sub_request.post",
+      "sub_request.decide",
+      "keep_off.manage",
+      "roster.view_status",
+      "payments.export",
+      "payment.record_offline",
+      "conflicts.submit",
+    ] as const;
+    for (const action of tools)
+      expect(allowed(action, { teamSeasonId: "A" })).toContain("coCaptain");
+    for (const action of ["score.enter", "score.confirm"] as const)
+      expect(allowed(action, { game: g1 })).toContain("coCaptain");
+    // Nor can a co-captain remove the captain.
+    expect(
+      allowed("roster.manage", { teamSeasonId: "A", targetRole: "captain" }),
+    ).toEqual(["captain", "admin", "owner"]);
+  });
+
   it("lets sponsors manage their own page and report", () => {
     for (const action of ["sponsor.edit", "sponsor.report"] as const) {
       expect(allowed(action, { sponsorId: "bar" })).toEqual([

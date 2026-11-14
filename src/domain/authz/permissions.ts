@@ -71,6 +71,10 @@ const captains = (s: Subject, team: string | undefined) =>
       m.teamSeasonId === team &&
       (m.role === "captain" || m.role === "co_captain"),
   );
+/** The team's one captain, not a co-captain. */
+const leads = (s: Subject, team: string | undefined) =>
+  team !== undefined &&
+  s.roster.some((m) => m.teamSeasonId === team && m.role === "captain");
 const captainsGame: Rule = (s, c) =>
   c.game !== undefined && c.game.teamSeasonIds.some((t) => captains(s, t));
 const refereesGame: Rule = (s, c) =>
@@ -141,6 +145,12 @@ const RULES = {
     const mine = s.roster.find((m) => m.teamSeasonId === c.teamSeasonId);
     return !(mine?.role === "co_captain" && c.targetRole === "captain");
   }),
+  // Hand the team to a teammate, and make or unmake co-captains (ADR 0042):
+  // the team's captain only, never a co-captain, and admins.
+  "captaincy.manage": any(isAdmin, (s, c) => leads(s, c.teamSeasonId)),
+  // Accept or decline the captaincy offered to you, or step down as a
+  // co-captain: only the person themselves.
+  "captaincy.respond": self,
   "sub_request.post": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   // Approve or decline claims, or take the request down.
   "sub_request.decide": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
