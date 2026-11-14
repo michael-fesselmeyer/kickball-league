@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { cache } from "react";
 import { db } from "@/db/client";
 import { loadSubject } from "@/db/queries/subject";
 import {
@@ -15,13 +16,25 @@ import { currentSite, isCurrentOperator } from "@/lib/platform/site";
 import { isFreshSession } from "./config";
 import { auth } from "./index";
 
-/** The signed-in person as a permissions subject; a visitor when signed out. */
-export async function currentSubject(): Promise<Subject> {
-  const session = await auth.api.getSession({ headers: await headers() });
+/**
+ * The request's session. A page, its layout and their components each ask
+ * for it; React's `cache` makes that one lookup per render. Server Actions
+ * and Route Handlers are not renders, so each call there looks it up fresh.
+ */
+export const currentAuthSession = cache(async () =>
+  auth.api.getSession({ headers: await headers() }),
+);
+
+/**
+ * The signed-in person as a permissions subject; a visitor when signed out.
+ * Loaded once per render, like the session.
+ */
+export const currentSubject = cache(async (): Promise<Subject> => {
+  const session = await currentAuthSession();
   // Account ids are UUIDs; anything else is treated as signed out.
   const subject = await loadSubject(db, parseId<UserId>(session?.user.id));
   return { ...subject, isOperator: isCurrentOperator(subject.userId) };
-}
+});
 
 export type SignedInSubject = Subject & { userId: UserId };
 
@@ -118,7 +131,7 @@ export async function currentSession(): Promise<{
   id: string;
   signedInAt: Date;
 } | null> {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await currentAuthSession();
   return session
     ? {
         id: session.session.id,
