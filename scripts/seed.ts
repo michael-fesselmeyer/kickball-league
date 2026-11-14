@@ -331,4 +331,5 @@ async function main(): Promise<void> {
   }
 }
 
-void main();
+/** Runs on import; `npm run demo:reset` waits for it before its last step. */
+export const seeding = main();

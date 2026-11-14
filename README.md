@@ -154,7 +154,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 **Demo mode**
 
-- Turned on only by a server environment flag and refused in production: a banner on every page and one-tap "view as" a player, captain, ref or admin, plus a reset script that reseeds the demo database.
+- Turned on only by a server environment flag and refused in production: a banner on every page and one-tap "view as" a player, captain, ref or admin, plus a reset script that reseeds the demo database and then moves the seeded league forward by whole weeks (same weekdays and local times, in the league's time zone), so the season being played always has its next game day coming up. `npm run seed`, and so the end-to-end tests, keep the fixed calendar.
 
 **Platform operator**
 
