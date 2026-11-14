@@ -11,7 +11,7 @@ import type {
 import { priceFor, registrationWindow } from "@/domain/registration/pricing";
 import type { NewTeamRequestInput } from "@/domain/registration/new-team";
 import { err, ok, type Result } from "@/domain/result";
-import { slugify } from "@/domain/slug";
+import { teamSlug } from "@/domain/slug";
 import type { NewTeamPayload } from "@/emails/new-team";
 import { user } from "../schema/auth";
 import { teamFormationRequest } from "../schema/formation";
@@ -125,7 +125,7 @@ async function nameTaken(
   name: string,
   except: TeamFormationRequestId | null,
 ) {
-  const slug = slugify(name);
+  const slug = teamSlug(name);
   const [existing] = await db
     .select({ id: team.id })
     .from(team)
@@ -143,7 +143,7 @@ async function nameTaken(
         eq(teamFormationRequest.status, "pending"),
       ),
     );
-  return pending.some((p) => p.id !== except && slugify(p.name) === slug);
+  return pending.some((p) => p.id !== except && teamSlug(p.name) === slug);
 }
 
 export type RequestError = "closed" | "captain" | "pending" | "name_taken";
@@ -498,7 +498,7 @@ export async function approveNewTeamRequest(
     .values({
       leagueId: input.leagueId,
       name: req.proposedName,
-      slug: slugify(req.proposedName),
+      slug: teamSlug(req.proposedName),
       createdBy: actorId,
     })
     .returning({ id: team.id });

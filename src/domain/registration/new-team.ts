@@ -1,5 +1,5 @@
 import { err, ok, type Result } from "@/domain/result";
-import { slugify } from "@/domain/slug";
+import { teamSlug } from "@/domain/slug";
 
 /**
  * A player's request to start a new team (docs/product-spec.md, section 4,
@@ -37,7 +37,7 @@ export function parseNewTeamRequest(
   },
 ): Result<NewTeamRequestInput, NewTeamFormError> {
   const name = tidyName(fields.name);
-  if (!slugify(name) || name.length > NAME_MAX) return err("bad_name");
+  if (!teamSlug(name) || name.length > NAME_MAX) return err("bad_name");
   const size = Number(fields.expectedSize);
   if (
     !Number.isInteger(size) ||

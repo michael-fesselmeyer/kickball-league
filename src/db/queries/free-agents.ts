@@ -16,7 +16,7 @@ import {
   type QuizAnswers,
 } from "@/domain/matcher/quiz";
 import { err, ok, type Result } from "@/domain/result";
-import { slugify } from "@/domain/slug";
+import { teamSlug } from "@/domain/slug";
 import { user } from "../schema/auth";
 import { freeAgentProfile } from "../schema/free-agent";
 import { profile } from "../schema/profile";
@@ -554,7 +554,7 @@ export async function buildTeamFromPool(
   Result<{ teamSeasonId: TeamSeasonId; slug: string }, BuildTeamError>
 > {
   const name = input.name.trim().replace(/\s+/g, " ");
-  const slug = slugify(name);
+  const slug = teamSlug(name);
   if (!slug || name.length > 40) return err("bad_name");
   if (input.colorHex !== null && !/^#[0-9A-Fa-f]{6}$/.test(input.colorHex))
     return err("bad_color");
