@@ -27,6 +27,7 @@ export const TOPICS = [
   // admins. Not offered on the settings page.
   "operations",
   "photos",
+  "team_roles",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -46,6 +47,7 @@ export const DEFAULT_ENABLED: Readonly<Record<Topic, boolean>> = {
   digest: true,
   operations: true,
   photos: true,
+  team_roles: true,
 };
 
 /**
@@ -86,6 +88,11 @@ export const SETTINGS_TOPICS: readonly {
     topic: "new_team",
     label: "New-team requests",
     hint: "The league's answer when you ask to start a team, and, for captains, when a player leaves to start one.",
+  },
+  {
+    topic: "team_roles",
+    label: "Captain and co-captains",
+    hint: "When your captain offers you the captaincy or makes you a co-captain, and the answer to a captaincy you offered.",
   },
   {
     topic: "events",

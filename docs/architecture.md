@@ -247,6 +247,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 |---|---|---|
 | `announcement` | non-urgent | Announcements from admins and captains |
 | `books_reminder` | non-urgent | For owners: a permit application window, renewal or insurance expiry coming up |
+| `captain_handoff` | urgent | Your team's captaincy offered to you, waiting for your answer |
 | `email_budget` | urgent | For admins: urgent email waiting for tomorrow's email allowance |
 | `event_news` | non-urgent | Event announcements, and changes or cancellations more than a day ahead |
 | `event_notice` | urgent | An event spot that opened for you, or an event cancelled or moved within a day of its start |
@@ -270,6 +271,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `sub_request` | urgent | Teams that need a sub when you're free |
 | `sub_update` | urgent | Answers to your sub offers |
 | `suspension` | urgent | A suspension, its games and how to appeal |
+| `team_role` | non-urgent | Becoming or no longer being a co-captain, and the answer to a captaincy you offered |
 | `waitlist_offer` | urgent | A team spot held for you from the waitlist |
 
 The `digest` template carries held messages and is neither: it is never capped but waits out quiet hours. Event notices pick their kind when they are queued (`eventNoticeKind`): a spot that opened for the person, or a cancellation or a change to the time or place within 24 hours of the start (the earlier of the old and new start), is `event_notice`; announcements, other edits and anything further ahead are `event_news`. Both render with the same email.

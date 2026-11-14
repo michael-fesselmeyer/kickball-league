@@ -27,6 +27,10 @@ export const MESSAGE_KINDS = {
     label:
       "For owners: a permit application window, renewal or insurance expiry coming up",
   },
+  captain_handoff: {
+    urgency: "urgent",
+    label: "Your team's captaincy offered to you, waiting for your answer",
+  },
   email_budget: {
     urgency: "urgent",
     label: "For admins: urgent email waiting for tomorrow's email allowance",
@@ -121,6 +125,11 @@ export const MESSAGE_KINDS = {
   suspension: {
     urgency: "urgent",
     label: "A suspension, its games and how to appeal",
+  },
+  team_role: {
+    urgency: "non_urgent",
+    label:
+      "Becoming or no longer being a co-captain, and the answer to a captaincy you offered",
   },
   waitlist_offer: {
     urgency: "urgent",
