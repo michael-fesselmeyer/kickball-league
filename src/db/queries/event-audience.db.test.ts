@@ -43,6 +43,7 @@ import {
   updateEvent,
 } from "./events";
 import type { Db } from "./schedule";
+import { eventLeague, newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -291,25 +292,65 @@ describe("who sees what", () => {
       expect(
         (await leagueEvents(db, w.leagueId, "public")).map((e) => e.slug),
       ).toEqual([open.slug]);
-      expect(await eventBySlug(db, members.slug, "public")).toBeNull();
-      expect(await eventBySlug(db, members.slug, "all")).toMatchObject({
+      expect(
+        await eventBySlug(
+          db,
+          await eventLeague(db, members.slug),
+          members.slug,
+          "public",
+        ),
+      ).toBeNull();
+      expect(
+        await eventBySlug(
+          db,
+          await eventLeague(db, members.slug),
+          members.slug,
+          "all",
+        ),
+      ).toMatchObject({
         audience: { kind: "members" },
       });
-      const slugs = (await publicEventSlugs(db)).map((e) => e.slug);
+      const slugs = (await publicEventSlugs(db, await newestLeague(db))).map(
+        (e) => e.slug,
+      );
       expect(slugs).toContain(open.slug);
       expect(slugs).not.toContain(members.slug);
       expect(slugs).not.toContain(fallTeams.slug);
 
       // A signed-in page can't be reached by guessing a team event's slug.
-      expect(await visibleEvent(db, fallTeams.slug, pam, false)).toBeNull();
-      expect(await visibleEvent(db, fallTeams.slug, kim, false)).toMatchObject({
+      expect(
+        await visibleEvent(
+          db,
+          await eventLeague(db, fallTeams.slug),
+          fallTeams.slug,
+          pam,
+          false,
+        ),
+      ).toBeNull();
+      expect(
+        await visibleEvent(
+          db,
+          await eventLeague(db, fallTeams.slug),
+          fallTeams.slug,
+          kim,
+          false,
+        ),
+      ).toMatchObject({
         audience: {
           kind: "teams",
           seasonId: w.fall,
           teamIds: [w.kickers, w.fouls].sort(),
         },
       });
-      expect(await visibleEvent(db, fallTeams.slug, ada, true)).not.toBeNull();
+      expect(
+        await visibleEvent(
+          db,
+          await eventLeague(db, fallTeams.slug),
+          fallTeams.slug,
+          ada,
+          true,
+        ),
+      ).not.toBeNull();
     });
   });
 
@@ -367,7 +408,12 @@ describe("eventRecipients", () => {
       );
       for (const [i, audience] of audiences.entries()) {
         const created = await w.create(`Notice ${i}`, audience);
-        const e = await eventBySlug(db, created.slug, "all");
+        const e = await eventBySlug(
+          db,
+          await eventLeague(db, created.slug),
+          created.slug,
+          "all",
+        );
         if (!e) throw new Error("no event");
         const expected = viewers
           .filter(([, v]) => isTold(audience, v))

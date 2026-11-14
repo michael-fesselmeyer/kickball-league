@@ -12,11 +12,9 @@ import {
   type Window,
 } from "@/domain/weather/forecast";
 import type { RainAlertPayload } from "@/emails/rain-alert";
-import { user } from "../schema/auth";
 import { field, game, slot, venue } from "../schema/game";
-import { league } from "../schema/league";
+import { league, leagueMember } from "../schema/league";
 import { message } from "../schema/message";
-import { profile } from "../schema/profile";
 import { gamePlacement, scheduleVersion } from "../schema/schedule";
 import { season } from "../schema/season";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
@@ -161,14 +159,26 @@ export async function checkRain(
   return checks;
 }
 
-/** Everyone who can call a rain-out. */
-async function admins(db: Db): Promise<UserId[]> {
+/** Everyone who can call a rain-out, by season: its league's admins and owners. */
+async function adminsBySeason(
+  db: Db,
+  seasonIds: readonly string[],
+): Promise<Map<string, UserId[]>> {
   const rows = await db
-    .select({ id: user.id })
-    .from(profile)
-    .innerJoin(user, eq(profile.userId, user.id))
-    .where(inArray(profile.globalRole, ["admin", "owner"]));
-  return rows.map((r) => r.id);
+    .select({ seasonId: season.id, userId: leagueMember.userId })
+    .from(season)
+    .innerJoin(leagueMember, eq(leagueMember.leagueId, season.leagueId))
+    .where(
+      and(
+        inArray(season.id, [...seasonIds] as SeasonId[]),
+        inArray(leagueMember.role, ["admin", "owner"]),
+      ),
+    )
+    .orderBy(leagueMember.userId);
+  const found = new Map<string, UserId[]>();
+  for (const r of rows)
+    found.set(r.seasonId, [...(found.get(r.seasonId) ?? []), r.userId]);
+  return found;
 }
 
 const keyPrefix = (day: GameDay) => `rain-alert/${day.seasonId}/${day.date}`;
@@ -188,8 +198,11 @@ export async function queueRainAlerts(
     (c) => c.risk.level !== "low" && c.risk.covered > 0,
   );
   if (alerting.length === 0) return 0;
-  const recipients = await admins(db);
-  if (recipients.length === 0) return 0;
+  const recipientsBySeason = await adminsBySeason(
+    db,
+    alerting.map((c) => c.day.seasonId),
+  );
+  if (recipientsBySeason.size === 0) return 0;
   const likelySent = new Set(
     (
       await db
@@ -219,7 +232,7 @@ export async function queueRainAlerts(
       peakChance: risk.peakChance,
       thunder: risk.thunder,
     } satisfies RainAlertPayload;
-    for (const userId of recipients) {
+    for (const userId of recipientsBySeason.get(day.seasonId) ?? []) {
       if (
         level === "watch" &&
         likelySent.has(`${keyPrefix(day)}/likely/${userId}`)

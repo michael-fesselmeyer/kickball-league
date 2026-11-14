@@ -13,7 +13,8 @@ describe("disciplinePlayerRows", () => {
     expect(disciplinePlayerRows(generateSeed(7)).user).toEqual(rows.user);
     const seeded = new Set(data.users.map((u) => u.id));
     expect(seeded.has(rows.user.id)).toBe(false);
-    expect(rows.profile.globalRole).toBe("player");
+    // A role belongs to a league, not the profile (ADR 0048): none here.
+    expect(rows.profile).not.toHaveProperty("globalRole");
   });
 
   it("puts them on Foul Play in the fall season, as a player", () => {

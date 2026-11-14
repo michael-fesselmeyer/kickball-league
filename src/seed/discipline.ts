@@ -48,7 +48,6 @@ export function disciplinePlayerRows(data: SeedData) {
       gender: "woman" as const,
       lineupGender: "woman" as const,
       shirtSize: "m" as const,
-      globalRole: "player" as const,
     },
     registration: {
       id: registrationId,

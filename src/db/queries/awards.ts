@@ -647,6 +647,7 @@ export async function removePoll(
       actorId: input.actorId,
       action: "awards.remove",
       entityType: "award_poll",
+      leagueFrom: { kind: "season", id: input.seasonId },
       entityId: input.pollId,
       before: { title: gone.title },
     });

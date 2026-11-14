@@ -1,5 +1,5 @@
-import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
-import type { PurchaseId, TeamSeasonId, UserId } from "@/domain/ids";
+import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import type { LeagueId, PurchaseId, TeamSeasonId, UserId } from "@/domain/ids";
 import { formatMoment } from "@/domain/money/credit";
 import { chargeTime, guaranteeStep } from "@/domain/money/guarantee";
 import { formatCents } from "@/domain/registration/pricing";
@@ -227,6 +227,7 @@ export async function planGuarantees(
         .insert(purchase)
         .values({
           userId: r.userId,
+          leagueId: sql<LeagueId>`(select league_id from season where id = ${r.seasonId})`,
           seasonId: r.seasonId,
           subtotalCents: balanceCents,
           totalCents: balanceCents,

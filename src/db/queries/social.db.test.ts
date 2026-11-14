@@ -40,6 +40,7 @@ import {
   storedImageBytes,
   teamPhotos,
 } from "./social";
+import { grantRole } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -61,7 +62,8 @@ async function world(db: Db) {
     .values({ name: "Addie Admin", email: `admin-${tag}@example.test` })
     .returning({ id: user.id });
   const adminId = admin!.id;
-  await db.insert(profile).values({ userId: adminId, globalRole: "admin" });
+  await db.insert(profile).values({ userId: adminId });
+  await grantRole(db, adminId, "admin", leagueId);
   const teams = await db
     .insert(team)
     .values([

@@ -27,8 +27,8 @@ import {
 } from "./keep-off";
 import { placeFreeAgent } from "./registrations-admin";
 import type { Db } from "./schedule";
-import { loadSubject } from "./subject";
 import { claimSubSpot, postSubRequest, subRequestsFor } from "./subs";
+import { subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -144,10 +144,10 @@ describe("a team's not-on-my-team list", () => {
       await db
         .insert(profile)
         .values(people.map((p) => ({ userId: p.userId, firstName: "Sam" })));
-      const player = await loadSubject(db, w.aces.players[0]!.userId);
-      const listedPerson = await loadSubject(db, w.freeAgent.userId);
-      const captain = await loadSubject(db, w.aces.captain.userId);
-      const otherCaptain = await loadSubject(db, w.bees.captain.userId);
+      const player = await subjectIn(db, w.aces.players[0]!.userId);
+      const listedPerson = await subjectIn(db, w.freeAgent.userId);
+      const captain = await subjectIn(db, w.aces.captain.userId);
+      const otherCaptain = await subjectIn(db, w.bees.captain.userId);
       for (const who of [player, listedPerson, otherCaptain]) {
         expect(can(who, "keep_off.manage", { teamSeasonId: w.aces.id })).toBe(
           false,

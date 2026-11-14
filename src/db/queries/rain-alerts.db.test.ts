@@ -1,4 +1,4 @@
-import { eq, inArray, like } from "drizzle-orm";
+import { and, eq, inArray, like } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import type { SchedulerInput } from "@/domain/scheduler/types";
 import { ok } from "@/domain/result";
@@ -22,6 +22,8 @@ import {
 } from "./rain-alerts";
 import { required } from "./rows";
 import type { Db } from "./schedule";
+import { grantRole } from "../test/leagues";
+import { leagueMember } from "../schema/league";
 
 afterAll(closePool);
 
@@ -51,10 +53,11 @@ async function rainWorld(db: Db, sundayKickoffs: number[]) {
     .where(eq(venue.leagueId, w.leagueId));
   const admin = await w.person("admin");
   const owner = await w.person("owner");
-  await db.insert(profile).values([
-    { userId: admin.userId, globalRole: "admin" },
-    { userId: owner.userId, globalRole: "owner" },
-  ]);
+  await db
+    .insert(profile)
+    .values([{ userId: admin.userId }, { userId: owner.userId }]);
+  await grantRole(db, admin.userId, "admin", w.leagueId);
+  await grantRole(db, owner.userId, "owner", w.leagueId);
   const version = required(
     (
       await db
@@ -81,12 +84,17 @@ async function rainWorld(db: Db, sundayKickoffs: number[]) {
     });
     games.push(g);
   }
-  // Alerts go to every admin, including any a seeded database already has.
+  // Alerts go to every admin and owner of the season's league (ADR 0048).
   const admins = (
     await db
-      .select({ id: profile.userId })
-      .from(profile)
-      .where(inArray(profile.globalRole, ["admin", "owner"]))
+      .select({ id: leagueMember.userId })
+      .from(leagueMember)
+      .where(
+        and(
+          eq(leagueMember.leagueId, w.leagueId),
+          inArray(leagueMember.role, ["admin", "owner"]),
+        ),
+      )
   ).length;
   return { ...w, admin, owner, admins, games };
 }

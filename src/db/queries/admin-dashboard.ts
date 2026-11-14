@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
-import type { GameId, SeasonId, TeamSeasonId } from "@/domain/ids";
+import type { GameId, SeasonId, TeamSeasonId, LeagueId } from "@/domain/ids";
 import { localDate } from "@/domain/scheduler/slots";
 import { game, slot } from "../schema/game";
 import { league } from "../schema/league";
@@ -32,10 +32,11 @@ const TO_PLAY = new Set(["scheduled", "in_progress"]);
  */
 export async function dashboardSeason(
   db: Db,
+  leagueId: LeagueId,
   now: Date,
   slug?: string,
 ): Promise<DashboardSeason | null> {
-  if (slug) return seasonBySlug(db, slug);
+  if (slug) return seasonBySlug(db, leagueId, slug);
   const [upcoming] = await db
     .select({ slug: season.slug })
     .from(game)
@@ -44,6 +45,7 @@ export async function dashboardSeason(
     .innerJoin(league, eq(season.leagueId, league.id))
     .where(
       and(
+        eq(season.leagueId, leagueId),
         inArray(game.status, ["scheduled", "in_progress"]),
         eq(slot.status, "open"),
         // Today in the league's own time zone counts as upcoming.
@@ -57,13 +59,14 @@ export async function dashboardSeason(
     : await db
         .select({ slug: season.slug })
         .from(season)
+        .where(eq(season.leagueId, leagueId))
         .orderBy(
           // Past-draft seasons first, then the most recent start.
           sql`(${season.status} = 'draft')`,
           desc(season.startsOn),
         )
         .limit(1);
-  return latest ? seasonBySlug(db, latest.slug) : null;
+  return latest ? seasonBySlug(db, leagueId, latest.slug) : null;
 }
 
 export type GameDayTeam = {

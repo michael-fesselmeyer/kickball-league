@@ -288,6 +288,7 @@ export async function removeDivision(
     actorId,
     action: "division.delete",
     entityType: "division",
+    leagueFrom: { kind: "season", id: input.seasonId },
     entityId: input.divisionId,
     before: { name: found.name, slug: found.slug, teams: moved.length },
   });
@@ -442,11 +443,11 @@ export async function teamDivisions(
 }
 
 /** The divisions of every public season, for their prerendered pages. */
-export async function publicDivisionPages(db: Db) {
+export async function publicDivisionPages(db: Db, leagueId: LeagueId) {
   return db
     .select({ season: season.slug, division: division.slug })
     .from(division)
     .innerJoin(season, eq(division.seasonId, season.id))
-    .where(ne(season.status, "draft"))
+    .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
     .orderBy(asc(season.slug), asc(division.sortOrder));
 }

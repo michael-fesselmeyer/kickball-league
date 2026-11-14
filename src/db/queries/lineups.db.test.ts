@@ -20,7 +20,7 @@ import {
   saveLineup,
 } from "./lineups";
 import { required } from "./rows";
-import { loadSubject } from "./subject";
+import { subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -296,7 +296,7 @@ describe("who sees an order", () => {
         userId: UserId,
         team: typeof w.aces.id,
         now: Date,
-      ) => lineupAccess(await loadSubject(db, userId), g, team, now);
+      ) => lineupAccess(await subjectIn(db, userId), g, team, now);
       expect(await access(w.aces.captain.userId, w.aces.id, dayBefore)).toBe(
         "edit",
       );

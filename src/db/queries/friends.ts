@@ -193,6 +193,7 @@ export async function removeFriendLeague(
     actorId: input.actorId,
     action: "friend_league.remove",
     entityType: "friend_league",
+    leagueId: input.leagueId,
     entityId: input.id,
     before: { ...fieldsOf(before), hadLogo: before.logo !== null },
   });

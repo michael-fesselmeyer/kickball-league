@@ -14,7 +14,6 @@ import { user } from "../schema/auth";
 import { event, eventRsvp, eventTicket } from "../schema/event";
 import { payment, purchase, purchaseItem } from "../schema/money";
 import { moneySummary } from "../schema/money-summary";
-import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { checkin, sponsor } from "../schema/sponsor";
 import { registration } from "../schema/team";
@@ -31,7 +30,7 @@ import {
   unpublishSummary,
 } from "./owner-dashboard";
 import type { Db } from "./schedule";
-import { loadSubject } from "./subject";
+import { grantRole, newestLeague, subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -122,6 +121,7 @@ async function dashboardWorld(db: Db) {
   const [ticketBuy] = await db
     .insert(purchase)
     .values({
+      leagueId: await newestLeague(db),
       userId: w.agent,
       seasonId: null,
       status: "paid",
@@ -149,6 +149,7 @@ async function dashboardWorld(db: Db) {
   const [merchBuy] = await db
     .insert(purchase)
     .values({
+      leagueId: await newestLeague(db),
       userId: w.teammate,
       seasonId: null,
       status: "paid",
@@ -175,6 +176,7 @@ async function dashboardWorld(db: Db) {
   const [failed] = await db
     .insert(purchase)
     .values({
+      leagueId: await newestLeague(db),
       userId: w.captain,
       seasonId: w.season.id,
       status: "failed",
@@ -417,11 +419,8 @@ describe("the owner dashboard", () => {
   it("is for owners and the operator, never an admin or a captain", async () => {
     await inRolledBackDb(async (db) => {
       const w = await dashboardWorld(db);
-      await db
-        .update(profile)
-        .set({ globalRole: "owner" })
-        .where(eq(profile.userId, w.otherCaptain));
-      const subject = (id: UserId) => loadSubject(db, id);
+      await grantRole(db, w.otherCaptain, "owner", w.leagueId);
+      const subject = (id: UserId) => subjectIn(db, id);
       const admin = await subject(w.admin);
       const captain = await subject(w.captain);
       const owner = await subject(w.otherCaptain);
@@ -448,13 +447,15 @@ describe("the season money summary", () => {
       );
       if (!s) throw new Error("no season");
       // Off by default: the season is public, its summary is not.
-      expect(await publicSummary(db, w.slugs.spring)).toMatchObject({
+      expect(
+        await publicSummary(db, await newestLeague(db), w.slugs.spring),
+      ).toMatchObject({
         summary: null,
         publishedAt: null,
       });
-      expect(await publishedSummarySeasons(db)).not.toContainEqual(
-        expect.objectContaining({ slug: w.slugs.spring }),
-      );
+      expect(
+        await publishedSummarySeasons(db, await newestLeague(db)),
+      ).not.toContainEqual(expect.objectContaining({ slug: w.slugs.spring }));
 
       const inputs = await summaryInputs(db, w.leagueId, s.id);
       expect(inputs.members).toBe(4);
@@ -471,7 +472,11 @@ describe("the season money summary", () => {
         w.captain,
         NOW,
       );
-      const shown = await publicSummary(db, w.slugs.spring);
+      const shown = await publicSummary(
+        db,
+        await newestLeague(db),
+        w.slugs.spring,
+      );
       expect(shown?.publishedAt).toEqual(NOW);
       expect(shown?.summary).toEqual(summary);
       expect(shown?.summary?.categories).toEqual([
@@ -505,7 +510,8 @@ describe("the season money summary", () => {
         NOW,
       );
       expect(
-        (await publicSummary(db, w.slugs.spring))?.summary?.categories,
+        (await publicSummary(db, await newestLeague(db), w.slugs.spring))
+          ?.summary?.categories,
       ).toEqual([{ label: "Refs", cents: 3000, share: 3000 / 8000 }]);
 
       expect(await unpublishSummary(db, s.id, w.captain)).toEqual({
@@ -516,7 +522,10 @@ describe("the season money summary", () => {
         ok: false,
         error: "not_published",
       });
-      expect((await publicSummary(db, w.slugs.spring))?.summary).toBeNull();
+      expect(
+        (await publicSummary(db, await newestLeague(db), w.slugs.spring))
+          ?.summary,
+      ).toBeNull();
 
       const audits = await db
         .select({ action: auditLog.action })
@@ -547,10 +556,12 @@ describe("the season money summary", () => {
         w.captain,
         NOW,
       );
-      expect(await publicSummary(db, w.slugs.draft)).toBeNull();
-      expect(await publishedSummarySeasons(db)).not.toContainEqual(
-        expect.objectContaining({ slug: w.slugs.draft }),
-      );
+      expect(
+        await publicSummary(db, await newestLeague(db), w.slugs.draft),
+      ).toBeNull();
+      expect(
+        await publishedSummarySeasons(db, await newestLeague(db)),
+      ).not.toContainEqual(expect.objectContaining({ slug: w.slugs.draft }));
     });
   });
 });

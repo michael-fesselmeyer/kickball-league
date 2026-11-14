@@ -173,9 +173,13 @@ export type EventDetails = EventSummary & {
  */
 export async function eventBySlug(
   db: Db,
+  leagueId: LeagueId | null,
   slug: string,
   only: EventVisibility,
 ): Promise<EventDetails | null> {
+  // Slugs are unique across leagues, but a page or action in one league
+  // never reaches another league's event (ADR 0048).
+  if (!leagueId) return null;
   const [found] = await db
     .select({
       ...summaryColumns,
@@ -185,7 +189,14 @@ export async function eventBySlug(
     .from(event)
     .innerJoin(league, eq(league.id, event.leagueId))
     .leftJoin(eventRsvp, eq(eventRsvp.eventId, event.id))
-    .where(and(eq(event.slug, slug), isNull(event.deletedAt), visibility(only)))
+    .where(
+      and(
+        eq(event.leagueId, leagueId),
+        eq(event.slug, slug),
+        isNull(event.deletedAt),
+        visibility(only),
+      ),
+    )
     .groupBy(event.id, league.timezone);
   return found ? toSummary(found) : null;
 }
@@ -194,11 +205,17 @@ export async function eventBySlug(
  * Slugs of every event with a public page, for prerendering and the
  * sitemap. Members' and team events have none.
  */
-export async function publicEventSlugs(db: Db) {
+export async function publicEventSlugs(db: Db, leagueId: LeagueId) {
   return db
     .select({ slug: event.slug, updatedAt: event.updatedAt })
     .from(event)
-    .where(and(isNull(event.deletedAt), eq(event.audience, "public")))
+    .where(
+      and(
+        eq(event.leagueId, leagueId),
+        isNull(event.deletedAt),
+        eq(event.audience, "public"),
+      ),
+    )
     .orderBy(asc(event.startsAt));
 }
 

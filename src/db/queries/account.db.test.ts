@@ -26,6 +26,7 @@ import {
 import { rosterBoard } from "./invites";
 import { paymentsExport, rosterExport } from "./exports";
 import type { Db } from "./schedule";
+import { grantRole } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -460,23 +461,13 @@ describe("deleting an account", () => {
   it("refuses for the league's only owner", async () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
-      // Make the admin the only owner in this database.
-      await db
-        .update(profile)
-        .set({ globalRole: "admin" })
-        .where(eq(profile.globalRole, "owner"));
-      await db
-        .update(profile)
-        .set({ globalRole: "owner" })
-        .where(eq(profile.userId, w.admin));
+      // Make the admin the only owner of this league (ADR 0048).
+      await grantRole(db, w.admin, "owner", w.leagueId);
       expect(await deleteAccount(db, w.admin, NOW)).toEqual({
         ok: false,
         error: "last_owner",
       });
-      await db
-        .update(profile)
-        .set({ globalRole: "owner" })
-        .where(eq(profile.userId, w.agent));
+      await grantRole(db, w.agent, "owner", w.leagueId);
       expect(await deleteBlocker(db, w.admin)).toBeNull();
     });
   });

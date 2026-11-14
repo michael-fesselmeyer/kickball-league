@@ -41,6 +41,7 @@ import {
   handleStripeEvent,
 } from "./payments";
 import type { Db } from "./schedule";
+import { leagueFor, newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -133,9 +134,13 @@ async function checkout(
 }
 
 async function grant(db: Db, userId: UserId, cents: number) {
-  await db
-    .insert(creditEntry)
-    .values({ userId, deltaCents: cents, reason: "goodwill", note: "Test" });
+  await db.insert(creditEntry).values({
+    userId,
+    leagueId: await newestLeague(db),
+    deltaCents: cents,
+    reason: "goodwill",
+    note: "Test",
+  });
 }
 
 let sequence = 0;
@@ -233,7 +238,9 @@ describe("buyTicket", () => {
         creditCents: 500,
         description: `Ticket: Bowling ${w.tag}`,
       });
-      expect(await creditBalance(db, w.ana)).toBe(0);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        0,
+      );
       expect(await statusOf(db, bought.value.purchaseId)).toBe("open");
       const mine = await myTicket(db, id, w.ana, NOW);
       expect(mine).toMatchObject({ status: "held", priceCents: 1200 });
@@ -266,7 +273,9 @@ describe("buyTicket", () => {
         totalCents: 1500,
         creditCents: 0,
       });
-      expect(await creditBalance(db, w.ben)).toBe(500);
+      expect(await creditBalance(db, w.ben, await leagueFor(db, w.ben))).toBe(
+        500,
+      );
     });
   });
 
@@ -277,7 +286,9 @@ describe("buyTicket", () => {
       await grant(db, w.ana, 2000);
       const bought = await buy(db, id, w.ana);
       expect(bought.ok && bought.value.kind).toBe("paid");
-      expect(await creditBalance(db, w.ana)).toBe(800);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        800,
+      );
       expect(await myTicket(db, id, w.ana, NOW)).toMatchObject({
         status: "paid",
       });
@@ -419,7 +430,9 @@ describe("the Stripe webhook for tickets", () => {
       expect(await handleStripeEvent(db, gone, NOW)).toBe("processed");
       expect(await handleStripeEvent(db, gone, NOW)).toBe("duplicate");
       expect(await statusOf(db, c.purchaseId)).toBe("expired");
-      expect(await creditBalance(db, w.ana)).toBe(500);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        500,
+      );
       expect(await myTicket(db, id, w.ana, NOW)).toBeNull();
       const offer = await myTicket(db, id, w.ben, NOW);
       expect(offer).toMatchObject({ status: "offered" });
@@ -449,7 +462,9 @@ describe("the Stripe webhook for tickets", () => {
         value: { kind: "waitlisted", position: 1 },
       });
       expect(await statusOf(db, c.purchaseId)).toBe("expired");
-      expect(await creditBalance(db, w.ana)).toBe(500);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        500,
+      );
       expect(await myTicket(db, id, w.ben, LATER)).toMatchObject({
         status: "offered",
       });
@@ -521,7 +536,9 @@ describe("refunds", () => {
         status: "refunded",
       });
       expect(await myEventRsvp(db, id, w.ana)).toBeNull();
-      expect(await creditBalance(db, w.ana)).toBe(500);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        500,
+      );
       expect(await ticketMail(db, w.ana)).toEqual(["receipt", "refunded"]);
       expect(await myTicket(db, id, w.ben, NOW)).toMatchObject({
         status: "offered",
@@ -563,7 +580,9 @@ describe("refunds", () => {
       expect(await myTicket(db, id, w.ana, NOW)).toMatchObject({
         status: "refunded",
       });
-      expect(await creditBalance(db, w.ana)).toBe(500);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        500,
+      );
       expect(await myTicket(db, id, w.ben, NOW)).toMatchObject({
         status: "offered",
       });
@@ -578,7 +597,9 @@ describe("refunds", () => {
       await buy(db, id, w.ana);
       const ticket = await myTicket(db, id, w.ana, NOW);
       if (!ticket) throw new Error("no ticket");
-      expect(await creditBalance(db, w.ana)).toBe(0);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        0,
+      );
       expect(
         await startTicketRefund(db, {
           eventId: id,
@@ -588,7 +609,9 @@ describe("refunds", () => {
           now: NOW,
         }),
       ).toEqual({ ok: true, value: { kind: "done", creditCents: 1200 } });
-      expect(await creditBalance(db, w.ana)).toBe(1200);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        1200,
+      );
       expect(await myTicket(db, id, w.ana, NOW)).toMatchObject({
         status: "refunded",
       });

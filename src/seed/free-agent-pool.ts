@@ -149,7 +149,6 @@ export function generateFreeAgentPool(data: SeedData) {
         gender: a.side,
         lineupGender: a.side,
         shirtSize: "m" as const,
-        globalRole: "player" as const,
       },
       registration: {
         id: registrationId,

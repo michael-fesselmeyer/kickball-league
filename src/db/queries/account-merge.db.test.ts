@@ -29,6 +29,7 @@ import {
 } from "./emergency";
 import { required } from "./rows";
 import type { Db } from "./schedule";
+import { grantRole, newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -45,10 +46,13 @@ async function duplicateWorld(db: Db) {
   const w = await messagingWorld(db);
   const kept = required(w.aces.players[0], "player");
   const admin = await w.person("admin");
-  await db.insert(profile).values([
-    { userId: admin.userId, globalRole: "admin" },
-    { userId: kept.userId, firstName: "Ace", lastName: null },
-  ]);
+  await grantRole(db, admin.userId, "admin", w.leagueId);
+  await db
+    .insert(profile)
+    .values([
+      { userId: admin.userId },
+      { userId: kept.userId, firstName: "Ace", lastName: null },
+    ]);
   // The duplicate registered for the same season but never joined a team.
   const dup = await w.person("dup");
   await db.insert(profile).values({
@@ -170,12 +174,14 @@ async function duplicateWorld(db: Db) {
     updatedAt: NOW,
   });
   await grantGoodwill(db, {
+    leagueId: await newestLeague(db),
     email: dup.email,
     cents: 1500,
     note: "Rained out",
     actorId: admin.userId,
   });
   await db.insert(purchase).values({
+    leagueId: await newestLeague(db),
     userId: dup.userId,
     seasonId: w.season.id,
     status: "paid",
@@ -255,6 +261,7 @@ describe("merging duplicate accounts", () => {
         now: NOW,
       });
       const result = await mergeAccounts(db, {
+        leagueId: await newestLeague(db),
         keptId: d.kept.userId,
         mergedId: d.dup.userId,
         actorId: d.admin.userId,
@@ -288,6 +295,7 @@ describe("merging duplicate accounts", () => {
           now: NOW,
         });
       await mergeAccounts(db, {
+        leagueId: await newestLeague(db),
         keptId: d.kept.userId,
         mergedId: d.dup.userId,
         actorId: d.admin.userId,
@@ -305,6 +313,7 @@ describe("merging duplicate accounts", () => {
       const keptId = d.kept.userId;
       const dupId = d.dup.userId;
       const result = await mergeAccounts(db, {
+        leagueId: await newestLeague(db),
         keptId,
         mergedId: dupId,
         actorId: d.admin.userId,
@@ -470,6 +479,7 @@ describe("merging duplicate accounts", () => {
         registrationId: required(dupReg, "reg").id,
       });
       const attempt = await mergeAccounts(db, {
+        leagueId: await newestLeague(db),
         keptId: d.kept.userId,
         mergedId: d.dup.userId,
         actorId: d.admin.userId,

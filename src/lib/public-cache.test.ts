@@ -38,10 +38,10 @@ describe("refreshSeasonPages", () => {
       [SEASONS_TAG],
     ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/seasons"],
-      ["/seasons/[season]", "layout"],
-      ["/teams/[team]", "layout"],
-      ["/games/[game]", "layout"],
+      ["/l/[league]/seasons", "page"],
+      ["/l/[league]/seasons/[season]", "layout"],
+      ["/l/[league]/teams/[team]", "layout"],
+      ["/l/[league]/games/[game]", "layout"],
       ["/embed/schedule", "layout"],
     ]);
   });
@@ -65,7 +65,7 @@ describe("refreshEventPages", () => {
       [eventTag("trivia-night")],
     ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/events/[event]", "page"],
+      ["/l/[league]/events/[event]", "page"],
     ]);
   });
 
@@ -74,8 +74,8 @@ describe("refreshEventPages", () => {
 
     expect(updateTag).toHaveBeenCalledWith(THEME_WEEKS_TAG);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/events/[event]", "page"],
-      ["/seasons/[season]", "layout"],
+      ["/l/[league]/events/[event]", "page"],
+      ["/l/[league]/seasons/[season]", "layout"],
     ]);
   });
 });
@@ -86,7 +86,7 @@ describe("refreshSponsorPages", () => {
 
     expect(vi.mocked(updateTag).mock.calls).toEqual([[SPONSORS_TAG]]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/sponsors", "layout"],
+      ["/l/[league]/sponsors", "layout"],
     ]);
   });
 });

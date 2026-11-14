@@ -17,7 +17,7 @@ import {
   saveEmergencyContact,
 } from "./emergency";
 import type { Db } from "./schedule";
-import { loadSubject } from "./subject";
+import { grantRole, subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -66,9 +66,9 @@ async function world(db: Db) {
       userId: p.userId,
       firstName: `Pat${i}`,
       lastName: "Example",
-      globalRole: p === admin ? ("admin" as const) : ("player" as const),
     })),
   );
+  await grantRole(db, admin.userId, "admin");
   const { gameId } = await w.gameEnding(KICKOFF_END, ref.userId);
   const [request] = await db
     .insert(subRequest)
@@ -99,7 +99,7 @@ async function world(db: Db) {
   const view = async (who: { userId: UserId }, now: Date, id = gameId) =>
     gameEmergencyCards(db, {
       gameId: id,
-      subject: await loadSubject(db, who.userId),
+      subject: await subjectIn(db, who.userId),
       viewerId: who.userId,
       secret: SECRET,
       now,

@@ -1,13 +1,13 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { auditLog } from "../schema/audit";
-import { profile } from "../schema/profile";
 import { leagueWorld } from "../test/league-world";
+import { leagueRoleOf } from "./leagues";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import {
   leagueExport,
   setFeature,
-  setGlobalRole,
+  setLeagueRoleByEmail,
   setSiteStatus,
   staff,
 } from "./platform";
@@ -92,7 +92,8 @@ describe("operator settings", () => {
   it("gives a person a role by email, with an audit row, and reports unknown emails", () =>
     inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
-      const result = await setGlobalRole(db, {
+      const result = await setLeagueRoleByEmail(db, {
+        leagueId: w.leagueId,
         email: w.emails[1]!.toUpperCase(),
         role: "owner",
         actorId: w.admin,
@@ -101,11 +102,7 @@ describe("operator settings", () => {
         ok: true,
         value: { userId: w.teammate, before: "player" },
       });
-      const [row] = await db
-        .select({ role: profile.globalRole })
-        .from(profile)
-        .where(eq(profile.userId, w.teammate));
-      expect(row?.role).toBe("owner");
+      expect(await leagueRoleOf(db, w.teammate, w.leagueId)).toBe("owner");
       expect(await staff(db)).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ userId: w.teammate, role: "owner" }),
@@ -114,7 +111,8 @@ describe("operator settings", () => {
       );
       expect(await auditFor(db, w.teammate, "operator.role")).toHaveLength(1);
       expect(
-        await setGlobalRole(db, {
+        await setLeagueRoleByEmail(db, {
+          leagueId: w.leagueId,
           email: "nobody@example.test",
           role: "admin",
           actorId: w.admin,

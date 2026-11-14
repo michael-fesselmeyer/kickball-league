@@ -8,10 +8,13 @@ import {
   type Context,
   can,
   type Subject,
+  VISITOR,
 } from "@/domain/authz/permissions";
 import { parseId, type UserId } from "@/domain/ids";
 import { canWrite } from "@/domain/platform/operator";
 import { err, ok, type Result } from "@/domain/result";
+import { activeLeague } from "@/lib/league/active";
+import { allInLeague, recordsOf, requireInLeague } from "@/lib/league/guard";
 import { currentSite, isCurrentOperator } from "@/lib/platform/site";
 import { isFreshSession } from "./config";
 import { auth } from "./index";
@@ -26,13 +29,21 @@ export const currentAuthSession = cache(async () =>
 );
 
 /**
- * The signed-in person as a permissions subject; a visitor when signed out.
- * Loaded once per render, like the session.
+ * The signed-in person as a permissions subject in the league the app is
+ * showing (ADR 0048); a visitor when signed out. Loaded once per render,
+ * like the session.
  */
 export const currentSubject = cache(async (): Promise<Subject> => {
   const session = await currentAuthSession();
   // Account ids are UUIDs; anything else is treated as signed out.
-  const subject = await loadSubject(db, parseId<UserId>(session?.user.id));
+  const userId = parseId<UserId>(session?.user.id);
+  const league = await activeLeague();
+  // Before any league exists, only the operator has anything to do (start one).
+  const subject: Subject = league
+    ? await loadSubject(db, userId, league.id)
+    : userId
+      ? { ...VISITOR, userId, globalRole: "player" }
+      : VISITOR;
   return { ...subject, isOperator: isCurrentOperator(subject.userId) };
 });
 
@@ -67,6 +78,8 @@ export async function requirePermission(
   if (!isSignedIn(subject))
     redirect(`/sign-in?next=${encodeURIComponent(next)}`);
   if (!can(subject, action, context)) notFound();
+  // A team, game or sponsor of another league is refused like a missing one.
+  await requireInLeague(subject, recordsOf(context));
   return subject;
 }
 
@@ -97,6 +110,8 @@ export async function permissionToChange(
   const subject = await currentSubject();
   if (!isSignedIn(subject)) return err("signed_out");
   if (!can(subject, action, context)) return err("forbidden");
+  if (!(await allInLeague(subject.leagueId, recordsOf(context))))
+    return err("forbidden");
   if (await writesFrozen(subject)) return err("frozen");
   return ok(subject);
 }

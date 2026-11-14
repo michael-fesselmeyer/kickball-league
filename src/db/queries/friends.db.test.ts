@@ -25,7 +25,7 @@ import {
   updateFriendLeague,
 } from "./friends";
 import type { Db } from "./schedule";
-import { loadSubject } from "./subject";
+import { subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -104,12 +104,12 @@ describe("friends directory", () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
       const allowed = async (userId: typeof w.admin) =>
-        can(await loadSubject(db, userId), "friends.manage");
+        can(await subjectIn(db, userId), "friends.manage");
       expect(await allowed(w.admin)).toBe(true);
       expect(await allowed(w.captain)).toBe(false);
       expect(await allowed(w.teammate)).toBe(false);
       expect(await allowed(w.agent)).toBe(false);
-      expect(can(await loadSubject(db, null), "friends.manage")).toBe(false);
+      expect(can(await subjectIn(db, null), "friends.manage")).toBe(false);
     });
   });
 

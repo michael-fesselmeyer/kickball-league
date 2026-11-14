@@ -27,6 +27,7 @@ import type { Db } from "./schedule";
 import { acceptInvite, createTeamInvite } from "./invites";
 import { assignWaiver, publishWaiver, signWaiver } from "./waivers";
 import { hashWaiverBody } from "@/domain/waiver/waiver";
+import { newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -99,6 +100,7 @@ async function world(db: Db) {
   );
   if (!items.ok) throw new Error(items.error);
   const purchaseId = await createPurchase(db, {
+    leagueId: await newestLeague(db),
     userId,
     seasonId: s.id,
     items: items.items,

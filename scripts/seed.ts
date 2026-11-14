@@ -53,6 +53,8 @@ import { addSeasonCards } from "../src/seed/season-cards";
 import { addSeedSponsors, removeSeedSponsors } from "../src/seed/sponsors";
 import { addSeedStatAwards } from "../src/seed/stat-awards";
 import { seedPublishedSchedule } from "../src/seed/published-schedule";
+import { insertSeedProfiles } from "../src/seed/roles";
+import { addSecondLeague, removeSecondLeague } from "../src/seed/second-league";
 
 if (!process.env.DATABASE_URL && existsSync(".env.local"))
   process.loadEnvFile(".env.local");
@@ -95,7 +97,6 @@ async function main(): Promise<void> {
     payment,
     refund,
     user,
-    profile,
     waiver,
     waiverSignature,
     friendGroup,
@@ -105,6 +106,8 @@ async function main(): Promise<void> {
 
   try {
     await db.transaction(async (tx) => {
+      // The second league first: the demo player plays in it too.
+      await removeSecondLeague(tx);
       // Remove the previous demo league, children first.
       const old = await tx
         .select({ id: league.id })
@@ -277,9 +280,11 @@ async function main(): Promise<void> {
       await removeDisciplinePlayer(tx);
       await removeKeepOffPerson(tx);
 
-      await tx.insert(league).values(data.league);
+      // The demo league is the default one, at the site's own URLs.
+      await tx.update(league).set({ isDefault: false });
+      await tx.insert(league).values({ ...data.league, isDefault: true });
       await tx.insert(user).values(data.users);
-      await tx.insert(profile).values(data.profiles);
+      await insertSeedProfiles(tx, data.league.id, data.profiles);
       await tx.insert(waiver).values(data.waiver);
       await tx.insert(season).values(data.season);
       await tx.insert(venue).values(data.venue);
@@ -297,6 +302,7 @@ async function main(): Promise<void> {
       await tx.insert(slot).values(data.nextSlots);
       await tx.insert(teamConstraint).values(data.teamConstraints);
       await addDemoPersonas(tx, data);
+      await addSecondLeague(tx);
       await addDisciplinePlayer(tx, data);
       await addKeepOffPerson(tx, data);
       await addSeedLineups(tx, data);

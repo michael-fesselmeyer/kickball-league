@@ -23,7 +23,7 @@ import {
   seasonSignups,
 } from "./challenges";
 import type { Db } from "./schedule";
-import { loadSubject } from "./subject";
+import { grantRole, subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -98,7 +98,8 @@ async function world(db: Db) {
     .values({ name: "Ada Admin", email: `drive-admin-${tag}@example.test` })
     .returning({ id: user.id });
   if (!admin) throw new Error("no admin");
-  await db.insert(profile).values({ userId: admin.id, globalRole: "admin" });
+  await db.insert(profile).values({ userId: admin.id });
+  await grantRole(db, admin.id, "admin");
 
   /** A player on a team, joined at one minute and signed at another. */
   const player = async (
@@ -287,8 +288,8 @@ describe("permissions", () => {
     inRolledBackDb(async (db) => {
       const w = await world(db);
       const ant = await w.player(w.ants, 1, 2);
-      const player = await loadSubject(db, ant);
-      const admin = await loadSubject(db, w.admin);
+      const player = await subjectIn(db, ant);
+      const admin = await subjectIn(db, w.admin);
       expect(can(player, "challenge.view_team", { teamSeasonId: w.ants })).toBe(
         true,
       );

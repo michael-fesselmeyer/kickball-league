@@ -37,7 +37,7 @@ describe("auditLogPage", () => {
           );
       }
 
-      const first = await auditLogPage(db, { limit: 2 });
+      const first = await auditLogPage(db, w.leagueId, { limit: 2 });
       expect(first.rows.map((r) => r.action)).toEqual([
         "schedule.publish",
         "operator.site_status",
@@ -45,13 +45,15 @@ describe("auditLogPage", () => {
       expect(first.more).toBe(true);
       expect(first.rows[0]?.actorEmail).toBe(w.emails[3]);
 
-      const next = await auditLogPage(db, {
+      const next = await auditLogPage(db, w.leagueId, {
         limit: 2,
         before: first.rows.at(-1)!,
       });
       expect(next.rows[0]?.action).toBe("season.update");
 
-      const operator = await auditLogPage(db, { operatorOnly: true });
+      const operator = await auditLogPage(db, w.leagueId, {
+        operatorOnly: true,
+      });
       expect(operator.rows.every((r) => r.action.startsWith("operator."))).toBe(
         true,
       );

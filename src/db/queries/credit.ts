@@ -1,9 +1,10 @@
 import { and, desc, eq, inArray, sql, sum } from "drizzle-orm";
-import type { PurchaseId, UserId } from "@/domain/ids";
+import type { LeagueId, PurchaseId, UserId } from "@/domain/ids";
 import type { Goodwill } from "@/domain/money/credit";
 import { err, ok, type Result } from "@/domain/result";
 import { user } from "../schema/auth";
 import { creditEntry } from "../schema/credit";
+import { league } from "../schema/league";
 import { purchase } from "../schema/money";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
@@ -16,11 +17,19 @@ import type { Db } from "./schedule";
  * rows.
  */
 
-export async function creditBalance(db: Db, userId: UserId): Promise<number> {
+/** A person's credit in one league: it pays only that league's fees (ADR 0048). */
+export async function creditBalance(
+  db: Db,
+  userId: UserId,
+  leagueId: LeagueId | null,
+): Promise<number> {
+  if (!leagueId) return 0;
   const [row] = await db
     .select({ total: sum(creditEntry.deltaCents).mapWith(Number) })
     .from(creditEntry)
-    .where(eq(creditEntry.userId, userId));
+    .where(
+      and(eq(creditEntry.userId, userId), eq(creditEntry.leagueId, leagueId)),
+    );
   return row?.total ?? 0;
 }
 
@@ -46,7 +55,11 @@ export async function returnSpentCredit(
   purchaseId: PurchaseId,
 ): Promise<number> {
   const [spent] = await db
-    .select({ userId: creditEntry.userId, cents: creditEntry.deltaCents })
+    .select({
+      userId: creditEntry.userId,
+      leagueId: creditEntry.leagueId,
+      cents: creditEntry.deltaCents,
+    })
     .from(creditEntry)
     .where(
       and(
@@ -59,6 +72,7 @@ export async function returnSpentCredit(
     .insert(creditEntry)
     .values({
       userId: spent.userId,
+      leagueId: spent.leagueId,
       deltaCents: -spent.cents,
       reason: "released",
       purchaseId,
@@ -71,11 +85,17 @@ export async function returnSpentCredit(
 /** Records credit used at checkout. Call after lockCredit, in one transaction. */
 export async function spendCredit(
   db: Db,
-  input: { userId: UserId; purchaseId: PurchaseId; cents: number },
+  input: {
+    userId: UserId;
+    leagueId: LeagueId;
+    purchaseId: PurchaseId;
+    cents: number;
+  },
 ): Promise<void> {
   if (input.cents <= 0) return;
   await db.insert(creditEntry).values({
     userId: input.userId,
+    leagueId: input.leagueId,
     deltaCents: -input.cents,
     reason: "spent",
     purchaseId: input.purchaseId,
@@ -95,6 +115,7 @@ export async function releaseCredit(
   const spent = await db
     .select({
       userId: creditEntry.userId,
+      leagueId: creditEntry.leagueId,
       purchaseId: creditEntry.purchaseId,
       deltaCents: creditEntry.deltaCents,
     })
@@ -113,6 +134,7 @@ export async function releaseCredit(
     .values(
       spent.map((s) => ({
         userId: s.userId,
+        leagueId: s.leagueId,
         deltaCents: -s.deltaCents,
         reason: "released" as const,
         purchaseId: s.purchaseId,
@@ -121,8 +143,16 @@ export async function releaseCredit(
     .onConflictDoNothing();
 }
 
-/** A person's ledger, newest first, for their account page. */
-export async function creditHistory(db: Db, userId: UserId, limit = 50) {
+/**
+ * A person's ledger, newest first, for their account page: one league's,
+ * or every league's (with its name) for their data export.
+ */
+export async function creditHistory(
+  db: Db,
+  userId: UserId,
+  leagueId: LeagueId | "all",
+  limit = 50,
+) {
   return db
     .select({
       id: creditEntry.id,
@@ -131,11 +161,18 @@ export async function creditHistory(db: Db, userId: UserId, limit = 50) {
       note: creditEntry.note,
       createdAt: creditEntry.createdAt,
       seasonName: season.name,
+      leagueName: league.name,
     })
     .from(creditEntry)
+    .innerJoin(league, eq(league.id, creditEntry.leagueId))
     .leftJoin(purchase, eq(creditEntry.purchaseId, purchase.id))
     .leftJoin(season, eq(purchase.seasonId, season.id))
-    .where(eq(creditEntry.userId, userId))
+    .where(
+      and(
+        eq(creditEntry.userId, userId),
+        leagueId === "all" ? undefined : eq(creditEntry.leagueId, leagueId),
+      ),
+    )
     .orderBy(desc(creditEntry.createdAt), desc(creditEntry.id))
     .limit(limit);
 }
@@ -145,7 +182,7 @@ export type GoodwillError = "unknown_player";
 /** An admin gives a player credit, with a note the player sees. */
 export async function grantGoodwill(
   db: Db,
-  input: Goodwill & { actorId: UserId },
+  input: Goodwill & { leagueId: LeagueId; actorId: UserId },
 ): Promise<Result<UserId, GoodwillError>> {
   const [person] = await db
     .select({ id: user.id })
@@ -156,6 +193,7 @@ export async function grantGoodwill(
     .insert(creditEntry)
     .values({
       userId: person.id,
+      leagueId: input.leagueId,
       deltaCents: input.cents,
       reason: "goodwill",
       note: input.note,
@@ -163,6 +201,7 @@ export async function grantGoodwill(
     })
     .returning({ id: creditEntry.id });
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId: input.actorId,
     action: "credit.goodwill",
     entityType: "user",
@@ -176,7 +215,7 @@ export async function grantGoodwill(
  * The admin's view of the ledger: everyone holding credit, largest balance
  * first, and the latest grants.
  */
-export async function creditOverview(db: Db, limit = 30) {
+export async function creditOverview(db: Db, leagueId: LeagueId, limit = 30) {
   const name = sql<string>`coalesce(nullif(trim(concat_ws(' ', ${profile.firstName}, ${profile.lastName})), ''), ${user.name})`;
   const balance = sum(creditEntry.deltaCents).mapWith(Number);
   const [holders, recent] = await Promise.all([
@@ -185,6 +224,7 @@ export async function creditOverview(db: Db, limit = 30) {
       .from(creditEntry)
       .innerJoin(user, eq(creditEntry.userId, user.id))
       .leftJoin(profile, eq(profile.userId, user.id))
+      .where(eq(creditEntry.leagueId, leagueId))
       .groupBy(user.id, profile.firstName, profile.lastName)
       .having(sql`sum(${creditEntry.deltaCents}) > 0`)
       .orderBy(desc(balance), user.email)
@@ -202,7 +242,14 @@ export async function creditOverview(db: Db, limit = 30) {
       .innerJoin(user, eq(creditEntry.userId, user.id))
       .leftJoin(profile, eq(profile.userId, user.id))
       .where(
-        inArray(creditEntry.reason, ["goodwill", "rainout_rebate", "referral"]),
+        and(
+          eq(creditEntry.leagueId, leagueId),
+          inArray(creditEntry.reason, [
+            "goodwill",
+            "rainout_rebate",
+            "referral",
+          ]),
+        ),
       )
       .orderBy(desc(creditEntry.createdAt), desc(creditEntry.id))
       .limit(limit),

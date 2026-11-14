@@ -325,12 +325,14 @@ export async function leagueTeams(db: Db, leagueId: LeagueId) {
 }
 
 /** Whether a person's own export lists entries about them (owners decide). */
-export async function exportsKeepOffEntries(db: Db): Promise<boolean> {
+export async function exportsKeepOffEntries(
+  db: Db,
+  leagueId: LeagueId,
+): Promise<boolean> {
   const [row] = await db
     .select({ on: league.exportKeepOffEntries })
     .from(league)
-    .orderBy(asc(league.createdAt))
-    .limit(1);
+    .where(eq(league.id, leagueId));
   return row?.on ?? false;
 }
 
@@ -363,13 +365,12 @@ export async function setExportKeepOffEntries(
  * always, and the entries about them only when the league's owners chose
  * to include them (ADR 0036).
  */
-export async function myKeepOffEntries(
-  db: Db,
-  userId: UserId,
-  includeAboutMe: boolean,
-) {
+export async function myKeepOffEntries(db: Db, userId: UserId) {
   const rows = await db
     .select({
+      // Each league's owners decide whether entries about a person are in
+      // that person's export (ADR 0036, per league since ADR 0048).
+      inExport: league.exportKeepOffEntries,
       teamName: team.name,
       userId: teamKeepOff.userId,
       addedBy: teamKeepOff.addedBy,
@@ -379,14 +380,13 @@ export async function myKeepOffEntries(
     })
     .from(teamKeepOff)
     .innerJoin(team, eq(teamKeepOff.teamId, team.id))
+    .innerJoin(league, eq(league.id, team.leagueId))
     .innerJoin(user, eq(teamKeepOff.userId, user.id))
     .leftJoin(profile, eq(profile.userId, user.id))
-    .where(
-      includeAboutMe
-        ? or(eq(teamKeepOff.addedBy, userId), eq(teamKeepOff.userId, userId))
-        : eq(teamKeepOff.addedBy, userId),
-    )
+    .where(or(eq(teamKeepOff.addedBy, userId), eq(teamKeepOff.userId, userId)))
     .orderBy(asc(teamKeepOff.createdAt));
+  const aboutMe = rows.filter((r) => r.userId === userId && r.inExport);
+  const anyLeagueShares = rows.some((r) => r.inExport);
   return {
     added: rows
       .filter((r) => r.addedBy === userId)
@@ -396,15 +396,13 @@ export async function myKeepOffEntries(
         reason: r.reason,
         addedAt: r.addedAt,
       })),
-    ...(includeAboutMe
+    ...(anyLeagueShares
       ? {
-          aboutYou: rows
-            .filter((r) => r.userId === userId)
-            .map((r) => ({
-              team: r.teamName,
-              reason: r.reason,
-              addedAt: r.addedAt,
-            })),
+          aboutYou: aboutMe.map((r) => ({
+            team: r.teamName,
+            reason: r.reason,
+            addedAt: r.addedAt,
+          })),
         }
       : {}),
   };

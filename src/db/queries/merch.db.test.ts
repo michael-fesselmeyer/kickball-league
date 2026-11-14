@@ -45,6 +45,7 @@ import {
   handleStripeEvent,
 } from "./payments";
 import type { Db } from "./schedule";
+import { leagueFor, newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -151,9 +152,13 @@ async function checkout(...args: Parameters<typeof order>) {
 }
 
 async function grant(db: Db, userId: UserId, cents: number) {
-  await db
-    .insert(creditEntry)
-    .values({ userId, deltaCents: cents, reason: "goodwill", note: "Test" });
+  await db.insert(creditEntry).values({
+    userId,
+    leagueId: await newestLeague(db),
+    deltaCents: cents,
+    reason: "goodwill",
+    note: "Test",
+  });
 }
 
 let sequence = 0;
@@ -338,7 +343,9 @@ describe("placing an order", () => {
         creditCents: 500,
         description: "League shirt (M) × 2",
       });
-      expect(await creditBalance(db, w.ana)).toBe(0);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        0,
+      );
       expect(await leftOf(db, w.leagueId, id)).toEqual({ m: 0, l: 1 });
       expect(await order(db, w.leagueId, id, w.ben)).toEqual({
         ok: false,
@@ -362,7 +369,9 @@ describe("placing an order", () => {
         useCredit: false,
       });
       expect(c).toMatchObject({ totalCents: 2500, creditCents: 0 });
-      expect(await creditBalance(db, w.ana)).toBe(500);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        500,
+      );
     });
   });
 
@@ -373,7 +382,9 @@ describe("placing an order", () => {
       await grant(db, w.ana, 5000);
       const result = await order(db, w.leagueId, id, w.ana);
       expect(result.ok && result.value.kind).toBe("paid");
-      expect(await creditBalance(db, w.ana)).toBe(3000);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        3000,
+      );
       expect(await mail(db, w.ana)).toEqual(["merch_receipt/receipt"]);
       const [mine] = await myMerchOrders(db, w.ana, NOW);
       expect(mine).toMatchObject({
@@ -420,7 +431,9 @@ describe("placing an order", () => {
       expect(result.ok && result.value.kind).toBe("checkout");
       expect(await orderStatus(db, c.purchaseId)).toBe("released");
       expect(await statusOf(db, c.purchaseId)).toBe("expired");
-      expect(await creditBalance(db, w.ana)).toBe(500);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        500,
+      );
     });
   });
 });
@@ -534,7 +547,9 @@ describe("the Stripe webhook for merch", () => {
         "processed",
       );
       expect(await orderStatus(db, c.purchaseId)).toBe("released");
-      expect(await creditBalance(db, w.ana)).toBe(500);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        500,
+      );
       expect(await leftOf(db, w.leagueId, id)).toEqual({ m: 2, l: 1 });
       expect(await myMerchOrders(db, w.ana, NOW)).toEqual([]);
     });
@@ -636,7 +651,9 @@ describe("fulfilling and refunding", () => {
       await finish();
       await finish();
       expect(await orderStatus(db, c.purchaseId)).toBe("refunded");
-      expect(await creditBalance(db, w.ana)).toBe(500);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        500,
+      );
       expect(await leftOf(db, w.leagueId, id)).toEqual({ m: 2, l: 1 });
       expect(await mail(db, w.ana)).toEqual([
         "merch_receipt/receipt",
@@ -673,7 +690,9 @@ describe("fulfilling and refunding", () => {
       expect(await orderStatus(db, c.purchaseId)).toBe("paid");
       await handleStripeEvent(db, refunded(c.session, 1500), NOW);
       expect(await orderStatus(db, c.purchaseId)).toBe("refunded");
-      expect(await creditBalance(db, w.ana)).toBe(500);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        500,
+      );
     });
   });
 
@@ -693,7 +712,9 @@ describe("fulfilling and refunding", () => {
           actorId: w.admin,
         }),
       ).toEqual({ ok: true, value: { kind: "done", creditCents: 2000 } });
-      expect(await creditBalance(db, w.ana)).toBe(2000);
+      expect(await creditBalance(db, w.ana, await leagueFor(db, w.ana))).toBe(
+        2000,
+      );
     });
   });
 

@@ -32,6 +32,7 @@ import {
   publishVersion,
   saveVersion,
 } from "./schedule";
+import { newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -236,9 +237,21 @@ describe("published schedule queries", () => {
 
       // Head-to-head reads either order of the two slugs.
       const [acesSlug, beesSlug, catsSlug] = w.teams.map((t) => t.slug);
-      const between = await publishedGamesBetween(db, beesSlug!, acesSlug!);
+      const between = await publishedGamesBetween(
+        db,
+        await newestLeague(db),
+        beesSlug!,
+        acesSlug!,
+      );
       expect(between.map((g) => g.teamA.name)).toEqual(["Aces"]);
-      expect(await publishedGamesBetween(db, acesSlug!, catsSlug!)).toEqual([]);
+      expect(
+        await publishedGamesBetween(
+          db,
+          await newestLeague(db),
+          acesSlug!,
+          catsSlug!,
+        ),
+      ).toEqual([]);
       // One person's games: their team entries' and the ones they referee.
       const mine = await publishedGamesFor(db, {
         teamSeasonIds: [a],
@@ -248,7 +261,7 @@ describe("published schedule queries", () => {
       expect(
         await publishedGamesFor(db, { teamSeasonIds: [], gameIds: [] }),
       ).toEqual([]);
-      const everything = await allPublishedGames(db);
+      const everything = await allPublishedGames(db, await newestLeague(db));
       expect(everything.filter((g) => g.seasonId === w.seasonId)).toHaveLength(
         2,
       );
@@ -295,13 +308,19 @@ describe("teamBySlug and publicRoster", () => {
   it("finds a team's public seasons and shows only first names and initials", () =>
     inRolledBackDb(async (db) => {
       const w = await world(db);
-      const found = await teamBySlug(db, w.teams[0]!.slug);
+      const found = await teamBySlug(
+        db,
+        await newestLeague(db),
+        w.teams[0]!.slug,
+      );
       expect(found).toMatchObject({
         name: "Aces",
         timeZone: "America/New_York",
         entries: [{ id: w.entries[0], seasonName: "Fall" }],
       });
-      expect(await teamBySlug(db, "no-such-team")).toBeNull();
+      expect(
+        await teamBySlug(db, await newestLeague(db), "no-such-team"),
+      ).toBeNull();
 
       const people = await db
         .insert(user)

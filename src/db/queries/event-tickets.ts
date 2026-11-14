@@ -592,6 +592,7 @@ export async function buyTicket(
   let ticketId: EventTicketId | null = offer?.id ?? null;
   const started = await startPurchase(db, {
     userId: input.userId,
+    leagueId: e.leagueId,
     seasonId: null,
     items: [
       {

@@ -58,6 +58,7 @@ import {
   sendWaitlistOffers,
   waitlistBoard,
 } from "./waitlist";
+import { leagueFor, newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -162,13 +163,16 @@ describe("league credit at checkout", () => {
       });
       if (!fa.ok) throw new Error(fa.error);
       const granted = await grantGoodwill(db, {
+        leagueId: await newestLeague(db),
         email: player.email.toUpperCase(),
         cents: 2000,
         note: "Shirt arrived late",
         actorId: admin.id,
       });
       expect(granted.ok).toBe(true);
-      expect(await creditBalance(db, player.id)).toBe(2000);
+      expect(
+        await creditBalance(db, player.id, await leagueFor(db, player.id)),
+      ).toBe(2000);
 
       const items: CheckoutItem[] = [
         {
@@ -180,6 +184,7 @@ describe("league credit at checkout", () => {
         },
       ];
       const started = await startPurchase(db, {
+        leagueId: await newestLeague(db),
         userId: player.id,
         seasonId: w.season.id,
         items,
@@ -192,7 +197,9 @@ describe("league credit at checkout", () => {
         creditCents: 2000,
         chargeCents: [6500],
       });
-      expect(await creditBalance(db, player.id)).toBe(0);
+      expect(
+        await creditBalance(db, player.id, await leagueFor(db, player.id)),
+      ).toBe(0);
       const [row] = await db
         .select()
         .from(purchase)
@@ -206,8 +213,10 @@ describe("league credit at checkout", () => {
       // Pressing Pay again expires the first checkout and returns its credit.
       await expirePurchases(db, [started.value.purchaseId]);
       await expirePurchases(db, [started.value.purchaseId]);
-      expect(await creditBalance(db, player.id)).toBe(2000);
-      const history = await creditHistory(db, player.id);
+      expect(
+        await creditBalance(db, player.id, await leagueFor(db, player.id)),
+      ).toBe(2000);
+      const history = await creditHistory(db, player.id, "all");
       // One transaction stamps every row with the same time, so sort here.
       expect(history.map((h) => `${h.reason} ${h.deltaCents}`).sort()).toEqual([
         "goodwill 2000",
@@ -217,6 +226,7 @@ describe("league credit at checkout", () => {
 
       // Unticked: the full price goes to Stripe and the credit stays.
       const without = await startPurchase(db, {
+        leagueId: await newestLeague(db),
         userId: player.id,
         seasonId: w.season.id,
         items,
@@ -225,14 +235,17 @@ describe("league credit at checkout", () => {
         now: NOW,
       });
       expect(without.ok && without.value.totalCents).toBe(8500);
-      expect(await creditBalance(db, player.id)).toBe(2000);
+      expect(
+        await creditBalance(db, player.id, await leagueFor(db, player.id)),
+      ).toBe(2000);
 
-      const overview = await creditOverview(db);
+      const overview = await creditOverview(db, await newestLeague(db));
       expect(
         overview.holders.find((h) => h.userId === player.id)?.balance,
       ).toBe(2000);
       expect(
         await grantGoodwill(db, {
+          leagueId: await newestLeague(db),
           email: "nobody@example.test",
           cents: 100,
           note: "x",
@@ -259,12 +272,14 @@ describe("league credit at checkout", () => {
         .set({ status: "pending_payment" })
         .where(eq(registration.id, fa.value));
       await grantGoodwill(db, {
+        leagueId: await newestLeague(db),
         email: player.email,
         cents: 10_000,
         note: "Last season's rain",
         actorId: admin.id,
       });
       const started = await startPurchase(db, {
+        leagueId: await newestLeague(db),
         userId: player.id,
         seasonId: w.season.id,
         items: [
@@ -281,7 +296,9 @@ describe("league credit at checkout", () => {
       });
       if (!started.ok) throw new Error(started.error);
       expect(started.value.totalCents).toBe(0);
-      expect(await creditBalance(db, player.id)).toBe(1500);
+      expect(
+        await creditBalance(db, player.id, await leagueFor(db, player.id)),
+      ).toBe(1500);
       const [row] = await db
         .select({ status: purchase.status })
         .from(purchase)
@@ -830,9 +847,13 @@ describe("referrals", () => {
         actorId: friend.id,
         now: NOW,
       });
-      expect(await creditBalance(db, referrer.id)).toBe(REFERRAL_CREDIT_CENTS);
+      expect(
+        await creditBalance(db, referrer.id, await leagueFor(db, referrer.id)),
+      ).toBe(REFERRAL_CREDIT_CENTS);
       expect(await creditReferrals(db, [fa.value], NOW)).toBe(0);
-      expect(await creditBalance(db, referrer.id)).toBe(REFERRAL_CREDIT_CENTS);
+      expect(
+        await creditBalance(db, referrer.id, await leagueFor(db, referrer.id)),
+      ).toBe(REFERRAL_CREDIT_CENTS);
       expect(await myReferrals(db, referrer.id)).toEqual({
         pending: 0,
         credited: 1,
@@ -995,7 +1016,9 @@ describe("season rebates", () => {
       });
       expect(await issue()).toEqual({ ok: false, error: "already_issued" });
       for (const p of payers)
-        expect(await creditBalance(db, p.userId)).toBe(6375);
+        expect(
+          await creditBalance(db, p.userId, await leagueFor(db, p.userId)),
+        ).toBe(6375);
       expect(
         await issueRebate(db, {
           seasonId: w.season.id,

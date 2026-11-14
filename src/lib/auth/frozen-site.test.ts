@@ -29,9 +29,18 @@ vi.mock("./index", () => ({
   },
 }));
 vi.mock("@/db/client", () => ({ db: {} }));
+vi.mock("@/lib/league/active", () => ({
+  activeLeague: async () => ({
+    id: "league",
+    name: "Test League",
+    slug: "test-league",
+    isDefault: true,
+  }),
+}));
 vi.mock("@/db/queries/subject", () => ({
   loadSubject: async (_db: unknown, userId: string | null) => ({
     userId,
+    leagueId: "league",
     globalRole: "owner",
     roster: [],
     isReferee: false,

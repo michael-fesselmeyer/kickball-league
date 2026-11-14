@@ -110,11 +110,12 @@ export async function eventsFor(
  */
 export async function visibleEvent(
   db: Db,
+  leagueId: LeagueId | null,
   slug: string,
   userId: UserId,
   staff: boolean,
 ): Promise<EventDetails | null> {
-  const e = await eventBySlug(db, slug, "all");
+  const e = await eventBySlug(db, leagueId, slug, "all");
   if (!e) return null;
   if (e.audience.kind === "public") return e;
   const viewer = await viewerOf(db, e.leagueId, userId, staff);

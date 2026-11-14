@@ -35,7 +35,7 @@ import {
   updateGiveaway,
 } from "./giveaways";
 import type { Db } from "./schedule";
-import { loadSubject } from "./subject";
+import { grantRole, subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -99,10 +99,8 @@ async function world(db: Db, players = 5) {
   if (!admin) throw new Error("no admin");
   await db
     .insert(profile)
-    .values([
-      { userId: admin, globalRole: "admin" as const },
-      ...rest.map((userId) => ({ userId })),
-    ]);
+    .values([{ userId: admin }, ...rest.map((userId) => ({ userId }))]);
+  await grantRole(db, admin, "admin");
   await db.insert(registration).values(
     rest.map((userId) => ({
       seasonId: fall.id,
@@ -377,12 +375,12 @@ describe("permissions and accounts", () => {
       const w = await world(db, 1);
       const [player] = w.players;
       if (!player) throw new Error("no player");
-      const admin = await loadSubject(db, w.admin);
-      const someone = await loadSubject(db, player);
+      const admin = await subjectIn(db, w.admin);
+      const someone = await subjectIn(db, player);
       expect(can(someone, "giveaway.enter")).toBe(true);
       expect(can(someone, "giveaway.manage")).toBe(false);
       expect(can(admin, "giveaway.manage")).toBe(true);
-      expect(can(await loadSubject(db, null), "giveaway.enter")).toBe(false);
+      expect(can(await subjectIn(db, null), "giveaway.enter")).toBe(false);
     }));
 
   it("exports entries and wins, and keeps a drawn giveaway's entries on deletion", () =>

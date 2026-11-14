@@ -24,7 +24,7 @@ import {
   sponsorWeeklyCounts,
   updateSponsor,
 } from "./sponsors";
-import { loadSubject } from "./subject";
+import { newestLeague, subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -106,7 +106,11 @@ describe("sponsors", () => {
   it("gives each sponsor its own long secret, read only for check-ins", async () => {
     await inRolledBackDb(async (db) => {
       const { sponsorId } = await setUp(db);
-      const found = await sponsorForCheckIn(db, bar.slug);
+      const found = await sponsorForCheckIn(
+        db,
+        await newestLeague(db),
+        bar.slug,
+      );
       expect(found?.id).toBe(sponsorId);
       expect(found?.secret).toMatch(/^[0-9a-f]{64}$/);
     });
@@ -410,12 +414,10 @@ describe("sponsor members", () => {
           actorId: w.admin,
         }),
       ).toEqual({ ok: false, error: "no_account" });
-      expect((await loadSubject(db, w.teammate)).sponsorIds).toEqual([
-        sponsorId,
-      ]);
+      expect((await subjectIn(db, w.teammate)).sponsorIds).toEqual([sponsorId]);
       // A sponsor taken off the site no longer grants anything.
       await removeSponsor(db, { sponsorId, actorId: w.admin, now: NOW });
-      expect((await loadSubject(db, w.teammate)).sponsorIds).toEqual([]);
+      expect((await subjectIn(db, w.teammate)).sponsorIds).toEqual([]);
     });
   });
 });
