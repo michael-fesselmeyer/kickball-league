@@ -1,20 +1,22 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
-import { pageAs } from "../support/personas";
+import { ownerAccount } from "../support/accounts";
+import { pageSignedInAs } from "../support/sign-in";
 
 /**
  * The capacity planner, at phone width: an owner sees how many teams the
  * season's permits fit, asks about more teams than fit, and takes one
- * option's extra field time to the request sheet. On the flows server the
- * demo admin is the platform operator, who sees what owners see. The demo's
- * permit windows are in the fall season (src/seed/books.ts).
+ * option's extra field time to the request sheet. The owner is made up for
+ * this flow and signs in by email, so no other flow switching the shared
+ * demo personas can change who is signed in here. The demo's permit windows
+ * are in the fall season (src/seed/books.ts).
  */
 test.use({ viewport: { width: 390, height: 844 } });
 
 test("an owner plans for more teams and requests exactly the extra field time", async ({
   browser,
 }) => {
-  const page = await pageAs(browser, "Admin");
+  const page = await pageSignedInAs(browser, await ownerAccount("Casey"));
   await page.goto("/app/admin");
   await page.getByRole("link", { name: "Books", exact: true }).click();
   await page.getByText("Other seasons", { exact: true }).click();
