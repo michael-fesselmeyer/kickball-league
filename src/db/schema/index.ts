@@ -32,6 +32,7 @@ export * from "./season";
 export * from "./season-card";
 export * from "./social";
 export * from "./sponsor";
+export * from "./stat-awards";
 export * from "./subs";
 export * from "./survey";
 export * from "./team";
