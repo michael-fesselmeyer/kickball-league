@@ -105,6 +105,7 @@ const ACTIONS: Record<string, string> = {
   "promo_code.disable": "Turned off a promo code",
   "rainout.declare": "Called a rain-out",
   "referee.assign": "Assigned a ref",
+  "referee.check_in": "Marked a ref as at the field",
   "referee.unassign": "Removed a ref",
   "refund.issue": "Refunded a payment",
   "roster.export": "Downloaded a roster",

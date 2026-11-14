@@ -160,6 +160,11 @@ const RULES = {
   // Admins manage permit windows but never see the permit's document.
   "permit.view_at_field": any(isOwner, isOperator, captainsGame, refereesGame),
   "score.confirm": any(isAdmin, captainsGame),
+  // "I'm at the field": the game's ref on game day, or an admin for them.
+  "referee.check_in": any(
+    isAdmin,
+    all(refereesGame, (_, c) => c.game?.gameDay === true),
+  ),
   // Inning by inning: the ref, or a captain when the game has no ref.
   "score.live": any(
     isAdmin,

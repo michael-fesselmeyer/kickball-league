@@ -153,6 +153,7 @@ export async function gamesToReferee(db: Db, userId: UserId) {
       teamAName: teamA.name,
       teamBName: teamB.name,
       seasonName: season.name,
+      checkedInAt: refereeAssignment.checkedInAt,
     })
     .from(refereeAssignment)
     .innerJoin(game, eq(refereeAssignment.gameId, game.id))
