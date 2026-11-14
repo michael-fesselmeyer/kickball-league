@@ -42,16 +42,16 @@ export type PlanInput = {
   /** The season's permit windows, without lost ones. */
   windows: readonly PlanWindow[];
   /** Dates with no play anywhere. */
-  blackouts?: ReadonlySet<string>;
+  blackouts?: ReadonlySet<string> | undefined;
   gameMinutes: number;
   gamesPerTeam: number;
   gamesPerTeamPerDay: 1 | 2;
   /** Teams entered plus teams waiting for a place. */
   wanted: number;
   /** The field the league uses most, for options that add time on it. */
-  mainField?: { id: string | null; name: string };
+  mainField?: { id: string | null; name: string } | undefined;
   /** Another field to ask for, for the "one more field" option. */
-  spareField?: { id: string | null; name: string };
+  spareField?: { id: string | null; name: string } | undefined;
 };
 
 export type Capacity = {
@@ -93,16 +93,16 @@ export type PlanOption = {
   extraTeams: number;
   closesGap: boolean;
   /** The change itself, for the screen to describe. */
-  gameMinutes?: number;
-  gamesPerTeam?: number;
-  weekday?: number;
-  first?: string;
-  last?: string;
-  fieldName?: string;
+  gameMinutes?: number | undefined;
+  gamesPerTeam?: number | undefined;
+  weekday?: number | undefined;
+  first?: string | undefined;
+  last?: string | undefined;
+  fieldName?: string | undefined;
   /** Field time evenings after about 6:30 pm in the fall need lights. */
-  needsLights?: boolean;
+  needsLights?: boolean | undefined;
   /** Field hours to request for exactly the teams that want in, if any. */
-  request?: ExtraRequest;
+  request?: ExtraRequest | undefined;
 };
 
 export type Plan = {

@@ -24,7 +24,7 @@ export type RequestInput = {
    * Games each game day, when the owner asks for a set number instead of
    * one game per pair of teams: the capacity planner's extra games.
    */
-  gamesPerDay?: number;
+  gamesPerDay?: number | undefined;
   gamesPerTeamPerDay: number;
   /** Game days, YYYY-MM-DD. */
   dates: readonly string[];
