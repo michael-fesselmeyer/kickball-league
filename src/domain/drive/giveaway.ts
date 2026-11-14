@@ -3,6 +3,15 @@ import { type Audience, canSee, type Viewer } from "@/domain/events/audience";
 import { err, ok, type Result } from "@/domain/result";
 import { localDay } from "@/domain/schedule/public-game";
 import { localTime, zonedInstant } from "@/domain/time/zoned";
+import {
+  MAX_DONOR_LENGTH,
+  MAX_PRIZE_LENGTH,
+  MAX_REASON_LENGTH,
+  MAX_RULES_LENGTH,
+  MAX_WINNERS,
+  MIN_REASON_LENGTH,
+  MIN_RULES_LENGTH,
+} from "./giveaway-limits";
 
 /**
  * A free giveaway at a league event (ADR 0035). Entry is free and needs
@@ -13,13 +22,15 @@ import { localTime, zonedInstant } from "@/domain/time/zoned";
  * with published rules is fine. Pure: no clock and no database.
  */
 
-export const MAX_PRIZE_LENGTH = 200;
-export const MAX_DONOR_LENGTH = 80;
-export const MAX_WINNERS = 20;
-export const MIN_RULES_LENGTH = 20;
-export const MAX_RULES_LENGTH = 5000;
-export const MIN_REASON_LENGTH = 5;
-export const MAX_REASON_LENGTH = 300;
+export {
+  MAX_DONOR_LENGTH,
+  MAX_PRIZE_LENGTH,
+  MAX_REASON_LENGTH,
+  MAX_RULES_LENGTH,
+  MAX_WINNERS,
+  MIN_REASON_LENGTH,
+  MIN_RULES_LENGTH,
+};
 
 /** Shown on every giveaway page and in the default rules. */
 export const NO_PURCHASE_LINE =
