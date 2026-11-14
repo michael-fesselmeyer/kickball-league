@@ -52,3 +52,7 @@ docs/BKC_Rulebook_2023.pdf
 
 # Lighthouse CI
 /.lighthouseci/
+
+# Database backups hold personal data; they never belong in the repository
+*.dump
+/backups/
