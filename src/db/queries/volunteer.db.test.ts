@@ -427,7 +427,7 @@ describe("accounts", () => {
         now: BEFORE,
       });
       const data = await personalData(db, a, BEFORE);
-      expect(data.volunteerShifts).toEqual([
+      expect(data?.volunteerShifts).toEqual([
         expect.objectContaining({
           role: "setup",
           occasion: "Fall Social game day",
