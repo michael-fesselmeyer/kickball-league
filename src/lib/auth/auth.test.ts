@@ -109,7 +109,7 @@ describe("auth instance", () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     await expect(
       plugin!.options.sendMagicLink({
-        email: "player@example.com",
+        email: "player@example.test",
         url: "http://x/verify",
       }),
     ).rejects.toMatchObject({ statusCode: 429 });
