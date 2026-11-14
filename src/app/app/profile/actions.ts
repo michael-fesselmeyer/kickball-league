@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
+import { saveAwayWeeks } from "@/db/queries/away";
 import { saveAlertLimits, saveEmailSettings } from "@/db/queries/notifications";
 import {
   countPushDevices,
@@ -24,7 +25,9 @@ import {
   parseProfileForm,
 } from "@/domain/profile/profile-form";
 import { localDate } from "@/domain/scheduler/slots";
+import { parseId, type SeasonId } from "@/domain/ids";
 import { requireSelfToChange } from "@/lib/auth/permission";
+import { sendQueuedSoon } from "@/services/outbox";
 import { env } from "@/env";
 import { formStrings } from "@/lib/form";
 
@@ -144,4 +147,30 @@ export async function forgetPushDeviceAction(
     message: "Push is off on this device.",
     devices: await countPushDevices(db, subject.userId),
   };
+}
+
+/**
+ * Saves the weeks the signed-in person will miss in one season. If that
+ * leaves their team short a week, the captains hear about it.
+ */
+export async function saveAwayWeeksAction(
+  rawSeasonId: string,
+  form: FormData,
+): Promise<void> {
+  const subject = await requireSelfToChange("profile.edit", "/app/profile");
+  const seasonId = parseId<SeasonId>(rawSeasonId);
+  if (!seasonId) notFound();
+  const weeks = form
+    .getAll("week")
+    .filter((v): v is string => typeof v === "string")
+    .slice(0, 60);
+  const result = await saveAwayWeeks(txDb, {
+    userId: subject.userId,
+    seasonId,
+    weeks,
+    now: new Date(),
+  });
+  if (!result.ok) redirect(`/app/profile?away=${result.error}#away`);
+  if (result.value.captainsTold > 0) sendQueuedSoon();
+  redirect("/app/profile?away=saved#away");
 }
