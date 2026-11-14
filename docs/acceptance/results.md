@@ -10,27 +10,30 @@ Rows are defined in [checklist.md](checklist.md). Each run records the commit te
 
 ### Counts
 
-115 pass, 5 fail, 2 not applicable here, 5 not run, of 127 rows.
+119 pass, 5 fail, 2 not applicable here, 1 not run, of 127 rows.
 
-### Failures
+### Failures and their fixes
 
-| Row | What | Where it went |
-|---|---|---|
-| M5-5, M6-8 | The signed-in home links to a season only while its registration is open. A rostered player, captain or ref in a running season has no link to their team, next game, RSVPs or what they owe ([screenshot](screenshots/player-home-no-team.jpg)) | [#314](https://github.com/michael-fesselmeyer/kickball-league/issues/314) |
-| M5-2 | A disputed score queues no message to admins; it only shows on the Scores screen | [#315](https://github.com/michael-fesselmeyer/kickball-league/issues/315) |
-| M6-7 | Team and game pages render no JSON-LD (`teamJsonLd` and `gameJsonLd` exist but no page uses them); the sitemap has no team, schedule or game pages | [#316](https://github.com/michael-fesselmeyer/kickball-league/issues/316) |
-| S9-3 | No one-click unsubscribe per topic and no `List-Unsubscribe` header; announcements are on by default | [#331](https://github.com/michael-fesselmeyer/kickball-league/issues/331) |
-| M3-2 | "Cut slots" after adding playoff hours cancelled slots holding final games, because the seeded slots don't match the cutter's back-to-back slots | [#332](https://github.com/michael-fesselmeyer/kickball-league/issues/332) |
-| Seed | Fall 2026's dates are fixed, so after Oct 27 the demo has no upcoming games | [#317](https://github.com/michael-fesselmeyer/kickball-league/issues/317) |
+A failed row passes again only after its fix merges and the row is run again; the "Row results" table shows the latest result.
+
+| Row | What | Issue | Fix | Re-run |
+|---|---|---|---|---|
+| M5-5, M6-8 | The signed-in home links to a season only while its registration is open, so a rostered player, captain or ref in a running season has no link to their team, next game or RSVPs ([before](screenshots/player-home-no-team.jpg), [after](screenshots/player-home-your-season.png)) | [#314](https://github.com/michael-fesselmeyer/kickball-league/issues/314) | [#340](https://github.com/michael-fesselmeyer/kickball-league/pull/340), open | Checked on the PR's build; re-run after merge |
+| M5-2 | A disputed score queues no message to admins, and the dashboard shows it only the next day | [#315](https://github.com/michael-fesselmeyer/kickball-league/issues/315) | [#338](https://github.com/michael-fesselmeyer/kickball-league/pull/338), open | After merge |
+| M6-7 | No JSON-LD on team and game pages; no team or schedule pages in the sitemap | [#316](https://github.com/michael-fesselmeyer/kickball-league/issues/316) | [#339](https://github.com/michael-fesselmeyer/kickball-league/pull/339), merged | Passed |
+| S9-3 | No one-click unsubscribe per topic and no `List-Unsubscribe` header; announcements on by default | [#331](https://github.com/michael-fesselmeyer/kickball-league/issues/331) | [#342](https://github.com/michael-fesselmeyer/kickball-league/pull/342), open (the unsubscribe; the announcement default waits for the owners) | After merge |
+| M3-2 | "Cut slots" after adding playoff hours cancelled slots holding final games | [#332](https://github.com/michael-fesselmeyer/kickball-league/issues/332) | [#341](https://github.com/michael-fesselmeyer/kickball-league/pull/341), open | After merge |
+| M3-1 | A new season has no waiver, and registration opens anyway, stranding players before payment | [#345](https://github.com/michael-fesselmeyer/kickball-league/issues/345) | Not started | – |
+| Seed | Fall 2026's dates are fixed, so after Oct 27 the demo has no upcoming games | [#317](https://github.com/michael-fesselmeyer/kickball-league/issues/317) | Not started | – |
 
 ### UX issues
 
 Things that work but would confuse a volunteer:
 
-- [#333](https://github.com/michael-fesselmeyer/kickball-league/issues/333): no link from the home page or footer to schedules, standings or teams, and no list of seasons.
-- [#334](https://github.com/michael-fesselmeyer/kickball-league/issues/334): the minimum age reads 18 on the profile and the sample waiver, 21 at registration.
-- [#335](https://github.com/michael-fesselmeyer/kickball-league/issues/335): no next step after signing the waiver or saving the quiz; the footer says "Sign in" to signed-in people.
-- [#336](https://github.com/michael-fesselmeyer/kickball-league/issues/336): admin copy (raw audit diffs, an ISO date, "Make a player", per-game check-in buttons that check in the whole day, a new-team card that contradicts itself, a 115-name vote dropdown).
+- [#333](https://github.com/michael-fesselmeyer/kickball-league/issues/333): no link from the home page or footer to schedules, standings or teams, and no list of seasons. Not started.
+- [#334](https://github.com/michael-fesselmeyer/kickball-league/issues/334): the minimum age reads 18 on the profile and the sample waiver, 21 at registration. Fix: [#343](https://github.com/michael-fesselmeyer/kickball-league/pull/343), open.
+- [#335](https://github.com/michael-fesselmeyer/kickball-league/issues/335): no next step after signing the waiver. Fix: [#344](https://github.com/michael-fesselmeyer/kickball-league/pull/344), open. (Saving the quiz already returns to the season page; the first report misread it.)
+- [#336](https://github.com/michael-fesselmeyer/kickball-league/issues/336): admin copy (raw audit diffs, an ISO date, "Make a player", per-game check-in buttons that check in the whole day, a new-team card that contradicts itself, a 115-name vote dropdown, a full-pay team's invite text). Not started.
 
 Also seen, not filed: the demo seed has no emergency contacts on file and no registrations for past seasons (the owner dashboard shows 0 members for them); Summer 2026 has no bracket.
 
@@ -50,7 +53,7 @@ Also seen, not filed: the demo seed has no emergency contacts on file and no reg
 | M2-1 | Scheduler module | pass | Scheduler tests pass, including the property tests and the 8-team snapshot (an earlier 5 s timeout happened only while a build was loading the machine) |
 | M2-2 | Scheduler speed | pass | npm run bench: both benchmarks assert p50 under 300 ms (24 teams over 12 dates; the worked example) and pass |
 | M2-3 | Scheduler coverage | pass | Scheduler coverage 100% lines, branches and functions |
-| M3-1 | Season setup | pass | Season settings saved (status, early bird, dates, minimum age, games per day): "Saved." |
+| M3-1 | Season setup | fail | Season settings saved (status, early bird, dates, minimum age, games per day): "Saved." · A new season gets no waiver, and registration can be opened anyway, leaving players at "This season has no waiver yet" with no way to pay (#345) |
 | M3-2 | Fields and permits | fail | Permit hours (2 windows), "4 slots added, 42 kept", blackout added with "Cut slots again to apply it" · Adding playoff hours and pressing "Cut slots" cancelled 20 slots in use, including slots of final September games, because the seeded 9:00 PM slots don't match the cutter's back-to-back 55-minute slots (#332) |
 | M3-3 | Schedule draft | pass | Generate: every metric with a status word (good/review/poor), and each unplaced game says why ("could not be placed on 2027-04-19: no free slot suits both teams"; raw ISO date in that sentence) |
 | M3-4 | Edit by form | pass | Move by form saves a new draft and recomputes the metrics (field spread 1 to 3, poor) before publishing; the board shows hard-rule problems live |
@@ -63,7 +66,7 @@ Also seen, not filed: the demo seed has no emergency contacts on file and no reg
 | M4-1 | Profile | pass | Under-18 refused ("Players must be 18 or older."); valid save "Saved."; phone and emergency contact required |
 | M4-2 | Waiver | pass | Profile required before registering; waiver shown in full; agree, typed name and "I'm 21 or older" required; payment locked until signed; stored name, IP, SHA-256 and age |
 | M4-3 | Team registration | pass | New person registers a team (per-player season, so no split-pay choice here); becomes captain; checklist captain/waiver/pay |
-| M4-4 | Full pay | not run | Needs a per-team season; the seeded seasons charge per player (split pay and full pay are in the e2e season journey) |
+| M4-4 | Full pay | pass | Per-team season: the captain picks "I'll pay it all: $1,000"; Checkout for $1,000; after the webhook the board shows them signed and paid |
 | M4-5 | Invite and share | pass | Captain's roster board: Waiver and Paid per person, "16 signed the waiver, 16 paid"; invite link made and copyable · New player opens the invite link, joins, signs, pays $75; captain's board shows both signed and paid |
 | M4-6 | Free agent | pass | Free agent registers, signs, pays; listed in the admin pool |
 | M4-7 | Place free agent | pass | Applying a suggestion places the free agent: "Suggestion applied. They're on the team." |
@@ -84,7 +87,7 @@ Also seen, not filed: the demo seed has no emergency contacts on file and no reg
 | M6-4 | Team announcement | pass | Team announcement: "Sent to 16 people. Anyone who turned announcements off is skipped." |
 | M6-5 | Rulebook | n/a | /rules not built: the rulebook text stays out until the league agrees (AGENTS.md) |
 | M6-6 | Content pages | pass | Home, About, FAQ, park page load at 375 px with no horizontal scroll |
-| M6-7 | SEO | fail | Sitemap and robots fine; JSON-LD on home, park, events, sponsors, FAQ, article; team and game pages have none (teamJsonLd/gameJsonLd built and tested but never rendered); sitemap has no team, schedule or game pages (#316) |
+| M6-7 | SEO | pass | Sitemap and robots fine; JSON-LD on home, park, events, sponsors, FAQ, article; team and game pages have none (teamJsonLd/gameJsonLd built and tested but never rendered); sitemap has no team, schedule or game pages (#316) · Re-run after #339 merged: team pages carry SportsTeam and game pages SportsEvent JSON-LD; the sitemap lists 11 team pages and 5 schedules |
 | M6-8 | Admin dashboard | pass | Admin home: next game day (games, refs, forfeit risk), registrations, payments and waivers by team, sign-up rate |
 | M6-9 | Demo | pass | Demo banner on every page with one-tap Player, Captain, Ref, Admin |
 | M6-10 | Accessibility and speed | pass | Lighthouse shards and axe checks green in CI on main |
@@ -97,7 +100,7 @@ Also seen, not filed: the demo seed has no emergency contacts on file and no reg
 | P2-6 | Free-agent quiz | pass | Quiz is five taps (saved in a few seconds); "Your friend code is 4UU-SXQ ... Up to 4 of you stay together" |
 | P2-7 | Matcher | pass | Matcher: suggestions with reasons (keeps groups, lineup needs, positions, vibe), before/after table, apply one, build-a-team form |
 | P2-8 | New-team request | pass | Free agent asks to start "Cash Kickers": "Request sent"; admin sees it with the note and approves: "The team is forming and the captain has been emailed."; team created in forming status |
-| P2-9 | Weather | not run | Upcoming game page (Nov 21, a week out) shows no forecast chip and no fallback note; weather not checked further (forecast source may be out of range or unreachable from this machine) |
+| P2-9 | Weather | not run | The chip shows only when the forecast reaches the game; the next game was 7 days out and, after the slot re-cut bug (#332) cancelled this run's November slots, no game was in range. Needs a current-dated seed (#317) |
 | P2-10 | Events and RSVP | pass | RSVP "You're going. See you there!" with a drop option; a full event: "You're number 4 on the waitlist" with leave option |
 | P2-11 | Theme weeks | pass | Neon week and Costume week marked on their game days |
 | P2-12 | Sponsors | pass | Sponsors page: team of the week with the tab at the home bar; sponsor pages with deals (Restaurant structured data) · Team of the week saved: "It's on the sponsors page now." |
@@ -108,14 +111,14 @@ Also seen, not filed: the demo seed has no emergency contacts on file and no reg
 | P2-17 | Awards voting | pass | One vote per award, can't be changed: "Your vote: Alex K. Results show when voting closes."; self left out of player polls, own team left out of team polls · Admin closes voting: "Voting closed. The results are up."; results rank every team with vote counts, ties share a place ("2nd ... 2nd"), "40 votes cast" |
 | P2-18 | Installable app | pass | Manifest (standalone, 3 icons, start /app), service worker served, offline page |
 | P2-19 | Push settings | n/a | Push topics show only when VAPID keys are set; this setup has none |
-| P2-20 | Captain guarantee | not run | Captain guarantee needs a split-pay (per-team) season |
+| P2-20 | Captain guarantee | pass | Split team: "$84 of $1,000 paid. $916 left", Pay the remaining $916 (Checkout $916), Save a card as guarantee: "Visa ending 4242 guarantees the balance" with the 72-hour warning and Remove card. The deadline charge job itself was not run |
 | P2-21 | League credit | pass | Goodwill credit: unknown email refused ("Nobody with that email has an account yet"); "Credit given. It shows on the player's account and comes off their next fee." · "Use my $5 league credit" ticked at payment; Checkout total $70 of $75; ledger shows the credit spent |
 | P2-22 | Rebates | pass | Rebates screen: games lost, paid and rebate per team with the 25% rule explained |
 | P2-23 | Waitlist | pass | Season full (9 of 9): "Join the waitlist ... 48 hours to claim it"; "You're #1 on the waitlist" |
 | P2-24 | Referral | pass | Pat's /r/ link: two people who registered through it and paid (one by cash, one through Stripe) each gave Pat $10 of referral credit |
 | P2-25 | History | pass | History: champions per season, all-time table; team page has a season switcher |
 | P2-26 | Motion | pass | View-transition rules present and switched off under prefers-reduced-motion |
-| P2-27 | Schedule board | not run | The board loads on the schedule screen; dragging and keyboard moves weren't driven by hand (covered by e2e) |
+| P2-27 | Schedule board | pass | Board by keyboard: Enter picks up ("Picked up …"), arrows move with a live check ("no new problems"), Enter drops, Save as a new draft makes version 2 (manual edit) |
 | P2-28 | Conflicts and preferences | pass | Scheduling requests screen with conflicts and preferences, closed after the deadline with an admin override note |
 | P2-29 | Shirts | pass | Shirts: sizes by team, ordered and received counts, no-size count |
 | P2-30 | CSV exports | pass | Roster CSV with shirt sizes (118 lines); payments CSV link per season and per team |
@@ -164,12 +167,8 @@ Also seen, not filed: the demo seed has no emergency contacts on file and no reg
 | F-18 | Dark theme and phone layout | pass | Dark theme on home, schedule, standings, team, events, sponsors and style: dark background, no horizontal scroll at 375 px |
 | F-19 | Pick'em | pass | Pick'em: next game day's games, "Picks saved. Good luck!", lock at each kickoff, hide-me option, free with no prizes · Pick'em page back after the feature is switched on again |
 | F-20 | Capacity planner | pass | Capacity planner: "The field time you hold fits 12 teams", game days, field hours, how many want to play, ways to make room |
-| F-21 | Error page | not run | No way to make a page fail on purpose in a production build without changing code |
+| F-21 | Error page | pass | Seen when the local database was missing a migration: "That didn't load. Something on our side went wrong … Try again / Go to the home page" |
 
 ### Not run, and why
 
-- M4-4 (Full pay): Needs a per-team season; the seeded seasons charge per player (split pay and full pay are in the e2e season journey)
-- P2-9 (Weather): Upcoming game page (Nov 21, a week out) shows no forecast chip and no fallback note; weather not checked further (forecast source may be out of range or unreachable from this machine)
-- P2-20 (Captain guarantee): Captain guarantee needs a split-pay (per-team) season
-- P2-27 (Schedule board): The board loads on the schedule screen; dragging and keyboard moves weren't driven by hand (covered by e2e)
-- F-21 (Error page): No way to make a page fail on purpose in a production build without changing code
+- P2-9 (Weather): The chip shows only when the forecast reaches the game; the next game was 7 days out and, after the slot re-cut bug (#332) cancelled this run's November slots, no game was in range. Needs a current-dated seed (#317)
