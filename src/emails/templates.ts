@@ -2,6 +2,7 @@ import type { Renderer } from "@/db/queries/outbox";
 import type { DIGEST_KIND, MessageKind } from "@/domain/notifications/kinds";
 import { err } from "@/domain/result";
 import { announcementEmail } from "./announcement";
+import { awayShortEmail } from "./away-short";
 import { booksReminderEmail } from "./books-reminder";
 import type { Template } from "./define";
 import { digestEmail } from "./digest";
@@ -40,6 +41,7 @@ import { teamRoleEmail } from "./team-role";
 const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
   {
     announcement: announcementEmail,
+    away_short: awayShortEmail,
     books_reminder: booksReminderEmail,
     captain_handoff: teamRoleEmail,
     digest: digestEmail,

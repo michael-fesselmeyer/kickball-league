@@ -22,6 +22,11 @@ export const MESSAGE_KINDS = {
     urgency: "non_urgent",
     label: "Announcements from admins and captains",
   },
+  away_short: {
+    urgency: "non_urgent",
+    label:
+      "For captains: a week your team may be short because players will be away",
+  },
   books_reminder: {
     urgency: "non_urgent",
     label:
