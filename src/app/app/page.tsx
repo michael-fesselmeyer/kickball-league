@@ -9,7 +9,7 @@ import { fieldPermitForGame } from "@/db/queries/books";
 import { myGiveawayWins } from "@/db/queries/giveaways";
 import { publishedGamesFor } from "@/db/queries/public-schedule";
 import { gamesToReferee } from "@/db/queries/referees";
-import { openSeasons } from "@/db/queries/registration";
+import { myCurrentSeasons, openSeasons } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { pickupsFor } from "@/db/queries/subs";
 import { surveysWaitingFor } from "@/db/queries/surveys";
@@ -80,6 +80,11 @@ async function Account() {
     const id = parseId<UserId>(subject.userId);
     return id ? myGiveawayWins(db, id) : [];
   })();
+  // The seasons this person plays in, with their team, started early too.
+  const seasons = (async () => {
+    const id = parseId<UserId>(subject.userId);
+    return id ? myCurrentSeasons(db, id) : [];
+  })();
   // Season surveys waiting for this player's answer, started early too.
   const surveys = (async () => {
     const id = parseId<UserId>(subject.userId);
@@ -148,6 +153,7 @@ async function Account() {
       : null;
   const emergencyUntil = emergency?.ok ? emergency.until : null;
   const ballots = await waiting;
+  const mine = await seasons;
   const showPickem = await pickemOn;
   const won = await wins;
   const surveysOpen = await surveys;
@@ -198,6 +204,37 @@ async function Account() {
               {nextGame.venue ? `, ${nextGame.venue.name}` : ""}
             </p>
           )}
+        </section>
+      )}
+      {mine.length > 0 && (
+        <section aria-labelledby="your-season" className="flex flex-col gap-2">
+          <h2 id="your-season" className="text-h3">
+            Your season
+          </h2>
+          <p className="text-small text-text-muted">
+            Your team page has your games, RSVPs and who has paid.
+          </p>
+          <ul className="flex flex-col gap-2">
+            {mine.map((m) => (
+              <li key={`${m.seasonSlug}-${m.teamName ?? "free"}`}>
+                {m.teamName ? (
+                  <Link
+                    href={`/app/seasons/${m.seasonSlug}/team`}
+                    className="btn w-full btn-primary"
+                  >
+                    {m.teamName} · {m.seasonName}
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/app/seasons/${m.seasonSlug}`}
+                    className="btn w-full btn-secondary"
+                  >
+                    {m.seasonName}: free agent, check your spot
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
       {offeredInstall(subject) && <AllOutboxStatus />}
