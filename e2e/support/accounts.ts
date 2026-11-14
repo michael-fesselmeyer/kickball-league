@@ -44,3 +44,34 @@ export async function duplicateAccounts(): Promise<{
     await client.end();
   }
 }
+
+/**
+ * A made-up owner for one flow, on the seed's own domain so the next reseed
+ * removes it. A flow that signs in as its own owner (with `pageSignedInAs`)
+ * never shares a session with the demo personas another flow is switching
+ * between at the same time.
+ */
+export async function ownerAccount(first: string): Promise<string> {
+  const email = `${first.toLowerCase()}.owner.${Date.now()}.${Math.random()
+    .toString(36)
+    .slice(2, 6)}@seed.example`;
+  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    const { rows } = await client.query<{ id: string }>(
+      `insert into "user" (name, email, email_verified)
+       values ($1, $2, true) returning id`,
+      [`${first} Owner`, email],
+    );
+    const id = rows[0]?.id;
+    if (!id) throw new Error("Could not make the owner");
+    await client.query(
+      `insert into profile (user_id, first_name, last_name, global_role)
+       values ($1, $2, 'Owner', 'owner')`,
+      [id, first],
+    );
+    return email;
+  } finally {
+    await client.end();
+  }
+}
