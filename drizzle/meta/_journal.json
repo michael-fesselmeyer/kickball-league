@@ -288,6 +288,13 @@
       "when": 1794610672359,
       "tag": "0040_friends_directory",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794616718121,
+      "tag": "0041_money_summary",
+      "breakpoints": true
     }
   ]
 }
