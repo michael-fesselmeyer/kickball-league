@@ -115,6 +115,12 @@ export const message = pgTable(
   },
   (t) => [
     unique("message_dedupe_key_unique").on(t.dedupeKey),
+    // Prefix matches on the key (a game's score reminders, a day's rain
+    // alerts). The unique index can't serve LIKE 'prefix%' under a non-C
+    // collation; text_pattern_ops can under any.
+    index("message_dedupe_key_prefix_idx").on(
+      t.dedupeKey.op("text_pattern_ops"),
+    ),
     index("message_announcement_idx").on(t.announcementId),
     index("message_due_idx")
       .on(t.sendAfter)

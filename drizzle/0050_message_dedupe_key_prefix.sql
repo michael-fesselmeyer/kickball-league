@@ -1,0 +1,1 @@
+CREATE INDEX "message_dedupe_key_prefix_idx" ON "message" USING btree ("dedupe_key" text_pattern_ops);
