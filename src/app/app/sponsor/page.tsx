@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import { managedSponsors } from "@/db/queries/sponsors";
 import { can } from "@/domain/authz/permissions";
 import {
@@ -15,6 +14,7 @@ import { currentSubject } from "@/lib/auth/permission";
 import { createSponsorAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Sponsors" };
 
@@ -49,7 +49,7 @@ async function Sponsors({ searchParams }: PageProps<"/app/sponsor">) {
   if (subject.userId === null) redirect("/sign-in?next=/app/sponsor");
   const isAdmin = can(subject, "sponsor.edit", {});
   if (!isAdmin && subject.sponsorIds.length === 0) notFound();
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const sponsors = league
     ? await managedSponsors(db, league.id, isAdmin ? "all" : subject.sponsorIds)
     : [];

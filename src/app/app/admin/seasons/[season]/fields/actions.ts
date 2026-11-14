@@ -24,6 +24,8 @@ import { isOneOf } from "@/domain/guards";
 import { parseId } from "@/domain/ids";
 import { weeklyDates } from "@/domain/time/zoned";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/fields`;
 const STATUSES = [
@@ -43,7 +45,7 @@ async function context(slug: string) {
   const subject = await requirePermissionToChange("season.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   return { page, actor: subject.userId, season };
 }
@@ -82,6 +84,7 @@ export async function createField(slug: string, form: FormData) {
   const { page, actor, season } = await context(slug);
   const venueId = parseId<VenueId>(form.get("venueId"));
   if (!venueId) back(page, "venues", { error: "field_unknown_venue" });
+  await requireInLeague(season, { venue: venueId });
   const result = await txDb.transaction((tx) =>
     addField(
       tx,
@@ -103,6 +106,7 @@ export async function createPermits(slug: string, form: FormData) {
   const weeks = Number(form.get("weeks"));
   const status = text(form, "status");
   const fieldId = parseId<FieldId>(form.get("fieldId"));
+  await requireInLeague(season, { field: fieldId });
   const startTime = text(form, "startTime");
   const endTime = text(form, "endTime");
   if (

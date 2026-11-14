@@ -10,6 +10,8 @@ import {
   sessionIsFresh,
 } from "@/lib/auth/permission";
 import { operatorIds } from "@/lib/platform/site";
+import { leaguesOf } from "@/db/queries/leagues";
+import { activeLeagueId } from "@/lib/league/active";
 
 const PAGE = "/app/admin/accounts";
 
@@ -49,11 +51,24 @@ export async function mergeAccountsAction(form: FormData): Promise<void> {
   const back = `${PAGE}?keep=${keptId}&merge=${mergedId}`;
   if (!(await sessionIsFresh())) redirect(`${back}&error=stale`);
   if (form.get("same") !== "on") redirect(`${back}&error=unconfirmed`);
+  // A merge moves everything both accounts hold, in every league. An admin
+  // may merge only accounts that belong to no league but their own
+  // (ADR 0048); the operator may merge any.
+  const leagueId = await activeLeagueId();
+  if (!leagueId) redirect(`${back}&error=other_league`);
+  if (!subject.isOperator) {
+    const theirs = (
+      await Promise.all([leaguesOf(db, keptId), leaguesOf(db, mergedId)])
+    ).flat();
+    if (theirs.some((l) => l.id !== leagueId))
+      redirect(`${back}&error=other_league`);
+  }
   const actorId = subject.userId;
   const result = await txDb.transaction((tx) =>
     mergeAccounts(tx, {
       keptId,
       mergedId,
+      leagueId,
       actorId,
       now: new Date(),
       secret: env.BETTER_AUTH_SECRET,

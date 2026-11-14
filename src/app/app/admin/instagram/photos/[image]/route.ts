@@ -1,9 +1,9 @@
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import { storedImage } from "@/db/queries/social";
 import { parseId, type SocialImageId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
 import { imageResponse, notFound } from "@/lib/social/image-response";
+import { activeLeague } from "@/lib/league/active";
 
 /** Any synced photo, hidden ones included, for the admin screen only. */
 export async function GET(
@@ -14,7 +14,7 @@ export async function GET(
   const id = parseId<SocialImageId>((await ctx.params).image);
   const [image, league] = await Promise.all([
     id ? storedImage(db, id) : null,
-    currentLeague(db),
+    activeLeague(),
   ]);
   if (!image || image.leagueId !== league?.id) return notFound();
   return imageResponse(image, "private, max-age=300");

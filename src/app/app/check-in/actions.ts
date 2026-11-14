@@ -2,18 +2,19 @@
 
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import { checkIn, redeemDeal, sponsorForCheckIn } from "@/db/queries/sponsors";
 import { type DealId, parseId } from "@/domain/ids";
 import { localDay } from "@/domain/schedule/public-game";
 import { isCurrentCheckinCode } from "@/domain/sponsors/checkin-code";
 import { localTime } from "@/domain/time/zoned";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const visitPage = (slug: string) => `/app/check-in/${slug}`;
 
 async function leagueClock(now: Date) {
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const timeZone = league?.timeZone ?? "America/New_York";
   return { day: localDay(now, timeZone), time: localTime(now, timeZone) };
 }
@@ -27,7 +28,7 @@ export async function checkInAction(slug: string, code: string): Promise<void> {
   const subject = await requirePermissionToChange("sponsor.check_in", {
     next: page,
   });
-  const sponsor = await sponsorForCheckIn(db, slug);
+  const sponsor = await sponsorForCheckIn(db, await activeLeagueId(), slug);
   if (!sponsor) notFound();
   const now = new Date();
   if (!isCurrentCheckinCode(sponsor.secret, sponsor.id, code, now))
@@ -53,9 +54,10 @@ export async function redeemDealAction(
   const subject = await requirePermissionToChange("sponsor.check_in", {
     next: page,
   });
-  const sponsor = await sponsorForCheckIn(db, slug);
+  const sponsor = await sponsorForCheckIn(db, await activeLeagueId(), slug);
   const dealId = parseId<DealId>(rawDealId);
   if (!sponsor || !dealId) notFound();
+  await requireInLeague(subject, { deal: dealId });
   const now = new Date();
   const { day, time } = await leagueClock(now);
   const result = await txDb.transaction((tx) =>

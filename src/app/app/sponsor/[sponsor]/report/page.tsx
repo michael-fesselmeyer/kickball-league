@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   sponsorBySlug,
   sponsorDeals,
@@ -14,6 +13,7 @@ import { localDay } from "@/domain/schedule/public-game";
 import { reportStart, weekLabel, weeklyReport } from "@/domain/sponsors/report";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Weekly numbers" };
 
@@ -46,13 +46,13 @@ function Change({ by }: { by: number | null }) {
 async function Report({ params }: Props) {
   const { sponsor: slug } = await params;
   const page = `/app/sponsor/${slug}/report`;
-  const sponsor = await sponsorBySlug(db, slug);
+  const sponsor = await sponsorBySlug(db, await activeLeagueId(), slug);
   if (!sponsor) notFound();
   await requirePermission("sponsor.report", {
     next: page,
     sponsorId: sponsor.id,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const today = localDay(new Date(), league?.timeZone ?? "America/New_York");
   const from = reportStart(today, WEEKS);
   const [counts, teams, deals] = await Promise.all([

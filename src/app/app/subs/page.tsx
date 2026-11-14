@@ -10,6 +10,7 @@ import { claimAction, withdrawAction } from "./actions";
 import { requireFeature } from "@/lib/platform/site";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Sub for a team" };
 
@@ -71,7 +72,7 @@ function RequestCard({ r }: { r: OpenRequest }) {
             You&apos;re playing! See you at the field.
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            <Link
+            <LeagueLink
               href={`/games/${r.game.id}`}
               className="inline-flex min-h-11 items-center underline"
             >
@@ -79,7 +80,7 @@ function RequestCard({ r }: { r: OpenRequest }) {
               <span className="sr-only">
                 : {r.game.teamNames[0]} vs {r.game.teamNames[1]}
               </span>
-            </Link>
+            </LeagueLink>
             <form action={withdrawAction.bind(null, r.id)}>
               <SubmitButton className="inline-flex min-h-11 items-center underline">
                 I can&apos;t make it

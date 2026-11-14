@@ -4,11 +4,11 @@ import {
   PRINTER_COLUMNS,
   recordMerchExport,
 } from "@/db/queries/merch";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { exportFilename, toCsv } from "@/domain/export/csv";
 import { parseId, type UserId } from "@/domain/ids";
 import { currentSubject } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 
 const text = (body: string, status: number) =>
   new Response(body, {
@@ -31,7 +31,7 @@ export async function GET(): Promise<Response> {
   const userId = parseId<UserId>(subject.userId);
   if (userId === null) return text("Sign in to download this file.", 401);
   if (!can(subject, "merch.manage")) return text("Not found.", 404);
-  const lg = await currentLeague(db);
+  const lg = await activeLeague();
   if (!lg) return text("Not found.", 404);
   const rows = await merchOrders(db, lg.id, { statuses: ["paid"] });
   await recordMerchExport(db, {

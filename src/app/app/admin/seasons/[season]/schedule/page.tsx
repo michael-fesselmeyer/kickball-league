@@ -20,6 +20,7 @@ import type { BoardSlot } from "./board-model";
 import { metricRows, readable } from "./labels";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Build the schedule" };
 
@@ -65,7 +66,7 @@ async function Schedule({
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/schedule`;
   await requirePermission("schedule.manage", { next: page });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
 
   const [versions, divided] = await Promise.all([

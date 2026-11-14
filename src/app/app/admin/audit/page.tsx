@@ -1,9 +1,9 @@
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { auditLogPage } from "@/db/queries/audit";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { type AuditLogId, parseId } from "@/domain/ids";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/domain/audit/describe";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Audit log" };
 
@@ -44,10 +45,13 @@ async function Audit({ searchParams }: PageProps<"/app/admin/audit">) {
           id: parseId<AuditLogId>(query.before_id) ?? undefined,
         }
       : undefined;
-  const [league, page] = await Promise.all([
-    currentLeague(db),
-    auditLogPage(db, { before, operatorOnly, withBooks }),
-  ]);
+  const league = await activeLeague();
+  if (!league) notFound();
+  const page = await auditLogPage(db, league.id, {
+    before,
+    operatorOnly,
+    withBooks,
+  });
   const when = new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",

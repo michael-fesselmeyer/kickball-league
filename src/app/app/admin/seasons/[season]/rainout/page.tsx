@@ -20,6 +20,7 @@ import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { declareRainout } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId, activeLeaguePath } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Rain-out" };
 
@@ -48,7 +49,7 @@ async function Rainout({
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/rainout`;
   await requirePermission("rainout.declare", { next: page });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
 
   const published = (await versionsOf(db, season.id)).find(
@@ -220,7 +221,7 @@ async function Rainout({
               }),
               url: absoluteUrl(
                 siteOrigin(env.BETTER_AUTH_URL),
-                `/seasons/${slug}/schedule`,
+                await activeLeaguePath(`/seasons/${slug}/schedule`),
               ),
             })}
           />

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague, seasonSettings } from "@/db/queries/seasons";
+import { seasonSettings } from "@/db/queries/seasons";
 import { seasonSpots, waitlistBoard } from "@/db/queries/waitlist";
 import { formatMoment } from "@/domain/money/credit";
 import { freeSpots } from "@/domain/money/waitlist";
@@ -11,6 +11,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { offerNowAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Waitlist" };
 
@@ -42,7 +43,7 @@ async function Waitlist({
   await requirePermission("season.manage", {
     next: `/app/admin/seasons/${slug}/waitlist`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league ? await seasonSettings(db, league.id, slug) : null;
   if (!league || !season) notFound();
   const now = new Date();

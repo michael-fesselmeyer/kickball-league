@@ -14,12 +14,12 @@ import {
   myRegistration,
   seasonForRegistration,
 } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { requirePermission } from "@/lib/auth/permission";
 import { sendTeamAnnouncementAction } from "./actions";
 import { requireFeature } from "@/lib/platform/site";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Message your team" };
 
@@ -45,7 +45,7 @@ async function TeamAnnouncements({
   const subject = await requirePermission("registration.join", {
     next: `/app/seasons/${slug}/team/announcements`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

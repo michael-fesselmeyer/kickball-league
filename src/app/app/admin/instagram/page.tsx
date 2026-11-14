@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   type AdminPost,
   adminPosts,
@@ -25,6 +24,7 @@ import {
 } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Instagram photos" };
 
@@ -88,7 +88,7 @@ const input =
 async function Instagram({ searchParams }: PageProps<"/app/admin/instagram">) {
   await requirePermission("photos.manage", { next: PAGE });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const [account, posts, teams, events] = await Promise.all([
     instagramAccount(db, league.id),

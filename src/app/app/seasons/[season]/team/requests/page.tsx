@@ -7,7 +7,6 @@ import {
   myRegistration,
   seasonForRegistration,
 } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { seasonGameTimes, teamRequests } from "@/db/queries/team-requests";
 import { can } from "@/domain/authz/permissions";
 import {
@@ -23,6 +22,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { addTeamRequestAction, removeTeamRequestAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Scheduling requests" };
 
@@ -54,7 +54,7 @@ async function TeamRequests({
   const subject = await requirePermission("registration.join", {
     next: `/app/seasons/${slug}/team/requests`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

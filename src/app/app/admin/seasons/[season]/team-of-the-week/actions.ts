@@ -9,6 +9,7 @@ import { parseTeamOfWeekForm } from "@/domain/sponsors/team-of-week";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { refreshSponsorPages } from "@/lib/public-cache";
+import { activeLeagueId } from "@/lib/league/active";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/team-of-the-week`;
 
@@ -21,7 +22,7 @@ export async function setTeamOfWeekAction(
   const subject = await requirePermissionToChange("season.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const fields = formStrings(form, [
     "day",
@@ -64,7 +65,7 @@ export async function removeTeamOfWeekAction(
   const subject = await requirePermissionToChange("season.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season || !/^\d{4}-\d{2}-\d{2}$/.test(day)) notFound();
   await txDb.transaction((tx) =>
     removeTeamOfWeek(tx, {

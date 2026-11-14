@@ -2,18 +2,22 @@
 
 import { redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
+import { createLeague, leagueById } from "@/db/queries/leagues";
 import {
   setFeature,
-  setGlobalRole,
+  setLeagueRoleByEmail,
   setSiteStatus,
   siteSettings,
 } from "@/db/queries/platform";
+import { parseId, type LeagueId } from "@/domain/ids";
+import { parseNewLeague } from "@/domain/league/new-league";
 import {
   isFeature,
   isGrantableRole,
   isSiteStatus,
 } from "@/domain/platform/operator";
 import { formStrings } from "@/lib/form";
+import { refreshLeaguePages } from "@/lib/league/refresh";
 import { requireFreshOperator } from "@/lib/platform/require-operator";
 import { forgetSite } from "@/lib/platform/site";
 import { refreshSiteNotice } from "@/lib/public-cache";
@@ -64,17 +68,54 @@ export async function setFeatureAction(form: FormData): Promise<void> {
   back("saved=feature");
 }
 
-/** Makes a person a player, an admin or an owner. */
+/** Makes a person a player, an admin or an owner of one league (ADR 0048). */
 export async function setRoleAction(form: FormData): Promise<void> {
   const operator = await requireFreshOperator();
-  const { email, role } = formStrings(form, ["email", "role"] as const);
+  const {
+    email,
+    role,
+    league: leagueField,
+  } = formStrings(form, ["email", "role", "league"] as const);
   if (!isGrantableRole(role)) back("error=bad_role");
+  const leagueId = parseId<LeagueId>(leagueField);
+  const found = leagueId ? await leagueById(db, leagueId) : null;
+  if (!found) back("error=no_league");
   const result = await txDb.transaction((tx) =>
-    setGlobalRole(tx, {
+    setLeagueRoleByEmail(tx, {
+      leagueId: found.id,
       email,
       role,
       actorId: operator.userId,
     }),
   );
   back(result.ok ? "saved=role" : `error=${result.error}`);
+}
+
+/** Starts a league: its name, sport, address, colors, zone, age and rule set. */
+export async function createLeagueAction(form: FormData): Promise<void> {
+  const operator = await requireFreshOperator();
+  const parsed = parseNewLeague(
+    formStrings(form, [
+      "name",
+      "slug",
+      "sport",
+      "timeZone",
+      "minimumAge",
+      "primaryColor",
+      "secondaryColor",
+      "ruleSetName",
+      "innings",
+      "timeLimitMinutes",
+    ] as const),
+  );
+  if (!parsed.ok) {
+    const [field] = Object.keys(parsed.errors);
+    back(`error=bad_league&field=${field ?? "name"}`);
+  }
+  const result = await txDb.transaction((tx) =>
+    createLeague(tx, { ...parsed.value, actorId: operator.userId }),
+  );
+  if (!result.ok) back(`error=${result.error}`);
+  refreshLeaguePages();
+  back(`saved=league&league=${parsed.value.slug}`);
 }

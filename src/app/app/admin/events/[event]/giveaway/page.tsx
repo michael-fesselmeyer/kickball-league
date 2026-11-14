@@ -28,6 +28,7 @@ import { drawAction, redrawAction, saveGiveawayAction } from "./actions";
 import { GiveawayFormFields } from "./giveaway-form";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Event giveaway" };
 
@@ -67,7 +68,7 @@ async function AdminGiveaway({ params, searchParams }: Props) {
   const query = await searchParams;
   const page = `/app/admin/events/${slug}/giveaway`;
   await requirePermission("giveaway.manage", { next: page });
-  const e = await eventBySlug(db, slug, "all");
+  const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   if (!e) notFound();
   await connection();
   const g = await giveawayForEvent(db, e.id);

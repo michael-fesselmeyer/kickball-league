@@ -34,6 +34,8 @@ import { joinEventAction, leaveEventAction } from "../actions";
 import { TicketPanel } from "./ticket";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId, activeLeaguePath } from "@/lib/league/active";
+import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "RSVP" };
 
@@ -89,6 +91,7 @@ async function EventRsvp({
   });
   const e = await visibleEvent(
     db,
+    await activeLeagueId(),
     slug,
     subject.userId,
     can(subject, "event.manage", {}),
@@ -109,7 +112,7 @@ async function EventRsvp({
             can(subject, "event.manage", {}),
           )
         : null,
-      ticketed ? creditBalance(db, subject.userId) : 0,
+      ticketed ? creditBalance(db, subject.userId, await activeLeagueId()) : 0,
       ticketed ? spotCounts(db, e, now) : null,
       giveawayForEvent(db, e.id),
     ]);
@@ -118,7 +121,9 @@ async function EventRsvp({
   const when = whenLine(e, e.timeZone);
   const url = absoluteUrl(
     siteOrigin(env.BETTER_AUTH_URL),
-    isPublic ? `/events/${e.slug}` : `/app/events/${e.slug}`,
+    isPublic
+      ? await activeLeaguePath(`/events/${e.slug}`)
+      : `/app/events/${e.slug}`,
   );
   const days = e.kind === "theme_week" ? themeWeekDays(e, e.timeZone) : null;
   const google = googleEventLink({
@@ -165,12 +170,12 @@ async function EventRsvp({
         <p>{when}</p>
         {e.place && <p className="text-text-muted">{e.place}</p>}
         {isPublic ? (
-          <Link
+          <LeagueLink
             href={`/events/${e.slug}`}
             className="inline-flex min-h-11 items-center self-start underline"
           >
             Event details
-          </Link>
+          </LeagueLink>
         ) : (
           <p className="text-small font-bold">
             For {audienceShareLine(e.audience, names)}

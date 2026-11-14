@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -6,7 +7,6 @@ import { db } from "@/db/client";
 import { eventsFor, feedVersion } from "@/db/queries/event-audience";
 import { myUpcomingTickets } from "@/db/queries/event-tickets";
 import { myEventRsvps } from "@/db/queries/events";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { audienceTag } from "@/domain/events/audience";
 import { formatCode } from "@/domain/events/tickets";
@@ -18,6 +18,8 @@ import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { resetFeedAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
+import { leagueHref } from "@/domain/league/paths";
 
 export const metadata: Metadata = { title: "Your events" };
 
@@ -51,7 +53,8 @@ async function MyEvents({ searchParams }: PageProps<"/app/events">) {
     next: "/app/events",
   });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
+  if (!league) notFound();
   const now = new Date();
   const staff = can(subject, "event.manage", {});
   const [events, version, tickets] = await Promise.all([
@@ -88,12 +91,13 @@ async function MyEvents({ searchParams }: PageProps<"/app/events">) {
             return (
               <li key={e.id}>
                 <EventCard
+                  league={league}
                   event={e}
                   timeZone={timeZone}
                   now={now}
                   href={
                     e.kind === "theme_week"
-                      ? `/events/${e.slug}`
+                      ? leagueHref(league, `/events/${e.slug}`)
                       : `/app/events/${e.slug}`
                   }
                   note={

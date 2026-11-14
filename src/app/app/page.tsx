@@ -12,6 +12,7 @@ import { publishedGamesFor } from "@/db/queries/public-schedule";
 import { gamesToReferee } from "@/db/queries/referees";
 import { myCurrentSeasons, openSeasons } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
+import { openSeasons } from "@/db/queries/registration";
 import { pickupsFor } from "@/db/queries/subs";
 import { surveysWaitingFor } from "@/db/queries/surveys";
 import { AllOutboxStatus } from "@/components/offline-outbox";
@@ -40,6 +41,10 @@ import { Gear } from "./gear";
 import { OfflineSync, SignOutForm } from "./offline-sync";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
+import { LeagueSwitcher } from "@/components/league-switcher";
+import { leaguesOf } from "@/db/queries/leagues";
+import { leagueBase, leagueHref } from "@/domain/league/paths";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -103,11 +108,17 @@ async function Account({ searchParams }: PageProps<"/app">) {
     return id ? myCards(db, id) : [];
   })();
   const isAdmin = can(subject, "season.manage", {});
-  const league = await currentLeague(db);
+  const league = await activeLeague();
+  const userId = parseId<UserId>(subject.userId);
+  const myLeagues = userId ? await leaguesOf(db, userId) : [];
+  // The league on show counts as theirs too, so its name is in the switcher.
+  const switchable =
+    league && !myLeagues.some((l) => l.id === league.id)
+      ? [league, ...myLeagues]
+      : myLeagues;
   const now = new Date();
   const open = league ? await openSeasons(db, league.id, now) : [];
   // Games this person referees that are not final yet.
-  const userId = parseId<UserId>(subject.userId);
   const refereeing =
     userId && subject.isReferee
       ? (await gamesToReferee(db, userId)).filter(
@@ -198,6 +209,7 @@ async function Account({ searchParams }: PageProps<"/app">) {
           Help center
         </Link>
       </div>
+      {league && <LeagueSwitcher active={league} leagues={switchable} />}
       {nextGame && (
         <section
           aria-labelledby="next-game"
@@ -207,7 +219,11 @@ async function Account({ searchParams }: PageProps<"/app">) {
             Your next game
           </h2>
           <Link
-            href={`/games/${nextGame.id}`}
+            href={
+              league
+                ? leagueHref(league, `/games/${nextGame.id}`)
+                : `/games/${nextGame.id}`
+            }
             className="inline-flex min-h-11 items-center font-bold underline"
           >
             {nextGame.teamA.name} vs {nextGame.teamB.name}
@@ -473,6 +489,7 @@ async function Account({ searchParams }: PageProps<"/app">) {
                 league?.timeZone ?? "America/New_York",
                 permitShown,
                 emergencyUntil,
+                league ? leagueBase(league) : "",
               )
             : null
         }

@@ -8,7 +8,6 @@ import { db } from "@/db/client";
 import { signedInDevices } from "@/db/queries/devices";
 import { passkeysOf, PASSKEY_NAME_MAX } from "@/db/queries/passkeys";
 import { profileOf } from "@/db/queries/profile";
-import { currentLeague } from "@/db/queries/seasons";
 import { isFreshSession } from "@/lib/auth/config";
 import { currentSession, requireSelf } from "@/lib/auth/permission";
 import { demoStatus } from "@/lib/demo/guard";
@@ -20,6 +19,7 @@ import {
 } from "./actions";
 import { AddPasskey } from "./add-passkey";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Passkeys and devices" };
 
@@ -62,7 +62,7 @@ async function Security({ searchParams }: PageProps<"/app/profile/security">) {
     profileOf(db, subject.userId),
     passkeysOf(db, subject.userId),
     signedInDevices(db, subject.userId, session.id, now),
-    currentLeague(db),
+    activeLeague(),
   ]);
   if (!me) notFound();
   const demo = demoStatus(process.env).on;

@@ -6,7 +6,7 @@ import {
   publishedGamesBetween,
   publishedSchedule,
 } from "@/db/queries/public-schedule";
-import type { GameId, SeasonId } from "@/domain/ids";
+import type { GameId, LeagueId, SeasonId } from "@/domain/ids";
 import type { LiveSnapshot } from "@/domain/scores/live";
 import {
   gameTag,
@@ -77,11 +77,15 @@ export async function cachedSeasonSchedule(seasonId: SeasonId) {
  * Every published meeting of two teams, across seasons, for the game page's
  * head-to-head history: tagged with both teams and every season it covers.
  */
-export async function cachedMeetings(slugA: string, slugB: string) {
+export async function cachedMeetings(
+  leagueId: LeagueId,
+  slugA: string,
+  slugB: string,
+) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   cacheTag(teamTag(slugA), teamTag(slugB));
-  const games = await publishedGamesBetween(db, slugA, slugB);
+  const games = await publishedGamesBetween(db, leagueId, slugA, slugB);
   for (const id of new Set(games.map((g) => g.seasonId)))
     cacheTag(seasonTag(id));
   return games;

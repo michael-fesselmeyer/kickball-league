@@ -13,7 +13,6 @@ import {
   updateMerchItem,
 } from "@/db/queries/merch";
 import { dropRefund } from "@/db/queries/refunds";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   type MerchImageId,
   type MerchItemId,
@@ -35,6 +34,8 @@ import { compressPhoto } from "@/lib/social/compress-photo";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
 import { logError } from "@/lib/log-error";
+import { activeLeague } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const LIST = "/app/admin/merch";
 const pageFor = (itemId: string) => `${LIST}/${itemId}`;
@@ -71,7 +72,7 @@ function itemForm(form: FormData): ItemForm {
 
 async function adminFor(next: string) {
   const subject = await requirePermissionToChange("merch.manage", { next });
-  const lg = await currentLeague(db);
+  const lg = await activeLeague();
   if (!lg) notFound();
   return { subject, lg };
 }
@@ -101,6 +102,7 @@ export async function updateItemAction(
   if (!itemId) notFound();
   const page = pageFor(itemId);
   const { subject, lg } = await adminFor(page);
+  await requireInLeague(subject, { merch_item: itemId });
   const parsed = parseItemForm(itemForm(form), lg.timeZone);
   if (!parsed.ok) redirect(`${page}?error=${parsed.error}#details`);
   const result = await txDb.transaction((tx) =>
@@ -124,6 +126,7 @@ export async function setHiddenAction(
   if (!itemId) notFound();
   const page = pageFor(itemId);
   const { subject, lg } = await adminFor(page);
+  await requireInLeague(subject, { merch_item: itemId });
   const result = await txDb.transaction((tx) =>
     setItemHidden(tx, {
       leagueId: lg.id,
@@ -149,6 +152,7 @@ export async function addPhotoAction(
   if (!itemId) notFound();
   const page = pageFor(itemId);
   const { subject, lg } = await adminFor(page);
+  await requireInLeague(subject, { merch_item: itemId });
   const file = form.get("photo");
   if (!(file instanceof File)) redirect(`${page}?error=not_image#photos`);
   const checked = checkUpload(file, 0);
@@ -180,6 +184,7 @@ export async function removePhotoAction(
   if (!itemId || !imageId) notFound();
   const page = pageFor(itemId);
   const { subject, lg } = await adminFor(page);
+  await requireInLeague(subject, { merch_item: itemId });
   const result = await txDb.transaction((tx) =>
     removeMerchPhoto(tx, {
       leagueId: lg.id,
@@ -207,6 +212,7 @@ export async function fulfillAction(
   if (rawOrderId !== null && !orderId) notFound();
   const page = pageFor(itemId);
   const { subject, lg } = await adminFor(page);
+  await requireInLeague(subject, { merch_item: itemId });
   const result = await txDb.transaction((tx) =>
     fulfillMerchOrders(tx, {
       leagueId: lg.id,
@@ -239,9 +245,10 @@ export async function refundOrderAction(
   const subject = await requirePermissionToChange("refund.issue", {
     next: page,
   });
-  const lg = await currentLeague(db);
+  const lg = await activeLeague();
   if (!lg) notFound();
   if (form.get("confirm") !== "yes") redirect(`${page}?error=confirm#orders`);
+  await requireInLeague(subject, { merch_item: itemId, merch_order: orderId });
   const signedInAt = await sessionSignedInAt();
   if (!signedInAt || !isFreshSession(signedInAt, new Date()))
     redirect(`${page}?error=stale#orders`);

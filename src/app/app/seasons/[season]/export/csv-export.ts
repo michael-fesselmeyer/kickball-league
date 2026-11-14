@@ -13,6 +13,7 @@ import { can } from "@/domain/authz/permissions";
 import { exportFilename, toCsv } from "@/domain/export/csv";
 import { parseId, type TeamSeasonId, type UserId } from "@/domain/ids";
 import { currentSubject } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
 
 const text = (body: string, status: number) =>
   new Response(body, {
@@ -37,7 +38,7 @@ export async function csvExport(
   const subject = await currentSubject();
   const userId = parseId<UserId>(subject.userId);
   if (userId === null) return text("Sign in to download this file.", 401);
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) return text("Not found.", 404);
 
   const raw = new URL(request.url).searchParams.get("team");

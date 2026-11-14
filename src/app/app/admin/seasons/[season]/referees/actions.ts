@@ -6,6 +6,8 @@ import { assignReferee, unassignReferee } from "@/db/queries/referees";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { type GameId, parseId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/referees`;
 
@@ -14,9 +16,10 @@ async function context(slug: string, rawGameId: string) {
   const subject = await requirePermissionToChange("referee.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   const gameId = parseId<GameId>(rawGameId);
   if (!season || !gameId) notFound();
+  await requireInLeague(season, { game: gameId });
   return { page, subject, season, gameId };
 }
 

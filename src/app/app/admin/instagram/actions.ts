@@ -2,8 +2,7 @@
 
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { db, txDb } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
+import { txDb } from "@/db/client";
 import {
   type Curation,
   connectedAccounts,
@@ -31,6 +30,8 @@ import {
 import { syncAccount } from "@/lib/social/sync";
 import { FIXTURE_CODE } from "@/services/instagram-fixture";
 import { sendQueuedSoon } from "@/services/outbox";
+import { activeLeague } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const PAGE = "/app/admin/instagram";
 
@@ -43,7 +44,7 @@ async function adminOfLeague() {
   const subject = await requirePermissionToChange("photos.manage", {
     next: PAGE,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   return { subject, league };
 }
@@ -130,6 +131,7 @@ export async function togglePostAction(
   const { subject, league } = await adminOfLeague();
   const id = parseId<SocialPostId>(postId);
   if (!id) notFound();
+  await requireInLeague(subject, { social_post: id });
   const result = await txDb.transaction((tx) =>
     curatePost(tx, {
       leagueId: league.id,
@@ -148,6 +150,7 @@ export async function savePostDetailsAction(postId: string, form: FormData) {
   const { subject, league } = await adminOfLeague();
   const id = parseId<SocialPostId>(postId);
   if (!id) notFound();
+  await requireInLeague(subject, { social_post: id });
   const chosenTeam = text(form, "teamId");
   const teamId = chosenTeam ? parseId<TeamId>(chosenTeam) : null;
   if (chosenTeam && !teamId) redirect(`${PAGE}?error=unknown_team#post-${id}`);

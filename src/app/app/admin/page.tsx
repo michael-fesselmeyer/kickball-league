@@ -17,12 +17,12 @@ import {
 import { pendingNewTeamCount } from "@/db/queries/new-teams";
 import { seasonSignups } from "@/db/queries/challenges";
 import { SignupBoard } from "@/components/signup-board";
-import { currentLeague } from "@/db/queries/seasons";
 import { needsReconnect } from "@/db/queries/social";
 import type { FieldingLevel } from "@/domain/rsvp/fielding";
 import { can } from "@/domain/authz/permissions";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "League admin" };
 
@@ -94,8 +94,11 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
   const isOwner = subject.globalRole === "owner";
   const query = await searchParams;
   const now = new Date();
+  const league = await activeLeague();
+  if (!league) notFound();
   const current = await dashboardSeason(
     db,
+    league.id,
     now,
     typeof query.season === "string" ? query.season : undefined,
   );
@@ -127,7 +130,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
       registrationSummary(db, current.id),
       otherSeasons(db, current.id),
       pendingNewTeamCount(db, current.id),
-      currentLeague(db).then((l) => (l ? needsReconnect(db, l.id) : null)),
+      needsReconnect(db, league.id),
       seasonSignups(db, current.id),
     ]);
   const base = `/app/admin/seasons/${current.slug}`;

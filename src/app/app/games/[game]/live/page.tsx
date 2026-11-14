@@ -8,7 +8,6 @@ import { LineScore } from "@/components/line-score";
 import { db } from "@/db/client";
 import { hasReferee, liveGame, snapshotOf } from "@/db/queries/live-scores";
 import { gameForScoring, scoreHistory } from "@/db/queries/scores";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { fullWhen } from "@/domain/schedule/format";
@@ -19,6 +18,8 @@ import { kicksFirstAction } from "./actions";
 import { Scoring } from "./scoring";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
+import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Live score" };
 
@@ -61,7 +62,7 @@ async function Live({
     gameForScoring(db, gameId),
     liveGame(db, gameId),
     hasReferee(db, gameId),
-    currentLeague(db),
+    activeLeague(),
     scoreHistory(db, gameId),
   ]);
   if (!g || !live) notFound();
@@ -94,9 +95,9 @@ async function Live({
         <HelpLink audience="ref" article="live-scoring" topic="live scoring" />
         <p className="text-small text-text-muted">
           Enter the runs after each half-inning. The{" "}
-          <Link href={`/games/${g.id}`} className="underline">
+          <LeagueLink href={`/games/${g.id}`} className="underline">
             public game page
-          </Link>{" "}
+          </LeagueLink>{" "}
           shows them within 15 seconds.
         </p>
       </header>

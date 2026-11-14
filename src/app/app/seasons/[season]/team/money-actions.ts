@@ -18,7 +18,6 @@ import {
   myRegistration,
   seasonForRegistration,
 } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { teamBalances } from "@/db/queries/team-balance";
 import { can } from "@/domain/authz/permissions";
 import { env } from "@/env";
@@ -27,6 +26,7 @@ import { checkoutPage } from "@/lib/demo/checkout";
 import { stripeClient } from "@/services/stripe";
 import { ensureCustomer } from "@/services/stripe-guarantee";
 import { allowAction } from "@/lib/action-limit";
+import { activeLeague } from "@/lib/league/active";
 
 /**
  * The captain's money tools on the team page (roadmap item 13): pay what is
@@ -38,11 +38,11 @@ async function captainContext(slug: string) {
   const subject = await requirePermissionToChange("registration.join", {
     next: page,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;
-  if (!season) notFound();
+  if (!league || !season) notFound();
   const mine = await myRegistration(db, season.id, subject.userId);
   const teamSeasonId = mine?.team?.teamSeasonId;
   if (!mine || !teamSeasonId) notFound();
@@ -50,7 +50,7 @@ async function captainContext(slug: string) {
   const balance = (await teamBalances(db, [teamSeasonId])).get(teamSeasonId);
   // Only split-pay teams in per-team seasons have a balance to guarantee.
   if (!balance) notFound();
-  return { page, subject, season, mine, teamSeasonId, balance };
+  return { page, subject, league, season, mine, teamSeasonId, balance };
 }
 
 /** Sends the captain to Stripe Checkout to save a card, charging nothing. */
@@ -113,7 +113,7 @@ export async function payBalanceAction(
   slug: string,
   form: FormData,
 ): Promise<void> {
-  const { page, subject, season, mine, teamSeasonId, balance } =
+  const { page, subject, league, season, mine, teamSeasonId, balance } =
     await captainContext(slug);
   if (balance.balanceCents === 0) redirect(`${page}?guarantee=paid_up`);
   const stripe = stripeClient();
@@ -144,6 +144,7 @@ export async function payBalanceAction(
   const started = await txDb.transaction((tx) =>
     startPurchase(tx, {
       userId,
+      leagueId: league.id,
       seasonId: season.id,
       items,
       promoCode: null,

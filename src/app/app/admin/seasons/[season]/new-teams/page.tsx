@@ -13,6 +13,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { approveNewTeamAction, declineNewTeamAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "New-team requests" };
 
@@ -164,7 +165,7 @@ async function NewTeamRequests({
   await requirePermission("team.approve_new", {
     next: `/app/admin/seasons/${slug}/new-teams`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const board = await newTeamRequestsBoard(db, season.id);
   const open = board.filter((r) => r.status === "pending");

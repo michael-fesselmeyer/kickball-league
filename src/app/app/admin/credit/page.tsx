@@ -1,15 +1,16 @@
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { creditOverview } from "@/db/queries/credit";
-import { currentLeague } from "@/db/queries/seasons";
 import { describeCredit, GOODWILL_MAX_CENTS } from "@/domain/money/credit";
 import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { grantGoodwillAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "League credit" };
 
@@ -35,10 +36,9 @@ const input = "rounded-md border border-border bg-surface px-2 py-1";
 async function Credit({ searchParams }: PageProps<"/app/admin/credit">) {
   const query = await searchParams;
   await requirePermission("refund.issue", { next: "/app/admin/credit" });
-  const [league, overview] = await Promise.all([
-    currentLeague(db),
-    creditOverview(db),
-  ]);
+  const league = await activeLeague();
+  if (!league) notFound();
+  const overview = await creditOverview(db, league.id);
   const day = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeZone: league?.timeZone ?? "America/New_York",

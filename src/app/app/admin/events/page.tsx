@@ -3,11 +3,11 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { leagueEvents } from "@/db/queries/events";
-import { currentLeague } from "@/db/queries/seasons";
 import { audienceTag } from "@/domain/events/audience";
 import { KIND_LABELS, whenLine } from "@/domain/events/event";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Manage events" };
 
@@ -24,7 +24,7 @@ export default function AdminEventsPage(props: PageProps<"/app/admin/events">) {
 async function AdminEvents({ searchParams }: PageProps<"/app/admin/events">) {
   await requirePermission("event.manage", { next: "/app/admin/events" });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const events = league ? await leagueEvents(db, league.id, "all") : [];
   const timeZone = league?.timeZone ?? "America/New_York";
   const now = new Date();

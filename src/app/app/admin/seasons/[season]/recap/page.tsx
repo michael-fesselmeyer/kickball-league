@@ -18,6 +18,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { sendLeagueAnnouncementAction } from "../announcements/actions";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeagueId, activeLeaguePath } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Weekly recap" };
 
@@ -43,11 +44,11 @@ async function Recap({
     next: `/app/admin/seasons/${slug}/recap`,
     scope: "league",
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const [schedule, everything, teams] = await Promise.all([
     publishedSchedule(db, season.id),
-    allPublishedGames(db),
+    allPublishedGames(db, season.leagueId),
     teamsToAnnounceTo(db, season.id),
   ]);
   const days = gameDays(schedule, season.timeZone);
@@ -66,7 +67,7 @@ async function Recap({
           timeZone: season.timeZone,
           link: absoluteUrl(
             siteOrigin(env.BETTER_AUTH_URL),
-            `/seasons/${season.slug}/standings`,
+            await activeLeaguePath(`/seasons/${season.slug}/standings`),
           ),
         });
 

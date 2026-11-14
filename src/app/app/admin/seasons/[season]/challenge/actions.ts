@@ -8,6 +8,7 @@ import { parseChallengeForm } from "@/domain/drive/challenge";
 import { parseId, type TeamSeasonId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
+import { activeLeagueId } from "@/lib/league/active";
 
 const pageOf = (slug: string) => `/app/admin/seasons/${slug}/challenge`;
 
@@ -20,7 +21,7 @@ export async function saveChallengeAction(
   const subject = await requirePermissionToChange("challenge.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const parsed = parseChallengeForm(
     formStrings(form, ["prize", "deadlineOn", "deadlineTime"] as const),
@@ -47,7 +48,7 @@ export async function confirmWinnerAction(
   const subject = await requirePermissionToChange("challenge.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   const teamSeasonId = parseId<TeamSeasonId>(form.get("team"));
   if (!season || !teamSeasonId) notFound();
   const confirmed = await txDb.transaction((tx) =>

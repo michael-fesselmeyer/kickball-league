@@ -7,7 +7,6 @@ import {
   type QueuedPhoto,
   reviewQueue,
 } from "@/db/queries/member-photos";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   LEAGUE_CAP_BYTES,
   leagueStorageFull,
@@ -17,6 +16,8 @@ import { requirePermission } from "@/lib/auth/permission";
 import { deletePhotoAction, reviewPhotoAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
+import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Member photos" };
 
@@ -61,7 +62,7 @@ const mb = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1);
 async function Queue({ searchParams }: PageProps<"/app/admin/photos">) {
   await requirePermission("photos.manage", { next: "/app/admin/photos" });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) return <p>No league is set up yet.</p>;
   const [queue, storage] = await Promise.all([
     reviewQueue(db, league.id),
@@ -230,9 +231,9 @@ function About({ photo, when }: { photo: QueuedPhoto; when: string }) {
         {tags.length > 0 ? ` · ${tags.join(", ")}` : ""}
       </p>
       {photo.gameId && (
-        <Link href={`/games/${photo.gameId}`} className="underline">
+        <LeagueLink href={`/games/${photo.gameId}`} className="underline">
           The game
-        </Link>
+        </LeagueLink>
       )}
     </div>
   );

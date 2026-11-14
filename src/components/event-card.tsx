@@ -7,6 +7,7 @@ import {
   whenLine,
 } from "@/domain/events/event";
 import { priceLine } from "@/domain/events/tickets";
+import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 
 export type EventCardData = {
   slug: string;
@@ -77,13 +78,16 @@ function DateBlock({ at, timeZone }: { at: Date; timeZone: string }) {
  * `href`, the public page unless a signed-in list says otherwise.
  */
 export function EventCard({
+  league,
   event: e,
   timeZone,
   now,
-  href = `/events/${e.slug}`,
+  href = leagueHref(league, `/events/${e.slug}`),
   note,
   tag,
 }: {
+  /** The league whose public pages the links open (ADR 0048). */
+  league: LeagueRef;
   event: EventCardData;
   timeZone: string;
   now: Date;

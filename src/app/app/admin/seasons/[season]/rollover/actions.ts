@@ -1,10 +1,10 @@
 "use server";
 
 import { notFound, redirect } from "next/navigation";
-import { db, txDb } from "@/db/client";
+import { txDb } from "@/db/client";
 import { rollOver } from "@/db/queries/rollover";
-import { currentLeague } from "@/db/queries/seasons";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 
 /** Creates the new draft season from the preview's choices. */
 export async function rollOverAction(slug: string, form: FormData) {
@@ -12,7 +12,7 @@ export async function rollOverAction(slug: string, form: FormData) {
   const subject = await requirePermissionToChange("season.manage", {
     next: page,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const text = (name: string) => {
     const value = form.get(name);

@@ -6,6 +6,7 @@ import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { sendWaitlistOffers } from "@/db/queries/waitlist";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { sendQueuedSoon } from "@/services/outbox";
+import { activeLeagueId } from "@/lib/league/active";
 
 /**
  * Sends the next offers now instead of waiting for the job: expires offers
@@ -14,7 +15,7 @@ import { sendQueuedSoon } from "@/services/outbox";
 export async function offerNowAction(slug: string): Promise<void> {
   const page = `/app/admin/seasons/${slug}/waitlist`;
   await requirePermissionToChange("season.manage", { next: page });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const result = await txDb.transaction((tx) =>
     sendWaitlistOffers(tx, new Date(), season.id),

@@ -1,7 +1,7 @@
 "use server";
 
 import { notFound, redirect } from "next/navigation";
-import { db, txDb } from "@/db/client";
+import { txDb } from "@/db/client";
 import {
   createFriendLeague,
   type FriendSaveError,
@@ -12,7 +12,6 @@ import {
   updateFriendLeague,
 } from "@/db/queries/friends";
 import type { Db } from "@/db/queries/schedule";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   FRIEND_FORM_ERRORS,
   type FriendForm,
@@ -28,6 +27,7 @@ import { err, ok, type Result } from "@/domain/result";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { compressLogo } from "@/lib/friends/compress-logo";
 import { refreshFriendPages } from "@/lib/public-cache";
+import { activeLeague } from "@/lib/league/active";
 
 export type FriendFormState = { values: FriendForm; error: string | null };
 
@@ -51,7 +51,7 @@ function formValues(form: FormData): FriendForm {
 
 async function adminOfLeague(next: string) {
   const subject = await requirePermissionToChange("friends.manage", { next });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   return { subject, league };
 }

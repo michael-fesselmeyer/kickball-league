@@ -13,7 +13,6 @@ import {
   myRegistration,
   seasonForRegistration,
 } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { hasSignedSeasonWaiver } from "@/db/queries/waivers";
 import { checkoutItems } from "@/domain/registration/checkout";
 import { env } from "@/env";
@@ -21,6 +20,7 @@ import { requireSelfToChange } from "@/lib/auth/permission";
 import { checkoutPage } from "@/lib/demo/checkout";
 import { stripeClient } from "@/services/stripe";
 import { allowAction } from "@/lib/action-limit";
+import { activeLeague } from "@/lib/league/active";
 
 /**
  * Sends the person to Stripe Checkout for what they owe, less any promo code
@@ -34,11 +34,11 @@ export async function startCheckout(
 ): Promise<void> {
   const page = `/app/seasons/${slug}`;
   const subject = await requireSelfToChange("payment.pay_own", page);
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;
-  if (!season) notFound();
+  if (!league || !season) notFound();
   const mine = await myRegistration(db, season.id, subject.userId);
   if (!mine) notFound();
   if (!(await hasSignedSeasonWaiver(db, subject.userId, season.id)))
@@ -66,6 +66,7 @@ export async function startCheckout(
   const started = await txDb.transaction((tx) =>
     startPurchase(tx, {
       userId: subject.userId,
+      leagueId: league.id,
       seasonId: season.id,
       items: items.items,
       promoCode: typeof typed === "string" ? typed : null,

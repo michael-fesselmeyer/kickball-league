@@ -7,6 +7,8 @@ import { markTeamOrdered, setShirtStatus } from "@/db/queries/shirts";
 import { parseId, type RegistrationId, type TeamSeasonId } from "@/domain/ids";
 import { isShirtStatus } from "@/domain/shirts/summary";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/shirts`;
 
@@ -20,9 +22,10 @@ export async function setShirtStatusAction(
   const subject = await requirePermissionToChange("shirts.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const registrationId = parseId<RegistrationId>(rawRegistrationId);
+  await requireInLeague(subject, { registration: registrationId });
   const status = form.get("status");
   if (!registrationId || !isShirtStatus(status))
     redirect(`${page}?error=unknown`);
@@ -47,7 +50,7 @@ export async function markTeamOrderedAction(
   const subject = await requirePermissionToChange("shirts.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const teamSeasonId = parseId<TeamSeasonId>(rawTeamSeasonId);
   if (!teamSeasonId) redirect(`${page}?error=unknown`);

@@ -1,8 +1,7 @@
-import { currentLeague } from "@/db/queries/seasons";
-import { db } from "@/db/client";
 import { can } from "@/domain/authz/permissions";
 import { currentSubject } from "@/lib/auth/permission";
 import { loadCommand, parseDay } from "../load";
+import { activeLeague } from "@/lib/league/active";
 
 const headers = { "Cache-Control": "private, no-store" };
 
@@ -15,7 +14,7 @@ export async function GET(request: Request) {
   const subject = await currentSubject();
   if (subject.userId === null || !can(subject, "season.manage"))
     return Response.json({ error: "Not found." }, { status: 404, headers });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league)
     return Response.json({ error: "Not found." }, { status: 404, headers });
   const day = parseDay(new URL(request.url).searchParams.get("date"));

@@ -23,6 +23,8 @@ import { type GiveawayWinnerId, parseId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { sendQueuedSoon } from "@/services/outbox";
+import { activeLeagueId } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 export type GiveawayFormState = { values: GiveawayForm; error: string | null };
 
@@ -49,7 +51,7 @@ export async function saveGiveawayAction(
   const subject = await requirePermissionToChange("giveaway.manage", {
     next: page,
   });
-  const e = await eventBySlug(db, slug, "all");
+  const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   if (!e) notFound();
   const values = formStrings(form, FIELDS);
   const fail = (error: string) => ({ values, error });
@@ -90,7 +92,7 @@ export async function drawAction(slug: string, form: FormData): Promise<void> {
     next: page,
   });
   if (form.get("confirm") !== "yes") redirect(`${page}?error=confirm`);
-  const e = await eventBySlug(db, slug, "all");
+  const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   const g = e ? await giveawayForEvent(db, e.id) : null;
   if (!g) notFound();
   const drawn = await txDb.transaction((tx) =>
@@ -116,7 +118,8 @@ export async function redrawAction(
     next: page,
   });
   const winnerId = parseId<GiveawayWinnerId>(rawWinnerId);
-  const e = await eventBySlug(db, slug, "all");
+  await requireInLeague(subject, { giveaway_winner: winnerId });
+  const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   const g = e ? await giveawayForEvent(db, e.id) : null;
   if (!g || !winnerId) notFound();
   const raw = form.get("reason");

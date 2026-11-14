@@ -7,6 +7,8 @@ import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { parseId, type PromoCodeId } from "@/domain/ids";
 import { type PromoForm, parsePromoForm } from "@/domain/registration/promo";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/promo-codes`;
 
@@ -15,7 +17,7 @@ async function context(slug: string) {
   const subject = await requirePermissionToChange("season.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   return { page, subject, season };
 }
@@ -64,6 +66,7 @@ export async function disablePromoCodeAction(
   const { page, subject, season } = await context(slug);
   const id = parseId<PromoCodeId>(rawId);
   if (!id) notFound();
+  await requireInLeague(subject, { promo_code: id });
   await txDb.transaction((tx) =>
     disablePromoCode(tx, {
       seasonId: season.id,

@@ -9,6 +9,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { publishSummaryAction, unpublishSummaryAction } from "../../actions";
 import { FOLDABLE, foldedFrom, liveSummary, ownerSeason } from "../../load";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeaguePath } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Money summary" };
 
@@ -65,7 +66,7 @@ async function Summary({
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const notice =
     typeof query.notice === "string" ? NOTICES[query.notice] : undefined;
-  const publicPath = `/seasons/${season.slug}/money`;
+  const publicPath = await activeLeaguePath(`/seasons/${season.slug}/money`);
   const spent = new Set(
     preview.money.expenses.filter((e) => e.cents > 0).map((e) => e.category),
   );

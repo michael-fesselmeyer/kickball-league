@@ -2,12 +2,12 @@ import { db, txDb } from "@/db/client";
 import { OFF_APP_METHODS, recordOffAppPayment } from "@/db/queries/payments";
 import { seasonForRegistration } from "@/db/queries/registration";
 import { registrationForPayment } from "@/db/queries/registrations-admin";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { isOneOf } from "@/domain/guards";
 import { parseId, type RegistrationId } from "@/domain/ids";
 import { checkoutItems } from "@/domain/registration/checkout";
 import type { SignedInSubject } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 
 export type RecordPaymentError =
   | "unknown_registration"
@@ -40,7 +40,7 @@ export async function recordPaymentFor(
   form: FormData,
 ): Promise<{ ok: true } | { ok: false; error: RecordPaymentError }> {
   const registrationId = parseId<RegistrationId>(rawRegistrationId);
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

@@ -10,7 +10,6 @@ import {
   recentMerges,
 } from "@/db/queries/account-merge";
 import { hasPasskey } from "@/db/queries/passkeys";
-import { currentLeague } from "@/db/queries/seasons";
 import { describeBlocker } from "@/domain/account-merge/rules";
 import { parseId, type UserId } from "@/domain/ids";
 import { requirePermission, sessionIsFresh } from "@/lib/auth/permission";
@@ -18,6 +17,7 @@ import { findAccountsAction, mergeAccountsAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { operatorIds } from "@/lib/platform/site";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Merge accounts" };
 
@@ -32,6 +32,8 @@ export default function AccountsPage(props: PageProps<"/app/admin/accounts">) {
 }
 
 const ERRORS: Record<string, string> = {
+  other_league:
+    "One of these accounts also belongs to another league. Ask the platform operator to merge them.",
   no_keep: "No account has the address to keep.",
   no_merge:
     "No account has the address to merge away, or it was already merged.",
@@ -75,7 +77,7 @@ async function Accounts({ searchParams }: PageProps<"/app/admin/accounts">) {
   const mergedInto = parseId<UserId>(query.merged);
   const [league, preview, fresh, me, withPasskey, recent, done] =
     await Promise.all([
-      currentLeague(db),
+      activeLeague(),
       keptId && mergedId
         ? mergePreview(db, {
             keptId,

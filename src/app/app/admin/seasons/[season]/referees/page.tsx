@@ -9,6 +9,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { assignRefereeAction, unassignRefereeAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Referees" };
 
@@ -43,7 +44,7 @@ async function Referees({
   await requirePermission("referee.manage", {
     next: `/app/admin/seasons/${slug}/referees`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const games = await refereeBoard(db, season.id);
   const days = Map.groupBy(games, (g) =>

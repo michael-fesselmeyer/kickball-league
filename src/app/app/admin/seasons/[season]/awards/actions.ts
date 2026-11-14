@@ -14,6 +14,8 @@ import { type AwardPollId, parseId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { requireFeature } from "@/lib/platform/site";
+import { activeLeagueId } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const pageOf = (slug: string) => `/app/admin/seasons/${slug}/awards`;
 
@@ -22,7 +24,7 @@ async function guard(slug: string) {
   const subject = await requirePermissionToChange("awards.manage", {
     next: pageOf(slug),
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   return { subject, season };
 }
@@ -64,6 +66,7 @@ export async function closePollAction(
   const { subject, season } = await guard(slug);
   const pollId = parseId<AwardPollId>(rawPollId);
   if (!pollId) notFound();
+  await requireInLeague(subject, { award_poll: pollId });
   const result = await closePollNow(txDb, {
     pollId,
     seasonId: season.id,
@@ -82,6 +85,7 @@ export async function removePollAction(
   const { subject, season } = await guard(slug);
   const pollId = parseId<AwardPollId>(rawPollId);
   if (!pollId) notFound();
+  await requireInLeague(subject, { award_poll: pollId });
   const result = await removePoll(txDb, {
     pollId,
     seasonId: season.id,

@@ -3,11 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague, seasonSettings } from "@/db/queries/seasons";
+import { seasonSettings } from "@/db/queries/seasons";
 import { seasonGameTimes, seasonRequests } from "@/db/queries/team-requests";
 import { describeRequest } from "@/domain/schedule/team-requests";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Team scheduling requests" };
 
@@ -30,7 +31,7 @@ async function SeasonRequests({
   await requirePermission("schedule.manage", {
     next: `/app/admin/seasons/${slug}/requests`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league ? await seasonSettings(db, league.id, slug) : null;
   if (!league || !season) notFound();
   const [requests, times] = await Promise.all([

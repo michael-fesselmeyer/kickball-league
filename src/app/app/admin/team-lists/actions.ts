@@ -8,10 +8,11 @@ import {
   removeKeepOff,
   setExportKeepOffEntries,
 } from "@/db/queries/keep-off";
-import { currentLeague } from "@/db/queries/seasons";
 import { type KeepOffId, parseId, type TeamId } from "@/domain/ids";
 import { readEmail, readReason } from "@/domain/keep-off/keep-off";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const PAGE = "/app/admin/team-lists";
 const back = (code: string) => `${PAGE}?notice=${code}`;
@@ -21,9 +22,10 @@ export async function addAdminKeepOffAction(form: FormData): Promise<void> {
   const subject = await requirePermissionToChange("keep_off.manage", {
     next: PAGE,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const teamId = parseId<TeamId>(form.get("teamId"));
+  await requireInLeague(subject, { team: teamId });
   const teams = await leagueTeams(db, league.id);
   if (!teamId || !teams.some((t) => t.id === teamId))
     redirect(`${back("unknown_team")}#add`);
@@ -50,6 +52,7 @@ export async function removeAdminKeepOffAction(rawId: string): Promise<void> {
   });
   const id = parseId<KeepOffId>(rawId);
   if (!id) notFound();
+  await requireInLeague(subject, { team_keep_off: id });
   const result = await txDb.transaction((tx) =>
     removeKeepOff(tx, { id, teamId: null, actorId: subject.userId }),
   );
@@ -62,7 +65,7 @@ export async function setExportPolicyAction(on: boolean): Promise<void> {
   const subject = await requirePermissionToChange("keep_off.export_policy", {
     next: PAGE,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   await txDb.transaction((tx) =>
     setExportKeepOffEntries(tx, {

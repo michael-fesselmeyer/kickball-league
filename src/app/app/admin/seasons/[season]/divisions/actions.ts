@@ -16,6 +16,7 @@ import { type DivisionId, parseId, type RuleSetId } from "@/domain/ids";
 import { parseCrossoverGames, parseRuleSet } from "@/domain/season/divisions";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshSeasonPages } from "@/lib/public-cache";
+import { activeLeagueId } from "@/lib/league/active";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/divisions`;
 
@@ -30,7 +31,7 @@ async function context(slug: string) {
   const subject = await requirePermissionToChange("season.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   return { page, actor: subject.userId, season };
 }

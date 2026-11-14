@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import { sponsorForCheckIn, todaysVisit } from "@/db/queries/sponsors";
 import { localDay } from "@/domain/schedule/public-game";
 import { isCurrentCheckinCode } from "@/domain/sponsors/checkin-code";
@@ -11,6 +9,8 @@ import { requirePermission } from "@/lib/auth/permission";
 import { checkInAction } from "../../actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
+import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Check in" };
 
@@ -32,10 +32,10 @@ async function CheckIn({ params, searchParams }: Props) {
   const query = await searchParams;
   const page = `/app/check-in/${slug}/${code}`;
   const subject = await requirePermission("sponsor.check_in", { next: page });
-  const sponsor = await sponsorForCheckIn(db, slug);
+  const sponsor = await sponsorForCheckIn(db, await activeLeagueId(), slug);
   if (!sponsor) notFound();
   const now = new Date();
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const visit = await todaysVisit(db, {
     sponsorId: sponsor.id,
     userId: subject.userId,
@@ -54,9 +54,9 @@ async function CheckIn({ params, searchParams }: Props) {
           The check-in code changes every few minutes, so this one has expired.
           Scan the code at {sponsor.name} again.
         </p>
-        <Link href={`/sponsors/${slug}`} className="btn btn-secondary">
+        <LeagueLink href={`/sponsors/${slug}`} className="btn btn-secondary">
           See {sponsor.name}&apos;s deals
-        </Link>
+        </LeagueLink>
       </>
     );
 

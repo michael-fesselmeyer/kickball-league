@@ -29,6 +29,8 @@ import {
 import { stripeClient } from "@/services/stripe";
 import { recordPaymentFor } from "@/app/app/seasons/[season]/record-payment";
 import { logError } from "@/lib/log-error";
+import { activeLeagueId } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/registrations`;
 
@@ -55,11 +57,15 @@ export async function placeFreeAgentAction(
   const subject = await requirePermissionToChange("free_agents.place", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const registrationId = parseId<RegistrationId>(rawRegistrationId);
   const teamSeasonId = parseId<TeamSeasonId>(form.get("teamSeasonId"));
   if (!registrationId || !teamSeasonId) redirect(`${page}?error=unknown_team`);
+  await requireInLeague(subject, {
+    registration: registrationId,
+    team_season: teamSeasonId,
+  });
   const result = await txDb.transaction((tx) =>
     placeFreeAgent(tx, {
       seasonId: season.id,
@@ -98,10 +104,11 @@ export async function refundPaymentAction(
   const signedInAt = await sessionSignedInAt();
   if (!signedInAt || !isFreshSession(signedInAt, new Date()))
     redirect(`${page}?error=stale`);
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const paymentId = parseId<PaymentId>(rawPaymentId);
   if (!paymentId) redirect(`${page}?error=unknown_payment`);
+  await requireInLeague(subject, { payment: paymentId });
   const started = await txDb.transaction((tx) =>
     startRefund(tx, {
       seasonId: season.id,
@@ -154,7 +161,7 @@ async function captaincyGuard(slug: string, rawTeamSeasonId: string) {
     teamSeasonId,
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const back = (code: string) =>
     `${page}?captaincy=${code}&team=${teamSeasonId}#captaincy-${teamSeasonId}`;

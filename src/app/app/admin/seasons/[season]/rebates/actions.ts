@@ -7,6 +7,7 @@ import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { parseId, type TeamSeasonId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { sendQueuedSoon } from "@/services/outbox";
+import { activeLeagueId } from "@/lib/league/active";
 
 /**
  * Issues a team's rain-out rebate as league credit to everyone who paid
@@ -20,7 +21,7 @@ export async function issueRebateAction(
   const subject = await requirePermissionToChange("refund.issue", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   const team = parseId<TeamSeasonId>(teamSeasonId);
   if (!season || !team) notFound();
   const actorId = subject.userId;

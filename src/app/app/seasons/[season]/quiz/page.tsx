@@ -5,7 +5,6 @@ import { Suspense } from "react";
 import { db } from "@/db/client";
 import { myQuiz } from "@/db/queries/free-agents";
 import { seasonForRegistration } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   FRIEND_GROUP_MAX,
   formatFriendCode,
@@ -24,6 +23,7 @@ import {
   startGroupAction,
 } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Team-fit quiz" };
 
@@ -127,7 +127,7 @@ async function Quiz({
     "profile.edit",
     `/app/seasons/${slug}/quiz`,
   );
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

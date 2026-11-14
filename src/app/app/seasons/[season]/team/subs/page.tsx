@@ -9,7 +9,6 @@ import {
 } from "@/db/queries/registration";
 import { rulesFor, teamRsvps } from "@/db/queries/rsvps";
 import { teamGames } from "@/db/queries/scores";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   MAX_OPEN_PER_TEAM,
   type TeamSubRequest,
@@ -30,6 +29,7 @@ import {
 import { requireFeature } from "@/lib/platform/site";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Find subs" };
 
@@ -178,7 +178,7 @@ async function TeamSubs({
   const query = await searchParams;
   const page = `/app/seasons/${slug}/team/subs`;
   const subject = await requirePermission("registration.join", { next: page });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

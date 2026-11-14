@@ -1,12 +1,12 @@
 import { db } from "@/db/client";
 import { recordAudit } from "@/db/queries/audit";
 import { booksSeasons, seasonBooks } from "@/db/queries/books";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { LEDGER_COLUMNS, ledgerLines } from "@/domain/books/ledger-csv";
 import { exportFilename, toCsv } from "@/domain/export/csv";
 import { parseId, type UserId } from "@/domain/ids";
 import { currentSubject } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 
 const notFound = () =>
   new Response("Not found.", {
@@ -26,7 +26,7 @@ export async function GET(
   const userId = parseId<UserId>(subject.userId);
   if (!userId || !can(subject, "books.manage")) return notFound();
   const { season: slug } = await ctx.params;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) return notFound();
   const season = (await booksSeasons(db, league.id)).find(
     (s) => s.slug === slug,

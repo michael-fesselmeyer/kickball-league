@@ -9,6 +9,8 @@ import { seasonStats, statGamesFrom, teamsFrom } from "@/domain/stats/season";
 import { streakLabel } from "@/domain/stats/streaks";
 import { cachedMeetings, cachedSeasonSchedule } from "@/lib/game-cache";
 import { PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
+import { type LeagueRef, leagueHref } from "@/domain/league/paths";
+import type { LeagueId } from "@/domain/ids";
 
 const MEETINGS_SHOWN = 5;
 
@@ -19,16 +21,18 @@ const MEETINGS_SHOWN = 5;
  * clock when the copy is made, as on the team page.
  */
 export async function GameStats({
+  league,
   game,
   timeZone,
 }: {
+  league: LeagueRef & { id: LeagueId };
   game: PublicGame;
   timeZone: string;
 }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   const [between, schedule] = await Promise.all([
-    cachedMeetings(game.teamA.slug, game.teamB.slug),
+    cachedMeetings(league.id, game.teamA.slug, game.teamB.slug),
     cachedSeasonSchedule(game.seasonId as SeasonId),
   ]);
   const a = game.teamA.slug;
@@ -86,7 +90,7 @@ export async function GameStats({
                 className="flex flex-wrap items-center justify-between gap-x-3 border-t border-border py-1"
               >
                 <Link
-                  href={`/games/${m.gameId}`}
+                  href={leagueHref(league, `/games/${m.gameId}`)}
                   aria-current={m.gameId === game.id ? "page" : undefined}
                   className="inline-flex min-h-11 items-center underline"
                 >

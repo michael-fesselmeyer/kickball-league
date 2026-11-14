@@ -3,11 +3,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { friendDirectory, storedLogoBytes } from "@/db/queries/friends";
-import { currentLeague } from "@/db/queries/seasons";
 import { ACTIVITY_LABELS, displayHost } from "@/domain/friends/friend-form";
 import { MAX_TOTAL_LOGO_BYTES } from "@/domain/friends/logo";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
+import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Friends of the league" };
 
@@ -36,7 +37,7 @@ const kb = (bytes: number) => `${Math.ceil(bytes / 1024)} KB`;
 async function AdminFriends({ searchParams }: PageProps<"/app/admin/friends">) {
   await requirePermission("friends.manage", { next: PAGE });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const [entries, logoBytes] = await Promise.all([
     league ? friendDirectory(db, league.id) : [],
     storedLogoBytes(db),
@@ -56,9 +57,9 @@ async function AdminFriends({ searchParams }: PageProps<"/app/admin/friends">) {
         <p className="text-text-muted">
           Other local leagues our players also play in. They&apos;re listed on
           the public{" "}
-          <Link href="/friends" className="underline">
+          <LeagueLink href="/friends" className="underline">
             friends page
-          </Link>
+          </LeagueLink>
           , which also has a snippet they can use to link back to us.
         </p>
         <p>

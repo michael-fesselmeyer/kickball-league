@@ -17,7 +17,6 @@ import {
 } from "@/domain/notifications/limits";
 import { parseDeviceSubscription } from "@/domain/notifications/push";
 import { saveProfile } from "@/db/queries/profile";
-import { currentLeague } from "@/db/queries/seasons";
 import { saveEmergencyContact } from "@/db/queries/emergency";
 import {
   EMERGENCY_FIELDS,
@@ -38,6 +37,7 @@ import { requireSelfToChange } from "@/lib/auth/permission";
 import { sendQueuedSoon } from "@/services/outbox";
 import { env } from "@/env";
 import { formStrings } from "@/lib/form";
+import { activeLeague } from "@/lib/league/active";
 
 export type ProfileFormState = {
   values: ProfileForm & EmergencyForm;
@@ -51,7 +51,7 @@ export async function saveProfileAction(
   form: FormData,
 ): Promise<ProfileFormState> {
   const subject = await requireSelfToChange("profile.edit", "/app/profile");
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const values = {
     ...formStrings(form, PROFILE_FIELDS),
@@ -105,7 +105,7 @@ export async function saveAlertLimitsAction(form: FormData): Promise<void> {
     formStrings(form, ALERT_LIMIT_FIELDS),
   );
   if (!parsed.success) redirect("/app/profile?alerts=invalid#alert-limits");
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const now = new Date();
   await txDb.transaction((tx) =>

@@ -9,6 +9,7 @@ import { averageOf } from "@/domain/discipline/discipline";
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Sportsmanship" };
 
@@ -32,7 +33,7 @@ async function Ratings({
   await requirePermission("sportsmanship.view", {
     next: `/app/admin/seasons/${slug}/sportsmanship`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const teams = await seasonSportsmanship(db, season.id);
   // Lowest average first: the teams worth a word come to the top.

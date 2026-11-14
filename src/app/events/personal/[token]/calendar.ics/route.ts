@@ -1,6 +1,6 @@
 import { db } from "@/db/client";
 import { eventsFor, feedVersion } from "@/db/queries/event-audience";
-import { currentLeague } from "@/db/queries/seasons";
+import { defaultLeague, leaguesOf } from "@/db/queries/leagues";
 import { loadSubject } from "@/db/queries/subject";
 import { can } from "@/domain/authz/permissions";
 import { eventsFeed } from "@/domain/calendar/events-feed";
@@ -26,19 +26,38 @@ export async function GET(
   const { token } = await ctx.params;
   const userId = feedTokenUser(token);
   if (!userId) return notFound();
-  const [version, subject, league] = await Promise.all([
+  const [version, mine, fallback] = await Promise.all([
     feedVersion(db, userId),
-    loadSubject(db, userId),
-    currentLeague(db),
+    leaguesOf(db, userId),
+    defaultLeague(db),
   ]);
   if (!isFeedToken(env.BETTER_AUTH_SECRET, token, userId, version))
     return notFound();
-  const events = league
-    ? await eventsFor(db, league.id, userId, can(subject, "event.manage", {}))
-    : [];
+  // Every league they belong to (ADR 0048), with what they can see in each.
+  const leagues = mine.length > 0 ? mine : fallback ? [fallback] : [];
+  const events = (
+    await Promise.all(
+      leagues.map(async (league) => {
+        const subject = await loadSubject(db, userId, league.id);
+        const found = await eventsFor(
+          db,
+          league.id,
+          userId,
+          can(subject, "event.manage", {}),
+        );
+        return found.map((e) => ({ ...e, league }));
+      }),
+    )
+  )
+    .flat()
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+  const first = leagues[0];
   const body = eventsFeed({
-    name: league ? `${league.name}: your events` : "Your league events",
-    timeZone: league?.timeZone ?? "America/New_York",
+    name:
+      leagues.length === 1 && first
+        ? `${first.name}: your events`
+        : "Your league events",
+    timeZone: first?.timeZone ?? "America/New_York",
     origin: requestOrigin(request.headers),
     events,
     now: new Date(),

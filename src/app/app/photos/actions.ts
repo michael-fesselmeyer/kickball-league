@@ -2,12 +2,11 @@
 
 import { refresh } from "next/cache";
 import { notFound, redirect } from "next/navigation";
-import { db, txDb } from "@/db/client";
+import { txDb } from "@/db/client";
 import {
   deleteMemberPhoto,
   uploadMemberPhoto,
 } from "@/db/queries/member-photos";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   type EventId,
   type GameId,
@@ -22,6 +21,7 @@ import {
 } from "@/lib/auth/permission";
 import { processPhoto } from "@/lib/member-photos/process-photo";
 import { refreshMemberPhotoPages } from "@/lib/public-cache";
+import { activeLeague } from "@/lib/league/active";
 
 const PAGE = "/app/photos";
 
@@ -48,7 +48,7 @@ export async function uploadPhotoAction(
   const subject = await requirePermissionToChange("photos.upload", {
     next: PAGE,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const file = form.get("photo");
   if (!(file instanceof File) || file.size === 0)
@@ -78,7 +78,7 @@ export async function uploadPhotoAction(
 /** The uploader deletes their own photo, shown or not. */
 export async function deleteMyPhotoAction(form: FormData): Promise<void> {
   const subject = await requireSelfToChange("photos.delete_own", PAGE);
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const id = parseId<MemberPhotoId>(text(form, "photo"));
   if (!league || !id) notFound();
   const result = await txDb.transaction((tx) =>

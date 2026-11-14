@@ -46,15 +46,49 @@ describe("proxy", () => {
     );
     expect(response.headers.get("location")).toBeNull();
     expect(response.headers.get("x-middleware-rewrite")).toBe(
-      "http://localhost:3000/seasons/fall-2026/schedule/the-big-kicks",
+      "http://localhost:3000/l/_default/seasons/fall-2026/schedule/the-big-kicks",
     );
   });
 
-  it("lets a public page with no view through untouched, without a session", async () => {
-    const response = await proxy(request("/teams/the-big-kicks"));
-    expect(response.headers.get("location")).toBeNull();
-    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
-    expect(response.headers.get("x-middleware-next")).toBe("1");
+  it("serves the default league's pages from its route tree, keeping the address", async () => {
+    for (const [path, target] of [
+      ["/", "/l/_default"],
+      ["/teams/the-big-kicks", "/l/_default/teams/the-big-kicks"],
+      ["/events/calendar.ics", "/l/_default/events/calendar.ics"],
+    ] as const) {
+      const response = await proxy(request(path));
+      expect(response.headers.get("location"), path).toBeNull();
+      expect(response.headers.get("x-middleware-rewrite"), path).toBe(
+        `http://localhost:3000${target}`,
+      );
+    }
+  });
+
+  it("serves another league's pages at their own address, with its views from the path", async () => {
+    const plain = await proxy(request("/l/flag-football/teams/hail-marys"));
+    expect(plain.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(plain.headers.get("x-middleware-next")).toBe("1");
+    const filtered = await proxy(
+      request("/l/flag-football/seasons/fall-2026/schedule?team=hail-marys"),
+    );
+    expect(filtered.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:3000/l/flag-football/seasons/fall-2026/schedule/hail-marys",
+    );
+  });
+
+  it("sends a typed /l/_default address to the real one", async () => {
+    const response = await proxy(request("/l/_default/records?x=1"));
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/records?x=1",
+    );
+  });
+
+  it("leaves pages that are no league's alone", async () => {
+    for (const path of ["/sign-in", "/faq", "/operator"]) {
+      const response = await proxy(request(path));
+      expect(response.headers.get("x-middleware-rewrite"), path).toBeNull();
+    }
   });
 
   it("shows public pages the paused notice while the site is paused", async () => {
@@ -78,7 +112,17 @@ describe("proxy", () => {
   it("leaves public pages alone while read-only", async () => {
     site.status = "read_only";
     const response = await proxy(request("/teams/the-big-kicks"));
-    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:3000/l/_default/teams/the-big-kicks",
+    );
+  });
+
+  it("never swaps a league's calendar feed for the paused notice", async () => {
+    site.status = "paused";
+    const response = await proxy(request("/teams/the-big-kicks/calendar.ics"));
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:3000/l/_default/teams/the-big-kicks/calendar.ics",
+    );
   });
 
   it("runs on every page but not on API routes, build assets or files", () => {
@@ -90,5 +134,8 @@ describe("proxy", () => {
     expect(matches("/api/jobs/outbox")).toBe(false);
     expect(matches("/_next/static/chunk.js")).toBe(false);
     expect(matches("/manifest.webmanifest")).toBe(false);
+    // The default league's files are listed one by one, to be rewritten.
+    expect(config.matcher).toContain("/teams/:team/calendar.ics");
+    expect(config.matcher).toContain("/events/calendar.ics");
   });
 });

@@ -7,7 +7,6 @@ import {
   earlierAlcoholSuspensions,
   incidentDetail,
 } from "@/db/queries/discipline";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import {
   describeLength,
@@ -29,6 +28,7 @@ import {
 import { REPORTED_BY, suspensionLine } from "../words";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Incident" };
 
@@ -149,7 +149,7 @@ async function Incident({
   const found = id ? await incidentDetail(db, id, now) : null;
   if (!found) notFound();
   const mayCall = can(subject, "player.suspend");
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",

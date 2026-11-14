@@ -16,6 +16,7 @@ import {
 import { formatMoment } from "@/domain/money/credit";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Giveaway" };
 
@@ -51,6 +52,7 @@ async function Giveaway({ params, searchParams }: Props) {
   });
   const e = await visibleEvent(
     db,
+    await activeLeagueId(),
     slug,
     subject.userId,
     can(subject, "event.manage"),

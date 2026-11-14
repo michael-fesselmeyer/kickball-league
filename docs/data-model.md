@@ -35,6 +35,8 @@ erDiagram
   user ||--o| emergency_contact : "may keep"
   user ||--o{ registration : makes
   registration ||--o{ away_week : "will miss"
+  league ||--o{ league_member : "has roles for"
+  user ||--o{ league_member : "belongs to"
   league ||--o{ season : runs
   league ||--o{ team : has
   league ||--o{ rule_set : defines
@@ -69,7 +71,6 @@ erDiagram
     enum lineup_gender "woman, man: which side of the fielding rule the player counts toward"
     enum shirt_size "xs, s, m, l, xl, xxl"
     date birth_date
-    enum global_role "player, admin, owner"
     text stripe_customer_id
     uuid avatar_asset_id FK
   }
@@ -81,15 +82,21 @@ erDiagram
   league {
     uuid id PK
     text name
-    text slug UK
-    text sport "kickball"
+    text slug UK "public pages at /l/slug, except the default league's"
+    text sport "kickball, football, softball..."
     text timezone
-    jsonb branding "colors, logo asset ids"
+    bool is_default "the league at the site's own URLs; exactly one"
+    jsonb branding "primary and secondary colors, logo asset ids"
     jsonb contact "email, phone, social links, WhatsApp link"
-    enum site_status "active, read_only, paused; operator only"
-    text_array disabled_features "features the operator switched off"
+    enum site_status "active, read_only, paused; operator only, read from the default league's row for the whole site"
+    text_array disabled_features "features the operator switched off; the default league's row for the whole site"
     smallint minimum_age "18 to 99, default 21"
     boolean pickem_own_games "players may pick their own team's games; default true"
+  }
+  league_member {
+    uuid league_id PK, FK
+    uuid user_id PK, FK
+    enum role "player, admin, owner (Postgres type profile_global_role)"
   }
   season {
     uuid id PK
@@ -583,6 +590,7 @@ erDiagram
   purchase {
     uuid id PK
     uuid user_id FK
+    uuid league_id FK "the league the money is for"
     uuid season_id FK "null for an event ticket or a merch order"
     enum status "open, paid, failed, expired, refunded, partially_refunded"
     int subtotal_cents
@@ -637,6 +645,7 @@ erDiagram
   credit_entry {
     uuid id PK
     uuid user_id FK
+    uuid league_id FK "credit pays only this league's fees"
     int delta_cents "positive grants, negative spends"
     enum reason "rainout_rebate, referral, goodwill, spent, released"
     uuid purchase_id FK "for spent and released"
@@ -1397,6 +1406,7 @@ erDiagram
   }
   audit_log {
     uuid id PK
+    uuid league_id FK "whose log: each league's owners read their own"
     uuid actor_id FK
     text action "for example schedule.publish, refund.issue"
     text entity_type
@@ -1605,6 +1615,14 @@ Notes:
 - "I handed Kit A to Sam" writes a `pending` handoff to whoever brings the kit to its next game that hasn't ended; the kit stays with the giver until Sam confirms. Sam can say he doesn't have it (`declined`), and the giver can take it back first (`cancelled`). One handoff waits per kit.
 - A report lists items from the kit's contents, a note, or both, and stays open until an admin marks it sorted. Retiring a kit needs it at home with nothing waiting; it removes the kit's assignments to games still to come and keeps its history.
 - Every change writes an `equipment.*` audit row in the same transaction.
+
+### 2.11 Several leagues
+
+One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-one-deployment.md)). Every table holds either one league's data or the platform's and its people's: a league's table carries `league_id`, or a required foreign key to a table that does (a season, a team, a game, a sponsor, an event, a purchase). `src/db/schema/league-scope.test.ts` fails when a new table is neither. The platform's tables are a person's account and settings (`user`, `profile`, sessions, passkeys, notification choices, push devices, the private calendar link, the referral code), the outbox's `message`, `account_merge` and `webhook_event`.
+
+- A person's role is per league, in `league_member`; everyone signed in is at least a player. Playing in a league (a registration) makes it one of theirs without a row.
+- `league.is_default` marks the league at the site's own URLs (a partial unique index allows one). Until one is marked, the oldest league counts.
+- League credit, purchases and the audit log each carry the league.
 
 ## 3. Constraints and indexes
 

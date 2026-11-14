@@ -1,11 +1,11 @@
 import { db } from "@/db/client";
 import { booksSeasons, requestSheetInputs } from "@/db/queries/books";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import type { RequestRow } from "@/domain/books/request-sheet";
 import { type Column, exportFilename, toCsv } from "@/domain/export/csv";
 import { currentSubject } from "@/lib/auth/permission";
 import { requestChoices, requestSheetFor, WEEKDAYS } from "../request";
+import { activeLeague } from "@/lib/league/active";
 
 const notFound = () =>
   new Response("Not found.", {
@@ -34,7 +34,7 @@ export async function GET(
   const subject = await currentSubject();
   if (!can(subject, "books.manage")) return notFound();
   const { season: slug } = await ctx.params;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) return notFound();
   const season = (await booksSeasons(db, league.id)).find(
     (s) => s.slug === slug,

@@ -8,8 +8,11 @@ import { pickBlurb } from "@/domain/stats/game-of-the-week";
 import { movementLabel, movementWords } from "@/domain/stats/power";
 import { seasonStats } from "@/domain/stats/season";
 import { streakLabel } from "@/domain/stats/streaks";
+import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 
 type Props = {
+  /** The league whose public pages the links open (ADR 0048). */
+  league: LeagueRef;
   season: { id: SeasonId; timeZone: string };
   /** The season's teams, as the standings list them. */
   teams: readonly Pick<PublicTeam, "name" | "slug">[];
@@ -19,7 +22,7 @@ type Props = {
  * Below the standings: the game of the week, the power rankings and a way
  * to the league records.
  */
-export async function StandingsStats({ season, teams }: Props) {
+export async function StandingsStats({ league, season, teams }: Props) {
   const schedule = await publishedSchedule(db, season.id);
   const stats = seasonStats(
     schedule,
@@ -46,7 +49,12 @@ export async function StandingsStats({ season, teams }: Props) {
           <p className="text-text-muted">
             {pickBlurb(stats.pick.reason, pick.teamA.name, pick.teamB.name)}
           </p>
-          <GameCard game={pick} timeZone={season.timeZone} showDay />
+          <GameCard
+            league={league}
+            game={pick}
+            timeZone={season.timeZone}
+            showDay
+          />
         </section>
       )}
 
@@ -74,7 +82,7 @@ export async function StandingsStats({ season, teams }: Props) {
                     {r.rank}
                   </span>
                   <Link
-                    href={`/teams/${r.team}`}
+                    href={leagueHref(league, `/teams/${r.team}`)}
                     className="inline-flex min-h-11 min-w-0 flex-1 items-center break-words underline"
                   >
                     {names.get(r.team) ?? r.team}
@@ -95,7 +103,7 @@ export async function StandingsStats({ season, teams }: Props) {
 
       <p>
         <Link
-          href="/records"
+          href={leagueHref(league, "/records")}
           className="inline-flex min-h-11 items-center text-brand underline"
         >
           League records
