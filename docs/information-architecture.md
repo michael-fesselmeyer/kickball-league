@@ -54,7 +54,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 
 /operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
 
-/app                                Signed-in home: next game, RSVP, what you owe, alerts, and any giveaway you won
+/app                                Signed-in home: next game, RSVP, what you owe, alerts, any giveaway you won, and any season survey waiting for my answer
 ├── account                         Profile, weeks you'll miss for each season still to come, email, push and message-limit settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
@@ -70,6 +70,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │   └── [item]                      Photos and details; pick a size (my profile's size first) and how many; a replacement jersey also picks my team (my newest first) and is made in its color; order through Stripe Checkout with league credit, or straight away when credit covers it
 ├── photos/                         Share a photo: choose it, tag a recent game day, public event or your team, an optional caption, and the required "The league may repost this on its socials"; your photos with what the league decided, each with Delete
 │   └── [photo]                     The stored copy, waiting ones included, for its uploader and admins; ?download saves it as a file
+├── volunteer                       Volunteer shifts coming up (game days and events): the job, when and where, spots left; sign up or drop a shift until it starts; my shifts at the top
 ├── vote                            Awards: open ballots (one vote each, never for yourself or your own team) and closed polls
 │   └── [poll]                      Results after voting closes, ties sharing a place; until then, only when it closes
 ├── pickem                          Pick'em, for bragging rights only (no money, no fee, no prizes): pick each game's winner on the coming game day until it starts, my season record, hide or show me, and the season and game-day leaderboards (?day= picks a scored day)
@@ -84,6 +85,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/[season]/team (fee)     Split-pay captains: the team fee, what is paid and left, pay the rest, and the card that guarantees it
 ├── seasons/[season]/team (roles)   Captain and co-captains: the captain makes or unmakes co-captains and offers the captaincy to a teammate (withdraw while it waits); a co-captain can step down; the teammate offered it accepts or declines at the top of the page
 ├── seasons/[season]/team (list)    Captains: the team's private "not on my team" list, folded away: add a league member by email with an optional reason, or take them off
+├── seasons/[season]/survey         The end-of-season survey for a player who was on a roster: five questions (rating 1 to 5, play again, best part, one change, comment), answered once, anonymous; a prompt on the home screen while it waits
 ├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps and an optional note) and a friend code to start, join, switch or leave
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; with no signal, saved on the phone and sent later; once final, a captain rates the other team's sportsmanship; a link to report an incident
 ├── games/[game]/incident           Report an incident: kind, the people involved from either team, what happened (the game's ref, either captain, an admin; from kickoff on)
@@ -133,6 +135,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── announcements           Email the season or one team
     │   ├── recap                   Weekly recap drafted from the scores; edit, then send as an announcement
     │   ├── team-of-the-week        The game day's best wins; name a team with an optional tab at a sponsor
+    │   ├── survey                  End-of-season survey: open it once the season is completed (one invite per rostered player), close it, and the results for owners and admins: turnout, rating counts and average, play-again counts, and each question's written answers as a sorted, anonymous list
     │   ├── challenge               Team sign-up challenge: start it (prize, deadline) or change it, every team's progress with who needs a nudge, and confirm the winner (pick between teams in a dead heat)
     │   └── playoffs                Seed from standings, place on fields, publish the bracket
     ├── games                       Scores, forfeits, corrections
@@ -147,6 +150,9 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   └── [event]                 Edit (and optionally email the change, including the ticket and member prices), who's coming and the waitlist in order, "Copy for WhatsApp", call off or delete. A ticketed event adds its ticket list: holders with their code and what they paid on card and in credit, checkouts and offers open now, a check-in box for the door, and a full refund per ticket
     │       └── giveaway/           Add or change the event's free giveaway (prize, donor, winners, entry window, official rules), entry count, draw the winners once entry closes, and replace a winner with a reason; refused for a ticketed event or a theme week
     │           └── code            The giveaway's rotating entry code, full screen, for a phone or screen at the event
+    ├── volunteer/                  Volunteer shifts coming up, each with its spots and who signed up
+    │   ├── new                     Post a shift: the job, a season's game day or an event, date and times, spots, place, notes
+    │   └── [shift]                 Edit a shift (never below the people signed up) or remove it
     ├── news
     ├── messages                    Announcements and delivery log
     ├── merch/                      The shop's items: price, in the shop or hidden, orders still to make; a new item; the printer's CSV; how much photo storage is used
