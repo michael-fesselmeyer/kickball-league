@@ -14,7 +14,7 @@ This is placeholder text so the demo can show how signing works. The league will
 
 # Taking part
 
-I am 18 or older and I choose to take part in league games, practices and events. I understand that kickball is a physical activity and that I could be hurt.
+I am at least the minimum age the league sets for this season, and I choose to take part in league games, practices and events. I understand that kickball is a physical activity and that I could be hurt.
 
 # What I agree to
 
