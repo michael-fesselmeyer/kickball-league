@@ -18,7 +18,15 @@ import {
 import { parseDeviceSubscription } from "@/domain/notifications/push";
 import { saveProfile } from "@/db/queries/profile";
 import { currentLeague } from "@/db/queries/seasons";
+import { saveEmergencyContact } from "@/db/queries/emergency";
 import {
+  EMERGENCY_FIELDS,
+  type EmergencyErrors,
+  type EmergencyForm,
+  parseEmergencyForm,
+} from "@/domain/emergency/emergency";
+import {
+  normalizePhone,
   PROFILE_FIELDS,
   type ProfileErrors,
   type ProfileForm,
@@ -32,8 +40,8 @@ import { env } from "@/env";
 import { formStrings } from "@/lib/form";
 
 export type ProfileFormState = {
-  values: ProfileForm;
-  errors: ProfileErrors;
+  values: ProfileForm & EmergencyForm;
+  errors: ProfileErrors & EmergencyErrors;
   message?: string | undefined;
 };
 
@@ -45,17 +53,33 @@ export async function saveProfileAction(
   const subject = await requireSelfToChange("profile.edit", "/app/profile");
   const league = await currentLeague(db);
   if (!league) notFound();
-  const values: ProfileForm = formStrings(form, PROFILE_FIELDS);
+  const values = {
+    ...formStrings(form, PROFILE_FIELDS),
+    ...formStrings(form, EMERGENCY_FIELDS),
+  };
   // Ages are checked against today in the league's time zone.
-  const today = localDate(new Date(), league.timeZone);
+  const now = new Date();
+  const today = localDate(now, league.timeZone);
   const parsed = parseProfileForm(values, today);
-  if (!parsed.ok)
+  const emergency = parseEmergencyForm(values, normalizePhone(values.phone));
+  if (!parsed.ok || !emergency.ok)
     return {
       values,
-      errors: parsed.errors,
+      errors: {
+        ...(parsed.ok ? {} : parsed.errors),
+        ...(emergency.ok ? {} : emergency.errors),
+      },
       message: "Check the fields marked below.",
     };
-  await txDb.transaction((tx) => saveProfile(tx, subject.userId, parsed.value));
+  await txDb.transaction(async (tx) => {
+    await saveProfile(tx, subject.userId, parsed.value);
+    await saveEmergencyContact(tx, {
+      userId: subject.userId,
+      card: emergency.value,
+      secret: env.BETTER_AUTH_SECRET,
+      now,
+    });
+  });
   redirect("/app/profile?saved=1");
 }
 

@@ -11,7 +11,7 @@ import {
 import { profileOf } from "@/db/queries/profile";
 import { seasonForRegistration } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
-import { parseProfileForm, toProfileForm } from "@/domain/profile/profile-form";
+import { readyToRegister } from "@/domain/profile/profile-form";
 import { priceFor, registrationWindow } from "@/domain/registration/pricing";
 import { localDate } from "@/domain/scheduler/slots";
 import { requirePermission } from "@/lib/auth/permission";
@@ -149,8 +149,7 @@ async function NewTeam({
     profileOf(db, subject.userId),
   ]);
   const complete =
-    person !== null &&
-    parseProfileForm(toProfileForm(person), localDate(now, league.timeZone)).ok;
+    person !== null && readyToRegister(person, localDate(now, league.timeZone));
   const open = registrationWindow(season, now) === "open";
   const captains = standing?.team?.role === "captain";
   // Waiting for an answer, or already approved: the card above says what next.

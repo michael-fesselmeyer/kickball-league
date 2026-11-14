@@ -7,7 +7,7 @@ import { profileOf } from "@/db/queries/profile";
 import { seasonForRegistration } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { parseId, type TeamFormationRequestId } from "@/domain/ids";
-import { parseProfileForm, toProfileForm } from "@/domain/profile/profile-form";
+import { readyToRegister } from "@/domain/profile/profile-form";
 import { parseNewTeamRequest } from "@/domain/registration/new-team";
 import { localDate } from "@/domain/scheduler/slots";
 import { requirePermissionToChange } from "@/lib/auth/permission";
@@ -57,7 +57,7 @@ export async function requestNewTeamAction(
   // Approval may register them, which needs the same details as registering.
   const person = await profileOf(db, subject.userId);
   const today = localDate(new Date(), league.timeZone);
-  if (person === null || !parseProfileForm(toProfileForm(person), today).ok)
+  if (person === null || !readyToRegister(person, today))
     return { values, error: MESSAGES.profile_incomplete };
   const parsed = parseNewTeamRequest(values, season);
   if (!parsed.ok) return { values, error: MESSAGES[parsed.error] };

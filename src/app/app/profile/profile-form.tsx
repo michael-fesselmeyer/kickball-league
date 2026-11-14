@@ -1,7 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import type { ProfileField, ProfileForm } from "@/domain/profile/profile-form";
+import {
+  type EmergencyField,
+  FIRST_AID_MAX,
+  RELATIONSHIP_MAX,
+} from "@/domain/emergency/emergency";
+import type { ProfileField } from "@/domain/profile/profile-form";
 import { type ProfileFormState, saveProfileAction } from "./actions";
 
 const input =
@@ -23,18 +28,24 @@ const SHIRT_LABELS: [string, string][] = [
   ["xxl", "XXL"],
 ];
 
-export function ProfileSettingsForm({ values }: { values: ProfileForm }) {
+type Field = ProfileField | EmergencyField;
+
+export function ProfileSettingsForm({
+  values,
+}: {
+  values: ProfileFormState["values"];
+}) {
   const [state, action, pending] = useActionState<ProfileFormState, FormData>(
     saveProfileAction,
     { values, errors: {} },
   );
   const v = state.values;
 
-  const described = (name: ProfileField, hint?: boolean) =>
+  const described = (name: Field, hint?: boolean) =>
     [state.errors[name] && `${name}-error`, hint && `${name}-hint`]
       .filter(Boolean)
       .join(" ") || undefined;
-  const after = (name: ProfileField, hint?: string) => (
+  const after = (name: Field, hint?: string) => (
     <>
       {hint && (
         <span id={`${name}-hint`} className="text-small text-text-muted">
@@ -49,7 +60,7 @@ export function ProfileSettingsForm({ values }: { values: ProfileForm }) {
     </>
   );
   const text = (
-    name: ProfileField,
+    name: Field,
     label: string,
     props: React.InputHTMLAttributes<HTMLInputElement> = {},
     hint?: string,
@@ -144,16 +155,50 @@ export function ProfileSettingsForm({ values }: { values: ProfileForm }) {
         </div>
         {select("shirtSize", "Shirt size", SHIRT_LABELS)}
       </fieldset>
-      <fieldset className="flex flex-col gap-3">
+      <fieldset
+        className="flex flex-col gap-3"
+        aria-describedby="emergency-consent"
+      >
         <legend className="mb-2 text-h2">Emergency contact</legend>
+        <p id="emergency-consent" className="text-text-muted">
+          Who should we call if you&apos;re hurt at a game? The league keeps
+          this encrypted. Only the two captains and the ref of a game
+          you&apos;re in can see it, and only on that game&apos;s day, so
+          whoever is at the field can reach someone. Each time one of them opens
+          it, the league records who and when. League admins don&apos;t see it.
+          Saving it means you agree to that; you can change it any time, and
+          it&apos;s deleted with your account.
+        </p>
         <div className={row}>
           {text("emergencyContactName", "Name", { required: true })}
-          {text("emergencyContactPhone", "Phone", {
-            type: "tel",
-            inputMode: "tel",
-            required: true,
-          })}
+          {text(
+            "emergencyContactRelationship",
+            "Relationship (optional)",
+            { maxLength: RELATIONSHIP_MAX },
+            "Such as partner, parent or friend.",
+          )}
         </div>
+        {text("emergencyContactPhone", "Phone", {
+          type: "tel",
+          inputMode: "tel",
+          required: true,
+        })}
+        <label className="flex flex-col gap-1">
+          First-aid note (optional)
+          <textarea
+            name="firstAidNote"
+            defaultValue={v.firstAidNote}
+            rows={3}
+            maxLength={FIRST_AID_MAX}
+            aria-invalid={state.errors.firstAidNote ? true : undefined}
+            aria-describedby={described("firstAidNote", true)}
+            className={input}
+          />
+          {after(
+            "firstAidNote",
+            "Only what you choose to share, such as an allergy or a condition someone helping you should know about.",
+          )}
+        </label>
       </fieldset>
       <button
         type="submit"
