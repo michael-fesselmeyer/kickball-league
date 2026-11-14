@@ -45,6 +45,7 @@ export async function lineupGame(db: Db, gameId: GameId) {
       id: game.id,
       seasonId: game.seasonId,
       seasonSlug: season.slug,
+      kind: game.kind,
       status: game.status,
       teamAId: game.teamAId,
       teamBId: game.teamBId,
