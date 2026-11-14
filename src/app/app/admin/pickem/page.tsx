@@ -5,6 +5,7 @@ import { db } from "@/db/client";
 import { ownGamesAllowed } from "@/db/queries/pickem";
 import { requirePermission } from "@/lib/auth/permission";
 import { setOwnGamesAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Pick'em settings" };
 
@@ -56,11 +57,11 @@ async function Settings({ searchParams }: PageProps<"/app/admin/pickem">) {
           Picks already made stay as they are.
         </p>
         <form action={setOwnGamesAction.bind(null, !allowed)}>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             {allowed
               ? "Keep players off their own team's games"
               : "Let players pick their own team's games"}
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>
