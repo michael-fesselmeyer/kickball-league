@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import {
   gamesOnLostPermits,
@@ -138,6 +139,7 @@ async function Permits({
           Books: {season.name}
         </Link>
         <h1 className="text-h1">Permits and insurance</h1>
+        <HelpLink role="owner" article="permits" topic="park permits" />
         <p className="text-text-muted">
           NYC Parks has no public permit system to connect to, so permits are
           applied for on their site and tracked here. Owners get an email 30 and

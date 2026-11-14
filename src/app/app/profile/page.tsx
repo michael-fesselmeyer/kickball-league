@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import { awaySeasonsFor } from "@/db/queries/away";
 import { creditBalance, creditHistory } from "@/db/queries/credit";
@@ -78,6 +79,11 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
           Home
         </Link>
         <h1 className="text-h1">Your profile</h1>
+        <HelpLink
+          role="player"
+          article="alerts"
+          topic="alerts and notifications"
+        />
         <p className="text-text-muted">
           Signed in as <strong className="text-text">{profile.email}</strong>.
           The league needs these before you register for a season.

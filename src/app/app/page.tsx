@@ -162,6 +162,13 @@ async function Account() {
         <p className="text-text-muted">
           Signed in as <strong className="text-text">{name || email}</strong>.
         </p>
+        <Link
+          href="/help"
+          prefetch={false}
+          className="inline-flex min-h-11 items-center self-start text-small underline underline-offset-4"
+        >
+          Help center
+        </Link>
       </div>
       {nextGame && (
         <section

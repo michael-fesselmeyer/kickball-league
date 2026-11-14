@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import { divisionsScreen } from "@/db/queries/divisions";
 import { loadVersion } from "@/db/queries/schedule";
@@ -112,6 +113,7 @@ async function Schedule({
       <header className="flex flex-col gap-1">
         <p className="text-text-muted">{season.name}</p>
         <h1 className="text-h1">Schedule</h1>
+        <HelpLink role="admin" article="schedule" topic="making the schedule" />
         <Link href={`/app/admin/seasons/${slug}/fields`} className="underline">
           Fields, permits and slots
         </Link>

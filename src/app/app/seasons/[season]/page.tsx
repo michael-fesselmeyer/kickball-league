@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import { creditBalance } from "@/db/queries/credit";
 import { myQuiz } from "@/db/queries/free-agents";
@@ -100,6 +101,7 @@ async function Season({
         Home
       </Link>
       <h1 className="text-h1">{season.name}</h1>
+      <HelpLink role="player" article="pay" topic="signing up and paying" />
     </header>
   );
   if (!mine) {

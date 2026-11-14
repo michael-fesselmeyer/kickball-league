@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import type { CommandDayRow } from "@/db/queries/command-center";
@@ -83,6 +84,11 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
           {when} · {label}
         </p>
         <h1 className="text-h1">Game day</h1>
+        <HelpLink
+          role="admin"
+          article="command-center"
+          topic="the game-day command center"
+        />
         {notice && (
           <p role="status" className="rounded-lg border border-success p-3">
             {notice}

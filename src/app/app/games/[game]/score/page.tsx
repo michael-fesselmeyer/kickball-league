@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import { currentLeague } from "@/db/queries/seasons";
 import {
@@ -189,6 +190,11 @@ async function Score({
         <h1 className="text-h2">
           {g.teamAName} vs {g.teamBName}
         </h1>
+        <HelpLink
+          role="captain"
+          article="scores"
+          topic="entering and confirming scores"
+        />
         <Pickups
           pickups={pickups}
           teams={[

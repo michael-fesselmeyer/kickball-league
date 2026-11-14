@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import { type OpenRequest, subRequestsFor } from "@/db/queries/subs";
 import { describeSpots } from "@/domain/subs/eligibility";
@@ -162,6 +163,7 @@ async function Subs({ searchParams }: PageProps<"/app/subs">) {
           Home
         </Link>
         <h1 className="text-h1">Sub for a team</h1>
+        <HelpLink role="player" article="subs" topic="subbing" />
         <p className="text-text-muted">
           Teams that are short post here. Tap &quot;I&apos;m in&quot; to hold a
           spot; the captain confirms. You need to be registered this season with
