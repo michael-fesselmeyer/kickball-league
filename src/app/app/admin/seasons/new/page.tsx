@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { EMPTY_SEASON_FORM } from "@/domain/season/settings";
 import { requirePermission } from "@/lib/auth/permission";
 import { createSeasonAction } from "../actions";
@@ -17,6 +18,11 @@ export default function NewSeasonPage() {
           All seasons
         </Link>
         <h1 className="text-h1">New season</h1>
+        <HelpLink
+          role="admin"
+          article="season-setup"
+          topic="setting up a season"
+        />
         <p className="text-text-muted">
           It starts as a draft, so players see nothing until you open
           registration.

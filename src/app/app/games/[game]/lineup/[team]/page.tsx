@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { WeekAvailabilityNote } from "@/components/week-availability";
 import { db } from "@/db/client";
 import { teamAvailability } from "@/db/queries/away";
@@ -107,6 +108,7 @@ async function Builder({
         <h1 className="text-h2">
           {teamName} vs {opponent}
         </h1>
+        <HelpLink role="captain" article="lineup" topic="kicking orders" />
         <p className="text-small text-text-muted">
           League rule 2.2.4: no more than two players of the same gender kick in
           a row, and the order wraps from the last kicker to the first. Only

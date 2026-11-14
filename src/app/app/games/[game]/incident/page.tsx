@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import { gamePeople } from "@/db/queries/discipline";
 import { gameForScoring } from "@/db/queries/scores";
@@ -75,6 +76,11 @@ async function Report({
           {g.teamAName} vs {g.teamBName}
         </Link>
         <h1 className="text-h1">Report an incident</h1>
+        <HelpLink
+          role="ref"
+          article="incidents"
+          topic="reporting an incident"
+        />
         <p className="text-text-muted">
           Only league admins read reports. They follow up, and decide on any
           suspension.

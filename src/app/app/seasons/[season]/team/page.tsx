@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import { challengeForSeason } from "@/db/queries/challenges";
 import { teamAvailability } from "@/db/queries/away";
@@ -395,6 +396,11 @@ async function Team({
         <Link href="/app/profile#away" className="self-start underline">
           Away some weeks? Mark them
         </Link>
+        {manages ? (
+          <HelpLink role="captain" article="invite" topic="running your team" />
+        ) : (
+          <HelpLink role="player" article="rsvp" topic="your team page" />
+        )}
       </header>
 
       {balance && (

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { PageLoading } from "@/components/page-loading";
 import { money } from "@/domain/books/ledger";
 import { localDate } from "@/domain/books/ledger-csv";
@@ -90,6 +91,11 @@ async function Dashboard({
       <header className="flex flex-col gap-3">
         <p className="text-text-muted">{season.name}</p>
         <h1 className="text-h1">Owner dashboard</h1>
+        <HelpLink
+          role="owner"
+          article="dashboard"
+          topic="the owner dashboard"
+        />
         <p className="text-text-muted">
           How the league is doing, season by season. Owners only; admins
           don&apos;t see this page.

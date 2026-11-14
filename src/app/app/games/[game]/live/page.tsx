@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { LineScore } from "@/components/line-score";
 import { db } from "@/db/client";
 import { hasReferee, liveGame, snapshotOf } from "@/db/queries/live-scores";
@@ -90,6 +91,7 @@ async function Live({
         <h1 className="text-h2">
           {g.teamAName} vs {g.teamBName}
         </h1>
+        <HelpLink role="ref" article="live-scoring" topic="live scoring" />
         <p className="text-small text-text-muted">
           Enter the runs after each half-inning. The{" "}
           <Link href={`/games/${g.id}`} className="underline">
