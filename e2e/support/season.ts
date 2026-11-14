@@ -12,7 +12,19 @@ export type NewSeason = {
   freeAgentFee: number;
   rosterMin: number;
   rosterMax: number;
+  /** Whole dollars off every fee until the day it ends (YYYY-MM-DD). */
+  earlyBird?: { discount: number; endsOn: string };
 };
+
+/** A date `days` from today in the league's time zone, as YYYY-MM-DD. */
+export function leagueDate(days: number): string {
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+  }).format(new Date());
+  const date = new Date(`${today}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
 
 /**
  * An admin creates a per-team-fee season, opens registration and gives it
@@ -33,6 +45,12 @@ export async function openSeason(admin: Page, season: NewSeason) {
     .getByLabel("Closes", { exact: true })
     .fill(season.registrationCloses);
   await admin.getByLabel("Payment deadline").fill(season.registrationCloses);
+  if (season.earlyBird) {
+    await admin
+      .getByLabel("Early-bird discount ($)")
+      .fill(String(season.earlyBird.discount));
+    await admin.getByLabel("Early bird ends").fill(season.earlyBird.endsOn);
+  }
   await admin.getByLabel("Smallest roster").fill(String(season.rosterMin));
   await admin.getByLabel("Largest roster").fill(String(season.rosterMax));
   await admin.getByRole("button", { name: "Create season" }).click();

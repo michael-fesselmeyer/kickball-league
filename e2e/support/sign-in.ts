@@ -3,8 +3,8 @@ import { type Browser, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
 
 /**
- * Signs a seeded person in who isn't one of the demo personas, the way a
- * player does: with a one-time email sign-in link. The flows server runs as
+ * Signs someone in who isn't one of the demo personas (a seeded player, or a
+ * new person the test makes up), the way a player does: with a one-time email sign-in link. The flows server runs as
  * production and never logs links, so the test writes the link's record to
  * the test database itself, in the shape Better Auth's magic-link plugin
  * stores it, and opens the link. The token is made fresh for each call and
@@ -20,6 +20,21 @@ export async function pageSignedInAs(
   browser: Browser,
   email: string,
 ): Promise<Page> {
+  const context = await browser.newContext({
+    extraHTTPHeaders: { "x-forwarded-for": testAddress() },
+  });
+  const page = await context.newPage();
+  await signIn(page, email);
+  return page;
+}
+
+/**
+ * The same sign-in in a page that is already open, so whatever its browser
+ * already holds (a referral link's cookie, say) still applies. An address
+ * with no account yet signs up, as a new player's first link does.
+ */
+export async function signIn(page: Page, email: string): Promise<void> {
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": testAddress() });
   const token = randomBytes(24).toString("base64url");
   await withDb((db) =>
     db.query(
@@ -28,14 +43,9 @@ export async function pageSignedInAs(
       [`magic-link:${token}`, JSON.stringify({ type: "magic-link", email })],
     ),
   );
-  const context = await browser.newContext({
-    extraHTTPHeaders: { "x-forwarded-for": testAddress() },
-  });
-  const page = await context.newPage();
   const link = new URLSearchParams({ token, callbackURL: "/app" });
   await page.goto(`/api/auth/magic-link/verify?${link.toString()}`);
   await expect(page).toHaveURL(/\/app(\/|$)/);
-  return page;
 }
 
 /** The address of a team's captain in a season, from the seeded league. */
