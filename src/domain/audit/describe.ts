@@ -25,6 +25,7 @@ const ACTIONS: Record<string, string> = {
   "captaincy.remove_co_captain": "Made a co-captain a player again",
   "credit.goodwill": "Gave a player league credit",
   "credit.rebate": "Issued a rain-out rebate as league credit",
+  "emergency_contact.view": "Read a game's emergency contacts",
   "event.cancel": "Called off an event",
   "event.create": "Added an event",
   "event.delete": "Deleted an event",

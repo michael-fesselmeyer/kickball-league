@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import type { UserId } from "@/domain/ids";
 import type { ProfileSettings } from "@/domain/profile/profile-form";
 import { user } from "../schema/auth";
+import { emergencyContact } from "../schema/emergency";
 import { profile } from "../schema/profile";
 import type { Db } from "./schedule";
 
@@ -18,13 +19,16 @@ export async function profileOf(db: Db, userId: UserId) {
       lineupGender: profile.lineupGender,
       shirtSize: profile.shirtSize,
       birthDate: profile.birthDate,
-      emergencyContactName: profile.emergencyContactName,
-      emergencyContactPhone: profile.emergencyContactPhone,
+      // The contact itself is sealed (emergency.ts); here only whether one is saved.
+      emergencyContactSavedAt: emergencyContact.updatedAt,
     })
     .from(user)
     .leftJoin(profile, eq(profile.userId, user.id))
+    .leftJoin(emergencyContact, eq(emergencyContact.userId, user.id))
     .where(eq(user.id, userId));
-  return found ?? null;
+  if (!found) return null;
+  const { emergencyContactSavedAt, ...rest } = found;
+  return { ...rest, hasEmergencyContact: emergencyContactSavedAt !== null };
 }
 
 /**

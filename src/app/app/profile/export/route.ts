@@ -3,6 +3,7 @@ import { personalData } from "@/db/queries/account";
 import { can } from "@/domain/authz/permissions";
 import { exportFilename } from "@/domain/export/csv";
 import { parseId, type UserId } from "@/domain/ids";
+import { env } from "@/env";
 import { currentSubject } from "@/lib/auth/permission";
 
 /** The signed-in person's own data, as a JSON download. */
@@ -21,7 +22,7 @@ export async function GET() {
       },
     });
   const now = new Date();
-  const data = await personalData(db, userId, now);
+  const data = await personalData(db, userId, now, env.BETTER_AUTH_SECRET);
   const name = exportFilename(
     ["kickball-league", "my-data", now.toISOString().slice(0, 10)],
     "json",

@@ -49,6 +49,11 @@ import { waiver, waiverSignature } from "../schema/waiver";
 import { waitlistEntry } from "../schema/waitlist";
 import { accountMerge } from "../schema/account-merge";
 import { recordAudit } from "./audit";
+import {
+  emergencyCardOf,
+  hasEmergencyContact,
+  removeEmergencyContact,
+} from "./emergency";
 import { myDisciplineRecords, removeDisciplineNotes } from "./discipline";
 import { resetFeed } from "./event-audience";
 import { leaveEvent } from "./events";
@@ -95,7 +100,13 @@ function without<Row extends object, Key extends keyof Row>(
  * Everything the league holds about one person, as plain JSON. Secrets are
  * never included: no session tokens, sign-in tokens or provider tokens.
  */
-export async function personalData(db: Db, userId: UserId, now: Date) {
+export async function personalData(
+  db: Db,
+  userId: UserId,
+  now: Date,
+  /** The auth secret, to open the person's sealed emergency contact. */
+  secret?: string,
+) {
   const [person] = await db
     .select({
       id: user.id,
@@ -118,8 +129,6 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
       lineupGender: profile.lineupGender,
       shirtSize: profile.shirtSize,
       birthDate: profile.birthDate,
-      emergencyContactName: profile.emergencyContactName,
-      emergencyContactPhone: profile.emergencyContactPhone,
       role: profile.globalRole,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt,
@@ -546,6 +555,13 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
       createdAt: person.createdAt,
     },
     profile: me ?? null,
+    // Opened for the person themselves; without the secret, only whether one is saved.
+    emergencyContact:
+      secret === undefined
+        ? (await hasEmergencyContact(db, userId))
+          ? "saved"
+          : null
+        : await emergencyCardOf(db, userId, secret),
     signInMethods,
     passkeys,
     sessions,
@@ -895,6 +911,7 @@ export async function deleteAccount(
       mergedEmail: sql`'merged-' || ${accountMerge.mergedUserId} || '@deleted.invalid'`,
     })
     .where(eq(accountMerge.keptUserId, userId));
+  await removeEmergencyContact(db, userId);
   await db.delete(profile).where(eq(profile.userId, userId));
   await db
     .update(user)
