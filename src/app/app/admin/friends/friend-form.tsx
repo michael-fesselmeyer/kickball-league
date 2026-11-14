@@ -96,6 +96,7 @@ export function FriendFormFields({
           <input
             {...p}
             name="name"
+            autoComplete="off"
             required
             maxLength={MAX_NAME_LENGTH}
             defaultValue={v.name}

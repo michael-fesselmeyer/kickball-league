@@ -84,6 +84,7 @@ export function ItemFormFields({
         <input
           id="name"
           name="name"
+          autoComplete="off"
           required
           maxLength={80}
           defaultValue={values.name}

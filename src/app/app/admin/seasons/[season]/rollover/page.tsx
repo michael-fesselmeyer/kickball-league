@@ -137,6 +137,7 @@ async function Rollover({
             <span className="text-small">New season&apos;s name</span>
             <input
               name="name"
+              autoComplete="off"
               defaultValue={name}
               maxLength={60}
               required
@@ -265,7 +266,12 @@ async function Rollover({
             </ul>
           </div>
           <form action={rollOverAction.bind(null, slug)}>
-            <input type="hidden" name="name" value={plan.value.name} />
+            <input
+              type="hidden"
+              name="name"
+              autoComplete="off"
+              value={plan.value.name}
+            />
             <input
               type="hidden"
               name="startsOn"
