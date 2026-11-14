@@ -12,7 +12,7 @@
  *    screen names them only for someone allowed to see them, the server
  *    checks again when they are fetched, and signing out deletes them.
  * 4. For that game's ref and captains, on game day only: its emergency
- *    contacts page (ADR 0042), kept with an expiry at midnight after game
+ *    contacts page (ADR 0043), kept with an expiry at midnight after game
  *    day. The saved copy is deleted when that time passes, even with no
  *    signal, the next time the home screen names a game without it, and on
  *    signing out.

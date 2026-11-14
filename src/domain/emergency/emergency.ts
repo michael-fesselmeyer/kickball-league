@@ -1,6 +1,6 @@
 /**
  * Emergency contacts on game day (product-spec.md, "Accounts and
- * profile"; docs/adr/0042-emergency-contacts-sealed-and-shown-on-game-day.md).
+ * profile"; docs/adr/0043-emergency-contacts-sealed-and-shown-on-game-day.md).
  *
  * Each player keeps one emergency contact (name, relationship, phone) and
  * may add a short first-aid note. The league stores it sealed, and shows it
