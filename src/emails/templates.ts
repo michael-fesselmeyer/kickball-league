@@ -29,8 +29,10 @@ import { rainoutNoticeEmail } from "./rainout-notice";
 import { scoreConfirmationEmail } from "./score-confirmation";
 import { scoreReminderEmail } from "./score-reminder";
 import { subRequestEmail, subUpdateEmail } from "./sub-request";
+import { surveyInviteEmail } from "./survey-invite";
 import { suspensionEmail } from "./suspension";
 import { teamRoleEmail } from "./team-role";
+import { volunteerReminderEmail } from "./volunteer-reminder";
 
 /**
  * Every email the outbox can send, by the template name stored on the
@@ -68,7 +70,9 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     sub_request: subRequestEmail,
     sub_update: subUpdateEmail,
     suspension: suspensionEmail,
+    survey_invite: surveyInviteEmail,
     team_role: teamRoleEmail,
+    volunteer_reminder: volunteerReminderEmail,
     waitlist_offer: waitlistOfferEmail,
   };
 
