@@ -70,6 +70,8 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "giveaway.enter",
       "challenge.view",
       "merch.order",
+      "volunteer.claim",
+      "survey.answer",
     ] as const)
       expect(allowed(action)).toEqual(everyone.filter((w) => w !== "visitor"));
   });
@@ -454,6 +456,9 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "event.manage",
       "giveaway.manage",
       "challenge.manage",
+      "volunteer.manage",
+      "survey.manage",
+      "survey.results",
       "referee.manage",
       "player.suspend",
       "incident.review",

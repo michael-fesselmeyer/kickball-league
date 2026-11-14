@@ -126,6 +126,12 @@ async function Season({
             Shirts
           </Link>
           <Link
+            href={`/app/admin/seasons/${slug}/survey`}
+            className="underline"
+          >
+            Season survey
+          </Link>
+          <Link
             href={`/app/admin/seasons/${slug}/requests`}
             className="underline"
           >

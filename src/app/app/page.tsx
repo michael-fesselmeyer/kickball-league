@@ -11,6 +11,7 @@ import { gamesToReferee } from "@/db/queries/referees";
 import { openSeasons } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { pickupsFor } from "@/db/queries/subs";
+import { surveysWaitingFor } from "@/db/queries/surveys";
 import { AllOutboxStatus } from "@/components/offline-outbox";
 import { Pickups } from "@/components/pickups";
 import { can } from "@/domain/authz/permissions";
@@ -75,6 +76,11 @@ async function Account() {
     const id = parseId<UserId>(subject.userId);
     return id ? myGiveawayWins(db, id) : [];
   })();
+  // Season surveys waiting for this player's answer, started early too.
+  const surveys = (async () => {
+    const id = parseId<UserId>(subject.userId);
+    return id ? surveysWaitingFor(db, id) : [];
+  })();
   const isAdmin = can(subject, "season.manage", {});
   const league = await currentLeague(db);
   const now = new Date();
@@ -130,6 +136,7 @@ async function Account() {
   const ballots = await waiting;
   const showPickem = await pickemOn;
   const won = await wins;
+  const surveysOpen = await surveys;
   const timeZone = league?.timeZone ?? "America/New_York";
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
@@ -270,6 +277,15 @@ async function Account() {
           Vote for awards ({ballots} open)
         </Link>
       )}
+      {surveysOpen.map((sv) => (
+        <Link
+          key={sv.seasonSlug}
+          href={`/app/seasons/${sv.seasonSlug}/survey`}
+          className="btn btn-primary"
+        >
+          How was {sv.seasonName}? Take the survey
+        </Link>
+      ))}
       {showPickem && (
         <Link href="/app/pickem" className="btn btn-secondary">
           Pick&apos;em
@@ -280,6 +296,9 @@ async function Account() {
       </Link>
       <Link href="/app/events" className="btn btn-secondary">
         Events
+      </Link>
+      <Link href="/app/volunteer" className="btn btn-secondary">
+        Volunteer
       </Link>
       <Link href="/app/shop" className="btn btn-secondary">
         League shop
