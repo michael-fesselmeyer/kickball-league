@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, max, ne, notInArray } from "drizzle-orm";
+import type { LeagueId } from "@/domain/ids";
 import { game } from "../schema/game";
 import { gamePlacement, scheduleVersion } from "../schema/schedule";
 import { season } from "../schema/season";
@@ -65,4 +66,23 @@ export async function currentPublicGames(db: Db) {
     .innerJoin(season, eq(game.seasonId, season.id))
     .where(notInArray(season.status, ["draft", "completed"]))
     .orderBy(asc(game.id));
+}
+
+/**
+ * The /seasons page: every season with public pages in a league, newest
+ * first, with what a visitor needs to pick one.
+ */
+export async function seasonList(db: Db, leagueId: LeagueId) {
+  return db
+    .select({
+      id: season.id,
+      name: season.name,
+      slug: season.slug,
+      status: season.status,
+      startsOn: season.startsOn,
+      endsOn: season.endsOn,
+    })
+    .from(season)
+    .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
+    .orderBy(desc(season.startsOn));
 }

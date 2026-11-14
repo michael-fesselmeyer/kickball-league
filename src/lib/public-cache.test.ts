@@ -5,6 +5,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
 const { revalidatePath, updateTag } = await import("next/cache");
 const {
   EVENTS_TAG,
+  SEASONS_TAG,
   SITE_TAG,
   SPONSORS_TAG,
   THEME_WEEKS_TAG,
@@ -29,11 +30,15 @@ beforeEach(() => {
 // A page whose tag expired is answered from its route's shell, so the shells,
 // which carry only path tags, are expired by path too.
 describe("refreshSeasonPages", () => {
-  it("expires the season's tag and the season, team and game routes", () => {
+  it("expires the season's tag, the season list and the season, team and game routes", () => {
     refreshSeasonPages("season-1");
 
-    expect(vi.mocked(updateTag).mock.calls).toEqual([[seasonTag("season-1")]]);
+    expect(vi.mocked(updateTag).mock.calls).toEqual([
+      [seasonTag("season-1")],
+      [SEASONS_TAG],
+    ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
+      ["/seasons"],
       ["/seasons/[season]", "layout"],
       ["/teams/[team]", "layout"],
       ["/games/[game]", "layout"],

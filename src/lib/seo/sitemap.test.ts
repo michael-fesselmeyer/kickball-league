@@ -14,6 +14,7 @@ describe("buildSitemap", () => {
     expect(urls).toEqual([
       ORIGIN,
       `${ORIGIN}/parks/mccarren-park`,
+      `${ORIGIN}/seasons`,
       `${ORIGIN}/faq`,
       `${ORIGIN}/nyc-kickball-league`,
       `${ORIGIN}/free-agents`,
