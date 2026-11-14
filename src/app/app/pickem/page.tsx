@@ -12,6 +12,7 @@ import {
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
 import { savePicksAction, setHiddenAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Pick'em" };
 
@@ -248,9 +249,9 @@ async function Pickem({ searchParams }: PageProps<"/app/pickem">) {
               ))}
             </ul>
             {open && (
-              <button type="submit" className="btn self-start btn-primary">
+              <SubmitButton className="btn self-start btn-primary">
                 Save picks
-              </button>
+              </SubmitButton>
             )}
           </form>
         )}
@@ -277,11 +278,11 @@ async function Pickem({ searchParams }: PageProps<"/app/pickem">) {
             : "You're on the leaderboards. You can hide yourself at any time."}
         </p>
         <form action={setHiddenAction.bind(null, !page.hidden)}>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             {page.hidden
               ? "Show me on the leaderboards"
               : "Hide me from the leaderboards"}
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
