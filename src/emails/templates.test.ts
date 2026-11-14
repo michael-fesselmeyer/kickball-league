@@ -489,4 +489,18 @@ describe("the digest", () => {
       }).ok,
     ).toBe(false);
   });
+
+  it("tells a player their season card is ready, and that it is private", () => {
+    const result = render("season_card", {
+      seasonName: "Summer 2026",
+      seasonSlug: "summer-2026",
+    });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe("Your Summer 2026 season in kickball");
+    expect(result.value.text).toContain("Only you can see it");
+    expect(result.value.text).toContain(
+      "https://league.example.test/app/seasons/summer-2026/card",
+    );
+    expect(result.value.text).toContain("because you played in Summer 2026");
+  });
 });

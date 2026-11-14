@@ -28,6 +28,7 @@ import { rainAlertEmail } from "./rain-alert";
 import { rainoutNoticeEmail } from "./rainout-notice";
 import { scoreConfirmationEmail } from "./score-confirmation";
 import { scoreReminderEmail } from "./score-reminder";
+import { seasonCardEmail } from "./season-card";
 import { subRequestEmail, subUpdateEmail } from "./sub-request";
 import { surveyInviteEmail } from "./survey-invite";
 import { suspensionEmail } from "./suspension";
@@ -67,6 +68,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     referral_credit: referralCreditEmail,
     score_confirmation: scoreConfirmationEmail,
     score_reminder: scoreReminderEmail,
+    season_card: seasonCardEmail,
     sub_request: subRequestEmail,
     sub_update: subUpdateEmail,
     suspension: suspensionEmail,

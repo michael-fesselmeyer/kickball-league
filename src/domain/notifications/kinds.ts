@@ -119,6 +119,10 @@ export const MESSAGE_KINDS = {
     urgency: "non_urgent",
     label: "Reminders about games with no score yet",
   },
+  season_card: {
+    urgency: "non_urgent",
+    label: "Your season in kickball: your end-of-season card is ready",
+  },
   sub_request: {
     urgency: "urgent",
     label: "Teams that need a sub when you're free",
