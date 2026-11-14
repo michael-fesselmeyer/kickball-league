@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -13,6 +14,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
 import { savePicksAction, setHiddenAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Pick'em" };
 
@@ -179,8 +181,11 @@ async function Pickem({ searchParams }: PageProps<"/app/pickem">) {
   const subject = await requirePermission("pickem.pick", {
     next: "/app/pickem",
   });
+  const league = await activeLeague();
+  if (!league) notFound();
   const page = await pickemPage(
     db,
+    league.id,
     subject.userId,
     new Date(),
     readDay(query.day),

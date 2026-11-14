@@ -148,7 +148,7 @@ export async function leaderboard(
  * The season pick'em is about: the one being played (the latest, if two
  * overlap), or else the last one finished.
  */
-async function pickemSeason(db: Db) {
+async function pickemSeason(db: Db, leagueId: LeagueId) {
   const live = sql`${season.status} in ('in_progress', 'playoffs')`;
   const [found] = await db
     .select({
@@ -162,8 +162,8 @@ async function pickemSeason(db: Db) {
     .where(
       and(
         inArray(season.status, ["in_progress", "playoffs", "completed"]),
-        // The league this deployment serves (architecture.md: one each).
-        sql`${season.leagueId} = (select ${league.id} from ${league} order by ${league.createdAt} limit 1)`,
+        // The league the app is showing (ADR 0048).
+        eq(season.leagueId, leagueId),
       ),
     )
     .orderBy(desc(live), desc(season.startsOn))
@@ -227,11 +227,12 @@ export type PickemPage = {
  */
 export async function pickemPage(
   db: Db,
+  leagueId: LeagueId,
   userId: UserId,
   now: Date,
   requestedDay: string | null,
 ): Promise<PickemPage> {
-  const current = await pickemSeason(db);
+  const current = await pickemSeason(db, leagueId);
   const empty = {
     coming: null,
     scoredDays: [],
@@ -432,12 +433,14 @@ export async function setHidden(
 }
 
 /** Whether players may pick their own team's games (the league's setting). */
-export async function ownGamesAllowed(db: Db): Promise<boolean> {
+export async function ownGamesAllowed(
+  db: Db,
+  leagueId: LeagueId,
+): Promise<boolean> {
   const [row] = await db
     .select({ on: league.pickemOwnGames })
     .from(league)
-    .orderBy(asc(league.createdAt))
-    .limit(1);
+    .where(eq(league.id, leagueId));
   return row?.on ?? true;
 }
 

@@ -6,6 +6,7 @@ import { savePicks, setHidden } from "@/db/queries/pickem";
 import { type GameId, parseId, type TeamSeasonId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
+import { requireInLeague } from "@/lib/league/guard";
 
 const PAGE = "/app/pickem";
 /** A game day has a handful of games; more fields than this is not a form. */
@@ -30,6 +31,8 @@ export async function savePicksAction(form: FormData): Promise<void> {
     if (gameId && teamId) picks.set(gameId, teamId);
   }
   if (picks.size === 0) redirect(`${PAGE}?notice=empty#coming`);
+  // Picks are for the games of the league the app is showing (ADR 0048).
+  await requireInLeague(subject, { game: [...picks.keys()] });
   const result = await txDb.transaction((tx) =>
     savePicks(tx, { userId: subject.userId, picks, now: new Date() }),
   );

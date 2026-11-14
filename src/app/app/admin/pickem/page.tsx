@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -6,6 +7,7 @@ import { ownGamesAllowed } from "@/db/queries/pickem";
 import { requirePermission } from "@/lib/auth/permission";
 import { setOwnGamesAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Pick'em settings" };
 
@@ -24,7 +26,9 @@ export default function PickemSettingsPage(
 async function Settings({ searchParams }: PageProps<"/app/admin/pickem">) {
   await requirePermission("pickem.manage", { next: "/app/admin/pickem" });
   const query = await searchParams;
-  const allowed = await ownGamesAllowed(db);
+  const league = await activeLeague();
+  if (!league) notFound();
+  const allowed = await ownGamesAllowed(db, league.id);
   return (
     <>
       <header className="flex flex-col gap-1">
