@@ -100,12 +100,14 @@ export const LIVE_SCORE_CDN_SECONDS = 5;
 /**
  * The public routes whose pages show a season's data. Their shells (the
  * prerendered part of a page that is served at once while the rest renders)
- * keep the cached data they were built with, under path tags only.
+ * keep the cached data they were built with, under path tags only. The
+ * schedule widget's prerendered files are expired with them.
  */
 export const SEASON_PAGE_ROUTES = [
   "/seasons/[season]",
   "/teams/[team]",
   "/games/[game]",
+  "/embed/schedule",
 ];
 
 /**
