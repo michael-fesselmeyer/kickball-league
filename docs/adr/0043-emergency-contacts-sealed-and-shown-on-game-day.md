@@ -1,4 +1,4 @@
-# ADR 0042: Seal emergency contacts and show them only on game day, to the game's captains and ref
+# ADR 0043: Seal emergency contacts and show them only on game day, to the game's captains and ref
 
 - Status: accepted
 - Date: 2026-11-14

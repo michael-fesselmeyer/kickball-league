@@ -157,7 +157,7 @@ async function Score({
   const myRating = rates ? await teamRatingFor(db, g.id, myTeam) : null;
   const reports =
     discipline && canFileFor(g, now).ok && can(subject, "incident.log", ctx);
-  // On game day, the players' emergency contacts (ADR 0042).
+  // On game day, the players' emergency contacts (ADR 0043).
   const emergencyShown = cardsVisible(
     { status: g.status, startsAt: g.startsAt, timeZone: tz },
     {

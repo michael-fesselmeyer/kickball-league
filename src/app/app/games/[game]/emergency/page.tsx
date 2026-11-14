@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * A game's emergency contacts (ADR 0042), for its two captains and its ref,
+ * A game's emergency contacts (ADR 0043), for its two captains and its ref,
  * on game day only: who to call for each player, and the first-aid notes
  * players chose to share. The home screen saves this page on the phone with
  * the next game until midnight. Every load is recorded in the audit log.

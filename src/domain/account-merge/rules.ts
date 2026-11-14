@@ -73,7 +73,7 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     handler: "profile",
   },
   "profile.created_by": actor("profiles created"),
-  // Sealed to its owner (ADR 0042), so it is opened and sealed again for
+  // Sealed to its owner (ADR 0043), so it is opened and sealed again for
   // the kept account when that one has none; otherwise it is deleted.
   "emergency_contact.user_id": {
     kind: "special",
