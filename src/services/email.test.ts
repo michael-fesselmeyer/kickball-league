@@ -20,6 +20,27 @@ const respond = (status: number, body: unknown) =>
   );
 
 describe("resendSender", () => {
+  it("gives up on a provider that never answers, so the message is retried", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      (_url, init) =>
+        new Promise((_resolve, reject) =>
+          init?.signal?.addEventListener("abort", () =>
+            reject(init.signal?.reason),
+          ),
+        ),
+    );
+    const send = resendSender({
+      apiKey: KEY,
+      from: "hi@example.test",
+      fetch,
+      timeoutMs: 20,
+    });
+    expect(await send(message)).toEqual({
+      ok: false,
+      error: "Resend could not be reached.",
+    });
+  });
+
   it("posts the message with the key and the idempotency key", async () => {
     const fetch = respond(200, { id: "email-1" });
     const send = resendSender({
