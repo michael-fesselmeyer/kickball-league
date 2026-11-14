@@ -59,6 +59,7 @@ export type EventRsvpId = Brand<string, "EventRsvpId">;
 export type EventTicketId = Brand<string, "EventTicketId">;
 export type AwardPollId = Brand<string, "AwardPollId">;
 export type AwardVoteId = Brand<string, "AwardVoteId">;
+export type SeasonCardId = Brand<string, "SeasonCardId">;
 export type SponsorId = Brand<string, "SponsorId">;
 export type SponsorMemberId = Brand<string, "SponsorMemberId">;
 export type DealId = Brand<string, "DealId">;

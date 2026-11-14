@@ -11,6 +11,7 @@ import { giveaway, giveawayEntry } from "../schema/drive";
 import { event, eventRsvp, eventTicket } from "../schema/event";
 import { awayWeek } from "../schema/availability";
 import { gameLineup, gameLineupSpot } from "../schema/lineup";
+import { seasonCard } from "../schema/season-card";
 import { merchItem, merchOrder } from "../schema/merch";
 import {
   gameRsvp,
@@ -402,6 +403,18 @@ export async function personalData(
     .innerJoin(awardPoll, eq(awardVote.awardPollId, awardPoll.id))
     .where(eq(awardVote.voterId, userId))
     .orderBy(asc(awardVote.castAt));
+  // Their end-of-season cards: the stored numbers and whether each is public.
+  const seasonCards = await db
+    .select({
+      season: season.name,
+      isPublic: seasonCard.isPublic,
+      builtAt: seasonCard.builtAt,
+      card: seasonCard.stats,
+    })
+    .from(seasonCard)
+    .innerJoin(season, eq(season.id, seasonCard.seasonId))
+    .where(eq(seasonCard.userId, userId))
+    .orderBy(asc(seasonCard.builtAt));
   const subRequestsPosted = await db
     .select({
       gameId: subRequest.gameId,
@@ -604,6 +617,7 @@ export async function personalData(
       castAt: v.castAt,
       pick: v.pickedPlayer ?? v.pickedTeam,
     })),
+    seasonCards,
     checkIns,
     giveawayEntries,
     giveawaysWon,
@@ -778,6 +792,7 @@ export async function deleteAccount(
     );
   await db.delete(gameRsvp).where(eq(gameRsvp.userId, userId));
   await db.delete(gameLineupSpot).where(eq(gameLineupSpot.userId, userId));
+  await db.delete(seasonCard).where(eq(seasonCard.userId, userId));
   await db
     .delete(awayWeek)
     .where(
