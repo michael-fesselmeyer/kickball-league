@@ -271,7 +271,7 @@ async function TeamOfWeek({ params, searchParams }: Props) {
                 <form
                   action={removeTeamOfWeekAction.bind(null, slug, h.weekOf)}
                 >
-                  <SubmitButton className="inline-flex min-h-6 items-center underline">
+                  <SubmitButton className="inline-flex min-h-11 items-center underline">
                     Remove
                     <span className="sr-only">
                       : {h.teamName}, {dayHeading(h.weekOf)}

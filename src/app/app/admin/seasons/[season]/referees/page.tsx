@@ -114,7 +114,7 @@ async function Referees({
                   >
                     <span>{g.referee.name || g.referee.email}</span>
                     <SubmitButton
-                      className="underline"
+                      className="min-h-11 underline"
                       aria-label={`Remove the referee from ${g.teamAName} vs ${g.teamBName}`}
                     >
                       Remove
@@ -133,7 +133,9 @@ async function Referees({
                       aria-label={`Referee's email for ${g.teamAName} vs ${g.teamBName}`}
                       className="w-48 rounded-md border border-border bg-surface px-2 py-1"
                     />
-                    <SubmitButton className="underline">Assign</SubmitButton>
+                    <SubmitButton className="min-h-11 underline">
+                      Assign
+                    </SubmitButton>
                   </form>
                 )}
               </li>

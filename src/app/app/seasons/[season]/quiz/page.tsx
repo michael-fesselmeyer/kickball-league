@@ -234,7 +234,7 @@ async function Quiz({
                 : friendsSentence("In your group:", mine.friends)}
             </p>
             <form action={leaveGroupAction.bind(null, slug)}>
-              <SubmitButton className="underline">
+              <SubmitButton className="min-h-11 underline">
                 Leave this group
               </SubmitButton>
             </form>

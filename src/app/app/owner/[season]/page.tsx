@@ -116,7 +116,9 @@ async function Dashboard({
           className="flex flex-wrap items-center gap-3 text-small text-text-muted"
         >
           <span>Numbers as of {time(readAt, league.timeZone)}.</span>
-          <SubmitButton className="underline">Refresh now</SubmitButton>
+          <SubmitButton className="min-h-11 underline">
+            Refresh now
+          </SubmitButton>
         </form>
       </header>
 

@@ -104,7 +104,7 @@ function Rsvp({
             value={value}
             aria-pressed={mine === value}
             disabled={suspended && value === "in"}
-            className={`rounded-full border px-3 py-0.5 text-small disabled:opacity-50 ${
+            className={`min-h-11 min-w-11 rounded-full border px-3 py-0.5 text-small disabled:opacity-50 ${
               mine === value
                 ? "border-text bg-text text-surface"
                 : "border-border"
@@ -554,7 +554,7 @@ async function Team({
                               <option value="other">Other</option>
                             </select>
                             <input type="hidden" name="note" value="" />
-                            <SubmitButton className="underline">
+                            <SubmitButton className="min-h-11 underline">
                               Paid me
                             </SubmitButton>
                           </form>

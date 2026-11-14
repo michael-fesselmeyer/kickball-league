@@ -402,7 +402,7 @@ async function Fields({
                             <option value="confirmed">Confirmed</option>
                             <option value="lost">Lost</option>
                           </select>
-                          <SubmitButton className="underline">
+                          <SubmitButton className="min-h-11 underline">
                             Save
                           </SubmitButton>
                         </form>
@@ -411,7 +411,7 @@ async function Fields({
                         {slots === 0 && (
                           <form action={deletePermit.bind(null, slug, p.id)}>
                             <SubmitButton
-                              className="text-danger underline"
+                              className="min-h-11 text-danger underline"
                               aria-label={`Delete the ${date} permit on ${fieldName.get(p.fieldId)}`}
                             >
                               Delete
@@ -474,7 +474,7 @@ async function Fields({
                 </span>
                 <form action={deleteBlackout.bind(null, slug, b.id)}>
                   <SubmitButton
-                    className="text-danger underline"
+                    className="min-h-11 text-danger underline"
                     aria-label={`Remove the ${dayLabel(b.onDate)} blackout`}
                   >
                     Remove

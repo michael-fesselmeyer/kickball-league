@@ -86,7 +86,7 @@ function StatusButtons({
           name="status"
           value={status}
           aria-pressed={player.status === status}
-          className={`rounded-full border px-3 py-0.5 text-small ${
+          className={`min-h-11 rounded-full border px-3 py-0.5 text-small ${
             player.status === status
               ? "border-text bg-text text-surface"
               : "border-border"
@@ -282,7 +282,7 @@ async function Shirts({
                       t.teamSeasonId,
                     )}
                   >
-                    <SubmitButton className="underline">
+                    <SubmitButton className="min-h-11 underline">
                       Mark {waiting} unordered{" "}
                       {waiting === 1 ? "shirt" : "shirts"} as ordered
                     </SubmitButton>
