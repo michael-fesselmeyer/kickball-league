@@ -163,6 +163,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 | [SEO plan](docs/seo-plan.md)                                 | Metadata, structured data, content                                               |
 | [Roadmap](docs/roadmap.md)                                   | Phases and acceptance criteria                                                   |
 | [Launch kit](docs/launch/README.md)                          | Hosting brief, environment checklist, runbook, backups, acceptance tests, alerts |
+| [Security review](docs/security-review.md)                   | Findings before launch, fixes and follow-ups                                     |
 | [Decisions](docs/adr/)                                       | Architecture decision records                                                    |
 
 ## Tech stack
