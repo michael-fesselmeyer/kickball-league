@@ -7,6 +7,7 @@ import { currentLeague } from "@/db/queries/seasons";
 import { joinWaitlist, leaveWaitlist } from "@/db/queries/waitlist";
 import { registrationWindow } from "@/domain/registration/pricing";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { allowAction } from "@/lib/action-limit";
 
 /**
  * The team waitlist for a full season (roadmap item 13). Joining is for a
@@ -30,6 +31,8 @@ export async function joinWaitlistAction(
   form: FormData,
 ): Promise<void> {
   const { page, subject, season } = await context(slug);
+  if (!(await allowAction("waitlist", `${season.id}:${subject.userId}`)))
+    redirect(`${page}?waitlist=too_many`);
   const name = form.get("teamName");
   const now = new Date();
   const userId = subject.userId;
@@ -52,6 +55,8 @@ export async function joinWaitlistAction(
 /** Leaves the line, or turns down a held spot so it passes to the next team. */
 export async function leaveWaitlistAction(slug: string): Promise<void> {
   const { page, subject, season } = await context(slug);
+  if (!(await allowAction("waitlist", `${season.id}:${subject.userId}`)))
+    redirect(`${page}?waitlist=too_many`);
   const userId = subject.userId;
   await txDb.transaction((tx) =>
     leaveWaitlist(tx, { seasonId: season.id, userId }, new Date()),

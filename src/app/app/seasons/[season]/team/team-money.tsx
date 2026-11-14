@@ -24,6 +24,10 @@ const NOTICES: Record<string, { text: string; good: boolean }> = {
   paid_up: { text: "The team fee is already covered.", good: true },
   cancelled: { text: "Cancelled. Nothing was saved or charged.", good: false },
   off: { text: "Online payment is not set up yet.", good: false },
+  too_many: {
+    text: "That's a lot of payment tries in an hour. Wait a bit, then try again.",
+    good: false,
+  },
   failed: {
     text: "Stripe could not start that. Try again in a minute.",
     good: false,

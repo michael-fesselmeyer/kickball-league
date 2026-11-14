@@ -47,6 +47,8 @@ const ERRORS: Record<string, string> = {
   not_started: "This game has not started yet.",
   playoff_tie: PLAYOFF_TIE,
   already_final: "This score is final. Ask an admin to correct it.",
+  too_many:
+    "That's a lot of scores for one game. Ask an admin if it still needs fixing.",
   not_yours: "Only the other team's captain can answer this score.",
   already_answered: "Your team has already answered this score.",
   unknown_report: "That score report is gone. Reload the page.",

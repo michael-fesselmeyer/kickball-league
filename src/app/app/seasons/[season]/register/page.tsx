@@ -35,6 +35,7 @@ const WAITLIST_NOTICES: Record<string, string> = {
   spot_open: "A spot is open right now. Register your team below.",
   already_registered: "You're already registered for this season.",
   closed: "Registration for this season is closed.",
+  too_many: "That's a lot of waitlist changes in an hour. Try again later.",
 };
 
 export const metadata: Metadata = { title: "Register" };

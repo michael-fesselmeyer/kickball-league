@@ -19,6 +19,7 @@ import { checkoutItems } from "@/domain/registration/checkout";
 import { env } from "@/env";
 import { requireSelfToChange } from "@/lib/auth/permission";
 import { stripeClient } from "@/services/stripe";
+import { allowAction } from "@/lib/action-limit";
 
 /**
  * Sends the person to Stripe Checkout for what they owe, less any promo code
@@ -46,6 +47,8 @@ export async function startCheckout(
   if (!items.ok) redirect(`${page}?payment=${items.error}`);
   const stripe = stripeClient();
   if (!stripe) redirect(`${page}?payment=off`);
+  if (!(await allowAction("checkout", subject.userId)))
+    redirect(`${page}?payment=too_many`);
 
   // A second "Pay" expires the first checkout, so nobody can pay twice.
   const registrationId = mine.id;

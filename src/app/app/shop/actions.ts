@@ -18,6 +18,7 @@ import { requirePermissionToChange } from "@/lib/auth/permission";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
 import { logError } from "@/lib/log-error";
+import { allowAction } from "@/lib/action-limit";
 
 /**
  * Orders an item for the signed-in player (merch.order): its stock is held
@@ -39,6 +40,8 @@ export async function orderMerchAction(
   if (!lg) notFound();
   const stripe = stripeClient();
   if (!stripe) redirect(`${page}?error=payments_off`);
+  if (!(await allowAction("checkout", subject.userId)))
+    redirect(`${page}?error=too_many`);
   const viewer = await viewerOf(
     db,
     lg.id,

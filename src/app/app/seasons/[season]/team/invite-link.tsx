@@ -67,6 +67,12 @@ export function InviteLink({ action, hasOpenLink }: Props) {
                 ? "Make a new link (the old one stops working)"
                 : "Make an invite link"}
           </button>
+          {state.error === "too_many" && (
+            <p role="alert" className="mt-2 text-small text-danger">
+              That&apos;s a lot of links for one day. Use the last one, or try
+              again tomorrow.
+            </p>
+          )}
         </form>
       )}
     </div>

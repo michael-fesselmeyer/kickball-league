@@ -31,8 +31,14 @@ import {
 import { readEmail, readReason } from "@/domain/keep-off/keep-off";
 import { addKeepOff, removeKeepOff, teamOfSeason } from "@/db/queries/keep-off";
 import { recordPaymentFor } from "../record-payment";
+import { allowAction } from "@/lib/action-limit";
 
-export type InviteState = { token?: string; expiresAt?: string };
+export type InviteState = {
+  token?: string;
+  expiresAt?: string;
+  /** Set when the team made too many links today. */
+  error?: "too_many" | undefined;
+};
 
 /**
  * Makes a new team link for the captain's own team. The token comes back to
@@ -57,12 +63,15 @@ export async function createInviteAction(
     !can(subject, "roster.manage", { teamSeasonId, targetRole: "player" })
   )
     notFound();
+  if (!(await allowAction("team_invite", teamSeasonId)))
+    return { ...previous, error: "too_many" };
   const userId = subject.userId;
   const created = await txDb.transaction((tx) =>
     createTeamInvite(tx, { teamSeasonId, actorId: userId, now: new Date() }),
   );
   return {
     ...previous,
+    error: undefined,
     token: created.token,
     expiresAt: created.expiresAt.toISOString(),
   };

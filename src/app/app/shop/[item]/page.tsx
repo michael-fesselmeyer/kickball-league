@@ -42,6 +42,7 @@ const ERRORS: Record<string, string> = {
   checkout_failed:
     "We couldn't start the checkout. Nothing was charged; try again.",
   checkout_open: "Your checkout is still open. Try again in a moment.",
+  too_many: "That's a lot of checkouts in an hour. Wait a bit, then try again.",
 };
 
 const control =
