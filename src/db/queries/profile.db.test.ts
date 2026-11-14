@@ -17,8 +17,6 @@ const settings: ProfileSettings = {
   lineupGender: "woman",
   shirtSize: "m",
   birthDate: "1995-06-15",
-  emergencyContactName: "Sam Example",
-  emergencyContactPhone: "+17185550199",
 };
 
 describe("profile", () => {
@@ -39,6 +37,7 @@ describe("profile", () => {
         firstName: "Robin",
         lineupGender: "woman",
         birthDate: "1995-06-15",
+        hasEmergencyContact: false,
       });
       const [named] = await db
         .select({ name: user.name })
