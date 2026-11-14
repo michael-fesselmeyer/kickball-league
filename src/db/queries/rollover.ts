@@ -244,6 +244,7 @@ export async function rollOver(
       rosterMin: s.rosterMin,
       rosterMax: s.rosterMax,
       gamesPerTeamPerDay: s.gamesPerTeamPerDay,
+      minimumAge: s.minimumAge,
       waiverId: s.waiverId,
       fieldingRules: s.fieldingRules,
       tiebreakers: s.tiebreakers,
