@@ -32,12 +32,6 @@ export const profileShirtSize = pgEnum("profile_shirt_size", [
   "xxl",
 ]);
 
-export const profileGlobalRole = pgEnum("profile_global_role", [
-  "player",
-  "admin",
-  "owner",
-]);
-
 /**
  * Everything about a person that the league cares about. Better Auth's user
  * row stays auth-only. See docs/data-model.md, section 2.1, and section 4 for
@@ -59,7 +53,6 @@ export const profile = pgTable("profile", {
   lineupGender: profileLineupGender(),
   shirtSize: profileShirtSize(),
   birthDate: date({ mode: "string" }),
-  globalRole: profileGlobalRole().notNull().default("player"),
   stripeCustomerId: text(),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp({ withTimezone: true })
