@@ -8,6 +8,7 @@ import { fullWhen, kickoff } from "@/domain/schedule/format";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = {
   title: "Park permit",
@@ -25,7 +26,7 @@ export default function PermitPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
-      <Suspense fallback={<p>Loading the permit…</p>}>
+      <Suspense fallback={<PageLoading>Loading the permit…</PageLoading>}>
         <Permit {...props} />
       </Suspense>
     </main>

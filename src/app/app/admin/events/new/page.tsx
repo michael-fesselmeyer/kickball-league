@@ -10,6 +10,7 @@ import { FREE, ticketPriceFormValues } from "@/domain/events/tickets";
 import { requirePermission } from "@/lib/auth/permission";
 import { createEventAction } from "../actions";
 import { EventFormFields } from "../event-form";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "New event" };
 
@@ -37,7 +38,7 @@ export default function NewEventPage() {
         </Link>
         <h1 className="text-h1">New event</h1>
       </header>
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <NewEvent />
       </Suspense>
     </main>

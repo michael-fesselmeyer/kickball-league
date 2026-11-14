@@ -11,6 +11,7 @@ import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { RefreshAt } from "./refresh";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Check-in code" };
 
@@ -24,7 +25,7 @@ type Props = PageProps<"/app/sponsor/[sponsor]/code">;
 export default function CodePage(props: Props) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-xl flex-col items-center justify-center gap-6 px-4 py-8 text-center">
-      <Suspense fallback={<p className="min-h-svh">Loading the code…</p>}>
+      <Suspense fallback={<PageLoading>Loading the code…</PageLoading>}>
         <Code {...props} />
       </Suspense>
     </main>

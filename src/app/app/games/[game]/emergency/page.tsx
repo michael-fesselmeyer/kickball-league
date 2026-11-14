@@ -9,6 +9,7 @@ import { formatPhone } from "@/domain/profile/profile-form";
 import { fullWhen } from "@/domain/schedule/format";
 import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = {
   title: "Emergency contacts",
@@ -27,7 +28,7 @@ export default function EmergencyPage(
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
       <Suspense
-        fallback={<p className="min-h-svh">Loading emergency contacts…</p>}
+        fallback={<PageLoading>Loading emergency contacts…</PageLoading>}
       >
         <Contacts {...props} />
       </Suspense>

@@ -27,6 +27,7 @@ import {
   updateSponsorAction,
 } from "../actions";
 import { DealFields } from "./deal-fields";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Sponsor page" };
 
@@ -36,7 +37,7 @@ type Props = PageProps<"/app/sponsor/[sponsor]">;
 export default function SponsorPortalPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Portal {...props} />
       </Suspense>
     </main>

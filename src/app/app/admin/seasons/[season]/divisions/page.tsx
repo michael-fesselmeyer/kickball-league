@@ -19,6 +19,7 @@ import {
   saveSettingsAction,
   updateDivisionAction,
 } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Divisions" };
 
@@ -27,7 +28,7 @@ export default function DivisionsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Divisions {...props} />
       </Suspense>
     </main>

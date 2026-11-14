@@ -12,13 +12,14 @@ import { requirePermission } from "@/lib/auth/permission";
 import { desc, eq } from "drizzle-orm";
 import { assignWaiverAction } from "./actions";
 import { WaiverDraftForm } from "./draft-form";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Waivers" };
 
 export default function WaiversPage(props: PageProps<"/app/admin/waivers">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Waivers {...props} />
       </Suspense>
     </main>

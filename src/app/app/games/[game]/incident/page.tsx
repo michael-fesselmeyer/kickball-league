@@ -15,6 +15,7 @@ import { type GameId, parseId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
 import { fileIncidentAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Report an incident" };
 
@@ -23,7 +24,7 @@ export default function IncidentPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
-      <Suspense fallback={<p className="min-h-svh">Loading the game…</p>}>
+      <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>
         <Report {...props} />
       </Suspense>
     </main>

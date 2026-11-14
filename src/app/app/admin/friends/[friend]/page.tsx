@@ -13,6 +13,7 @@ import {
   updateFriendAction,
 } from "../actions";
 import { FriendFormFields } from "../friend-form";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Edit a league" };
 
@@ -21,7 +22,7 @@ type Props = PageProps<"/app/admin/friends/[friend]">;
 export default function EditFriendPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <EditFriend {...props} />
       </Suspense>
     </main>

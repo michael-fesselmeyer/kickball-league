@@ -15,6 +15,7 @@ import {
 } from "@/domain/member-photos/limits";
 import { requirePermission } from "@/lib/auth/permission";
 import { deletePhotoAction, reviewPhotoAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Member photos" };
 
@@ -35,7 +36,7 @@ export default function AdminPhotosPage(props: PageProps<"/app/admin/photos">) {
           they were tagged to. Download one to post it on Instagram.
         </p>
       </header>
-      <Suspense fallback={<p className="min-h-svh">Loading photos…</p>}>
+      <Suspense fallback={<PageLoading>Loading photos…</PageLoading>}>
         <Queue {...props} />
       </Suspense>
     </main>

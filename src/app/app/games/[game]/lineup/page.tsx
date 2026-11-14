@@ -8,6 +8,7 @@ import { type GameId, parseId } from "@/domain/ids";
 import { isGameDay, lineupAccess } from "@/domain/lineup/access";
 import { ordinal } from "@/domain/lineup/order";
 import { requirePermission } from "@/lib/auth/permission";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Kicking orders" };
 
@@ -16,7 +17,7 @@ export default function LineupsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
-      <Suspense fallback={<p className="min-h-svh">Loading the lineups…</p>}>
+      <Suspense fallback={<PageLoading>Loading the lineups…</PageLoading>}>
         <Lineups {...props} />
       </Suspense>
     </main>

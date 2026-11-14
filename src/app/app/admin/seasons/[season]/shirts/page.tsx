@@ -15,6 +15,7 @@ import {
 } from "@/domain/shirts/summary";
 import { requirePermission } from "@/lib/auth/permission";
 import { markTeamOrderedAction, setShirtStatusAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Shirts" };
 
@@ -23,7 +24,7 @@ export default function ShirtsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Shirts {...props} />
       </Suspense>
     </main>

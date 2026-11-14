@@ -21,6 +21,7 @@ import {
   setRoleAction,
   setSiteStatusAction,
 } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 // No title: the page must not hint that it exists to anyone else.
 export const metadata: Metadata = { robots: { index: false } };
@@ -55,7 +56,7 @@ const ERRORS: Record<string, string> = {
 export default function OperatorPage(props: PageProps<"/operator">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Console {...props} />
       </Suspense>
     </main>

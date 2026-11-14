@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { requirePermission } from "@/lib/auth/permission";
 import { createItemAction } from "../actions";
 import { EMPTY_ITEM, ItemFormFields } from "../item-form";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "New merch item" };
 
@@ -12,7 +13,7 @@ export default function NewMerchItemPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <NewItem {...props} />
       </Suspense>
     </main>

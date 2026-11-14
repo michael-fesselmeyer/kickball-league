@@ -7,6 +7,7 @@ import { currentLeague, seasonSettings } from "@/db/queries/seasons";
 import { seasonGameTimes, seasonRequests } from "@/db/queries/team-requests";
 import { describeRequest } from "@/domain/schedule/team-requests";
 import { requirePermission } from "@/lib/auth/permission";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Team scheduling requests" };
 
@@ -15,7 +16,7 @@ export default function SeasonRequestsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <SeasonRequests {...props} />
       </Suspense>
     </main>

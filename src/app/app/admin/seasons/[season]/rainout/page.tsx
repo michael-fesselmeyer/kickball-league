@@ -17,6 +17,7 @@ import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { declareRainout } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Rain-out" };
 
@@ -25,7 +26,7 @@ export default function RainoutPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Rainout {...props} />
       </Suspense>
     </main>

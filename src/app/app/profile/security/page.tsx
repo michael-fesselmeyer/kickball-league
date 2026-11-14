@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ConfirmItsYou } from "@/components/confirm-its-you";
+import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { signedInDevices } from "@/db/queries/devices";
 import { passkeysOf, PASSKEY_NAME_MAX } from "@/db/queries/passkeys";
@@ -28,7 +29,7 @@ export default function SecurityPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-dvh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Security {...props} />
       </Suspense>
     </main>

@@ -24,13 +24,14 @@ import { CreditSection } from "./credit-section";
 import { EmailSettings } from "./email-settings";
 import { ProfileSettingsForm } from "./profile-form";
 import { PushSettings } from "./push-settings";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Your profile" };
 
 export default function ProfilePage(props: PageProps<"/app/profile">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading your profile…</p>}>
+      <Suspense fallback={<PageLoading>Loading your profile…</PageLoading>}>
         <Profile {...props} />
       </Suspense>
     </main>
