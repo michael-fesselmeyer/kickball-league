@@ -15,6 +15,7 @@ import {
 } from "@/domain/volunteer/shifts";
 import { requirePermission } from "@/lib/auth/permission";
 import { claimShiftAction, dropShiftAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Volunteer" };
 
@@ -168,23 +169,21 @@ async function Shifts({ searchParams }: PageProps<"/app/volunteer">) {
                     <p className="text-text-muted">Under way.</p>
                   ) : on ? (
                     <form action={dropShiftAction.bind(null, s.id)}>
-                      <button
-                        type="submit"
+                      <SubmitButton
                         className="btn btn-secondary"
                         aria-label={`Drop this shift: ${label}`}
                       >
                         Drop this shift
-                      </button>
+                      </SubmitButton>
                     </form>
                   ) : full ? null : (
                     <form action={claimShiftAction.bind(null, s.id)}>
-                      <button
-                        type="submit"
+                      <SubmitButton
                         className="btn btn-primary"
                         aria-label={`Sign up for ${label}`}
                       >
                         Sign up
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
                 </li>

@@ -20,6 +20,7 @@ import {
 } from "@/domain/survey/questions";
 import { requirePermission } from "@/lib/auth/permission";
 import { answerSurveyAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Season survey" };
 
@@ -167,9 +168,9 @@ async function Survey({ params, searchParams }: Props) {
               as written.
             </p>
           </div>
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Send my answers
-          </button>
+          </SubmitButton>
         </form>
       )}
     </>
