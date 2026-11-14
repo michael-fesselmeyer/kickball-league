@@ -1,22 +1,29 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
+import { pageSignedInAs } from "../support/sign-in";
 
 /**
  * A private tournament (ADR 0049), at phone width: a player asks for one
  * from the public booking page, an admin sets it up as a private season,
  * the organizer finds the invite link, and a captain who follows it lands
  * on the private season's registration. The season stays off public pages.
+ * The organizer and the captain are made up for this flow and sign in by
+ * email, so flows switching the shared demo personas can't swap them.
  */
 test.use({ viewport: { width: 390, height: 844 } });
 
 test("an organizer books a private tournament and invites a team", async ({
   browser,
 }) => {
-  const organization = `Example Widgets ${Date.now().toString(36)}`;
+  const tag = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const organization = `Example Widgets ${tag}`;
 
   // The organizer asks, from the public page.
-  const organizer = await pageAs(browser, "Player");
+  const organizer = await pageSignedInAs(
+    browser,
+    `organizer.${tag}@example.test`,
+  );
   await organizer.goto("/private-events");
   await expect(organizer.getByRole("heading", { level: 1 })).toHaveText(
     "Book a private league or tournament",
@@ -75,7 +82,7 @@ test("an organizer books a private tournament and invites a team", async ({
   expect(slug).toMatch(/^private-/);
 
   // Nobody else can open the organizer page, and the season is not public.
-  const captain = await pageAs(browser, "Captain");
+  const captain = await pageSignedInAs(browser, `captain.${tag}@example.test`);
   await captain.goto(`/app/private-events/${slug}`);
   await expect(
     captain.getByRole("heading", { name: "This page could not be found." }),
