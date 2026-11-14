@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -27,8 +26,7 @@ import {
   offlineGame,
   pickNextGame,
 } from "@/domain/pwa/offline";
-import { auth } from "@/lib/auth";
-import { currentSubject } from "@/lib/auth/permission";
+import { currentAuthSession, currentSubject } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
 import { signOut } from "./actions";
 import { InstallPrompt } from "./install-prompt";
@@ -48,7 +46,7 @@ export default function AppHome() {
 
 async function Account() {
   // proxy.ts only checks that a cookie exists; this verifies the session itself.
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await currentAuthSession();
   if (!session) redirect("/sign-in?next=/app");
 
   const { name, email } = session.user;
