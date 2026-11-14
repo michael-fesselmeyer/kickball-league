@@ -168,6 +168,12 @@ async function Account({ searchParams }: PageProps<"/app">) {
   const surveysOpen = await surveys;
   const [latestCard] = await cards;
   const timeZone = league?.timeZone ?? "America/New_York";
+  // Where the day's one "I'm at the field" button goes: the first of today's
+  // games not checked in yet.
+  const checkInGameId =
+    refereeing.find(
+      (g) => isGameDay(g.startsAt, now, timeZone) && !g.checkedInAt,
+    )?.id ?? null;
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -329,18 +335,19 @@ async function Account({ searchParams }: PageProps<"/app">) {
                       <span className="text-small text-success">
                         Checked in
                       </span>
-                    ) : (
+                    ) : g.id === checkInGameId ? (
+                      // One tap checks the ref in for all of the day's
+                      // games, so the button shows once, on the first.
                       <form action={checkInAsRefereeAction}>
                         <input type="hidden" name="gameId" value={g.id} />
                         <SubmitButton className="btn btn-secondary">
                           I&apos;m at the field
-                          <span className="sr-only">
-                            {" "}
-                            for {g.teamAName} vs {g.teamBName}
-                          </span>
                         </SubmitButton>
+                        <span className="block text-small text-text-muted">
+                          For all of today&apos;s games
+                        </span>
                       </form>
-                    ))}
+                    ) : null)}
                   {isGameDay(g.startsAt, now, timeZone) && (
                     <Link
                       href={`/app/games/${g.id}/lineup`}
