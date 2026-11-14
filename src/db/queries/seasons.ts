@@ -1,4 +1,4 @@
-import { and, asc, eq, ne } from "drizzle-orm";
+import { and, asc, eq, ne, sql } from "drizzle-orm";
 import type { LeagueId, SeasonId, UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import type { SeasonSettings } from "@/domain/season/settings";
@@ -56,7 +56,12 @@ const gamesPerDay = (n: number): 1 | 2 => (n === 2 ? 2 : 1);
 
 export async function seasonSettings(db: Db, leagueId: LeagueId, slug: string) {
   const [found] = await db
-    .select({ id: season.id, status: season.status, ...SETTINGS })
+    .select({
+      id: season.id,
+      status: season.status,
+      hasWaiver: sql<boolean>`${season.waiverId} is not null`,
+      ...SETTINGS,
+    })
     .from(season)
     .where(and(eq(season.leagueId, leagueId), eq(season.slug, slug)));
   if (!found) return null;
@@ -114,7 +119,11 @@ export async function createSeason(
   return ok({ id, slug: settings.slug });
 }
 
-/** Saves edited settings and status; the audit row holds only what changed. */
+/**
+ * Saves edited settings and status; the audit row holds only what changed.
+ * Registration can't open until the season has a waiver: players sign it
+ * before they can pay, so without one nobody could finish registering.
+ */
 export async function updateSeason(
   db: Db,
   input: {
@@ -124,9 +133,11 @@ export async function updateSeason(
     status: SeasonStatus;
   },
   actorId: UserId,
-): Promise<Result<{ slug: string }, "unknown_season" | "duplicate">> {
+): Promise<
+  Result<{ slug: string }, "unknown_season" | "duplicate" | "no_waiver">
+> {
   const [before] = await db
-    .select({ status: season.status, ...SETTINGS })
+    .select({ status: season.status, waiverId: season.waiverId, ...SETTINGS })
     .from(season)
     .where(
       and(eq(season.id, input.seasonId), eq(season.leagueId, input.leagueId)),
@@ -134,10 +145,14 @@ export async function updateSeason(
   if (!before) return err("unknown_season");
   if (await slugTaken(db, input.leagueId, input.settings.slug, input.seasonId))
     return err("duplicate");
+  const { waiverId, ...settingsBefore } = before;
+  if (input.status === "registration_open" && waiverId === null)
+    return err("no_waiver");
   const after = { ...input.settings, status: input.status };
   const changed = (Object.keys(after) as (keyof typeof after)[]).filter(
     (k) =>
-      JSON.stringify(before[k] ?? null) !== JSON.stringify(after[k] ?? null),
+      JSON.stringify(settingsBefore[k] ?? null) !==
+      JSON.stringify(after[k] ?? null),
   );
   if (changed.length === 0) return ok({ slug: input.settings.slug });
   await db.update(season).set(after).where(eq(season.id, input.seasonId));
@@ -146,7 +161,7 @@ export async function updateSeason(
     action: "season.update",
     entityType: "season",
     entityId: input.seasonId,
-    before: Object.fromEntries(changed.map((k) => [k, before[k]])),
+    before: Object.fromEntries(changed.map((k) => [k, settingsBefore[k]])),
     after: Object.fromEntries(changed.map((k) => [k, after[k]])),
   });
   return ok({ slug: input.settings.slug });
