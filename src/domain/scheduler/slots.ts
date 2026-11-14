@@ -1,11 +1,12 @@
 import type { Blackout, PermitWindow, Slot, SlotFormat } from "./types";
+import { dateTimeFormat } from "../time/format-cache";
 
 const MINUTE = 60_000;
 
 /** The local YYYY-MM-DD of an instant in a time zone. */
 export function localDate(instant: Date, timeZone: string): string {
   // en-CA formats dates as YYYY-MM-DD.
-  return new Intl.DateTimeFormat("en-CA", {
+  return dateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",
     month: "2-digit",

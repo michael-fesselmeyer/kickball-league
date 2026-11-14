@@ -4,6 +4,8 @@
  * src/db/queries/public-schedule.ts.
  */
 
+import { dateTimeFormat } from "../time/format-cache";
+
 export type PublicTeam = {
   /** The team's entry in this season (team_season). */
   id: string;
@@ -126,7 +128,7 @@ export function nextGame(games: PublicGame[], now: Date): PublicGame | null {
 
 /** YYYY-MM-DD of an instant in a time zone. */
 export function localDay(instant: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
+  return dateTimeFormat("en-CA", {
     timeZone,
     year: "numeric",
     month: "2-digit",
