@@ -148,6 +148,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   └── photos/[image]          Any merch photo, a hidden item's included, for admins
     ├── credit                      League credit: give goodwill credit, who holds credit, what was given lately
     ├── money                       Payments, refunds, credit, promo codes
+    ├── accounts                    Merge duplicate accounts: look up both by email, preview what moves and how clashes are settled, confirm it's you and merge; recent merges
     ├── audit                       Audit log in plain words, newest first; filter for the platform operator's actions
     ├── photos                      Member photos: the review queue (approve, download, or reject with a note only admins see), approved photos to download or take down, recent rejections, and storage used against the cap
     ├── instagram                   Connect, sync, disconnect (keep or remove photos); feature, hide, tag to a team or event, set a cover, describe each post
