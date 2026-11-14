@@ -74,7 +74,7 @@ export function AnnouncementForm({
           Sent by email. {limitNote}
         </span>
       </label>
-      <SubmitButton className="self-start rounded-full bg-text px-4 py-2 font-bold text-surface">
+      <SubmitButton className="min-h-11 self-start rounded-full bg-text px-4 py-2 font-bold text-surface">
         Send announcement
       </SubmitButton>
     </form>

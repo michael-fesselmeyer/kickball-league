@@ -154,7 +154,7 @@ export function AlertLimitsSettings({
             ))}
           </ul>
         </details>
-        <SubmitButton className="self-start rounded-full border border-text px-4 py-1">
+        <SubmitButton className="min-h-11 self-start rounded-full border border-text px-4 py-1">
           Save message limits
         </SubmitButton>
       </form>

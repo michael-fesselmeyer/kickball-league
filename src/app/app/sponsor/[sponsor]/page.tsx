@@ -198,7 +198,7 @@ async function Portal({ params, searchParams }: Props) {
               <form
                 action={setDealActiveAction.bind(null, slug, d.id, !d.active)}
               >
-                <SubmitButton className="inline-flex min-h-6 items-center underline">
+                <SubmitButton className="inline-flex min-h-11 items-center underline">
                   {d.active ? "Turn off" : "Turn back on"}
                   <span className="sr-only">: {d.title}</span>
                 </SubmitButton>
@@ -346,7 +346,7 @@ async function Portal({ params, searchParams }: Props) {
                     </span>
                   </span>
                   <form action={removeMemberAction.bind(null, slug, m.userId)}>
-                    <SubmitButton className="inline-flex min-h-6 items-center underline">
+                    <SubmitButton className="inline-flex min-h-11 items-center underline">
                       Remove<span className="sr-only">: {m.name}</span>
                     </SubmitButton>
                   </form>
@@ -371,7 +371,7 @@ async function Portal({ params, searchParams }: Props) {
             <SubmitButton className="btn btn-secondary">Add</SubmitButton>
           </form>
           <form action={removeSponsorAction.bind(null, slug)}>
-            <SubmitButton className="inline-flex min-h-6 items-center text-danger underline">
+            <SubmitButton className="inline-flex min-h-11 items-center text-danger underline">
               Take {sponsor.name} off the site
             </SubmitButton>
           </form>
