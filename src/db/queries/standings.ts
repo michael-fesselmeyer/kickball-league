@@ -129,7 +129,7 @@ export type DivisionTable = {
 };
 
 /**
- * Standings per division (ADR 0035): each team ranked within its own
+ * Standings per division (ADR 0040): each team ranked within its own
  * division, with crossover results counted as the season says. A season
  * without divisions gets one table with every team, the same as
  * `seasonStandings`; teams not yet in a division get a table of their own.

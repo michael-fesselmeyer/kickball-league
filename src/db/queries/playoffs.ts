@@ -131,7 +131,7 @@ export type SeedingRow = {
 };
 
 /**
- * How a season's playoffs are seeded (ADR 0035): one bracket from the
+ * How a season's playoffs are seeded (ADR 0040): one bracket from the
  * season table; two divisions in opposite halves of one bracket, meeting
  * in a combined final; or a bracket per division.
  */
@@ -763,7 +763,7 @@ export async function bracketView(
 
 /**
  * Every bracket of the season for display: one, or one per division
- * (ADR 0035), in the divisions' order.
+ * (ADR 0040), in the divisions' order.
  */
 export async function bracketViews(
   db: Db,

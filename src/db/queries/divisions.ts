@@ -21,7 +21,7 @@ import type { Db } from "./schedule";
 
 /**
  * Divisions, their rule sets and the season's crossover settings
- * (ADR 0035). A season with no divisions plays as one pool, exactly as
+ * (ADR 0040). A season with no divisions plays as one pool, exactly as
  * before divisions existed.
  */
 

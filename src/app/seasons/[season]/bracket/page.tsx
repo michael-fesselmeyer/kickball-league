@@ -34,7 +34,7 @@ async function Bracket({
   const season = await seasonBySlug(db, slug);
   // Drafts are the league's work in progress, not public.
   if (!season || season.status === "draft") notFound();
-  // One bracket, or one per division without a combined final (ADR 0035).
+  // One bracket, or one per division without a combined final (ADR 0040).
   const brackets = await bracketViews(db, season.id);
   const asList = view === "list";
   const base = `/seasons/${season.slug}/bracket`;

@@ -310,7 +310,7 @@ Rules:
 3. The app seeds the bracket, gives the top seeds byes when the field is not a power of two, and places every match on fields and times with the scheduler's bracket placement. It is saved as a draft schedule version; the admin checks it and publishes it like the regular season. The season moves to "playoffs".
 4. As each playoff score becomes final, the winner moves on. When both teams of the next match are known, its game is put on the published schedule in the slot reserved for it. A corrected score swaps the team in the next game while that game is still to be played.
 5. A playoff game cannot end in a tie; the score screen says so. The final's winner is shown as champion on the bracket page.
-6. With divisions, the number of teams is per division, and each division's standings give its seeds ([ADR 0035](adr/0035-divisions-and-crossover-games.md)). Two divisions with a combined final share one bracket, each in its own half, so their champions meet in the final. Without one, or with more than two divisions, each division gets its own bracket and champion; the brackets are drafted and published together.
+6. With divisions, the number of teams is per division, and each division's standings give its seeds ([ADR 0040](adr/0040-divisions-and-crossover-games.md)). Two divisions with a combined final share one bracket, each in its own half, so their champions meet in the final. Without one, or with more than two divisions, each division gets its own bracket and champion; the brackets are drafted and published together.
 
 ### 2.9 Kicking order (P3)
 
