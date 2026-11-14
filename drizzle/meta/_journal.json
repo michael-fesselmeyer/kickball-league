@@ -337,6 +337,13 @@
       "when": 1794655498248,
       "tag": "0047_captaincy",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1794656257454,
+      "tag": "0048_away_weeks",
+      "breakpoints": true
     }
   ]
 }
