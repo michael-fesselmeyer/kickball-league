@@ -55,12 +55,12 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 /operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
 
 /app                                Signed-in home: next game, RSVP, what you owe, alerts, and any giveaway you won
-├── account                         Profile, email, push and message-limit settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
+├── account                         Profile, weeks you'll miss for each season still to come, email, push and message-limit settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
 │   └── delete                      Delete your account: what is deleted, what the league keeps; a fresh sign-in (passkey or email link) and your typed email address confirm it
 ├── seasons/[season]/export/        CSV downloads: roster.csv (with shirt sizes) and payments.csv; the whole season for admins, ?team= for one team (its captains too)
-├── team/[teamSeason]               Roster, RSVPs, payments, invites, subs, announcements (captain view adds controls and roster and payment CSV downloads)
+├── team/[teamSeason]               Roster, RSVPs, how many are available each game week after away weeks (captains also see who is away and a prompt to ask for a sub when a week is short), payments, invites, subs, announcements (captain view adds controls and roster and payment CSV downloads)
 ├── subs                            Sub requests I can claim, and games I'm subbing in
 ├── events/                         Upcoming events I can see (public, members-only and my teams'), my RSVP or my ticket's check-in code, and my private calendar link with a reset
 │   └── [event]                     RSVP, join the waitlist and see my place in line, or drop out; for a members' or team event also its details, who it's for, the invite, Google Calendar and "Copy for WhatsApp". A ticketed event instead shows my price (member or full), buys a ticket through Stripe Checkout with league credit, takes me back to an open checkout, shows a spot offered to me from the waitlist (buy it or pass), and once paid shows my ticket and check-in code; a box for the event's free giveaway when it has one
@@ -88,7 +88,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── games/[game]/incident           Report an incident: kind, the people involved from either team, what happened (the game's ref, either captain, an admin; from kickoff on)
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref); works with no signal
 ├── games/[game]/lineup             Both teams' kicking orders: a team's captains any time, the other captain and the ref from game day (names only); each player sees their own spot
-│   └── [team]                      Captain: kicking-order builder from the players who are in, with drag, keyboard and button moves, live two-in-a-row checks, auto-arrange and copy from the last game
+│   └── [team]                      Captain: who is away that week and whether the team is short, then the kicking-order builder from the players who are in, with drag, keyboard and button moves, live two-in-a-row checks, auto-arrange and copy from the last game
 ├── games/[game]/permit             The park permit at the field: number, field, hours and document, for the game's ref and both captains (and owners); kept on the phone with the next game
 │   └── document                    The permit document itself, for the same people, never cached by a CDN
 ├── books/                          Owners and the platform operator only (404 for everyone else); opens on the newest season
@@ -331,6 +331,12 @@ Rules:
 2. The captain drags rows by their handle, picks one up with Space and moves it with the arrow keys, or taps the up and down buttons. Each change is announced to screen readers and checked against the two-in-a-row rule, counting from the last kicker back to the first; every break is explained by name.
 3. "Auto-arrange" fixes the order moving as few people as it can, or says why no order works. "Copy last game" starts from the team's previous saved order, leaving out who isn't coming and adding new players at the end.
 4. Saving keeps the order even if it still breaks the rule, and says so. Each player in it sees "You kick 4th of 12" on the team page. On game day, the ref (from their home screen or the score screen) and the other captain see the order as names, with whether it keeps to the rule.
+
+### 2.10 Away weeks
+
+1. A player opens "Away some weeks? Mark them" on the team page, or the profile directly, and ticks the weeks they'll miss in each season still to come. Weeks already gone are not offered.
+2. On the team page, each game still to come shows how many players are available that week. Captains also see who is away, and, when the players left can't field a full lineup under the fielding rule, a prompt with an "Ask for a sub" link to the sub request form for that game. The kicking-order builder shows the same for its game.
+3. The first time a player's change leaves a week short, the team's other captains get one email about that week, with the same link. It is a non-urgent message, so it respects their daily limit and quiet hours.
 
 ## 3. Key screens
 
