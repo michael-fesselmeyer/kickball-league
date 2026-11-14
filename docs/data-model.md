@@ -1501,7 +1501,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `friend_league` | unique `(league_id, name)`; check `url` starts with `https://` and is at most 300 characters; checks on name, area and description lengths | One entry per league name; only https links reach the page |
 | `friend_logo` | unique `friend_league_id`; check type is WebP or PNG, `byte_size = octet_length(bytes)` up to 100 KB, and both sides at most 192 px | One small logo per entry; the 5 MB total is enforced by the save |
 | `member_photo` | check type is JPEG; `bytes` and `byte_size` are null exactly when `status = 'rejected'`; `byte_size = octet_length(bytes)` up to 1 MB; width and height 1 to 1440; caption up to 200 and note up to 500 characters; `reviewed_at` is null exactly while pending | One small stored copy per photo, none kept once rejected; the 100 MB total and the daily limit are enforced on upload |
-| `message` | unique `(dedupe_key)` | The same notice is never sent twice |
+| `message` | unique `(dedupe_key)`; index `(dedupe_key text_pattern_ops)` | The same notice is never sent twice; a prefix match (a game's score reminders, a day's rain alerts) uses an index under any collation |
 | `alert_setting` | check `daily_cap` between 0 and 3; check quiet hours are both null or two different hours from 0 to 23 | A member can only lower the cap, and quiet hours are never empty |
 | `push_subscription` | unique `(endpoint)`; check it starts with `https://` and is at most 2,048 characters; check the key lengths | A device is stored once, and the outbox only ever posts to https |
 | `webhook_event` | unique `(provider, event_id)` | Webhooks are processed once |

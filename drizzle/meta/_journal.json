@@ -351,6 +351,13 @@
       "when": 1794657056340,
       "tag": "0049_emergency_contacts",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1794658381767,
+      "tag": "0050_message_dedupe_key_prefix",
+      "breakpoints": true
     }
   ]
 }
