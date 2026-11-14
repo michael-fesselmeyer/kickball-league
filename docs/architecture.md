@@ -606,7 +606,7 @@ Third-party material stays out of the public repository until the league agrees:
 
 | Action | Limit |
 |---|---|
-| Sign-in attempts, magic-link requests | Magic-link requests and checks: 5 a minute per IP. Other sign-in paths: 3 per 10 seconds per IP. Any other auth request: 100 per 10 seconds per IP (Better Auth's built-in limiter, counted site-wide; see below) |
+| Sign-in attempts, magic-link requests | Sign-in links: 20 a day per IP (the count restarts after a day without one), and 3 per inbox for each 15-minute link lifetime, so a link from the last window always still works (`SIGN_IN_LINKS_PER_IP` and `SIGN_IN_LINKS_PER_INBOX` in `src/lib/auth/config.ts`; the inbox is counted under a hash of its address). Link checks: 5 a minute per IP. Other sign-in paths: 3 per 10 seconds per IP. Any other auth request: 100 per 10 seconds per IP (Better Auth's built-in limiter, counted site-wide; see below). Sign-in links are sent outside the outbox's email budget, so these limits are what keep one visitor from using up the free plan's day of email |
 | Account creation | 3 per hour per IP |
 | Checkout session creation | 10 per hour per user |
 | Invite sends | 50 per day per team |

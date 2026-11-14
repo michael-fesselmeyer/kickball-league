@@ -27,7 +27,7 @@ import {
 } from "./config";
 import { demoViewAs } from "./demo-view-as";
 import { accountLinking, socialProviders } from "./google";
-import { deliverMagicLink } from "./magic-link";
+import { deliverMagicLink, withinInboxLimit } from "./magic-link";
 import {
   followAlias,
   MAGIC_LINK_PATH,
@@ -125,12 +125,12 @@ export const auth = betterAuth({
   plugins: [
     magicLink({
       expiresIn: MAGIC_LINK_EXPIRES_IN_SECONDS,
-      sendMagicLink: async ({ email, url }) => {
-        await deliverMagicLink(
+      sendMagicLink: withinInboxLimit(db, ({ email, url }) =>
+        deliverMagicLink(
           { email, url },
           { nodeEnv: process.env.NODE_ENV, log: console.info, send },
-        );
-      },
+        ),
+      ),
     }),
     passkey({ ...relyingParty(env.BETTER_AUTH_URL), rpName: SITE.name }),
     demoViewAs(), // refuses everything unless demo mode is on

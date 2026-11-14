@@ -7,7 +7,7 @@ import { RATE_LIMIT, RATE_LIMIT_KEEP_MS } from "@/lib/auth/config";
 import * as schema from "../schema";
 import { rateLimit } from "../schema/auth";
 import { closePool, inRolledBackDb } from "../test/transaction";
-import { pruneRateLimits } from "./rate-limit";
+import { consumeRateLimit, pruneRateLimits, signInLinkKey } from "./rate-limit";
 import type { Db } from "./schedule";
 
 afterAll(closePool);
@@ -85,5 +85,29 @@ describe("sign-in rate limit", () => {
       expect(left).toEqual([{ key: "203.0.113.8|/magic-link/verify" }]);
       expect(await db.select().from(rateLimit)).toHaveLength(1);
     });
+  });
+});
+
+describe("consumeRateLimit", () => {
+  it("allows max requests a window, then refuses until the window ends", async () => {
+    await inRolledBackDb(async (db) => {
+      const rule = { windowSeconds: 900, max: 3 };
+      const at = (minutes: number) =>
+        new Date(Date.UTC(2027, 4, 1, 12, minutes));
+      const results = [];
+      for (const m of [0, 1, 2, 3, 14])
+        results.push(await consumeRateLimit(db, "test:key", rule, at(m)));
+      expect(results).toEqual([true, true, true, false, false]);
+      // The window started at 12:00, so a new one starts at 12:15.
+      expect(await consumeRateLimit(db, "test:key", rule, at(15))).toBe(true);
+      expect(await consumeRateLimit(db, "test:other", rule, at(15))).toBe(true);
+    });
+  });
+
+  it("never stores the inbox's address", () => {
+    const key = signInLinkKey("Player@Example.test");
+    expect(key).toBe(signInLinkKey(" player@example.test "));
+    expect(key).not.toContain("example");
+    expect(key).toMatch(/^sign-in-link:[0-9a-f]{64}$/);
   });
 });
