@@ -2,8 +2,10 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { env } from "@/env";
 import { auth } from "@/lib/auth";
 import { safeNextPath } from "@/lib/safe-next";
+import { requestSignInLink } from "./request-link";
 
 /**
  * Emails the signed-in person a sign-in link that brings them back to the
@@ -18,14 +20,12 @@ export async function emailConfirmLink(form: FormData): Promise<void> {
   const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) redirect(`/sign-in?next=${encodeURIComponent(back)}`);
   const page = new URL(back, "http://same-site.invalid");
-  try {
-    await auth.api.signInMagicLink({
-      body: { email: session.user.email, callbackURL: back },
-      headers: requestHeaders,
-    });
-    page.searchParams.set("confirm", "sent");
-  } catch {
-    page.searchParams.set("confirm", "error");
-  }
+  const outcome = await requestSignInLink(auth.handler, {
+    baseURL: env.BETTER_AUTH_URL,
+    email: session.user.email,
+    callbackURL: back,
+    headers: requestHeaders,
+  }).catch(() => "failed" as const);
+  page.searchParams.set("confirm", outcome === "sent" ? "sent" : "error");
   redirect(`${page.pathname}${page.search}`);
 }
