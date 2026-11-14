@@ -191,7 +191,7 @@ jobs:
           retention-days: 1
 
   e2e-shard:
-    name: End-to-end shard ${{ matrix.shard }} of 2
+    name: End-to-end shard ${{ matrix.shard }} of 3
     needs: build
     if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
@@ -199,7 +199,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3]
     services:
       postgres:
         image: postgres:18
@@ -242,11 +242,11 @@ jobs:
       - run: tar --zstd -xf next-build.tar.zst && rm next-build.tar.zst
       - run: npm run db:migrate
       - name: Smoke tests and core flows with axe (seeds the database first)
-        run: npm run test:e2e -- --shard=${{ matrix.shard }}/2
+        run: npm run test:e2e -- --shard=${{ matrix.shard }}/3
       # Read-only and paused change the site for every test at once, so the
       # operator's site-wide switches run alone, after the rest, on one shard.
       - name: The operator's site-wide switches (reseeds the database first)
-        if: matrix.shard == 2
+        if: matrix.shard == 1
         run: npm run test:e2e:site-wide
       - name: Upload the report when something fails
         if: failure()
