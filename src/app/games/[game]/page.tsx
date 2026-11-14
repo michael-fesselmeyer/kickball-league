@@ -14,9 +14,7 @@ import { MemberPhotos } from "@/components/member-photos";
 import { GameStats } from "@/components/stats/game-stats";
 import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
-import { liveGame, snapshotOf } from "@/db/queries/live-scores";
 import { approvedPhotos } from "@/db/queries/member-photos";
-import { publishedGame } from "@/db/queries/public-schedule";
 import type { Hex } from "@/domain/color/contrast";
 import { type GameId, parseId } from "@/domain/ids";
 import { fullWhen } from "@/domain/schedule/format";
@@ -32,6 +30,7 @@ import {
 import { cardVersion, gameCard } from "@/domain/share/cards";
 import { gameShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
+import { cachedLiveSnapshot, cachedPublishedGame } from "@/lib/game-cache";
 import { MEMBER_PHOTOS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 import { shareMetadata } from "@/lib/share/metadata";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
@@ -46,7 +45,7 @@ async function cachedGamePhotos(gameId: GameId) {
 
 async function load(param: string) {
   const id = parseId<GameId>(param);
-  return id ? publishedGame(db, id) : null;
+  return id ? cachedPublishedGame(id) : null;
 }
 
 export async function generateMetadata({
@@ -115,14 +114,13 @@ function mapLink(venue: NonNullable<PublicGame["venue"]>) {
 async function Game({ params }: PageProps<"/games/[game]">) {
   const param = (await params).game;
   const id = parseId<GameId>(param);
-  const [found, live, photos] = await Promise.all([
+  const [found, snapshot, photos] = await Promise.all([
     load(param),
-    id ? liveGame(db, id) : null,
+    id ? cachedLiveSnapshot(id) : null,
     id ? cachedGamePhotos(id) : [],
   ]);
   if (!found) notFound();
   const { game, timeZone } = found;
-  const snapshot = live ? snapshotOf(live) : null;
   const done = hasResult(game);
   const calledOff = isCalledOff(game);
   const label = statusLabel(game);
