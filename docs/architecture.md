@@ -471,7 +471,8 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `/app/admin/events`, `/new`, `/[event]` | `screens`; `events` (create, attendees) |
 | `/app/admin/waivers` | `registration`, `season-journey`, `team-formation` |
 | `/app/admin/seasons`, `/new` | `screens`; `registration`, `season-journey`, `team-formation` |
-| `/app/admin/seasons/[season]` | `registration` (status, promo codes link), `announcements` |
+| `/app/admin/seasons/[season]` | `registration` (status, promo codes link), `announcements`, `rollover` (the new season's notice) |
+| `/app/admin/seasons/[season]/rollover` | `rollover` (preview, leave a team out, rename, create the draft) |
 | `…/announcements` | `announcements` (one team) |
 | `…/awards` | `awards` |
 | `…/fields` | `season-journey` (venue, field, permits, slots) |
