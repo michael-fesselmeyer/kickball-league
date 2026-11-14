@@ -18,6 +18,7 @@ import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
 import type { Db } from "./schedule";
+import { publicSeasons } from "./season-scope";
 
 /**
  * Divisions, their rule sets and the season's crossover settings
@@ -448,6 +449,6 @@ export async function publicDivisionPages(db: Db, leagueId: LeagueId) {
     .select({ season: season.slug, division: division.slug })
     .from(division)
     .innerJoin(season, eq(division.seasonId, season.id))
-    .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
+    .where(and(eq(season.leagueId, leagueId), publicSeasons))
     .orderBy(asc(season.slug), asc(division.sortOrder));
 }

@@ -365,3 +365,51 @@ describe("teamBySlug and publicRoster", () => {
       ]);
     }));
 });
+
+describe("a private league or tournament (ADR 0049)", () => {
+  it("is in its players' own games but on no public page", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const [s1, s2] = w.slots;
+      const [a, b, c, d] = w.entries;
+      await db
+        .update(season)
+        .set({ visibility: "private" })
+        .where(eq(season.id, w.seasonId));
+      const input = await loadSchedulerInput(db, w.seasonId, {
+        rounds: 1,
+        reservePerDay: 0,
+        seed: 1,
+      });
+      if (!input.ok) throw new Error(input.error);
+      const v1 = await saveVersion(db, {
+        seasonId: w.seasonId,
+        input: input.value,
+        schedule: schedule([game1(a, b, s1), game1(c, d, s2)]),
+        origin: "generated",
+      });
+      expect((await publishVersion(db, v1, w.adminId)).ok).toBe(true);
+
+      // Public pages, feeds and records see nothing of it.
+      expect(await publishedSchedule(db, w.seasonId)).toEqual([]);
+      expect(
+        (await allPublishedGames(db)).filter((g) => g.seasonId === w.seasonId),
+      ).toEqual([]);
+      const [aces, bees] = w.teams;
+      expect(await publishedGamesForTeam(db, aces!.id)).toEqual([]);
+      expect(await publishedGamesBetween(db, aces!.slug, bees!.slug)).toEqual(
+        [],
+      );
+      // A team that has only played private events has no public page.
+      expect(await teamBySlug(db, aces!.slug)).toBeNull();
+
+      // Its players and organizer still see the games.
+      expect(await publishedSchedule(db, w.seasonId, "mine")).toHaveLength(2);
+      const mine = await publishedGamesFor(db, {
+        teamSeasonIds: [a],
+        gameIds: [],
+      });
+      expect(mine.map((g) => g.teamA.name)).toEqual(["Aces"]);
+      expect(await publishedGame(db, mine[0]!.id as GameId)).toBeNull();
+    }));
+});

@@ -15,6 +15,7 @@ import {
 import type { LeagueInfo } from "@/db/queries/leagues";
 import { leagueHref } from "@/domain/league/paths";
 import { publicLeague } from "@/lib/league/public";
+import { isPublicSeason } from "@/domain/private-events/visibility";
 
 export const metadata: Metadata = {
   title: "Playoff bracket",
@@ -66,7 +67,7 @@ async function Bracket({
   cacheLife(PUBLIC_PAGE_LIFE);
   const season = await seasonBySlug(db, league.id, slug);
   // Drafts are the league's work in progress, not public.
-  if (!season || season.status === "draft") notFound();
+  if (!season || !isPublicSeason(season)) notFound();
   cacheTag(seasonTag(season.id));
   // One bracket, or one per division without a combined final (ADR 0040).
   const brackets = await bracketViews(db, season.id);

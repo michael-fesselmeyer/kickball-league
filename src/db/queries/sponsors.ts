@@ -31,6 +31,7 @@ import {
 } from "../schema/team";
 import { recordAudit } from "./audit";
 import type { Db } from "./schedule";
+import { publicSeasons } from "./season-scope";
 
 /**
  * Sponsors, their deals, check-ins at the bar and the team of the week
@@ -133,7 +134,7 @@ export async function sponsorDirectory(
         sponsor,
         and(eq(teamOfWeek.sponsorId, sponsor.id), isNull(sponsor.deletedAt)),
       )
-      .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
+      .where(and(eq(season.leagueId, leagueId), publicSeasons))
       .orderBy(desc(teamOfWeek.weekOf))
       .limit(1),
   ]);

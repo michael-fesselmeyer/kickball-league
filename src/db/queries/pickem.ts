@@ -33,6 +33,7 @@ import {
 } from "../schema/team";
 import { recordAudit } from "./audit";
 import type { Db } from "./schedule";
+import { leagueSeasons } from "./season-scope";
 
 /**
  * Pick'em (ADR 0044; docs/data-model.md, section 2.5): players predict the
@@ -164,6 +165,7 @@ async function pickemSeason(db: Db, leagueId: LeagueId) {
         inArray(season.status, ["in_progress", "playoffs", "completed"]),
         // The league the app is showing (ADR 0048).
         eq(season.leagueId, leagueId),
+        leagueSeasons,
       ),
     )
     .orderBy(desc(live), desc(season.startsOn))

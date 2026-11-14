@@ -23,6 +23,7 @@ export async function seasonBySlug(
       name: season.name,
       slug: season.slug,
       status: season.status,
+      visibility: season.visibility,
       startsOn: season.startsOn,
       feeModel: season.feeModel,
       timeZone: league.timezone,

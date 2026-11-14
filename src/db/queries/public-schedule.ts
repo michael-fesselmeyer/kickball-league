@@ -32,6 +32,7 @@ import {
 } from "../schema/team";
 import { publishedStatAwards } from "./stat-awards";
 import type { Db } from "./schedule";
+import { publicSeasons } from "./season-scope";
 
 /**
  * What the public schedule, team and game pages and the calendar feeds read.
@@ -44,7 +45,17 @@ const entryB = aliasedTable(teamSeason, "entry_b");
 const teamA = aliasedTable(team, "team_a");
 const teamB = aliasedTable(team, "team_b");
 
-async function publishedGames(db: Db, where: SQL | undefined) {
+/**
+ * Public pages see only the league's own seasons; a player's own screens
+ * also see the private league or tournament they play in (ADR 0049).
+ */
+type Scope = "public" | "mine";
+
+async function publishedGames(
+  db: Db,
+  where: SQL | undefined,
+  scope: Scope = "public",
+) {
   const rows = await db
     .select({
       id: game.id,
@@ -93,7 +104,12 @@ async function publishedGames(db: Db, where: SQL | undefined) {
     .leftJoin(slot, eq(gamePlacement.slotId, slot.id))
     .leftJoin(field, eq(slot.fieldId, field.id))
     .leftJoin(venue, eq(field.venueId, venue.id))
-    .where(and(ne(season.status, "draft"), where))
+    .where(
+      and(
+        scope === "public" ? publicSeasons : ne(season.status, "draft"),
+        where,
+      ),
+    )
     .orderBy(
       sql`${slot.startsAt} asc nulls last`,
       asc(field.sortOrder),
@@ -145,8 +161,9 @@ async function publishedGames(db: Db, where: SQL | undefined) {
 export function publishedSchedule(
   db: Db,
   seasonId: SeasonId,
+  scope: Scope = "public",
 ): Promise<PublicGame[]> {
-  return publishedGames(db, eq(game.seasonId, seasonId));
+  return publishedGames(db, eq(game.seasonId, seasonId), scope);
 }
 
 /** Every published game a team plays, across its public seasons. */
@@ -180,7 +197,7 @@ export function publishedGamesFor(
     conditions.push(inArray(entryB.id, [...teamSeasonIds]));
   }
   if (gameIds.length > 0) conditions.push(inArray(game.id, [...gameIds]));
-  return publishedGames(db, or(...conditions));
+  return publishedGames(db, or(...conditions), "mine");
 }
 
 /** Every published game in a league's public seasons, for its records. */
@@ -264,11 +281,23 @@ export async function teamBySlug(db: Db, leagueId: LeagueId, slug: string) {
     .where(
       and(
         eq(teamSeason.teamId, found.id),
-        ne(season.status, "draft"),
+        publicSeasons,
         ne(teamSeason.status, "withdrawn"),
       ),
     )
     .orderBy(desc(season.startsOn));
+  if (entries.length === 0) {
+    // A team that has only played private events has no public page.
+    const [privateOnly] = await db
+      .select({ id: teamSeason.id })
+      .from(teamSeason)
+      .innerJoin(season, eq(teamSeason.seasonId, season.id))
+      .where(
+        and(eq(teamSeason.teamId, found.id), eq(season.visibility, "private")),
+      )
+      .limit(1);
+    if (privateOnly) return null;
+  }
   return { ...found, entries };
 }
 

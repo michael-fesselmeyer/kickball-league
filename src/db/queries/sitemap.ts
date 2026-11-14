@@ -5,6 +5,7 @@ import { gamePlacement, scheduleVersion } from "../schema/schedule";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
+import { publicSeasons as publicScope } from "./season-scope";
 
 /** A league's seasons with public pages: every season except drafts, newest first. */
 export async function publicSeasons(db: Db, leagueId: LeagueId) {
@@ -15,7 +16,7 @@ export async function publicSeasons(db: Db, leagueId: LeagueId) {
       updatedAt: season.updatedAt,
     })
     .from(season)
-    .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
+    .where(and(eq(season.leagueId, leagueId), publicScope))
     .orderBy(desc(season.startsOn));
 }
 
@@ -26,7 +27,7 @@ export async function publicTeams(db: Db, leagueId: LeagueId) {
     .from(team)
     .innerJoin(teamSeason, eq(teamSeason.teamId, team.id))
     .innerJoin(season, eq(season.id, teamSeason.seasonId))
-    .where(and(eq(team.leagueId, leagueId), ne(season.status, "draft")))
+    .where(and(eq(team.leagueId, leagueId), publicScope))
     .orderBy(asc(team.slug));
 }
 
@@ -41,7 +42,7 @@ export async function publicTeamPages(db: Db, leagueId: LeagueId) {
     .from(team)
     .innerJoin(teamSeason, eq(teamSeason.teamId, team.id))
     .innerJoin(season, eq(season.id, teamSeason.seasonId))
-    .where(and(eq(team.leagueId, leagueId), ne(season.status, "draft")))
+    .where(and(eq(team.leagueId, leagueId), publicScope))
     .groupBy(team.slug)
     .orderBy(asc(team.slug));
   return rows.flatMap((r) =>
@@ -72,6 +73,7 @@ export async function currentPublicGames(db: Db, leagueId: LeagueId) {
       and(
         eq(season.leagueId, leagueId),
         notInArray(season.status, ["draft", "completed"]),
+        publicScope,
       ),
     )
     .orderBy(asc(game.id));
@@ -92,6 +94,6 @@ export async function seasonList(db: Db, leagueId: LeagueId) {
       endsOn: season.endsOn,
     })
     .from(season)
-    .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
+    .where(and(eq(season.leagueId, leagueId), publicScope))
     .orderBy(desc(season.startsOn));
 }
