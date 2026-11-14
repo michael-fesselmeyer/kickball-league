@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { FieldId, SeasonId, UserId } from "@/domain/ids";
+import type { FieldId, SeasonId, SlotId, UserId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
 import { game, slot } from "../schema/game";
@@ -101,6 +101,42 @@ const sync = (db: Db, w: { seasonId: SeasonId; actor: UserId }, minutes = 60) =>
     { seasonId: w.seasonId, slotMinutes: minutes, timeZone: NY },
     w.actor,
   );
+
+/** Two teams and a game in a slot, as a schedule would place it. */
+async function gameIn(
+  db: Db,
+  w: {
+    leagueId: Awaited<ReturnType<typeof world>>["leagueId"];
+    seasonId: SeasonId;
+  },
+  slotId: SlotId,
+  status: "scheduled" | "final" = "scheduled",
+) {
+  const tag = Math.random().toString(36).slice(2, 8);
+  const teams = await db
+    .insert(team)
+    .values(
+      ["A", "B"].map((n) => ({
+        leagueId: w.leagueId,
+        name: `${n} ${tag}`,
+        slug: `${n.toLowerCase()}-${tag}`,
+      })),
+    )
+    .returning({ id: team.id });
+  const entries = await db
+    .insert(teamSeason)
+    .values(teams.map((t) => ({ teamId: t.id, seasonId: w.seasonId })))
+    .returning({ id: teamSeason.id });
+  await db.insert(game).values({
+    seasonId: w.seasonId,
+    teamAId: entries[0]!.id,
+    teamBId: entries[1]!.id,
+    slotId,
+    ...(status === "final"
+      ? { status, scoreA: 5, scoreB: 3, finalizedAt: new Date() }
+      : {}),
+  });
+}
 
 describe("venues and fields", () => {
   it("adds a venue and fields, rejecting duplicates and other leagues' venues", async () => {
@@ -249,7 +285,7 @@ describe("syncSlots", () => {
       const w = await withPermits(db);
       expect(await sync(db, w)).toEqual({
         ok: true,
-        value: { added: 12, kept: 0, removed: 0, retired: 0 },
+        value: { added: 12, kept: 0, removed: 0, retired: 0, played: 0 },
       });
       await addBlackout(
         db,
@@ -263,7 +299,7 @@ describe("syncSlots", () => {
       );
       expect(await sync(db, w)).toEqual({
         ok: true,
-        value: { added: 0, kept: 6, removed: 6, retired: 0 },
+        value: { added: 0, kept: 6, removed: 6, retired: 0, played: 0 },
       });
       const screen = await fieldsScreen(db, w.leagueId, w.seasonId);
       expect(screen.slots.map((s) => s.timeIndex)).toEqual([0, 0, 1, 1, 0, 1]);
@@ -279,7 +315,7 @@ describe("syncSlots", () => {
       // 90-minute slots: one per window, starting at 8 pm like before.
       expect(await sync(db, w, 90)).toEqual({
         ok: true,
-        value: { added: 0, kept: 6, removed: 6, retired: 0 },
+        value: { added: 0, kept: 6, removed: 6, retired: 0, played: 0 },
       });
       const after = await fieldsScreen(db, w.leagueId, w.seasonId);
       expect(
@@ -339,7 +375,7 @@ describe("syncSlots", () => {
       ).toEqual({ ok: true, value: undefined });
       expect(await sync(db, w)).toEqual({
         ok: true,
-        value: { added: 0, kept: 10, removed: 1, retired: 1 },
+        value: { added: 0, kept: 10, removed: 1, retired: 1, played: 0 },
       });
       const [kept] = await db
         .select({ status: slot.status })
@@ -380,7 +416,7 @@ describe("syncSlots", () => {
         .returning({ id: slot.id });
       expect(await sync(db, w)).toEqual({
         ok: true,
-        value: { added: 11, kept: 1, removed: 0, retired: 0 },
+        value: { added: 11, kept: 1, removed: 0, retired: 0, played: 0 },
       });
       const screen = await fieldsScreen(db, w.leagueId, w.seasonId);
       expect(screen.slots).toHaveLength(13);
@@ -462,6 +498,75 @@ describe("removing permits and blackouts", () => {
           w.actor,
         ),
       ).toEqual({ ok: false, error: "unknown_blackout" });
+    });
+  });
+
+  it("leaves the slots of games already played alone when the slots are re-cut", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await withPermits(db);
+      await sync(db, w);
+      const slots = (await fieldsScreen(db, w.leagueId, w.seasonId)).slots;
+      // The 9 pm slots on the first Monday, Field 1: one played, one not.
+      const nine = slots.filter((s) =>
+        s.startsAt.toISOString().startsWith("2027-04-06T01:00"),
+      );
+      expect(nine).toHaveLength(2);
+      await gameIn(db, w, nine[0]!.id, "final");
+      await gameIn(db, w, nine[1]!.id);
+      // A week later, the admin re-cuts with 55-minute slots: 8:00 and 8:55,
+      // so every 9 pm slot falls off the new grid.
+      const afterFirstMonday = new Date("2027-04-08T12:00:00Z");
+      const result = await syncSlots(
+        db,
+        {
+          seasonId: w.seasonId,
+          slotMinutes: 55,
+          timeZone: NY,
+          now: afterFirstMonday,
+        },
+        w.actor,
+      );
+      if (!result.ok) throw new Error(result.error);
+      // Both 9 pm slots of the first Monday already happened.
+      expect(result.value.played).toBe(2);
+      const after = await db
+        .select({ id: slot.id, status: slot.status })
+        .from(slot)
+        .where(eq(slot.seasonId, w.seasonId));
+      const statusOf = new Map(after.map((s) => [s.id, s.status]));
+      expect(statusOf.get(nine[0]!.id)).toBe("open");
+      expect(statusOf.get(nine[1]!.id)).toBe("open");
+      // Later 9 pm slots, unused and still ahead, are removed as before.
+      expect(result.value.removed).toBeGreaterThan(0);
+    });
+  });
+
+  it("keeps a played game's slot even before its start has passed on the clock", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await withPermits(db);
+      await sync(db, w);
+      const slots = (await fieldsScreen(db, w.leagueId, w.seasonId)).slots;
+      const nine = slots.find((s) =>
+        s.startsAt.toISOString().startsWith("2027-04-13T01:00"),
+      );
+      await gameIn(db, w, nine!.id, "final");
+      const result = await syncSlots(
+        db,
+        {
+          seasonId: w.seasonId,
+          slotMinutes: 55,
+          timeZone: NY,
+          now: new Date("2027-04-01T12:00:00Z"),
+        },
+        w.actor,
+      );
+      if (!result.ok) throw new Error(result.error);
+      expect(result.value.played).toBe(1);
+      const [kept] = await db
+        .select({ status: slot.status })
+        .from(slot)
+        .where(eq(slot.id, nine!.id));
+      expect(kept?.status).toBe("open");
     });
   });
 });

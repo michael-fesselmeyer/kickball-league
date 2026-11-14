@@ -394,6 +394,11 @@ export type SlotSync = {
   removed: number;
   /** Slots no permit covers any more that a schedule version uses: cancelled, not deleted. */
   retired: number;
+  /**
+   * Slots no permit covers any more that already happened, or whose game
+   * was played: left exactly as they are, since they are the season's history.
+   */
+  played: number;
 };
 
 /**
@@ -403,12 +408,22 @@ export type SlotSync = {
  * are unchanged, so schedule versions that use it stay intact. A slot no
  * longer covered is deleted, or cancelled when a version uses it. Slots that
  * were not cut from a permit are left alone unless a permit now covers them.
+ * A slot that already started, or whose game is final, in progress or
+ * forfeited, is never deleted or cancelled: re-cutting after the permits
+ * change (adding playoff hours, a new slot length) must not rewrite games
+ * that were played.
  */
 export async function syncSlots(
   db: Db,
-  input: { seasonId: SeasonId; slotMinutes: number; timeZone: string },
+  input: {
+    seasonId: SeasonId;
+    slotMinutes: number;
+    timeZone: string;
+    now?: Date;
+  },
   actorId: UserId,
 ): Promise<Result<SlotSync, "bad_length">> {
+  const now = input.now ?? new Date();
   if (
     !Number.isInteger(input.slotMinutes) ||
     input.slotMinutes < 15 ||
@@ -464,6 +479,9 @@ export async function syncSlots(
     })
     .from(slot)
     .where(eq(slot.seasonId, input.seasonId));
+  const started = new Set(
+    existing.filter((s) => s.startsAt <= now).map((s) => s.id),
+  );
   const key = (fieldId: string, startsAt: string) => `${fieldId}@${startsAt}`;
   const byKey = new Map(
     existing.map((s) => [key(s.fieldId, s.startsAt.toISOString()), s]),
@@ -517,9 +535,27 @@ export async function syncSlots(
       where slot.id = v.id`);
   if (fresh.length > 0) await db.insert(slot).values(fresh);
 
-  const stale = existing
+  const uncovered = existing
     .filter((s) => s.permitWindowId !== null && !matched.has(s.id))
     .map((s) => s.id);
+  // History stays put: a slot that already started, or whose game was played.
+  const playedGames =
+    uncovered.length > 0
+      ? await db
+          .select({ id: game.slotId })
+          .from(game)
+          .where(
+            and(
+              inArray(game.slotId, uncovered),
+              inArray(game.status, ["in_progress", "final", "forfeit"]),
+            ),
+          )
+      : [];
+  const played = new Set([
+    ...uncovered.filter((id) => started.has(id)),
+    ...playedGames.map((r) => r.id as SlotId),
+  ]);
+  const stale = uncovered.filter((id) => !played.has(id));
   let retired: SlotId[] = [];
   if (stale.length > 0) {
     const inGames = await db
@@ -548,6 +584,7 @@ export async function syncSlots(
     kept: refreshed.length,
     removed: stale.length - retired.length,
     retired: retired.length,
+    played: played.size,
   };
   await recordAudit(db, {
     actorId,
