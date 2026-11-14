@@ -192,15 +192,31 @@ const show = (value: unknown): string => {
   return String(value);
 };
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** An internal id, which tells a reader nothing. */
+const isId = (value: unknown) => typeof value === "string" && UUID.test(value);
+
+/** "teamsAffected" → "teams affected". */
+const words = (key: string) =>
+  key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase();
+
 /**
  * For a change whose before and after are flat records, the fields that
- * changed as "field: before → after"; nothing when there is no such
- * comparison to make.
+ * changed in plain words: "field: before → after", or "field: value" for one
+ * the change only adds (such as a publish's counts). Fields holding internal
+ * ids are left out; the row's action and actor already say what happened.
+ * Nothing when there is no such comparison to make.
  */
 export function describeChange(before: unknown, after: unknown): string[] {
   if (!isRecord(before) || !isRecord(after)) return [];
   const keys = [...new Set([...Object.keys(before), ...Object.keys(after)])];
   return keys
     .filter((key) => JSON.stringify(before[key]) !== JSON.stringify(after[key]))
-    .map((key) => `${key}: ${show(before[key])} → ${show(after[key])}`);
+    .filter((key) => !isId(before[key]) && !isId(after[key]))
+    .map((key) =>
+      Object.hasOwn(before, key)
+        ? `${words(key)}: ${show(before[key])} → ${show(after[key])}`
+        : `${words(key)}: ${show(after[key])}`,
+    );
 }
