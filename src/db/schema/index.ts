@@ -1,3 +1,4 @@
+export * from "./account-merge";
 export * from "./audit";
 export * from "./auth";
 export * from "./awards";

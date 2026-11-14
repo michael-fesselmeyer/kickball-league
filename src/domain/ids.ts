@@ -93,6 +93,7 @@ export type MerchImageId = Brand<string, "MerchImageId">;
 export type MerchOrderId = Brand<string, "MerchOrderId">;
 export type FriendLeagueId = Brand<string, "FriendLeagueId">;
 export type FriendLogoId = Brand<string, "FriendLogoId">;
+export type AccountMergeId = Brand<string, "AccountMergeId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
