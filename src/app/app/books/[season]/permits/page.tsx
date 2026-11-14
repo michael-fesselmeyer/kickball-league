@@ -472,7 +472,14 @@ async function Permits({
               in all.
             </p>
             <CopySheet text={sheetText(sheet.value.rows)} />
-            <div className="overflow-x-auto">
+            <div
+              role="region"
+              aria-label="Field bookings to request"
+              // A scrolling region must be reachable by keyboard, even with no links.
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+              tabIndex={0}
+              className="overflow-x-auto"
+            >
               <table className="w-full text-left">
                 <caption className="sr-only">
                   Field bookings to request for {season.name}
