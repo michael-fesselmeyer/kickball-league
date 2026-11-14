@@ -5,6 +5,7 @@ import { EMPTY_SEASON_FORM } from "@/domain/season/settings";
 import { requirePermission } from "@/lib/auth/permission";
 import { createSeasonAction } from "../actions";
 import { SeasonSettingsForm } from "../season-form";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "New season" };
 
@@ -21,7 +22,7 @@ export default function NewSeasonPage() {
           registration.
         </p>
       </header>
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <NewSeason />
       </Suspense>
     </main>

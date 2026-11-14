@@ -26,6 +26,7 @@ import { formatMoment } from "@/domain/money/credit";
 import { requirePermission } from "@/lib/auth/permission";
 import { drawAction, redrawAction, saveGiveawayAction } from "./actions";
 import { GiveawayFormFields } from "./giveaway-form";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Event giveaway" };
 
@@ -34,7 +35,7 @@ type Props = PageProps<"/app/admin/events/[event]/giveaway">;
 export default function AdminGiveawayPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading the giveaway…</p>}>
+      <Suspense fallback={<PageLoading>Loading the giveaway…</PageLoading>}>
         <AdminGiveaway {...props} />
       </Suspense>
     </main>

@@ -9,13 +9,14 @@ import { type AwardPollId, parseId } from "@/domain/ids";
 import { ordinal } from "@/domain/share/cards";
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Award results" };
 
 export default function ResultsPage(props: PageProps<"/app/vote/[poll]">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Counting the votes…</p>}>
+      <Suspense fallback={<PageLoading>Counting the votes…</PageLoading>}>
         <Results {...props} />
       </Suspense>
     </main>

@@ -15,6 +15,7 @@ import {
 } from "@/domain/drive/giveaway";
 import { formatMoment } from "@/domain/money/credit";
 import { requirePermission } from "@/lib/auth/permission";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Giveaway" };
 
@@ -27,7 +28,7 @@ type Props = PageProps<"/app/events/[event]/giveaway">;
 export default function GiveawayPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading the giveaway…</p>}>
+      <Suspense fallback={<PageLoading>Loading the giveaway…</PageLoading>}>
         <Giveaway {...props} />
       </Suspense>
     </main>

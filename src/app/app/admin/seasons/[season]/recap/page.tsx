@@ -17,6 +17,7 @@ import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { sendLeagueAnnouncementAction } from "../announcements/actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Weekly recap" };
 
@@ -25,7 +26,7 @@ export default function RecapPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Recap {...props} />
       </Suspense>
     </main>

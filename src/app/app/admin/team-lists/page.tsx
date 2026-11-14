@@ -21,6 +21,7 @@ import {
   removeAdminKeepOffAction,
   setExportPolicyAction,
 } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Not-on-my-team lists" };
 
@@ -29,7 +30,7 @@ export default function TeamListsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading the lists…</p>}>
+      <Suspense fallback={<PageLoading>Loading the lists…</PageLoading>}>
         <TeamLists {...props} />
       </Suspense>
     </main>

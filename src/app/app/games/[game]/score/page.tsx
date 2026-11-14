@@ -26,13 +26,14 @@ import { respondAction } from "./actions";
 import { rateSportsmanshipAction } from "./rate";
 import { GameOutbox, ScoreForm } from "./score-form";
 import { SportsmanshipForm } from "./sportsmanship-form";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Score" };
 
 export default function ScorePage(props: PageProps<"/app/games/[game]/score">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
-      <Suspense fallback={<p>Loading the game…</p>}>
+      <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>
         <Score {...props} />
       </Suspense>
     </main>

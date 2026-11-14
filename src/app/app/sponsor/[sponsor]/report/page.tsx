@@ -13,6 +13,7 @@ import {
 import { localDay } from "@/domain/schedule/public-game";
 import { reportStart, weekLabel, weeklyReport } from "@/domain/sponsors/report";
 import { requirePermission } from "@/lib/auth/permission";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Weekly numbers" };
 
@@ -24,7 +25,7 @@ const WEEKS = 8;
 export default function ReportPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Counting…</p>}>
+      <Suspense fallback={<PageLoading>Counting…</PageLoading>}>
         <Report {...props} />
       </Suspense>
     </main>

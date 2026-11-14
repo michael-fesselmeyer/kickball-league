@@ -13,6 +13,7 @@ import {
 } from "@/domain/sponsors/sponsor-form";
 import { currentSubject } from "@/lib/auth/permission";
 import { createSponsorAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Sponsors" };
 
@@ -23,7 +24,7 @@ export const metadata: Metadata = { title: "Sponsors" };
 export default function SponsorsHome(props: PageProps<"/app/sponsor">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Sponsors {...props} />
       </Suspense>
     </main>

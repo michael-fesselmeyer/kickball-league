@@ -18,6 +18,7 @@ import { reconcile } from "@/domain/lineup/order";
 import { requirePermission } from "@/lib/auth/permission";
 import { saveLineupAction } from "../actions";
 import { LineupBuilder } from "./builder";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Kicking order" };
 
@@ -26,7 +27,7 @@ export default function LineupBuilderPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
-      <Suspense fallback={<p className="min-h-svh">Loading the lineup…</p>}>
+      <Suspense fallback={<PageLoading>Loading the lineup…</PageLoading>}>
         <Builder {...props} />
       </Suspense>
     </main>

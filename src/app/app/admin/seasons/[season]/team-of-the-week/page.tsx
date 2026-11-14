@@ -18,6 +18,7 @@ import { statGamesFrom, teamsFrom } from "@/domain/stats/season";
 import { gameDays } from "@/domain/stats/weekly";
 import { requirePermission } from "@/lib/auth/permission";
 import { removeTeamOfWeekAction, setTeamOfWeekAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Team of the week" };
 
@@ -26,7 +27,7 @@ type Props = PageProps<"/app/admin/seasons/[season]/team-of-the-week">;
 export default function TeamOfWeekPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <TeamOfWeek {...props} />
       </Suspense>
     </main>
