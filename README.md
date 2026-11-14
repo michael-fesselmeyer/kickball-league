@@ -87,6 +87,11 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - A "Link to us" section with the league's address and a copyable HTML snippet, so partner leagues can link back; entries that do show "Links to us".
 - Admins add, edit and remove entries. Website links must be https on a public host name, and are checked on the server. An optional logo is shrunk on the server to one small WebP and kept in Postgres, within a per-logo and total cap. Every change is audited.
 
+**Help center and schedule widget**
+
+- A static help center at `/help`: short how-tos for players (sign up, pay your share, RSVP, subs, installing the app, alerts), captains (invites, kicking orders, scores, co-captains, subs), refs (game day, live scoring, incidents), admins (season setup, the schedule, rain-outs, the game-day command center) and owners (books, permits, the dashboard). A search box filters them as you type; every how-to is still listed without JavaScript. The screens they describe link to them with a "Help" link.
+- An embeddable schedule widget: a sponsor bar or a team pastes one iframe snippet from `/widget` to show the league's next game day or one team's next three games. The widget is a single static HTML page with inline styles and no JavaScript, follows the visitor's light or dark setting, and updates when the schedule changes. Only `/embed/*` may be framed by other sites; every other page sends `frame-ancestors 'none'` and `X-Frame-Options: DENY`.
+
 **Messaging**
 
 - A transactional outbox: messages are written with the change that caused them, failed sends retry, and nothing sends twice.

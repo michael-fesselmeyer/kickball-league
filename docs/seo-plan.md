@@ -57,6 +57,7 @@ Rules for landing pages: each must hold information that exists nowhere else on 
 | Images | Descriptive `alt` text, explicit dimensions, modern formats |
 | Past seasons | Old seasons stay online at stable URLs. Every result and recap is a permanent, indexable page that keeps earning visits |
 | Calendar feeds and JSON endpoints | Not indexed |
+| Schedule widget (`/embed/schedule`, `/embed/schedule/[team]`) | Sent with `X-Robots-Tag: noindex` and a `noindex` meta tag, so the framed copies never compete with the schedule pages; its links open the full site in a new tab |
 
 ### Structured data
 
@@ -97,6 +98,7 @@ Added as JSON-LD and validated in CI against the schema.org types.
 | **Event pages** | Social terms; each event is an indexable page | P2 |
 | **Team pages with history** | Team-name searches | MVP, history in P2 |
 | **"Friends of the league" page** linking local leagues the players also play in | Local relevance and link exchange | P3 |
+| **Help center** (`/help` and a page per role) | "How do I…" searches from players and captains; fewer emails to the commissioners. Built: in the sitemap with breadcrumb structured data | P3 |
 | **Photo galleries** | Image search, time on site | P3 |
 
 Writing rules: answer the question in the first two sentences; use the words people search with ("kickball league", "Brooklyn", "coed", "adults"); name real places; put the price on the page.
@@ -112,6 +114,7 @@ Writing rules: answer the question in the first two sentences; use the words peo
 | **Sponsor bar links** | Each sponsor agreement includes a link from the bar's website and a tag in their Instagram posts. The QR check-in poster carries the site address | Sponsorship terms |
 | **Local citations** | List the league where New Yorkers look for things to do and for adult sports leagues: neighborhood blogs and newsletters for Greenpoint and Williamsburg, "things to do" calendars, Meetup, Eventbrite for social events, Yelp, Nextdoor, Reddit's NYC and Brooklyn communities where rules allow | League, with a checklist |
 | **Friends of the league** | Trade links with the leagues players already overlap with (softball, soccer, pool, football). Built: `/friends` lists them, each linking out with `rel="noopener"` (no `nofollow`: these are real partners), and its "Link to us" section gives them the league's address and an HTML snippet. Admins mark which ones link back | League |
+| **Schedule widget** | Sponsor bars and team sites show the league's next games with one iframe snippet from `/widget`; each widget links back to the schedule and the home page. Built | League, with each sponsor |
 | **Press** | One pitch a year to local outlets around opening day or the charity game | League |
 | **Park permits** | Ask whether permitted leagues can be listed on any Parks Department or conservancy page | League |
 
