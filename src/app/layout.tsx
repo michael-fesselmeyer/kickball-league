@@ -49,6 +49,8 @@ export const viewport: Viewport = {
 };
 
 const FOOTER_LINKS = [
+  { href: "/seasons", label: "Schedules" },
+  { href: "/history", label: "History" },
   { href: "/about", label: "About" },
   { href: "/events", label: "Events" },
   { href: "/faq", label: "FAQ" },

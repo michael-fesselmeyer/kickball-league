@@ -113,3 +113,23 @@ test("the sitemap lists team and schedule pages", async ({ request }) => {
   expect(sitemap).toMatch(/\/teams\/the-big-kicks</);
   expect(sitemap).toMatch(/\/seasons\/fall-2026\/schedule</);
 });
+
+test("a visitor finds the schedules from the home page and the footer", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: "Schedules and standings" }).click();
+  await expect(page).toHaveURL(/\/seasons$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Seasons");
+  const fall = page.getByRole("listitem").filter({
+    has: page.getByRole("heading", { name: "Fall 2026" }),
+  });
+  await fall.getByRole("link", { name: "Schedule for Fall 2026" }).click();
+  await expect(page).toHaveURL(/\/seasons\/fall-2026\/schedule$/);
+
+  await page
+    .getByRole("navigation", { name: "Site" })
+    .getByRole("link", { name: "Schedules" })
+    .click();
+  await expect(page).toHaveURL(/\/seasons$/);
+});
