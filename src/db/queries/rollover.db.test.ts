@@ -72,9 +72,10 @@ async function rolloverWorld(db: Db) {
       slug: "example-park",
     })
     .returning({ id: venue.id });
+  if (!v) throw new Error("no venue");
   const [f] = await db
     .insert(field)
-    .values({ venueId: v?.id ?? "", name: "Field 1" })
+    .values({ venueId: v.id, name: "Field 1" })
     .returning({ id: field.id });
   if (!f) throw new Error("no field");
   // Mondays 8 to 10 pm, in daylight saving time.
@@ -283,10 +284,11 @@ describe("season rollover", () => {
           teamBId: w.otherTeamSeasonId,
         })
         .returning({ id: game.id });
+      if (!played) throw new Error("no game");
       const [inc] = await db
         .insert(incident)
         .values({
-          gameId: played?.id,
+          gameId: played.id,
           kind: "unsportsmanlike",
           details: "Invented incident for a test",
           reporterRole: "admin",

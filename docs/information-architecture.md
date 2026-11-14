@@ -117,6 +117,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── awards                  Open a game-day or season poll, close one early, remove one; results after close
     │   ├── sportsmanship           Each team's average sportsmanship rating and the notes left for admins, lowest first, never saying who rated
     │   ├── free-agents             Matcher: suggested placements with reasons (apply one or all), the pool with quiz answers and friend groups, and building a new team from the pool
+    │   ├── rollover                Start the next season from this one: name, first day and teams to bring, a preview of what the new draft gets and what starts fresh, then create it
     │   ├── divisions               Divisions and their rule sets, each team's division, crossover games per team, whether crossovers count in standings, and the combined final
     │   ├── fields                  Fields, permit windows, blackout dates, slots
     │   ├── requests                Every team's conflicts and preferences, read before generating
