@@ -43,6 +43,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── embed/schedule                  The schedule widget: the league's next game day as one small page with no script, for other sites to frame (the only route that may be framed)
 │   └── [team]                      One team's next three games
 ├── free-agents                     How solo signup works, with FAQ structured data (P2: quiz)
+├── private-events                  Book a private league or tournament: the formats, what's included, how it works and a "Request a booking" button (static; private seasons themselves never appear on public pages)
 ├── history                         Past seasons: champions, final standings and the all-time table; each season links to its standings and schedule
 ├── news/
 │   ├── how-to-play-kickball        Evergreen guide to the basics, with Article structured data
@@ -96,6 +97,10 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── seasons/[season]/new-team       Ask the league to start a new team; see the answer or withdraw while it waits
 ├── seasons/[season]/card           Your season in kickball: my end-of-season card, private until I make its link public; then the link, share buttons and "Make my card private"; "Copy for WhatsApp" either way. Linked from home
 ├── seasons/[season]/register       Register a team or join as a free agent, confirming the season's minimum age ("I'm 21 or older"); a player the profile shows as too young sees why instead of the forms; when the season is full, the team waitlist: join, see your place, leave, or take a held spot
+├── private-events/                 An organizer's requests for private leagues and tournaments, and the ones set up
+│   ├── new                         Request a booking: tournament or league, organization, teams, dates, note (signed in)
+│   ├── [season]                    Organizer page, for the organizer and admins: invite link, payment (the organization pays once, or players pay), teams, schedule, results; admins get links to the season's fields, schedule and bracket screens
+│   └── join/[token]                A private event's invite link: remembers the invite and opens the season's registration (an old link lands on join/expired)
 ├── seasons/[season]/team (challenge) The season's sign-up challenge on the team page: "9 of 12 signed up", a bar, the prize and a link to the leaderboard
 ├── seasons/[season]/challenge      The sign-up challenge leaderboard: teams by the share of their roster with an account and a signed waiver (team names and counts only), my team marked, the winner once confirmed
 ├── seasons/[season]/team (fee)     Split-pay captains: the team fee, what is paid and left, pay the rest, and the card that guarantees it
@@ -174,6 +179,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     ├── people                      Players, roles
     ├── refs                        Referee pool and assignments
     ├── events/                     Every event with who it's for, going and waitlist counts
+    ├── private-events              Requests for private leagues and tournaments: accept one as an invite-only private season (name, dates, games per day, who pays, amount) or decline it with a reason
     │   ├── new                     Create an event or theme week: who it's for (everyone, all members, or teams from a season or any), an invite link, RSVPs in the app or not, and an optional email to everyone it's for
     │   └── [event]                 Edit (and optionally email the change, including the ticket and member prices), who's coming and the waitlist in order, "Copy for WhatsApp", call off or delete. A ticketed event adds its ticket list: holders with their code and what they paid on card and in credit, checkouts and offers open now, a check-in box for the door, and a full refund per ticket
     │       └── giveaway/           Add or change the event's free giveaway (prize, donor, winners, entry window, official rules), entry count, draw the winners once entry closes, and replace a winner with a reason; refused for a ticketed event or a theme week
@@ -420,6 +426,9 @@ Rules:
 | Where the money goes (public) | Collected and spent, a table of categories with a bar and share each, then each fee split into the same lines | Same, no wider than 768px |
 | Books (owners) | The ledger as a two-column table, then "Add an expense" (date, amount, category, note, a receipt photo from the camera or saved photos), then the season's expenses with their receipts | Same, no wider than 768px |
 | Permits (owners) | A red box listing games on a lost permit, with a button to the schedule board; a button to the capacity planner; "Fees and hours" (hours against the 50-hour line, fees due, expected fees), bordered amber or red as the line nears or passes; "Give back field time" with each window's office number and the cancellation form's answers to copy; one card per permit with an Edit fold-out; the request form, sheet and copy button; "How NYC Parks permits work" as fold-outs with links and the last-checked date; the insurance certificate | Same |
+| Book a private league (public) | Sticker, heading and the request button, then the two formats as cards, what's included, numbered steps and a closing box with the button again | Formats side by side |
+| Organizer page | Invite link in a read-only field, payment with a Pay button when the organization pays, teams with player counts, upcoming games, results; admin links last | Same |
+| Private events (admins) | Waiting requests as cards with Accept and Decline fold-outs, then answered ones as a list | Same |
 | Capacity planner (owners) | Game length, games per team and teams wanting in as a small form; the teams that fit and the gap in a status box; one card per option with its extra teams and a button to the request sheet; nearby fields as a list with distance | Same |
 | Park permit (ref and captains) | The permit number large, the field and hours, then the permit's photo full width (or a button to open its PDF); a saved copy when offline | Same, no wider than a phone |
 | Sponsor report | Three numbers for this week, a weekly bar chart and a table by week, then deals used and the teams that came by most | Same, wider |

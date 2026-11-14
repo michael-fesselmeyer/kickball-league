@@ -104,6 +104,7 @@ erDiagram
     text name
     text slug
     enum status "draft, registration_open, registration_closed, in_progress, playoffs, completed"
+    enum visibility "league or private: a private league or tournament (ADR 0049)"
     date starts_on
     date ends_on
     timestamptz registration_opens_at
@@ -604,7 +605,7 @@ erDiagram
   purchase_item {
     uuid id PK
     uuid purchase_id FK
-    enum kind "team_fee, player_share, player_fee, free_agent_fee, balance, event_ticket, merch"
+    enum kind "team_fee, player_share, player_fee, free_agent_fee, balance, event_ticket, merch, private_event"
     uuid team_season_id FK
     uuid registration_id FK
     uuid event_id FK
@@ -1624,6 +1625,42 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 - `league.is_default` marks the league at the site's own URLs (a partial unique index allows one). Until one is marked, the oldest league counts.
 - League credit, purchases and the audit log each carry the league.
 
+### 2.12 Private leagues and tournaments
+
+An organization asks for a one-day tournament or a private league; an admin accepts it as a private season of the league ([ADR 0049](adr/0049-private-events-are-private-seasons.md)).
+
+```mermaid
+erDiagram
+  league ||--o{ private_event : "asked of"
+  user ||--o{ private_event : organizes
+  season |o--o| private_event : "set up as"
+
+  private_event {
+    uuid id PK
+    uuid league_id FK
+    uuid organizer_id FK "the signed-in person who asked"
+    enum kind "tournament, league"
+    enum status "requested, accepted, declined"
+    text organization "1 to 120 characters"
+    int teams "2 to 32"
+    text preferred_dates "in the organizer's words"
+    text note "nullable, up to 2000 characters"
+    uuid season_id FK "unique, set when accepted"
+    enum payer "organization, players; set when accepted"
+    int price_cents "what the organization pays for every team"
+    text invite_token "unique, the secret in the invite link"
+    timestamptz paid_at
+    timestamptz decided_at
+    uuid decided_by FK
+  }
+```
+
+Notes:
+- `season.visibility = 'private'` keeps a season off every public page and public query: they read seasons through `publicSeasons` or `leagueSeasons` in `src/db/queries/season-scope.ts`. Its players see their games on their home screen; the organizer and admins see the organizer page.
+- An accepted request always has its season, payer and invite token (the `private_event_accepted_has_season` check), and an organization that pays always has a price. When the organization pays, the season's team fee is zero and the organizer pays `price_cents` once in a purchase with one `private_event` item; settling it sets `paid_at`. When players pay, the season is priced per player as usual.
+- The organizer's name and email are their account's, not copied here. Deleting the account declines an open request; merging accounts moves the rows. Requests are rate-limited to three a day per person (`rate_limit` key `private-event:<user>`).
+- Audited: `private_event.request`, `private_event.accept`, `private_event.decline`.
+
 ## 3. Constraints and indexes
 
 Integrity rules the database enforces, so application bugs cannot break them:
@@ -1690,6 +1727,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `sub_request` | unique `(game_id, team_season_id)` where `status in ('open', 'filled')` | One live request per team per game |
 | `sub_request` | check `needed` between 1 and 11; check `women_needed + men_needed <= needed` | Reserved spots fit in the request |
 | `team_formation_request` | unique `(season_id, requested_by)` where `status = 'pending'` | One open new-team request per person per season |
+| `private_event` | unique `season_id`, unique `invite_token`; index `(league_id, status, created_at)`, index `organizer_id` | One event per private season; invite links can't collide; the admins' queue and an organizer's list |
 | `team_formation_request` | check `status in ('approved', 'declined')` exactly when `decided_at` is set; check `status = 'approved'` exactly when `team_season_id` is set | An answer is timestamped; an approval names its team |
 | `team_formation_request` | check `expected_size` between 1 and 60; name 1 to 40 characters; note and reason at most 500 | Requests stay readable |
 | `checkin` | unique `(sponsor_id, user_id, on_date)` | One check-in per bar per day |
@@ -1798,6 +1836,7 @@ Indexes for the common reads:
 | Kicking order | `game_lineup`, `game_lineup_spot` | The team's captains and admins; from game day, the other team's captains and the game's ref, as names in order with no genders. Each player sees only their own spot |
 | Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
 | New-team requests, with the player's note | `team_formation_request` | The player and admins |
+| Private league and tournament requests, with the organizer's note | `private_event` | The organizer and admins. The organizer's contact details stay on their account |
 | Captaincy offers | `captain_handoff` | The captain who offered, the teammate offered it, and admins; both people find the offers in their own export |
 | "Not on my team" entries, with the private reason | `team_keep_off` | The team's captains and admins. The person listed never sees them anywhere; their own export lists them only if the owners turn on `league.export_keep_off_entries`. The captain or admin who added an entry finds it in their own export |
 | Sportsmanship ratings | `sportsmanship_rating` | Admins see each team's average and the notes, never which game or team they came from; a captain sees their own team's average over whole blocks of 3 ratings. The captain who rated sees their team's rating |

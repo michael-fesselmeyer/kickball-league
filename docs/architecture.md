@@ -140,7 +140,7 @@ With Cache Components, a page's static parts and cached data are prerendered int
 
 | Route | Strategy | Cache tags | Invalidated when |
 |---|---|---|---|
-| `/`, `/about`, `/faq`, `/refs`, `/nyc-kickball-league`, `/legal/*` | Fully prerendered; data cached for days | `league` | League settings change |
+| `/`, `/about`, `/faq`, `/refs`, `/nyc-kickball-league`, `/private-events`, `/legal/*` | Fully prerendered; data cached for days | `league` | League settings change |
 | `/rules` | Prerendered from MDX in the repository | — | Deploy |
 | `/parks/[park]` | Prerendered; cached | `venue:{id}` | Venue edited |
 | `/seasons/[season]` | Prerendered; price and spots-left cached for minutes | `season:{id}` | Season edited, registration paid |
@@ -214,6 +214,10 @@ A permission subject is loaded for one league: the league the app is showing, re
 
 Postgres row-level security is not used. The app connects as one database role through a pooled HTTP driver, and a single tested policy function is easier to reason about than policy split across two layers.
 
+### Private leagues and tournaments
+
+A private event is a season of the league with `visibility = 'private'` ([ADR 0049](adr/0049-private-events-are-private-seasons.md)). Public reads choose their seasons through `src/db/queries/season-scope.ts` (`publicSeasons`, `leagueSeasons`), so a private season, its teams and games never reach a public page, feed, the sitemap, standings, history, records or pick'em. Its invite link (`/app/private-events/join/<token>`) sets an HTTP-only cookie that registration, the waitlist and its actions check; without it a private season's registration is a 404. When the organization pays, its one Checkout is a purchase with a `private_event` item, settled by the same Stripe webhook as every other purchase (section 6).
+
 ## 5. Background jobs
 
 ### The outbox
@@ -272,6 +276,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `merch_receipt` | urgent | Your receipt for an order from the league shop |
 | `merch_update` | non-urgent | Your league shop order is ready, or was refunded |
 | `new_team` | non-urgent | Answers to new-team requests |
+| `private_event` | urgent | Your request for a private league or tournament: received, set up or declined |
 | `payment_reminder` | urgent | Payment deadline reminders |
 | `permit_alert` | non-urgent | For owners: a season near NYC Parks' 50-hour insurance line, or permitted field time to give back |
 | `photo_review` | non-urgent | Whether the league used a photo you uploaded |
