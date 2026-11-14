@@ -12,7 +12,6 @@ import { auditLog } from "../schema/audit";
 import { booksFile } from "../schema/books";
 import { field, game, slot, venue } from "../schema/game";
 import { message } from "../schema/message";
-import { profile } from "../schema/profile";
 import { permitWindow } from "../schema/schedule";
 import { leagueWorld } from "../test/league-world";
 import {
@@ -38,7 +37,7 @@ import {
   storedBytes,
 } from "./books";
 import type { Db } from "./schedule";
-import { loadSubject } from "./subject";
+import { grantRole, subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -112,10 +111,7 @@ async function permitWorld(db: Db) {
 }
 
 async function makeOwner(db: Db, userId: UserId) {
-  await db
-    .update(profile)
-    .set({ globalRole: "owner" })
-    .where(eq(profile.userId, userId));
+  await grantRole(db, userId, "owner");
 }
 
 describe("the ledger", () => {
@@ -300,17 +296,20 @@ describe("who sees the books", () => {
         },
         w.captain,
       );
-      const admin = await loadSubject(db, w.admin);
-      const owner = await loadSubject(db, w.captain);
+      const admin = await subjectIn(db, w.admin);
+      const owner = await subjectIn(db, w.captain);
       expect(admin.globalRole).toBe("admin");
       expect(can(admin, "books.manage")).toBe(false);
       expect(can(owner, "books.manage")).toBe(true);
 
-      const hidden = await auditLogPage(db, { limit: 200 });
+      const hidden = await auditLogPage(db, w.leagueId, { limit: 200 });
       expect(hidden.rows.some((r) => r.action.startsWith("books."))).toBe(
         false,
       );
-      const shown = await auditLogPage(db, { limit: 200, withBooks: true });
+      const shown = await auditLogPage(db, w.leagueId, {
+        limit: 200,
+        withBooks: true,
+      });
       expect(shown.rows.map((r) => r.action)).toContain("books.expense_add");
     });
   });
@@ -356,7 +355,7 @@ describe("permits", () => {
       };
       const who = await Promise.all(
         [w.captain, w.otherCaptain, w.teammate, w.admin].map(async (id) =>
-          can(await loadSubject(db, id), "permit.view_at_field", ctx),
+          can(await subjectIn(db, id), "permit.view_at_field", ctx),
         ),
       );
       expect(who).toEqual([true, true, false, false]);

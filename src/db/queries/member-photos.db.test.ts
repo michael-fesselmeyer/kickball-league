@@ -30,7 +30,7 @@ import {
 } from "./member-photos";
 import { required } from "./rows";
 import type { Db } from "./schedule";
-import { loadSubject } from "./subject";
+import { grantRole, subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -63,8 +63,9 @@ async function testPhoto(seed = 1) {
 async function photoWorld(db: Db) {
   const w = await messagingWorld(db);
   const admin = await w.person("admin");
+  await grantRole(db, admin.userId, "admin", w.leagueId);
   await db.insert(profile).values([
-    { userId: admin.userId, globalRole: "admin" },
+    { userId: admin.userId },
     // Signed-in people have a profile, which permissions read.
     ...[w.aces.captain, w.aces.players[0]!, w.freeAgent].map((p) => ({
       userId: p.userId,
@@ -172,19 +173,19 @@ describe("who may upload", () => {
   it("lets players on a team upload, and not a free agent off the rosters", () =>
     inRolledBackDb(async (db) => {
       const w = await photoWorld(db);
-      expect(can(await loadSubject(db, w.player.userId), "photos.upload")).toBe(
+      expect(can(await subjectIn(db, w.player.userId), "photos.upload")).toBe(
         true,
       );
       expect(
-        can(await loadSubject(db, w.aces.captain.userId), "photos.upload"),
+        can(await subjectIn(db, w.aces.captain.userId), "photos.upload"),
       ).toBe(true);
       expect(
-        can(await loadSubject(db, w.freeAgent.userId), "photos.upload"),
+        can(await subjectIn(db, w.freeAgent.userId), "photos.upload"),
       ).toBe(false);
-      expect(can(await loadSubject(db, w.player.userId), "photos.manage")).toBe(
+      expect(can(await subjectIn(db, w.player.userId), "photos.manage")).toBe(
         false,
       );
-      expect(can(await loadSubject(db, w.admin.userId), "photos.manage")).toBe(
+      expect(can(await subjectIn(db, w.admin.userId), "photos.manage")).toBe(
         true,
       );
     }));

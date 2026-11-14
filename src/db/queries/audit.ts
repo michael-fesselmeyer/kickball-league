@@ -1,15 +1,31 @@
-import { and, desc, eq, like, lt, notLike, or } from "drizzle-orm";
-import type { AuditLogId, UserId } from "@/domain/ids";
+import {
+  and,
+  desc,
+  eq,
+  like,
+  lt,
+  notLike,
+  or,
+  type SQL,
+  sql,
+} from "drizzle-orm";
+import type { AuditLogId, LeagueId, UserId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
 import { profile } from "../schema/profile";
+import { LEAGUE_OF, type LeagueRecordKind, leagueLookup } from "./league-of";
 import type { Db } from "./schedule";
 
-export type AuditEntry = {
+type Common = {
+  /**
+   * Where to read the league from when it isn't the record itself: one
+   * that is about to be deleted, or was. For example the season of a
+   * division being removed.
+   */
+  leagueFrom?: { kind: LeagueRecordKind; id: string };
   actorId: UserId | null;
   /** `area.verb`, for example schedule.publish. */
   action: string;
-  entityType: string;
   entityId: string;
   before?: unknown;
   after?: unknown;
@@ -17,11 +33,35 @@ export type AuditEntry = {
 };
 
 /**
+ * An audit entry. About a league's own record, its league is looked up;
+ * about a person (`user`) or anything else, the league must be given.
+ */
+export type AuditEntry =
+  | (Common & { entityType: keyof typeof LEAGUE_OF; leagueId?: LeagueId })
+  | (Common & { entityType: string; leagueId: LeagueId });
+
+/**
  * Records an admin or captain change. Call it inside the same transaction
  * as the change, so the change and its record commit together or not at all.
  */
 export async function recordAudit(db: Db, entry: AuditEntry): Promise<void> {
+  const from = entry.leagueFrom;
+  const lookup = from ? null : leagueLookup[entry.entityType];
+  const leagueId: LeagueId | SQL =
+    entry.leagueId ??
+    (from
+      ? sql`(${LEAGUE_OF[from.kind](from.id)})`
+      : lookup
+        ? sql`(${lookup(entry.entityId)})`
+        : (() => {
+            throw new Error(
+              `An audit entry about ${entry.entityType} needs its league.`,
+            );
+          })());
   await db.insert(auditLog).values({
+    // A record that doesn't exist (or a lookup that finds none) leaves this
+    // null, and the NOT NULL column refuses the insert with the change.
+    leagueId,
     actorId: entry.actorId,
     action: entry.action,
     entityType: entry.entityType,
@@ -44,8 +84,8 @@ export type AuditRow = {
 };
 
 /**
- * The audit log, newest first, `limit` at a time. Pass the last row shown
- * (its time and id) as `before` for the next page: rows written in one
+ * A league's audit log, newest first, `limit` at a time. Pass the last row
+ * shown (its time and id) as `before` for the next page: rows written in one
  * transaction share a time, so the id breaks the tie and none is skipped. With
  * `operatorOnly`, just the platform operator's actions (ADR 0009). The
  * owners' books (`books.*`, ADR 0034) are left out unless `withBooks`, so
@@ -53,6 +93,7 @@ export type AuditRow = {
  */
 export async function auditLogPage(
   db: Db,
+  leagueId: LeagueId,
   options: {
     before?: { occurredAt: Date; id?: AuditLogId | undefined } | undefined;
     limit?: number;
@@ -78,6 +119,7 @@ export async function auditLogPage(
     .leftJoin(profile, eq(profile.userId, auditLog.actorId))
     .where(
       and(
+        eq(auditLog.leagueId, leagueId),
         afterRow(options.before),
         options.operatorOnly ? like(auditLog.action, "operator.%") : undefined,
         options.withBooks ? undefined : notLike(auditLog.action, "books.%"),

@@ -15,7 +15,7 @@ import {
   unassignReferee,
 } from "./referees";
 import { required } from "./rows";
-import { loadSubject } from "./subject";
+import { subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -144,7 +144,7 @@ describe("referees", () => {
         email: ` REF-UMA-${tag}@example.test `,
         actorId: admin,
       });
-      expect(await loadSubject(db, uma)).toMatchObject({
+      expect(await subjectIn(db, uma)).toMatchObject({
         isReferee: true,
         refereeGameIds: [g.id],
       });
@@ -158,7 +158,7 @@ describe("referees", () => {
         email: `ref-ray-${tag}@example.test`,
         actorId: admin,
       });
-      expect((await loadSubject(db, uma)).refereeGameIds).toEqual([]);
+      expect((await subjectIn(db, uma)).refereeGameIds).toEqual([]);
       expect((await refereeBoard(db, sn.id))[0]?.referee?.name).toBe("ray");
       await unassignReferee(db, {
         seasonId: sn.id,
@@ -166,7 +166,7 @@ describe("referees", () => {
         actorId: admin,
       });
       expect((await refereeBoard(db, sn.id))[0]?.referee).toBeNull();
-      expect((await loadSubject(db, ray)).isReferee).toBe(false);
+      expect((await subjectIn(db, ray)).isReferee).toBe(false);
       expect(
         await assignReferee(db, {
           seasonId: required(parseId<SeasonId>(randomUUID()), "season id"),

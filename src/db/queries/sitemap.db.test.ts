@@ -8,6 +8,7 @@ import { team, teamSeason } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { createSeason } from "./seasons";
 import { publicSeasons, publicTeamPages } from "./sitemap";
+import { newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -59,7 +60,9 @@ describe("publicSeasons", () => {
           .where(eq(season.id, s.id));
       }
 
-      const slugs = (await publicSeasons(db)).map((s) => s.slug);
+      const slugs = (await publicSeasons(db, await newestLeague(db))).map(
+        (s) => s.slug,
+      );
       const ours = slugs.filter((s) => s.endsWith(tag));
       expect(ours).toEqual([summer.slug, spring.slug]);
     });
@@ -113,7 +116,7 @@ describe("publicTeamPages", () => {
         { teamId: bees!.id, seasonId: fall.id },
       ]);
 
-      const ours = (await publicTeamPages(db)).filter((t) =>
+      const ours = (await publicTeamPages(db, lg!.id)).filter((t) =>
         t.slug.endsWith(tag),
       );
       expect(ours.map((t) => t.slug)).toEqual([aces!.slug]);

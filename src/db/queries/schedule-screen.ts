@@ -1,5 +1,5 @@
-import { desc, eq } from "drizzle-orm";
-import type { ScheduleVersionId, SeasonId } from "@/domain/ids";
+import { and, desc, eq } from "drizzle-orm";
+import type { LeagueId, ScheduleVersionId, SeasonId } from "@/domain/ids";
 import { field, slot } from "../schema/game";
 import { league } from "../schema/league";
 import { scheduleVersion } from "../schema/schedule";
@@ -9,7 +9,13 @@ import type { Db } from "./schedule";
 
 /** What the schedule admin screen reads, apart from a version itself. */
 
-export async function seasonBySlug(db: Db, slug: string) {
+/** A season of one league by its slug; slugs are unique within a league only. */
+export async function seasonBySlug(
+  db: Db,
+  leagueId: LeagueId | null | undefined,
+  slug: string,
+) {
+  if (!leagueId) return null;
   const [found] = await db
     .select({
       id: season.id,
@@ -23,7 +29,7 @@ export async function seasonBySlug(db: Db, slug: string) {
     })
     .from(season)
     .innerJoin(league, eq(season.leagueId, league.id))
-    .where(eq(season.slug, slug))
+    .where(and(eq(season.leagueId, leagueId), eq(season.slug, slug)))
     .limit(1);
   return found ?? null;
 }

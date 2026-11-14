@@ -613,6 +613,7 @@ export async function placeMerchOrder(
   let orderId: MerchOrderId | null = null;
   const started = await startPurchase(db, {
     userId: input.userId,
+    leagueId: item.leagueId,
     seasonId: null,
     items: [
       {

@@ -1,9 +1,14 @@
 /**
  * Who can do what: the permissions matrix in docs/product-spec.md, section 5,
- * as data. Rights are the union of a person's global role (player, admin,
- * owner) and their scoped memberships (captain or co-captain of a team,
- * referee of assigned games, member of a sponsor). Every signed-in person is
- * at least a player.
+ * as data. Rights are the union of a person's role in one league (player,
+ * admin, owner) and their scoped memberships there (captain or co-captain of
+ * a team, referee of assigned games, member of a sponsor). Every signed-in
+ * person is at least a player.
+ *
+ * A subject is always loaded for one league (ADR 0048): its role, teams,
+ * games and sponsors are that league's only. An action about a record in
+ * another league (`context.leagueId`) is refused whatever the role, so an
+ * admin of one league has no rights in another.
  */
 
 export type GlobalRole = "player" | "admin" | "owner";
@@ -12,6 +17,9 @@ export type RosterRole = "captain" | "co_captain" | "player";
 export type Subject = {
   /** Null for a visitor who is not signed in. */
   userId: string | null;
+  /** The league this subject was loaded for; null for a visitor. */
+  leagueId: string | null;
+  /** The person's role in that league. */
   globalRole: GlobalRole | null;
   /** Active roster memberships. */
   roster: readonly { teamSeasonId: string; role: RosterRole }[];
@@ -31,6 +39,11 @@ export type Subject = {
 
 /** What an action is about. Each action reads only the fields it needs. */
 export type Context = {
+  /**
+   * The league of the record acted on. When it isn't the subject's league,
+   * every action is refused.
+   */
+  leagueId?: string;
   /** The person acted on, for "own" rules. */
   targetUserId?: string;
   /** The team concerned. */
@@ -285,12 +298,19 @@ export function can(
   action: Action,
   context: Context = {},
 ): boolean {
+  if (
+    context.leagueId !== undefined &&
+    subject.leagueId !== null &&
+    context.leagueId !== subject.leagueId
+  )
+    return false;
   return RULES[action](subject, context);
 }
 
 /** A visitor who is not signed in. */
 export const VISITOR: Subject = {
   userId: null,
+  leagueId: null,
   globalRole: null,
   roster: [],
   isReferee: false,

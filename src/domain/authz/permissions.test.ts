@@ -12,6 +12,7 @@ import {
 const person = (userId: string, extra: Partial<Subject> = {}): Subject => ({
   ...VISITOR,
   userId,
+  leagueId: "kickball",
   globalRole: "player",
   ...extra,
 });
@@ -515,6 +516,9 @@ describe("permission properties", () => {
   const id = fc.constantFrom("A", "B", "C");
   const subject = fc.record({
     userId: fc.option(fc.constantFrom("u1", "u2"), { nil: null }),
+    leagueId: fc.option(fc.constantFrom("kickball", "football"), {
+      nil: null,
+    }),
     globalRole: fc.constantFrom(
       "player" as const,
       "admin" as const,
@@ -596,6 +600,60 @@ describe("permission properties", () => {
           expect(["public.view", "roster.view_names"]).toContain(action);
       }),
       { numRuns: 2000 },
+    );
+  });
+});
+
+describe("one league's rights stop at its edge (ADR 0048)", () => {
+  const footballAdmin = person("fa", {
+    leagueId: "football",
+    globalRole: "admin",
+  });
+  const footballOwner = person("fo", {
+    leagueId: "football",
+    globalRole: "owner",
+  });
+
+  it("refuses every action about another league's record, whatever the role", () => {
+    for (const action of ACTIONS)
+      for (const subject of [footballAdmin, footballOwner, people.captain])
+        expect(
+          can(subject, action, {
+            leagueId: subject.leagueId === "kickball" ? "football" : "kickball",
+            targetUserId: subject.userId as string,
+            teamSeasonId: "A",
+            game: g1,
+            sponsorId: "bar",
+            scope: "team",
+            eligibleToSub: true,
+            memberOptedIn: true,
+          }),
+          `${subject.userId} ${action}`,
+        ).toBe(false);
+  });
+
+  it("allows the same action in the subject's own league", () => {
+    expect(can(footballAdmin, "season.manage", { leagueId: "football" })).toBe(
+      true,
+    );
+    expect(can(footballOwner, "books.manage", { leagueId: "football" })).toBe(
+      true,
+    );
+    expect(can(people.admin, "season.manage", { leagueId: "kickball" })).toBe(
+      true,
+    );
+  });
+
+  it("is a property: a league mismatch is always a no", () => {
+    fc.assert(
+      fc.property(
+        fc.constantFrom(...ACTIONS),
+        fc.constantFrom("player" as const, "admin" as const, "owner" as const),
+        (action, role) => {
+          const s = person("x", { leagueId: "football", globalRole: role });
+          expect(can(s, action, { leagueId: "kickball" })).toBe(false);
+        },
+      ),
     );
   });
 });

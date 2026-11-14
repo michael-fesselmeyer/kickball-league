@@ -49,13 +49,13 @@ import {
 import { field, game, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
 import { payment, purchase } from "../schema/money";
-import { profile } from "../schema/profile";
 import { blackout, permitWindow } from "../schema/schedule";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
 import { enqueueMessages } from "./outbox";
 import { required } from "./rows";
+import { leagueUsersWithRole } from "./leagues";
 import type { Db } from "./schedule";
 
 /**
@@ -245,6 +245,7 @@ export async function removeExpense(
     actorId,
     action: "books.expense_remove",
     entityType: "expense",
+    leagueId: input.leagueId,
     entityId: input.expenseId,
     before: found,
   });
@@ -746,6 +747,7 @@ export async function removeInsurance(
     actorId,
     action: "books.insurance_remove",
     entityType: "insurance_certificate",
+    leagueId: input.leagueId,
     entityId: input.id,
     before: { insurer: found.insurer, expiresOn: found.expiresOn },
   });
@@ -814,12 +816,8 @@ export async function permitDocumentForGame(db: Db, gameId: GameId) {
 // Reminders
 
 /** The league's owners: who the books reminders go to. */
-async function ownerIds(db: Db): Promise<UserId[]> {
-  const rows = await db
-    .select({ id: profile.userId })
-    .from(profile)
-    .where(eq(profile.globalRole, "owner"));
-  return rows.map((r) => r.id);
+function ownerIds(db: Db, leagueId: LeagueId): Promise<UserId[]> {
+  return leagueUsersWithRole(db, leagueId, ["owner"]);
 }
 
 /**
@@ -948,7 +946,7 @@ export async function queueBooksReminders(
 ): Promise<number> {
   const due = remindersDue(await booksDeadlines(db, leagueId), today);
   if (due.length === 0) return 0;
-  const owners = await ownerIds(db);
+  const owners = await ownerIds(db, leagueId);
   return enqueueMessages(
     db,
     due.flatMap((r) =>

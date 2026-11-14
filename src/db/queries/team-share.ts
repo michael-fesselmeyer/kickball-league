@@ -1,3 +1,4 @@
+import type { LeagueId } from "@/domain/ids";
 import { teamCard } from "@/domain/share/cards";
 import { teamBySlug } from "./public-schedule";
 import type { Db } from "./schedule";
@@ -9,8 +10,8 @@ const PLAYING = new Set(["in_progress", "playoffs"]);
  * A team's share card: its current season (the one being played, else the
  * newest), its record and its last five results. Null for an unknown team.
  */
-export async function teamShare(db: Db, slug: string) {
-  const team = await teamBySlug(db, slug);
+export async function teamShare(db: Db, leagueId: LeagueId, slug: string) {
+  const team = await teamBySlug(db, leagueId, slug);
   if (!team) return null;
   const entry =
     team.entries.find((e) => PLAYING.has(e.seasonStatus)) ?? team.entries[0];

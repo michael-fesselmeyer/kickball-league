@@ -107,6 +107,7 @@ const ACTIONS: Record<string, string> = {
   "merch.photo_add": "Added a merch photo",
   "merch.photo_remove": "Removed a merch photo",
   "operator.feature": "Platform operator switched a feature",
+  "operator.league_create": "Platform operator started a league",
   "operator.role": "Platform operator changed a person's role",
   "operator.site_status": "Platform operator changed the site status",
   "payment.record_offline": "Recorded a payment made outside the app",

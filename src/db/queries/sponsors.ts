@@ -184,18 +184,33 @@ export async function managedSponsors(
 }
 
 /** The sponsor ids a person is a member of. */
-export async function sponsorIdsOf(db: Db, userId: UserId): Promise<string[]> {
+export async function sponsorIdsOf(
+  db: Db,
+  userId: UserId,
+  leagueId: LeagueId,
+): Promise<string[]> {
   const rows = await db
     .select({ id: sponsorMember.sponsorId })
     .from(sponsorMember)
     .innerJoin(sponsor, eq(sponsorMember.sponsorId, sponsor.id))
-    .where(and(eq(sponsorMember.userId, userId), live))
+    .where(
+      and(
+        eq(sponsorMember.userId, userId),
+        eq(sponsor.leagueId, leagueId),
+        live,
+      ),
+    )
     .orderBy(asc(sponsorMember.sponsorId));
   return rows.map((r) => r.id);
 }
 
 /** A sponsor by slug, for its portal pages. No secret. */
-export async function sponsorBySlug(db: Db, slug: string) {
+export async function sponsorBySlug(
+  db: Db,
+  leagueId: LeagueId | null,
+  slug: string,
+) {
+  if (!leagueId) return null;
   const [found] = await db
     .select({
       id: sponsor.id,
@@ -209,12 +224,17 @@ export async function sponsorBySlug(db: Db, slug: string) {
       url: sponsor.url,
     })
     .from(sponsor)
-    .where(and(eq(sponsor.slug, slug), live));
+    .where(and(eq(sponsor.leagueId, leagueId), eq(sponsor.slug, slug), live));
   return found ?? null;
 }
 
 /** A sponsor and its secret, for making and checking check-in codes. */
-export async function sponsorForCheckIn(db: Db, slug: string) {
+export async function sponsorForCheckIn(
+  db: Db,
+  leagueId: LeagueId | null,
+  slug: string,
+) {
+  if (!leagueId) return null;
   const [found] = await db
     .select({
       id: sponsor.id,
@@ -223,7 +243,7 @@ export async function sponsorForCheckIn(db: Db, slug: string) {
       secret: sponsor.checkinSecret,
     })
     .from(sponsor)
-    .where(and(eq(sponsor.slug, slug), live));
+    .where(and(eq(sponsor.leagueId, leagueId), eq(sponsor.slug, slug), live));
   return found ?? null;
 }
 
@@ -841,10 +861,10 @@ export async function removeTeamOfWeek(
 }
 
 /** Every public sponsor page, for the sitemap and the build's prerendering. */
-export async function publicSponsorPages(db: Db) {
+export async function publicSponsorPages(db: Db, leagueId: LeagueId) {
   return db
     .select({ slug: sponsor.slug, updatedAt: sponsor.updatedAt })
     .from(sponsor)
-    .where(live)
+    .where(and(eq(sponsor.leagueId, leagueId), live))
     .orderBy(asc(sponsor.slug));
 }

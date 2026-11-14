@@ -36,9 +36,9 @@ export const PHOTOS_TAG = "photos";
 
 /** The prerendered routes that show Instagram photos. */
 const PHOTO_PAGE_ROUTES = [
-  ["/", "page"],
-  ["/teams/[team]/[[...season]]", "page"],
-  ["/events/[event]", "page"],
+  ["/l/[league]", "page"],
+  ["/l/[league]/teams/[team]/[[...season]]", "page"],
+  ["/l/[league]/events/[event]", "page"],
 ] as const;
 
 /**
@@ -66,9 +66,9 @@ export const MEMBER_PHOTOS_TAG = "member-photos";
 
 /** The routes that show members' photos. */
 const MEMBER_PHOTO_ROUTES = [
-  ["/teams/[team]/[[...season]]", "page"],
-  ["/events/[event]", "page"],
-  ["/games/[game]", "page"],
+  ["/l/[league]/teams/[team]/[[...season]]", "page"],
+  ["/l/[league]/events/[event]", "page"],
+  ["/l/[league]/games/[game]", "page"],
 ] as const;
 
 /**
@@ -104,9 +104,9 @@ export const LIVE_SCORE_CDN_SECONDS = 5;
  * schedule widget's prerendered files are expired with them.
  */
 export const SEASON_PAGE_ROUTES = [
-  "/seasons/[season]",
-  "/teams/[team]",
-  "/games/[game]",
+  "/l/[league]/seasons/[season]",
+  "/l/[league]/teams/[team]",
+  "/l/[league]/games/[game]",
   "/embed/schedule",
 ];
 
@@ -124,9 +124,10 @@ export const SEASONS_TAG = "seasons";
  */
 export function refreshSeasonPages(seasonId: string): void {
   updateTag(seasonTag(seasonId));
-  // The season list (/seasons) shows every season's name, dates and status.
+  // The season list (/seasons) shows every season's name, dates and status,
+  // one per league (ADR 0048).
   updateTag(SEASONS_TAG);
-  revalidatePath("/seasons");
+  revalidatePath("/l/[league]/seasons", "page");
   for (const route of SEASON_PAGE_ROUTES) revalidatePath(route, "layout");
 }
 
@@ -194,10 +195,10 @@ export function refreshEventPages(
 ): void {
   updateTag(EVENTS_TAG);
   updateTag(eventTag(slug));
-  revalidatePath("/events/[event]", "page");
+  revalidatePath("/l/[league]/events/[event]", "page");
   if (themeWeek) {
     updateTag(THEME_WEEKS_TAG);
-    revalidatePath("/seasons/[season]", "layout");
+    revalidatePath("/l/[league]/seasons/[season]", "layout");
   }
 }
 
@@ -209,7 +210,7 @@ export function refreshEventPages(
  */
 export function refreshSponsorPages(): void {
   updateTag(SPONSORS_TAG);
-  revalidatePath("/sponsors", "layout");
+  revalidatePath("/l/[league]/sponsors", "layout");
 }
 
 /** The friends of the league directory. */
@@ -223,5 +224,5 @@ export const FRIENDS_TAG = "friends";
  */
 export function refreshFriendPages(): void {
   updateTag(FRIENDS_TAG);
-  revalidatePath("/friends", "page");
+  revalidatePath("/l/[league]/friends", "page");
 }

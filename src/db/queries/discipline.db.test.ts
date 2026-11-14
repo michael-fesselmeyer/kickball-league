@@ -43,7 +43,7 @@ import { placeFreeAgent } from "./registrations-admin";
 import { setRsvp } from "./rsvps";
 import type { Db } from "./schedule";
 import { claimSubSpot, postSubRequest } from "./subs";
-import { loadSubject } from "./subject";
+import { grantRole, subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -73,9 +73,9 @@ async function world(db: Db) {
       userId: p.userId,
       firstName: `Pat${i}`,
       lastName: "Example",
-      globalRole: p === admin ? ("admin" as const) : ("player" as const),
     })),
   );
+  await grantRole(db, admin.userId, "admin");
   const played = await w.gameEnding(hours(-2), ref.userId);
   const finish = (gameId: GameId, at: Date) =>
     db
@@ -111,7 +111,7 @@ describe("who may report and rate (database subjects)", () => {
       const ctx = (gameId: GameId) => ({
         game: { id: gameId, teamSeasonIds: [w.aces.id, w.bees.id] as const },
       });
-      const subject = (p: { userId: UserId }) => loadSubject(db, p.userId);
+      const subject = (p: { userId: UserId }) => subjectIn(db, p.userId);
       for (const [who, logs, rates] of [
         [w.ref, true, false],
         [w.aces.captain, true, true],

@@ -30,6 +30,7 @@ import {
 } from "./admin-dashboard";
 import { required } from "./rows";
 import type { Db } from "./schedule";
+import { newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -237,14 +238,30 @@ describe("admin dashboard", () => {
   it("opens on the season with the next game, or the latest past draft", async () => {
     await inRolledBackDb(async (db) => {
       const { sn, draft } = await build(db);
-      expect((await dashboardSeason(db, NOW))?.slug).toBe(sn.slug);
-      expect((await dashboardSeason(db, NOW, draft.slug))?.slug).toBe(
-        draft.slug,
-      );
-      expect(await dashboardSeason(db, NOW, "no-such-season")).toBeNull();
+      expect(
+        (await dashboardSeason(db, await newestLeague(db), NOW))?.slug,
+      ).toBe(sn.slug);
+      expect(
+        (await dashboardSeason(db, await newestLeague(db), NOW, draft.slug))
+          ?.slug,
+      ).toBe(draft.slug);
+      expect(
+        await dashboardSeason(
+          db,
+          await newestLeague(db),
+          NOW,
+          "no-such-season",
+        ),
+      ).toBeNull();
       // Nothing left to play: the in-progress season beats the later draft.
       expect(
-        (await dashboardSeason(db, new Date("2100-01-01T00:00:00Z")))?.slug,
+        (
+          await dashboardSeason(
+            db,
+            await newestLeague(db),
+            new Date("2100-01-01T00:00:00Z"),
+          )
+        )?.slug,
       ).toBe(sn.slug);
       expect((await otherSeasons(db, sn.id)).map((s) => s.slug)).toContain(
         draft.slug,

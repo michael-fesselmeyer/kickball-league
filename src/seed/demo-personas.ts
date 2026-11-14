@@ -1,7 +1,6 @@
 import { and, eq, inArray, or } from "drizzle-orm";
 import type { Db } from "@/db/queries/schedule";
 import {
-  profile,
   refereeAssignment,
   registration,
   rosterMembership,
@@ -19,6 +18,7 @@ import { PERSONA_EMAILS, PERSONAS, type PersonaKey } from "@/lib/demo/personas";
 import { PLAYED_ROUNDS, type SeedData } from "./generate";
 import { removeAccountMerges } from "./account-merges";
 import { removeMoneyRecords } from "./money";
+import { insertSeedProfiles } from "./roles";
 
 /**
  * The four people a demo visitor can view the league as
@@ -151,7 +151,7 @@ export async function removeDemoPersonas(db: Db): Promise<void> {
 export async function addDemoPersonas(db: Db, data: SeedData): Promise<void> {
   const rows = demoPersonaRows(data);
   await db.insert(user).values(rows.users);
-  await db.insert(profile).values(rows.profiles);
+  await insertSeedProfiles(db, data.league.id, rows.profiles);
   await db.insert(registration).values(rows.registrations);
   // One active captain per team: the generated one steps aside first.
   await db

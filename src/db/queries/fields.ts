@@ -305,6 +305,7 @@ export async function removePermitWindow(
     actorId,
     action: "permit.delete",
     entityType: "permit_window",
+    leagueFrom: { kind: "season", id: input.seasonId },
     entityId: input.permitId,
     before: found,
   });

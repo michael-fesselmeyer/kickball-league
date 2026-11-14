@@ -1,5 +1,5 @@
-import { and, count, eq, inArray, ne } from "drizzle-orm";
-import type { RegistrationId, SeasonId, UserId } from "@/domain/ids";
+import { and, count, eq, inArray, ne, sql } from "drizzle-orm";
+import type { LeagueId, RegistrationId, SeasonId, UserId } from "@/domain/ids";
 import { REFERRAL_CREDIT_CENTS } from "@/domain/money/credit";
 import { newReferralCode } from "@/domain/money/referral";
 import { formatCents } from "@/domain/registration/pricing";
@@ -124,6 +124,8 @@ export async function creditReferrals(
   await db.insert(creditEntry).values(
     due.map((r) => ({
       userId: r.referrerUserId,
+      // Earned in the league the friend joined; spent only there.
+      leagueId: sql<LeagueId>`(select league_id from season where id = ${r.seasonId})`,
       deltaCents: REFERRAL_CREDIT_CENTS,
       reason: "referral" as const,
       referralId: r.id,

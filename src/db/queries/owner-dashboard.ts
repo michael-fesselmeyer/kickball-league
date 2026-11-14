@@ -505,7 +505,7 @@ export async function unpublishSummary(
  * none. The season comes back either way, so the page can tag its cache
  * with the season and show the summary as soon as one is published.
  */
-export async function publicSummary(db: Db, slug: string) {
+export async function publicSummary(db: Db, leagueId: LeagueId, slug: string) {
   const [row] = await db
     .select({
       seasonId: season.id,
@@ -518,16 +518,22 @@ export async function publicSummary(db: Db, slug: string) {
     .from(season)
     .innerJoin(league, eq(league.id, season.leagueId))
     .leftJoin(moneySummary, eq(moneySummary.seasonId, season.id))
-    .where(and(eq(season.slug, slug), ne(season.status, "draft")));
+    .where(
+      and(
+        eq(season.leagueId, leagueId),
+        eq(season.slug, slug),
+        ne(season.status, "draft"),
+      ),
+    );
   return row ?? null;
 }
 
 /** Seasons with a published summary, for the sitemap and static params. */
-export async function publishedSummarySeasons(db: Db) {
+export async function publishedSummarySeasons(db: Db, leagueId: LeagueId) {
   return db
     .select({ slug: season.slug, publishedAt: moneySummary.publishedAt })
     .from(moneySummary)
     .innerJoin(season, eq(season.id, moneySummary.seasonId))
-    .where(ne(season.status, "draft"))
+    .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
     .orderBy(desc(season.startsOn));
 }

@@ -28,6 +28,7 @@ import {
   updateEvent,
 } from "./events";
 import type { Db } from "./schedule";
+import { eventLeague, newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -117,7 +118,12 @@ describe("createEvent", () => {
       // A second event with the same name on the same day gets its own slug.
       expect((await w.create(named)).slug).toBe(`${slug}-2`);
 
-      const found = await eventBySlug(db, slug, "all");
+      const found = await eventBySlug(
+        db,
+        await eventLeague(db, slug),
+        slug,
+        "all",
+      );
       expect(found).toMatchObject({
         title: named.title,
         capacity: 2,
@@ -158,7 +164,9 @@ describe("joining and leaving", () => {
         value: { status: "waitlisted", position: 1 },
       });
 
-      expect(await eventBySlug(db, slug, "all")).toMatchObject({
+      expect(
+        await eventBySlug(db, await eventLeague(db, slug), slug, "all"),
+      ).toMatchObject({
         going: 2,
         waitlisted: 2,
       });
@@ -266,7 +274,9 @@ describe("updateEvent", () => {
         actorId: w.admin,
       });
       expect(smaller).toEqual({ ok: true, value: { promoted: [] } });
-      expect(await eventBySlug(db, slug, "all")).toMatchObject({
+      expect(
+        await eventBySlug(db, await eventLeague(db, slug), slug, "all"),
+      ).toMatchObject({
         capacity: 1,
         going: 2,
         waitlisted: 2,
@@ -326,7 +336,9 @@ describe("cancelEvent", () => {
       expect(
         await cancelEvent(db, { id: id, actorId: w.admin, now: NOW }),
       ).toEqual({ ok: true, value: { notified: 3 } });
-      expect(await eventBySlug(db, slug, "all")).toMatchObject({
+      expect(
+        await eventBySlug(db, await eventLeague(db, slug), slug, "all"),
+      ).toMatchObject({
         cancelledAt: NOW,
         going: 0,
         waitlisted: 0,
@@ -378,8 +390,17 @@ describe("lists", () => {
       expect(
         (await leagueEvents(db, w.leagueId, "all")).map((e) => e.slug),
       ).toEqual([party.slug, week.slug]);
-      expect(await eventBySlug(db, gone.slug, "all")).toBeNull();
-      const slugs = (await publicEventSlugs(db)).map((e) => e.slug);
+      expect(
+        await eventBySlug(
+          db,
+          await eventLeague(db, gone.slug),
+          gone.slug,
+          "all",
+        ),
+      ).toBeNull();
+      const slugs = (await publicEventSlugs(db, await newestLeague(db))).map(
+        (e) => e.slug,
+      );
       expect(slugs).toContain(party.slug);
       expect(slugs).not.toContain(gone.slug);
 

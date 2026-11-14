@@ -73,6 +73,16 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     handler: "profile",
   },
   "profile.created_by": actor("profiles created"),
+  // A role in a league (ADR 0048): where both accounts have one in the same
+  // league, the kept account's role stands.
+  "league_member.user_id": {
+    kind: "dedupe",
+    label: "league roles",
+    by: ["league_id"],
+    resolve: "drop",
+    clash:
+      "both accounts have a role in the same league; the kept account's role stays",
+  },
   // Sealed to its owner (ADR 0043), so it is opened and sealed again for
   // the kept account when that one has none; otherwise it is deleted.
   "emergency_contact.user_id": {

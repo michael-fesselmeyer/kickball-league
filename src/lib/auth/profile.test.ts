@@ -31,7 +31,7 @@ function fakeDb() {
 
 describe("initialProfile", () => {
   it("starts every new user as a player with nothing else filled in", () => {
-    expect(initialProfile(userId)).toEqual({ userId, globalRole: "player" });
+    expect(initialProfile(userId)).toEqual({ userId });
   });
 });
 
@@ -41,7 +41,7 @@ describe("createProfileForUser", () => {
     await createProfileForUser(db, userId);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.table).toBe(profile);
-    expect(calls[0]?.values).toEqual({ userId, globalRole: "player" });
+    expect(calls[0]?.values).toEqual({ userId });
   });
 
   it("is idempotent: a repeated call ignores the existing row instead of failing", async () => {

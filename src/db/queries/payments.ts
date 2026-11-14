@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNotNull, sql, sum } from "drizzle-orm";
 import { z } from "zod";
+import type { LeagueId } from "@/domain/ids";
 import {
   parseId,
   type PromoCodeId,
@@ -33,6 +34,7 @@ import { failCharge, saveGuarantee } from "./guarantee";
 import { promoForCheckout } from "./promo-codes";
 import { creditReferrals } from "./referrals";
 import { registration, rosterMembership, teamSeason } from "../schema/team";
+import { season } from "../schema/season";
 import type { Db } from "./schedule";
 import { required } from "./rows";
 import { confirmCoveredTeams } from "./team-balance";
@@ -71,6 +73,8 @@ export async function createPurchase(
   db: Db,
   input: {
     userId: UserId;
+    /** The league the money is for (ADR 0048). */
+    leagueId: LeagueId;
     /** Null for an event ticket or a merch order. */
     seasonId: SeasonId | null;
     items: readonly PurchaseLine[];
@@ -85,6 +89,7 @@ export async function createPurchase(
     .insert(purchase)
     .values({
       userId: input.userId,
+      leagueId: input.leagueId,
       seasonId: input.seasonId,
       subtotalCents: subtotal,
       discountCents: discount,
@@ -128,6 +133,8 @@ export async function startPurchase(
   db: Db,
   input: {
     userId: UserId;
+    /** The league the money is for; its credit is the only credit used. */
+    leagueId: LeagueId;
     /** Null for an event ticket, which takes no promo code. */
     seasonId: SeasonId | null;
     items: readonly PurchaseLine[];
@@ -163,11 +170,12 @@ export async function startPurchase(
   let creditCents = 0;
   if (input.useCredit !== false && discounted > 0) {
     await lockCredit(db, input.userId);
-    const balance = await creditBalance(db, input.userId);
+    const balance = await creditBalance(db, input.userId, input.leagueId);
     creditCents = creditToApply(discounted, balance);
   }
   const purchaseId = await createPurchase(db, {
     userId: input.userId,
+    leagueId: input.leagueId,
     seasonId: input.seasonId,
     items: input.items,
     ...(promo ? { promo } : {}),
@@ -175,6 +183,7 @@ export async function startPurchase(
   });
   await spendCredit(db, {
     userId: input.userId,
+    leagueId: input.leagueId,
     purchaseId,
     cents: creditCents,
   });
@@ -790,8 +799,14 @@ export async function recordOffAppPayment(
     now: Date;
   },
 ): Promise<PurchaseId> {
+  const [owner] = await db
+    .select({ leagueId: season.leagueId })
+    .from(season)
+    .where(eq(season.id, input.seasonId));
+  if (!owner) throw new Error("No such season.");
   const purchaseId = await createPurchase(db, {
     userId: input.userId,
+    leagueId: owner.leagueId,
     seasonId: input.seasonId,
     items: input.items,
   });

@@ -2,10 +2,7 @@ import { profile, type NewProfile } from "@/db/schema";
 import type { UserId } from "@/domain/ids";
 
 /** The profile a new user starts with. Name, gender and the rest are filled in at registration. */
-export const initialProfile = (userId: UserId): NewProfile => ({
-  userId,
-  globalRole: "player",
-});
+export const initialProfile = (userId: UserId): NewProfile => ({ userId });
 
 /** The part of a Drizzle database this needs, so tests can pass a fake. */
 export type ProfileWriter = {

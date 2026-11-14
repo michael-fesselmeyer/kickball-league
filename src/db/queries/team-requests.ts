@@ -168,6 +168,7 @@ export async function removeTeamRequest(
     actorId: input.actorId,
     action: "team_request.remove",
     entityType: "team_constraint",
+    leagueFrom: { kind: "team_season", id: input.teamSeasonId },
     entityId: gone.id,
     before: gone,
   });

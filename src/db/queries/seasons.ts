@@ -2,7 +2,6 @@ import { and, asc, eq, ne, sql } from "drizzle-orm";
 import type { LeagueId, SeasonId, UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import type { SeasonSettings } from "@/domain/season/settings";
-import { league } from "../schema/league";
 import { season } from "../schema/season";
 import { recordAudit } from "./audit";
 import type { Db } from "./schedule";
@@ -19,16 +18,6 @@ export const SEASON_STATUSES = [
   "completed",
 ] as const;
 export type SeasonStatus = (typeof SEASON_STATUSES)[number];
-
-/** The league this deployment serves (architecture.md: one league each). */
-export async function currentLeague(db: Db) {
-  const [found] = await db
-    .select({ id: league.id, name: league.name, timeZone: league.timezone })
-    .from(league)
-    .orderBy(asc(league.createdAt))
-    .limit(1);
-  return found ?? null;
-}
 
 const SETTINGS = {
   name: season.name,

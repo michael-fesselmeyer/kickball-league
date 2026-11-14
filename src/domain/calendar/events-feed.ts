@@ -1,5 +1,6 @@
 import type { AudienceKind } from "@/domain/events/audience";
 import { type EventKind, KIND_LABELS } from "@/domain/events/event";
+import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 import { buildCalendar, type CalendarEvent } from "./ics";
 
 /** What the feed needs to know about an event. */
@@ -15,6 +16,11 @@ export type FeedEvent = {
   cancelledAt: Date | null;
   audience: { kind: AudienceKind };
   inviteUrl: string | null;
+  /**
+   * The event's league, when a feed mixes leagues (a member's own feed,
+   * ADR 0048); without it, links are the site's own.
+   */
+  league?: LeagueRef;
 };
 
 /**
@@ -23,10 +29,14 @@ export type FeedEvent = {
  * public page.
  */
 export function leagueEvent(e: FeedEvent, origin: string): CalendarEvent {
+  const app = `/app/events/${e.slug}`;
   const url =
     e.audience.kind === "public"
-      ? `${origin}/events/${e.slug}`
-      : `${origin}/app/events/${e.slug}`;
+      ? `${origin}${e.league ? leagueHref(e.league, `/events/${e.slug}`) : `/events/${e.slug}`}`
+      : e.league && !e.league.isDefault
+        ? // Opens the app in the event's league first.
+          `${origin}/app/league/${e.league.slug}?next=${encodeURIComponent(app)}`
+        : `${origin}${app}`;
   const cancelled = e.cancelledAt !== null;
   const entry: CalendarEvent = {
     uid: `event-${e.id}@kickball-league`,

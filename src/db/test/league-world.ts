@@ -10,7 +10,7 @@ import {
 } from "../queries/registration";
 import { registrationForPayment } from "../queries/registrations-admin";
 import { user } from "../schema/auth";
-import { league } from "../schema/league";
+import { league, leagueMember } from "../schema/league";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { registration, rosterMembership } from "../schema/team";
@@ -60,7 +60,6 @@ export async function leagueWorld(db: Db) {
       lastName: cast[i]?.last ?? null,
       shirtSize: cast[i]?.shirt ?? null,
       phoneE164: cast[i]?.phone ?? null,
-      globalRole: i === 3 ? ("admin" as const) : ("player" as const),
     })),
   );
   const [captain, teammate, agent, admin, otherCaptain] = people.map(
@@ -72,6 +71,10 @@ export async function leagueWorld(db: Db) {
     .values({ name: "Test League", slug: `world-${tag}` })
     .returning({ id: league.id });
   if (!lg) throw new Error("no league");
+  // The fourth person runs the league (ADR 0048: roles are per league).
+  await db
+    .insert(leagueMember)
+    .values({ leagueId: lg.id, userId: admin, role: "admin" });
   await db.insert(season).values({
     leagueId: lg.id,
     name: "Spring 2027",

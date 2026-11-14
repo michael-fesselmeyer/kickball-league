@@ -15,6 +15,7 @@ import { drainOutbox, enqueueMessages, type OutboxMessage } from "./outbox";
 import { savePushSettings, savePushSubscription } from "./push";
 import { required } from "./rows";
 import type { Db } from "./schedule";
+import { ensureLeague, grantRole } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -58,9 +59,8 @@ async function people(db: Db, n: number, label: string): Promise<UserId[]> {
 
 async function admin(db: Db): Promise<UserId> {
   const [id] = await people(db, 1, "admin");
-  await db
-    .insert(profile)
-    .values({ userId: required(id, "admin"), globalRole: "admin" });
+  await db.insert(profile).values({ userId: required(id, "admin") });
+  await grantRole(db, required(id, "admin"), "admin", await ensureLeague(db));
   return required(id, "admin");
 }
 

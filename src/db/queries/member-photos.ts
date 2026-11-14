@@ -43,7 +43,9 @@ import {
 } from "../schema/team";
 import { recordAudit } from "./audit";
 import { enqueueMessages } from "./outbox";
+import { league } from "../schema/league";
 import type { Db } from "./schedule";
+import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 
 /**
  * Photos members upload for the league's socials (ADR 0039;
@@ -371,25 +373,32 @@ export async function reviewQueue(
 }
 
 /** Where an approved photo shows, for the uploader's message. */
-function shownOn(row: {
-  teamName: string | null;
-  teamSlug: string | null;
-  eventTitle: string | null;
-  eventSlug: string | null;
-  gameId: GameId | null;
-}): { where: string; path: string } | null {
+function shownOn(
+  row: {
+    teamName: string | null;
+    teamSlug: string | null;
+    eventTitle: string | null;
+    eventSlug: string | null;
+    gameId: GameId | null;
+  },
+  /** The photo's league, whose pages the link opens (ADR 0048). */
+  where: LeagueRef,
+): { where: string; path: string } | null {
   if (row.teamSlug && row.teamName)
     return {
       where: `the team page for ${row.teamName}`,
-      path: `/teams/${row.teamSlug}`,
+      path: leagueHref(where, `/teams/${row.teamSlug}`),
     };
   if (row.eventSlug && row.eventTitle)
     return {
       where: `the event page for ${row.eventTitle}`,
-      path: `/events/${row.eventSlug}`,
+      path: leagueHref(where, `/events/${row.eventSlug}`),
     };
   if (row.gameId)
-    return { where: "the game's page", path: `/games/${row.gameId}` };
+    return {
+      where: "the game's page",
+      path: leagueHref(where, `/games/${row.gameId}`),
+    };
   return null;
 }
 
@@ -415,8 +424,11 @@ export async function reviewMemberPhoto(
     .select({
       ...LISTED,
       uploaderId: memberPhoto.uploaderId,
+      leagueSlug: league.slug,
+      leagueIsDefault: league.isDefault,
     })
     .from(memberPhoto)
+    .innerJoin(league, eq(league.id, memberPhoto.leagueId))
     .leftJoin(team, eq(memberPhoto.teamId, team.id))
     .leftJoin(event, eq(memberPhoto.eventId, event.id))
     .where(
@@ -457,7 +469,10 @@ export async function reviewMemberPhoto(
     before: { status: "pending" },
     after: approve ? { status: "approved" } : { status: "rejected", note },
   });
-  const shown = shownOn(row);
+  const shown = shownOn(row, {
+    slug: row.leagueSlug,
+    isDefault: row.leagueIsDefault,
+  });
   const payload: PhotoReviewPayload =
     approve && shown
       ? { kind: "approved", ...shown }
@@ -509,6 +524,7 @@ export async function deleteMemberPhoto(
     actorId: input.actorId,
     action: "member_photo.delete",
     entityType: "member_photo",
+    leagueId: input.leagueId,
     entityId: input.photoId,
     before: { status: row.status },
     after: { by: row.uploaderId === input.actorId ? "uploader" : "admin" },

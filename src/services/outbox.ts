@@ -7,7 +7,7 @@ import {
   drainOutbox,
   emptyDrain,
 } from "@/db/queries/outbox";
-import { currentLeague } from "@/db/queries/seasons";
+import { defaultLeague } from "@/db/queries/leagues";
 import { emailBudgetFrom } from "@/domain/notifications/email-budget";
 import { ok } from "@/domain/result";
 import { rendererFor } from "@/emails/templates";
@@ -81,8 +81,9 @@ export async function drainOutboxNow(
     siteUrl: env.BETTER_AUTH_URL,
     unsubscribeSecret: env.BETTER_AUTH_SECRET,
   });
-  // Quiet hours and the daily cap follow the league's clock.
-  const timeZone = (await currentLeague(txDb))?.timeZone ?? DEFAULT_TIME_ZONE;
+  // Quiet hours and the daily cap follow the default league's clock: a
+  // person's messages are one stream whichever league sent them (ADR 0048).
+  const timeZone = (await defaultLeague(txDb))?.timeZone ?? DEFAULT_TIME_ZONE;
   const total = emptyDrain();
   for (let batch = 0; batch < maxBatches; batch++) {
     const r = await drainOutbox(txDb, {

@@ -8,7 +8,13 @@ import {
 
 describe("calendarLinks", () => {
   it("gives the feed, a webcal link and a Google subscribe link", () => {
-    expect(calendarLinks("https://example.test", "the-big-kicks")).toEqual({
+    expect(
+      calendarLinks(
+        "https://example.test",
+        { slug: "kickball", isDefault: true },
+        "the-big-kicks",
+      ),
+    ).toEqual({
       feed: "https://example.test/teams/the-big-kicks/calendar.ics",
       webcal: "webcal://example.test/teams/the-big-kicks/calendar.ics",
       google:
@@ -43,7 +49,12 @@ describe("requestOrigin", () => {
 
 describe("eventsCalendarLinks", () => {
   it("subscribes to the league's events feed", () => {
-    expect(eventsCalendarLinks("https://league.example.test")).toEqual({
+    expect(
+      eventsCalendarLinks("https://league.example.test", {
+        slug: "kickball",
+        isDefault: true,
+      }),
+    ).toEqual({
       feed: "https://league.example.test/events/calendar.ics",
       webcal: "webcal://league.example.test/events/calendar.ics",
       google:
@@ -88,5 +99,19 @@ describe("googleEventLink", () => {
     );
     expect(url.searchParams.get("dates")).toBe("20261026/20261102");
     expect(url.searchParams.has("location")).toBe(false);
+  });
+});
+
+describe("feeds of a league other than the default (ADR 0048)", () => {
+  it("carry its /l/<slug> prefix", () => {
+    const football = { slug: "flag-football", isDefault: false };
+    expect(
+      calendarLinks("https://example.test", football, "hail-marys").feed,
+    ).toBe(
+      "https://example.test/l/flag-football/teams/hail-marys/calendar.ics",
+    );
+    expect(eventsCalendarLinks("https://example.test", football).feed).toBe(
+      "https://example.test/l/flag-football/events/calendar.ics",
+    );
   });
 });

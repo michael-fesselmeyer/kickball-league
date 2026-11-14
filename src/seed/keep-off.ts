@@ -37,7 +37,6 @@ export function keepOffPersonRows(data: SeedData) {
       gender: "man" as const,
       lineupGender: "man" as const,
       shirtSize: "l" as const,
-      globalRole: "player" as const,
     },
     registration: {
       id: rowId<RegistrationId>(2),

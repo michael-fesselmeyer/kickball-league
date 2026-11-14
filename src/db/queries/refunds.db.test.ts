@@ -30,6 +30,7 @@ import {
 import { confirmStripeRefund, dropRefund, startRefund } from "./refunds";
 import { registrationsBoard } from "./registrations-admin";
 import type { Db } from "./schedule";
+import { newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -98,13 +99,14 @@ type Player = {
   items: CheckoutItem[];
 };
 
-const start = (
+const start = async (
   db: Db,
   seasonId: SeasonId,
   p: Player,
   promoCode: string | null,
 ) =>
   startPurchase(db, {
+    leagueId: await newestLeague(db),
     userId: p.userId,
     seasonId,
     items: p.items,

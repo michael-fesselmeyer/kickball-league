@@ -11,7 +11,13 @@ import {
   sql,
   type SQL,
 } from "drizzle-orm";
-import type { GameId, SeasonId, TeamId, TeamSeasonId } from "@/domain/ids";
+import type {
+  GameId,
+  LeagueId,
+  SeasonId,
+  TeamId,
+  TeamSeasonId,
+} from "@/domain/ids";
 import type { PublicGame } from "@/domain/schedule/public-game";
 import { field, game, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
@@ -177,43 +183,54 @@ export function publishedGamesFor(
   return publishedGames(db, or(...conditions));
 }
 
-/** Every published game in every public season, for the league records. */
-export function allPublishedGames(db: Db): Promise<PublicGame[]> {
-  return publishedGames(db, undefined);
+/** Every published game in a league's public seasons, for its records. */
+export function allPublishedGames(
+  db: Db,
+  leagueId: LeagueId,
+): Promise<PublicGame[]> {
+  return publishedGames(db, eq(season.leagueId, leagueId));
 }
 
-/** Every published game between two teams, by team slug, across seasons. */
+/** Every published game between two of a league's teams, by slug, across seasons. */
 export function publishedGamesBetween(
   db: Db,
+  leagueId: LeagueId,
   slugX: string,
   slugY: string,
 ): Promise<PublicGame[]> {
   return publishedGames(
     db,
-    or(
-      and(eq(teamA.slug, slugX), eq(teamB.slug, slugY)),
-      and(eq(teamA.slug, slugY), eq(teamB.slug, slugX)),
+    and(
+      eq(season.leagueId, leagueId),
+      or(
+        and(eq(teamA.slug, slugX), eq(teamB.slug, slugY)),
+        and(eq(teamA.slug, slugY), eq(teamB.slug, slugX)),
+      ),
     ),
   );
 }
 
-/** One game, only if a published schedule includes it, with the league's zone. */
+/**
+ * One game, only if a published schedule includes it, with its league and
+ * the league's zone. Pages compare the league with their own (ADR 0048).
+ */
 export async function publishedGame(db: Db, gameId: GameId) {
   const [found] = await publishedGames(db, eq(game.id, gameId));
   if (!found) return null;
-  const [zone] = await db
-    .select({ timeZone: league.timezone })
+  const [owner] = await db
+    .select({ leagueId: league.id, timeZone: league.timezone })
     .from(season)
     .innerJoin(league, eq(season.leagueId, league.id))
     .where(eq(season.id, found.seasonId as SeasonId));
-  return { game: found, timeZone: zone?.timeZone ?? "America/New_York" };
+  if (!owner) return null;
+  return { game: found, leagueId: owner.leagueId, timeZone: owner.timeZone };
 }
 
 /**
  * A team by its slug, with its entries in public seasons, newest first, and
  * the league's time zone. Withdrawn entries and deleted teams are hidden.
  */
-export async function teamBySlug(db: Db, slug: string) {
+export async function teamBySlug(db: Db, leagueId: LeagueId, slug: string) {
   const [found] = await db
     .select({
       id: team.id,
@@ -224,8 +241,13 @@ export async function teamBySlug(db: Db, slug: string) {
     })
     .from(team)
     .innerJoin(league, eq(team.leagueId, league.id))
-    .where(and(eq(team.slug, slug), isNull(team.deletedAt)))
-    .orderBy(asc(league.createdAt))
+    .where(
+      and(
+        eq(team.leagueId, leagueId),
+        eq(team.slug, slug),
+        isNull(team.deletedAt),
+      ),
+    )
     .limit(1);
   if (!found) return null;
   const entries = await db

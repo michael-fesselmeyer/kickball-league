@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, desc, eq, inArray } from "drizzle-orm";
 import type { LeagueId, UserId } from "@/domain/ids";
 import {
   type Feature,
@@ -8,7 +8,7 @@ import {
 import { err, ok, type Result } from "@/domain/result";
 import { user } from "../schema/auth";
 import { field, game, scoreReport, venue } from "../schema/game";
-import { league } from "../schema/league";
+import { league, leagueMember } from "../schema/league";
 import { payment, purchase } from "../schema/money";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
@@ -20,6 +20,7 @@ import {
 } from "../schema/team";
 import { recordAudit } from "./audit";
 import { booksExport } from "./books";
+import { leagueRoleOf, setLeagueRole } from "./leagues";
 import type { Db } from "./schedule";
 
 export type SiteSettings = {
@@ -29,7 +30,10 @@ export type SiteSettings = {
   disabledFeatures: string[];
 };
 
-/** The league's site status and switched-off features (one league per deployment). */
+/**
+ * The site's status and switched-off features. They are the platform's, for
+ * every league at once, and kept on the default league's row (ADR 0048).
+ */
 export async function siteSettings(db: Db): Promise<SiteSettings | null> {
   const [row] = await db
     .select({
@@ -39,7 +43,7 @@ export async function siteSettings(db: Db): Promise<SiteSettings | null> {
       disabledFeatures: league.disabledFeatures,
     })
     .from(league)
-    .orderBy(asc(league.createdAt))
+    .orderBy(desc(league.isDefault), asc(league.createdAt), asc(league.id))
     .limit(1);
   return row ?? null;
 }
@@ -101,46 +105,52 @@ export async function setFeature(
  * use this, and it can't make anyone the operator: that is set only in the
  * server's environment.
  */
-export async function setGlobalRole(
+/**
+ * The operator gives a person a role in one league (ADR 0048), by their
+ * account email. Run in a transaction.
+ */
+export async function setLeagueRoleByEmail(
   db: Db,
-  input: { email: string; role: GrantableRole; actorId: UserId },
+  input: {
+    leagueId: LeagueId;
+    email: string;
+    role: GrantableRole;
+    actorId: UserId;
+  },
 ): Promise<Result<{ userId: UserId; before: GrantableRole }, "no_account">> {
   const [person] = await db
-    .select({ userId: user.id, role: profile.globalRole })
+    .select({ userId: user.id })
     .from(user)
     .innerJoin(profile, eq(profile.userId, user.id))
-    .where(eq(user.email, input.email.trim().toLowerCase()))
-    .for("update", { of: profile });
+    .where(eq(user.email, input.email.trim().toLowerCase()));
   if (!person) return err("no_account");
-  await db
-    .update(profile)
-    .set({ globalRole: input.role })
-    .where(eq(profile.userId, person.userId));
-  await recordAudit(db, {
+  const before = await leagueRoleOf(db, person.userId, input.leagueId);
+  await setLeagueRole(db, {
+    leagueId: input.leagueId,
+    userId: person.userId,
+    role: input.role,
     actorId: input.actorId,
-    action: "operator.role",
-    entityType: "user",
-    entityId: person.userId,
-    before: { role: person.role },
-    after: { role: input.role },
   });
-  return ok({ userId: person.userId, before: person.role });
+  return ok({ userId: person.userId, before });
 }
 
 /** People with an admin or owner role, for the console. */
+/** Every league's owners and admins, league by league. */
 export async function staff(db: Db) {
   return db
     .select({
+      leagueId: leagueMember.leagueId,
       userId: user.id,
       email: user.email,
       firstName: profile.firstName,
       lastName: profile.lastName,
-      role: profile.globalRole,
+      role: leagueMember.role,
     })
-    .from(profile)
-    .innerJoin(user, eq(user.id, profile.userId))
-    .where(inArray(profile.globalRole, ["admin", "owner"]))
-    .orderBy(asc(profile.globalRole), asc(user.email));
+    .from(leagueMember)
+    .innerJoin(user, eq(user.id, leagueMember.userId))
+    .innerJoin(profile, eq(profile.userId, leagueMember.userId))
+    .where(inArray(leagueMember.role, ["admin", "owner"]))
+    .orderBy(desc(leagueMember.role), asc(user.email));
 }
 
 /**

@@ -65,10 +65,12 @@ export function offlineGame(
   timeZone: string,
   withPermit = false,
   emergencyUntil: Date | null = null,
+  /** The league's public address prefix: "" or /l/<slug> (ADR 0048). */
+  base = "",
 ): OfflineGame {
   const matchup = `${game.teamA.name} vs ${game.teamB.name}`;
   return {
-    path: `/games/${game.id}`,
+    path: `${base}/games/${game.id}`,
     permit: withPermit ? `/app/games/${game.id}/permit` : null,
     emergency: emergencyUntil ? `/app/games/${game.id}/emergency` : null,
     emergencyUntil: emergencyUntil?.toISOString() ?? null,

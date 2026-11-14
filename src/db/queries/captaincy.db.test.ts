@@ -20,7 +20,7 @@ import {
   teamCaptaincy,
 } from "./captaincy";
 import type { Db } from "./schedule";
-import { loadSubject } from "./subject";
+import { newestLeague, subjectIn } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -110,8 +110,8 @@ describe("handing the team to a teammate", () => {
         "captaincy.offer",
       ]);
       // The new captain leads; the old one keeps the team's tools only.
-      const before = await loadSubject(db, w.captain.userId);
-      const after = await loadSubject(db, w.mate.userId);
+      const before = await subjectIn(db, w.captain.userId);
+      const after = await subjectIn(db, w.mate.userId);
       const team1 = { teamSeasonId: w.aces.id };
       expect(can(after, "captaincy.manage", team1)).toBe(true);
       expect(can(before, "captaincy.manage", team1)).toBe(false);
@@ -225,6 +225,7 @@ describe("handing the team to a teammate", () => {
       const [open] = await db
         .insert(purchase)
         .values({
+          leagueId: await newestLeague(db),
           userId: w.captain.userId,
           subtotalCents: 120_000,
           totalCents: 120_000,
@@ -311,7 +312,7 @@ describe("co-captains", () => {
           now: NOW,
         }),
       ).toEqual(ok(undefined));
-      const co = await loadSubject(db, w.mate.userId);
+      const co = await subjectIn(db, w.mate.userId);
       const team = { teamSeasonId: w.aces.id };
       for (const tool of [
         "lineup.edit",

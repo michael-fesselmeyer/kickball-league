@@ -36,13 +36,12 @@ import type {
   RecentPost,
   Token,
 } from "@/services/instagram";
-import { user } from "../schema/auth";
 import { event } from "../schema/event";
-import { profile } from "../schema/profile";
 import { socialAccount, socialImage, socialPost } from "../schema/social";
 import { team } from "../schema/team";
 import { recordAudit } from "./audit";
 import { enqueueMessages } from "./outbox";
+import { leagueUsersWithRole } from "./leagues";
 import type { Db } from "./schedule";
 
 /**
@@ -438,14 +437,15 @@ export async function applySync(
   };
 }
 
-/** Everyone who can manage the league's photos. */
-async function adminIds(db: Db): Promise<UserId[]> {
-  const rows = await db
-    .select({ id: user.id })
-    .from(profile)
-    .innerJoin(user, eq(profile.userId, user.id))
-    .where(inArray(profile.globalRole, ["admin", "owner"]));
-  return rows.map((r) => r.id);
+/** Everyone who can manage the photos of the league that owns the account. */
+async function adminIds(db: Db, accountId: SocialAccountId): Promise<UserId[]> {
+  const [account] = await db
+    .select({ leagueId: socialAccount.leagueId })
+    .from(socialAccount)
+    .where(eq(socialAccount.id, accountId));
+  return account
+    ? leagueUsersWithRole(db, account.leagueId, ["admin", "owner"])
+    : [];
 }
 
 /** One email per admin per month while the photo storage stays full. */
@@ -460,7 +460,7 @@ async function tellAdminsStorageIsFull(
   } satisfies InstagramStorageFullPayload;
   await enqueueMessages(
     db,
-    (await adminIds(db)).map((id) => ({
+    (await adminIds(db, accountId)).map((id) => ({
       userId: id,
       topic: "announcement" as const,
       template: "instagram_storage_full",
@@ -531,7 +531,7 @@ export async function recordProblem(
       refreshedAt: socialAccount.tokenRefreshedAt,
     });
   if (!account) return;
-  const admins = await adminIds(db);
+  const admins = await adminIds(db, accountId);
   const payload = {
     username: account.username,
     reason: problem.message,

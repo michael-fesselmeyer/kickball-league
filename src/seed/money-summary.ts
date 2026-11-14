@@ -54,6 +54,7 @@ export async function addSeedFeePayments(tx: Db, data: SeedData) {
       .insert(purchase)
       .values({
         userId: r.userId,
+        leagueId: data.season.leagueId,
         seasonId: r.seasonId,
         status: "paid",
         subtotalCents: fee,

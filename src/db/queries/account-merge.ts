@@ -1,5 +1,5 @@
 import { asc, eq, inArray, type SQL, sql } from "drizzle-orm";
-import type { UserId } from "@/domain/ids";
+import type { LeagueId, UserId } from "@/domain/ids";
 import {
   fillProfile,
   type MergeBlocker,
@@ -19,6 +19,7 @@ import { profile } from "../schema/profile";
 import { invite } from "../schema/team";
 import { recordAudit } from "./audit";
 import { mergeEmergencyContact } from "./emergency";
+import { leagueMember } from "../schema/league";
 import type { Db } from "./schedule";
 
 /**
@@ -122,7 +123,10 @@ export async function accountSummary(
       createdAt: user.createdAt,
       first: profile.firstName,
       last: profile.lastName,
-      role: profile.globalRole,
+      // The highest role in any league (ADR 0048).
+      role: sql<
+        "player" | "admin" | "owner" | null
+      >`(select max(${leagueMember.role}) from ${leagueMember} where ${leagueMember.userId} = ${user.id})`,
     })
     .from(user)
     .leftJoin(profile, eq(profile.userId, user.id))
@@ -448,6 +452,8 @@ export type MergeError = "unknown_account" | "blocked";
 export async function mergeAccounts(
   db: Db,
   input: Pair & {
+    /** The league whose admin merges, where the merge is audited. */
+    leagueId: LeagueId;
     actorId: UserId;
     now: Date;
     /** The auth secret, to carry a sealed emergency contact across. */
@@ -619,7 +625,6 @@ export async function mergeAccounts(
       await db.insert(profile).values({
         ...carried,
         userId: keptId,
-        globalRole: mergedProfile.globalRole,
       });
     }
     await db.delete(profile).where(eq(profile.userId, mergedId));
@@ -732,6 +737,7 @@ export async function mergeAccounts(
     createdAt: now,
   });
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId: input.actorId,
     action: "account.merge",
     entityType: "user",

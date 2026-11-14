@@ -37,7 +37,6 @@ import type { Result } from "@/domain/result";
 import type { EmailSender } from "@/services/email";
 import type { PushSender } from "@/services/push";
 import { user } from "../schema/auth";
-import { profile } from "../schema/profile";
 import {
   alertSetting,
   message,
@@ -45,6 +44,7 @@ import {
   notificationPreference,
   pushSubscription,
 } from "../schema/message";
+import { leagueMember } from "../schema/league";
 import type { Db } from "./schedule";
 
 /**
@@ -663,10 +663,11 @@ async function tellAdminsEmailRanOut(
     budget,
   }: { now: Date; timeZone: string; waiting: number; budget: EmailBudget },
 ): Promise<void> {
+  // One email account serves every league, so every league's admins hear.
   const admins = await db
-    .select({ id: profile.userId })
-    .from(profile)
-    .where(inArray(profile.globalRole, ["admin", "owner"]));
+    .selectDistinct({ id: leagueMember.userId })
+    .from(leagueMember)
+    .where(inArray(leagueMember.role, ["admin", "owner"]));
   if (admins.length === 0) return;
   const day = startOfUtcDay(now).toISOString().slice(0, 10);
   const resumes = new Intl.DateTimeFormat("en-US", {

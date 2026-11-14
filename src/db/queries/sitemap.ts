@@ -6,23 +6,27 @@ import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
 
-/** Seasons with public pages: every season except drafts, newest first. */
-export async function publicSeasons(db: Db) {
+/** A league's seasons with public pages: every season except drafts, newest first. */
+export async function publicSeasons(db: Db, leagueId: LeagueId) {
   return db
-    .select({ slug: season.slug, updatedAt: season.updatedAt })
+    .select({
+      slug: season.slug,
+      name: season.name,
+      updatedAt: season.updatedAt,
+    })
     .from(season)
-    .where(ne(season.status, "draft"))
+    .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
     .orderBy(desc(season.startsOn));
 }
 
-/** Teams with a public page: any team in a season that isn't a draft. */
-export async function publicTeams(db: Db) {
+/** A league's teams with a public page: any team in a season that isn't a draft. */
+export async function publicTeams(db: Db, leagueId: LeagueId) {
   return db
     .selectDistinct({ slug: team.slug })
     .from(team)
     .innerJoin(teamSeason, eq(teamSeason.teamId, team.id))
     .innerJoin(season, eq(season.id, teamSeason.seasonId))
-    .where(ne(season.status, "draft"))
+    .where(and(eq(team.leagueId, leagueId), ne(season.status, "draft")))
     .orderBy(asc(team.slug));
 }
 
@@ -31,13 +35,13 @@ export async function publicTeams(db: Db) {
  * when the newest of its public seasons did (a new score or a new schedule
  * touches the season).
  */
-export async function publicTeamPages(db: Db) {
+export async function publicTeamPages(db: Db, leagueId: LeagueId) {
   const rows = await db
     .select({ slug: team.slug, updatedAt: max(season.updatedAt) })
     .from(team)
     .innerJoin(teamSeason, eq(teamSeason.teamId, team.id))
     .innerJoin(season, eq(season.id, teamSeason.seasonId))
-    .where(ne(season.status, "draft"))
+    .where(and(eq(team.leagueId, leagueId), ne(season.status, "draft")))
     .groupBy(team.slug)
     .orderBy(asc(team.slug));
   return rows.flatMap((r) =>
@@ -46,12 +50,12 @@ export async function publicTeamPages(db: Db) {
 }
 
 /**
- * Games on a published schedule of a season still being played (open for
+ * A league's games on a published schedule of a season still being played (open for
  * registration, under way or in its playoffs): the game pages worth having
  * ready before anyone asks. A finished season's games render on their first
  * visit and are kept.
  */
-export async function currentPublicGames(db: Db) {
+export async function currentPublicGames(db: Db, leagueId: LeagueId) {
   return db
     .selectDistinct({ id: game.id })
     .from(gamePlacement)
@@ -64,7 +68,12 @@ export async function currentPublicGames(db: Db) {
     )
     .innerJoin(game, eq(gamePlacement.gameId, game.id))
     .innerJoin(season, eq(game.seasonId, season.id))
-    .where(notInArray(season.status, ["draft", "completed"]))
+    .where(
+      and(
+        eq(season.leagueId, leagueId),
+        notInArray(season.status, ["draft", "completed"]),
+      ),
+    )
     .orderBy(asc(game.id));
 }
 

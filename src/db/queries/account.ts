@@ -59,11 +59,7 @@ import {
 import { myDisciplineRecords, removeDisciplineNotes } from "./discipline";
 import { resetFeed } from "./event-audience";
 import { leaveEvent } from "./events";
-import {
-  exportsKeepOffEntries,
-  myKeepOffEntries,
-  removeKeepOffsFor,
-} from "./keep-off";
+import { myKeepOffEntries, removeKeepOffsFor } from "./keep-off";
 import { cancelHandoffsFor, myHandoffs } from "./captaincy";
 import { myPickemData, removePickemData } from "./pickem";
 import { myGearRecords, releaseGearOf } from "./equipment";
@@ -76,6 +72,8 @@ import { myReferrals } from "./referrals";
 import { withdrawSubClaim } from "./subs";
 import { mySurveysAnswered } from "./surveys";
 import { dropFutureShifts, myVolunteerShifts } from "./volunteer";
+import { league, leagueMember } from "../schema/league";
+import { defaultLeague, leaguesOf } from "./leagues";
 import type { Db } from "./schedule";
 
 /**
@@ -135,7 +133,6 @@ export async function personalData(
       lineupGender: profile.lineupGender,
       shirtSize: profile.shirtSize,
       birthDate: profile.birthDate,
-      role: profile.globalRole,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt,
     })
@@ -541,7 +538,7 @@ export async function personalData(
     .orderBy(asc(auditLog.occurredAt));
 
   const [credit, referralCounts, waitlist, savedCards] = await Promise.all([
-    creditHistory(db, userId, 1000),
+    creditHistory(db, userId, "all", 1000),
     myReferrals(db, userId),
     db
       .select({
@@ -573,6 +570,13 @@ export async function personalData(
       createdAt: person.createdAt,
     },
     profile: me ?? null,
+    // A role in each league they belong to (ADR 0048).
+    leagueRoles: await db
+      .select({ league: league.name, role: leagueMember.role })
+      .from(leagueMember)
+      .innerJoin(league, eq(league.id, leagueMember.leagueId))
+      .where(eq(leagueMember.userId, userId))
+      .orderBy(league.name),
     // Opened for the person themselves; without the secret, only whether one is saved.
     emergencyContact:
       secret === undefined
@@ -640,11 +644,7 @@ export async function personalData(
     captaincyOffers: await myHandoffs(db, userId),
     // League gear they have, bring to games, handed on or reported (#286).
     leagueGear: await myGearRecords(db, userId),
-    notOnMyTeamLists: await myKeepOffEntries(
-      db,
-      userId,
-      await exportsKeepOffEntries(db),
-    ),
+    notOnMyTeamLists: await myKeepOffEntries(db, userId),
     emailSettings,
     alertLimits,
     pushDevices,
@@ -705,15 +705,23 @@ export async function deleteBlocker(
     .limit(1);
   if (captaincy) return { reason: "captain", ...captaincy };
 
-  const [me] = await db
-    .select({ role: profile.globalRole })
-    .from(profile)
-    .where(eq(profile.userId, userId));
-  if (me?.role === "owner") {
+  // The last owner of any league (ADR 0048) stays until someone else is.
+  const owned = await db
+    .select({ leagueId: leagueMember.leagueId })
+    .from(leagueMember)
+    .where(
+      and(eq(leagueMember.userId, userId), eq(leagueMember.role, "owner")),
+    );
+  for (const { leagueId } of owned) {
     const [owners] = await db
       .select({ n: count() })
-      .from(profile)
-      .where(eq(profile.globalRole, "owner"));
+      .from(leagueMember)
+      .where(
+        and(
+          eq(leagueMember.leagueId, leagueId),
+          eq(leagueMember.role, "owner"),
+        ),
+      );
     if ((owners?.n ?? 0) <= 1) return { reason: "last_owner" };
   }
   return null;
@@ -959,13 +967,18 @@ export async function deleteAccount(
       image: null,
     })
     .where(eq(user.id, userId));
-  // The audit row names no personal data: only that the account was anonymized.
-  await recordAudit(db, {
-    actorId: userId,
-    action: "account.delete",
-    entityType: "user",
-    entityId: userId,
-    after: { anonymized: true },
-  });
+  // The audit row names no personal data: only that the account was
+  // anonymized. Each league the person belonged to records it (ADR 0048).
+  const theirs = await leaguesOf(db, userId);
+  const fallback = theirs.length === 0 ? await defaultLeague(db) : null;
+  for (const l of fallback ? [fallback] : theirs)
+    await recordAudit(db, {
+      leagueId: l.id,
+      actorId: userId,
+      action: "account.delete",
+      entityType: "user",
+      entityId: userId,
+      after: { anonymized: true },
+    });
   return ok(undefined);
 }

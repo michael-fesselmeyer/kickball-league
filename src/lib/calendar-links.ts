@@ -1,16 +1,22 @@
+import { type LeagueRef, leagueHref } from "@/domain/league/paths";
+
 /**
  * Links that subscribe a calendar app to a team's feed. Apple Calendar and
  * Outlook open webcal:// links; Google Calendar takes the feed as `cid`.
  */
-export function calendarLinks(origin: string, teamSlug: string) {
+export function calendarLinks(
+  origin: string,
+  league: LeagueRef,
+  teamSlug: string,
+) {
   return feedLinks(
-    `${origin}/teams/${encodeURIComponent(teamSlug)}/calendar.ics`,
+    `${origin}${leagueHref(league, `/teams/${encodeURIComponent(teamSlug)}/calendar.ics`)}`,
   );
 }
 
-/** The league's events calendar (src/app/events/calendar.ics). */
-export const eventsCalendarLinks = (origin: string) =>
-  feedLinks(`${origin}/events/calendar.ics`);
+/** A league's events calendar (src/app/l/[league]/events/calendar.ics). */
+export const eventsCalendarLinks = (origin: string, league: LeagueRef) =>
+  feedLinks(`${origin}${leagueHref(league, "/events/calendar.ics")}`);
 
 /** Subscribe links for any calendar feed. */
 export function feedLinks(feed: string) {

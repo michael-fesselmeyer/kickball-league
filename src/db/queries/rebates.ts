@@ -1,5 +1,6 @@
-import { and, eq, inArray, notInArray, or, sum } from "drizzle-orm";
+import { and, eq, inArray, notInArray, or, sum, sql } from "drizzle-orm";
 import type {
+  LeagueId,
   SeasonId,
   SeasonRebateId,
   TeamSeasonId,
@@ -288,6 +289,8 @@ export async function issueRebate(
   await db.insert(creditEntry).values(
     parts.map((p) => ({
       userId: p.userId as UserId,
+      // The rebate's season's league: the credit pays only its fees.
+      leagueId: sql<LeagueId>`(select league_id from season_rebate r join season s on s.id = r.season_id where r.id = ${created.id})`,
       deltaCents: p.cents,
       reason: "rainout_rebate" as const,
       rebateId: created.id,

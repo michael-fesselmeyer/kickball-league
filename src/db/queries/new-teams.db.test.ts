@@ -30,6 +30,7 @@ import {
   seasonForRegistration,
 } from "./registration";
 import type { Db } from "./schedule";
+import { grantRole, newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -60,13 +61,13 @@ async function world(db: Db, change: Partial<typeof season.$inferInsert> = {}) {
       userId: p.id,
       firstName: names[i]![0],
       lastName: names[i]![1],
-      globalRole: i === 3 ? ("admin" as const) : ("player" as const),
     })),
   );
   const [lg] = await db
     .insert(league)
     .values({ name: "Test League", slug: `newteam-${tag}` })
     .returning({ id: league.id });
+  await grantRole(db, people[3]!.id, "admin", lg!.id);
   await db.insert(season).values({
     leagueId: lg!.id,
     name: "Spring 2027",
@@ -412,6 +413,7 @@ describe("new-team requests", () => {
       const [paid] = await db
         .insert(purchase)
         .values({
+          leagueId: await newestLeague(db),
           userId: w.robin,
           seasonId: w.season.id,
           status: "paid",
