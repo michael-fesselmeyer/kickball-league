@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 import { loadEnv } from "./src/lib/env";
-import { securityHeaders } from "./src/lib/security-headers";
+import { securityHeaderRules } from "./src/lib/security-headers";
 
 // Fail fast on missing or malformed environment variables whenever Next loads
 // this config (build, dev, start). Only `npm run typecheck` opts out: route-type
@@ -38,14 +38,12 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      {
-        // Every page and route (ADR 0044). Rules below override a header
-        // for their own paths.
-        source: "/:path*",
-        headers: securityHeaders({
-          dev: process.env.NODE_ENV === "development",
-        }),
-      },
+      // Every page and route (ADR 0044); only the schedule widget under
+      // /embed may be framed. Rules below override a header for their own
+      // paths.
+      ...securityHeaderRules({
+        dev: process.env.NODE_ENV === "development",
+      }),
       {
         // The service worker is always checked for a new version, and may
         // load nothing from elsewhere (docs/architecture.md, section 14).

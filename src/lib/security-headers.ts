@@ -8,6 +8,10 @@
  * the policy does the rest: scripts, styles, images, fonts and requests come
  * from this site only, nothing may frame a page, plugins are off, and forms
  * post only here or to the sign-in and payment pages we send people to.
+ *
+ * The one exception is the schedule widget under /embed, which any site may
+ * frame so a sponsor or team can paste its snippet (docs/architecture.md,
+ * section 13). It gets its own, stricter policy and no X-Frame-Options.
  */
 
 /**
@@ -75,5 +79,45 @@ export function securityHeaders({
       value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
     },
     { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  ];
+}
+
+/** The routes other sites may frame: the schedule widget. */
+export const EMBED_PREFIX = "/embed/";
+
+/**
+ * The widget's policy: plain HTML with inline styles that loads nothing
+ * else, submits nothing and runs no script, framed by any site.
+ */
+export const EMBED_CSP =
+  "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors *";
+
+/** The widget's headers: the same as every page's, but framable. */
+export function embedHeaders({
+  dev,
+}: {
+  dev: boolean;
+}): { key: string; value: string }[] {
+  return securityHeaders({ dev })
+    .filter((h) => h.key !== "X-Frame-Options")
+    .map((h) =>
+      h.key === "Content-Security-Policy"
+        ? { key: h.key, value: EMBED_CSP }
+        : h,
+    );
+}
+
+/**
+ * The header rules for next.config.ts: the first matches every path except
+ * the embed routes (a path-to-regexp source with a negative lookahead), so
+ * no page ever sends both policies.
+ */
+export function securityHeaderRules({ dev }: { dev: boolean }) {
+  return [
+    {
+      source: `/((?!${EMBED_PREFIX.slice(1)}).*)`,
+      headers: securityHeaders({ dev }),
+    },
+    { source: `${EMBED_PREFIX}:path+`, headers: embedHeaders({ dev }) },
   ];
 }
