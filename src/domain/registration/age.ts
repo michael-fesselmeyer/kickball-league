@@ -1,4 +1,4 @@
-import { isAtLeast } from "@/domain/profile/profile-form";
+import { isAtLeast, MINIMUM_AGE } from "@/domain/profile/profile-form";
 import { err, ok, type Result } from "@/domain/result";
 
 /**
@@ -12,6 +12,14 @@ import { err, ok, type Result } from "@/domain/result";
  */
 
 export const DEFAULT_MINIMUM_AGE = 21;
+
+/**
+ * The birth date's hint on the profile form. The profile refuses anyone under
+ * MINIMUM_AGE, but each season asks for its own minimum when a player
+ * registers (DEFAULT_MINIMUM_AGE unless the league or season changed it,
+ * ADR 0041), so the hint names both rather than promising 18 is enough.
+ */
+export const BIRTH_DATE_HINT = `Each season sets a minimum age, usually ${DEFAULT_MINIMUM_AGE}, and nobody under ${MINIMUM_AGE} can play. Only you and the league owners see it.`;
 /** The law's floor for the waiver, and a sane ceiling for a typo. */
 export const LOWEST_MINIMUM_AGE = 18;
 export const HIGHEST_MINIMUM_AGE = 99;
