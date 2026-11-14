@@ -111,7 +111,13 @@ async function Sponsors({ searchParams }: PageProps<"/app/sponsor">) {
           <form action={createSponsorAction} className="flex flex-col gap-3">
             <label className="flex flex-col gap-1">
               Name
-              <input name="name" required maxLength={80} className={input} />
+              <input
+                name="name"
+                autoComplete="off"
+                required
+                maxLength={80}
+                className={input}
+              />
             </label>
             <label className="flex flex-col gap-1">
               Page address (optional, made from the name)

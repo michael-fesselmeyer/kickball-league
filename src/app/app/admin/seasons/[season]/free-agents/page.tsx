@@ -377,6 +377,7 @@ async function FreeAgents({
                 Team name
                 <input
                   name="name"
+                  autoComplete="off"
                   required
                   maxLength={40}
                   className="min-h-11 rounded-lg border border-border px-3"
