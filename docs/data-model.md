@@ -1208,6 +1208,8 @@ The MVP uses only `referee_assignment` with `status = accepted`, created by an a
 ```mermaid
 erDiagram
   user ||--o{ audit_log : acts
+  user ||--o{ account_merge : "kept in"
+  user ||--o| account_merge : "merged away in"
   user ||--o{ suspension : "may receive"
   game ||--o{ incident : "may have"
   incident ||--o{ incident_person : names
@@ -1291,9 +1293,19 @@ erDiagram
     timestamptz lifted_at
     uuid lifted_by FK
   }
+  account_merge {
+    uuid id PK
+    uuid kept_user_id FK
+    uuid merged_user_id FK,UK
+    text merged_email UK "lower case; an alias of the kept account"
+    jsonb summary "rows moved, by kind"
+    uuid merged_by FK
+    timestamptz created_at
+  }
 ```
 
 Notes:
+- `account_merge` records an admin merging a duplicate account into another ([ADR 0041](adr/0041-merging-duplicate-accounts.md)). Every column that references `user.id` moves by the rule `src/domain/account-merge/rules.ts` gives it, in one transaction with both user rows locked, and a test fails if a person column has no rule. Clashes on unique keys are settled by fixed answers: the kept account's RSVP, vote, setting and membership win; the earliest waiver signature stays; an empty registration gives way to one with a payment, team spot or referral (two that both hold something refuse the merge); self-votes and uncredited self-referrals are removed. The merged-away user row stays, named "Merged account" with an address at `deleted.invalid`, with no sessions, sign-in methods or passkeys, so it cannot sign in. `merged_email` is the old address: a sign-in link asked for it goes to the kept account's address, a new account cannot be created with it, and admin lookups by it find the kept account.
 - **Not planned:** an `ai_usage` table for AI provider spend and an answer cache. There are no AI features, because every AI provider bills per use ([ADR 0021](adr/0021-free-services-only.md)).
 
 ### 2.8 The owners' books and permits
@@ -1459,6 +1471,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `payment` | check `0 <= refunded_cents <= amount_cents` | Never refund more than was paid |
 | `refund` | check `amount_cents > 0` | A refund returns money |
 | `promo_code` | unique `(season_id, code)`; check `code = upper(code)`; check a percent is 1 to 100 and an amount is above 0 | Codes match without regard to case and never take off more than the price |
+| `account_merge` | unique `merged_user_id` and `merged_email`; check the two accounts differ and the address is lower case | An account is merged away once, and an address is an alias of one account |
 | `credit_entry` | check that `spent` rows are negative and every other row positive; that `spent` and `released` rows have a purchase, `rainout_rebate` rows a rebate and `referral` rows a referral; unique (`purchase_id`, `reason`), (`rebate_id`, `user_id`) and `referral_id` | A checkout spends and gives back once; a rebate or referral pays once |
 | `season_rebate` | unique `team_season_id`; check `games_lost` between 1 and `games_count` and `rebate_cents` within `paid_cents` | One rebate per team, never more than was paid |
 | `saved_payment_method` | partial unique index on `team_season_id` where `removed_at` is null; unique `stripe_setup_session_id` | One live guarantee per team; a replayed webhook saves once |
@@ -1543,7 +1556,7 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Addresses that were merged into the account stop being aliases. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, entries and wins in drawn giveaways, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
