@@ -642,16 +642,18 @@ Third-party material stays out of the public repository until the league agrees:
 | Action | Limit |
 |---|---|
 | Sign-in attempts, magic-link requests | Sign-in links: 20 a day per IP (the count restarts after a day without one), and 3 per inbox for each 15-minute link lifetime, so a link from the last window always still works (`SIGN_IN_LINKS_PER_IP` and `SIGN_IN_LINKS_PER_INBOX` in `src/lib/auth/config.ts`; the inbox is counted under a hash of its address). Link checks: 5 a minute per IP. Other sign-in paths: 3 per 10 seconds per IP. Any other auth request: 100 per 10 seconds per IP (Better Auth's built-in limiter, counted site-wide; see below). Sign-in links are sent outside the outbox's email budget, so these limits are what keep one visitor from using up the free plan's day of email |
-| Account creation | Planned: 3 per hour per IP. Today accounts start from a sign-in link, so the sign-in link limits apply ([security review](security-review.md), L10) |
-| Checkout session creation | Planned: 10 per hour per user; not enforced yet ([security review](security-review.md), L10) |
-| Invite sends | Planned: 50 per day per team; not enforced yet ([security review](security-review.md), L10) |
+| Account creation | No limit of its own: an account starts only from a sign-in link (or Google), so the sign-in limits above apply |
+| Checkout session creation | 10 an hour per person, across registration, team balances and guarantee cards, event tickets and merch (`ACTION_LIMITS` in `src/db/queries/action-limits.ts`) |
+| Team links | 50 a day per team |
 | Sub requests | 3 open per team |
 | Announcements | Captain: 3 per day. Admin: 10 per day |
-| Score reports | Planned: 10 per game per user; not enforced yet ([security review](security-review.md), L10) |
-| Waitlist and interest signups | Planned: 5 per hour per IP; not enforced yet ([security review](security-review.md), L10) |
+| Score reports | 10 a day per person for one game |
+| Waitlist | Joining or leaving a season's waitlist: 5 an hour per person (it needs an account, so it is counted per person, not per IP) |
 | Bar check-ins | 1 per sponsor per user per day (also a unique index) |
 | Giveaway entries | 1 per giveaway per user (a unique index), only with a current code from the event |
 | Everything else by IP | Vercel Firewall rule as a coarse backstop |
+
+**Action limits** (checkouts, team links, score reports, the waitlist) are counted with `consumeRateLimit` in the same table, per person or per team, through `allowAction` (`src/lib/action-limit.ts`). A refused request still counts, so retrying in a loop doesn't help. In the demo they are off: its personas are shared by every visitor and its Stripe is in test mode.
 
 **Where the sign-in counts live** (`RATE_LIMIT` in `src/lib/auth/config.ts`, tested in `src/db/queries/rate-limit.db.test.ts`). Better Auth keeps its counters in the `rate_limit` table in Postgres (`rateLimit.storage: "database"`), not in each server instance's memory, so a host running several instances still enforces one limit for the whole site. Each check is one atomic conditional `update` on the client's row, so two instances answering at once cannot both let a request over the limit. The key is the client's IP address and the auth path; the IP comes from `x-forwarded-for`, which Vercel sets. The limiter only runs on requests that pass through Better Auth's router (`/api/auth/*`); pages read the session on the server without it, so ordinary browsing writes nothing. A direct `auth.api.*` call skips the limiter, so the sign-in form and the "confirm it's you" button ask for links through the router instead (`requestSignInLink` in `src/lib/auth/request-link.ts`, tested in `request-link.db.test.ts`), and "Continue with Google" starts through it too, passing Better Auth's state cookie on to the browser (`requestGoogleSignIn` in `src/lib/auth/request-google.ts`, tested in `request-google.db.test.ts`). Better Auth deletes rows older than its longest window whenever a counter restarts, and the daily outbox sweep (`/api/jobs/outbox`, `pruneRateLimits`) deletes any left untouched for a day, so the table holds about a day of sign-in traffic at most. It costs no new service ([ADR 0021](adr/0021-free-services-only.md)).
 

@@ -25,6 +25,7 @@ import { env } from "@/env";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { stripeClient } from "@/services/stripe";
 import { ensureCustomer } from "@/services/stripe-guarantee";
+import { allowAction } from "@/lib/action-limit";
 
 /**
  * The captain's money tools on the team page (roadmap item 13): pay what is
@@ -57,6 +58,8 @@ export async function startGuaranteeSetup(slug: string): Promise<void> {
   if (balance.balanceCents === 0) redirect(`${page}?guarantee=paid_up`);
   const stripe = stripeClient();
   if (!stripe) redirect(`${page}?guarantee=off`);
+  if (!(await allowAction("checkout", subject.userId)))
+    redirect(`${page}?guarantee=too_many`);
   const person = await profileOf(db, subject.userId);
   if (!person) notFound();
   const existing = await stripeCustomerOf(db, subject.userId);
@@ -109,6 +112,8 @@ export async function payBalanceAction(
   if (balance.balanceCents === 0) redirect(`${page}?guarantee=paid_up`);
   const stripe = stripeClient();
   if (!stripe) redirect(`${page}?guarantee=off`);
+  if (!(await allowAction("checkout", subject.userId)))
+    redirect(`${page}?guarantee=too_many`);
 
   const stale = await openCheckoutsFor(db, mine.id);
   for (const s of stale)

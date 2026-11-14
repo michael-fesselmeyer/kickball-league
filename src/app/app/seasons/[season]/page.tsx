@@ -35,6 +35,8 @@ const PAYMENT_MESSAGES: Record<string, string> = {
     "That promo code doesn't exist. Check the spelling and try again.",
   expired: "That promo code has expired.",
   used_up: "That promo code has been used as many times as it allows.",
+  too_many:
+    "That's a lot of payment tries in an hour. Wait a bit, then try again.",
 };
 
 export default function SeasonPage(props: PageProps<"/app/seasons/[season]">) {

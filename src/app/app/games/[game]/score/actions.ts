@@ -21,6 +21,7 @@ import { OUTCOMES, PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { gameTag, refreshSeasonPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
+import { allowAction } from "@/lib/action-limit";
 
 const pageFor = (gameId: string) => `/app/games/${gameId}/score`;
 
@@ -69,6 +70,8 @@ export async function submitScoreAction(
 ): Promise<void> {
   const { page, subject, g, gameContext } = await context(rawGameId);
   if (!can(subject, "score.enter", gameContext)) notFound();
+  if (!(await allowAction("score_report", `${g.id}:${subject.userId}`)))
+    redirect(`${page}?error=too_many`);
   const outcome = form.get("outcome");
   if (!isOneOf(OUTCOMES, outcome)) redirect(`${page}?error=invalid`);
   const team = captainedTeam(subject, [g.teamAId, g.teamBId]);
