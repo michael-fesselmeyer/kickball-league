@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
-import { pageAs } from "../support/personas";
+import { pageAs, viewAs } from "../support/personas";
 import { download } from "../support/seed-data";
 
 /**
@@ -40,4 +40,18 @@ test("a player picks their emails, downloads their data and finds deletion off i
   ).toBeVisible();
   await expectNoAxeViolations(page);
   await page.context().close();
+});
+
+test("a player's home leads to their team, whatever registration is doing", async ({
+  page,
+}) => {
+  // Fall 2026 is being played and its registration closed long ago, so the
+  // home screen's register buttons don't offer it: the team link has to.
+  await viewAs(page, "Player");
+  const season = page.getByRole("region", { name: "Your season" });
+  await season.getByRole("link", { name: "The Big Kicks · Fall 2026" }).click();
+  await expect(page).toHaveURL(/\/app\/seasons\/fall-2026\/team$/);
+  await expect(
+    page.getByRole("heading", { name: "The Big Kicks" }),
+  ).toBeVisible();
 });
