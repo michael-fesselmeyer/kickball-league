@@ -29,6 +29,7 @@ import { recordAudit } from "./audit";
 import { acceptOffer, checkTeamSpot } from "./waitlist";
 import type { Db } from "./schedule";
 import { required } from "./rows";
+import { leagueSeasons } from "./season-scope";
 
 /** Season registration (roadmap week 4): teams and free agents, up to payment. */
 
@@ -58,6 +59,7 @@ export async function seasonForRegistration(
       rosterMin: season.rosterMin,
       rosterMax: season.rosterMax,
       waiverId: season.waiverId,
+      visibility: season.visibility,
       /** The season's minimum age, else the league's (ADR 0041). */
       minimumAge: sql<number>`coalesce(${season.minimumAge}, ${league.minimumAge})::int`,
     })
@@ -147,6 +149,7 @@ export async function openSeasons(db: Db, leagueId: LeagueId, now: Date) {
       and(
         eq(season.leagueId, leagueId),
         eq(season.status, "registration_open"),
+        leagueSeasons,
       ),
     )
     .orderBy(season.startsOn);

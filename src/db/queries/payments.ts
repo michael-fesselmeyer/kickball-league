@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, sql, sum } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, sql, sum } from "drizzle-orm";
 import { z } from "zod";
 import type { LeagueId } from "@/domain/ids";
 import {
@@ -50,6 +50,7 @@ import {
   releaseMerchHolds,
   settleMerch,
 } from "./merch";
+import { privateEvent } from "../schema/private-event";
 
 /**
  * Purchases and the Stripe webhook (docs/architecture.md, section 6). Only
@@ -62,7 +63,7 @@ import {
  * merch order, which belong to no registration or season.
  */
 export type PurchaseLine = {
-  kind: ItemKind | "event_ticket" | "merch";
+  kind: ItemKind | "event_ticket" | "merch" | "private_event";
   amountCents: number;
   description: string;
   registrationId: string | null;
@@ -704,6 +705,23 @@ export async function settlePurchase(
   if (items.some((i) => i.kind === "event_ticket"))
     await settleTickets(db, purchaseId);
   if (items.some((i) => i.kind === "merch")) await settleMerch(db, purchaseId);
+  // The organization paid for its private event: every team plays free.
+  if (items.some((i) => i.kind === "private_event")) {
+    const [paid] = await db
+      .select({ seasonId: purchase.seasonId })
+      .from(purchase)
+      .where(eq(purchase.id, purchaseId));
+    if (paid?.seasonId)
+      await db
+        .update(privateEvent)
+        .set({ paidAt: now })
+        .where(
+          and(
+            eq(privateEvent.seasonId, paid.seasonId),
+            isNull(privateEvent.paidAt),
+          ),
+        );
+  }
   const towardSplit = items.flatMap((i) =>
     (i.kind === "player_share" || i.kind === "balance") && i.teamSeasonId
       ? [i.teamSeasonId]

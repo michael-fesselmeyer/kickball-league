@@ -114,6 +114,10 @@ const RULES = {
   "registration.join": signedIn,
   "team.register": signedIn,
   "team.request_new": signedIn,
+  /** Ask the league for a private league or tournament (ADR 0049). */
+  "private_event.request": signedIn,
+  /** A private event's organizer page: its organizer (the target) or an admin. */
+  "private_event.organize": any(isAdmin, self),
   "event.rsvp": signedIn,
   "sponsor.check_in": signedIn,
   // A free giveaway at an event; the event's audience narrows it further.
@@ -247,6 +251,7 @@ const RULES = {
   "free_agents.place": isAdmin,
   "team.approve_new": isAdmin,
   "event.manage": isAdmin,
+  "private_event.manage": isAdmin,
   "giveaway.manage": isAdmin,
   "challenge.manage": isAdmin,
   "volunteer.manage": isAdmin,
