@@ -207,7 +207,7 @@ test("a new player signs up, pays the early-bird price, is placed on a team and 
   await test.step("the profile refuses anyone under 18", async () => {
     await saveProfile(player, newcomer, leagueDate(-17 * 365));
     await expect(
-      player.getByText("Players must be 18 or older."),
+      player.getByText("Players must be 18 or older.", { exact: true }),
     ).toBeVisible();
     await expect(player.getByLabel("Birth date")).toHaveAttribute(
       "aria-invalid",
