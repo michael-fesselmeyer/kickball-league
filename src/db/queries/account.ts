@@ -46,6 +46,7 @@ import {
 } from "../schema/team";
 import { waiver, waiverSignature } from "../schema/waiver";
 import { waitlistEntry } from "../schema/waitlist";
+import { accountMerge } from "../schema/account-merge";
 import { recordAudit } from "./audit";
 import { myDisciplineRecords, removeDisciplineNotes } from "./discipline";
 import { resetFeed } from "./event-audience";
@@ -594,6 +595,13 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     referrals: referralCounts,
     waitlist,
     savedCards,
+    mergedAddresses: await db
+      .select({
+        email: accountMerge.mergedEmail,
+        mergedAt: accountMerge.createdAt,
+      })
+      .from(accountMerge)
+      .where(eq(accountMerge.keptUserId, userId)),
   };
 }
 

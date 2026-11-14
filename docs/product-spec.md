@@ -183,6 +183,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Rate the other team's sportsmanship after a final score | — | — | own team's games | — | — | — | — |
 | See sportsmanship averages | — | — | own team, in blocks of 3 ratings | — | — | ✓ (every team, with notes) | ✓ (every team, with notes) |
 | Issue a refund or league credit | — | — | — | — | — | ✓ | ✓ |
+| Merge duplicate player accounts | — | — | — | — | — | ✓ | ✓ |
 | Set prices, connect Stripe, change refund policy | — | — | — | — | — | — | ✓ |
 | Add or remove admins | — | — | — | — | — | — | ✓ |
 | Keep the books: expenses and receipts, permit costs and documents, insurance, request sheet | — | — | — | — | — | — | ✓ |

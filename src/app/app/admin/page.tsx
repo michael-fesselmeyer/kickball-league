@@ -201,6 +201,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               ["/app/admin/instagram", "Instagram"],
               ["/app/admin/friends", "Friends of the league"],
               ["/app/admin/photos", "Member photos"],
+              ["/app/admin/accounts", "Merge accounts"],
               ["/app/admin/audit", "Audit log"],
             ].map(([href, label]) => (
               <li key={label}>

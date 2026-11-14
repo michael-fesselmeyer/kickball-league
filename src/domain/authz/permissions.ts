@@ -215,6 +215,8 @@ const RULES = {
   // Every team's list and reasons, to catch misuse.
   "keep_off.review": isAdmin,
   "refund.issue": isAdmin,
+  // Merge a duplicate account into another (ADR 0041).
+  "accounts.merge": isAdmin,
   "audit.read": isAdmin,
   "shirts.manage": isAdmin,
   "awards.manage": isAdmin,

@@ -9,6 +9,7 @@ import {
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { db } from "@/db/client";
+import { canonicalEmail } from "@/db/queries/account-merge";
 import * as schema from "@/db/schema";
 import { parseId, type UserId } from "@/domain/ids";
 import { canWrite } from "@/domain/platform/operator";
@@ -26,6 +27,12 @@ import { demoViewAs } from "./demo-view-as";
 import { accountLinking, socialProviders } from "./google";
 import { deliverMagicLink } from "./magic-link";
 import {
+  followAlias,
+  MAGIC_LINK_PATH,
+  MERGED_ADDRESS_REFUSAL,
+  requestedEmail,
+} from "./merged-alias";
+import {
   PASSKEY_DISABLED_PATHS,
   PASSKEY_REGISTRATION_PATHS,
   passkeyRegistrationRefusal,
@@ -41,9 +48,22 @@ const send =
     ? resendSender({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM })
     : undefined;
 
-/** Adding a passkey needs a fresh sign-in (passkey-policy.ts). */
-const guardPasskeyRegistration = createAuthMiddleware(async (ctx) => {
-  if (!PASSKEY_REGISTRATION_PATHS.includes(ctx.path)) return;
+/**
+ * Before every auth request: adding a passkey needs a fresh sign-in
+ * (passkey-policy.ts), and a sign-in link for a merged-away address goes to
+ * the account it was merged into (merged-alias.ts).
+ */
+const beforeAuth = createAuthMiddleware(async (ctx) => {
+  const email = ctx.path === MAGIC_LINK_PATH ? requestedEmail(ctx.body) : null;
+  if (email) {
+    const body = followAlias(
+      ctx.path,
+      ctx.body,
+      await canonicalEmail(db, email),
+    );
+    if (body) return { context: { body } };
+  }
+  if (!PASSKEY_REGISTRATION_PATHS.includes(ctx.path)) return undefined;
   const session = await getSessionFromCtx(ctx);
   const site = session ? await currentSite() : null;
   const refusal = passkeyRegistrationRefusal({
@@ -60,6 +80,7 @@ const guardPasskeyRegistration = createAuthMiddleware(async (ctx) => {
         message: REGISTRATION_REFUSALS[refusal],
       },
     );
+  return undefined;
 });
 
 export const auth = betterAuth({
@@ -70,7 +91,7 @@ export const auth = betterAuth({
   socialProviders: socialProviders(env),
   account: { accountLinking },
   disabledPaths: [...PASSKEY_DISABLED_PATHS],
-  hooks: { before: guardPasskeyRegistration },
+  hooks: { before: beforeAuth },
   session: {
     expiresIn: SESSION_EXPIRES_IN_SECONDS,
     updateAge: SESSION_UPDATE_AGE_SECONDS,
@@ -79,6 +100,14 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        // A merged-away address never starts a new account.
+        before: async (user) => {
+          if (await canonicalEmail(db, user.email))
+            throw new APIError("FORBIDDEN", {
+              code: "merged_address",
+              message: MERGED_ADDRESS_REFUSAL,
+            });
+        },
         after: async (user) => {
           const id = parseId<UserId>(user.id);
           if (!id) throw new Error("Expected a UUID account id");

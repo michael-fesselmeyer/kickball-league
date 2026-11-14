@@ -17,6 +17,7 @@ import type {
 } from "@/domain/ids";
 import { PERSONA_EMAILS, PERSONAS, type PersonaKey } from "@/lib/demo/personas";
 import { PLAYED_ROUNDS, type SeedData } from "./generate";
+import { removeAccountMerges } from "./account-merges";
 import { removeMoneyRecords } from "./money";
 
 /**
@@ -136,6 +137,7 @@ export async function removeDemoPersonas(db: Db): Promise<void> {
   ).map((r) => r.id);
   if (!ids.length) return;
   await removeMoneyRecords(db, { userIds: ids });
+  await removeAccountMerges(db, ids);
   await db
     .update(registration)
     .set({ waiverSignatureId: null })
