@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { AgeConfirmation } from "@/components/age-confirmation";
 import { formatCents, splitShare } from "@/domain/registration/pricing";
 import type { RegisterState } from "./actions";
 
@@ -18,6 +19,7 @@ type TeamProps = {
   teamFeeCents: number | null;
   rosterMin: number;
   rosterMax: number;
+  minimumAge: number;
 };
 
 export function TeamForm({
@@ -26,6 +28,7 @@ export function TeamForm({
   teamFeeCents,
   rosterMin,
   rosterMax,
+  minimumAge,
 }: TeamProps) {
   const [state, formAction, pending] = useActionState(action, { values: {} });
   const v = state.values;
@@ -136,6 +139,7 @@ export function TeamForm({
           </label>
         </fieldset>
       )}
+      <AgeConfirmation minimumAge={minimumAge} />
       <button
         type="submit"
         disabled={pending}
@@ -150,9 +154,11 @@ export function TeamForm({
 export function FreeAgentForm({
   action,
   priceLabel,
+  minimumAge,
 }: {
   action: Action;
   priceLabel: string;
+  minimumAge: number;
 }) {
   const [state, formAction, pending] = useActionState(action, { values: {} });
   return (
@@ -169,6 +175,7 @@ export function FreeAgentForm({
         No team? Join the free-agent pool and the league places you on a team
         that needs players. {priceLabel}
       </p>
+      <AgeConfirmation minimumAge={minimumAge} />
       <button
         type="submit"
         disabled={pending}

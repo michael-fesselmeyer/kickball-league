@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { WaiverText } from "@/components/waiver-text";
 import { db } from "@/db/client";
 import { profileOf } from "@/db/queries/profile";
+import { ageMessage, underAge } from "@/domain/registration/age";
+import { localDay } from "@/domain/schedule/public-game";
 import { currentLeague } from "@/db/queries/seasons";
 import { waiverForSeason } from "@/db/queries/waivers";
 import { requireSelf } from "@/lib/auth/permission";
@@ -89,13 +91,23 @@ async function Waiver({
             </h2>
             <WaiverText body={view.bodyMd} />
           </article>
-          {!view.signature && (
-            <SignWaiverForm
-              action={signWaiverAction.bind(null, slug)}
-              shownSha256={view.bodySha256}
-              fullName={fullName}
-            />
-          )}
+          {!view.signature &&
+            (underAge(
+              view.minimumAge,
+              person?.birthDate ?? null,
+              localDay(new Date(), league?.timeZone ?? "America/New_York"),
+            ) ? (
+              <p role="alert" className="rounded-lg border border-warning p-3">
+                {ageMessage("under_age", view.minimumAge)}
+              </p>
+            ) : (
+              <SignWaiverForm
+                action={signWaiverAction.bind(null, slug)}
+                shownSha256={view.bodySha256}
+                fullName={fullName}
+                minimumAge={view.minimumAge}
+              />
+            ))}
           <Link href="/app" className="underline">
             Home
           </Link>

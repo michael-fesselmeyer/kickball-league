@@ -2,7 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { AgeConfirmation } from "@/components/age-confirmation";
 import { inviteByToken } from "@/db/queries/invites";
+import { profileOf } from "@/db/queries/profile";
+import {
+  type AgeRefusal,
+  ageMessage,
+  underAge,
+} from "@/domain/registration/age";
+import { localDay } from "@/domain/schedule/public-game";
 import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { joinTeamAction } from "./actions";
@@ -34,15 +42,26 @@ const ERRORS: Record<string, string> = {
     "You are already on another team this season. Ask the league to move you.",
 };
 
+const isAgeRefusal = (code: unknown): code is AgeRefusal =>
+  code === "age_unconfirmed" || code === "under_age";
+
 async function Join({ params, searchParams }: PageProps<"/app/join/[token]">) {
   const { token } = await params;
   const query = await searchParams;
   const subject = await requirePermission("registration.join", {
     next: `/app/join/${token}`,
   });
-  const found = await inviteByToken(db, token, new Date(), subject.userId);
+  const now = new Date();
+  const [found, person] = await Promise.all([
+    inviteByToken(db, token, now, subject.userId),
+    profileOf(db, subject.userId),
+  ]);
   const error =
-    typeof query.error === "string" ? ERRORS[query.error] : undefined;
+    found && isAgeRefusal(query.error)
+      ? ageMessage(query.error, found.minimumAge)
+      : typeof query.error === "string"
+        ? ERRORS[query.error]
+        : undefined;
 
   if (!found || found.state !== "open")
     return (
@@ -57,12 +76,23 @@ async function Join({ params, searchParams }: PageProps<"/app/join/[token]">) {
       </>
     );
 
+  const tooYoung = underAge(
+    found.minimumAge,
+    person?.birthDate ?? null,
+    localDay(now, found.timeZone),
+  );
+
   return (
     <>
       <header className="flex flex-col gap-1">
         <p className="text-text-muted">{found.seasonName}</p>
         <h1 className="text-h1">Join {found.teamName}</h1>
       </header>
+      {tooYoung && (
+        <p role="alert" className="rounded-lg border border-warning p-3">
+          {ageMessage("under_age", found.minimumAge)}
+        </p>
+      )}
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
           {error}
@@ -76,11 +106,17 @@ async function Join({ params, searchParams }: PageProps<"/app/join/[token]">) {
           : ""}{" "}
         After joining you sign the season waiver and pay.
       </p>
-      <form action={joinTeamAction.bind(null, token)}>
-        <button type="submit" className="btn btn-primary">
-          Join {found.teamName}
-        </button>
-      </form>
+      {!tooYoung && (
+        <form
+          action={joinTeamAction.bind(null, token)}
+          className="flex flex-col gap-3"
+        >
+          <AgeConfirmation minimumAge={found.minimumAge} />
+          <button type="submit" className="btn self-start btn-primary">
+            Join {found.teamName}
+          </button>
+        </form>
+      )}
     </>
   );
 }
