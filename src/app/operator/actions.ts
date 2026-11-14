@@ -16,6 +16,7 @@ import {
 import { formStrings } from "@/lib/form";
 import { requireFreshOperator } from "@/lib/platform/require-operator";
 import { forgetSite } from "@/lib/platform/site";
+import { refreshSiteNotice } from "@/lib/public-cache";
 
 function back(query: string): never {
   redirect(`/operator?${query}`);
@@ -41,6 +42,7 @@ export async function setSiteStatusAction(form: FormData): Promise<void> {
     }),
   );
   forgetSite();
+  refreshSiteNotice();
   back("saved=status");
 }
 

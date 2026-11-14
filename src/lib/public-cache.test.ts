@@ -5,6 +5,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
 const { revalidatePath, updateTag } = await import("next/cache");
 const {
   EVENTS_TAG,
+  SITE_TAG,
   SPONSORS_TAG,
   THEME_WEEKS_TAG,
   eventTag,
@@ -12,6 +13,7 @@ const {
   refreshEventPages,
   refreshGamePage,
   refreshSeasonPages,
+  refreshSiteNotice,
   refreshSponsorPages,
   seasonTag,
 } = await import("./public-cache");
@@ -77,5 +79,14 @@ describe("refreshSponsorPages", () => {
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
       ["/sponsors", "layout"],
     ]);
+  });
+});
+
+describe("refreshSiteNotice", () => {
+  it("expires the site's tag and the paused notice", () => {
+    refreshSiteNotice();
+
+    expect(vi.mocked(updateTag).mock.calls).toEqual([[SITE_TAG]]);
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([["/paused"]]);
   });
 });

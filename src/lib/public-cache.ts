@@ -19,6 +19,18 @@ export const teamTag = (teamSlug: string) => `team:${teamSlug}`;
 export const gameTag = (gameId: string) => `game:${gameId}`;
 /** Every sponsor page and the sponsors list: there are only a handful. */
 export const SPONSORS_TAG = "sponsors";
+
+/** The site's name and status, as the paused notice shows them. */
+export const SITE_TAG = "site";
+
+/**
+ * From the operator's Server Action: the site's status changed, so the
+ * paused notice, which is static HTML, shows the new one on its next visit.
+ */
+export function refreshSiteNotice(): void {
+  updateTag(SITE_TAG);
+  revalidatePath("/paused");
+}
 /** Synced Instagram photos, on the home, team and event pages. */
 export const PHOTOS_TAG = "photos";
 
