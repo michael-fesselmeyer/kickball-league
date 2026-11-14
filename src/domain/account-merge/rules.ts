@@ -133,6 +133,15 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     clash: "Both are on the same team's keep-off list once",
   },
   "team_keep_off.added_by": actor("keep-off entries added"),
+  // A captaincy offer joins two people on one team season, and two accounts
+  // on the same team in the same season block a merge (both_registered), so
+  // moving these never makes an offer from someone to themselves.
+  "captain_handoff.from_user_id": { kind: "move", label: "captaincy offered" },
+  "captain_handoff.to_user_id": {
+    kind: "move",
+    label: "captaincy offered to them",
+  },
+  "captain_handoff.created_by": actor("captaincy offers made"),
   "friend_group.created_by": actor("friend groups started"),
   "invite.created_by": actor("invites created"),
   "roster_membership.created_by": actor("roster changes"),
