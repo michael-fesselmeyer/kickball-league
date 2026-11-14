@@ -25,6 +25,8 @@ import {
  * - Waiver: nobody reaches payment unsigned; signing stores the typed name,
  *   the time, the IP and a hash of the exact text.
  * - Payment: only Stripe's signed webhook marks a fee paid.
+ * - Reminders: the daily job queues an unpaid player's reminder three days
+ *   before the deadline, once however often it runs.
  * - Free agents: register, sign and pay, appear in the admin's pool and are
  *   placed on a team by hand; the captain's roster board shows them joined,
  *   signed and paid.
@@ -118,6 +120,41 @@ async function storedSignature(email: string) {
   }
 }
 
+/** The database's clock, which stamps the reminders. */
+async function databaseNow(): Promise<Date> {
+  const db = new Client({ connectionString: process.env.DATABASE_URL });
+  await db.connect();
+  try {
+    const { rows } = await db.query<{ now: Date }>("select now() as now");
+    const [row] = rows;
+    if (!row) throw new Error("The database has no clock");
+    return row.now;
+  } finally {
+    await db.end();
+  }
+}
+
+/**
+ * The payment reminders queued for a person since `since`, by days left. A
+ * made-up person outlives a reseed, so earlier runs' reminders are left out.
+ */
+async function reminders(email: string, since: Date): Promise<number[]> {
+  const db = new Client({ connectionString: process.env.DATABASE_URL });
+  await db.connect();
+  try {
+    const { rows } = await db.query<{ days: number }>(
+      `select (m.payload->>'daysLeft')::int as days
+         from message m join "user" u on u.id = m.user_id
+        where u.email = $1 and m.template = 'payment_reminder'
+          and m.payload->>'seasonSlug' = $2 and m.created_at >= $3`,
+      [email, SLUG, since],
+    );
+    return rows.map((r) => r.days);
+  } finally {
+    await db.end();
+  }
+}
+
 test("a new player signs up, pays the early-bird price, is placed on a team and earns a referral credit", async ({
   browser,
 }) => {
@@ -129,12 +166,14 @@ test("a new player signs up, pays the early-bird price, is placed on a team and 
     slug: SLUG,
     firstGameDay: leagueDate(90),
     lastGameDay: leagueDate(150),
-    registrationCloses: leagueDate(60),
+    // Registration and payment close in three days, inside the reminders'
+    // week; the early bird ends the day before.
+    registrationCloses: leagueDate(3),
     teamFee: 900,
     freeAgentFee: 80,
     rosterMin: 8,
     rosterMax: 20,
-    earlyBird: { discount: 10, endsOn: leagueDate(30) },
+    earlyBird: { discount: 10, endsOn: leagueDate(2) },
   });
 
   await test.step("a captain registers a team and pays the whole fee", async () => {
@@ -181,6 +220,21 @@ test("a new player signs up, pays the early-bird price, is placed on a team and 
       player.getByRole("button", { name: /securely with Stripe$/ }),
     ).toHaveCount(0);
     await expectNoAxeViolations(player);
+
+    // The daily reminders job finds the unpaid player three days out, once
+    // however often it runs.
+    const since = await databaseNow();
+    for (let run = 0; run < 2; run++) {
+      const job = await player.request.get("/api/jobs/payment-reminders", {
+        headers: { authorization: "Bearer e2e-cron-placeholder" },
+      });
+      expect(job.status()).toBe(200);
+    }
+    const queued = await reminders(newcomer.email, since);
+    expect(queued).toHaveLength(1);
+    // Three calendar days out, or two and a bit late in the evening.
+    expect(queued[0]).toBeGreaterThanOrEqual(2);
+    expect(queued[0]).toBeLessThanOrEqual(3);
 
     await signWaiver(player, SLUG, "Robin Quill");
     const [signature] = await storedSignature(newcomer.email);
