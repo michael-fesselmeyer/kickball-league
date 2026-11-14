@@ -143,6 +143,20 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
           </Link>
         </p>
       </section>
+      <section aria-labelledby="your-stats" className="flex flex-col gap-3">
+        <h2 id="your-stats" className="text-h2">
+          Your stats
+        </h2>
+        <p>
+          Games played, attendance, wins and awards for each season and your
+          career, and whether the public awards pages list you.
+        </p>
+        <p>
+          <Link href="/app/stats" className="underline">
+            See your stats
+          </Link>
+        </p>
+      </section>
       <CreditSection
         balanceCents={balance}
         history={history}
