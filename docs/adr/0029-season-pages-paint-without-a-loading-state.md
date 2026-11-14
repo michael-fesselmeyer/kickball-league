@@ -28,3 +28,8 @@ The prerendered pages still reached the browser in streaming form. React moves a
 - The first visit to an unlisted view waits for its render (about 70–220 ms locally) instead of showing a loading state first. Every later visit gets the stored page. Listed views are unchanged and were already static.
 - A cookie, header or uncached read added anywhere on these routes fails the build instead of quietly making them dynamic.
 - After a publish, `refreshSeasonPages` still expires these routes by path ([ADR 0018](0018-expire-season-routes-by-path.md)), and the end-to-end publish flow still checks that the next visitor sees the new schedule.
+
+## Update: the game page (2026-11-14)
+
+The public game page (`/games/[game]`) had the same problem with a smaller page: its content, a dynamic hole behind "Loading the game…", lost the race to the first paint in about 2 of 5 Lighthouse runs, and in every run once the security headers (ADR 0044) added a few hundred bytes to each response (#310). It now follows this decision: no boundary around the game, `generateStaticParams` for the games of seasons still being played, and cached reads, including a long-lived copy of the line score that each live-scoring change expires with the page (`refreshGamePage`); the stats panel is cached as the team page's is, so its game of the week is worked out when the copy is made. It can't set `ensureStatic = "navigation"`, because the forecast and the photo prompt read the clock and the site's feature switches per request; they stay in small boundaries of their own below the date.
+
