@@ -42,7 +42,8 @@ async function captainsTeam(slug: string) {
     !can(subject, "conflicts.submit", { teamSeasonId: team.teamSeasonId })
   )
     notFound();
-  const open = isAdmin(subject) || requestsOpen(season, new Date());
+  const open =
+    isAdmin(subject) || requestsOpen(season, new Date(), league.timeZone);
   return { page, subject, league, season, team, open };
 }
 
