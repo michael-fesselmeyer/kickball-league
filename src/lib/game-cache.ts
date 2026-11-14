@@ -33,6 +33,23 @@ export async function cachedLiveSnapshot(
 }
 
 /**
+ * The live score as the game page's HTML shows it. Kept like the page's
+ * other reads, so the page stays static, and expired with the page by every
+ * live-scoring change (`refreshGamePage`); while the game is on, the page's
+ * LiveScore keeps it current by polling `cachedLiveSnapshot` through the
+ * live route.
+ */
+export async function cachedPageSnapshot(
+  gameId: GameId,
+): Promise<LiveSnapshot | null> {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
+  cacheTag(gameTag(gameId));
+  const live = await liveGame(db, gameId);
+  return live ? snapshotOf(live) : null;
+}
+
+/**
  * A published game for its public page, cached like the season's other
  * public pages: tagged with its season, which publishing a schedule (a
  * rain-out included) and reporting or answering a score expire, and with

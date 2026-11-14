@@ -1,3 +1,4 @@
+import { cacheLife } from "next/cache";
 import Link from "next/link";
 import type { SeasonId } from "@/domain/ids";
 import { shortDay } from "@/domain/schedule/format";
@@ -7,10 +8,16 @@ import { rivalry, seriesLine } from "@/domain/stats/rivalry";
 import { seasonStats, statGamesFrom, teamsFrom } from "@/domain/stats/season";
 import { streakLabel } from "@/domain/stats/streaks";
 import { cachedMeetings, cachedSeasonSchedule } from "@/lib/game-cache";
+import { PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 
 const MEETINGS_SHOWN = 5;
 
-/** The head-to-head history, and the game of the week callout when it is. */
+/**
+ * The head-to-head history, and the game of the week callout when it is.
+ * Cached like the reads it makes, and carrying their season and team tags,
+ * so the game page stays static: the next game day is worked out from the
+ * clock when the copy is made, as on the team page.
+ */
 export async function GameStats({
   game,
   timeZone,
@@ -18,6 +25,8 @@ export async function GameStats({
   game: PublicGame;
   timeZone: string;
 }) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
   const [between, schedule] = await Promise.all([
     cachedMeetings(game.teamA.slug, game.teamB.slug),
     cachedSeasonSchedule(game.seasonId as SeasonId),

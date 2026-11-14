@@ -2,7 +2,11 @@ import { db } from "@/db/client";
 import { publicDivisionPages } from "@/db/queries/divisions";
 import { publicEventSlugs } from "@/db/queries/events";
 import { publishedSummarySeasons } from "@/db/queries/owner-dashboard";
-import { publicSeasons, publicTeams } from "@/db/queries/sitemap";
+import {
+  currentPublicGames,
+  publicSeasons,
+  publicTeams,
+} from "@/db/queries/sitemap";
 import { publicSponsorPages } from "@/db/queries/sponsors";
 
 /**
@@ -56,6 +60,31 @@ export async function publicTeamParams(): Promise<{ team: string }[]> {
     );
   }
   return [{ team: NO_TEAM }];
+}
+
+/**
+ * As NO_SEASON, for game pages: not a UUID, so `parseId` refuses it and the
+ * page renders as not found.
+ */
+export const NO_GAME = "_";
+
+/**
+ * The games of seasons still being played, prerendered at build time on the
+ * same terms as `publicSeasonParams`. Any other game is rendered in full on
+ * its first visit and kept.
+ */
+export async function publicGameParams(): Promise<{ game: string }[]> {
+  try {
+    const games = await currentPublicGames(db);
+    if (games.length > 0) return games.map((g) => ({ game: g.id }));
+  } catch (error) {
+    console.warn(
+      `[build] No games prerendered: the database could not be read (${
+        error instanceof Error ? error.message : String(error)
+      }).`,
+    );
+  }
+  return [{ game: NO_GAME }];
 }
 
 /** As NO_SEASON, for event pages. */
