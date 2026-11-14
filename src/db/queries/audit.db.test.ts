@@ -83,7 +83,7 @@ describe("auditLogPage", () => {
       const seen: string[] = [];
       let before: { occurredAt: Date; id: AuditLogId } | undefined;
       for (let page = 0; page < 4; page++) {
-        const found = await auditLogPage(db, { limit: 3, before });
+        const found = await auditLogPage(db, w.leagueId, { limit: 3, before });
         seen.push(
           ...found.rows
             .filter((r) => r.occurredAt.getTime() === at.getTime())
