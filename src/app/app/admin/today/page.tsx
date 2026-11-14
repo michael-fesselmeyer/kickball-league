@@ -11,6 +11,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
 import { cachedForecast } from "@/lib/weather";
 import { CommandBoard } from "./board";
+import { DayGear } from "./gear";
 import { loadCommand, parseDay } from "./load";
 
 export const metadata: Metadata = { title: "Game day" };
@@ -117,6 +118,13 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
         </nav>
       </header>
       <CommandBoard initial={state} timeZone={league.timeZone} />
+      <Suspense fallback={<p className="min-h-24">Checking the gear…</p>}>
+        <DayGear
+          leagueId={league.id}
+          date={state.date}
+          timeZone={league.timeZone}
+        />
+      </Suspense>
     </>
   );
 }

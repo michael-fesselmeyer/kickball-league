@@ -184,6 +184,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
           <ul className="flex flex-wrap gap-2">
             {[
               ["/app/admin/today", "Game day screen"],
+              ["/app/admin/equipment", "League gear"],
               [base, "Season setup"],
               [`${base}/schedule`, "Schedule"],
               [`${base}/registrations`, "Registrations"],
