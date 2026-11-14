@@ -53,3 +53,24 @@ describe("Server Actions and the frozen site", () => {
     },
   );
 });
+
+/**
+ * A bound argument reaches the server as whatever the client sends, so an id
+ * typed as a branded `…Id` is a promise nothing checks: a malformed one
+ * reached Postgres and answered 500. Actions take ids as strings and run
+ * them through `parseId`, answering not found (security review, L8).
+ */
+describe("Server Actions and bound ids", () => {
+  it.each(serverActionFiles.map((path) => [relative(ROOT, path), path]))(
+    "%s takes ids as strings and parses them",
+    (_name, path) => {
+      const source = readFileSync(path, "utf8");
+      const branded = [
+        ...source.matchAll(/export async function (\w+)\(([^)]*)\)/g),
+      ].flatMap(([, name, params]) =>
+        /\??:\s*[A-Z]\w*Id\b/.test(params ?? "") ? [name] : [],
+      );
+      expect(branded).toEqual([]);
+    },
+  );
+});

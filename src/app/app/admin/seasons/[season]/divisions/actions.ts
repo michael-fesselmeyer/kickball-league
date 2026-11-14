@@ -69,9 +69,12 @@ export async function createDivisionAction(slug: string, form: FormData) {
 
 export async function updateDivisionAction(
   slug: string,
-  divisionId: DivisionId,
+  rawDivisionId: string,
   form: FormData,
 ) {
+  const divisionId = parseId<DivisionId>(rawDivisionId);
+  // A malformed id is not found, not a database error.
+  if (!divisionId) notFound();
   const { page, actor, season } = await context(slug);
   const result = await txDb.transaction((tx) =>
     editDivision(
@@ -92,8 +95,11 @@ export async function updateDivisionAction(
 
 export async function deleteDivisionAction(
   slug: string,
-  divisionId: DivisionId,
+  rawDivisionId: string,
 ) {
+  const divisionId = parseId<DivisionId>(rawDivisionId);
+  // A malformed id is not found, not a database error.
+  if (!divisionId) notFound();
   const { page, actor, season } = await context(slug);
   const result = await txDb.transaction((tx) =>
     removeDivision(tx, { seasonId: season.id, divisionId }, actor),

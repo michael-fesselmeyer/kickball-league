@@ -139,9 +139,12 @@ export async function createPermits(slug: string, form: FormData) {
 
 export async function changePermitStatus(
   slug: string,
-  permitId: PermitWindowId,
+  rawPermitId: string,
   form: FormData,
 ) {
+  const permitId = parseId<PermitWindowId>(rawPermitId);
+  // A malformed id is not found, not a database error.
+  if (!permitId) notFound();
   const { page, actor, season } = await context(slug);
   const status = text(form, "status");
   if (!isOneOf(STATUSES, status))
@@ -153,7 +156,10 @@ export async function changePermitStatus(
   back(page, "permits", { notice: "permit_updated" });
 }
 
-export async function deletePermit(slug: string, permitId: PermitWindowId) {
+export async function deletePermit(slug: string, rawPermitId: string) {
+  const permitId = parseId<PermitWindowId>(rawPermitId);
+  // A malformed id is not found, not a database error.
+  if (!permitId) notFound();
   const { page, actor, season } = await context(slug);
   const result = await txDb.transaction((tx) =>
     removePermitWindow(tx, { seasonId: season.id, permitId }, actor),
@@ -187,7 +193,10 @@ export async function createBlackout(slug: string, form: FormData) {
   back(page, "blackouts", { notice: "blackout_added" });
 }
 
-export async function deleteBlackout(slug: string, blackoutId: BlackoutId) {
+export async function deleteBlackout(slug: string, rawBlackoutId: string) {
+  const blackoutId = parseId<BlackoutId>(rawBlackoutId);
+  // A malformed id is not found, not a database error.
+  if (!blackoutId) notFound();
   const { page, actor, season } = await context(slug);
   const result = await txDb.transaction((tx) =>
     removeBlackout(tx, { seasonId: season.id, blackoutId }, actor),
