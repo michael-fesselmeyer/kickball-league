@@ -90,7 +90,11 @@ export const LIVE_SCORE_CDN_SECONDS = 5;
  * prerendered part of a page that is served at once while the rest renders)
  * keep the cached data they were built with, under path tags only.
  */
-export const SEASON_PAGE_ROUTES = ["/seasons/[season]", "/teams/[team]"];
+export const SEASON_PAGE_ROUTES = [
+  "/seasons/[season]",
+  "/teams/[team]",
+  "/games/[game]",
+];
 
 /**
  * From a Server Action: the next request for any public page of this season,
@@ -104,6 +108,16 @@ export const SEASON_PAGE_ROUTES = ["/seasons/[season]", "/teams/[team]"];
 export function refreshSeasonPages(seasonId: string): void {
   updateTag(seasonTag(seasonId));
   for (const route of SEASON_PAGE_ROUTES) revalidatePath(route, "layout");
+}
+
+/**
+ * From a Server Action: one game's live score changed (a half-inning, an
+ * undo, who kicks first). Its cached reads expire, and so does its page,
+ * which is static HTML kept per game (docs/architecture.md, section 3).
+ */
+export function refreshGamePage(gameId: string): void {
+  updateTag(gameTag(gameId));
+  revalidatePath(`/games/${gameId}`);
 }
 
 /**
