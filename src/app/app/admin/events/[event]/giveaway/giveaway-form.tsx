@@ -1,13 +1,13 @@
 "use client";
 
 import { useActionState, useId } from "react";
+import type { GiveawayForm } from "@/domain/drive/giveaway";
 import {
-  type GiveawayForm,
   MAX_DONOR_LENGTH,
   MAX_PRIZE_LENGTH,
   MAX_RULES_LENGTH,
   MAX_WINNERS,
-} from "@/domain/drive/giveaway";
+} from "@/domain/drive/giveaway-limits";
 import type { GiveawayFormState } from "./actions";
 
 const control =
