@@ -17,6 +17,7 @@ import {
   SEED_LEAGUE_SLUG,
 } from "../src/seed/generate";
 import { addSeedAwards } from "../src/seed/awards";
+import { addSeedAwayWeeks } from "../src/seed/away-weeks";
 import { addDemoPersonas, removeDemoPersonas } from "../src/seed/demo-personas";
 import { addSeedDivisions, removeSeedDivisions } from "../src/seed/divisions";
 import {
@@ -295,6 +296,7 @@ async function main(): Promise<void> {
       await addDisciplinePlayer(tx, data);
       await addKeepOffPerson(tx, data);
       await addSeedLineups(tx, data);
+      await addSeedAwayWeeks(tx, data);
       await addPastSeasons(tx, data);
       await addSeedDivisions(tx, data);
       await addFreeAgentPool(tx, data);
