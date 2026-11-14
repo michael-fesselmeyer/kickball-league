@@ -34,6 +34,7 @@ describe("refreshSeasonPages", () => {
       ["/seasons/[season]", "layout"],
       ["/teams/[team]", "layout"],
       ["/games/[game]", "layout"],
+      ["/embed/schedule", "layout"],
     ]);
   });
 });
