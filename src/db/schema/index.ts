@@ -9,6 +9,7 @@ export * from "./credit";
 export * from "./discipline";
 export * from "./division";
 export * from "./drive";
+export * from "./emergency";
 export * from "./event";
 export * from "./formation";
 export * from "./free-agent";
