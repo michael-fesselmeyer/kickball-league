@@ -47,7 +47,7 @@ Rules for landing pages: each must hold information that exists nowhere else on 
 | Core Web Vitals | Budgets in [design-system.md](design-system.md): LCP ≤ 2.0s, INP ≤ 150ms, CLS ≤ 0.05 on phones, enforced in CI |
 | Titles and descriptions | Generated per page with `generateMetadata`. Pattern: "Schedule · Spring 2027 · Brooklyn Kickball Club". Unique on every page, under about 60 and 155 characters |
 | Canonical URLs | One canonical per page; lower-case, hyphenated, no trailing slash; filters and sort orders are not indexable |
-| Sitemap | `sitemap.ts` lists every public page with its last-modified time; split by type if it passes a few thousand URLs |
+| Sitemap | `sitemap.ts` lists every public page with its last-modified time: content pages, each public season's standings, schedule and published money summary, every team page, events and sponsors. Game pages are left out: there are dozens a season, they change hourly on game days, and every one is linked from its schedule and team pages. Split by type if it passes a few thousand URLs |
 | Robots | `robots.ts` allows public pages and disallows `/app`, `/api` and preview deployments. Preview and demo deployments send `noindex` |
 | Redirects | Every URL on the current site maps to its replacement with a 301: `/Home` to `/`, `/Join` to `/seasons`, `/Account/Registration` to `/sign-up`, `/Account/Login` to `/sign-in`, and the rulebook PDF to `/rules` |
 | Domain | Keep `brooklynkickballclub.com` so existing links and brand searches carry over; choose one host (with or without `www`) and redirect the other |
