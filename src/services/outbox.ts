@@ -77,7 +77,10 @@ export async function drainOutboxNow(
   maxBatches = 10,
 ): Promise<DrainResult | null> {
   if (!sender && !pushSender) return null;
-  const render = rendererFor({ siteUrl: env.BETTER_AUTH_URL });
+  const render = rendererFor({
+    siteUrl: env.BETTER_AUTH_URL,
+    unsubscribeSecret: env.BETTER_AUTH_SECRET,
+  });
   // Quiet hours and the daily cap follow the league's clock.
   const timeZone = (await currentLeague(txDb))?.timeZone ?? DEFAULT_TIME_ZONE;
   const total = emptyDrain();

@@ -16,6 +16,8 @@ export type Email = {
   text: string;
   /** Resend sends a message once per key for 24 hours, so a retry cannot double-send. */
   idempotencyKey?: string;
+  /** Extra headers, such as List-Unsubscribe. */
+  headers?: Record<string, string>;
 };
 
 export type EmailSender = (
@@ -39,7 +41,7 @@ export function resendSender({
   fetch?: typeof globalThis.fetch;
   timeoutMs?: number;
 }): EmailSender {
-  return async ({ to, subject, html, text, idempotencyKey }) => {
+  return async ({ to, subject, html, text, idempotencyKey, headers }) => {
     let response: Response;
     try {
       response = await fetch("https://api.resend.com/emails", {
@@ -49,7 +51,14 @@ export function resendSender({
           "Content-Type": "application/json",
           ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
         },
-        body: JSON.stringify({ from, to: [to], subject, html, text }),
+        body: JSON.stringify({
+          from,
+          to: [to],
+          subject,
+          html,
+          text,
+          ...(headers ? { headers } : {}),
+        }),
         // A provider that hangs instead of refusing would hold the outbox's
         // drain until the function is stopped; the message is retried.
         signal: AbortSignal.timeout(timeoutMs),

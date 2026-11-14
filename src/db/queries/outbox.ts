@@ -160,12 +160,19 @@ export type Rendered = {
   text: string;
   /** Without it, a push copy shows the subject and opens the home screen. */
   push?: PushContent;
+  /** Where a mail app's one-click unsubscribe posts (RFC 8058). */
+  listUnsubscribe?: string;
 };
 
-/** Turns a stored template name and payload into an email, or says why it cannot. */
+/**
+ * Turns a stored template name and payload into an email, or says why it
+ * cannot. Given the recipient and topic, the email can carry their
+ * one-click unsubscribe.
+ */
 export type Renderer = (
   template: string,
   payload: Record<string, unknown>,
+  recipient?: { userId: UserId; topic: Topic },
 ) => Result<Rendered, string>;
 
 export type Channel = "email" | "push";
@@ -708,7 +715,10 @@ async function deliverEmail(
     result: DrainResult;
   },
 ): Promise<"sent" | "quota" | "failed"> {
-  const rendered = render(m.template, m.payload);
+  const rendered = render(m.template, m.payload, {
+    userId: m.userId,
+    topic: m.topic,
+  });
   if (!rendered.ok || !to) {
     // Retrying cannot fix a message that cannot be built.
     await settle(db, m, {
@@ -718,13 +728,21 @@ async function deliverEmail(
     result.failed++;
     return "failed";
   }
-  const { subject, html, text } = rendered.value;
+  const { subject, html, text, listUnsubscribe } = rendered.value;
   const sent = await send({
     to,
     subject,
     html,
     text,
     idempotencyKey: `message/${m.id}`,
+    ...(listUnsubscribe
+      ? {
+          headers: {
+            "List-Unsubscribe": `<${listUnsubscribe}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        }
+      : {}),
   });
   if (sent.ok) {
     await settle(db, m, {
