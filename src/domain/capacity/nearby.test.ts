@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import snapshot from "@/data/nyc-park-fields.json";
+import snapshot from "./nyc-park-fields.json";
 import {
   distanceKm,
   fieldLabel,

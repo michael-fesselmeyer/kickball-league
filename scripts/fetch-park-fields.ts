@@ -1,5 +1,5 @@
 /**
- * Refreshes src/data/nyc-park-fields.json, the snapshot of NYC Parks fields
+ * Refreshes src/domain/capacity/nyc-park-fields.json, the snapshot of NYC Parks fields
  * suited to kickball that the capacity planner suggests (docs/permits/nyc-parks.md).
  *
  * Source: NYC Open Data, "Athletic Facilities" (qnem-b8re) for the fields and
@@ -123,7 +123,7 @@ async function main() {
     fetchedOn: new Date().toISOString().slice(0, 10),
     fields,
   };
-  const path = join(process.cwd(), "src/data/nyc-park-fields.json");
+  const path = join(process.cwd(), "src/domain/capacity/nyc-park-fields.json");
   writeFileSync(path, `${JSON.stringify(out, null, 0)}\n`);
   console.log(`${fields.length} fields written to ${path}`);
 }

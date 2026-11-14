@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import parkFields from "@/data/nyc-park-fields.json";
+import parkFields from "@/domain/capacity/nyc-park-fields.json";
 import { db } from "@/db/client";
 import { capacityInputs } from "@/db/queries/capacity";
 import {
