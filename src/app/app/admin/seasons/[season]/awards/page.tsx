@@ -151,6 +151,14 @@ async function Awards({
           vote once; nobody sees the totals, admins included, until voting
           closes.
         </p>
+        <p>
+          <Link
+            href={`/app/admin/seasons/${slug}/awards/stats`}
+            className="underline"
+          >
+            Stat awards and the Season MVP
+          </Link>
+        </p>
       </header>
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
