@@ -579,7 +579,7 @@ Third-party material stays out of the public repository until the league agrees:
 | Logs | Structured JSON with a request ID, viewable in Vercel |
 | Job health | Heartbeat row per job; admin health card shows last run, outbox backlog, failed messages, failed webhooks |
 | Alerts | Free email alerts from Sentry's Developer plan for: webhook failures, outbox backlog older than 5 minutes, a job that missed two runs, a Stripe dispute. The admin health card shows the same, and a free limit nearing its end (section 15) |
-| Uptime | The one uptime monitor included in Sentry's free plan, on `/api/health`, which checks the database |
+| Uptime | UptimeRobot's free plan on `/robots.txt` every 5 minutes and the home page hourly, so checks never keep the database awake; `/api/health` hourly once it exists. The launch plan, with each free tier's limits, is in [launch/monitoring.md](launch/monitoring.md) |
 | Business numbers | Admin dashboard: registrations, revenue, unpaid balances, emails sent today and this month against the free quota |
 
 ## 13. Security
@@ -713,6 +713,8 @@ Free alternatives, from each provider's own pages:
 | Render Free | Web services sleep after 15 minutes idle and take about a minute to wake; 750 hours a month ([Render free instances](https://render.com/docs/free)) | Render says not to use free instances for production, so it does not fit |
 
 Also possible: ask Vercel whether a volunteer-run league's registration site fits the Hobby plan. **Open question for launch** ([open-questions.md](open-questions.md), question 51): the maintainer decides which host serves the live league before real payments start. The app depends on Vercel only through `vercel.json` (its scheduled jobs and deployment settings), the address Vercel gives each deployment (`src/lib/env.ts`) and the environment variables in its dashboard, so moving is mostly a deployment change, after a trial build on the new host.
+
+The launch decision brief, with each provider's terms re-read on 2026-11-14 and what each host would need changed in this repository, is [launch/hosting.md](launch/hosting.md).
 
 ## 16. AI features: not planned
 

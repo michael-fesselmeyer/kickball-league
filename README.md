@@ -152,17 +152,18 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 
 ## Design documents
 
-| Document                                                     | What it covers                               |
-| ------------------------------------------------------------ | -------------------------------------------- |
-| [Product spec](docs/product-spec.md)                         | Roles, permissions matrix, features by phase |
-| [Information architecture](docs/information-architecture.md) | Routes, user flows, key screens              |
-| [Data model](docs/data-model.md)                             | Tables, constraints, indexes                 |
-| [Scheduling algorithm](docs/scheduling-algorithm.md)         | The season scheduler and its property tests  |
-| [Architecture](docs/architecture.md)                         | Stack, rendering, auth, jobs, security, CI   |
-| [Design system](docs/design-system.md)                       | Tokens, type, components, motion, budgets    |
-| [SEO plan](docs/seo-plan.md)                                 | Metadata, structured data, content           |
-| [Roadmap](docs/roadmap.md)                                   | Phases and acceptance criteria               |
-| [Decisions](docs/adr/)                                       | Architecture decision records                |
+| Document                                                     | What it covers                                                                   |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [Product spec](docs/product-spec.md)                         | Roles, permissions matrix, features by phase                                     |
+| [Information architecture](docs/information-architecture.md) | Routes, user flows, key screens                                                  |
+| [Data model](docs/data-model.md)                             | Tables, constraints, indexes                                                     |
+| [Scheduling algorithm](docs/scheduling-algorithm.md)         | The season scheduler and its property tests                                      |
+| [Architecture](docs/architecture.md)                         | Stack, rendering, auth, jobs, security, CI                                       |
+| [Design system](docs/design-system.md)                       | Tokens, type, components, motion, budgets                                        |
+| [SEO plan](docs/seo-plan.md)                                 | Metadata, structured data, content                                               |
+| [Roadmap](docs/roadmap.md)                                   | Phases and acceptance criteria                                                   |
+| [Launch kit](docs/launch/README.md)                          | Hosting brief, environment checklist, runbook, backups, acceptance tests, alerts |
+| [Decisions](docs/adr/)                                       | Architecture decision records                                                    |
 
 ## Tech stack
 
@@ -184,7 +185,18 @@ npm run seed                 # a demo league: 8 teams, invented players, a seaso
 npm run dev
 ```
 
-Environment variables are validated with Zod in [`src/lib/env.ts`](src/lib/env.ts) whenever Next loads its config, so `npm run dev`, `npm run build` and `npm start` stop immediately and name any variable that is missing or malformed. Server code reads them through `env` from `src/env.ts`, never `process.env` directly.
+Environment variables are validated with Zod in [`src/lib/env.ts`](src/lib/env.ts) whenever Next loads its config, so `npm run dev`, `npm run build` and `npm start` stop immediately and name any variable that is missing or malformed. Server code reads them through `env` from `src/env.ts`, never `process.env` directly, apart from a few optional switches that are checked where they are used. The [environment checklist](docs/launch/environment.md) lists every variable, validated or not.
+
+### Launch
+
+Automatic deployments are paused until launch. Everything needed to go live is in the [launch kit](docs/launch/README.md):
+
+- [Hosting decision brief](docs/launch/hosting.md): which free host may serve a site that takes payments, and the recommendation.
+- [Environment checklist](docs/launch/environment.md): every variable, whether it's required, and where its value comes from.
+- [Launch runbook](docs/launch/runbook.md): database, migrations, season data, email domain, push keys, Stripe live, Google sign-in, turning deployments on and the domain cut-over, each with a smoke test.
+- [Backup and restore drill](docs/launch/backup-and-restore.md): `scripts/backup-drill.sh` dumps the database, restores it into a scratch database and compares every table.
+- [Acceptance testing](docs/launch/acceptance-testing.md): checklists per role for volunteers on the demo.
+- [Uptime and error alerts](docs/launch/monitoring.md): free monitoring and its limits.
 
 ### Turning on Google sign-in
 
@@ -262,27 +274,28 @@ In CI, the end-to-end and Lighthouse checks each build the app once and share th
 
 ## Scripts
 
-| Command                      | What it does                                                     |
-| ---------------------------- | ---------------------------------------------------------------- |
-| `npm run dev`                | Start the development server                                     |
-| `npm test`                   | Run unit tests once                                              |
-| `npm run test:coverage`      | Run unit tests with coverage of `src/domain` and `src/lib`       |
-| `npm run db:generate`        | Generate a SQL migration from `src/db/schema`                    |
-| `npm run db:migrate`         | Apply pending migrations to `DATABASE_URL`                       |
-| `npm run db:check`           | Check migration files are consistent                             |
-| `npm run db:studio`          | Browse the database in Drizzle Studio                            |
-| `npm run test:db`            | Database constraint tests (each rolls back)                      |
-| `npm run seed`               | Replace the demo league with fresh seed data; refuses production |
-| `npm run demo:reset`         | Reseed the demo deployment; refuses unless demo mode is on       |
-| `npm run push:keys`          | Add a new VAPID key pair for web push to `.env.local`            |
-| `npm run lint`               | ESLint, failing on any warning                                   |
-| `npm run typecheck`          | Generate route types and run `tsc`                               |
-| `npm run format:check`       | Check Prettier formatting                                        |
-| `npm run build`              | Production build                                                 |
-| `npm run test:e2e`           | Seed, build, then smoke tests and core flows with axe            |
-| `npm run test:e2e:site-wide` | Reseed, then the operator's site-wide switches on their own      |
-| `npm run lighthouse`         | Lighthouse budgets on the public pages of the last build         |
-| `npm run check:route-js`     | Every route's first-load JavaScript against its budget           |
+| Command                      | What it does                                                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                | Start the development server                                                                                  |
+| `npm test`                   | Run unit tests once                                                                                           |
+| `npm run test:coverage`      | Run unit tests with coverage of `src/domain` and `src/lib`                                                    |
+| `npm run db:generate`        | Generate a SQL migration from `src/db/schema`                                                                 |
+| `npm run db:migrate`         | Apply pending migrations to `DATABASE_URL`                                                                    |
+| `npm run db:check`           | Check migration files are consistent                                                                          |
+| `npm run db:studio`          | Browse the database in Drizzle Studio                                                                         |
+| `npm run test:db`            | Database constraint tests (each rolls back)                                                                   |
+| `npm run seed`               | Replace the demo league with fresh seed data; refuses production                                              |
+| `npm run demo:reset`         | Reseed the demo deployment; refuses unless demo mode is on                                                    |
+| `npm run push:keys`          | Add a new VAPID key pair for web push to `.env.local`                                                         |
+| `scripts/backup-drill.sh`    | Back up a database, restore it to a scratch database and compare ([steps](docs/launch/backup-and-restore.md)) |
+| `npm run lint`               | ESLint, failing on any warning                                                                                |
+| `npm run typecheck`          | Generate route types and run `tsc`                                                                            |
+| `npm run format:check`       | Check Prettier formatting                                                                                     |
+| `npm run build`              | Production build                                                                                              |
+| `npm run test:e2e`           | Seed, build, then smoke tests and core flows with axe                                                         |
+| `npm run test:e2e:site-wide` | Reseed, then the operator's site-wide switches on their own                                                   |
+| `npm run lighthouse`         | Lighthouse budgets on the public pages of the last build                                                      |
+| `npm run check:route-js`     | Every route's first-load JavaScript against its budget                                                        |
 
 ## How changes land
 
