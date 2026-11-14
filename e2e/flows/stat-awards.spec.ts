@@ -26,7 +26,7 @@ test("an admin reviews and publishes stat awards, and a player opts out", async 
 
   await admin.getByRole("button", { name: "Take down" }).click();
   await expect(admin.getByRole("status")).toContainText("Taken down");
-  const visitor = await browser.newPage();
+  const visitor = await (await browser.newContext()).newPage();
   const gone = await visitor.goto("/seasons/fall-2026/awards");
   expect(gone?.status()).toBe(404);
 
@@ -70,7 +70,7 @@ test("an admin reviews and publishes stat awards, and a player opts out", async 
   ])
     await expect(visitor.getByRole("region", { name: award })).toBeVisible();
   await expectNoAxeViolations(visitor);
-  await visitor.close();
+  await visitor.context().close();
 
   const player = await pageAs(browser, "Player");
   await player.goto("/app/profile");
