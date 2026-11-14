@@ -9,6 +9,7 @@ import { savedPaymentMethod } from "../schema/guarantee";
 import { account, passkey, session, user, verification } from "../schema/auth";
 import { giveaway, giveawayEntry } from "../schema/drive";
 import { event, eventRsvp, eventTicket } from "../schema/event";
+import { awayWeek } from "../schema/availability";
 import { gameLineup, gameLineupSpot } from "../schema/lineup";
 import { merchItem, merchOrder } from "../schema/merch";
 import {
@@ -278,6 +279,13 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     .where(eq(gameRsvp.userId, userId))
     .orderBy(asc(gameRsvp.updatedAt));
   // Where they kick in saved orders; their lineup gender is in the profile.
+  // The weeks they said they'd miss, by season.
+  const awayWeeks = await db
+    .select({ seasonId: registration.seasonId, week: awayWeek.weekStart })
+    .from(awayWeek)
+    .innerJoin(registration, eq(registration.id, awayWeek.registrationId))
+    .where(eq(registration.userId, userId))
+    .orderBy(asc(awayWeek.weekStart));
   const kickingOrder = await db
     .select({
       gameId: gameLineup.gameId,
@@ -562,6 +570,7 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     })),
     rsvps,
     kickingOrder,
+    awayWeeks,
     eventRsvps,
     eventTickets,
     merchOrders,
@@ -744,6 +753,17 @@ export async function deleteAccount(
     );
   await db.delete(gameRsvp).where(eq(gameRsvp.userId, userId));
   await db.delete(gameLineupSpot).where(eq(gameLineupSpot.userId, userId));
+  await db
+    .delete(awayWeek)
+    .where(
+      inArray(
+        awayWeek.registrationId,
+        db
+          .select({ id: registration.id })
+          .from(registration)
+          .where(eq(registration.userId, userId)),
+      ),
+    );
   // Give up event spots the way the person would, so the waitlist moves up;
   // a ticket or an offer to buy one goes too. RSVPs for past or called-off
   // events are simply removed; tickets stay, as records of money paid.
