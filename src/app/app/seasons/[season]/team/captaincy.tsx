@@ -174,7 +174,7 @@ export function CaptaincyPanel({
               >
                 <SubmitButton className="inline-flex min-h-11 items-center underline">
                   {m.role === "co_captain"
-                    ? "Make a player"
+                    ? "No longer co-captain"
                     : "Make co-captain"}
                   <span className="sr-only"> for {m.name}</span>
                 </SubmitButton>
