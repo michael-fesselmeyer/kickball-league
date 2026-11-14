@@ -9,6 +9,12 @@ import { Client } from "pg";
  * the test database itself, in the shape Better Auth's magic-link plugin
  * stores it, and opens the link. The token is made fresh for each call and
  * works once.
+ *
+ * Better Auth allows 5 sign-in links a minute from one address, and every
+ * flow reaches the server from this machine, so parallel flows would share
+ * that allowance and the sixth sign-in in a minute would be refused. Each
+ * person signs in from their own address, as real players do, picked from
+ * the range set aside for network tests (198.18.0.0/15, RFC 2544).
  */
 export async function pageSignedInAs(
   browser: Browser,
@@ -22,7 +28,9 @@ export async function pageSignedInAs(
       [`magic-link:${token}`, JSON.stringify({ type: "magic-link", email })],
     ),
   );
-  const context = await browser.newContext();
+  const context = await browser.newContext({
+    extraHTTPHeaders: { "x-forwarded-for": testAddress() },
+  });
   const page = await context.newPage();
   const link = new URLSearchParams({ token, callbackURL: "/app" });
   await page.goto(`/api/auth/magic-link/verify?${link.toString()}`);
@@ -52,6 +60,12 @@ export async function captainEmail(
   const [captain] = rows;
   if (!captain) throw new Error(`${teamName} has no captain in ${seasonSlug}`);
   return captain.email;
+}
+
+/** A random address in 198.18.0.0/15, which never routes to a real host. */
+function testAddress(): string {
+  const [a = 0, b = 0, c = 0] = randomBytes(3);
+  return `198.${18 + (a % 2)}.${b}.${(c % 254) + 1}`;
 }
 
 async function withDb<T>(body: (db: Client) => Promise<T>): Promise<T> {
