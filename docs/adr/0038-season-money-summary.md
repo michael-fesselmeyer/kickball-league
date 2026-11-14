@@ -1,4 +1,4 @@
-# ADR 0035: The season money summary shows category totals, published by an owner
+# ADR 0038: The season money summary shows category totals, published by an owner
 
 - Status: accepted
 - Date: 2026-11-13

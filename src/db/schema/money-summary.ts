@@ -7,7 +7,7 @@ import { expenseCategory } from "./books";
 import { season } from "./season";
 
 /**
- * A season's published money summary (ADR 0035; docs/data-model.md,
+ * A season's published money summary (ADR 0038; docs/data-model.md,
  * section 2.9): where the money went, by category totals only, as it was
  * when an owner published it. No row means nothing is published, which is
  * the default; unpublishing deletes the row. The numbers are a copy, so the

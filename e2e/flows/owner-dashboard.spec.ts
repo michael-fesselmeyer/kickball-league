@@ -4,7 +4,7 @@ import { pageAs } from "../support/personas";
 import { download } from "../support/seed-data";
 
 /**
- * The owner dashboard and the season money summary (ADR 0035), at phone
+ * The owner dashboard and the season money summary (ADR 0038), at phone
  * width. On the flows server the demo admin is the platform operator
  * (playwright.config.ts), who sees what the owners see. The seed records the
  * fall players' fees and publishes the fall summary (src/seed/money-summary.ts).
