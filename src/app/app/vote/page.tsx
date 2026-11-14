@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { type Ballot, votingPage } from "@/db/queries/awards";
+import { suggestedNominees } from "@/db/queries/stat-awards";
 import { CATEGORIES, type Nominee } from "@/domain/awards/awards";
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
@@ -49,7 +50,15 @@ const closesAt = (d: Date, timeZone: string) =>
  * The ballot's choices, grouped by team for player awards. Nobody can pick
  * themselves, or their own team for a team award.
  */
-function Choices({ ballot, me }: { ballot: Ballot; me: string }) {
+function Choices({
+  ballot,
+  me,
+  suggested,
+}: {
+  ballot: Ballot;
+  me: string;
+  suggested: readonly string[];
+}) {
   const kind = CATEGORIES[ballot.poll.category].nominee;
   const choices = ballot.nominees.filter(
     (n) => n.id !== me && n.id !== ballot.myTeamSeasonId,
@@ -60,30 +69,49 @@ function Choices({ ballot, me }: { ballot: Ballot; me: string }) {
         {n.name}
       </option>
     ));
+  // The season's stat leaders come first, once, as suggestions.
+  const leaders = suggested.flatMap((id) => {
+    const n = choices.find((c) => c.id === id);
+    return n ? [n] : [];
+  });
   const teams = new Map<string, Nominee[]>();
   for (const n of choices)
-    teams.set(n.teamName, [...(teams.get(n.teamName) ?? []), n]);
-  return [...teams.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([team, players]) => (
-      <optgroup key={team} label={team}>
-        {players.map((n) => (
+    if (!leaders.includes(n))
+      teams.set(n.teamName, [...(teams.get(n.teamName) ?? []), n]);
+  return [
+    leaders.length > 0 && (
+      <optgroup key="leaders" label="Stat leaders">
+        {leaders.map((n) => (
           <option key={n.id} value={n.id}>
             {n.name}
           </option>
         ))}
       </optgroup>
-    ));
+    ),
+    ...[...teams.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([team, players]) => (
+        <optgroup key={team} label={team}>
+          {players.map((n) => (
+            <option key={n.id} value={n.id}>
+              {n.name}
+            </option>
+          ))}
+        </optgroup>
+      )),
+  ];
 }
 
 function BallotCard({
   ballot,
   me,
   justVoted,
+  suggested,
 }: {
   ballot: Ballot;
   me: string;
   justVoted: boolean;
+  suggested: readonly string[];
 }) {
   const { poll } = ballot;
   const award = CATEGORIES[poll.category];
@@ -130,8 +158,14 @@ function BallotCard({
               <option value="" disabled>
                 Choose {award.nominee === "team" ? "a team" : "a player"}
               </option>
-              <Choices ballot={ballot} me={me} />
+              <Choices ballot={ballot} me={me} suggested={suggested} />
             </select>
+            {suggested.some((id) => id !== me) && (
+              <p className="text-small text-text-muted">
+                Stat leaders come first, from the season&apos;s numbers. Pick
+                whoever you like.
+              </p>
+            )}
           </div>
           <SubmitButton className="btn btn-primary">Cast vote</SubmitButton>
         </form>
@@ -147,6 +181,10 @@ async function Vote({ searchParams }: PageProps<"/app/vote">) {
     next: "/app/vote",
   });
   const page = await votingPage(db, subject.userId, new Date());
+  const suggestions = await suggestedNominees(
+    db,
+    page.ballots.map((b) => b.poll),
+  );
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const voted = typeof query.voted === "string" ? query.voted : null;
@@ -190,6 +228,7 @@ async function Vote({ searchParams }: PageProps<"/app/vote">) {
                 ballot={b}
                 me={subject.userId}
                 justVoted={voted === b.poll.id}
+                suggested={suggestions.get(b.poll.id) ?? []}
               />
             ))}
           </ul>
