@@ -141,6 +141,10 @@ Accessibility requirements that shape components (WCAG 2.2 AA):
 - Dragging always has a non-drag alternative. On the schedule board, a game can be moved with "Move to…" and a slot picker.
 - Dialogs and sheets trap focus, close on Escape and return focus to the control that opened them.
 - Form errors are text, tied to their field, and announced. Nothing the user already entered is asked for again in the same flow.
+- A form can't be sent twice: its submit button (`SubmitButton`) is marked busy and ignores presses, Enter included, until the action finishes, and keeps focus.
+- A skip link is the first stop for the keyboard on every page, and jumps past the banner and header to the content.
+- Fields and selects are at least 44px tall from the base styles, whatever padding a page gives them.
+- A page's loading state (`PageLoading`) holds a screen's height, so the footer never jumps when the content arrives.
 - Live score changes are announced politely to screen readers ("Sluggers 5, Kickers 3, bottom of the 4th").
 - Sign-in never requires solving a puzzle or remembering something; a magic link or a password manager is enough.
 - Tables have real headers; the bracket is also available as a list.
