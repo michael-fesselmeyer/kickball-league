@@ -49,3 +49,35 @@ for (const path of [
     ).toBeVisible();
   });
 }
+
+// Kickoff times are the league's: a phone set to another zone, a visitor
+// from Tokyo or a player back from a trip west, reads the same times.
+for (const path of [
+  "/seasons/fall-2026/schedule",
+  "/teams/the-big-kicks",
+  "/events",
+]) {
+  test(`${path} reads the same on a phone in another time zone`, async ({
+    browser,
+    baseURL,
+  }) => {
+    const textIn = async (timezoneId: string) => {
+      const context = await browser.newContext({
+        ...(baseURL ? { baseURL } : {}),
+        timezoneId,
+      });
+      const page = await context.newPage();
+      await page.goto(path);
+      await expect(page.locator("main")).not.toContainText("Loading");
+      const text = await page.locator("main").innerText();
+      await context.close();
+      return text;
+    };
+    const [home, away] = await Promise.all([
+      textIn("America/New_York"),
+      textIn("Asia/Tokyo"),
+    ]);
+    expect(home.length).toBeGreaterThan(0);
+    expect(away).toBe(home);
+  });
+}
