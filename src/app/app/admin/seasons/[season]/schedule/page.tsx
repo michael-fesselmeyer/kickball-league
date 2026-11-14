@@ -264,6 +264,20 @@ async function Schedule({
               </form>
             )}
           </div>
+          {latest.status === "draft" &&
+            violations.length === 0 &&
+            metrics.unplaced.value > 0 && (
+              <p className="rounded-lg border border-warning p-3">
+                {metrics.unplaced.value === 1
+                  ? "1 game has"
+                  : `${metrics.unplaced.value} games have`}{" "}
+                no time yet. Publishing leaves{" "}
+                {metrics.unplaced.value === 1 ? "it" : "them"} off the schedule
+                until you place {metrics.unplaced.value === 1 ? "it" : "them"}:
+                add dates or slots, or lower the makeup reserve, and generate
+                again.
+              </p>
+            )}
 
           <dl className="grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2">
             {metricRows(metrics).map(({ label, metric, best }) => (
