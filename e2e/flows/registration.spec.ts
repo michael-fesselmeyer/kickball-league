@@ -49,10 +49,13 @@ test("an admin creates a season and opens registration", async ({
     new RegExp(`/app/admin/seasons/${SEASON_SLUG}\\?created=1`),
   );
 
+  // A new season has no waiver yet: registration stays shut until it does.
+  await expect(page.getByText("This season has no waiver yet.")).toBeVisible();
   await page.getByLabel("Status").selectOption({ label: "Registration open" });
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page).toHaveURL(/\?saved=1/);
-  await expect(page.getByLabel("Status")).toHaveValue("registration_open");
+  await expect(
+    page.getByText(/^Choose this season's waiver before opening registration/),
+  ).toBeVisible();
 
   // Players sign a waiver before they pay: use the league's current one.
   await page.goto("/app/admin/waivers");
@@ -64,6 +67,14 @@ test("an admin creates a season and opens registration", async ({
   await expect(page.getByRole("status")).toHaveText(
     `Saved the waiver for ${SEASON}.`,
   );
+  await expectNoAxeViolations(page);
+
+  await page.goto(`/app/admin/seasons/${SEASON_SLUG}`);
+  await expect(page.getByText("This season has no waiver yet.")).toHaveCount(0);
+  await page.getByLabel("Status").selectOption({ label: "Registration open" });
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page).toHaveURL(/\?saved=1/);
+  await expect(page.getByLabel("Status")).toHaveValue("registration_open");
   await expectNoAxeViolations(page);
   await page.context().close();
 });

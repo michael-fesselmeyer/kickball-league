@@ -27,8 +27,8 @@ export function leagueDate(days: number): string {
 }
 
 /**
- * An admin creates a per-team-fee season, opens registration and gives it
- * the league's current waiver, the way registration.spec.ts walks it.
+ * An admin creates a per-team-fee season, gives it the league's current
+ * waiver and opens registration, the way registration.spec.ts walks it.
  */
 export async function openSeason(admin: Page, season: NewSeason) {
   await admin.goto("/app/admin/seasons/new");
@@ -58,11 +58,6 @@ export async function openSeason(admin: Page, season: NewSeason) {
     new RegExp(`/app/admin/seasons/${season.slug}\\?created=1`),
   );
 
-  await admin.getByLabel("Status").selectOption({ label: "Registration open" });
-  await admin.getByRole("button", { name: "Save changes" }).click();
-  await expect(admin).toHaveURL(/\?saved=1/);
-  await expect(admin.getByLabel("Status")).toHaveValue("registration_open");
-
   await admin.goto("/app/admin/waivers");
   // A label around a select also names it by the chosen option.
   const seasonWaiver = admin.getByLabel(new RegExp(`^${season.name}`));
@@ -75,6 +70,13 @@ export async function openSeason(admin: Page, season: NewSeason) {
   await expect(admin.getByRole("status")).toHaveText(
     `Saved the waiver for ${season.name}.`,
   );
+
+  // Registration opens only once the season has its waiver.
+  await admin.goto(`/app/admin/seasons/${season.slug}`);
+  await admin.getByLabel("Status").selectOption({ label: "Registration open" });
+  await admin.getByRole("button", { name: "Save changes" }).click();
+  await expect(admin).toHaveURL(/\?saved=1/);
+  await expect(admin.getByLabel("Status")).toHaveValue("registration_open");
 }
 
 /**
