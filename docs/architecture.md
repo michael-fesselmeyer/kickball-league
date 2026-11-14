@@ -436,7 +436,7 @@ Every pull request runs these checks, and all must pass to merge:
 2. Unit and property tests (Vitest, fast-check) with coverage thresholds.
 3. Migration check: the schema and the migration files agree.
 4. Build: once with no database to read, which proves the fallback in `src/lib/static-params.ts`, and once for each of the end-to-end and Lighthouse checks, shared by that check's shards. After the first build, `npm run check:route-js` holds every route's first-load JavaScript, signed-in screens included, to its budget in [design-system.md](design-system.md#performance-budgets).
-5. End-to-end tests (Playwright) against a production build made from the seeded league, as production builds against the real database, and a freshly seeded Postgres 18 service container, under a 10-minute job limit ([ADR 0007](adr/0007-end-to-end-tests-on-local-services.md)). Smoke tests cover the public pages at a phone size and a desktop size with demo mode off. The flows run on a second server in demo mode and sign in with one-tap "view as"; every screen under `/app` and `/operator` but Instagram's sign-in return is exercised by at least one of them ([End-to-end coverage](#end-to-end-coverage)). One test walks a whole season across features, so a change that breaks the hand-off between two screens fails even when each screen's own flow still passes. Stripe calls go to stripe-mock, and the tests sign Stripe's webhook events with the flows server's test secret (a forged one is refused). axe checks every key screen against WCAG 2.2 AA and fails on any violation. The flows server treats the demo admin as the platform operator, so the operator console can be reached; its site-wide switches run on their own after the rest (`npm run test:e2e:site-wide`), because read-only and paused change the site for every test at once.
+5. End-to-end tests (Playwright) against a production build made from the seeded league, as production builds against the real database, and a freshly seeded Postgres 18 service container, under a 10-minute job limit ([ADR 0007](adr/0007-end-to-end-tests-on-local-services.md)). Smoke tests cover the public pages at a phone size and a desktop size with demo mode off. The flows run on a second server in demo mode and sign in with one-tap "view as"; every screen under `/app` and `/operator` but Instagram's sign-in return is exercised by at least one of them ([End-to-end coverage](#end-to-end-coverage)). One test walks a whole season across features, and one journey per role (player, captain, ref, admin, owner and operator) walks that role's work across the features it touches, so a change that breaks the hand-off between two screens fails even when each screen's own flow still passes. Stripe calls go to stripe-mock, and the tests sign Stripe's webhook events with the flows server's test secret (a forged one is refused). axe checks every key screen against WCAG 2.2 AA and fails on any violation. The flows server treats the demo admin as the platform operator, so the operator console can be reached; its site-wide switches run on their own after the rest (`npm run test:e2e:site-wide`), because read-only and paused change the site for every test at once.
 6. Lighthouse CI on a production build made from, and run against, the seeded database: every public page (`lighthouserc.json`), with the budgets in [design-system.md](design-system.md#performance-budgets). `scripts/lighthouse-server.mjs` starts the server and warms every page, the routes they link to and their static files before the first measurement. Each metric's median of five runs on a pinned phone profile is held to its budget ([ADR 0028](adr/0028-steady-lighthouse-measurement.md)).
 
 ### End-to-end coverage
@@ -445,6 +445,17 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 
 **The whole season** (`season-journey.spec.ts`): an admin creates a season, adds a venue, a field, permits and game slots, and opens registration with a waiver. A captain registers a team with split pay, signs and pays through the signed test webhook, and makes an invite link; a player joins by it and pays their share. A free agent registers and the admin builds a second team around them. The admin publishes the schedule and a signed-out visitor sees it. A player left in the pool picks up a sub spot that the captain approves. The game already played gets a score from one captain that the other confirms, the public standings count it, and the admin rains out the last game day, which queues the notices. The season's dates are relative to today, so one game day is always behind and two ahead; every wait is on visible state.
 
+**Role journeys** (`journey-<role>.spec.ts`, the operator's under `site-wide/`). Each uses people made up for it (`example.test`, through `e2e/support/people.ts`) wherever it changes an account, and seeded games no other flow scores, so it can run beside the rest:
+
+- **Player**: a new account is refused under 18, then saves a full profile; joins a season's free-agent pool at the early-bird price; can't reach payment before signing the waiver, and the signature is stored with the typed name, time, IP and a hash of the text; gets one payment reminder three days before the deadline however often the job runs; pays through the signed webhook; brings a friend through a referral link and earns $10 of credit; and is placed on a team by hand, where the captain's roster board shows them signed and paid. A captain in the same season pays the whole team fee.
+- **Captain**: reports a score with no ref; the other captain confirms it; the public standings and team page count it; the captain rates the other team's sportsmanship, the other captain reports an incident, and an admin finds it waiting for review.
+- **Ref**: an admin assigns a new ref by email; the ref finds the game on their home screen, opens its park permit and the kicking orders (names only), and reports the score, which a captain confirms.
+- **Admin**: sets a missing score from the season's scores screen (final at once), sends the weekly recap drafted from it, and posts an event for one team that only that team sees, in the app and nowhere public.
+- **Owner**: the operator makes one new person an owner and another an admin; the owner adds an expense, reads the dashboard and the books rows in the audit log, and downloads the league's data; the admin gets the not-found page at the books and dashboard and no books rows in the audit log; both roles are taken back.
+- **Operator** (site-wide): while paused, a visitor sees the notice and an owner still signs in and downloads the data; while read-only, an admin's change is refused and the operator's goes through; a feature switched off leaves a player's screens until it is back; an owner reads each switch in the audit log.
+
+Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up address in 198.18.0.0/15, as players sign in from their own phones; Better Auth allows five magic-link sign-ins a minute from one address.
+
 | Screen | Specs |
 |---|---|
 | `/app` | Every flow lands here after "view as"; `score` and `live-score` (a ref's Score link), `awards` (Vote link) |
@@ -452,7 +463,7 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `/app/profile/security` | `passkey` |
 | `/app/profile/delete` | `account` (off in the demo) |
 | `/app/profile/export` (JSON) | `account` |
-| `/app/events`, `/app/events/[event]` | `screens`; `events` (RSVP, waitlist) |
+| `/app/events`, `/app/events/[event]` | `screens`; `events` (RSVP, waitlist); `journey-admin` (a team-only event) |
 | `/app/vote`, `/app/vote/[poll]` | `awards` |
 | `/app/shop`, `/app/shop/[item]` | `merch` (a replacement jersey with credit applied) |
 | `/app/subs` | `season-journey` (claims a spot); `screens` |
@@ -471,7 +482,7 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `/app/seasons/[season]/export/roster.csv`, `payments.csv` | `admin-tools` (team and season files) |
 | `/app/admin` | `screens`; `owner-dashboard` (Owner dashboard link); `game-day` (Game day screen link) |
 | `/app/admin/today`, `state.json` | `game-day` (the ref checks in on their phone and the admin's open screen shows it within 15 seconds without a reload; a captain finds nothing) |
-| `/app/owner/[season]`, `dashboard.csv`, `summary`; `/seasons/[season]/money` | `owner-dashboard` (read, download, fold a category, publish, a visitor reads it; a captain finds nothing) |
+| `/app/owner/[season]`, `dashboard.csv`, `summary`; `/seasons/[season]/money` | `owner-dashboard` (read, download, fold a category, publish, a visitor reads it; a captain finds nothing); `journey-owner` (a new owner refreshes it, an admin finds nothing) |
 | `/app/admin/credit` | `registration` (league credit) |
 | `/app/admin/audit` | `admin-tools` (export and role changes, operator filter); `site-wide/operator` (status and feature switches); `screens` |
 | `/app/admin/events`, `/new`, `/[event]` | `screens`; `events` (create, attendees) |
@@ -488,12 +499,12 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `…/promo-codes` | `registration`; `screens` |
 | `…/rainout` | `rainout`, `season-journey` |
 | `…/rebates` | `screens` |
-| `…/recap` | `screens` |
-| `…/referees` | `screens` |
-| `…/registrations` | `registration` (refunds), `admin-tools` (CSV); `screens` |
+| `…/recap` | `journey-admin` (draft from a result, send to a team); `screens` |
+| `…/referees` | `journey-ref` (assign by email); `screens` |
+| `…/registrations` | `registration` (refunds), `admin-tools` (CSV), `journey-player` (place a free agent by hand); `screens` |
 | `…/requests` | `team-formation`; `screens` |
 | `…/schedule` | `schedule`, `rainout`, `season-journey` |
-| `…/scores` | `screens` |
+| `…/scores` | `journey-admin` (set a missing score); `screens` |
 | `…/shirts` | `screens` |
 | `…/team-of-the-week` | `sponsors` |
 | `…/waitlist` | `registration` (a full season's waitlist) |
@@ -527,7 +538,7 @@ The workflow is `.github/workflows/ci.yml`; pull request hygiene (branch, commit
 | Lint, types, tests, build | Format check, ESLint, `tsc`, unit tests with coverage, the build with no database, and every route's first-load JavaScript against its budget | What changed |
 | Migrations | Migration consistency, schema drift, apply twice, database tests, seed twice | What changed |
 | Production build for end-to-end, for Lighthouse | Two builds side by side, both against the seeded league, each with the address its servers run on. Each uploads `.next` (without its cache) as an artifact | What changed |
-| End-to-end shard 1–2 | Downloads its build, seeds its own database, starts both servers and runs half the Playwright tests (`--shard`), which takes half the smoke tests and half the flows from each (`playwright.config.ts` lists the flows between the two smoke projects for this). Shard 2 then runs the operator's site-wide switches on their own (`npm run test:e2e:site-wide`) | Production build for end-to-end |
+| End-to-end shard 1–3 | Downloads its build, seeds its own database, starts both servers and runs a third of the Playwright tests (`--shard`). `playwright.config.ts` lists the flows between the two smoke projects, so the first and last shards each get half the smoke tests and some flows, and the middle one only flows. Shard 1 then runs the operator's site-wide switches on their own, one file at a time (`npm run test:e2e:site-wide`) | Production build for end-to-end |
 | Lighthouse shard 1–4 | Downloads its build, seeds its own database and audits every fourth page of `lighthouserc.json` with the same five runs and the same budgets (`scripts/lighthouse-shard.mjs`) | Production build for Lighthouse |
 | End-to-end, Lighthouse | Pass only when every shard passed | Their shards |
 | Secret scan | gitleaks over the whole history | — |
