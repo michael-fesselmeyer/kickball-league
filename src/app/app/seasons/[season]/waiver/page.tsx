@@ -64,16 +64,22 @@ async function Waiver({
       ) : (
         <>
           {view.signature ? (
-            <p role="status" className="rounded-lg border border-success p-3">
-              {query.signed ? "Signed. " : ""}You signed version {view.version}{" "}
-              as <strong>{view.signature.signedName}</strong> on{" "}
-              {new Intl.DateTimeFormat("en-US", {
-                dateStyle: "long",
-                timeStyle: "short",
-                timeZone: league?.timeZone,
-              }).format(view.signature.signedAt)}
-              .
-            </p>
+            <>
+              <p role="status" className="rounded-lg border border-success p-3">
+                {query.signed ? "Signed. " : ""}You signed version{" "}
+                {view.version} as <strong>{view.signature.signedName}</strong>{" "}
+                on{" "}
+                {new Intl.DateTimeFormat("en-US", {
+                  dateStyle: "long",
+                  timeStyle: "short",
+                  timeZone: league?.timeZone,
+                }).format(view.signature.signedAt)}
+                .
+              </p>
+              <Link href={`/app/seasons/${slug}`} className="btn btn-primary">
+                Next: back to {view.seasonName}
+              </Link>
+            </>
           ) : (
             <p>
               Read the whole waiver, then sign at the bottom. You sign once a
