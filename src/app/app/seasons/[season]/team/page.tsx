@@ -698,17 +698,14 @@ async function Team({
                       }
                     />
                   )}
-                  {rsvps.has(g.id) &&
-                    findsSubs &&
-                    g.kind !== "playoff" &&
-                    !(seesStatus && week?.short) && (
-                      <Link
-                        href={`/app/seasons/${slug}/team/subs?game=${g.id}#ask`}
-                        className="text-small underline"
-                      >
-                        Short? Find subs
-                      </Link>
-                    )}
+                  {rsvps.has(g.id) && findsSubs && g.kind !== "playoff" && (
+                    <Link
+                      href={`/app/seasons/${slug}/team/subs?game=${g.id}#ask`}
+                      className="text-small underline"
+                    >
+                      Short? Find subs
+                    </Link>
+                  )}
                   {seesPickups(g) && (
                     <Pickups
                       pickups={pickups.get(g.id)}
