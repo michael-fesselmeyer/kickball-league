@@ -5,7 +5,7 @@ import { config, proxy } from "./proxy";
 
 const site: { status: SiteStatus } = vi.hoisted(() => ({ status: "active" }));
 vi.mock("@/lib/platform/site", () => ({
-  currentSite: async () => ({
+  siteForProxy: async () => ({
     leagueId: "league",
     name: "Test League",
     status: site.status,

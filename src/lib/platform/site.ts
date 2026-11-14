@@ -28,13 +28,38 @@ export const isCurrentOperator = (userId: string | null) =>
  */
 const TTL_MS = 5_000;
 let cached: { at: number; value: SiteSettings | null } | null = null;
+/** The last settings read, kept through a database outage. */
+let lastKnown: SiteSettings | null = null;
+let failedAt: number | null = null;
 
 export async function currentSite(): Promise<SiteSettings | null> {
   const now = Date.now();
   if (cached && now - cached.at < TTL_MS) return cached.value;
   const value = await siteSettings(db);
   cached = { at: now, value };
+  lastKnown = value;
+  failedAt = null;
   return value;
+}
+
+/**
+ * The site's settings for the proxy, which runs before every page, the
+ * prerendered ones too. When the database can't be reached it answers with
+ * the last settings this server read, so a paused site stays paused, or with
+ * none (an active site) on a server that never read them, so the pages that
+ * need no database still load instead of every page failing. A failure is
+ * remembered as long as a success, so an outage doesn't get one more query
+ * per request.
+ */
+export async function siteForProxy(): Promise<SiteSettings | null> {
+  if (failedAt !== null && Date.now() - failedAt < TTL_MS) return lastKnown;
+  try {
+    return await currentSite();
+  } catch (error) {
+    failedAt = Date.now();
+    console.error("Site settings unavailable; using the last known", error);
+    return lastKnown;
+  }
 }
 
 export function forgetSite(): void {
