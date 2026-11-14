@@ -864,6 +864,14 @@ erDiagram
   giveaway_entry ||--o| giveaway_winner : "may win"
   season ||--o| signup_challenge : runs
   team_season ||--o| signup_challenge : wins
+  season ||--o{ volunteer_shift : "needs on game days"
+  event ||--o{ volunteer_shift : needs
+  volunteer_shift ||--o{ volunteer_signup : fills
+  user ||--o{ volunteer_signup : takes
+  season ||--o| season_survey : asks
+  season_survey ||--o{ survey_response : "answered by"
+  user ||--o{ survey_response : answers
+  season_survey ||--o{ survey_answer : "collects (no person)"
   league ||--o{ friend_league : "lists"
   friend_league ||--o| friend_logo : "shown with"
   user ||--o{ member_photo : uploads
@@ -1146,6 +1154,45 @@ erDiagram
     timestamptz confirmed_at
     uuid confirmed_by FK
   }
+  volunteer_shift {
+    uuid id PK
+    uuid league_id FK
+    enum role "setup, teardown, check_in, ref_fill_in"
+    uuid season_id FK "a game day; or"
+    uuid event_id FK "an event; exactly one is set"
+    timestamptz starts_at
+    timestamptz ends_at "after starts_at"
+    text place
+    text notes
+    smallint spots "1 to 50"
+  }
+  volunteer_signup {
+    uuid id PK
+    uuid shift_id FK "unique with user_id"
+    uuid user_id FK
+    timestamptz created_at
+  }
+  season_survey {
+    uuid id PK
+    uuid season_id FK "unique: one per season"
+    timestamptz opened_at
+    timestamptz closed_at
+    uuid opened_by FK
+  }
+  survey_response {
+    uuid id PK
+    uuid survey_id FK "unique with user_id: one answer each"
+    uuid user_id FK
+  }
+  survey_answer {
+    uuid id PK
+    uuid survey_id FK "no person, no time"
+    smallint rating "1 to 5"
+    enum would_return "yes, maybe, no"
+    text best_part
+    text one_change
+    text comment
+  }
 ```
 
 Events, as built (`src/db/schema/event.ts`, `src/db/queries/events.ts`):
@@ -1171,6 +1218,22 @@ The sign-up drive, as built (`src/db/schema/drive.ts`, `src/db/queries/giveaways
 - Removing an event removes its giveaway, entries and winners. Deleting an account removes its entries in giveaways not drawn yet; a drawn giveaway keeps them, under the anonymized user, so its draw record still adds up.
 - A `signup_challenge` belongs to one season (a unique constraint). A team's progress is never stored: one query reads every active roster spot with when the player joined and when they signed the season's waiver, and the domain counts players signed up (on the roster, waiver signed) out of the team's target roster size, or the season's minimum when it has none, or the roster when it is bigger. A team is complete when all of them are, at the moment its last player finished signing up. Withdrawn and waitlisted teams don't count.
 - The leaderboard ranks teams complete by the deadline first, earliest completion first (so a tie on 100% goes to the team whose last player joined first), then everyone else by percent. An admin confirms the winner, a team at rank 1 that completed by the deadline: `winner_team_season_id`, `winner_completed_at`, `confirmed_at` and `confirmed_by` are set and a `challenge.confirm` audit row records the standings as team ids and counts. A confirmed challenge can't change.
+
+Volunteer shifts, as built (`src/db/schema/volunteer.ts`, `src/db/queries/volunteer.ts`, `src/domain/volunteer/shifts.ts`):
+
+- A `volunteer_shift` is a job (`role`: `setup`, `teardown`, `check_in`, `ref_fill_in`) on a season's game day (`season_id`) or at an event (`event_id`): a check keeps exactly one of them set. It has a start and end (the end after the start), an optional `place` (up to 120 characters), `notes` (up to 500) and `spots` (1 to 50). Removing a season or an event removes its shifts.
+- `volunteer_signup` is one member's spot, unique on `(shift_id, user_id)`. A claim locks the shift row (`for update`) before it counts the spots taken, so when several people claim the last spot at once one gets it and the rest are told it's full. A claim or a drop is refused once the shift has started, and a shift on a called-off or removed event is hidden and can't be claimed.
+- An admin can change a shift but not cut its spots below the people signed up, and can remove it with everyone's spot. Each change writes a `volunteer.*` audit row.
+- A daily job queues one `volunteer_reminder` (non-urgent, topic `events`, dedupe key `volunteer_reminder/<shift>/<user>`) for each person on a shift that starts the next day in the league's time zone.
+- Deleting an account gives back its spots on shifts that haven't started; spots on past shifts stay, under the anonymized user. The data export lists the person's shifts.
+
+The end-of-season survey, as built (`src/db/schema/survey.ts`, `src/db/queries/surveys.ts`, `src/domain/survey/questions.ts`):
+
+- A `season_survey` belongs to one season (a unique constraint) and opens only once the season is `completed`. Opening it queues one `survey_invite` (non-urgent, topic `announcement`, dedupe key `survey_invite/<survey>/<user>`) for each person with an active roster spot that season, and writes a `survey.open` audit row. `closed_at` ends it; closing writes `survey.close`.
+- The questions are fixed in code: `rating` (1 to 5), `would_return` (`yes`, `maybe`, `no`), and three optional written answers, `best_part` and `one_change` (up to 500 characters) and `comment` (up to 1,000).
+- Answers are anonymous by design. `survey_response` says only that a person answered (`survey_id`, `user_id`, unique together, so one answer per player). `survey_answer` holds the answer with no column that points at a person and no timestamp, written in the same transaction. The answer is written only when the response row is new, and the survey row is read under a share lock so an answer can't land after a close.
+- Results read `survey_answer` alone: counts per rating and the average, counts per `would_return`, and each written question's answers as its own sorted list, so neither the order nor the grouping ties answers to one person. Only owners and admins see them (`survey.results`).
+- Deleting an account keeps its anonymous answer (there is nothing to find it by); the response row stays under the anonymized user. The data export lists the seasons whose survey the person answered, never the answers.
 
 Awards, as built (`src/db/schema/awards.ts`, `src/db/queries/awards.ts`):
 
