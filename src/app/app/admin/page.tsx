@@ -182,6 +182,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
         <nav aria-label="Admin tools">
           <ul className="flex flex-wrap gap-2">
             {[
+              ["/app/admin/today", "Game day screen"],
               [base, "Season setup"],
               [`${base}/schedule`, "Schedule"],
               [`${base}/registrations`, "Registrations"],
