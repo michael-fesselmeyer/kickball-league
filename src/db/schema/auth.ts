@@ -7,6 +7,7 @@
  */
 import { relations } from "drizzle-orm";
 import {
+  bigint,
   pgTable,
   text,
   timestamp,
@@ -101,6 +102,23 @@ export const verification = pgTable(
       .notNull(),
   },
   (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
+
+/**
+ * Better Auth's rate-limit counters (`rateLimit.storage: "database"`), so
+ * every server instance counts against one limit. One row per client IP
+ * and path; `last_request` is milliseconds since the epoch, as Better Auth
+ * writes it. Rows untouched for a day are swept (pruneRateLimits).
+ */
+export const rateLimit = pgTable(
+  "rate_limit",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    key: text("key").notNull().unique(),
+    count: integer("count").notNull(),
+    lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+  },
+  (table) => [index("rate_limit_last_request_idx").on(table.lastRequest)],
 );
 
 /** Passkeys, from Better Auth's passkey plugin (@better-auth/passkey). */
