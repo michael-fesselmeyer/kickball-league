@@ -49,7 +49,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── media/friends/[logo]            A friend league's logo, as stored (404 once removed or replaced)
 ├── media/photos/[photo]            A member's approved photo (404 while waiting, once rejected or deleted)
 ├── (not found)                     Any address that doesn't exist, and pages a visitor may not see: "We can't find that page" with links on, never saying which
-├── (error)                         A page that fails to load: not the player's fault, "Try again", a way home and the error code for the league's logs
+├── (error)                         A page that fails to load: "That didn't load", not the player's fault, "Try again" (never by itself) and a way home
 ├── offline                         Shown by the service worker when a page needs the network; links the saved next game
 ├── paused                          Neutral notice while the site is paused or read-only (operator setting)
 └── sign-in, sign-up                Email link, passkey (button and email-field autofill) or Google
