@@ -102,6 +102,9 @@ async function Portal({ params, searchParams }: Props) {
   return (
     <>
       <header className="flex flex-col gap-3">
+        <Link href="/app/sponsor" className="self-start underline">
+          Your sponsors
+        </Link>
         <p className="text-micro font-bold tracking-widest text-text-muted uppercase">
           {sponsor.isHomeBar ? "Home bar" : SPONSOR_KIND_LABELS[sponsor.kind]}
         </p>
