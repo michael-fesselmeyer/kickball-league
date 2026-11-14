@@ -9,6 +9,7 @@ import {
   requirePermissionToChange,
   sessionIsFresh,
 } from "@/lib/auth/permission";
+import { operatorIds } from "@/lib/platform/site";
 
 const PAGE = "/app/admin/accounts";
 
@@ -56,6 +57,7 @@ export async function mergeAccountsAction(form: FormData): Promise<void> {
       actorId,
       now: new Date(),
       secret: env.BETTER_AUTH_SECRET,
+      operatorIds: operatorIds(),
     }),
   );
   if (!result.ok) redirect(`${back}&error=blocked`);

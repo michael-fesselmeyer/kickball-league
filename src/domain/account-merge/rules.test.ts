@@ -54,6 +54,7 @@ describe("conflict choices", () => {
     for (const b of [
       { kind: "same_account" },
       { kind: "acting_admin" },
+      { kind: "operator" },
       { kind: "already_merged", which: "kept" },
       { kind: "already_merged", which: "merged" },
       { kind: "higher_role", role: "owner" },

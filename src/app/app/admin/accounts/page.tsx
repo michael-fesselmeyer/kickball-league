@@ -17,6 +17,7 @@ import { requirePermission, sessionIsFresh } from "@/lib/auth/permission";
 import { findAccountsAction, mergeAccountsAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { operatorIds } from "@/lib/platform/site";
 
 export const metadata: Metadata = { title: "Merge accounts" };
 
@@ -76,7 +77,12 @@ async function Accounts({ searchParams }: PageProps<"/app/admin/accounts">) {
     await Promise.all([
       currentLeague(db),
       keptId && mergedId
-        ? mergePreview(db, { keptId, mergedId, actorId: subject.userId })
+        ? mergePreview(db, {
+            keptId,
+            mergedId,
+            actorId: subject.userId,
+            operatorIds: operatorIds(),
+          })
         : null,
       sessionIsFresh(),
       accountSummary(db, subject.userId),

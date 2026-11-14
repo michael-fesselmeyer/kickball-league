@@ -341,11 +341,15 @@ async function blockersFor(
   kept: AccountSummary,
   merged: AccountSummary,
   actorId: UserId,
+  operatorIds: ReadonlySet<string>,
   registrations: Awaited<ReturnType<typeof sharedRegistrations>>,
 ): Promise<MergeBlocker[]> {
   const blockers: MergeBlocker[] = [];
   if (kept.id === merged.id) return [{ kind: "same_account" }];
   if (merged.id === actorId) blockers.push({ kind: "acting_admin" });
+  // The operator's account comes from the server's environment, so merging
+  // it away would leave the console to an account that no longer exists.
+  if (operatorIds.has(merged.id)) blockers.push({ kind: "operator" });
   if (kept.mergedInto) blockers.push({ kind: "already_merged", which: "kept" });
   if (merged.mergedInto)
     blockers.push({ kind: "already_merged", which: "merged" });
@@ -374,7 +378,11 @@ async function blockersFor(
 /** What a merge would do, without changing anything. */
 export async function mergePreview(
   db: Db,
-  input: Pair & { actorId: UserId },
+  input: Pair & {
+    actorId: UserId;
+    /** OPERATOR_USER_IDS: these accounts are never merged away. */
+    operatorIds?: ReadonlySet<string> | undefined;
+  },
 ): Promise<MergePreview | null> {
   const [kept, merged] = await Promise.all([
     accountSummary(db, input.keptId),
@@ -396,7 +404,14 @@ export async function mergePreview(
   ]);
   const [conflicts, blockers] = await Promise.all([
     conflictCounts(db, input, { registrations, signatures }),
-    blockersFor(db, kept, merged, input.actorId, registrations),
+    blockersFor(
+      db,
+      kept,
+      merged,
+      input.actorId,
+      input.operatorIds ?? new Set(),
+      registrations,
+    ),
   ]);
   return { kept, merged, moves, conflicts, blockers };
 }
@@ -435,6 +450,8 @@ export async function mergeAccounts(
     now: Date;
     /** The auth secret, to carry a sealed emergency contact across. */
     secret: string;
+    /** OPERATOR_USER_IDS: these accounts are never merged away. */
+    operatorIds?: ReadonlySet<string> | undefined;
   },
 ): Promise<
   Result<{ moved: Record<string, number> }, MergeError | MergeBlocker[]>

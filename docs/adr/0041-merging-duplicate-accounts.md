@@ -15,7 +15,7 @@ About a hundred columns in the schema point at a person, and new features keep a
 
 **Clashes have fixed, visible answers.** The kept account's RSVP, vote, setting and sponsor membership win. The earliest waiver signature stays and the registration points at it. Of two registrations for the same season, an empty one (no payment, team spot or referral) gives way; if both hold something, the merge is refused until an admin sorts it out. A vote one account cast for the other is removed, since nobody may vote for themselves. Uncredited referrals that would point at one person twice are removed; credited ones stay with the merged-away account as history. The kept profile keeps its values and fills empty fields from the other. The preview shows every clash and its answer before anything changes.
 
-**Refuse what would lose something.** A merge is refused when it would merge away the admin doing it, a higher role than the kept account has, an account already merged, two registrations that both hold money or a team spot, or two shares of one rain-out rebate.
+**Refuse what would lose something.** A merge is refused when it would merge away the admin doing it, the platform operator's account (named in `OPERATOR_USER_IDS`), a higher role than the kept account has, an account already merged, two registrations that both hold money or a team spot, or two shares of one rain-out rebate.
 
 **One transaction, both accounts locked.** The merge locks both user rows, re-checks the blockers, applies every rule, renames the merged-away account to "Merged account" with an address that cannot receive mail, ends its sessions, and writes an `account_merge` record and an `account.merge` audit row. Either all of it happens or none.
 
