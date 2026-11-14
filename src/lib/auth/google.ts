@@ -30,3 +30,31 @@ export function socialProviders(env: GoogleEnv) {
  * because it verifies the email it reports.
  */
 export const accountLinking = { enabled: true, trustedProviders: ["google"] };
+
+/**
+ * An account row as it is written, without Google's tokens. The site only
+ * needs Google to say who someone is, never to act for them, so it keeps no
+ * token that a copy of the database could use.
+ */
+export function withoutProviderTokens<T extends object>(account: T) {
+  return {
+    data: {
+      ...account,
+      accessToken: null,
+      refreshToken: null,
+      idToken: null,
+      accessTokenExpiresAt: null,
+      refreshTokenExpiresAt: null,
+    },
+  };
+}
+
+/** Better Auth's account hooks: every account write drops the tokens. */
+export const accountHooks = {
+  create: {
+    before: async <T extends object>(a: T) => withoutProviderTokens(a),
+  },
+  update: {
+    before: async <T extends object>(a: T) => withoutProviderTokens(a),
+  },
+};
