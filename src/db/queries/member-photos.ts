@@ -44,6 +44,7 @@ import {
 import { recordAudit } from "./audit";
 import { enqueueMessages } from "./outbox";
 import { league } from "../schema/league";
+import { defaultLeague } from "./leagues";
 import type { Db } from "./schedule";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 
@@ -425,7 +426,6 @@ export async function reviewMemberPhoto(
       ...LISTED,
       uploaderId: memberPhoto.uploaderId,
       leagueSlug: league.slug,
-      leagueIsDefault: league.isDefault,
     })
     .from(memberPhoto)
     .innerJoin(league, eq(league.id, memberPhoto.leagueId))
@@ -469,9 +469,11 @@ export async function reviewMemberPhoto(
     before: { status: "pending" },
     after: approve ? { status: "approved" } : { status: "rejected", note },
   });
+  // The default league is the marked one, or the oldest until one is.
+  const fallback = await defaultLeague(db);
   const shown = shownOn(row, {
     slug: row.leagueSlug,
-    isDefault: row.leagueIsDefault,
+    isDefault: fallback?.id === input.leagueId,
   });
   const payload: PhotoReviewPayload =
     approve && shown

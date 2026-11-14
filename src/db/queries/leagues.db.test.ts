@@ -214,7 +214,7 @@ describe("the audit log", () => {
           action: "account.merge",
           entityId: w.captain,
           // What a caller that forgot the league would send.
-          ...({ entityType: "user" } as { entityType: "season" }),
+          ...({ entityType: "user" } as unknown as { entityType: "season" }),
         }),
       ).rejects.toThrow(/needs its league/);
     }));
