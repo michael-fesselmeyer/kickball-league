@@ -7,6 +7,7 @@ import {
   RELATIONSHIP_MAX,
 } from "@/domain/emergency/emergency";
 import type { ProfileField } from "@/domain/profile/profile-form";
+import { BIRTH_DATE_HINT } from "@/domain/registration/age";
 import { type ProfileFormState, saveProfileAction } from "./actions";
 
 const input =
@@ -139,7 +140,7 @@ export function ProfileSettingsForm({
           "birthDate",
           "Birth date",
           { type: "date", autoComplete: "bday", required: true },
-          "Players must be 18 or older. Only you and the league owners see it.",
+          BIRTH_DATE_HINT,
         )}
         <div className={row}>
           {select("gender", "Gender", GENDER_LABELS)}

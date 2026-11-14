@@ -1,4 +1,5 @@
 import fc from "fast-check";
+import { BIRTH_DATE_HINT, DEFAULT_MINIMUM_AGE } from "../registration/age";
 import { describe, expect, it } from "vitest";
 import {
   formatPhone,
@@ -8,6 +9,7 @@ import {
   type ProfileForm,
   readyToRegister,
   toProfileForm,
+  MINIMUM_AGE,
 } from "./profile-form";
 
 const TODAY = "2026-11-12";
@@ -175,5 +177,15 @@ describe("readyToRegister", () => {
         TODAY,
       ),
     ).toBe(false);
+  });
+});
+
+describe("the birth date hint", () => {
+  it("names the league's usual minimum age as well as the floor of 18", () => {
+    // Registration asks for the season's minimum (21 by default); the profile
+    // only refuses under 18. A hint that said "18 or older" alone misled.
+    expect(BIRTH_DATE_HINT).toContain(String(DEFAULT_MINIMUM_AGE));
+    expect(BIRTH_DATE_HINT).toContain(String(MINIMUM_AGE));
+    expect(BIRTH_DATE_HINT).not.toMatch(/must be 18 or older/);
   });
 });
