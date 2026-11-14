@@ -3,7 +3,9 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { env } from "@/env";
 import { auth } from "@/lib/auth";
+import { requestSignInLink } from "@/lib/auth/request-link";
 import { safeNextPath } from "@/lib/safe-next";
 
 export type SignInState =
@@ -13,7 +15,10 @@ export type SignInState =
 
 const input = z.object({ email: z.email(), next: z.unknown() });
 
-/** Emails a sign-in link. Public by design: anyone may ask for a link to their own inbox. */
+/**
+ * Emails a sign-in link. Public by design: anyone may ask for a link to their
+ * own inbox, a few times a minute from one address.
+ */
 export async function sendSignInLink(
   _previous: SignInState,
   form: FormData,
@@ -24,21 +29,25 @@ export async function sendSignInLink(
     return { status: "error", message: "Enter a valid email address.", email };
   }
 
-  try {
-    await auth.api.signInMagicLink({
-      body: {
-        email: parsed.data.email,
-        callbackURL: safeNextPath(parsed.data.next),
-      },
-      headers: await headers(),
-    });
-  } catch {
+  // Through Better Auth's router, so its per-address rate limit applies.
+  const outcome = await requestSignInLink(auth.handler, {
+    baseURL: env.BETTER_AUTH_URL,
+    email: parsed.data.email,
+    callbackURL: safeNextPath(parsed.data.next),
+    headers: await headers(),
+  }).catch(() => "failed" as const);
+  if (outcome === "rate_limited")
+    return {
+      status: "error",
+      message: "That's a lot of sign-in links. Wait a minute, then try again.",
+      email,
+    };
+  if (outcome === "failed")
     return {
       status: "error",
       message: "We couldn't send the link just now. Try again in a minute.",
       email,
     };
-  }
   return { status: "sent", email: parsed.data.email };
 }
 
