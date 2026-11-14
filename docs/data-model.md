@@ -854,6 +854,10 @@ erDiagram
   user ||--o| pickem_hidden : "hides with"
   season ||--o{ season_card : "sums up"
   user ||--o{ season_card : "gets"
+  season ||--o| stat_award_set : "works out"
+  stat_award_set ||--o{ stat_award_place : lists
+  user ||--o{ stat_award_place : "placed in"
+  user ||--o| leaderboard_opt_out : "opts out with"
   league ||--o{ post : publishes
   league ||--o| social_account : connects
   social_account ||--o{ social_post : syncs
@@ -1038,6 +1042,31 @@ erDiagram
     boolean is_public "false until the player shares the link"
     timestamptz created_at
     timestamptz built_at "last built or refreshed"
+  }
+  stat_award_set {
+    uuid season_id PK
+    jsonb weights "the MVP weights"
+    text_array unused_parts "MVP parts nobody had data for"
+    boolean votes_counted
+    jsonb notes "an admin's note per award"
+    timestamptz computed_at
+    uuid computed_by FK
+    timestamptz published_at "null until published"
+    uuid published_by FK
+  }
+  stat_award_place {
+    uuid id PK
+    uuid season_id FK
+    enum award "season_mvp, iron_kicker, golden_boot, best_teammate, rookie_of_the_year, sub_of_the_year"
+    uuid user_id FK
+    uuid team_season_id FK
+    smallint place "1 is a winner; ties share"
+    double value
+    jsonb detail "games it was based on; MVP parts"
+  }
+  leaderboard_opt_out {
+    uuid user_id PK
+    timestamptz created_at
   }
   social_account {
     uuid id PK
@@ -1257,6 +1286,12 @@ Pick'em, as built ([ADR 0044](adr/0044-pickem-for-bragging-rights-scored-from-re
 - Results are never stored. A pick counts only when its game is `final` with a winner: right or wrong. A forfeit, a tie, a cancellation, a postponement or a called-off slot voids it. The game day and season leaderboards count right picks per player over the scored games in one grouped query; equal counts share a place.
 - `pickem_hidden` holds the players who chose to stay off the leaderboards (one row each). `league.pickem_own_games` (an admin's choice, audited as `pickem.own_games`) decides whether players may pick their own team's games.
 - Deleting a game, team entry or account deletes its picks; deleting a slot leaves the pick, void.
+
+Stat awards, as built (`src/db/schema/stat-awards.ts`, `src/db/queries/stat-awards.ts`, [ADR 0046](adr/0046-stat-awards-and-the-season-mvp-formula.md)):
+
+- Nothing is stored for player stats: games played, attendance, wins and runs while playing, sub appearances and awards are worked out when read, from final games, saved kicking orders, RSVPs, bar check-ins on game days, live `game_period` runs, `sportsmanship_rating`, approved `sub_claim` rows and closed polls (`gatherSeasons`, nine queries however many players).
+- An admin works a season's awards out: one `stat_award_set` row per season holds the MVP `weights` used, which parts had no data, whether the MVP vote counted, and admins' `notes`; `stat_award_place` holds each award's top three places, ties included, with the number behind each and the games it was based on. Working them out again replaces the places and keeps the notes; a published set has to be taken down first. The public page reads only a set with `published_at`.
+- A `leaderboard_opt_out` row keeps a player out of the computation and off every awards page and team-page badge, including sets published before they opted out. Deleting the account (which anonymizes it) deletes the opt-out and the person's places.
 
 Friends of the league, as built (`src/db/schema/friends.ts`, `src/db/queries/friends.ts`):
 
@@ -1582,6 +1617,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `award_poll` | check `closes_at > opens_at`; check `game_day` is set exactly when `kind = 'weekly'` | A poll has a voting window; weekly polls name their game day |
 | `pickem_pick` | unique `(game_id, user_id)` | One pick per player per game; saving again replaces it |
 | `season_card` | unique `(season_id, user_id)` | One card per player per season, so refreshing updates it in place |
+| `stat_award_place` | unique `(season_id, award, user_id)`; check `place` between 1 and 99 | One place per person per award |
+| `stat_award_set` | check `published_at` is null or not before `computed_at` | A set is published after it is worked out |
 | `deal_redemption` | unique `(deal_id, checkin_id)` | A deal once per visit |
 | `giveaway` | unique `(event_id)`; check `closes_at > opens_at`; check `winner_count` between 1 and 20; check the rules' length | One giveaway per event, with a real entry window |
 | `giveaway_entry` | unique `(giveaway_id, user_id)` | One entry per person, even when the same check-in lands twice at once |
@@ -1652,6 +1689,7 @@ Indexes for the common reads:
 | `award_vote` | `(voter_id)` | A player's own votes |
 | `pickem_pick` | `(user_id)` | A player's own picks, for the page, the export and account deletion |
 | `season_card` | `(user_id)` | A player's own cards, for home and the export |
+| `stat_award_place` | `(user_id)` | A player's awards, for their stats page and team-page badges |
 | `social_post` | `(account_id, taken_at desc)`, `(team_id)`, `(event_id)` | Newest photos for the home page and the admin screen; a team's or an event's photos |
 | `member_photo` | `(league_id, status, created_at desc)`; `(uploader_id, created_at desc)`; `(team_id, created_at desc)`, `(event_id, …)` and `(game_id, …)` where approved | The review queue and the storage total; a person's photos and daily count; each public page's photos |
 | `sportsmanship_rating` | `(rated_team_season_id)`; `(rated_by)` | A team's ratings; a person's own ratings |
@@ -1685,6 +1723,7 @@ Indexes for the common reads:
 | Award votes | `award_vote` | The voter alone sees whom they picked; everyone sees only the totals after a poll closes. Deleting an account withdraws votes in polls still open |
 | Pick'em picks | `pickem_pick`, `pickem_hidden` | The player sees their picks. Signed-in players see each player's count of right picks on the leaderboards (first name and last initial), never the picks themselves, unless the player hid from them. The export lists every pick; deleting an account deletes them |
 | Season cards | `season_card` | The player. Anyone with the link while the player keeps it public, as first name and last initial, their team and their own numbers; never another player's name, and votes only as a count. Admins see how many cards exist and how many are shared. The card is in the player's export and is deleted with their account |
+| Player stats and stat award places | worked out on read; `stat_award_place`, `leaderboard_opt_out` | The player sees their own stats. Admins see the draft places. Everyone sees published places by first name and last initial, unless the player opted out |
 | Emergency contact (name, relationship, phone) and first-aid note | `emergency_contact`, sealed: AES-256-GCM with a key derived from the server's auth secret, bound to the player's id ([ADR 0043](adr/0043-emergency-contacts-sealed-and-shown-on-game-day.md)) | The person. On the day of a game they play in (league time zone), that game's captains and co-captains and its ref; each read writes an `emergency_contact.view` audit row with the reader and the game, never the contact. Admins and owners don't see it. A database copy alone reads nothing. When two accounts are merged, the merged-away account's contact is sealed again for the kept one only if that one has none, and deleted either way |
 | Free-agent quiz answers and note | `free_agent_profile` | The person and admins |
 | Friend group | `friend_group`, `registration.friend_group_id` | The person; others in the group see first name and last initial; admins |
