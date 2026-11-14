@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { challengeForSeason } from "@/db/queries/challenges";
+import { teamAvailability } from "@/db/queries/away";
 import { openTeamInvite, rosterBoard } from "@/db/queries/invites";
 import { mySpots, savedFor } from "@/db/queries/lineups";
 import { myRsvps, type TeamRsvps, teamRsvps } from "@/db/queries/rsvps";
@@ -25,6 +26,7 @@ import { progressLine, teamProgress } from "@/domain/drive/challenge";
 import { ordinal } from "@/domain/lineup/order";
 import { formatCents } from "@/domain/registration/pricing";
 import { Pickups } from "@/components/pickups";
+import { WeekAvailabilityNote } from "@/components/week-availability";
 import { scoresReceived, suspendedAmong } from "@/db/queries/discipline";
 import { ownAverage } from "@/domain/discipline/discipline";
 import { requirePermission } from "@/lib/auth/permission";
@@ -204,10 +206,17 @@ async function Team({
     .filter((g) => !["final", "forfeit", "cancelled"].includes(g.status))
     .map((g) => g.id);
   const buildsLineups = can(subject, "lineup.edit", { teamSeasonId });
-  const [mineRsvps, spots, lineups] = await Promise.all([
+  const [mineRsvps, spots, lineups, availability] = await Promise.all([
     myRsvps(db, subject.userId, upcoming),
     mySpots(db, subject.userId, unplayed),
     buildsLineups ? savedFor(db, teamSeasonId, unplayed) : new Set<string>(),
+    // Away weeks, for games still to come.
+    teamAvailability(
+      db,
+      teamSeasonId,
+      games.filter((g) => upcoming.includes(g.id)),
+      league?.timeZone ?? "America/New_York",
+    ),
   ]);
   // Suspensions are enforced even with the feature switched off; captains
   // see that a player is out, never why.
@@ -382,6 +391,9 @@ async function Team({
             Scheduling requests
           </Link>
         )}
+        <Link href="/app/profile#away" className="self-start underline">
+          Away some weeks? Mark them
+        </Link>
       </header>
 
       {balance && (
@@ -616,6 +628,7 @@ async function Team({
           <ul className="flex flex-col">
             {games.map((g) => {
               const started = g.startsAt !== null && g.startsAt <= now;
+              const week = availability.get(g.id);
               const done = g.status === "final" || g.status === "forfeit";
               return (
                 <li
@@ -674,14 +687,28 @@ async function Team({
                         )}
                       </span>
                     )}
-                  {rsvps.has(g.id) && findsSubs && g.kind !== "playoff" && (
-                    <Link
-                      href={`/app/seasons/${slug}/team/subs?game=${g.id}#ask`}
-                      className="text-small underline"
-                    >
-                      Short? Find subs
-                    </Link>
+                  {week && (
+                    <WeekAvailabilityNote
+                      week={week}
+                      captain={seesStatus}
+                      subsHref={
+                        findsSubs && g.kind !== "playoff"
+                          ? `/app/seasons/${slug}/team/subs?game=${g.id}#ask`
+                          : null
+                      }
+                    />
                   )}
+                  {rsvps.has(g.id) &&
+                    findsSubs &&
+                    g.kind !== "playoff" &&
+                    !(seesStatus && week?.short) && (
+                      <Link
+                        href={`/app/seasons/${slug}/team/subs?game=${g.id}#ask`}
+                        className="text-small underline"
+                      >
+                        Short? Find subs
+                      </Link>
+                    )}
                   {seesPickups(g) && (
                     <Pickups
                       pickups={pickups.get(g.id)}

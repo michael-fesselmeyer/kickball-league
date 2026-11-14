@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { WeekAvailabilityNote } from "@/components/week-availability";
 import { db } from "@/db/client";
+import { teamAvailability } from "@/db/queries/away";
 import {
   lineupCandidates,
   lineupGame,
@@ -70,12 +72,15 @@ async function Builder({
     !can(subject, "lineup.edit", { teamSeasonId })
   )
     notFound();
-  const [kickers, saved, previous, rsvps] = await Promise.all([
+  const [kickers, saved, previous, rsvps, availability] = await Promise.all([
     lineupCandidates(db, g.id, teamSeasonId, new Date()),
     savedLineups(db, g.id),
     previousLineup(db, g.id, teamSeasonId),
     teamRsvps(db, teamSeasonId, [g.id]),
+    teamAvailability(db, teamSeasonId, [g], g.timeZone),
   ]);
+  const week = availability.get(g.id);
+  const started = g.startsAt !== null && g.startsAt <= new Date();
   const mine = saved.get(teamSeasonId);
   const start = reconcile(mine?.spots.map((s) => s.userId) ?? [], kickers);
   const [teamName, opponent] =
@@ -133,6 +138,27 @@ async function Builder({
             See RSVPs
           </Link>
         </p>
+      )}
+
+      {week && !over && (
+        <WeekAvailabilityNote
+          week={week}
+          captain
+          subsHref={
+            can(subject, "sub_request.post", { teamSeasonId }) &&
+            g.kind !== "playoff" &&
+            started === false
+              ? `${teamPage}/subs?game=${g.id}#ask`
+              : null
+          }
+          noSubs={
+            started
+              ? "Sub requests close when the game starts."
+              : g.kind === "playoff"
+                ? "Sub requests aren't open for playoff games."
+                : "Ask the league about subs."
+          }
+        />
       )}
 
       {noSide.length > 0 && (
