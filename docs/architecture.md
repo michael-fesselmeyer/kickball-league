@@ -237,7 +237,7 @@ How a message is never sent twice (`src/db/queries/outbox.ts`, tested in `outbox
 - **Off without keys.** Without `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`, push copies are suppressed (`push_off`) and the profile page offers no push. Without an email provider but with push, the drain sends push and leaves email queued.
 - Urgent messages go with `Urgency: high`; everything is kept by the push service for up to a day (`TTL`) while a phone is offline.
 
-**Score confirmations** (`src/db/queries/score-confirmations.ts`). When a captain or ref reports a score that still needs an answer, the captains and co-captains who can confirm or dispute it get a `score_confirmation` message (topic `score`) in the same transaction: the other team's for a captain's report, both teams' for a ref's, nobody for an admin's, which is final at once. The dedupe key is `score-confirm/<report>/<person>`, so a retried submit asks once.
+**Score confirmations** (`src/db/queries/score-confirmations.ts`). When a captain or ref reports a score that still needs an answer, the captains and co-captains who can confirm or dispute it get a `score_confirmation` message (topic `score`) in the same transaction: the other team's for a captain's report, both teams' for a ref's, nobody for an admin's, which is final at once. The dedupe key is `score-confirm/<report>/<person>`, so a retried submit asks once. When a captain disputes a score, every admin and owner gets a `score_dispute` message (topic `score`, urgent) in the dispute's own transaction, with the reported score, the captain's note and a link to the season's Scores screen; the key is `score-dispute/<response>/<admin>`. The dashboard lists a disputed game under "Missing scores" at once, even on its own game day.
 
 **Rain-out notices** (`src/db/queries/rainout-notices.ts`, tested in `rainout-notices.db.test.ts`). The rain-out screen cancels the date's slots and saves the makeups as a draft; nothing is sent yet. When an admin publishes that draft, `publishVersion` queues the notices in its own transaction, so the new schedule and its emails commit together. A game counts as rained out when the slot it moved from is cancelled. Each active player on both teams of such a game gets one message with that game, where it was and its makeup time (or "no makeup yet"). Games that did not move, or moved for another reason, send nothing. The dedupe key is `rainout/<game>/<rained-out slot>/<person>`, so publishing again, a second draft of the same rain-out, or a retried request never sends twice, while the same game rained out again from a different slot is a new notice. The `rainout` topic is on the email settings page, and the publish action calls `after()` to send right away.
 
@@ -272,6 +272,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `rebate_credit` | non-urgent | League credit for rained-out games |
 | `referral_credit` | non-urgent | League credit for a friend you referred |
 | `score_confirmation` | urgent | Scores waiting for your confirmation |
+| `score_dispute` | urgent | For admins: a captain disputed a reported score |
 | `score_reminder` | non-urgent | Reminders about games with no score yet |
 | `season_card` | non-urgent | Your season in kickball: your end-of-season card is ready |
 | `sub_request` | urgent | Teams that need a sub when you're free |

@@ -115,6 +115,10 @@ export const MESSAGE_KINDS = {
     urgency: "urgent",
     label: "Scores waiting for your confirmation",
   },
+  score_dispute: {
+    urgency: "urgent",
+    label: "For admins: a captain disputed a reported score",
+  },
   score_reminder: {
     urgency: "non_urgent",
     label: "Reminders about games with no score yet",
