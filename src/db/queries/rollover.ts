@@ -24,6 +24,7 @@ import { league } from "../schema/league";
 import { profile } from "../schema/profile";
 import { permitWindow } from "../schema/schedule";
 import { season } from "../schema/season";
+import { waiver } from "../schema/waiver";
 import {
   registration,
   rosterMembership,
@@ -62,7 +63,7 @@ export async function rolloverSource(
     .where(and(eq(season.leagueId, leagueId), eq(season.slug, slug)));
   if (!found) return null;
   const s = found.season;
-  const [divisions, teams, leaders, windows] = await Promise.all([
+  const [divisions, teams, leaders, windows, waivers] = await Promise.all([
     db
       .select({
         id: division.id,
@@ -136,6 +137,13 @@ export async function rolloverSource(
       .innerJoin(venue, eq(venue.id, field.venueId))
       .where(eq(permitWindow.seasonId, s.id))
       .orderBy(asc(permitWindow.startsAt), asc(field.name)),
+    // The waiver it carries over, for the admin to confirm in the preview.
+    s.waiverId
+      ? db
+          .select({ title: waiver.title, version: waiver.version })
+          .from(waiver)
+          .where(eq(waiver.id, s.waiverId))
+      : Promise.resolve([]),
   ]);
   // Someone suspended for good does not captain again.
   const suspended = await suspendedAmong(
@@ -177,6 +185,7 @@ export async function rolloverSource(
       ...w,
       fieldName: `${w.venueName}, ${w.fieldName}`,
     })),
+    waiver: waivers[0] ?? null,
   };
 }
 

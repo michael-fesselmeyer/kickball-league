@@ -18,6 +18,7 @@ import {
 import { leagueWorld } from "../test/league-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { rollOver, rolloverSource } from "./rollover";
+import { assignWaiver, publishWaiver } from "./waivers";
 import type { Db } from "./schedule";
 
 afterAll(closePool);
@@ -338,6 +339,55 @@ describe("season rollover", () => {
           ),
         );
       expect(theirs).toEqual([]);
+    });
+  });
+
+  it("carries the season's waiver into the new draft and names it in the preview", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await rolloverWorld(db);
+      const published = await publishWaiver(
+        db,
+        {
+          leagueId: w.leagueId,
+          title: "Sample release (test only)",
+          body: "Placeholder text for tests. Not a legal document. ".repeat(6),
+        },
+        w.admin,
+      );
+      if (!published.ok) throw new Error(JSON.stringify(published.error));
+      await assignWaiver(
+        db,
+        {
+          leagueId: w.leagueId,
+          seasonId: w.season.id,
+          waiverId: published.value.id,
+        },
+        w.admin,
+      );
+      const source = await rolloverSource(db, w.leagueId, "spring-2027", NOW);
+      expect(source?.waiver).toEqual({
+        title: "Sample release (test only)",
+        version: published.value.version,
+      });
+      const result = await rollOver(
+        db,
+        {
+          leagueId: w.leagueId,
+          slug: "spring-2027",
+          choice: choice([w.teamSeasonId]),
+        },
+        w.admin,
+        NOW,
+      );
+      if (!result.ok) throw new Error(result.error);
+      const [made] = await db
+        .select({ status: season.status, waiverId: season.waiverId })
+        .from(season)
+        .where(
+          and(eq(season.leagueId, w.leagueId), eq(season.slug, "fall-2027")),
+        );
+      // A draft: the admin confirms the waiver when they open registration.
+      expect(made).toEqual({ status: "draft", waiverId: published.value.id });
     });
   });
 });

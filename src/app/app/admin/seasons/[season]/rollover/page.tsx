@@ -225,6 +225,12 @@ async function Rollover({
                 ? `, ${formatCents(s.earlyBirdDiscountCents)} off until ${when(plan.value.dates.earlyBirdEndsAt)}`
                 : ""}
             </dd>
+            <dt className="text-text-muted">Waiver</dt>
+            <dd>
+              {source.waiver
+                ? `${source.waiver.title}, version ${source.waiver.version}, the same as ${s.name}. Everyone signs it again; check it's still the one to use, or choose another on the Waivers screen, before opening registration.`
+                : "None yet. Choose one on the Waivers screen before opening registration: players sign it before they can pay."}
+            </dd>
             <dt className="text-text-muted">Rosters</dt>
             <dd>
               {s.rosterMin} to {s.rosterMax} players
