@@ -8,8 +8,9 @@ import { pageAs } from "../support/personas";
  * 45 minutes from now, so it is on the coming game day and still open for
  * the whole flow. The demo player picks its winner, sees the pick saved and
  * the season leaderboard the seed's picks fill, hides from the leaderboards
- * and comes back. An admin turns off picking your own team's games and on
- * again. The game, and its picks with it, are removed at the end.
+ * and comes back; the game, and its picks with it, are removed at the end.
+ * In a test of its own, an admin turns off picking your own team's games
+ * and on again.
  */
 const TEAM_A = "Sun Kickers";
 const TEAM_B = "Base Invaders";
@@ -112,7 +113,15 @@ test("a player picks the coming game day's winner, for bragging rights only", as
       "You're back on the leaderboards",
     );
     await player.context().close();
+  } finally {
+    await removeGame();
+  }
+});
 
+test("an admin keeps players off their own team's games, and lets them back", async ({
+  browser,
+}) => {
+  try {
     const admin = await pageAs(browser, "Admin");
     await admin.goto("/app/admin");
     await admin.getByRole("link", { name: "Pick'em" }).click();
@@ -135,7 +144,6 @@ test("a player picks the coming game day's winner, for bragging rights only", as
     ).toBeVisible();
     await admin.context().close();
   } finally {
-    await removeGame();
     // Back to the league's default, whatever step a failure stopped at.
     await withDb((db) => db.query("update league set pickem_own_games = true"));
   }
