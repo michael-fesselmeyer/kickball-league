@@ -17,7 +17,7 @@ import { requireFeature } from "@/lib/platform/site";
 import { closePollAction, openPollAction, removePollAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 
-export const metadata: Metadata = { title: "Awards" };
+export const metadata: Metadata = { title: "Manage awards" };
 
 export default function AwardsAdminPage(
   props: PageProps<"/app/admin/seasons/[season]/awards">,

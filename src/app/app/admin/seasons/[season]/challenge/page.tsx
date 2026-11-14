@@ -21,7 +21,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { confirmWinnerAction, saveChallengeAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 
-export const metadata: Metadata = { title: "Sign-up challenge" };
+export const metadata: Metadata = { title: "Run the sign-up challenge" };
 
 type Props = PageProps<"/app/admin/seasons/[season]/challenge">;
 
