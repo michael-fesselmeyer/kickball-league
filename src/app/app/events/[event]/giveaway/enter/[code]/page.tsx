@@ -15,6 +15,8 @@ import { NO_PURCHASE_LINE } from "@/domain/drive/giveaway";
 import { isCurrentCheckinCode } from "@/domain/sponsors/checkin-code";
 import { requirePermission } from "@/lib/auth/permission";
 import { enterGiveawayAction } from "../../actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Enter the giveaway" };
 
@@ -24,7 +26,7 @@ type Props = PageProps<"/app/events/[event]/giveaway/enter/[code]">;
 export default function EnterPage(props: Props) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-4 py-12">
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Enter {...props} />
       </Suspense>
     </main>
@@ -84,9 +86,9 @@ async function Enter({ params, searchParams }: Props) {
         <p className="text-small">{NO_PURCHASE_LINE}</p>
       </div>
       <form action={enterGiveawayAction.bind(null, slug, code)}>
-        <button type="submit" className="btn w-full btn-primary">
+        <SubmitButton className="btn w-full btn-primary">
           Enter the giveaway
-        </button>
+        </SubmitButton>
       </form>
       <Link
         href={giveawayPage}

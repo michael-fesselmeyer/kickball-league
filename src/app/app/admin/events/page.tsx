@@ -7,13 +7,14 @@ import { currentLeague } from "@/db/queries/seasons";
 import { audienceTag } from "@/domain/events/audience";
 import { KIND_LABELS, whenLine } from "@/domain/events/event";
 import { requirePermission } from "@/lib/auth/permission";
+import { PageLoading } from "@/components/page-loading";
 
-export const metadata: Metadata = { title: "Events" };
+export const metadata: Metadata = { title: "Manage events" };
 
 export default function AdminEventsPage(props: PageProps<"/app/admin/events">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading events…</p>}>
+      <Suspense fallback={<PageLoading>Loading events…</PageLoading>}>
         <AdminEvents {...props} />
       </Suspense>
     </main>

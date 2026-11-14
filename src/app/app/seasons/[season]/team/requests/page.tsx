@@ -20,6 +20,8 @@ import {
 } from "@/domain/schedule/team-requests";
 import { requirePermission } from "@/lib/auth/permission";
 import { addTeamRequestAction, removeTeamRequestAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Scheduling requests" };
 
@@ -35,7 +37,7 @@ export default function TeamRequestsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <TeamRequests {...props} />
       </Suspense>
     </main>
@@ -153,15 +155,12 @@ async function TeamRequests({
                 </span>
                 {open && (
                   <form action={removeTeamRequestAction.bind(null, slug, r.id)}>
-                    <button
-                      type="submit"
-                      className="inline-flex min-h-11 items-center underline"
-                    >
+                    <SubmitButton className="inline-flex min-h-11 items-center underline">
                       Remove
                       <span className="sr-only">
                         : {describeRequest(r, timeLabel, dateLabel)}
                       </span>
-                    </button>
+                    </SubmitButton>
                   </form>
                 )}
               </li>
@@ -243,12 +242,9 @@ async function TeamRequests({
                 className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
               />
             </label>
-            <button
-              type="submit"
-              className="min-h-11 self-start rounded-full border-2 border-text px-5 font-semibold"
-            >
+            <SubmitButton className="min-h-11 self-start rounded-full border-2 border-text px-5 font-semibold">
               Save request
-            </button>
+            </SubmitButton>
           </form>
         </section>
       )}

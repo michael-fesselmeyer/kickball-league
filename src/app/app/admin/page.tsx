@@ -22,13 +22,14 @@ import { needsReconnect } from "@/db/queries/social";
 import type { FieldingLevel } from "@/domain/rsvp/fielding";
 import { can } from "@/domain/authz/permissions";
 import { requirePermission } from "@/lib/auth/permission";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "League admin" };
 
 export default function AdminHomePage(props: PageProps<"/app/admin">) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Dashboard {...props} />
       </Suspense>
     </main>

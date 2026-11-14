@@ -7,6 +7,7 @@ import {
   MAX_DAILY_CAP,
 } from "@/domain/notifications/limits";
 import { saveAlertLimitsAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
@@ -153,12 +154,9 @@ export function AlertLimitsSettings({
             ))}
           </ul>
         </details>
-        <button
-          type="submit"
-          className="self-start rounded-full border border-text px-4 py-1"
-        >
+        <SubmitButton className="min-h-11 self-start rounded-full border border-text px-4 py-1">
           Save message limits
-        </button>
+        </SubmitButton>
       </form>
     </section>
   );

@@ -27,6 +27,8 @@ import {
   CaptaincyNotice,
   CaptaincyPanel,
 } from "@/app/app/seasons/[season]/team/captaincy";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Registrations" };
 
@@ -35,7 +37,7 @@ export default function RegistrationsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Registrations {...props} />
       </Suspense>
     </main>
@@ -124,12 +126,9 @@ function RecordPayment({
         aria-label={`Note about ${person.name}'s payment`}
         className={`${input} w-40`}
       />
-      <button
-        type="submit"
-        className="inline-flex min-h-11 items-center underline"
-      >
+      <SubmitButton className="inline-flex min-h-11 items-center underline">
         Record payment<span className="sr-only"> for {person.name}</span>
-      </button>
+      </SubmitButton>
     </form>
   );
 }
@@ -188,13 +187,10 @@ function Refund({ slug, person }: { slug: string; person: BoardPerson }) {
           aria-label={`Reason for refunding ${person.name}`}
           className={`${input} w-40`}
         />
-        <button
-          type="submit"
-          className="inline-flex min-h-11 items-center underline"
-        >
+        <SubmitButton className="inline-flex min-h-11 items-center underline">
           {p.method === "stripe" ? "Refund through Stripe" : "Mark refunded"}
           <span className="sr-only"> for {person.name}</span>
-        </button>
+        </SubmitButton>
       </form>
     </details>
   ));
@@ -345,9 +341,9 @@ async function Registrations({
                 value={conflictTeam.teamSeasonId}
               />
               <input type="hidden" name="override" value="yes" />
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 Place {conflict.name} on {conflictTeam.name} anyway
-              </button>
+              </SubmitButton>
             </form>
             <Link
               href={`/app/admin/seasons/${slug}/registrations`}
@@ -565,12 +561,9 @@ async function Registrations({
                               </option>
                             ))}
                           </select>
-                          <button
-                            type="submit"
-                            className="inline-flex min-h-11 items-center underline"
-                          >
+                          <SubmitButton className="inline-flex min-h-11 items-center underline">
                             Place<span className="sr-only"> {p.name}</span>
-                          </button>
+                          </SubmitButton>
                         </form>
                       )}
                     </td>

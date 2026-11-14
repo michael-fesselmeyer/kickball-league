@@ -7,13 +7,15 @@ import { describeSpots } from "@/domain/subs/eligibility";
 import { requirePermission } from "@/lib/auth/permission";
 import { claimAction, withdrawAction } from "./actions";
 import { requireFeature } from "@/lib/platform/site";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Sub for a team" };
 
 export default function SubsPage(props: PageProps<"/app/subs">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading sub requests…</p>}>
+      <Suspense fallback={<PageLoading>Loading sub requests…</PageLoading>}>
         <Subs {...props} />
       </Suspense>
     </main>
@@ -78,15 +80,12 @@ function RequestCard({ r }: { r: OpenRequest }) {
               </span>
             </Link>
             <form action={withdrawAction.bind(null, r.id)}>
-              <button
-                type="submit"
-                className="inline-flex min-h-11 items-center underline"
-              >
+              <SubmitButton className="inline-flex min-h-11 items-center underline">
                 I can&apos;t make it
                 <span className="sr-only">
                   : {r.team}, {r.game.when}
                 </span>
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </>
@@ -94,15 +93,12 @@ function RequestCard({ r }: { r: OpenRequest }) {
         <div className="flex flex-wrap items-center gap-3">
           <p>You&apos;re holding a spot. Waiting for the captain.</p>
           <form action={withdrawAction.bind(null, r.id)}>
-            <button
-              type="submit"
-              className="inline-flex min-h-11 items-center underline"
-            >
+            <SubmitButton className="inline-flex min-h-11 items-center underline">
               Drop out
               <span className="sr-only">
                 : {r.team}, {r.game.when}
               </span>
-            </button>
+            </SubmitButton>
           </form>
         </div>
       ) : r.mine === "declined" ? (
@@ -122,12 +118,12 @@ function RequestCard({ r }: { r: OpenRequest }) {
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           <form action={claimAction.bind(null, r.id)}>
-            <button type="submit" className="btn btn-primary">
+            <SubmitButton className="btn btn-primary">
               I&apos;m in
               <span className="sr-only">
                 : {r.team}, {r.game.when}
               </span>
-            </button>
+            </SubmitButton>
           </form>
           <span className="text-small text-text-muted">
             {r.left} {r.left === 1 ? "spot" : "spots"} left

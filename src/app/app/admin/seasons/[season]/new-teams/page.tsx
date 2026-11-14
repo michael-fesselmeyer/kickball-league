@@ -11,6 +11,8 @@ import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { REASON_MAX } from "@/domain/registration/new-team";
 import { requirePermission } from "@/lib/auth/permission";
 import { approveNewTeamAction, declineNewTeamAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "New-team requests" };
 
@@ -19,7 +21,7 @@ export default function NewTeamRequestsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <NewTeamRequests {...props} />
       </Suspense>
     </main>
@@ -113,9 +115,9 @@ function OpenRequest({
       )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <form action={approveNewTeamAction.bind(null, slug, r.id)}>
-          <button type="submit" className="btn btn-primary">
+          <SubmitButton className="btn btn-primary">
             Approve<span className="sr-only"> {r.proposedName}</span>
-          </button>
+          </SubmitButton>
         </form>
         <form
           action={declineNewTeamAction.bind(null, slug, r.id)}
@@ -129,9 +131,9 @@ function OpenRequest({
               className="rounded-md border border-border bg-surface px-2 py-1"
             />
           </label>
-          <button type="submit" className="btn self-start btn-secondary">
+          <SubmitButton className="btn self-start btn-secondary">
             Decline<span className="sr-only"> {r.proposedName}</span>
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </li>

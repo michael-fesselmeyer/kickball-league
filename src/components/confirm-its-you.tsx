@@ -1,6 +1,7 @@
 import { SESSION_FRESH_AGE_SECONDS } from "@/lib/auth/config";
 import { emailConfirmLink } from "@/lib/auth/confirm-actions";
 import { PasskeyConfirm } from "./passkey-confirm";
+import { SubmitButton } from "@/components/submit-button";
 
 const FRESH_MINUTES = SESSION_FRESH_AGE_SECONDS / 60;
 
@@ -40,9 +41,9 @@ export function ConfirmItsYou({
       ) : (
         <form action={emailConfirmLink} className="flex flex-col gap-2">
           <input type="hidden" name="next" value={next} />
-          <button type="submit" className="btn self-start btn-secondary">
+          <SubmitButton className="btn self-start btn-secondary">
             Email me a sign-in link
-          </button>
+          </SubmitButton>
           <p className="text-small text-text-muted">
             We&apos;ll send it to <strong>{email}</strong>, and it brings you
             back here.

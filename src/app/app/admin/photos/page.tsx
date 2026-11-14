@@ -15,6 +15,8 @@ import {
 } from "@/domain/member-photos/limits";
 import { requirePermission } from "@/lib/auth/permission";
 import { deletePhotoAction, reviewPhotoAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Member photos" };
 
@@ -35,7 +37,7 @@ export default function AdminPhotosPage(props: PageProps<"/app/admin/photos">) {
           they were tagged to. Download one to post it on Instagram.
         </p>
       </header>
-      <Suspense fallback={<p className="min-h-svh">Loading photos…</p>}>
+      <Suspense fallback={<PageLoading>Loading photos…</PageLoading>}>
         <Queue {...props} />
       </Suspense>
     </main>
@@ -121,9 +123,9 @@ async function Queue({ searchParams }: PageProps<"/app/admin/photos">) {
                   <form action={reviewPhotoAction}>
                     <input type="hidden" name="photo" value={p.id} />
                     <input type="hidden" name="decision" value="approve" />
-                    <button type="submit" className="btn btn-primary">
+                    <SubmitButton className="btn btn-primary">
                       Approve
-                    </button>
+                    </SubmitButton>
                   </form>
                   <Download photo={p} />
                 </div>
@@ -142,12 +144,9 @@ async function Queue({ searchParams }: PageProps<"/app/admin/photos">) {
                       className="rounded-input border border-border-strong bg-bg px-3 py-2"
                     />
                   </label>
-                  <button
-                    type="submit"
-                    className="btn self-start btn-secondary"
-                  >
+                  <SubmitButton className="btn self-start btn-secondary">
                     Reject and delete
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -170,10 +169,10 @@ async function Queue({ searchParams }: PageProps<"/app/admin/photos">) {
                 <Download photo={p} />
                 <form action={deletePhotoAction}>
                   <input type="hidden" name="photo" value={p.id} />
-                  <button type="submit" className="btn btn-secondary">
+                  <SubmitButton className="btn btn-secondary">
                     Take down
                     <span className="sr-only"> this photo</span>
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}

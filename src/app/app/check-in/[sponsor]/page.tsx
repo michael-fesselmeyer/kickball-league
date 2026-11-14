@@ -15,6 +15,8 @@ import { dealApplies, dealOnDay, dealWhen } from "@/domain/sponsors/deals";
 import { localTime } from "@/domain/time/zoned";
 import { requirePermission } from "@/lib/auth/permission";
 import { redeemDealAction } from "../actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Your visit" };
 
@@ -24,7 +26,7 @@ type Props = PageProps<"/app/check-in/[sponsor]">;
 export default function VisitPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-sm flex-col gap-6 px-4 py-12">
-      <Suspense fallback={<p className="min-h-svh">Loading your visit…</p>}>
+      <Suspense fallback={<PageLoading>Loading your visit…</PageLoading>}>
         <Visit {...props} />
       </Suspense>
     </main>
@@ -128,9 +130,9 @@ async function Visit({ params, searchParams }: Props) {
                     </p>
                   ) : visit && on ? (
                     <form action={redeemDealAction.bind(null, slug, d.id)}>
-                      <button type="submit" className="btn btn-primary">
+                      <SubmitButton className="btn btn-primary">
                         Use this deal
-                      </button>
+                      </SubmitButton>
                     </form>
                   ) : (
                     <p className="text-small text-text-muted">

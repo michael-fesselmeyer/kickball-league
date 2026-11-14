@@ -9,13 +9,14 @@ import { orderWindow, priceLine } from "@/domain/merch/catalog";
 import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { ConfirmingPayment } from "../seasons/[season]/confirming";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "League shop" };
 
 export default function ShopPage(props: PageProps<"/app/shop">) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading the shop…</p>}>
+      <Suspense fallback={<PageLoading>Loading the shop…</PageLoading>}>
         <Shop {...props} />
       </Suspense>
     </main>

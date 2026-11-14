@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ConfirmItsYou } from "@/components/confirm-its-you";
+import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { signedInDevices } from "@/db/queries/devices";
 import { passkeysOf, PASSKEY_NAME_MAX } from "@/db/queries/passkeys";
@@ -18,6 +19,7 @@ import {
   signOutOtherDevicesAction,
 } from "./actions";
 import { AddPasskey } from "./add-passkey";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Passkeys and devices" };
 
@@ -28,7 +30,7 @@ export default function SecurityPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-dvh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Security {...props} />
       </Suspense>
     </main>
@@ -143,29 +145,27 @@ async function Security({ searchParams }: PageProps<"/app/profile/security">) {
                       </span>
                       <input
                         name="name"
+                        autoComplete="off"
                         defaultValue={key.name ?? ""}
                         maxLength={PASSKEY_NAME_MAX}
                         required
                         className="min-h-11 rounded-input border-2 border-border-strong bg-surface px-3 py-2 text-body text-text"
                       />
                     </label>
-                    <button type="submit" className="btn btn-secondary">
+                    <SubmitButton className="btn btn-secondary">
                       Rename
-                    </button>
+                    </SubmitButton>
                   </form>
                   {fresh && (
                     <form action={removePasskeyAction}>
                       <input type="hidden" name="passkey" value={key.id} />
-                      <button
-                        type="submit"
-                        className="btn border-danger bg-surface text-danger"
-                      >
+                      <SubmitButton className="btn border-danger bg-surface text-danger">
                         Remove
                         <span className="sr-only">
                           {" "}
                           {key.name || "this passkey"}
                         </span>
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
                 </div>
@@ -217,9 +217,9 @@ async function Security({ searchParams }: PageProps<"/app/profile/security">) {
               {!device.current && !demo && (
                 <form action={signOutDeviceAction}>
                   <input type="hidden" name="session" value={device.id} />
-                  <button type="submit" className="btn btn-secondary">
+                  <SubmitButton className="btn btn-secondary">
                     Sign out<span className="sr-only"> {device.name}</span>
-                  </button>
+                  </SubmitButton>
                 </form>
               )}
             </li>
@@ -229,9 +229,9 @@ async function Security({ searchParams }: PageProps<"/app/profile/security">) {
           <p>In the demo, only this device is shown.</p>
         ) : others.length > 1 ? (
           <form action={signOutOtherDevicesAction}>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Sign out all other devices
-            </button>
+            </SubmitButton>
           </form>
         ) : null}
       </section>

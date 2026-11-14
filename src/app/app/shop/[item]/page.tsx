@@ -22,8 +22,10 @@ import { creditToApply, formatMoment } from "@/domain/money/credit";
 import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { orderMerchAction } from "../actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
-export const metadata: Metadata = { title: "League shop" };
+export const metadata: Metadata = { title: "Shop item" };
 
 const ERRORS: Record<string, string> = {
   not_found: "That item is gone.",
@@ -48,7 +50,7 @@ const control =
 export default function ShopItemPage(props: PageProps<"/app/shop/[item]">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading the item…</p>}>
+      <Suspense fallback={<PageLoading>Loading the item…</PageLoading>}>
         <ShopItem {...props} />
       </Suspense>
     </main>
@@ -267,9 +269,9 @@ async function ShopItem({
                 Use my league credit ({formatCents(credit)} available)
               </label>
             )}
-            <button type="submit" className="btn btn-primary">
+            <SubmitButton className="btn btn-primary">
               Order for {formatCents(price)} each
-            </button>
+            </SubmitButton>
             <p className="text-small text-text-muted">
               You pay securely with Stripe. What you pick is held while you
               check out.

@@ -50,6 +50,8 @@ import { CaptaincyNotice, CaptaincyOffer, CaptaincyPanel } from "./captaincy";
 import { InviteLink } from "./invite-link";
 import { KeepOffSection } from "./keep-off";
 import { type GuaranteeView, TeamMoney } from "./team-money";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Your team" };
 
@@ -58,7 +60,7 @@ export default function TeamPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading your team…</p>}>
+      <Suspense fallback={<PageLoading>Loading your team…</PageLoading>}>
         <Team {...props} />
       </Suspense>
     </main>
@@ -96,21 +98,20 @@ function Rsvp({
             ["out", "Out"],
           ] as const
         ).map(([value, label]) => (
-          <button
+          <SubmitButton
             key={value}
-            type="submit"
             name="status"
             value={value}
             aria-pressed={mine === value}
             disabled={suspended && value === "in"}
-            className={`rounded-full border px-3 py-0.5 text-small disabled:opacity-50 ${
+            className={`min-h-11 min-w-11 rounded-full border px-3 py-0.5 text-small disabled:opacity-50 ${
               mine === value
                 ? "border-text bg-text text-surface"
                 : "border-border"
             }`}
           >
             {label}
-          </button>
+          </SubmitButton>
         ))}
       </form>
       {team && team.in === 0 ? (
@@ -553,9 +554,9 @@ async function Team({
                               <option value="other">Other</option>
                             </select>
                             <input type="hidden" name="note" value="" />
-                            <button type="submit" className="underline">
+                            <SubmitButton className="min-h-11 underline">
                               Paid me
-                            </button>
+                            </SubmitButton>
                           </form>
                         )}
                       </td>

@@ -27,6 +27,8 @@ import {
   suspendAction,
 } from "../actions";
 import { REPORTED_BY, suspensionLine } from "../words";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Incident" };
 
@@ -35,7 +37,7 @@ export default function IncidentPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading the report…</p>}>
+      <Suspense fallback={<PageLoading>Loading the report…</PageLoading>}>
         <Incident {...props} />
       </Suspense>
     </main>
@@ -125,9 +127,9 @@ function SuspendForm({
           Permanently
         </label>
       </fieldset>
-      <button type="submit" className="btn self-start btn-primary">
+      <SubmitButton className="btn self-start btn-primary">
         Suspend {name}
-      </button>
+      </SubmitButton>
     </form>
   );
 }
@@ -257,9 +259,9 @@ async function Incident({
                 </span>
                 {mayCall && s.state.state === "active" && (
                   <form action={liftAction.bind(null, found.id, s.id)}>
-                    <button type="submit" className="btn btn-secondary">
+                    <SubmitButton className="btn btn-secondary">
                       Lift {s.name}&apos;s suspension
-                    </button>
+                    </SubmitButton>
                   </form>
                 )}
               </li>
@@ -323,9 +325,9 @@ async function Incident({
             required
             className={field}
           />
-          <button type="submit" className="btn self-start btn-secondary">
+          <SubmitButton className="btn self-start btn-secondary">
             Add note
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -336,9 +338,9 @@ async function Incident({
           found.status === "open" ? "resolved" : "open",
         )}
       >
-        <button type="submit" className="btn btn-primary">
+        <SubmitButton className="btn btn-primary">
           {found.status === "open" ? "Mark resolved" : "Reopen"}
-        </button>
+        </SubmitButton>
       </form>
     </>
   );

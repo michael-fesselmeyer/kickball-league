@@ -70,6 +70,7 @@ export function TeamForm({
             Team name
             <input
               name="name"
+              autoComplete="off"
               defaultValue={v.name}
               maxLength={40}
               required
@@ -92,6 +93,7 @@ export function TeamForm({
         <input
           name="rosterSize"
           type="number"
+          inputMode="numeric"
           min={rosterMin}
           max={rosterMax}
           value={size}

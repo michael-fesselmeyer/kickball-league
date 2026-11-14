@@ -9,6 +9,7 @@ import {
   type ScoreState,
 } from "@/domain/gameday/command-center";
 import { checkInForRefereeAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 /**
  * The live part of the command center: the counts and every game. The
@@ -204,12 +205,12 @@ function GameRow({
         {needsCheckIn && (
           <form action={checkInForRefereeAction}>
             <input type="hidden" name="gameId" value={game.id} />
-            <button type="submit" className="min-h-11 underline">
+            <SubmitButton className="min-h-11 underline">
               Mark here
               <span className="sr-only">
                 : {game.referee.name} for {game.teamA} vs {game.teamB}
               </span>
-            </button>
+            </SubmitButton>
           </form>
         )}
         <a

@@ -2,6 +2,7 @@ import type { TicketHolder } from "@/db/queries/event-tickets";
 import { formatCode, priceLine } from "@/domain/events/tickets";
 import { formatCents } from "@/domain/registration/pricing";
 import { checkInTicketAction, refundTicketAction } from "../ticket-actions";
+import { SubmitButton } from "@/components/submit-button";
 
 const control =
   "min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body";
@@ -97,9 +98,7 @@ export function EventTickets({
               className={`${control} w-36 font-mono uppercase`}
             />
           </div>
-          <button type="submit" className="btn btn-primary">
-            Check in
-          </button>
+          <SubmitButton className="btn btn-primary">Check in</SubmitButton>
           <p className="w-full text-small text-text-muted">
             {arrived} of {paid.length} checked in.
           </p>
@@ -159,9 +158,9 @@ export function EventTickets({
                     />
                     Yes, refund this ticket
                   </label>
-                  <button type="submit" className="btn btn-secondary">
+                  <SubmitButton className="btn btn-secondary">
                     Refund the ticket
-                  </button>
+                  </SubmitButton>
                 </form>
               </details>
             </li>

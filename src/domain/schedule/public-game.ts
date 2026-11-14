@@ -163,3 +163,29 @@ export function placeLine(g: PublicGame): string | null {
   );
   return parts.length ? parts.join(", ") : null;
 }
+
+/**
+ * The season a player's team plays in now, or played in last: the season
+ * of their newest game on one of their teams (a ref's games don't count).
+ * The home page links to that team.
+ */
+export function newestTeamSeason(
+  games: readonly PublicGame[],
+  teamSeasonIds: readonly string[],
+): string | null {
+  let newest: PublicGame | null = null;
+  for (const g of games) {
+    if (
+      !teamSeasonIds.includes(g.teamA.id) &&
+      !teamSeasonIds.includes(g.teamB.id)
+    )
+      continue;
+    const at = g.startsAt?.getTime() ?? Number.NEGATIVE_INFINITY;
+    if (
+      newest === null ||
+      at > (newest.startsAt?.getTime() ?? Number.NEGATIVE_INFINITY)
+    )
+      newest = g;
+  }
+  return newest?.seasonSlug ?? null;
+}

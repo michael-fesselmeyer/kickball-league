@@ -17,15 +17,17 @@ import { editGame, generateDraft, publishDraft, saveBoard } from "./actions";
 import { BoardLoader } from "./board-loader";
 import type { BoardSlot } from "./board-model";
 import { metricRows, readable } from "./labels";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
-export const metadata: Metadata = { title: "Schedule" };
+export const metadata: Metadata = { title: "Build the schedule" };
 
 export default function SchedulePage(
   props: PageProps<"/app/admin/seasons/[season]/schedule">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10 lg:max-w-6xl">
-      <Suspense fallback={<p>Loading the schedule…</p>}>
+      <Suspense fallback={<PageLoading>Loading the schedule…</PageLoading>}>
         <Schedule {...props} />
       </Suspense>
     </main>
@@ -206,9 +208,7 @@ async function Schedule({
               className="w-24 rounded-md border border-border bg-surface px-2 py-1"
             />
           </label>
-          <button type="submit" className="btn btn-primary">
-            Generate
-          </button>
+          <SubmitButton className="btn btn-primary">Generate</SubmitButton>
         </form>
       </section>
 
@@ -252,9 +252,9 @@ async function Schedule({
             </h2>
             {latest.status === "draft" && violations.length === 0 && (
               <form action={publishDraft.bind(null, slug, latest.id)}>
-                <button type="submit" className="btn btn-primary">
+                <SubmitButton className="btn btn-primary">
                   Publish version {latest.versionNo}
-                </button>
+                </SubmitButton>
               </form>
             )}
           </div>
@@ -414,9 +414,9 @@ async function Schedule({
               <input type="checkbox" name="pin" defaultChecked />
               Pin it there, so regenerating keeps it
             </label>
-            <button type="submit" className="btn self-start btn-secondary">
+            <SubmitButton className="btn self-start btn-secondary">
               Save as a new draft
-            </button>
+            </SubmitButton>
           </form>
         </section>
       )}

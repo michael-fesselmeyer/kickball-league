@@ -26,13 +26,15 @@ import { respondAction } from "./actions";
 import { rateSportsmanshipAction } from "./rate";
 import { GameOutbox, ScoreForm } from "./score-form";
 import { SportsmanshipForm } from "./sportsmanship-form";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Score" };
 
 export default function ScorePage(props: PageProps<"/app/games/[game]/score">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
-      <Suspense fallback={<p>Loading the game…</p>}>
+      <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>
         <Score {...props} />
       </Suspense>
     </main>
@@ -255,22 +257,20 @@ async function Score({
                 />
               </label>
               <div className="flex flex-wrap gap-3">
-                <button
-                  type="submit"
+                <SubmitButton
                   name="status"
                   value="confirmed"
                   className="btn btn-primary"
                 >
                   Confirm
-                </button>
-                <button
-                  type="submit"
+                </SubmitButton>
+                <SubmitButton
                   name="status"
                   value="disputed"
                   className="btn btn-secondary"
                 >
                   Dispute
-                </button>
+                </SubmitButton>
               </div>
             </form>
           )}

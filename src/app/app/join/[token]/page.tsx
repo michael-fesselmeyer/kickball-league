@@ -14,6 +14,8 @@ import { localDay } from "@/domain/schedule/public-game";
 import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { joinTeamAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = {
   title: "Join a team",
@@ -24,7 +26,7 @@ export const metadata: Metadata = {
 export default function JoinPage(props: PageProps<"/app/join/[token]">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-12">
-      <Suspense fallback={<p>Loading the invite…</p>}>
+      <Suspense fallback={<PageLoading>Loading the invite…</PageLoading>}>
         <Join {...props} />
       </Suspense>
     </main>
@@ -112,9 +114,9 @@ async function Join({ params, searchParams }: PageProps<"/app/join/[token]">) {
           className="flex flex-col gap-3"
         >
           <AgeConfirmation minimumAge={found.minimumAge} />
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Join {found.teamName}
-          </button>
+          </SubmitButton>
         </form>
       )}
     </>

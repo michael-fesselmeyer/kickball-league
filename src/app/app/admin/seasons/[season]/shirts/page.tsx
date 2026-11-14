@@ -15,6 +15,8 @@ import {
 } from "@/domain/shirts/summary";
 import { requirePermission } from "@/lib/auth/permission";
 import { markTeamOrderedAction, setShirtStatusAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Shirts" };
 
@@ -23,7 +25,7 @@ export default function ShirtsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Shirts {...props} />
       </Suspense>
     </main>
@@ -79,20 +81,19 @@ function StatusButtons({
       aria-label={`Shirt status for ${player.name}`}
     >
       {SHIRT_STATUSES.map((status) => (
-        <button
+        <SubmitButton
           key={status}
-          type="submit"
           name="status"
           value={status}
           aria-pressed={player.status === status}
-          className={`rounded-full border px-3 py-0.5 text-small ${
+          className={`min-h-11 rounded-full border px-3 py-0.5 text-small ${
             player.status === status
               ? "border-text bg-text text-surface"
               : "border-border"
           }`}
         >
           {SHIRT_STATUS_LABEL[status]}
-        </button>
+        </SubmitButton>
       ))}
     </form>
   );
@@ -281,10 +282,10 @@ async function Shirts({
                       t.teamSeasonId,
                     )}
                   >
-                    <button type="submit" className="underline">
+                    <SubmitButton className="min-h-11 underline">
                       Mark {waiting} unordered{" "}
                       {waiting === 1 ? "shirt" : "shirts"} as ordered
-                    </button>
+                    </SubmitButton>
                   </form>
                 )}
               </div>

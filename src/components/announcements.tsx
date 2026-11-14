@@ -2,6 +2,7 @@ import type { AnnouncementSummary } from "@/db/queries/announcements";
 import { BODY_MAX, SUBJECT_MAX } from "@/db/queries/announcements";
 import { announcementShareText } from "@/domain/share/share-text";
 import { CopyForWhatsApp } from "./share";
+import { SubmitButton } from "@/components/submit-button";
 
 const field = "rounded-md border border-border bg-surface px-2 py-1";
 
@@ -73,12 +74,9 @@ export function AnnouncementForm({
           Sent by email. {limitNote}
         </span>
       </label>
-      <button
-        type="submit"
-        className="self-start rounded-full bg-text px-4 py-2 font-bold text-surface"
-      >
+      <SubmitButton className="min-h-11 self-start rounded-full bg-text px-4 py-2 font-bold text-surface">
         Send announcement
-      </button>
+      </SubmitButton>
     </form>
   );
 }

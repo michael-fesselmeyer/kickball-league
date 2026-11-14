@@ -16,6 +16,8 @@ import {
 } from "@/domain/season/rollover";
 import { requirePermission } from "@/lib/auth/permission";
 import { rollOverAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Start the next season" };
 
@@ -24,7 +26,7 @@ export default function RolloverPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Rollover {...props} />
       </Suspense>
     </main>
@@ -135,6 +137,7 @@ async function Rollover({
             <span className="text-small">New season&apos;s name</span>
             <input
               name="name"
+              autoComplete="off"
               defaultValue={name}
               maxLength={60}
               required
@@ -187,9 +190,9 @@ async function Rollover({
             ))}
           </fieldset>
         )}
-        <button type="submit" className="btn self-start btn-secondary">
+        <SubmitButton className="btn self-start btn-secondary">
           Update the preview
-        </button>
+        </SubmitButton>
       </form>
 
       {plan.ok ? (
@@ -263,7 +266,12 @@ async function Rollover({
             </ul>
           </div>
           <form action={rollOverAction.bind(null, slug)}>
-            <input type="hidden" name="name" value={plan.value.name} />
+            <input
+              type="hidden"
+              name="name"
+              autoComplete="off"
+              value={plan.value.name}
+            />
             <input
               type="hidden"
               name="startsOn"
@@ -277,9 +285,9 @@ async function Rollover({
                 value={t.teamSeasonId}
               />
             ))}
-            <button type="submit" className="btn btn-primary" disabled={taken}>
+            <SubmitButton className="btn btn-primary" disabled={taken}>
               Create {plan.value.name} as a draft
-            </button>
+            </SubmitButton>
           </form>
         </section>
       ) : (

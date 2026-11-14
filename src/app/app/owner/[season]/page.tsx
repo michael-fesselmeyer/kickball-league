@@ -18,6 +18,7 @@ import {
   WeekColumns,
 } from "../charts";
 import { cachedDashboard, ownerSeason } from "../load";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Owner dashboard" };
 
@@ -115,9 +116,9 @@ async function Dashboard({
           className="flex flex-wrap items-center gap-3 text-small text-text-muted"
         >
           <span>Numbers as of {time(readAt, league.timeZone)}.</span>
-          <button type="submit" className="underline">
+          <SubmitButton className="min-h-11 underline">
             Refresh now
-          </button>
+          </SubmitButton>
         </form>
       </header>
 

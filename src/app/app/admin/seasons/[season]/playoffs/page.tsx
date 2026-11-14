@@ -18,6 +18,8 @@ import {
 import { dayHeading } from "@/domain/schedule/format";
 import { requirePermission } from "@/lib/auth/permission";
 import { makeBracket, publishDraftBracket } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Playoffs" };
 
@@ -26,7 +28,7 @@ export default function PlayoffsAdminPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Playoffs {...props} />
       </Suspense>
     </main>
@@ -128,11 +130,11 @@ async function Playoffs({
             </h2>
             {bracket.status === "draft" ? (
               <form action={publishDraftBracket.bind(null, slug)}>
-                <button type="submit" className="btn btn-primary">
+                <SubmitButton className="btn btn-primary">
                   {brackets.length > 1
                     ? "Publish the brackets"
                     : "Publish the bracket"}
-                </button>
+                </SubmitButton>
               </form>
             ) : (
               <Link
@@ -220,13 +222,13 @@ async function Playoffs({
                   ))}
                 </select>
               </label>
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton className="btn btn-primary">
                 {bracket
                   ? "Replace the draft"
                   : divided && preview.mode === "per_division"
                     ? "Make the brackets"
                     : "Make the bracket"}
-              </button>
+              </SubmitButton>
             </form>
           )}
           <p className="text-small text-text-muted">

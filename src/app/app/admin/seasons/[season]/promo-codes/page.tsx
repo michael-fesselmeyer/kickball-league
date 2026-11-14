@@ -9,6 +9,8 @@ import { formatCents } from "@/domain/registration/pricing";
 import { describePromo } from "@/domain/registration/promo";
 import { requirePermission } from "@/lib/auth/permission";
 import { createPromoCodeAction, disablePromoCodeAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Promo codes" };
 
@@ -17,7 +19,7 @@ export default function PromoCodesPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <PromoCodes {...props} />
       </Suspense>
     </main>
@@ -149,13 +151,12 @@ async function PromoCodes({
                             className="flex flex-wrap items-center gap-3"
                           >
                             <span>{status}</span>
-                            <button
-                              type="submit"
+                            <SubmitButton
                               className="inline-flex min-h-11 items-center underline"
                               aria-label={`Turn off ${c.code}`}
                             >
                               Turn off
-                            </button>
+                            </SubmitButton>
                           </form>
                         )}
                       </td>
@@ -236,9 +237,9 @@ async function PromoCodes({
             Last day it works (optional)
             <input name="validUntil" type="date" className={`${input} w-44`} />
           </label>
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Add promo code
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>

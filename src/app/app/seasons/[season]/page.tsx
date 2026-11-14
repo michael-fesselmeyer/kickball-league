@@ -18,6 +18,8 @@ import { requirePermission } from "@/lib/auth/permission";
 import { stripeClient } from "@/services/stripe";
 import { startCheckout } from "./actions";
 import { ConfirmingPayment } from "./confirming";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Your season" };
 
@@ -38,7 +40,7 @@ const PAYMENT_MESSAGES: Record<string, string> = {
 export default function SeasonPage(props: PageProps<"/app/seasons/[season]">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Season {...props} />
       </Suspense>
     </main>
@@ -268,10 +270,10 @@ async function Season({
                   Use my {formatCents(credit)} league credit
                 </label>
               )}
-              <button type="submit" className="btn self-start btn-primary">
+              <SubmitButton className="btn self-start btn-primary">
                 Pay {owed.ok && credit === 0 ? formatCents(owed.cents) : ""}{" "}
                 securely with Stripe
-              </button>
+              </SubmitButton>
               <span className="text-small text-text-muted">
                 Card, Apple Pay or Google Pay.
                 {deadline && ` Pay by ${deadline}.`}

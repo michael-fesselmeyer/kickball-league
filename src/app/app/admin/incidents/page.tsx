@@ -12,13 +12,14 @@ import { INCIDENT_KINDS } from "@/domain/discipline/discipline";
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
 import { REPORTED_BY, suspensionLine } from "./words";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Incidents" };
 
 export default function IncidentsPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading reports…</p>}>
+      <Suspense fallback={<PageLoading>Loading reports…</PageLoading>}>
         <Incidents />
       </Suspense>
     </main>

@@ -13,6 +13,8 @@ import {
 } from "@/domain/sponsors/sponsor-form";
 import { currentSubject } from "@/lib/auth/permission";
 import { createSponsorAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Sponsors" };
 
@@ -23,7 +25,7 @@ export const metadata: Metadata = { title: "Sponsors" };
 export default function SponsorsHome(props: PageProps<"/app/sponsor">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Sponsors {...props} />
       </Suspense>
     </main>
@@ -109,7 +111,13 @@ async function Sponsors({ searchParams }: PageProps<"/app/sponsor">) {
           <form action={createSponsorAction} className="flex flex-col gap-3">
             <label className="flex flex-col gap-1">
               Name
-              <input name="name" required maxLength={80} className={input} />
+              <input
+                name="name"
+                autoComplete="off"
+                required
+                maxLength={80}
+                className={input}
+              />
             </label>
             <label className="flex flex-col gap-1">
               Page address (optional, made from the name)
@@ -160,9 +168,9 @@ async function Sponsors({ searchParams }: PageProps<"/app/sponsor">) {
                 className={input}
               />
             </label>
-            <button type="submit" className="btn self-start btn-primary">
+            <SubmitButton className="btn self-start btn-primary">
               Add sponsor
-            </button>
+            </SubmitButton>
           </form>
         </section>
       )}

@@ -14,6 +14,8 @@ import {
   applySuggestionAction,
   buildTeamAction,
 } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Free-agent matcher" };
 
@@ -46,7 +48,7 @@ export default function FreeAgentsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <FreeAgents {...props} />
       </Suspense>
     </main>
@@ -180,9 +182,9 @@ async function FreeAgents({
           </h2>
           {result.suggestions.length > 1 && (
             <form action={applyAllAction.bind(null, slug)}>
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton className="btn btn-primary">
                 Apply all {result.suggestions.length}
-              </button>
+              </SubmitButton>
             </form>
           )}
         </div>
@@ -223,13 +225,12 @@ async function FreeAgents({
                     s.registrationIds,
                   )}
                 >
-                  <button
-                    type="submit"
+                  <SubmitButton
                     className="btn btn-secondary"
                     aria-label={`Apply: ${s.names.join(", ")} to ${s.teamName}`}
                   >
                     Apply
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -376,6 +377,7 @@ async function FreeAgents({
                 Team name
                 <input
                   name="name"
+                  autoComplete="off"
                   required
                   maxLength={40}
                   className="min-h-11 rounded-lg border border-border px-3"
@@ -446,9 +448,9 @@ async function FreeAgents({
                 ))}
               </div>
             </fieldset>
-            <button type="submit" className="btn self-start btn-primary">
+            <SubmitButton className="btn self-start btn-primary">
               Create the team
-            </button>
+            </SubmitButton>
           </form>
         </section>
       )}

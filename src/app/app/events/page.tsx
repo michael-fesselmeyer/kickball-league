@@ -16,6 +16,8 @@ import { feedLinks } from "@/lib/calendar-links";
 import { feedPath, feedToken } from "@/lib/event-feed";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { resetFeedAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Your events" };
 
@@ -35,7 +37,7 @@ export default function MyEventsPage(props: PageProps<"/app/events">) {
           Full events have a waitlist, and we&apos;ll email you if a spot opens.
         </p>
       </header>
-      <Suspense fallback={<p className="min-h-svh">Loading events…</p>}>
+      <Suspense fallback={<PageLoading>Loading events…</PageLoading>}>
         <MyEvents {...props} />
       </Suspense>
     </main>
@@ -142,9 +144,9 @@ async function MyEvents({ searchParams }: PageProps<"/app/events">) {
           </a>
         </div>
         <form action={resetFeedAction}>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             Reset my calendar link
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>

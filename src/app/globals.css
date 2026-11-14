@@ -214,6 +214,21 @@
     outline: 3px solid var(--focus);
     outline-offset: 2px;
   }
+
+  /* Touch targets (design-system.md §4): a field is at least 44px tall,
+     whatever padding its page gives it. */
+  input:where(
+    :not(
+      [type="checkbox"],
+      [type="radio"],
+      [type="hidden"],
+      [type="range"],
+      [type="file"]
+    )
+  ),
+  select {
+    min-height: 2.75rem;
+  }
 }
 
 /*
@@ -266,6 +281,12 @@
 @utility btn-secondary {
   background: var(--surface);
   color: var(--text);
+}
+
+/* A form on its way (SubmitButton): pressing again does nothing, and it looks it. */
+button[data-pending] {
+  cursor: progress;
+  opacity: 0.7;
 }
 
 /* Press feedback: transform only, and only when motion is welcome. */

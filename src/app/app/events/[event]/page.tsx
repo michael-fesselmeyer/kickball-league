@@ -32,6 +32,8 @@ import { googleEventLink } from "@/lib/calendar-links";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { joinEventAction, leaveEventAction } from "../actions";
 import { TicketPanel } from "./ticket";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "RSVP" };
 
@@ -68,7 +70,7 @@ const TICKET: Record<string, string> = {
 export default function EventRsvpPage(props: PageProps<"/app/events/[event]">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading the event…</p>}>
+      <Suspense fallback={<PageLoading>Loading the event…</PageLoading>}>
         <EventRsvp {...props} />
       </Suspense>
     </main>
@@ -257,9 +259,9 @@ async function EventRsvp({
               gets it.
             </p>
             <form action={leaveEventAction.bind(null, e.slug)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 I can&apos;t make it
-              </button>
+              </SubmitButton>
             </form>
           </>
         ) : mine?.status === "waitlisted" ? (
@@ -272,9 +274,9 @@ async function EventRsvp({
               an email.
             </p>
             <form action={leaveEventAction.bind(null, e.slug)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 Leave the waitlist
-              </button>
+              </SubmitButton>
             </form>
           </>
         ) : (
@@ -287,9 +289,9 @@ async function EventRsvp({
                   : `${left} of ${e.capacity} spots left.`}
             </p>
             <form action={joinEventAction.bind(null, e.slug)}>
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton className="btn btn-primary">
                 {left === 0 ? "Join the waitlist" : "I'm going"}
-              </button>
+              </SubmitButton>
             </form>
           </>
         )}

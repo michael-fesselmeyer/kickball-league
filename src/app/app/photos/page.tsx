@@ -17,6 +17,8 @@ import {
 import { requireSelf } from "@/lib/auth/permission";
 import { deleteMyPhotoAction, uploadPhotoAction } from "./actions";
 import { UploadForm } from "./upload-form";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Share a photo" };
 
@@ -37,7 +39,7 @@ export default function PhotosPage(props: PageProps<"/app/photos">) {
           may end up on the league&apos;s socials.
         </p>
       </header>
-      <Suspense fallback={<p className="min-h-svh">Loading your photos…</p>}>
+      <Suspense fallback={<PageLoading>Loading your photos…</PageLoading>}>
         <Photos {...props} />
       </Suspense>
     </main>
@@ -148,13 +150,13 @@ async function Photos({ searchParams }: PageProps<"/app/photos">) {
                 </p>
                 <form action={deleteMyPhotoAction}>
                   <input type="hidden" name="photo" value={p.id} />
-                  <button type="submit" className="btn btn-secondary">
+                  <SubmitButton className="btn btn-secondary">
                     Delete
                     <span className="sr-only">
                       {" "}
                       the photo sent {day.format(p.createdAt)}
                     </span>
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}

@@ -15,15 +15,17 @@ import {
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
 import { closePollAction, openPollAction, removePollAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
-export const metadata: Metadata = { title: "Awards" };
+export const metadata: Metadata = { title: "Manage awards" };
 
 export default function AwardsAdminPage(
   props: PageProps<"/app/admin/seasons/[season]/awards">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Awards {...props} />
       </Suspense>
     </main>
@@ -84,9 +86,9 @@ function PollRow({ poll, slug, now }: { poll: Poll; slug: string; now: Date }) {
           </Link>
         ) : (
           <form action={closePollAction.bind(null, slug, poll.id)}>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Close voting now
-            </button>
+            </SubmitButton>
           </form>
         )}
         <details className="text-small">
@@ -96,9 +98,9 @@ function PollRow({ poll, slug, now }: { poll: Poll; slug: string; now: Date }) {
             className="mt-2 flex flex-col items-start gap-2"
           >
             <p>This deletes the poll and every vote in it.</p>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Remove poll
-            </button>
+            </SubmitButton>
           </form>
         </details>
       </div>
@@ -260,9 +262,9 @@ async function Awards({
               />
             </label>
           </div>
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Open voting
-          </button>
+          </SubmitButton>
         </form>
       </section>
       <section aria-labelledby="live" className="flex flex-col gap-1">

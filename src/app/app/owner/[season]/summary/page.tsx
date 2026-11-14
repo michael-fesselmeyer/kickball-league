@@ -8,6 +8,7 @@ import { MIN_MEMBERS_TO_PUBLISH } from "@/domain/dashboard/money";
 import { requirePermission } from "@/lib/auth/permission";
 import { publishSummaryAction, unpublishSummaryAction } from "../../actions";
 import { FOLDABLE, foldedFrom, liveSummary, ownerSeason } from "../../load";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Money summary" };
 
@@ -134,9 +135,9 @@ async function Summary({
             ),
           )}
         </fieldset>
-        <button type="submit" className="btn self-start btn-secondary">
+        <SubmitButton className="btn self-start btn-secondary">
           Update the preview
-        </button>
+        </SubmitButton>
       </form>
 
       <section
@@ -154,19 +155,18 @@ async function Summary({
           {folded.map((c) => (
             <input key={c} type="hidden" name="fold" value={c} />
           ))}
-          <button
-            type="submit"
+          <SubmitButton
             className="btn btn-primary"
             disabled={preview.blocker !== null}
           >
             {published ? "Publish these numbers" : "Publish the summary"}
-          </button>
+          </SubmitButton>
         </form>
         {published && (
           <form action={unpublishSummaryAction.bind(null, season.slug)}>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Take it down
-            </button>
+            </SubmitButton>
           </form>
         )}
       </div>

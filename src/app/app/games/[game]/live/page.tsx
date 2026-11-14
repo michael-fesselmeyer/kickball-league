@@ -16,13 +16,15 @@ import { MIN_CALLED_INNINGS, PLAYOFF_TIE } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
 import { kicksFirstAction } from "./actions";
 import { Scoring } from "./scoring";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Live score" };
 
 export default function LivePage(props: PageProps<"/app/games/[game]/live">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
-      <Suspense fallback={<p>Loading the game…</p>}>
+      <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>
         <Live {...props} />
       </Suspense>
     </main>
@@ -126,15 +128,14 @@ async function Live({
           </p>
           <div className="grid grid-cols-2 gap-3">
             {(["A", "B"] as const).map((side) => (
-              <button
+              <SubmitButton
                 key={side}
-                type="submit"
                 name="side"
                 value={side}
                 className="btn min-w-0 btn-primary"
               >
                 <span className="truncate">{names[side]}</span>
-              </button>
+              </SubmitButton>
             ))}
           </div>
         </form>

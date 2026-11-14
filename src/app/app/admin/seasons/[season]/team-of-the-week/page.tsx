@@ -18,6 +18,8 @@ import { statGamesFrom, teamsFrom } from "@/domain/stats/season";
 import { gameDays } from "@/domain/stats/weekly";
 import { requirePermission } from "@/lib/auth/permission";
 import { removeTeamOfWeekAction, setTeamOfWeekAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Team of the week" };
 
@@ -26,7 +28,7 @@ type Props = PageProps<"/app/admin/seasons/[season]/team-of-the-week">;
 export default function TeamOfWeekPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <TeamOfWeek {...props} />
       </Suspense>
     </main>
@@ -236,9 +238,9 @@ async function TeamOfWeek({ params, searchParams }: Props) {
                   />
                 </label>
               </div>
-              <button type="submit" className="btn self-start btn-primary">
+              <SubmitButton className="btn self-start btn-primary">
                 {existing ? "Save the change" : "Name them"}
-              </button>
+              </SubmitButton>
             </form>
           </section>
         </>
@@ -269,15 +271,12 @@ async function TeamOfWeek({ params, searchParams }: Props) {
                 <form
                   action={removeTeamOfWeekAction.bind(null, slug, h.weekOf)}
                 >
-                  <button
-                    type="submit"
-                    className="inline-flex min-h-6 items-center underline"
-                  >
+                  <SubmitButton className="inline-flex min-h-11 items-center underline">
                     Remove
                     <span className="sr-only">
                       : {h.teamName}, {dayHeading(h.weekOf)}
                     </span>
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}

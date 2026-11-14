@@ -19,6 +19,8 @@ import {
   deleteBlackout,
   deletePermit,
 } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Fields and permits" };
 
@@ -27,7 +29,7 @@ export default function FieldsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Fields {...props} />
       </Suspense>
     </main>
@@ -226,7 +228,13 @@ async function Fields({
         >
           <label className="flex flex-col gap-1">
             Venue name
-            <input name="name" required maxLength={80} className={input} />
+            <input
+              name="name"
+              autoComplete="off"
+              required
+              maxLength={80}
+              className={input}
+            />
           </label>
           <label className="flex flex-col gap-1">
             Neighborhood
@@ -236,9 +244,7 @@ async function Fields({
             Address
             <input name="address" maxLength={160} className={input} />
           </label>
-          <button type="submit" className="btn btn-secondary">
-            Add venue
-          </button>
+          <SubmitButton className="btn btn-secondary">Add venue</SubmitButton>
         </form>
         {screen.venues.length > 0 && (
           <form
@@ -257,11 +263,15 @@ async function Fields({
             </label>
             <label className="flex flex-col gap-1">
               Field name
-              <input name="name" required maxLength={80} className={input} />
+              <input
+                name="name"
+                autoComplete="off"
+                required
+                maxLength={80}
+                className={input}
+              />
             </label>
-            <button type="submit" className="btn btn-secondary">
-              Add field
-            </button>
+            <SubmitButton className="btn btn-secondary">Add field</SubmitButton>
           </form>
         )}
       </section>
@@ -340,9 +350,9 @@ async function Fields({
                 <option value="confirmed">Confirmed</option>
               </select>
             </label>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Add permit hours
-            </button>
+            </SubmitButton>
           </form>
         )}
         {screen.permits.length === 0 ? (
@@ -392,21 +402,20 @@ async function Fields({
                             <option value="confirmed">Confirmed</option>
                             <option value="lost">Lost</option>
                           </select>
-                          <button type="submit" className="underline">
+                          <SubmitButton className="min-h-11 underline">
                             Save
-                          </button>
+                          </SubmitButton>
                         </form>
                       </td>
                       <td>
                         {slots === 0 && (
                           <form action={deletePermit.bind(null, slug, p.id)}>
-                            <button
-                              type="submit"
-                              className="text-danger underline"
+                            <SubmitButton
+                              className="min-h-11 text-danger underline"
                               aria-label={`Delete the ${date} permit on ${fieldName.get(p.fieldId)}`}
                             >
                               Delete
-                            </button>
+                            </SubmitButton>
                           </form>
                         )}
                       </td>
@@ -446,9 +455,9 @@ async function Fields({
             Reason
             <input name="reason" maxLength={120} className={input} />
           </label>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             Add blackout
-          </button>
+          </SubmitButton>
         </form>
         {screen.blackouts.length === 0 ? (
           <p className="text-text-muted">No blackout dates.</p>
@@ -464,13 +473,12 @@ async function Fields({
                   )}
                 </span>
                 <form action={deleteBlackout.bind(null, slug, b.id)}>
-                  <button
-                    type="submit"
-                    className="text-danger underline"
+                  <SubmitButton
+                    className="min-h-11 text-danger underline"
                     aria-label={`Remove the ${dayLabel(b.onDate)} blackout`}
                   >
                     Remove
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -504,9 +512,9 @@ async function Fields({
               className={`${input} w-24`}
             />
           </label>
-          <button type="submit" className="btn btn-primary">
+          <SubmitButton className="btn btn-primary">
             Cut slots from permits
-          </button>
+          </SubmitButton>
         </form>
         <p>
           <strong>{plural(openSlots, "open slot")}</strong> on{" "}

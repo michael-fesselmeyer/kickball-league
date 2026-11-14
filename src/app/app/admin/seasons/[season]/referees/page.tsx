@@ -7,6 +7,8 @@ import { refereeBoard } from "@/db/queries/referees";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { requirePermission } from "@/lib/auth/permission";
 import { assignRefereeAction, unassignRefereeAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Referees" };
 
@@ -15,7 +17,7 @@ export default function RefereesPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Referees {...props} />
       </Suspense>
     </main>
@@ -111,13 +113,12 @@ async function Referees({
                     className="flex items-center gap-3"
                   >
                     <span>{g.referee.name || g.referee.email}</span>
-                    <button
-                      type="submit"
-                      className="underline"
+                    <SubmitButton
+                      className="min-h-11 underline"
                       aria-label={`Remove the referee from ${g.teamAName} vs ${g.teamBName}`}
                     >
                       Remove
-                    </button>
+                    </SubmitButton>
                   </form>
                 ) : (
                   <form
@@ -132,9 +133,9 @@ async function Referees({
                       aria-label={`Referee's email for ${g.teamAName} vs ${g.teamBName}`}
                       className="w-48 rounded-md border border-border bg-surface px-2 py-1"
                     />
-                    <button type="submit" className="underline">
+                    <SubmitButton className="min-h-11 underline">
                       Assign
-                    </button>
+                    </SubmitButton>
                   </form>
                 )}
               </li>

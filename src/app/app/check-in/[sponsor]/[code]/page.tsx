@@ -9,6 +9,8 @@ import { localDay } from "@/domain/schedule/public-game";
 import { isCurrentCheckinCode } from "@/domain/sponsors/checkin-code";
 import { requirePermission } from "@/lib/auth/permission";
 import { checkInAction } from "../../actions";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Check in" };
 
@@ -18,7 +20,7 @@ type Props = PageProps<"/app/check-in/[sponsor]/[code]">;
 export default function CheckInPage(props: Props) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-4 py-12">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <CheckIn {...props} />
       </Suspense>
     </main>
@@ -71,9 +73,7 @@ async function CheckIn({ params, searchParams }: Props) {
         </p>
       </div>
       <form action={checkInAction.bind(null, slug, code)}>
-        <button type="submit" className="btn w-full btn-primary">
-          Check in
-        </button>
+        <SubmitButton className="btn w-full btn-primary">Check in</SubmitButton>
       </form>
     </>
   );

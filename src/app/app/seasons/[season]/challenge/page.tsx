@@ -12,6 +12,7 @@ import { seasonForRegistration } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { formatMoment } from "@/domain/money/credit";
 import { requirePermission } from "@/lib/auth/permission";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Sign-up challenge" };
 
@@ -24,9 +25,7 @@ type Props = PageProps<"/app/seasons/[season]/challenge">;
 export default function ChallengePage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
-      <Suspense
-        fallback={<p className="min-h-svh">Loading the leaderboard…</p>}
-      >
+      <Suspense fallback={<PageLoading>Loading the leaderboard…</PageLoading>}>
         <Challenge {...props} />
       </Suspense>
     </main>

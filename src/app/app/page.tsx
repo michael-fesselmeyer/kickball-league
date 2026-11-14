@@ -15,6 +15,7 @@ import { AllOutboxStatus } from "@/components/offline-outbox";
 import { Pickups } from "@/components/pickups";
 import { can } from "@/domain/authz/permissions";
 import { isGameDay } from "@/domain/lineup/access";
+import { newestTeamSeason } from "@/domain/schedule/public-game";
 import {
   type GameId,
   parseId,
@@ -33,13 +34,15 @@ import { checkInAsRefereeAction } from "./referee-actions";
 import { InstallPrompt } from "./install-prompt";
 import { cardsVisible } from "@/domain/emergency/emergency";
 import { OfflineSync, SignOutForm } from "./offline-sync";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Home" };
 
 export default function AppHome() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-4 py-12">
-      <Suspense fallback={<p>Loading your account…</p>}>
+      <Suspense fallback={<PageLoading>Loading your account…</PageLoading>}>
         <Account />
       </Suspense>
     </main>
@@ -89,7 +92,12 @@ async function Account() {
     db,
     refereeing.map((g) => g.id),
   );
-  const nextGame = pickNextGame(await myGames, now);
+  const games = await myGames;
+  const nextGame = pickNextGame(games, now);
+  const teamSeason = newestTeamSeason(
+    games,
+    subject.roster.map((m) => m.teamSeasonId),
+  );
   // The next game's park permit, for its ref and captains (ADR 0034).
   const nextGameId = parseId<GameId>(nextGame?.id);
   const permitShown =
@@ -143,9 +151,31 @@ async function Account() {
         <h1 className="text-h1">You&apos;re in!</h1>
         <p className="text-text-muted">
           Signed in as <strong className="text-text">{name || email}</strong>.
-          Your season stuff will live here.
         </p>
       </div>
+      {nextGame && (
+        <section
+          aria-labelledby="next-game"
+          className="flex flex-col gap-1 rounded-card border-2 border-text bg-surface p-4"
+        >
+          <h2 id="next-game" className="text-h3">
+            Your next game
+          </h2>
+          <Link
+            href={`/games/${nextGame.id}`}
+            className="inline-flex min-h-11 items-center font-bold underline"
+          >
+            {nextGame.teamA.name} vs {nextGame.teamB.name}
+          </Link>
+          {nextGame.startsAt && (
+            <p className="text-small text-text-muted">
+              {when(nextGame.startsAt)}
+              {nextGame.field ? ` · ${nextGame.field}` : ""}
+              {nextGame.venue ? `, ${nextGame.venue.name}` : ""}
+            </p>
+          )}
+        </section>
+      )}
       {offeredInstall(subject) && <AllOutboxStatus />}
       {won.length > 0 && (
         <section
@@ -210,13 +240,13 @@ async function Account() {
                     ) : (
                       <form action={checkInAsRefereeAction}>
                         <input type="hidden" name="gameId" value={g.id} />
-                        <button type="submit" className="btn btn-secondary">
+                        <SubmitButton className="btn btn-secondary">
                           I&apos;m at the field
                           <span className="sr-only">
                             {" "}
                             for {g.teamAName} vs {g.teamBName}
                           </span>
-                        </button>
+                        </SubmitButton>
                       </form>
                     ))}
                   {isGameDay(g.startsAt, now, timeZone) && (
@@ -261,6 +291,22 @@ async function Account() {
         >
           Park permit for your next game
         </Link>
+      )}
+      {teamSeason && (
+        <>
+          <Link
+            href={`/app/seasons/${teamSeason}/team`}
+            className="btn btn-secondary"
+          >
+            Your team
+          </Link>
+          <Link
+            href={`/seasons/${teamSeason}/schedule`}
+            className="btn btn-secondary"
+          >
+            Schedule
+          </Link>
+        </>
       )}
       {ballots > 0 && (
         <Link href="/app/vote" className="btn btn-primary">
