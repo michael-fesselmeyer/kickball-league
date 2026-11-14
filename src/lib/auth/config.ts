@@ -15,12 +15,35 @@ export const SESSION_FRESH_AGE_SECONDS = 15 * MINUTE;
 export const MAGIC_LINK_EXPIRES_IN_SECONDS = 15 * MINUTE;
 
 /**
+ * Sign-in links are the one email anyone can ask for, and they are sent
+ * outside the outbox's email budget (docs/architecture.md, section 5), so
+ * they get limits of their own:
+ *
+ * - From one IP address, 20 a day: enough for a bar's Wi-Fi on league night,
+ *   far short of the free plan's 100 emails a day. Better Auth counts it and
+ *   restarts the count after a day without a link from that address.
+ * - To one inbox, 3 for each link lifetime (15 minutes). Someone asking for
+ *   links to another person's address can't flood it, and can't lock its
+ *   owner out either: a link from the last window still works while the
+ *   next one waits.
+ */
+export const SIGN_IN_LINKS_PER_IP = { window: DAY, max: 20 } as const;
+export const SIGN_IN_LINKS_PER_INBOX = {
+  windowSeconds: MAGIC_LINK_EXPIRES_IN_SECONDS,
+  max: 3,
+} as const;
+
+/**
  * Rate-limit counts live in Postgres (the `rate_limit` table), so the limits
  * apply to the whole site, not to each server instance. The rules are
- * Better Auth's own: 5 magic-link requests or verifications a minute per IP,
- * 3 other sign-in attempts per 10 seconds, 100 other requests per 10 seconds.
+ * Better Auth's own, apart from sign-in links (above): 5 sign-in link checks
+ * a minute per IP, 3 other sign-in attempts per 10 seconds, 100 other
+ * requests per 10 seconds.
  */
-export const RATE_LIMIT = { storage: "database" } as const;
+export const RATE_LIMIT = {
+  storage: "database",
+  customRules: { "/sign-in/magic-link": SIGN_IN_LINKS_PER_IP },
+} as const;
 
 /**
  * Better Auth routes the site never calls, switched off so nobody can call

@@ -1,4 +1,7 @@
 import { createHash } from "node:crypto";
+import { APIError } from "better-auth/api";
+import { allowSignInLink } from "@/db/queries/rate-limit";
+import type { Db } from "@/db/queries/schedule";
 import { renderMagicLinkEmail } from "@/emails/magic-link-email";
 import type { EmailSender } from "@/services/email";
 import { MAGIC_LINK_EXPIRES_IN_SECONDS } from "./config";
@@ -40,4 +43,24 @@ export async function deliverMagicLink(
     throw new Error("Email delivery is not configured yet.");
   }
   log(`\n[auth] Magic link for ${email}:\n${url}\n`);
+}
+
+type Link = { email: string; url: string };
+
+/**
+ * Wraps the sender so each inbox gets at most a few links per link lifetime
+ * (`SIGN_IN_LINKS_PER_INBOX`). It runs after Better Auth's per-IP limit and
+ * before any email goes; over the limit, the request answers 429.
+ */
+export function withinInboxLimit(
+  db: Db,
+  deliver: (link: Link) => Promise<void>,
+): (link: Link) => Promise<void> {
+  return async (link) => {
+    if (!(await allowSignInLink(db, link.email, new Date())))
+      throw new APIError("TOO_MANY_REQUESTS", {
+        message: "Too many sign-in links for this address. Try again soon.",
+      });
+    await deliver(link);
+  };
 }
