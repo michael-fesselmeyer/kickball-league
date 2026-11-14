@@ -16,6 +16,7 @@ import {
   REQUEST_ERRORS,
   type RequestError,
   describeRequest,
+  requestsCloseAt,
   requestsOpen,
 } from "@/domain/schedule/team-requests";
 import { requirePermission } from "@/lib/auth/permission";
@@ -69,9 +70,8 @@ async function TeamRequests({
   ]);
   const admin =
     subject.globalRole === "admin" || subject.globalRole === "owner";
-  const open = admin || requestsOpen(season, new Date());
-  const closes =
-    season.registrationClosesAt ?? new Date(`${season.startsOn}T00:00:00Z`);
+  const open = admin || requestsOpen(season, new Date(), league.timeZone);
+  const closes = requestsCloseAt(season, league.timeZone);
   const closesText = new Intl.DateTimeFormat("en-US", {
     weekday: "short",
     month: "short",

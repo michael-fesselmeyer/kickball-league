@@ -1,4 +1,5 @@
 import { err, ok, type Result } from "../result";
+import { zonedInstant } from "../time/zoned";
 
 /**
  * Scheduling requests a captain sends before the schedule is made: a date
@@ -112,12 +113,25 @@ export function parseTeamRequest(
  * the season starts when no close is set. Admins may change them any time.
  */
 export function requestsOpen(
-  window: { registrationClosesAt: Date | null; startsOn: string },
+  window: RequestWindow,
   now: Date,
+  timeZone: string,
 ): boolean {
-  const closes =
-    window.registrationClosesAt ?? new Date(`${window.startsOn}T00:00:00Z`);
-  return now.getTime() < closes.getTime();
+  return now.getTime() < requestsCloseAt(window, timeZone).getTime();
+}
+
+type RequestWindow = { registrationClosesAt: Date | null; startsOn: string };
+
+/**
+ * When requests close: registration's close, or else midnight in the
+ * league's zone as the season's first day begins (not UTC midnight, which
+ * is the evening before in New York).
+ */
+export function requestsCloseAt(window: RequestWindow, timeZone: string): Date {
+  return (
+    window.registrationClosesAt ??
+    zonedInstant(window.startsOn, "00:00", timeZone)
+  );
 }
 
 /** One line a captain or admin can read, given how each time index looks. */

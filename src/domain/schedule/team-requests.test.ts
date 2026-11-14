@@ -5,6 +5,7 @@ import {
   MAX_REQUESTS_PER_TEAM,
   describeRequest,
   parseTeamRequest,
+  requestsCloseAt,
   requestsOpen,
   type RequestForm,
 } from "./team-requests";
@@ -110,14 +111,32 @@ describe("requestsOpen", () => {
       registrationClosesAt: new Date("2027-03-20T04:00:00Z"),
       startsOn: "2027-04-05",
     };
-    expect(requestsOpen(window, new Date("2027-03-20T03:59:59Z"))).toBe(true);
-    expect(requestsOpen(window, new Date("2027-03-20T04:00:00Z"))).toBe(false);
+    const at = (iso: string) => requestsOpen(window, new Date(iso), "UTC");
+    expect(at("2027-03-20T03:59:59Z")).toBe(true);
+    expect(at("2027-03-20T04:00:00Z")).toBe(false);
   });
 
-  it("falls back to the season start without a registration close", () => {
+  it("falls back to midnight in the league's zone as the season starts", () => {
     const window = { registrationClosesAt: null, startsOn: "2027-04-05" };
-    expect(requestsOpen(window, new Date("2027-04-04T23:00:00Z"))).toBe(true);
-    expect(requestsOpen(window, new Date("2027-04-05T00:00:00Z"))).toBe(false);
+    const ny = "America/New_York";
+    // 8 pm the evening before, in New York: still open.
+    expect(requestsOpen(window, new Date("2027-04-05T00:00:00Z"), ny)).toBe(
+      true,
+    );
+    expect(requestsOpen(window, new Date("2027-04-05T03:59:59Z"), ny)).toBe(
+      true,
+    );
+    expect(requestsOpen(window, new Date("2027-04-05T04:00:00Z"), ny)).toBe(
+      false,
+    );
+  });
+
+  it("closes at local midnight on the night the clocks spring forward", () => {
+    // 2027-03-14 starts in EST (UTC-5); the jump comes at 2 am, after midnight.
+    const window = { registrationClosesAt: null, startsOn: "2027-03-14" };
+    expect(requestsCloseAt(window, "America/New_York").toISOString()).toBe(
+      "2027-03-14T05:00:00.000Z",
+    );
   });
 });
 
