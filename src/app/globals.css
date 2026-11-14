@@ -268,6 +268,12 @@
   color: var(--text);
 }
 
+/* A form on its way (SubmitButton): pressing again does nothing, and it looks it. */
+button[data-pending] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
 /* Press feedback: transform only, and only when motion is welcome. */
 @media (prefers-reduced-motion: no-preference) {
   .btn {

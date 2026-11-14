@@ -16,6 +16,7 @@ import { parseId, type UserId } from "@/domain/ids";
 import { requirePermission, sessionIsFresh } from "@/lib/auth/permission";
 import { findAccountsAction, mergeAccountsAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Merge accounts" };
 
@@ -140,9 +141,9 @@ async function Accounts({ searchParams }: PageProps<"/app/admin/accounts">) {
               className={input}
             />
           </label>
-          <button type="submit" className="btn self-start btn-secondary">
+          <SubmitButton className="btn self-start btn-secondary">
             Preview the merge
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -235,12 +236,9 @@ async function Accounts({ searchParams }: PageProps<"/app/admin/accounts">) {
                     afterwards.
                   </span>
                 </label>
-                <button
-                  type="submit"
-                  className="btn self-start border-danger bg-surface text-danger"
-                >
+                <SubmitButton className="btn self-start border-danger bg-surface text-danger">
                   Merge into {preview.kept.name}
-                </button>
+                </SubmitButton>
               </form>
             ))}
         </section>

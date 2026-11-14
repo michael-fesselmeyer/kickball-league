@@ -1,5 +1,6 @@
 import type { AwaySeason } from "@/db/queries/away";
 import { saveAwayWeeksAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 const STATUS: Record<string, { tone: string; text: string; role: string }> = {
   saved: {
@@ -110,9 +111,9 @@ export function AwayWeeks({
                 </label>
               ))}
             </fieldset>
-            <button type="submit" className="btn self-start btn-secondary">
+            <SubmitButton className="btn self-start btn-secondary">
               Save away weeks for {s.seasonName}
-            </button>
+            </SubmitButton>
           </form>
         ))
       )}

@@ -17,6 +17,7 @@ import { localDate } from "@/domain/scheduler/slots";
 import { requirePermission } from "@/lib/auth/permission";
 import { requestNewTeamAction, withdrawNewTeamAction } from "./actions";
 import { NewTeamForm } from "./new-team-form";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Start a new team" };
 
@@ -83,9 +84,9 @@ function RequestCard({
           <p className="text-text-muted">Your note: {request.note}</p>
         )}
         <form action={withdrawNewTeamAction.bind(null, slug, request.id)}>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             Withdraw the request
-          </button>
+          </SubmitButton>
         </form>
       </section>
     );

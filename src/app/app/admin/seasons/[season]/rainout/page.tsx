@@ -18,6 +18,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { declareRainout } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Rain-out" };
 
@@ -189,9 +190,9 @@ async function Rainout({
             </p>
           ))}
         <form action={declareRainout.bind(null, slug, date)}>
-          <button type="submit" className="btn btn-primary">
+          <SubmitButton className="btn btn-primary">
             Cancel {dayLabel(date)} and save these makeups as a draft
-          </button>
+          </SubmitButton>
         </form>
         <p className="text-text-muted">
           Nothing is published or sent until you publish the draft on the
@@ -249,9 +250,7 @@ async function Rainout({
             ))}
           </select>
         </label>
-        <button type="submit" className="btn btn-secondary">
-          Preview
-        </button>
+        <SubmitButton className="btn btn-secondary">Preview</SubmitButton>
       </form>
       {preview}
     </>

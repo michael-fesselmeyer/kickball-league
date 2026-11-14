@@ -8,6 +8,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
 import { castVoteAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Vote for awards" };
 
@@ -132,9 +133,7 @@ function BallotCard({
               <Choices ballot={ballot} me={me} />
             </select>
           </div>
-          <button type="submit" className="btn btn-primary">
-            Cast vote
-          </button>
+          <SubmitButton className="btn btn-primary">Cast vote</SubmitButton>
         </form>
       )}
     </li>

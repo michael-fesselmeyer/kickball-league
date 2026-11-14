@@ -13,6 +13,7 @@ import { creditToApply } from "@/domain/money/credit";
 import { formatCents } from "@/domain/registration/pricing";
 import { ConfirmingPayment } from "@/app/app/seasons/[season]/confirming";
 import { buyTicketAction, leaveEventAction } from "../actions";
+import { SubmitButton } from "@/components/submit-button";
 
 const moment = (at: Date, timeZone: string) =>
   new Intl.DateTimeFormat("en-US", {
@@ -91,9 +92,9 @@ export function TicketPanel({
           Can&apos;t make it? Drop it so someone else gets it.
         </p>
         <form action={leaveEventAction.bind(null, slug)}>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             I can&apos;t make it
-          </button>
+          </SubmitButton>
         </form>
       </>
     );
@@ -108,9 +109,7 @@ export function TicketPanel({
           hour from when you started.
         </p>
         <form action={buyTicketAction.bind(null, slug)}>
-          <button type="submit" className="btn btn-primary">
-            Finish paying
-          </button>
+          <SubmitButton className="btn btn-primary">Finish paying</SubmitButton>
         </form>
       </>
     );
@@ -127,9 +126,9 @@ export function TicketPanel({
           an email.
         </p>
         <form action={leaveEventAction.bind(null, slug)}>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             Leave the waitlist
-          </button>
+          </SubmitButton>
         </form>
       </>
     );
@@ -175,13 +174,13 @@ export function TicketPanel({
             Use {formatCents(credit)} of my league credit
           </label>
         )}
-        <button type="submit" className="btn btn-primary">
+        <SubmitButton className="btn btn-primary">
           {full
             ? "Join the waitlist"
             : price === 0
               ? "Get my free ticket"
               : `Buy a ticket for ${formatCents(price)}`}
-        </button>
+        </SubmitButton>
         {!full && price > 0 && (
           <p className="text-small text-text-muted">
             You pay securely with Stripe. Your spot is held while you check out.
@@ -190,9 +189,7 @@ export function TicketPanel({
       </form>
       {offered && (
         <form action={leaveEventAction.bind(null, slug)}>
-          <button type="submit" className="btn btn-secondary">
-            Pass on it
-          </button>
+          <SubmitButton className="btn btn-secondary">Pass on it</SubmitButton>
         </form>
       )}
     </>

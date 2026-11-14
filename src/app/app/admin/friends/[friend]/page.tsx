@@ -14,6 +14,7 @@ import {
 } from "../actions";
 import { FriendFormFields } from "../friend-form";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Edit a league" };
 
@@ -90,9 +91,9 @@ async function EditFriend({ params, searchParams }: Props) {
             className="size-16 rounded-md bg-surface object-contain"
           />
           <form action={removeFriendLogoAction.bind(null, entry.id)}>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Remove the logo
-            </button>
+            </SubmitButton>
           </form>
         </section>
       )}
@@ -116,9 +117,9 @@ async function EditFriend({ params, searchParams }: Props) {
             />
             Yes, take {entry.name} off the friends page
           </label>
-          <button type="submit" className="btn self-start btn-secondary">
+          <SubmitButton className="btn self-start btn-secondary">
             Remove the league
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>

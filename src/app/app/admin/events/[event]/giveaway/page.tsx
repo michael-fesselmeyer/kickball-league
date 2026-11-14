@@ -27,6 +27,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { drawAction, redrawAction, saveGiveawayAction } from "./actions";
 import { GiveawayFormFields } from "./giveaway-form";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Event giveaway" };
 
@@ -166,9 +167,9 @@ async function AdminGiveaway({ params, searchParams }: Props) {
                 />
                 Entry is closed and I&apos;m ready to draw
               </label>
-              <button type="submit" className="btn self-start btn-primary">
+              <SubmitButton className="btn self-start btn-primary">
                 Draw the winners
-              </button>
+              </SubmitButton>
             </form>
           )}
         </section>
@@ -224,12 +225,9 @@ async function AdminGiveaway({ params, searchParams }: Props) {
                         placeholder="Didn't claim the prize in 14 days"
                         className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
                       />
-                      <button
-                        type="submit"
-                        className="btn self-start btn-secondary"
-                      >
+                      <SubmitButton className="btn self-start btn-secondary">
                         Draw a new winner
-                      </button>
+                      </SubmitButton>
                     </form>
                   </details>
                 )}

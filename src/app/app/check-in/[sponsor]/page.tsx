@@ -16,6 +16,7 @@ import { localTime } from "@/domain/time/zoned";
 import { requirePermission } from "@/lib/auth/permission";
 import { redeemDealAction } from "../actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Your visit" };
 
@@ -129,9 +130,9 @@ async function Visit({ params, searchParams }: Props) {
                     </p>
                   ) : visit && on ? (
                     <form action={redeemDealAction.bind(null, slug, d.id)}>
-                      <button type="submit" className="btn btn-primary">
+                      <SubmitButton className="btn btn-primary">
                         Use this deal
-                      </button>
+                      </SubmitButton>
                     </form>
                   ) : (
                     <p className="text-small text-text-muted">

@@ -51,6 +51,7 @@ import { InviteLink } from "./invite-link";
 import { KeepOffSection } from "./keep-off";
 import { type GuaranteeView, TeamMoney } from "./team-money";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Your team" };
 
@@ -97,9 +98,8 @@ function Rsvp({
             ["out", "Out"],
           ] as const
         ).map(([value, label]) => (
-          <button
+          <SubmitButton
             key={value}
-            type="submit"
             name="status"
             value={value}
             aria-pressed={mine === value}
@@ -111,7 +111,7 @@ function Rsvp({
             }`}
           >
             {label}
-          </button>
+          </SubmitButton>
         ))}
       </form>
       {team && team.in === 0 ? (
@@ -554,9 +554,9 @@ async function Team({
                               <option value="other">Other</option>
                             </select>
                             <input type="hidden" name="note" value="" />
-                            <button type="submit" className="underline">
+                            <SubmitButton className="underline">
                               Paid me
-                            </button>
+                            </SubmitButton>
                           </form>
                         )}
                       </td>

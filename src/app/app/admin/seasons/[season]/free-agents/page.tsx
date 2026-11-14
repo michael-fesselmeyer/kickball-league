@@ -15,6 +15,7 @@ import {
   buildTeamAction,
 } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Free-agent matcher" };
 
@@ -181,9 +182,9 @@ async function FreeAgents({
           </h2>
           {result.suggestions.length > 1 && (
             <form action={applyAllAction.bind(null, slug)}>
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton className="btn btn-primary">
                 Apply all {result.suggestions.length}
-              </button>
+              </SubmitButton>
             </form>
           )}
         </div>
@@ -224,13 +225,12 @@ async function FreeAgents({
                     s.registrationIds,
                   )}
                 >
-                  <button
-                    type="submit"
+                  <SubmitButton
                     className="btn btn-secondary"
                     aria-label={`Apply: ${s.names.join(", ")} to ${s.teamName}`}
                   >
                     Apply
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -447,9 +447,9 @@ async function FreeAgents({
                 ))}
               </div>
             </fieldset>
-            <button type="submit" className="btn self-start btn-primary">
+            <SubmitButton className="btn self-start btn-primary">
               Create the team
-            </button>
+            </SubmitButton>
           </form>
         </section>
       )}

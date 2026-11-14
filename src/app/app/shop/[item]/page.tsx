@@ -23,6 +23,7 @@ import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { orderMerchAction } from "../actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Shop item" };
 
@@ -268,9 +269,9 @@ async function ShopItem({
                 Use my league credit ({formatCents(credit)} available)
               </label>
             )}
-            <button type="submit" className="btn btn-primary">
+            <SubmitButton className="btn btn-primary">
               Order for {formatCents(price)} each
-            </button>
+            </SubmitButton>
             <p className="text-small text-text-muted">
               You pay securely with Stripe. What you pick is held while you
               check out.

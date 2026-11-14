@@ -18,6 +18,7 @@ import { BoardLoader } from "./board-loader";
 import type { BoardSlot } from "./board-model";
 import { metricRows, readable } from "./labels";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Build the schedule" };
 
@@ -207,9 +208,7 @@ async function Schedule({
               className="w-24 rounded-md border border-border bg-surface px-2 py-1"
             />
           </label>
-          <button type="submit" className="btn btn-primary">
-            Generate
-          </button>
+          <SubmitButton className="btn btn-primary">Generate</SubmitButton>
         </form>
       </section>
 
@@ -253,9 +252,9 @@ async function Schedule({
             </h2>
             {latest.status === "draft" && violations.length === 0 && (
               <form action={publishDraft.bind(null, slug, latest.id)}>
-                <button type="submit" className="btn btn-primary">
+                <SubmitButton className="btn btn-primary">
                   Publish version {latest.versionNo}
-                </button>
+                </SubmitButton>
               </form>
             )}
           </div>
@@ -415,9 +414,9 @@ async function Schedule({
               <input type="checkbox" name="pin" defaultChecked />
               Pin it there, so regenerating keeps it
             </label>
-            <button type="submit" className="btn self-start btn-secondary">
+            <SubmitButton className="btn self-start btn-secondary">
               Save as a new draft
-            </button>
+            </SubmitButton>
           </form>
         </section>
       )}

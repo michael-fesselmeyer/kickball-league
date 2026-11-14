@@ -8,6 +8,7 @@ import {
   type MerchSize,
   merchSizeLabel,
 } from "@/domain/merch/catalog";
+import { SubmitButton } from "@/components/submit-button";
 
 const control =
   "min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body";
@@ -218,9 +219,9 @@ export function ItemFormFields({
           </table>
         </div>
       </fieldset>
-      <button type="submit" className="btn self-start btn-primary">
+      <SubmitButton className="btn self-start btn-primary">
         {submit}
-      </button>
+      </SubmitButton>
     </form>
   );
 }

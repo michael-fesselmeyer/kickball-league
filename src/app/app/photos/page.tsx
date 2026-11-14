@@ -18,6 +18,7 @@ import { requireSelf } from "@/lib/auth/permission";
 import { deleteMyPhotoAction, uploadPhotoAction } from "./actions";
 import { UploadForm } from "./upload-form";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Share a photo" };
 
@@ -149,13 +150,13 @@ async function Photos({ searchParams }: PageProps<"/app/photos">) {
                 </p>
                 <form action={deleteMyPhotoAction}>
                   <input type="hidden" name="photo" value={p.id} />
-                  <button type="submit" className="btn btn-secondary">
+                  <SubmitButton className="btn btn-secondary">
                     Delete
                     <span className="sr-only">
                       {" "}
                       the photo sent {day.format(p.createdAt)}
                     </span>
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}
