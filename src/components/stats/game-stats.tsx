@@ -1,9 +1,4 @@
 import Link from "next/link";
-import { db } from "@/db/client";
-import {
-  publishedGamesBetween,
-  publishedSchedule,
-} from "@/db/queries/public-schedule";
 import type { SeasonId } from "@/domain/ids";
 import { shortDay } from "@/domain/schedule/format";
 import type { PublicGame } from "@/domain/schedule/public-game";
@@ -11,6 +6,7 @@ import { pickBlurb } from "@/domain/stats/game-of-the-week";
 import { rivalry, seriesLine } from "@/domain/stats/rivalry";
 import { seasonStats, statGamesFrom, teamsFrom } from "@/domain/stats/season";
 import { streakLabel } from "@/domain/stats/streaks";
+import { cachedMeetings, cachedSeasonSchedule } from "@/lib/game-cache";
 
 const MEETINGS_SHOWN = 5;
 
@@ -23,8 +19,8 @@ export async function GameStats({
   timeZone: string;
 }) {
   const [between, schedule] = await Promise.all([
-    publishedGamesBetween(db, game.teamA.slug, game.teamB.slug),
-    publishedSchedule(db, game.seasonId as SeasonId),
+    cachedMeetings(game.teamA.slug, game.teamB.slug),
+    cachedSeasonSchedule(game.seasonId as SeasonId),
   ]);
   const a = game.teamA.slug;
   const b = game.teamB.slug;
