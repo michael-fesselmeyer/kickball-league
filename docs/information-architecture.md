@@ -32,6 +32,11 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── sponsors/                       Sponsors, home bar first, with the team of the week
 │   └── [sponsor]                   Sponsor page: deals with when they were confirmed, the team of the week, how to check in
 ├── friends                         Friends of the league: other local leagues grouped by activity, each linking to its own site, and a "Link to us" snippet
+├── help/                           Help center: short how-tos by role and a search box that filters them as you type (every how-to is listed without JavaScript too)
+│   └── [role]                      One role's how-tos (player, captain, ref, admin, owner), each under its own anchor; the matching screens link here with "Help"
+├── widget                          Get the schedule widget: the iframe snippet for the league and for each team, with a live preview
+├── embed/schedule                  The schedule widget: the league's next game day as one small page with no script, for other sites to frame (the only route that may be framed)
+│   └── [team]                      One team's next three games
 ├── free-agents                     How solo signup works, with FAQ structured data (P2: quiz)
 ├── history                         Past seasons: champions, final standings and the all-time table; each season links to its standings and schedule
 ├── news/
