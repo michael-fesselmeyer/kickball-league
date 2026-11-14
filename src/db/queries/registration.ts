@@ -14,7 +14,7 @@ import {
 } from "@/domain/registration/pricing";
 import type { AgeRefusal } from "@/domain/registration/age";
 import { err, ok, type Result } from "@/domain/result";
-import { slugify } from "@/domain/slug";
+import { teamSlug } from "@/domain/slug";
 import { league } from "../schema/league";
 import { season } from "../schema/season";
 import {
@@ -136,7 +136,16 @@ export type RegisterError =
   | "bad_color"
   | AgeRefusal;
 
+/**
+ * Whether the person already holds a registration this season. It first
+ * takes a lock for this person and season, held to the end of the caller's
+ * transaction, so a double-tapped Register waits for the first tap and then
+ * finds it, instead of both passing this check.
+ */
 async function alreadyRegistered(db: Db, seasonId: SeasonId, userId: UserId) {
+  await db.execute(
+    sql`select pg_advisory_xact_lock(hashtext(${`registration:${seasonId}:${userId}`}))`,
+  );
   const [found] = await db
     .select({ id: registration.id })
     .from(registration)
@@ -298,13 +307,14 @@ export async function registerTeam(
     teamId = found.id;
   } else {
     const name = t.name.trim().replace(/\s+/g, " ");
-    const slug = slugify(name);
+    const slug = teamSlug(name);
     if (!slug || name.length > 40) return err("bad_name");
     const [taken] = await db
       .select({ id: team.id })
       .from(team)
       .where(and(eq(team.leagueId, input.leagueId), eq(team.slug, slug)));
     if (taken) return err("name_taken");
+    // Another captain may be registering the same name at this moment.
     const [created] = await db
       .insert(team)
       .values({
@@ -314,8 +324,10 @@ export async function registerTeam(
         colorHex: t.colorHex,
         createdBy: userId,
       })
+      .onConflictDoNothing({ target: [team.leagueId, team.slug] })
       .returning({ id: team.id });
-    teamId = required(created, "team").id;
+    if (!created) return err("name_taken");
+    teamId = created.id;
   }
 
   const [entry] = await db
