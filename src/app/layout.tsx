@@ -76,6 +76,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         )}
       </head>
       <body className="flex min-h-full flex-col">
+        {/* The first stop for a keyboard: past the banner and header. */}
+        <a
+          href="#content"
+          className="fixed top-2 left-2 z-50 btn -translate-y-20 btn-primary focus:translate-y-0"
+        >
+          Skip to content
+        </a>
         <DemoBanner />
         <header className="border-b-2 border-text bg-surface">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-2 md:px-6">
@@ -89,7 +96,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <ThemeSwitch />
           </div>
         </header>
-        <div className="flex flex-1 flex-col">{children}</div>
+        <div
+          id="content"
+          tabIndex={-1}
+          className="flex flex-1 flex-col focus:outline-none"
+        >
+          {children}
+        </div>
         <footer className="border-t-2 border-text bg-surface">
           <nav
             aria-label="Site"
