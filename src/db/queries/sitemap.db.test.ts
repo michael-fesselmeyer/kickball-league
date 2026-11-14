@@ -4,9 +4,10 @@ import { EMPTY_SEASON_FORM, parseSeasonForm } from "@/domain/season/settings";
 import { user } from "../schema/auth";
 import { league } from "../schema/league";
 import { season } from "../schema/season";
+import { team, teamSeason } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { createSeason } from "./seasons";
-import { publicSeasons } from "./sitemap";
+import { publicSeasons, publicTeamPages } from "./sitemap";
 
 afterAll(closePool);
 
@@ -61,6 +62,62 @@ describe("publicSeasons", () => {
       const slugs = (await publicSeasons(db)).map((s) => s.slug);
       const ours = slugs.filter((s) => s.endsWith(tag));
       expect(ours).toEqual([summer.slug, spring.slug]);
+    });
+  });
+});
+
+describe("publicTeamPages", () => {
+  it("lists each team with a public season once, leaving out draft-only teams", async () => {
+    await inRolledBackDb(async (db) => {
+      const tag = Math.random().toString(36).slice(2, 8);
+      const [admin] = await db
+        .insert(user)
+        .values({ name: "Admin", email: `teams-${tag}@example.test` })
+        .returning({ id: user.id });
+      const [lg] = await db
+        .insert(league)
+        .values({ name: "Team League", slug: `teams-${tag}` })
+        .returning({ id: league.id });
+      const create = async (name: string, from: string, to: string) => {
+        const made = await createSeason(
+          db,
+          { leagueId: lg!.id, settings: settings(name, from, to) },
+          admin!.id,
+        );
+        if (!made.ok) throw new Error(made.error);
+        return made.value;
+      };
+      const spring = await create(`Spring ${tag}`, "2027-04-05", "2027-06-28");
+      const summer = await create(`Summer ${tag}`, "2027-07-11", "2027-08-29");
+      const fall = await create(`Fall ${tag}`, "2027-09-14", "2027-11-02");
+      for (const s of [spring, summer]) {
+        await db
+          .update(season)
+          .set({ status: "registration_open" })
+          .where(eq(season.id, s.id));
+      }
+      const teams = await db
+        .insert(team)
+        .values(
+          ["aces", "bees"].map((name) => ({
+            leagueId: lg!.id,
+            name,
+            slug: `${name}-${tag}`,
+          })),
+        )
+        .returning({ id: team.id, slug: team.slug });
+      const [aces, bees] = teams;
+      await db.insert(teamSeason).values([
+        { teamId: aces!.id, seasonId: spring.id },
+        { teamId: aces!.id, seasonId: summer.id },
+        { teamId: bees!.id, seasonId: fall.id },
+      ]);
+
+      const ours = (await publicTeamPages(db)).filter((t) =>
+        t.slug.endsWith(tag),
+      );
+      expect(ours.map((t) => t.slug)).toEqual([aces!.slug]);
+      expect(ours[0]?.updatedAt).toBeInstanceOf(Date);
     });
   });
 });
