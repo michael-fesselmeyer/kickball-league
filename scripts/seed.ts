@@ -37,6 +37,7 @@ import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addSeedFriends } from "../src/seed/friends";
 import { addSeedLineups } from "../src/seed/lineups";
 import { addMerchDemo, removeSeedMerch } from "../src/seed/merch";
+import { addSeedKits } from "../src/seed/equipment";
 import { addTicketDemo, removeSeedTickets } from "../src/seed/tickets";
 import { addFreeAgentPool } from "../src/seed/free-agent-pool";
 import { removeAccountMerges } from "../src/seed/account-merges";
@@ -307,6 +308,7 @@ async function main(): Promise<void> {
       await addAudienceDemo(tx, data);
       await addTicketDemo(tx, data);
       await addMerchDemo(tx, data);
+      await addSeedKits(tx, data);
       await addSeedAwards(tx, data, new Date());
       await addSeedPicks(tx, data);
       await addSeasonCards(tx, data, new Date());
