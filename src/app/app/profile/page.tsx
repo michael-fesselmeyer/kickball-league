@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { awaySeasonsFor } from "@/db/queries/away";
 import { creditBalance, creditHistory } from "@/db/queries/credit";
 import { alertLimitsFor, emailSettingsOf } from "@/db/queries/notifications";
 import { DEFAULT_TIME_ZONE } from "@/db/queries/outbox";
@@ -16,6 +17,7 @@ import { env } from "@/env";
 import { requireSelf } from "@/lib/auth/permission";
 import { siteOrigin } from "@/lib/site";
 import { AlertLimitsSettings } from "./alert-limits";
+import { AwayWeeks } from "./away-weeks";
 import { CreditSection } from "./credit-section";
 import { EmailSettings } from "./email-settings";
 import { ProfileSettingsForm } from "./profile-form";
@@ -47,6 +49,7 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
     code,
     referrals,
     limits,
+    away,
   ] = await Promise.all([
     profileOf(db, subject.userId),
     emailSettingsOf(db, subject.userId),
@@ -57,6 +60,7 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
     existingReferralCode(db, subject.userId),
     myReferrals(db, subject.userId),
     alertLimitsFor(db, subject.userId),
+    awaySeasonsFor(db, subject.userId, new Date()),
   ]);
   if (!profile) notFound();
   return (
@@ -77,6 +81,11 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
         </p>
       )}
       <ProfileSettingsForm values={toProfileForm(profile)} />
+      <AwayWeeks
+        seasons={away}
+        status={typeof query.away === "string" ? query.away : null}
+        timeZone={league?.timeZone ?? DEFAULT_TIME_ZONE}
+      />
       {query.emails && (
         <p role="status" className="rounded-lg border border-success p-3">
           Email settings saved.
