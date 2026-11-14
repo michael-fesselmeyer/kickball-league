@@ -37,7 +37,7 @@ const text = (form: FormData, name: string) => {
 };
 
 /**
- * Takes one photo for the league's review queue (ADR 0035): checks it is
+ * Takes one photo for the league's review queue (ADR 0039): checks it is
  * really a photo, shrinks it and strips its metadata, then stores it if the
  * uploader may tag what they chose and the limits allow.
  */

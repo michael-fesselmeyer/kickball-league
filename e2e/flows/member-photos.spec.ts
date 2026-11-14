@@ -25,7 +25,7 @@ async function testPhoto() {
 /**
  * Pat Player shares a photo of The Big Kicks with the league's OK to repost
  * it, Addie Admin approves it from the review queue, and a visitor sees it
- * on the team page (ADR 0035).
+ * on the team page (ADR 0039).
  */
 test("a player shares a photo, an admin approves it, and it shows on the team page", async ({
   browser,

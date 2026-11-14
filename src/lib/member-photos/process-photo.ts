@@ -10,7 +10,7 @@ import {
 import { err, ok, type Result } from "@/domain/result";
 
 /**
- * Turns an uploaded file into the one copy the league stores (ADR 0035).
+ * Turns an uploaded file into the one copy the league stores (ADR 0039).
  * Server only, and sharp is loaded on first use, so no page imports it.
  *
  * - The file must really be a JPEG, PNG or WebP: its first bytes are

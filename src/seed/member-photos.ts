@@ -5,7 +5,7 @@ import { fixturePhoto } from "@/services/instagram-fixture";
 import type { SeedData } from "./generate";
 
 /**
- * Photos players of The Big Kicks shared (ADR 0035): three approved, on
+ * Photos players of The Big Kicks shared (ADR 0039): three approved, on
  * their team page and one game's page, and two waiting in the admins'
  * review queue. The pictures are drawn stripes, processed as an upload is,
  * never real photos, and the captions are invented. They go with the demo

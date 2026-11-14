@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { ApprovedPhoto } from "@/db/queries/member-photos";
 
 /**
- * Photos players shared and the league approved (ADR 0035), as a grid of
+ * Photos players shared and the league approved (ADR 0039), as a grid of
  * squares, with a link to share one. Rendered like the Instagram photos:
  * the image optimizer's props are worked out on the server
  * (`getImageProps`), so the page ships no image component JavaScript, every
