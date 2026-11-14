@@ -30,8 +30,10 @@ const ERRORS: Record<string, string> = {
   unknown_waiver: "Pick one of the league's waiver versions.",
 };
 
-const day = (d: Date) =>
-  new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(d);
+// In the league's zone: the server's own zone (UTC) would date a version
+// published on an evening in New York a day late.
+const day = (d: Date, timeZone: string) =>
+  new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(d);
 
 async function Waivers({ searchParams }: PageProps<"/app/admin/waivers">) {
   await requirePermission("season.manage", { next: "/app/admin/waivers" });
@@ -127,7 +129,7 @@ async function Waivers({ searchParams }: PageProps<"/app/admin/waivers">) {
               <li key={v.id}>
                 <strong>Version {v.version}</strong>: {v.title}{" "}
                 <span className="text-text-muted">
-                  · {day(v.effectiveAt)} · fingerprint{" "}
+                  · {day(v.effectiveAt, league.timeZone)} · fingerprint{" "}
                   <code>{v.bodySha256.slice(0, 12)}</code>
                 </span>
               </li>
