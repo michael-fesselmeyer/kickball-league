@@ -338,9 +338,7 @@ export function storedEventPayload(event: StripeEventLike): {
 } {
   const data: unknown = event.data;
   const object =
-    data && typeof data === "object" && "object" in data
-      ? (data as { object: unknown }).object
-      : null;
+    data && typeof data === "object" && "object" in data ? data.object : null;
   const field = (name: "object" | "id") => {
     if (!object || typeof object !== "object" || !(name in object)) return null;
     const value: unknown = (object as Record<string, unknown>)[name];
