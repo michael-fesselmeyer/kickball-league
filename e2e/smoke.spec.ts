@@ -153,3 +153,17 @@ test("demo mode is off by default: no banner and no view-as", async ({
   );
   await expect(page.getByRole("button", { name: "Admin" })).toHaveCount(0);
 });
+
+test("pages carry the security headers (ADR 0044)", async ({ request }) => {
+  for (const path of ["/", "/sign-in"]) {
+    const response = await request.get(path);
+    const headers = response.headers();
+    expect(headers["content-security-policy"]).toContain(
+      "frame-ancestors 'none'",
+    );
+    expect(headers["x-frame-options"]).toBe("DENY");
+    expect(headers["x-content-type-options"]).toBe("nosniff");
+    expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+    expect(headers["strict-transport-security"]).toContain("max-age=");
+  }
+});

@@ -624,7 +624,7 @@ Third-party material stays out of the public repository until the league agrees:
 | Input | Zod validation on every Server Action, route handler and webhook; Drizzle parameterizes all SQL |
 | Sessions | HTTP-only, secure, same-site cookies; rotation on sign-in; sign-out everywhere |
 | Cross-site requests | Server Actions verify origin; route handlers that change state require the session cookie and a same-origin check |
-| Content Security Policy | Strict policy with nonces; only Stripe, the blob host and the analytics host allowed |
+| Headers | On every response (`src/lib/security-headers.ts`, [ADR 0044](adr/0044-security-headers-without-nonces.md)): a Content Security Policy without nonces, so public pages stay static (everything from this site only, no framing, no plugins, forms only to this site, Stripe Checkout, Google and Instagram sign-in), HSTS, `X-Frame-Options: DENY`, `nosniff`, `strict-origin-when-cross-origin` referrers, a Permissions-Policy that turns off camera, microphone and location, and `Cross-Origin-Opener-Policy: same-origin` |
 | Rate limits | See below |
 | Personal data | Minimum collected; birth date and emergency contact visible only as listed in [data-model.md](data-model.md); never in logs, URLs or error reports. Emergency contacts are sealed at rest with a key derived from the auth secret (`src/lib/crypto/sealed.ts`, shared with the Instagram token) |
 | Secrets | Vercel environment variables, separate per environment; no secrets in the repository; secret scanning on GitHub |
