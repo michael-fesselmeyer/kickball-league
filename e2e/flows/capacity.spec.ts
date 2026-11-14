@@ -19,9 +19,18 @@ test("an owner plans for more teams and requests exactly the extra field time", 
   const page = await pageSignedInAs(browser, await ownerAccount("Casey"));
   await page.goto("/app/admin");
   await page.getByRole("link", { name: "Books", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Books:");
   await page.getByText("Other seasons", { exact: true }).click();
   await page.getByRole("link", { name: "Fall 2026" }).click();
-  await page.getByRole("link", { name: "Permits and insurance" }).click();
+  // The season navigated from stays mounted, hidden, while the new one
+  // loads: wait for Fall 2026, then work in the shown page.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Books: Fall 2026",
+  );
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: "Permits and insurance" })
+    .click();
 
   // How NYC Parks permits work, with its sources and the date checked.
   const rules = page.getByRole("region", {
