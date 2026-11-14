@@ -12,6 +12,9 @@ if (process.env.SKIP_ENV_VALIDATION !== "true") {
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // The end-to-end flows server runs its own build made in demo mode
+  // (playwright.config.ts), kept beside the normal one.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   cacheComponents: true,
   images: {
     // Only our stored photos (Instagram copies, merch items and members'

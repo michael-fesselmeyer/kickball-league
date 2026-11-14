@@ -166,11 +166,25 @@ jobs:
             database: kickball_e2e_demo
             address: http://localhost:3100
             seed: true
+            dist: .next
+            demo: "false"
+          # The flows server runs in demo mode, which changes the root
+          # layout, so it gets a build made in demo mode: a build's static
+          # shells must match what its server renders (React error #418).
+          - check: end-to-end in demo mode
+            artifact: next-build-e2e-demo
+            database: kickball_e2e_demo
+            address: http://localhost:3100
+            seed: true
+            dist: .next-demo
+            demo: "true"
           - check: Lighthouse
             artifact: next-build-lighthouse
             database: ci
             address: http://localhost:3200
             seed: true
+            dist: .next
+            demo: "false"
     services:
       postgres:
         image: postgres:18
@@ -185,6 +199,8 @@ jobs:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/${{ matrix.database }}
       BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
       BETTER_AUTH_URL: ${{ matrix.address }}
+      NEXT_DIST_DIR: ${{ matrix.dist }}
+      DEMO_MODE: ${{ matrix.demo }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -198,12 +214,12 @@ jobs:
       - name: Restore the Next.js build cache
         uses: actions/cache@v6
         with:
-          path: .next/cache
+          path: ${{ matrix.dist }}/cache
           key: ${{ matrix.artifact }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'public/**', 'assets/**', 'next.config.ts', 'tsconfig.json') }}
           restore-keys: ${{ matrix.artifact }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npm run build
       - name: Pack the build (without its cache)
-        run: tar --zstd -cf next-build.tar.zst --exclude=.next/cache .next
+        run: tar --zstd -cf next-build.tar.zst --exclude="$NEXT_DIST_DIR/cache" "$NEXT_DIST_DIR"
       - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
@@ -261,6 +277,11 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: next-build-e2e
+      - run: tar --zstd -xf next-build.tar.zst && rm next-build.tar.zst
+      # The flows server's build, made in demo mode (playwright.config.ts).
+      - uses: actions/download-artifact@v8
+        with:
+          name: next-build-e2e-demo
       - run: tar --zstd -xf next-build.tar.zst && rm next-build.tar.zst
       - run: npm run db:migrate
       - name: Smoke tests and core flows with axe (seeds the database first)
