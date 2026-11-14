@@ -1,5 +1,11 @@
+import { getPathMatch } from "next/dist/shared/lib/router/utils/path-match";
 import { describe, expect, it } from "vitest";
-import { contentSecurityPolicy, securityHeaders } from "./security-headers";
+import {
+  contentSecurityPolicy,
+  EMBED_CSP,
+  securityHeaderRules,
+  securityHeaders,
+} from "./security-headers";
 
 /** The policy as a map of directive to its sources. */
 const parse = (policy: string) =>
@@ -62,5 +68,56 @@ describe("securityHeaders", () => {
     );
     expect(headers.get("Permissions-Policy")).toContain("camera=()");
     expect(headers.get("Cross-Origin-Opener-Policy")).toBe("same-origin");
+  });
+});
+
+/**
+ * The headers a path gets from the rules, matched the way Next.js matches
+ * custom header sources, a later rule replacing an earlier one's key.
+ */
+function headersFor(pathname: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const rule of securityHeaderRules({ dev: false })) {
+    const match = getPathMatch(rule.source, { removeUnnamedParams: true });
+    if (match(pathname) === false) continue;
+    for (const h of rule.headers) out[h.key] = h.value;
+  }
+  return out;
+}
+
+describe("securityHeaderRules", () => {
+  it("let any site frame the schedule widget, and nothing else", () => {
+    for (const path of ["/embed/schedule", "/embed/schedule/the-big-kicks"]) {
+      const headers = headersFor(path);
+      expect(headers["Content-Security-Policy"], path).toBe(EMBED_CSP);
+      expect(headers["X-Frame-Options"], path).toBeUndefined();
+      expect(headers["X-Content-Type-Options"], path).toBe("nosniff");
+      expect(headers["Strict-Transport-Security"], path).toContain("max-age=");
+    }
+    expect(EMBED_CSP).toContain("frame-ancestors *");
+    // The widget runs no script, whoever frames it.
+    expect(EMBED_CSP).toContain("default-src 'none'");
+    expect(EMBED_CSP).not.toContain("script-src");
+  });
+
+  it("keep every other page out of frames", () => {
+    for (const path of [
+      "/",
+      "/help",
+      "/widget",
+      "/sign-in",
+      "/app",
+      "/app/admin/today",
+      "/seasons/fall-2026/schedule",
+      "/embedded",
+      "/embed",
+      "/teams/the-big-kicks/calendar.ics",
+    ]) {
+      const headers = headersFor(path);
+      expect(headers["Content-Security-Policy"], path).toBe(
+        contentSecurityPolicy({ dev: false }),
+      );
+      expect(headers["X-Frame-Options"], path).toBe("DENY");
+    }
   });
 });
