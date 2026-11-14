@@ -1,7 +1,23 @@
 import sharp from "sharp";
-import { describe, expect, it } from "vitest";
+import type * as SharpModule from "sharp";
+import { describe, expect, it, vi } from "vitest";
 import { fixturePhoto } from "@/services/instagram-fixture";
-import { compressPhoto, STORED_WIDTH } from "./compress-photo";
+import {
+  compressPhoto,
+  MAX_INPUT_PIXELS,
+  STORED_WIDTH,
+} from "./compress-photo";
+
+// Records the options each sharp call gets, and still runs sharp.
+const calls = vi.hoisted(() => [] as unknown[]);
+vi.mock("sharp", async (importOriginal) => {
+  const actual = await importOriginal<typeof SharpModule>();
+  const wrapped = (...args: Parameters<typeof actual.default>) => {
+    calls.push(args[1]);
+    return actual.default(...args);
+  };
+  return { default: Object.assign(wrapped, actual.default) };
+});
 
 describe("compressPhoto", () => {
   it("shrinks a wide photo to the widest size the pages show, as WebP", async () => {
@@ -48,5 +64,12 @@ describe("compressPhoto", () => {
     expect(await compressPhoto(Buffer.from("<html>not a photo</html>"))).toBe(
       null,
     );
+  });
+
+  it("refuses a decoded image over the pixel limit before resizing it", async () => {
+    calls.length = 0;
+    await compressPhoto(fixturePhoto("pixel-limit"));
+    expect(calls.at(-1)).toMatchObject({ limitInputPixels: MAX_INPUT_PIXELS });
+    expect(MAX_INPUT_PIXELS).toBeLessThanOrEqual(50_000_000);
   });
 });
