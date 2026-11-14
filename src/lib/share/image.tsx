@@ -8,6 +8,7 @@ import {
   type GameCard,
   type Outcome,
   SHARE_IMAGE_SIZE,
+  type SeasonShareCard,
   type ShareCard,
   type StickerTone,
   type TeamCard,
@@ -103,11 +104,13 @@ function Frame({ card }: { card: ShareCard }) {
           </span>
         </div>
         <span style={{ fontSize: 28, color: T.muted }}>
-          {card.kind === "game" ? card.season : (card.season ?? "")}
+          {card.season ?? ""}
         </span>
       </div>
       {card.kind === "game" ? (
         <GameBody card={card} />
+      ) : card.kind === "season" ? (
+        <SeasonBody card={card} />
       ) : (
         <TeamBody card={card} />
       )}
@@ -123,9 +126,9 @@ function Frame({ card }: { card: ShareCard }) {
           fontSize: 32,
         }}
       >
-        {card.kind === "game"
-          ? card.footer
-          : "Schedule, results and a calendar feed"}
+        {card.kind === "team"
+          ? "Schedule, results and a calendar feed"
+          : card.footer}
       </div>
     </div>
   );
@@ -339,6 +342,73 @@ function TeamBody({ card }: { card: TeamCard }) {
         {card.vibe && (
           <span style={{ fontSize: 32, color: T.muted }}>{card.vibe}</span>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** A player's season: their team's badge, the headline and big numbers. */
+function SeasonBody({ card }: { card: SeasonShareCard }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        flex: 1,
+        alignItems: "center",
+        gap: 48,
+        padding: "0 64px",
+      }}
+    >
+      <Badge name={card.team.name} color={card.team.color} size={200} />
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 18,
+          flex: 1,
+          minWidth: 0,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          <span
+            style={{
+              fontFamily: "Display",
+              fontSize: card.headline.length > 22 ? 52 : 68,
+              lineHeight: 1,
+              maxHeight: 140,
+              overflow: "hidden",
+            }}
+          >
+            {card.headline}
+          </span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <span style={{ fontSize: 32, color: T.muted }}>{card.team.name}</span>
+          {card.sticker && <Sticker label={card.sticker} tone="highlight" />}
+        </div>
+        <div style={{ display: "flex", gap: 16 }}>
+          {card.tiles.map((t) => (
+            <div
+              key={t.label}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 190,
+                height: 132,
+                borderRadius: 20,
+                border: `3px solid ${T.text}`,
+                background: T.surface2,
+              }}
+            >
+              <span style={{ fontFamily: "Display", fontSize: 56 }}>
+                {t.value}
+              </span>
+              <span style={{ fontSize: 22, color: T.muted }}>{t.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
