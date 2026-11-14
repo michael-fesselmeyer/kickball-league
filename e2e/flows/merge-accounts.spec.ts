@@ -35,15 +35,17 @@ test("an admin previews and merges a duplicate account", async ({
   // Without the tick, nothing happens.
   const confirm = preview.getByRole("button", { name: /^Merge into / });
   await confirm.click();
-  await expect(page.getByRole("alert")).toContainText(
-    "Tick the box to say both accounts are the same person.",
-  );
+  await expect(
+    page.getByRole("alert").filter({
+      hasText: "Tick the box to say both accounts are the same person.",
+    }),
+  ).toBeVisible();
 
   await preview
     .getByRole("checkbox", { name: /both accounts belong to the same person/ })
     .check();
   await preview.getByRole("button", { name: /^Merge into / }).click();
-  await expect(page.getByRole("status")).toContainText(
+  await expect(page.getByRole("status").first()).toContainText(
     `Everything now belongs to Robin Example (${keep}).`,
   );
   await expect(
@@ -55,8 +57,11 @@ test("an admin previews and merges a duplicate account", async ({
   await page.getByLabel("Email of the account to keep").fill(keep);
   await page.getByLabel("Email of the account to merge away").fill(merge);
   await page.getByRole("button", { name: "Preview the merge" }).click();
-  await expect(page.getByRole("alert")).toContainText(
-    "No account has the address to merge away, or it was already merged.",
-  );
+  await expect(
+    page.getByRole("alert").filter({
+      hasText:
+        "No account has the address to merge away, or it was already merged.",
+    }),
+  ).toBeVisible();
   await page.context().close();
 });
