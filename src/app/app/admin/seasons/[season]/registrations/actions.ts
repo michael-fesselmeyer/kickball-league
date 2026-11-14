@@ -28,6 +28,7 @@ import {
 } from "@/lib/auth/permission";
 import { stripeClient } from "@/services/stripe";
 import { recordPaymentFor } from "@/app/app/seasons/[season]/record-payment";
+import { logError } from "@/lib/log-error";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/registrations`;
 
@@ -126,7 +127,7 @@ export async function refundPaymentAction(
           { idempotencyKey: `refund-${refund.refundId}` },
         )
         .catch((error: unknown) => {
-          console.error("Stripe refund failed", refund.refundId, error);
+          logError("Stripe refund failed", error, refund.refundId);
           return null;
         })
     : null;

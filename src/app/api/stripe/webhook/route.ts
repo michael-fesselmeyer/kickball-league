@@ -2,6 +2,7 @@ import { txDb } from "@/db/client";
 import { handleStripeEvent } from "@/db/queries/payments";
 import { stripeClient, stripeWebhookSecret } from "@/services/stripe";
 import { stripeEventExtras } from "@/services/stripe-guarantee";
+import { logError } from "@/lib/log-error";
 
 /**
  * Stripe webhook (docs/architecture.md, section 6):
@@ -34,7 +35,7 @@ export async function POST(request: Request): Promise<Response> {
     );
     return Response.json({ received: true, outcome });
   } catch (error) {
-    console.error("Stripe webhook failed", event.id, event.type, error);
+    logError("Stripe webhook failed", error, event.id, event.type);
     return new Response("Webhook handling failed", { status: 500 });
   }
 }

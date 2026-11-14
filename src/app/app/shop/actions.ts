@@ -17,6 +17,7 @@ import { env } from "@/env";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
+import { logError } from "@/lib/log-error";
 
 /**
  * Orders an item for the signed-in player (merch.order): its stock is held
@@ -118,7 +119,7 @@ async function openCheckout(
           { idempotencyKey: `purchase-${outcome.purchaseId}` },
         )
         .catch((error: unknown) => {
-          console.error("Stripe checkout failed", outcome.purchaseId, error);
+          logError("Stripe checkout failed", error, outcome.purchaseId);
           return null;
         })
     : null;

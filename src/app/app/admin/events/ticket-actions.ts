@@ -18,6 +18,7 @@ import {
 import { refreshEventPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
+import { logError } from "@/lib/log-error";
 
 const pageFor = (slug: string) => `/app/admin/events/${slug}`;
 
@@ -69,7 +70,7 @@ export async function refundTicketAction(
             { idempotencyKey: `refund-${refund.refundId}` },
           )
           .catch((error: unknown) => {
-            console.error("Stripe refund failed", refund.refundId, error);
+            logError("Stripe refund failed", error, refund.refundId);
             return null;
           })
       : null;

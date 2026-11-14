@@ -21,6 +21,7 @@ import {
 import { refreshEventPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
+import { logError } from "@/lib/log-error";
 
 async function eventFor(slug: string) {
   const page = `/app/events/${slug}`;
@@ -158,7 +159,7 @@ async function openCheckout(
           { idempotencyKey: `purchase-${outcome.purchaseId}` },
         )
         .catch((error: unknown) => {
-          console.error("Stripe checkout failed", outcome.purchaseId, error);
+          logError("Stripe checkout failed", error, outcome.purchaseId);
           return null;
         })
     : null;
