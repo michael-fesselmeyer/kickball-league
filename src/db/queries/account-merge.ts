@@ -301,7 +301,9 @@ async function conflictCounts(
        + (select count(*)::int from referral_code where user_id = ${keptId}) *
          (select count(*)::int from referral_code where user_id = ${mergedId})
        + (select count(*)::int from pickem_hidden where user_id = ${keptId}) *
-         (select count(*)::int from pickem_hidden where user_id = ${mergedId})) as single`,
+         (select count(*)::int from pickem_hidden where user_id = ${mergedId})
+       + (select count(*)::int from leaderboard_opt_out where user_id = ${keptId}) *
+         (select count(*)::int from leaderboard_opt_out where user_id = ${mergedId})) as single`,
   );
   if (special?.votes)
     lines.push({
@@ -577,6 +579,7 @@ export async function mergeAccounts(
     "calendar_feed",
     "referral_code",
     "pickem_hidden",
+    "leaderboard_opt_out",
   ]) {
     const rule = PERSON_COLUMNS[`${table}.user_id`];
     const label = rule && rule.kind !== "skip" ? rule.label : table;

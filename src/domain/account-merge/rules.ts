@@ -268,6 +268,20 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     clash:
       "Both have a card for the same season; the kept account's card stays",
   },
+  "stat_award_place.user_id": {
+    kind: "dedupe",
+    label: "stat award places",
+    by: ["season_id", "award"],
+    resolve: "drop",
+    clash: "Both placed in the same stat award; the kept account's place stays",
+  },
+  "stat_award_set.computed_by": actor("stat awards worked out"),
+  "stat_award_set.published_by": actor("stat awards published"),
+  "leaderboard_opt_out.user_id": {
+    kind: "special",
+    label: "leaderboard choice",
+    handler: "one_per_person",
+  },
   "giveaway_entry.user_id": {
     kind: "dedupe",
     label: "giveaway entries",
