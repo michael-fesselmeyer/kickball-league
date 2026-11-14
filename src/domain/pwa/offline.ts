@@ -49,7 +49,7 @@ export function pickNextGame(
 /**
  * What the offline page links to: the game's page and a one-line label, and
  * for the game's ref and captains, its park permit page (ADR 0034) and, on
- * game day, its emergency contacts page until midnight after (ADR 0041).
+ * game day, its emergency contacts page until midnight after (ADR 0042).
  */
 export type OfflineGame = {
   path: string;

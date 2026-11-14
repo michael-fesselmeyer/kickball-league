@@ -103,7 +103,7 @@ async function Account() {
     }) &&
     (await fieldPermitForGame(db, nextGameId)) !== null;
   // On its day, the next game's emergency contacts, for its ref and
-  // captains (ADR 0041); kept on the phone until midnight after.
+  // captains (ADR 0042); kept on the phone until midnight after.
   const emergency =
     nextGame !== null
       ? cardsVisible(
