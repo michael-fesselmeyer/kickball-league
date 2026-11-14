@@ -18,6 +18,7 @@ export async function seasonBySlug(db: Db, slug: string) {
       slug: season.slug,
       status: season.status,
       startsOn: season.startsOn,
+      feeModel: season.feeModel,
       timeZone: league.timezone,
     })
     .from(season)

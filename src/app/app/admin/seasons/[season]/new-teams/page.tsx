@@ -56,7 +56,13 @@ const ROLE: Record<string, string> = {
   player: "Player",
 };
 
-function Standing({ r }: { r: AdminNewTeamRequest }) {
+function Standing({
+  r,
+  perTeam,
+}: {
+  r: AdminNewTeamRequest;
+  perTeam: boolean;
+}) {
   if (!r.now) return null;
   const { team, registered, paid, paidOwnWay } = r.now;
   return (
@@ -66,11 +72,16 @@ function Standing({ r }: { r: AdminNewTeamRequest }) {
         : team
           ? `${ROLE[team.role]} on ${team.name}; approving moves them and tells that captain.`
           : "A free agent this season."}
-      {paidOwnWay
-        ? " Already paid for their spot, so the team splits its fee."
-        : paid && registered
-          ? " Covered by their team's fee; they will owe for the new team."
-          : ""}
+      {!perTeam
+        ? // Everyone pays their own fee: a paid player is paid on the new team too.
+          paid && registered
+          ? " Already paid; that payment carries over to the new team."
+          : ""
+        : paidOwnWay
+          ? " Already paid for their spot, so the team splits its fee."
+          : paid && registered
+            ? " Covered by their team's fee; they will owe for the new team."
+            : ""}
     </p>
   );
 }
@@ -79,10 +90,13 @@ function OpenRequest({
   slug,
   r,
   timeZone,
+  perTeam,
 }: {
   slug: string;
   r: AdminNewTeamRequest;
   timeZone: string;
+  /** The season charges per team, so how the new team pays matters. */
+  perTeam: boolean;
 }) {
   const asked = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
@@ -102,11 +116,12 @@ function OpenRequest({
           {r.requester.name}{" "}
           <span className="text-text-muted">
             · about {r.expectedSize} players ·{" "}
-            {r.paymentMode === "full" ? "captain pays in full" : "split fee"} ·
+            {perTeam &&
+              `${r.paymentMode === "full" ? "captain pays in full" : "split fee"} · `}
             asked {asked}
           </span>
         </p>
-        <Standing r={r} />
+        <Standing r={r} perTeam={perTeam} />
       </div>
       {r.note && (
         <blockquote className="border-l-4 border-border pl-3">
@@ -201,6 +216,7 @@ async function NewTeamRequests({
                 slug={slug}
                 r={r}
                 timeZone={season.timeZone}
+                perTeam={season.feeModel === "per_team"}
               />
             ))}
           </ul>
