@@ -64,6 +64,7 @@ async function Seasons() {
                 </Link>{" "}
                 <span className="text-text-muted">
                   · {STATUS_NAMES[s.status] ?? s.status}
+                  {s.visibility === "private" && " · Private event"}
                 </span>
               </p>
               <p className="flex flex-wrap gap-4">

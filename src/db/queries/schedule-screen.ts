@@ -37,7 +37,12 @@ export async function seasonBySlug(
 
 export async function seasonsForAdmin(db: Db) {
   return db
-    .select({ name: season.name, slug: season.slug, status: season.status })
+    .select({
+      name: season.name,
+      slug: season.slug,
+      status: season.status,
+      visibility: season.visibility,
+    })
     .from(season)
     .orderBy(desc(season.startsOn));
 }
