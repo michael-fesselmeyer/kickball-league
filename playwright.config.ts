@@ -8,9 +8,15 @@ const FLOWS_PORT = Number(process.env.E2E_FLOWS_PORT ?? 3110);
 // seasons and teams are prerendered as in production. The web servers start
 // before the global setup, so a local run seeds here too.
 const PREBUILT = process.env.E2E_PREBUILT === "true";
+// Demo mode changes what the root layout renders, so the flows server, which
+// runs in demo mode, starts a build made in demo mode, kept in its own
+// folder. A build's static shells must match what its server renders, or
+// React throws the page away on the client (error #418).
+const DEMO_DIST = ".next-demo";
+const BUILD_DEMO = `DEMO_MODE=true NEXT_DIST_DIR=${DEMO_DIST} npm run build`;
 const BUILD_FIRST = PREBUILT
   ? ""
-  : "npm run --silent seed && npm run build && ";
+  : `npm run --silent seed && npm run build && ${BUILD_DEMO} && `;
 // The operator's site-wide switches (read-only, paused, features) change the
 // site for every test at once, so they run on their own, after the rest:
 // `npm run test:e2e:site-wide` sets this.
@@ -105,7 +111,8 @@ export default defineConfig({
             command: `${BUILD_FIRST}npm run start -- --port ${SMOKE_PORT}`,
             url: `http://localhost:${SMOKE_PORT}`,
             reuseExistingServer: false,
-            timeout: PREBUILT ? 60_000 : 240_000,
+            // A local run builds twice first: the normal build and the demo one.
+            timeout: PREBUILT ? 60_000 : 480_000,
             stdout: "ignore" as const,
             stderr: "pipe" as const,
             env: { BETTER_AUTH_URL: `http://localhost:${SMOKE_PORT}` },
@@ -114,7 +121,11 @@ export default defineConfig({
     {
       // In the full run it starts after the first server, so the build is
       // already there; the site-wide run starts only this one.
-      command: `${SITE_WIDE ? BUILD_FIRST : ""}npm run start -- --port ${FLOWS_PORT}`,
+      command: `${
+        SITE_WIDE && !PREBUILT
+          ? `npm run --silent seed && ${BUILD_DEMO} && `
+          : ""
+      }npm run start -- --port ${FLOWS_PORT}`,
       url: `http://localhost:${FLOWS_PORT}`,
       reuseExistingServer: false,
       timeout: SITE_WIDE && !PREBUILT ? 240_000 : 60_000,
@@ -123,6 +134,7 @@ export default defineConfig({
       env: {
         BETTER_AUTH_URL: `http://localhost:${FLOWS_PORT}`,
         DEMO_MODE: "true",
+        NEXT_DIST_DIR: DEMO_DIST,
         // The demo admin persona (src/seed/demo-personas.ts) runs the
         // operator console, so its screen can be checked.
         OPERATOR_USER_IDS: "d3e30000-0000-4000-8000-000000000004",
