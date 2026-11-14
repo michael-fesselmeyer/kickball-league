@@ -68,6 +68,7 @@ export function dashboardLines(
       "Event tickets in the app ($)",
       dollars(m.ticketsCents),
     );
+    add(s, m.name, "Money in", "Merch in the app ($)", dollars(m.merchCents));
     add(
       s,
       m.name,

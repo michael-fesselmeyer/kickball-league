@@ -21,6 +21,7 @@ import {
   type ExpenseTotals,
   type MoneySummary,
   type PaymentTotals,
+  type PurchaseKind,
 } from "@/domain/dashboard/money";
 import type { LeagueId, SeasonId, UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
@@ -43,7 +44,7 @@ import type { Db } from "./schedule";
 
 /**
  * The owner dashboard (product-spec.md, section 9) and the season money
- * summary (ADR 0035). Pages check `dashboard.view` or `money_summary.publish`
+ * summary (ADR 0038). Pages check `dashboard.view` or `money_summary.publish`
  * before calling anything here. Every number is added up in Postgres, one
  * grouped read per kind of number and all of them at once, never one read
  * per season, team or event.
@@ -108,7 +109,7 @@ function memberRows(db: Db, leagueId: LeagueId): Promise<MemberRow[]> {
 /**
  * Succeeded payments by season, method and kind. As the books count them
  * (ADR 0034): a purchase of the season, or a purchase with no season (an
- * event ticket) paid on a day the season was running, in league time.
+ * event ticket or a merch order) paid on a day the season was running, in league time.
  */
 function paymentTotals(
   db: Db,
@@ -116,12 +117,14 @@ function paymentTotals(
   only?: SeasonId,
 ): Promise<PaymentTotals[]> {
   const day = sql`(${payment.paidAt} at time zone ${league.timezone})::date`;
-  const ticket = sql<boolean>`exists (select 1 from purchase_item pi where pi.purchase_id = ${purchase.id} and pi.kind = 'event_ticket')`;
+  // A purchase is of one kind: a ticket checkout holds tickets only, a merch
+  // order merch only; anything else paid a registration.
+  const kind = sql<PurchaseKind>`case when exists (select 1 from purchase_item pi where pi.purchase_id = ${purchase.id} and pi.kind = 'event_ticket') then 'ticket' when exists (select 1 from purchase_item pi where pi.purchase_id = ${purchase.id} and pi.kind = 'merch') then 'merch' else 'registration' end`;
   return db
     .select({
       seasonId: season.id,
       method: sql<PaymentMethod>`${payment.method}`,
-      ticket,
+      kind,
       amountCents: sql<number>`sum(${payment.amountCents})`.mapWith(Number),
       refundedCents: sql<number>`sum(${payment.refundedCents})`.mapWith(Number),
     })
@@ -142,7 +145,7 @@ function paymentTotals(
       ),
     )
     .where(and(eq(payment.status, "succeeded"), oneSeason(only)))
-    .groupBy(season.id, payment.method, ticket);
+    .groupBy(season.id, payment.method, kind);
 }
 
 /**
