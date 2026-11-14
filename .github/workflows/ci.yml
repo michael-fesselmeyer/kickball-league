@@ -114,6 +114,11 @@ jobs:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
           BETTER_AUTH_SECRET: ci-placeholder-secret-not-used-anywhere-000
           BETTER_AUTH_URL: http://localhost:3000
+      # Every route's first-load JavaScript against its budget in
+      # docs/design-system.md, signed-in screens included.
+      - name: First-load JavaScript of every route, against its budget
+        if: env.APP == 'true'
+        run: npm run check:route-js
       - name: Documentation only, nothing else to check
         if: env.APP != 'true'
         run: echo "Only documentation changed; formatting passed."
@@ -274,7 +279,7 @@ jobs:
           [ "$BUILD" = success ] && [ "$SHARDS" = success ]
 
   lighthouse-shard:
-    name: Lighthouse shard ${{ matrix.shard }} of 3
+    name: Lighthouse shard ${{ matrix.shard }} of 4
     needs: build
     if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
@@ -282,7 +287,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
     services:
       postgres:
         image: postgres:18
@@ -312,7 +317,7 @@ jobs:
           name: next-build-lighthouse
       - run: tar --zstd -xf next-build.tar.zst && rm next-build.tar.zst
       - name: This shard's pages, with every budget in lighthouserc.json
-        run: node scripts/lighthouse-shard.mjs ${{ matrix.shard }} 3
+        run: node scripts/lighthouse-shard.mjs ${{ matrix.shard }} 4
       - name: Performance and accessibility budgets (throttled phone)
         run: npm run lighthouse -- --config=.lighthouseci/shard.json
       - name: Upload the Lighthouse reports

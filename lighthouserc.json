@@ -24,7 +24,13 @@
         "http://localhost:3200/sponsors",
         "http://localhost:3200/sponsors/the-corner-pocket",
         "http://localhost:3200/friends",
-        "http://localhost:3200/offline"
+        "http://localhost:3200/offline",
+        "http://localhost:3200/history",
+        "http://localhost:3200/seasons/fall-2026/bracket",
+        "http://localhost:3200/games/05cd8fa2-c2b9-48d9-b6d4-0d4e3414b25b",
+        "http://localhost:3200/style",
+        "http://localhost:3200/paused",
+        "http://localhost:3200/account-deleted"
       ],
       "numberOfRuns": 5,
       "settings": {
