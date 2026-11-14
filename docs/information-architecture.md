@@ -8,7 +8,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 
 ```
 /                                   Home: what, where, when, price, join; featured Instagram photos and the home cover
-├── seasons/                        Open and upcoming seasons
+├── seasons/                        Every public season, newest first: status, dates, schedule and standings links (a sign-up link while registration is open); linked from the home page and the footer
 │   └── [season]/                   Season overview and register button
 │       ├── schedule                Full schedule, filter by team or date; theme weeks marked on their game days; crossover games marked
 │       │   └── division/[division] One division's games and its crossovers, picked by the path; its rule set
