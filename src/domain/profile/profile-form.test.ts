@@ -6,6 +6,7 @@ import {
   normalizePhone,
   parseProfileForm,
   type ProfileForm,
+  readyToRegister,
   toProfileForm,
 } from "./profile-form";
 
@@ -19,8 +20,6 @@ const form: ProfileForm = {
   lineupGender: "",
   shirtSize: "m",
   birthDate: "1995-06-15",
-  emergencyContactName: "Sam Example",
-  emergencyContactPhone: "+44 20 7946 0958",
 };
 
 const errorsOf = (change: Partial<ProfileForm>) => {
@@ -87,8 +86,6 @@ describe("parseProfileForm", () => {
         lineupGender: "woman",
         shirtSize: "m",
         birthDate: "1995-06-15",
-        emergencyContactName: "Sam Example",
-        emergencyContactPhone: "+442079460958",
       },
     });
   });
@@ -130,16 +127,6 @@ describe("parseProfileForm", () => {
     expect(errorsOf({ shirtSize: "xxxl" })).toHaveProperty("shirtSize");
     expect(errorsOf({ birthDate: "1995-02-30" })).toHaveProperty("birthDate");
     expect(errorsOf({ birthDate: "2030-01-01" })).toHaveProperty("birthDate");
-    expect(errorsOf({ emergencyContactName: "" })).toHaveProperty(
-      "emergencyContactName",
-    );
-    expect(errorsOf({ emergencyContactPhone: "" })).toHaveProperty(
-      "emergencyContactPhone",
-    );
-    expect(errorsOf({ emergencyContactPhone: "718.555.0123" })).toEqual({
-      emergencyContactPhone:
-        "Use someone else's number, so we can reach them if you are hurt.",
-    });
   });
 });
 
@@ -159,8 +146,6 @@ describe("toProfileForm", () => {
         lineupGender: null,
         shirtSize: null,
         birthDate: null,
-        emergencyContactName: null,
-        emergencyContactPhone: null,
       }),
     ).toEqual({
       firstName: "",
@@ -170,8 +155,25 @@ describe("toProfileForm", () => {
       lineupGender: "",
       shirtSize: "",
       birthDate: "",
-      emergencyContactName: "",
-      emergencyContactPhone: "",
     });
+  });
+});
+
+describe("readyToRegister", () => {
+  it("needs a valid profile and a saved emergency contact", () => {
+    const parsed = parseProfileForm(form, TODAY);
+    if (!parsed.ok) throw new Error();
+    expect(
+      readyToRegister({ ...parsed.value, hasEmergencyContact: true }, TODAY),
+    ).toBe(true);
+    expect(
+      readyToRegister({ ...parsed.value, hasEmergencyContact: false }, TODAY),
+    ).toBe(false);
+    expect(
+      readyToRegister(
+        { ...parsed.value, phoneE164: null, hasEmergencyContact: true },
+        TODAY,
+      ),
+    ).toBe(false);
   });
 });
