@@ -1310,7 +1310,7 @@ Notes:
 
 The dashboard stores nothing: it adds up `registration`, `roster_membership`, `payment`, `purchase`, `expense`, `permit_window`, `event_rsvp`, `event_ticket` and `checkin` when it is read. A season's members are its registrations that are not cancelled, waitlisted or refunded. A member is new in the first season (by start date) they appear in; retention is the share of the season before's members who are members again. Money is counted as the books count it (section 2.8). Draft seasons are left out.
 
-The one table is the money summary an owner chose to publish ([ADR 0035](adr/0035-season-money-summary.md)):
+The one table is the money summary an owner chose to publish ([ADR 0038](adr/0038-season-money-summary.md)):
 
 ```mermaid
 erDiagram

@@ -18,7 +18,7 @@ import type { SeedData } from "./generate";
 
 /**
  * A published money summary for the demo league's current season (ADR
- * 0035), built from its seeded payments and books exactly as an owner's
+ * 0038), built from its seeded payments and books exactly as an owner's
  * publish would, so the public page has something to show.
  */
 

@@ -4,7 +4,7 @@ import type { MoneySummary } from "@/domain/dashboard/money";
 const pct = (share: number) => `${Math.round(share * 100)}%`;
 
 /**
- * A season's money summary (ADR 0035): category totals and how each fee
+ * A season's money summary (ADR 0038): category totals and how each fee
  * divides across them. The same component draws the owner's preview and
  * the public page, so the preview is exactly what visitors see. Bars are
  * plain elements with the numbers beside them; no script.

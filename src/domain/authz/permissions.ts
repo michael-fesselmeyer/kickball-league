@@ -223,7 +223,7 @@ const RULES = {
   "books.manage": any(isOwner, isOperator),
   // The owner dashboard: membership, money in and out, completion, turnout.
   "dashboard.view": any(isOwner, isOperator),
-  // Publish or take down a season's money summary (ADR 0035).
+  // Publish or take down a season's money summary (ADR 0038).
   "money_summary.publish": any(isOwner, isOperator),
   "admins.manage": isOwner,
   // Whether a person's own data export lists entries about them (ADR 0036).
