@@ -80,6 +80,28 @@ function open(
   return text === null ? null : readCard(text);
 }
 
+/**
+ * When two accounts are merged: the merged-away account's card moves to the
+ * kept one, opened and sealed again for it, only if the kept account has
+ * none; either way it is deleted from the merged-away account. Returns 1
+ * when a card was carried over.
+ */
+export async function mergeEmergencyContact(
+  db: Db,
+  input: { keptId: UserId; mergedId: UserId; secret: string; now: Date },
+): Promise<number> {
+  const merged = await emergencyCardOf(db, input.mergedId, input.secret);
+  await removeEmergencyContact(db, input.mergedId);
+  if (!merged || (await hasEmergencyContact(db, input.keptId))) return 0;
+  await saveEmergencyContact(db, {
+    userId: input.keptId,
+    card: merged,
+    secret: input.secret,
+    now: input.now,
+  });
+  return 1;
+}
+
 /** Whether a player has a card saved, without opening it. */
 export async function hasEmergencyContact(
   db: Db,

@@ -18,6 +18,7 @@ import { session, user } from "../schema/auth";
 import { profile } from "../schema/profile";
 import { invite } from "../schema/team";
 import { recordAudit } from "./audit";
+import { mergeEmergencyContact } from "./emergency";
 import type { Db } from "./schedule";
 
 /**
@@ -407,8 +408,6 @@ const PROFILE_FIELDS = [
   "lineupGender",
   "shirtSize",
   "birthDate",
-  "emergencyContactName",
-  "emergencyContactPhone",
   "stripeCustomerId",
 ] as const;
 
@@ -429,7 +428,12 @@ export type MergeError = "unknown_account" | "blocked";
  */
 export async function mergeAccounts(
   db: Db,
-  input: Pair & { actorId: UserId; now: Date },
+  input: Pair & {
+    actorId: UserId;
+    now: Date;
+    /** The auth secret, to carry a sealed emergency contact across. */
+    secret: string;
+  },
 ): Promise<
   Result<{ moved: Record<string, number> }, MergeError | MergeBlocker[]>
 > {
@@ -593,6 +597,18 @@ export async function mergeAccounts(
     }
     await db.delete(profile).where(eq(profile.userId, mergedId));
   }
+
+  // The emergency contact is sealed to its owner: carried over, sealed
+  // again, only when the kept account has none.
+  tally(
+    "emergency contact",
+    await mergeEmergencyContact(db, {
+      keptId,
+      mergedId,
+      secret: input.secret,
+      now,
+    }),
+  );
 
   // Everything else, by rule.
   for (const [column, rule] of Object.entries(PERSON_COLUMNS)) {

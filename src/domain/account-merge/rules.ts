@@ -48,7 +48,8 @@ export type SpecialHandler =
   | "award_votes"
   | "award_nominee"
   | "one_per_person"
-  | "rebate_credit";
+  | "rebate_credit"
+  | "emergency_contact";
 
 /** Who did something: an admin, an uploader, an author. Always moves. */
 const actor = (label: string): PersonRule => ({ kind: "move", label });
@@ -72,6 +73,13 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     handler: "profile",
   },
   "profile.created_by": actor("profiles created"),
+  // Sealed to its owner (ADR 0042), so it is opened and sealed again for
+  // the kept account when that one has none; otherwise it is deleted.
+  "emergency_contact.user_id": {
+    kind: "special",
+    label: "emergency contact",
+    handler: "emergency_contact",
+  },
   "notification_preference.user_id": {
     kind: "dedupe",
     label: "email and push settings",
