@@ -78,6 +78,8 @@ const ACTIONS: Record<string, string> = {
     "Placed a person on a team that has them on its not-on-my-team list",
   "keep_off.remove": "Took a person off a team's not-on-my-team list",
   "league.export": "Downloaded the league's data",
+  "pickem.own_games":
+    "Changed whether players may pick their own team's games in pick'em",
   "member_photo.approve": "Approved a member's photo",
   "member_photo.delete": "Deleted a member's photo",
   "member_photo.reject": "Rejected a member's photo",

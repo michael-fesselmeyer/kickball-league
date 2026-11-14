@@ -192,6 +192,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               [`${base}/scores`, "Scores"],
               [`${base}/rainout`, "Rain-out"],
               [`${base}/team-of-the-week`, "Team of the week"],
+              ["/app/admin/pickem", "Pick'em"],
               ["/app/sponsor", "Sponsors"],
               [`${base}/rebates`, "Rebates"],
               ["/app/admin/credit", "League credit"],

@@ -76,6 +76,7 @@ export const FEATURES = {
   announcements: "Announcements",
   weather: "Weather forecasts and rain alerts",
   awards: "Awards voting",
+  pickem: "Pick'em",
   discipline: "Sportsmanship ratings, incidents and suspensions",
 } as const;
 export type Feature = keyof typeof FEATURES;
@@ -84,6 +85,7 @@ export const FEATURE_KEYS: readonly Feature[] = [
   "announcements",
   "weather",
   "awards",
+  "pickem",
   "discipline",
 ];
 export const isFeature = (value: string): value is Feature =>

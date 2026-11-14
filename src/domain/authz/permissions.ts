@@ -111,6 +111,8 @@ const RULES = {
   "merch.order": signedIn,
   "sub_request.claim": (s, c) => signedIn(s, c) && c.eligibleToSub === true,
   "awards.vote": (s) => s.roster.length > 0,
+  // Pick'em, for bragging rights only (ADR 0044).
+  "pickem.pick": signedIn,
   // Photos for the league's socials: anyone on a team, and admins. What
   // they may tag is checked against their own teams, games and events.
   "photos.upload": any(isAdmin, (s) => s.roster.length > 0),
@@ -238,6 +240,7 @@ const RULES = {
   "audit.read": isAdmin,
   "shirts.manage": isAdmin,
   "awards.manage": isAdmin,
+  "pickem.manage": isAdmin,
   "photos.manage": isAdmin,
   // The shop's catalog, its orders, the printer's CSV and fulfillment.
   "merch.manage": isAdmin,

@@ -96,6 +96,9 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     );
     expect(allowed("sub_request.claim", { eligibleToSub: false })).toEqual([]);
     expect(allowed("awards.vote")).toEqual(["player", "captain", "coCaptain"]);
+    expect(allowed("pickem.pick")).toEqual(
+      everyone.filter((w) => w !== "visitor"),
+    );
   });
 
   it("lets team members and admins upload photos, and only the uploader delete theirs", () => {
@@ -459,6 +462,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "audit.read",
       "shirts.manage",
       "awards.manage",
+      "pickem.manage",
       "photos.manage",
       "merch.manage",
       "friends.manage",
