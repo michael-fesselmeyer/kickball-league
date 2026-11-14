@@ -42,8 +42,13 @@ test("a player checks in at an event, is entered, and wins the draw", async ({
 }) => {
   test.setTimeout(90_000);
   const start = leagueClock(-60);
-  const title = "Giveaway bar night";
-  const slug = `giveaway-bar-night-${start.date}`;
+  // Its own bar night each run, so the flow can run again on the same data.
+  const tag = Math.random()
+    .toString(36)
+    .replace(/[^a-z]/g, "")
+    .slice(0, 6);
+  const title = `Giveaway bar night ${tag}`;
+  const slug = `giveaway-bar-night-${tag}-${start.date}`;
   const admin = await pageAs(browser, "Admin");
 
   await test.step("the admin adds an event happening now", async () => {
@@ -112,11 +117,13 @@ test("a player checks in at an event, is entered, and wins the draw", async ({
     await expect(player.getByText("1 person has entered.")).toBeVisible();
     await expectNoAxeViolations(player);
 
-    // Scanning again changes nothing.
+    // Scanning again changes nothing, and says so on the page itself: no
+    // late redirect is left running to cut off the next navigation.
     await player.goto(`/app/events/${slug}/giveaway/enter/${code}`);
     await expect(player.getByRole("status")).toHaveText(
       "You're already entered. One entry per person.",
     );
+    await expect(player).toHaveURL(new RegExp(`/giveaway/enter/${code}$`));
   });
 
   await test.step("entry closes and the admin draws the winner", async () => {
@@ -141,7 +148,9 @@ test("a player checks in at an event, is entered, and wins the draw", async ({
     const won = player.getByRole("region", { name: "You won" });
     await expect(won).toContainText(`A pitcher of lemonade, at ${title}`);
     await expectNoAxeViolations(player);
-    await won.getByRole("link").click();
+    await won
+      .getByRole("link", { name: `A pitcher of lemonade, at ${title}` })
+      .click();
     await expect(player.getByText(/You won!/)).toBeVisible();
   });
 
