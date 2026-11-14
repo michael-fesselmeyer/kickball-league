@@ -34,6 +34,7 @@ test("an admin assigns a new ref, who checks the permit, reports the score and s
   await unscoreGame("Pitch Please", "Red Rubber Ballers");
   // An account must exist before the admin can assign it.
   const quinn = await memberPage(browser, ref);
+  let scorePage = "";
 
   await test.step("the admin assigns the ref by email", async () => {
     const admin = await pageAs(browser, "Admin");
@@ -59,6 +60,7 @@ test("an admin assigns a new ref, who checks the permit, reports the score and s
     await expectNoAxeViolations(quinn);
     await game.getByRole("link", { name: "Score" }).click();
     await expect(quinn.getByRole("heading", { level: 1 })).toHaveText(GAME);
+    scorePage = quinn.url().replace(/\?.*$/, "");
 
     await quinn
       .getByRole("link", { name: "Park permit for this game" })
@@ -70,17 +72,16 @@ test("an admin assigns a new ref, who checks the permit, reports the score and s
       quinn.getByRole("img", { name: /park permit SAMPLE-0042/ }),
     ).toBeVisible();
     await expectNoAxeViolations(quinn);
-    await quinn.goBack();
-
+    await quinn.goto(scorePage);
     await quinn.getByRole("link", { name: "Kicking orders" }).click();
     await expect(quinn.getByRole("main")).toContainText("Pitch Please");
     await expect(quinn.getByRole("main")).toContainText("Red Rubber Ballers");
     // A ref sees names only, never anyone's gender.
     await expect(quinn.getByText(/\b(Woman|Man|Women|Men)\b/)).toHaveCount(0);
-    await quinn.goBack();
   });
 
   await test.step("the ref reports the score and a captain confirms it", async () => {
+    await quinn.goto(scorePage);
     await quinn.getByRole("spinbutton", { name: "Pitch Please" }).fill("8");
     await quinn
       .getByRole("spinbutton", { name: "Red Rubber Ballers" })
@@ -90,7 +91,6 @@ test("an admin assigns a new ref, who checks the permit, reports the score and s
     await expect(
       quinn.getByRole("region", { name: "Reported score" }),
     ).toContainText("either captain confirms");
-    const scorePage = quinn.url().replace(/\?.*$/, "");
 
     const captain = await pageSignedInAs(
       browser,
