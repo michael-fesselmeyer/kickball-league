@@ -258,6 +258,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `event_news` | non-urgent | Event announcements, and changes or cancellations more than a day ahead |
 | `event_notice` | urgent | An event spot that opened for you, or an event cancelled or moved within a day of its start |
 | `event_ticket` | urgent | Your event ticket's receipt or refund, or an event spot held for you to buy by a deadline |
+| `gear_reminder` | non-urgent | The evening before a game you're bringing league gear to: which kit and where it goes |
 | `giveaway_win` | non-urgent | A giveaway you won at a league event |
 | `guarantee_failed` | urgent | A captain's card guarantee that could not be charged |
 | `guarantee_warning` | urgent | A warning before a captain's card guarantee is charged |
@@ -317,6 +318,7 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Outbox sweep | Every minute | Sends due messages, retries failures, sends messages that waited out quiet hours or for the next day's email quota; deletes sign-in rate-limit counters untouched for a day (section 13) |
 | Digests ✔ | Daily, 18:00 or later (`/api/jobs/digests`) | Gathers each person's held non-urgent messages whose digest is due into one email, then drains the outbox |
 | Rain alerts ✔ | Daily 18:00 (`/api/jobs/rain-alerts`) | Checks the forecast for each game day whose first game starts in the next 30 hours and alerts every admin on "watch" or "likely", once per level per game day |
+| League gear reminders ✔ | Daily 18:30 (`/api/jobs/gear-reminders`) | Reminds everyone bringing a league kit to a game tomorrow (league time) which kit, where to get it (home, or who has it) and where it goes by when: a non-urgent `gear_reminder` (topic `game_reminder`), queued once per assignment and game day with the dedupe key `gear_reminder:<assignment>:<date>`, then drains the outbox ([data model, section 2.10](data-model.md#210-league-gear)) |
 | Game reminders | Two days before game day, 18:00 | Reminds players of their next game and asks for an RSVP |
 | RSVP nudge | The day before game day, 12:00 | Nudges players who have not answered; tells captains where they stand |
 | Missing scores | Game days, every 30 minutes from the first slot until midnight | Reminds the ref 30 minutes after a slot ends, both captains (and co-captains) after 2 hours, once each. Games that ended more than two days ago stay on the admin scores list but are not emailed about |

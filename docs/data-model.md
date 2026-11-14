@@ -1548,6 +1548,64 @@ Notes:
 - `summary` is a copy of the numbers as previewed, worked out on the server when the owner publishes, so the public page shows exactly the preview and a later expense changes nothing until an owner publishes again. It holds category totals and fee splits only: no names, counts of people, notes or single payments.
 - A season needs at least ten members before its summary can be published, so the money collected never stands for one person's payment. `folded` never contains `other` (a check).
 
+### 2.10 League gear
+
+The league's kits of ball bags, bases, pumps, cones and the first-aid kit (issue #286): who has each one right now, who brings it to which game, and every handoff in between. The rules are in `src/domain/equipment`; `src/db/queries/equipment.ts` reads and writes, locking the kit's row first.
+
+```mermaid
+erDiagram
+  league ||--o{ equipment_kit : owns
+  user |o--o{ equipment_kit : "has now"
+  equipment_kit ||--o{ equipment_assignment : "goes to"
+  game ||--o{ equipment_assignment : "gets"
+  user ||--o{ equipment_assignment : brings
+  equipment_kit ||--o{ equipment_handoff : "changes hands"
+  equipment_kit ||--o{ equipment_report : "missing items"
+
+  equipment_kit {
+    uuid id PK
+    uuid league_id FK
+    text name "Kit A, unique per league"
+    text_array contents "1 to 20 items"
+    text home_location
+    uuid holder_id FK "null: at home"
+    timestamptz retired_at
+  }
+  equipment_assignment {
+    uuid id PK
+    uuid kit_id FK
+    uuid game_id FK
+    uuid user_id FK
+    uuid assigned_by FK
+  }
+  equipment_handoff {
+    uuid id PK
+    uuid kit_id FK
+    uuid from_user_id FK "null: its home"
+    uuid to_user_id FK "null: its home"
+    enum status "pending, confirmed, declined, cancelled"
+    uuid created_by FK
+    timestamptz created_at
+    timestamptz decided_at
+  }
+  equipment_report {
+    uuid id PK
+    uuid kit_id FK
+    uuid reporter_id FK
+    text_array missing "items from the kit's contents"
+    text note
+    timestamptz resolved_at
+    uuid resolved_by FK
+  }
+```
+
+Notes:
+- `equipment_kit.holder_id` is who has the kit right now, and changes only when a handoff is confirmed, the person bringing it picks it up from home, its holder returns it home, or an admin says where it really is. Each of those writes an `equipment_handoff` row, so the handoff table is the kit's history.
+- An assignment names a game, and the game gives the field and the time: the person has the kit there 30 minutes before kickoff (`KIT_LEAD_MINUTES`). A kit goes to one game a day (league time), checked under the kit's lock. Who can be assigned: the game's ref, the captains and co-captains of both teams, and the league's admins.
+- "I handed Kit A to Sam" writes a `pending` handoff to whoever brings the kit to its next game that hasn't ended; the kit stays with the giver until Sam confirms. Sam can say he doesn't have it (`declined`), and the giver can take it back first (`cancelled`). One handoff waits per kit.
+- A report lists items from the kit's contents, a note, or both, and stays open until an admin marks it sorted. Retiring a kit needs it at home with nothing waiting; it removes the kit's assignments to games still to come and keeps its history.
+- Every change writes an `equipment.*` audit row in the same transaction.
+
 ## 3. Constraints and indexes
 
 Integrity rules the database enforces, so application bugs cannot break them:
@@ -1564,6 +1622,10 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `registration`, `waiver_signature` | check `age_confirmed_min` and `age_confirmed_at` are set together, the age between 18 and 99 | An age confirmation always says when |
 | `captain_handoff` | unique `(team_season_id)` where `status = 'pending'`; check `from_user_id <> to_user_id`; check `decided_at` set exactly when not pending | One waiting offer per team; nobody offers it to themselves |
 | `team_keep_off` | unique `(team_id, user_id)`; check reason length 1 to 300; cascades from `team` and `user` | One entry per person per team; a deleted row takes its reason with it |
+| `equipment_kit` | unique `(league_id, name)`; checks on the name (1 to 40), home (1 to 120) and contents (1 to 20 items) | Kits named once per league |
+| `equipment_assignment` | unique `(kit_id, game_id)`; cascades from `equipment_kit`, `game` and `user` | One person brings a kit to a game |
+| `equipment_handoff` | unique `(kit_id)` where `status = 'pending'`; check `decided_at` set exactly when not pending | One waiting handoff per kit |
+| `equipment_report` | check it lists an item or has a note; note length 1 to 500 | A report says what is missing |
 | `team_season` | foreign key `(division_id, season_id)` to `division (id, season_id)` | A team's division is in its own season |
 | `division` | unique `(season_id, slug)`, unique `(season_id, name)`; check slug format | One division per name and public address in a season |
 | `rule_set` | unique `(league_id, name)`; check innings 1 to 15 and time limit 10 to 240 | Rule sets are named once per league, with sane limits |
@@ -1700,6 +1762,10 @@ Indexes for the common reads:
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
 | `giveaway_entry` | `(user_id)` | A person's entries, for the export and account deletion |
 | `giveaway_winner` | `(entry_id)` | Removing an entry removes its win |
+| `equipment_kit` | `(holder_id)` | The kits a person has, for their home screen |
+| `equipment_assignment` | `(game_id)`, `(user_id)` | A game day's gear; a person's games with gear |
+| `equipment_handoff` | `(kit_id, created_at)`, `(to_user_id)`, `(from_user_id)` | A kit's history; handoffs waiting for a person |
+| `equipment_report` | `(kit_id, created_at)`, `(reporter_id)`, `(resolved_by)` | A kit's reports; a person's reports |
 
 ## 4. Personal data
 
@@ -1725,6 +1791,7 @@ Indexes for the common reads:
 | Season cards | `season_card` | The player. Anyone with the link while the player keeps it public, as first name and last initial, their team and their own numbers; never another player's name, and votes only as a count. Admins see how many cards exist and how many are shared. The card is in the player's export and is deleted with their account |
 | Player stats and stat award places | worked out on read; `stat_award_place`, `leaderboard_opt_out` | The player sees their own stats. Admins see the draft places. Everyone sees published places by first name and last initial, unless the player opted out |
 | Emergency contact (name, relationship, phone) and first-aid note | `emergency_contact`, sealed: AES-256-GCM with a key derived from the server's auth secret, bound to the player's id ([ADR 0043](adr/0043-emergency-contacts-sealed-and-shown-on-game-day.md)) | The person. On the day of a game they play in (league time zone), that game's captains and co-captains and its ref; each read writes an `emergency_contact.view` audit row with the reader and the game, never the contact. Admins and owners don't see it. A database copy alone reads nothing. When two accounts are merged, the merged-away account's contact is sealed again for the kept one only if that one has none, and deleted either way |
+| League gear: who has a kit, who brings it to which game, handoffs and missing-items reports | `equipment_kit.holder_id`, `equipment_assignment`, `equipment_handoff`, `equipment_report` | The person sees the kits they have, are handed or bring; admins see everything, including who filed each report. Their own export lists it all |
 | Free-agent quiz answers and note | `free_agent_profile` | The person and admins |
 | Friend group | `friend_group`, `registration.friend_group_id` | The person; others in the group see first name and last initial; admins |
 | A published season money summary | `money_summary` | Everyone, once an owner publishes it. It holds category totals and how each fee divides, never a person's amount, name, birth date or contact details; owners can fold a category into "Other" when its total would point at one person |
@@ -1742,7 +1809,7 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), their away weeks (`away_week`, which would otherwise stay with the kept registration), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Addresses that were merged into the account stop being aliases. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). Their `emergency_contact` is deleted. The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted. A captaincy offer waiting for or from them is cancelled.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), their away weeks (`away_week`, which would otherwise stay with the kept registration), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Addresses that were merged into the account stop being aliases. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). Their `emergency_contact` is deleted. The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted. A captaincy offer waiting for or from them is cancelled. They stop bringing league gear to games still to come, and a gear handoff waiting from or to them is cancelled; a kit they hold stays shown with "Deleted account" until an admin says where it is.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, entries and wins in drawn giveaways, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.

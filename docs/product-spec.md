@@ -183,6 +183,8 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Open, close and remove awards polls | — | — | — | — | — | ✓ | ✓ |
 | Make pick'em picks (bragging rights only) | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Choose whether players may pick their own team's games | — | — | — | — | — | ✓ | ✓ |
+| Pick up, hand on, confirm, return or report missing items from a kit of league gear they have, are handed or bring to a game | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |
+| Add and retire kits, assign them to games, correct where one is, sort missing-items reports | — | — | — | — | — | ✓ | ✓ |
 | Log an incident | — | — | own team's games | assigned | — | ✓ | ✓ |
 | Review incidents, suspend a player or lift a suspension | — | — | — | — | — | ✓ | ✓ |
 | Keep a person off the team with a private "not on my team" list ([ADR 0036](adr/0036-not-on-my-team-list.md)) | — | — | own team | — | — | ✓ (any team) | ✓ (any team) |
