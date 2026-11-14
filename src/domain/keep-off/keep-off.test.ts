@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { err, ok } from "../result";
 import {
+  type Entry,
   inviteStateFor,
   MANY_ON_ONE_LIST,
   oversight,
@@ -59,11 +60,12 @@ describe("an invite link opened by someone the team keeps off", () => {
 });
 
 describe("oversight across every list", () => {
-  const entry = (team: string, person: string) => ({
+  const entry = (team: string, person: string): Entry => ({
     teamId: `t-${team}`,
     teamName: team,
     userId: `u-${person}`,
     name: person,
+    email: `${person.toLowerCase()}@example.test`,
   });
 
   it("counts each team's list, longest first", () => {
@@ -94,7 +96,22 @@ describe("oversight across every list", () => {
       entry("Bees", "Bo"),
     ]);
     expect(people).toEqual([
-      { userId: "u-Ari", name: "Ari", teams: ["Aces", "Bees", "Cats"] },
+      { key: "u-Ari", name: "Ari", teams: ["Aces", "Bees", "Cats"] },
+    ]);
+  });
+
+  it("names an address with no account yet by the address", () => {
+    const pending = (team: string) => ({
+      ...entry(team, "Dee"),
+      userId: null,
+      name: null,
+    });
+    expect(oversight([pending("Aces"), pending("Bees")]).people).toEqual([
+      {
+        key: "address:dee@example.test",
+        name: "dee@example.test",
+        teams: ["Aces", "Bees"],
+      },
     ]);
   });
 

@@ -5,13 +5,12 @@ import { SubmitButton } from "@/components/submit-button";
 /** Messages by code; an unknown code from the URL finds nothing. */
 export const KEEP_OFF_MESSAGES: Record<string, { ok: boolean; text: string }> =
   {
-    added: { ok: true, text: "Added. Nobody tells them." },
+    added: {
+      ok: true,
+      text: "Added. Nobody tells them, and it applies whenever that address is or becomes a member's.",
+    },
     removed: { ok: true, text: "Taken off the list." },
     invalid_email: { ok: false, text: "Enter their email address." },
-    not_found: {
-      ok: false,
-      text: "We couldn't find a league member with that email address.",
-    },
     self: { ok: false, text: "You can't add yourself." },
     on_team: {
       ok: false,
@@ -110,9 +109,9 @@ export function KeepOffSection({
                   className="flex flex-wrap items-start justify-between gap-2 border-t border-border py-2"
                 >
                   <span className="flex flex-col">
-                    <span>{e.name}</span>
-                    <span className="text-small break-all text-text-muted">
-                      {e.email} · added {when(e.addedAt)}
+                    <span className="break-all">{e.email}</span>
+                    <span className="text-small text-text-muted">
+                      Added {when(e.addedAt)}
                     </span>
                     {e.reason && (
                       <span className="text-small whitespace-pre-line">
@@ -123,7 +122,7 @@ export function KeepOffSection({
                   <form action={remove(e.id)}>
                     <SubmitButton className="inline-flex min-h-11 items-center underline">
                       Remove
-                      <span className="sr-only"> {e.name} from the list</span>
+                      <span className="sr-only"> {e.email} from the list</span>
                     </SubmitButton>
                   </form>
                 </li>

@@ -124,7 +124,7 @@ async function TeamLists({ searchParams }: PageProps<"/app/admin/team-lists">) {
               </li>
             ))}
             {summary.people.map((p) => (
-              <li key={p.userId}>
+              <li key={p.key}>
                 <strong>{p.name}</strong> is on {p.teams.length} lists:{" "}
                 {p.teams.join(", ")}.
               </li>
@@ -156,7 +156,7 @@ async function TeamLists({ searchParams }: PageProps<"/app/admin/team-lists">) {
                     className="flex flex-wrap items-start justify-between gap-2 border-t border-border py-2"
                   >
                     <span className="flex flex-col">
-                      <span>{e.name}</span>
+                      <span>{e.name ?? "No account yet"}</span>
                       <span className="text-small break-all text-text-muted">
                         {e.email} · added {when(e.addedAt)}
                         {e.addedByName ? ` by ${e.addedByName}` : ""}
@@ -170,7 +170,7 @@ async function TeamLists({ searchParams }: PageProps<"/app/admin/team-lists">) {
                         Remove
                         <span className="sr-only">
                           {" "}
-                          {e.name} from {t.teamName}&apos;s list
+                          {e.name ?? e.email} from {t.teamName}&apos;s list
                         </span>
                       </SubmitButton>
                     </form>
