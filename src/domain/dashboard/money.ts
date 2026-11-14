@@ -8,17 +8,20 @@ import {
 
 /**
  * Money by season for the owner dashboard, and the season money summary an
- * owner may publish (ADR 0035). Pure: the queries pass totals already added
+ * owner may publish (ADR 0038). Pure: the queries pass totals already added
  * up by season, and the books' own ledger (ADR 0034) turns them into money
  * in and money out, so the dashboard and the books always agree.
  */
+
+/** What a purchase paid for: a registration fee, event tickets or merch. */
+export type PurchaseKind = "registration" | "ticket" | "merch";
 
 /** Succeeded payments of one season, added up by method and kind. */
 export type PaymentTotals = {
   seasonId: string;
   method: PaymentMethod;
-  /** The purchase was for event tickets rather than a registration. */
-  ticket: boolean;
+  /** What the purchase was for. */
+  kind: PurchaseKind;
   amountCents: number;
   refundedCents: number;
 };
@@ -35,6 +38,8 @@ export type SeasonMoney = {
   registrationsCents: number;
   /** Event tickets paid in the app. */
   ticketsCents: number;
+  /** Merch (shirts, replacement jerseys) paid in the app. */
+  merchCents: number;
   /** Cash, Venmo and other payments recorded by a captain or admin. */
   offAppCents: number;
   /** Given back on any of the above, as a positive number. */
@@ -69,9 +74,14 @@ export function seasonMoney(input: {
   return {
     seasonId: input.seasonId,
     registrationsCents: sum(
-      inApp.filter((p) => !p.ticket).map((p) => p.amountCents),
+      inApp.filter((p) => p.kind === "registration").map((p) => p.amountCents),
     ),
-    ticketsCents: sum(inApp.filter((p) => p.ticket).map((p) => p.amountCents)),
+    ticketsCents: sum(
+      inApp.filter((p) => p.kind === "ticket").map((p) => p.amountCents),
+    ),
+    merchCents: sum(
+      inApp.filter((p) => p.kind === "merch").map((p) => p.amountCents),
+    ),
     offAppCents: ledger.income.offAppCents,
     refundsCents: ledger.income.refundsCents,
     creditCents: input.creditCents,
@@ -83,7 +93,7 @@ export function seasonMoney(input: {
 }
 
 // ---------------------------------------------------------------------------
-// The season money summary (ADR 0035)
+// The season money summary (ADR 0038)
 
 /**
  * The fewest members a season needs before its summary can be published.

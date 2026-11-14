@@ -145,6 +145,32 @@ async function dashboardWorld(db: Db) {
     status: "succeeded",
     paidAt: new Date("2027-05-01T20:00:00Z"),
   });
+  // A merch order paid in the app during spring, with no season either.
+  const [merchBuy] = await db
+    .insert(purchase)
+    .values({
+      userId: w.teammate,
+      seasonId: null,
+      status: "paid",
+      subtotalCents: 2500,
+      totalCents: 2500,
+    })
+    .returning({ id: purchase.id });
+  if (!merchBuy) throw new Error("no purchase");
+  await db.insert(purchaseItem).values({
+    purchaseId: merchBuy.id,
+    kind: "merch",
+    amountCents: 2500,
+    description: "Replacement jersey",
+  });
+  await db.insert(payment).values({
+    purchaseId: merchBuy.id,
+    method: "stripe",
+    stripePaymentIntentId: `pi_dash_merch_${tag}`,
+    amountCents: 2500,
+    status: "succeeded",
+    paidAt: new Date("2027-05-02T20:00:00Z"),
+  });
   // A failed payment counts for nothing.
   const [failed] = await db
     .insert(purchase)
@@ -312,11 +338,12 @@ describe("the owner dashboard", () => {
       expect(money).toMatchObject({
         registrationsCents: 0,
         ticketsCents: 1500,
+        merchCents: 2500,
         offAppCents: 4500,
         refundsCents: 500,
-        incomeCents: 5500,
+        incomeCents: 8000,
         expenseTotalCents: 3000,
-        netCents: 2500,
+        netCents: 5000,
       });
       expect(view.money.find((m) => m.name === "Fall 2026")?.incomeCents).toBe(
         0,
@@ -448,7 +475,7 @@ describe("the season money summary", () => {
       expect(shown?.publishedAt).toEqual(NOW);
       expect(shown?.summary).toEqual(summary);
       expect(shown?.summary?.categories).toEqual([
-        { label: "Other", cents: 3000, share: 3000 / 5500 },
+        { label: "Other", cents: 3000, share: 3000 / 8000 },
       ]);
       // Nothing about any person: no name, email or note from the world.
       const text = JSON.stringify(shown);
@@ -479,7 +506,7 @@ describe("the season money summary", () => {
       );
       expect(
         (await publicSummary(db, w.slugs.spring))?.summary?.categories,
-      ).toEqual([{ label: "Refs", cents: 3000, share: 3000 / 5500 }]);
+      ).toEqual([{ label: "Refs", cents: 3000, share: 3000 / 8000 }]);
 
       expect(await unpublishSummary(db, s.id, w.captain)).toEqual({
         ok: true,

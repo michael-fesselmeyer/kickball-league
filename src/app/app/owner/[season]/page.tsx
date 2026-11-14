@@ -290,6 +290,7 @@ async function Dashboard({
                   [
                     ["Registrations in the app", moneyHere.registrationsCents],
                     ["Event tickets in the app", moneyHere.ticketsCents],
+                    ["Merch in the app", moneyHere.merchCents],
                     ["Paid outside the app", moneyHere.offAppCents],
                     ["Refunds", -moneyHere.refundsCents],
                   ] as const
