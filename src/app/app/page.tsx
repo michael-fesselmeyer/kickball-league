@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { db } from "@/db/client";
 import { ballotsWaiting } from "@/db/queries/awards";
 import { myCards } from "@/db/queries/season-cards";
+import { myGear } from "@/db/queries/equipment";
 import { fieldPermitForGame } from "@/db/queries/books";
 import { myGiveawayWins } from "@/db/queries/giveaways";
 import { publishedGamesFor } from "@/db/queries/public-schedule";
@@ -35,23 +36,24 @@ import { signOut } from "./actions";
 import { checkInAsRefereeAction } from "./referee-actions";
 import { InstallPrompt } from "./install-prompt";
 import { cardsVisible } from "@/domain/emergency/emergency";
+import { Gear } from "./gear";
 import { OfflineSync, SignOutForm } from "./offline-sync";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Home" };
 
-export default function AppHome() {
+export default function AppHome(props: PageProps<"/app">) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-4 py-12">
       <Suspense fallback={<PageLoading>Loading your account…</PageLoading>}>
-        <Account />
+        <Account {...props} />
       </Suspense>
     </main>
   );
 }
 
-async function Account() {
+async function Account({ searchParams }: PageProps<"/app">) {
   // proxy.ts only checks that a cookie exists; this verifies the session itself.
   const session = await currentAuthSession();
   if (!session) redirect("/sign-in?next=/app");
@@ -75,6 +77,11 @@ async function Account() {
   })();
   // Whether pick'em is on, started early too.
   const pickemOn = featureEnabled("pickem");
+  // League gear this person has or brings to a game (issue #286), early too.
+  const gear = (async () => {
+    const id = parseId<UserId>(subject.userId);
+    return id ? myGear(db, id, new Date()) : [];
+  })();
   // Giveaways this person won at league events, started early too.
   const wins = (async () => {
     const id = parseId<UserId>(subject.userId);
@@ -155,6 +162,8 @@ async function Account() {
   const ballots = await waiting;
   const mine = await seasons;
   const showPickem = await pickemOn;
+  const kits = await gear;
+  const query = await searchParams;
   const won = await wins;
   const surveysOpen = await surveys;
   const [latestCard] = await cards;
@@ -260,6 +269,15 @@ async function Account() {
           </ul>
         </section>
       )}
+      <Gear
+        kits={kits}
+        timeZone={timeZone}
+        now={now}
+        notice={
+          typeof query.gear_notice === "string" ? query.gear_notice : null
+        }
+        error={typeof query.gear_error === "string" ? query.gear_error : null}
+      />
       {refereeing.length > 0 && (
         <section aria-labelledby="refereeing" className="flex flex-col gap-2">
           <h2 id="refereeing" className="text-h3">
