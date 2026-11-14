@@ -239,7 +239,8 @@ export type ReportError = "not_started" | "invalid" | "already_final";
 
 /**
  * Records a reported score. A retried submit with the same client id is a
- * no-op, so a flaky connection at the field cannot report twice.
+ * no-op, so a flaky connection at the field cannot report twice. Run it in
+ * a transaction: it locks the game.
  */
 export async function reportScore(
   db: Db,
@@ -253,6 +254,14 @@ export async function reportScore(
     now: Date;
   },
 ): Promise<Result<ScoreState, ReportError | ScoreErrors>> {
+  // One change to a game's score at a time, online, offline or an answer:
+  // a report waits for a confirmation landing at the same moment, then
+  // sees the game final.
+  await db
+    .select({ id: game.id })
+    .from(game)
+    .where(eq(game.id, input.gameId))
+    .for("update");
   const g = await gameForScoring(db, input.gameId);
   if (!g || (g.startsAt && g.startsAt > input.now)) return err("not_started");
   // Once final, only an admin may correct a score.

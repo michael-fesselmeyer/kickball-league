@@ -446,7 +446,12 @@ describe("answers that arrive late or at once", () => {
     });
   });
 
-  it("settles one way when both captains answer a ref's score at the same moment", async () => {
+  // A few rounds each: the race showed in the first round before the fix.
+  // Each round commits a league and opens two connections, so the test has
+  // more time than most.
+  const ROUNDS = 3;
+
+  it("settles one way when two people change a score at the same moment", async () => {
     const clients: Client[] = [];
     const connect = async () => {
       const client = new Client({ connectionString: process.env.DATABASE_URL });
@@ -457,7 +462,7 @@ describe("answers that arrive late or at once", () => {
     const setup = await connect();
     const worlds: Awaited<ReturnType<typeof world>>[] = [];
     try {
-      for (let round = 0; round < 5; round++) {
+      for (let round = 0; round < ROUNDS; round++) {
         const w = await world(setup);
         worlds.push(w);
         const reportId = await refReport(setup, w);
@@ -483,6 +488,55 @@ describe("answers that arrive late or at once", () => {
           expect(state.state).toBe("disputed");
         }
       }
+      // A captain corrects the score while the other confirms the first.
+      for (let round = 0; round < ROUNDS; round++) {
+        const w = await world(setup);
+        worlds.push(w);
+        const first = await reportScore(setup, {
+          gameId: w.gameId,
+          userId: w.capA,
+          role: "captain",
+          teamSeasonId: w.a,
+          score: score(),
+          clientId: `first-${w.tag}`,
+          now: after(2),
+        });
+        if (!first.ok || first.value.state !== "awaiting")
+          throw new Error("expected an open report");
+        const reportId = reportIdOf(first.value.reportId);
+        const [one, two] = [await connect(), await connect()];
+        const [confirmed, corrected] = await Promise.all([
+          one.transaction((tx) => answer(tx, w, reportId, "b", "confirmed", 3)),
+          two.transaction((tx) =>
+            reportScore(tx, {
+              gameId: w.gameId,
+              userId: w.capA,
+              role: "captain",
+              teamSeasonId: w.a,
+              score: score({ scoreA: 8 }),
+              clientId: `second-${w.tag}`,
+              now: after(3),
+            }),
+          ),
+        ]);
+        const row = await gameRow(setup, w.gameId);
+        const { state } = await currentScoreState(
+          setup,
+          { id: w.gameId, teamAId: w.a, teamBId: w.b },
+          after(3),
+        );
+        expect(confirmed.ok).toBe(true);
+        if (corrected.ok) {
+          // The correction went first: the confirmation was for a report
+          // that no longer counts, and the correction waits for an answer.
+          expect(state.state).toBe("awaiting");
+          expect(row.status).toBe("scheduled");
+        } else {
+          expect(corrected).toEqual({ ok: false, error: "already_final" });
+          expect(state.state).toBe("final");
+          expect(row).toMatchObject({ status: "final", scoreA: 7 });
+        }
+      }
     } finally {
       const games = worlds.map((w) => w.gameId);
       if (games.length > 0) {
@@ -500,7 +554,7 @@ describe("answers that arrive late or at once", () => {
       for (const w of worlds) await removeScoreWorld(setup, w);
       await Promise.all(clients.map((c) => c.end()));
     }
-  });
+  }, 60_000);
 });
 
 /** Deletes a committed `world` row by row, as nothing cascades. */
