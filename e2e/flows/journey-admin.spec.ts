@@ -8,18 +8,19 @@ import { captainEmail, pageSignedInAs } from "../support/sign-in";
 /**
  * An admin's week after a game day, across scores, the weekly recap,
  * announcements and events with an audience. The season's scores screen
- * lists Kickin' Chicken vs Grand Slammers as missing its score; the admin
+ * lists Grand Slammers vs Red Rubber Ballers as missing its score; the admin
  * sets it, which is final at once, and the screen drops it. The recap
  * for that game day is drafted from the result, and the admin sends it to
  * one team. Then the admin posts a bowling night for the Grand Slammers
  * only: their captain finds it in the app, another team's captain doesn't,
  * and the public events page never shows it.
  *
- * No other flow scores this game or posts this event; the game is reset
+ * No other flow scores this game or posts this event, and it isn't on the
+ * last game day, which the rain-out flow calls off; the game is reset
  * first, so a rerun starts from the seed's state.
  */
 const SEASON = "fall-2026";
-const GAME = "Kickin' Chicken vs Grand Slammers";
+const GAME = "Grand Slammers vs Red Rubber Ballers";
 const EVENT = "Grand Slammers bowling night";
 
 /** The game's day in the league's time zone, as YYYY-MM-DD. */
@@ -35,7 +36,7 @@ async function gameDay(): Promise<string> {
          join league l on l.id = s.league_id
          join team_season a on a.id = g.team_a_id join team ta on ta.id = a.team_id
          join team_season b on b.id = g.team_b_id join team tb on tb.id = b.team_id
-        where ta.name = 'Kickin'' Chicken' and tb.name = 'Grand Slammers'
+        where ta.name = 'Grand Slammers' and tb.name = 'Red Rubber Ballers'
           and s.slug = $1`,
       [SEASON],
     );
@@ -52,7 +53,7 @@ test("an admin settles a missing score, sends the recap and posts a team-only ev
 }) => {
   // Three people sign in, and two public and private lists are compared.
   test.slow();
-  await unscoreGame("Kickin' Chicken", "Grand Slammers", SEASON);
+  await unscoreGame("Grand Slammers", "Red Rubber Ballers", SEASON);
   const admin = await pageAs(browser, "Admin");
 
   await test.step("a missing score is set and leaves the scores list", async () => {
@@ -63,14 +64,16 @@ test("an admin settles a missing score, sends the recap and posts a team-only ev
     await expectNoAxeViolations(admin);
     await game.getByRole("link", { name: "Set score" }).click();
     await expect(admin.getByRole("heading", { level: 1 })).toHaveText(GAME);
-    await admin.getByRole("spinbutton", { name: "Kickin' Chicken" }).fill("3");
     await admin.getByRole("spinbutton", { name: "Grand Slammers" }).fill("9");
+    await admin
+      .getByRole("spinbutton", { name: "Red Rubber Ballers" })
+      .fill("3");
     await admin.getByRole("button", { name: "Save the score" }).click();
     await expect(admin.getByRole("status")).toHaveText("Score saved.");
     // An admin's score needs nobody's confirmation.
     await expect(
       admin.getByRole("region", { name: "Final score" }),
-    ).toContainText("Kickin' Chicken 3, Grand Slammers 9");
+    ).toContainText("Grand Slammers 9, Red Rubber Ballers 3");
 
     await admin.goto(`/app/admin/seasons/${SEASON}/scores`);
     await expect(admin.getByRole("heading", { level: 1 })).toHaveText("Scores");

@@ -9,16 +9,17 @@ import { captainEmail, pageSignedInAs } from "../support/sign-in";
  * A new ref's first game, across referee assignment, the home screen, the
  * park permit at the field, kicking orders, scores and the captains'
  * confirmation. Quinn Harrow (made up for this flow) signs in once, the
- * admin assigns Quinn to Pitch Please vs Red Rubber Ballers, and Quinn
+ * admin assigns Quinn to Base Invaders vs The Big Kicks, and Quinn
  * finds it on their home screen, opens the park permit a park officer
- * might ask for, checks the kicking orders and reports the score. Pitch
- * Please's captain confirms it, and the game leaves Quinn's list.
+ * might ask for, checks the kicking orders and reports the score. Base
+ * Invaders' captain confirms it, and the game leaves Quinn's list.
  *
- * No other flow refs or scores this game; it is reset first, so a rerun
+ * No other flow refs or scores this game, and it isn't on the last game
+ * day, which the rain-out flow calls off; it is reset first, so a rerun
  * starts from the seed's state.
  */
 const SEASON = "fall-2026";
-const GAME = "Pitch Please vs Red Rubber Ballers";
+const GAME = "Base Invaders vs The Big Kicks";
 const ref: Member = {
   first: "Quinn",
   last: "Harrow",
@@ -31,7 +32,7 @@ test("an admin assigns a new ref, who checks the permit, reports the score and s
 }) => {
   // Three people sign in.
   test.slow();
-  await unscoreGame("Pitch Please", "Red Rubber Ballers", SEASON);
+  await unscoreGame("Base Invaders", "The Big Kicks", SEASON);
   // An account must exist before the admin can assign it.
   const quinn = await memberPage(browser, ref);
   let scorePage = "";
@@ -74,18 +75,16 @@ test("an admin assigns a new ref, who checks the permit, reports the score and s
     await expectNoAxeViolations(quinn);
     await quinn.goto(scorePage);
     await quinn.getByRole("link", { name: "Kicking orders" }).click();
-    await expect(quinn.getByRole("main")).toContainText("Pitch Please");
-    await expect(quinn.getByRole("main")).toContainText("Red Rubber Ballers");
+    await expect(quinn.getByRole("main")).toContainText("Base Invaders");
+    await expect(quinn.getByRole("main")).toContainText("The Big Kicks");
     // A ref sees names only, never anyone's gender.
     await expect(quinn.getByText(/\b(Woman|Man|Women|Men)\b/)).toHaveCount(0);
   });
 
   await test.step("the ref reports the score and a captain confirms it", async () => {
     await quinn.goto(scorePage);
-    await quinn.getByRole("spinbutton", { name: "Pitch Please" }).fill("8");
-    await quinn
-      .getByRole("spinbutton", { name: "Red Rubber Ballers" })
-      .fill("6");
+    await quinn.getByRole("spinbutton", { name: "Base Invaders" }).fill("8");
+    await quinn.getByRole("spinbutton", { name: "The Big Kicks" }).fill("6");
     await quinn.getByRole("button", { name: "Save the score" }).click();
     await expect(quinn.getByRole("status")).toHaveText("Score saved.");
     await expect(
@@ -94,7 +93,7 @@ test("an admin assigns a new ref, who checks the permit, reports the score and s
 
     const captain = await pageSignedInAs(
       browser,
-      await captainEmail("Pitch Please", SEASON),
+      await captainEmail("Base Invaders", SEASON),
     );
     await captain.goto(scorePage);
     await expect(
