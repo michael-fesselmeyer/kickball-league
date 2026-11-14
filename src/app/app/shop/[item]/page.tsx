@@ -24,7 +24,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { orderMerchAction } from "../actions";
 import { PageLoading } from "@/components/page-loading";
 
-export const metadata: Metadata = { title: "League shop" };
+export const metadata: Metadata = { title: "Shop item" };
 
 const ERRORS: Record<string, string> = {
   not_found: "That item is gone.",
