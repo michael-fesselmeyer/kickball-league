@@ -41,7 +41,7 @@ Each question lists what the design assumes until it is answered, so nothing her
 | 12 | Should the league absorb Stripe's fee (about $2.77 on $85), or add it as a processing fee? | The league absorbs it | pitch |
 | 13 | In split pay, what happens to money collected beyond the team fee when extra players join? | Team credit toward next season | pitch |
 | 14 | Is the captain guarantee acceptable: a saved card charged for the unpaid balance at the deadline, after a 72-hour warning? | Yes, opt-in per team. Without it the team is unconfirmed until the balance is paid | pitch |
-| 15 | Who can see birth dates and emergency contacts? | Owners see birth dates; captains and admins see emergency contacts | launch |
+| 15 | Who can see birth dates and emergency contacts? | Owners see birth dates. Emergency contacts: a game's captains and ref, on that game's day only; not admins ([ADR 0041](adr/0041-emergency-contacts-sealed-and-shown-on-game-day.md)) | launch |
 | 16 | Are terms of service and a privacy policy available, or should drafts be prepared for their review? | Drafts prepared, marked for legal review | launch |
 | 17 | Minimum age: the rulebook says 18. Is it 21 for bar events? | 18 to play; event pages can state 21+ | launch |
 

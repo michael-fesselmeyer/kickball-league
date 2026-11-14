@@ -89,6 +89,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref); works with no signal
 ├── games/[game]/lineup             Both teams' kicking orders: a team's captains any time, the other captain and the ref from game day (names only); each player sees their own spot
 │   └── [team]                      Captain: who is away that week and whether the team is short, then the kicking-order builder from the players who are in, with drag, keyboard and button moves, live two-in-a-row checks, auto-arrange and copy from the last game
+├── games/[game]/emergency          Emergency contacts and first-aid notes of everyone playing (both rosters and approved subs), for the game's two captains and its ref, on game day only; every load audited; kept on the phone with the next game until midnight
 ├── games/[game]/permit             The park permit at the field: number, field, hours and document, for the game's ref and both captains (and owners); kept on the phone with the next game
 │   └── document                    The permit document itself, for the same people, never cached by a CDN
 ├── books/                          Owners and the platform operator only (404 for everyone else); opens on the newest season
