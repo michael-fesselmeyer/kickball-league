@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GameCard } from "@/components/game-card";
 import { InstagramPhotos } from "@/components/instagram-photos";
+import { JsonLd } from "@/components/json-ld";
 import { MemberPhotos } from "@/components/member-photos";
 import { AllTimeRecord } from "@/components/history/all-time-record";
 import { LogoBadge } from "@/components/logo-badge";
@@ -40,6 +41,7 @@ import {
   seasonTag,
   teamTag,
 } from "@/lib/public-cache";
+import { teamPageJsonLd } from "@/lib/seo/pages";
 import { shareMetadata } from "@/lib/share/metadata";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { NO_TEAM, publicTeamParams } from "@/lib/static-params";
@@ -188,6 +190,7 @@ async function TeamView({
 
   return (
     <>
+      <JsonLd data={teamPageJsonLd(siteOrigin(env.BETTER_AUTH_URL), team)} />
       <header className="flex flex-wrap items-center gap-4">
         {entry ? (
           <Morph name={teamMorph(entry.id)}>
