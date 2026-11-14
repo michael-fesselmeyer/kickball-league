@@ -73,6 +73,9 @@ const NOTICES: Record<string, (q: Record<string, string>) => string> = {
       Number(q.retired) > 0
         ? `${plural(Number(q.retired), "slot")} a schedule uses could not be removed, so ${Number(q.retired) === 1 ? "it was" : "they were"} cancelled instead. Move the games in them on the schedule screen, or call a rain-out.`
         : "",
+      Number(q.played) > 0
+        ? `${plural(Number(q.played), "slot")} from games already played ${Number(q.played) === 1 ? "was" : "were"} left as ${Number(q.played) === 1 ? "it was" : "they were"}.`
+        : "",
     ]
       .filter(Boolean)
       .join(" "),
