@@ -15,6 +15,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       ├── standings               Standings (a table per division when the season has divisions), tiebreaker notes, power rankings and the game of the week
 │       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list, served as /bracket/list)
 │       ├── money                   Where the money goes: the season's spending by category and how each fee divides, only once an owner publishes it (404 until then)
+│       ├── card/[card]             A player's season card, only while its player keeps the link public (404 otherwise, never indexed): their games, team runs, record and finish, awards, streak and best game, with share buttons
+│       │   └── share.png           The card's share image: name, team badge and four big numbers (404 while private)
 │       └── register                Register a team, join by invite, or free agent; each asks the player to confirm the season's minimum age
 ├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries, all-time record and titles, tagged Instagram photos and the team's cover, and players' approved photos with a link to share one
 │   ├── calendar.ics                Team calendar feed: every published game, in the league's time zone
@@ -86,6 +88,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
 ├── seasons/[season]/team/requests  Captain: dates the team can't play and times it would rather have or avoid, until registration closes
 ├── seasons/[season]/new-team       Ask the league to start a new team; see the answer or withdraw while it waits
+├── seasons/[season]/card           Your season in kickball: my end-of-season card, private until I make its link public; then the link, share buttons and "Make my card private"; "Copy for WhatsApp" either way. Linked from home
 ├── seasons/[season]/register       Register a team or join as a free agent, confirming the season's minimum age ("I'm 21 or older"); a player the profile shows as too young sees why instead of the forms; when the season is full, the team waitlist: join, see your place, leave, or take a held spot
 ├── seasons/[season]/team (challenge) The season's sign-up challenge on the team page: "9 of 12 signed up", a bar, the prize and a link to the leaderboard
 ├── seasons/[season]/challenge      The sign-up challenge leaderboard: teams by the share of their roster with an account and a signed waiver (team names and counts only), my team marked, the winner once confirmed
@@ -130,6 +133,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── rebates                 Rain-out rebates: each team's games lost and money paid; issue the pro-rata rebate as league credit
     │   ├── shirts                  Shirt sizes by team, what is still to order, and each player's shirt: not ordered, ordered or received
     │   ├── awards                  Open a game-day or season poll, close one early, remove one; results after close
+    │   ├── cards                   Season cards: once the season is completed, build every rostered player's card (and tell each once), or refresh them; how many are shared
     │   ├── sportsmanship           Each team's average sportsmanship rating and the notes left for admins, lowest first, never saying who rated
     │   ├── free-agents             Matcher: suggested placements with reasons (apply one or all), the pool with quiz answers and friend groups, and building a new team from the pool
     │   ├── rollover                Start the next season from this one: name, first day and teams to bring, a preview of what the new draft gets and what starts fresh, then create it
