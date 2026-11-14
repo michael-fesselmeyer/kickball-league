@@ -176,18 +176,22 @@ async function sql<Row extends Record<string, unknown>>(
 export async function sendCardSaved(
   request: APIRequestContext,
   email: string,
+  seasonSlug: string,
   eventId = nextEventId(),
 ): Promise<Delivery> {
+  // By season: a flow running alongside may make the same persona captain
+  // of a newer team in its own season.
   const [row] = await sql<{ user_id: string; team_season_id: string }>(
     `select u.id as user_id, rm.team_season_id
        from "user" u
        join registration r on r.user_id = u.id
+       join season s on s.id = r.season_id
        join roster_membership rm on rm.registration_id = r.id
-      where u.email = $1 and rm.role = 'captain' and rm.status = 'active'
-      order by r.created_at desc limit 1`,
-    [email],
+      where u.email = $1 and s.slug = $2
+        and rm.role = 'captain' and rm.status = 'active'`,
+    [email, seasonSlug],
   );
-  if (!row) throw new Error(`No team captained by ${email}`);
+  if (!row) throw new Error(`No team captained by ${email} in ${seasonSlug}`);
   const session = `cs_e2e_setup_${Date.now()}`;
   return deliver(request, {
     id: eventId,

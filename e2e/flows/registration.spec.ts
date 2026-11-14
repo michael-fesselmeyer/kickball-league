@@ -504,10 +504,20 @@ test("a captain guarantees the team's balance with a saved card", async ({
 
   const eventId = `evt_e2e_card_${Date.now()}`;
   expect(
-    await sendCardSaved(page.request, "casey.captain@example.test", eventId),
+    await sendCardSaved(
+      page.request,
+      "casey.captain@example.test",
+      SEASON_SLUG,
+      eventId,
+    ),
   ).toEqual({ status: 200, outcome: "processed" });
   expect(
-    await sendCardSaved(page.request, "casey.captain@example.test", eventId),
+    await sendCardSaved(
+      page.request,
+      "casey.captain@example.test",
+      SEASON_SLUG,
+      eventId,
+    ),
   ).toEqual({ status: 200, outcome: "duplicate" });
   await page.goto(`/app/seasons/${SEASON_SLUG}/team`);
   await expect(fee).toContainText("Visa ending 4242 guarantees the balance.");
