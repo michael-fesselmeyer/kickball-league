@@ -519,6 +519,7 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | `/app/admin/credit` | `registration` (league credit) |
 | `/app/admin/audit` | `admin-tools` (export and role changes, operator filter); `site-wide/operator` (status and feature switches); `screens` |
 | `/app/admin/events`, `/new`, `/[event]` | `screens`; `events` (create, attendees) |
+| `/app/admin/private-events`, `/app/private-events`, `/new`, `/[season]`, `/join/[token]` | `private-events` (a player asks from the public booking page, an admin accepts it, the organizer copies the invite link, another captain is refused the organizer page and the hidden registration, then follows the invite to it; the season's standings are a 404 and it is not in the sitemap) |
 | `/app/admin/waivers` | `registration`, `season-journey`, `team-formation` |
 | `/app/admin/seasons`, `/new` | `screens`; `registration`, `season-journey`, `team-formation` |
 | `/app/admin/seasons/[season]` | `registration` (status, promo codes link), `announcements`, `rollover` (the new season's notice) |
