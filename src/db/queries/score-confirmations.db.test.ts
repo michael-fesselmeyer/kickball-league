@@ -1,15 +1,17 @@
 import { eq, like } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
+import type { ScoreReportId } from "@/domain/ids";
 import { ok } from "@/domain/result";
 import { rendererFor } from "@/emails/templates";
 import type { Email, EmailSender } from "@/services/email";
 import { message } from "../schema/message";
+import { profile } from "../schema/profile";
 import { rosterMembership } from "../schema/team";
 import { messagingWorld } from "../test/messaging-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { drainOutbox } from "./outbox";
 import type { Db } from "./schedule";
-import { reportScore } from "./scores";
+import { reportScore, respondToScore } from "./scores";
 
 afterAll(closePool);
 
@@ -122,6 +124,100 @@ describe("score confirmation requests", () => {
         now: after(5),
       });
       expect(await asked(db)).toEqual([]);
+    });
+  });
+
+  it("tells every admin once when a captain disputes the score", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await messagingWorld(db);
+      const admin = await w.person("league-admin");
+      const owner = await w.person("league-owner");
+      await db.insert(profile).values([
+        { userId: admin.userId, globalRole: "admin" },
+        { userId: owner.userId, globalRole: "owner" },
+      ]);
+      const { gameId } = await w.gameEnding(ENDS);
+      const reported = await reportScore(db, {
+        gameId,
+        userId: w.aces.captain.userId,
+        role: "captain",
+        teamSeasonId: w.aces.id,
+        score,
+        clientId: `dispute-${w.tag}`,
+        now: after(5),
+      });
+      if (!reported.ok || !("reportId" in reported.value))
+        throw new Error("no report");
+      const reportId = reported.value.reportId as ScoreReportId;
+      const dispute = () =>
+        respondToScore(db, {
+          gameId,
+          reportId,
+          teamSeasonId: w.bees.id,
+          userId: w.bees.captain.userId,
+          status: "disputed",
+          note: "We had it 5-7",
+          now: after(30),
+        });
+      expect((await dispute()).ok).toBe(true);
+      await dispute(); // a retried submit
+      const alerts = await db
+        .select({ userId: message.userId, topic: message.topic })
+        .from(message)
+        .where(like(message.dedupeKey, "score-dispute/%"));
+      const told = alerts.map((a) => a.userId);
+      expect(told).toEqual(
+        expect.arrayContaining([admin.userId, owner.userId]),
+      );
+      expect(new Set(told).size).toBe(told.length);
+      expect(told).not.toContain(w.aces.captain.userId);
+      expect(alerts.every((a) => a.topic === "score")).toBe(true);
+
+      const sent: Email[] = [];
+      const send: EmailSender = async (email) => {
+        sent.push(email);
+        return ok({ id: `email-${sent.length}` });
+      };
+      await drainOutbox(db, { send, render, now: after(31) });
+      const toAdmin = sent.find((e) => e.to === admin.email);
+      expect(toAdmin?.subject).toBe("Score disputed: Aces vs Bees");
+      expect(toAdmin?.text).toContain(
+        "Bees disputed the score Aces reported for Aces vs Bees",
+      );
+      expect(toAdmin?.text).toContain("We had it 5-7");
+      expect(toAdmin?.text).toContain("/scores");
+    });
+  });
+
+  it("tells no admin when a captain confirms", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await messagingWorld(db);
+      const { gameId } = await w.gameEnding(ENDS);
+      const reported = await reportScore(db, {
+        gameId,
+        userId: w.aces.captain.userId,
+        role: "captain",
+        teamSeasonId: w.aces.id,
+        score,
+        clientId: `confirmed-${w.tag}`,
+        now: after(5),
+      });
+      if (!reported.ok || !("reportId" in reported.value))
+        throw new Error("no report");
+      await respondToScore(db, {
+        gameId,
+        reportId: reported.value.reportId as ScoreReportId,
+        teamSeasonId: w.bees.id,
+        userId: w.bees.captain.userId,
+        status: "confirmed",
+        note: "",
+        now: after(30),
+      });
+      const alerts = await db
+        .select({ id: message.id })
+        .from(message)
+        .where(like(message.dedupeKey, "score-dispute/%"));
+      expect(alerts).toEqual([]);
     });
   });
 });

@@ -32,7 +32,10 @@ import { team, teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
 import { advanceBracket } from "./playoffs";
 import { required } from "./rows";
-import { queueScoreConfirmations } from "./score-confirmations";
+import {
+  queueDisputeAlerts,
+  queueScoreConfirmations,
+} from "./score-confirmations";
 import type { Db } from "./schedule";
 
 /**
@@ -341,7 +344,15 @@ export async function respondToScore(
   },
 ): Promise<Result<ScoreState, RespondError>> {
   const [report] = await db
-    .select({ id: scoreReport.id })
+    .select({
+      id: scoreReport.id,
+      role: scoreReport.reporterRole,
+      teamSeasonId: scoreReport.teamSeasonId,
+      outcome: scoreReport.outcome,
+      scoreA: scoreReport.scoreA,
+      scoreB: scoreReport.scoreB,
+      inningsPlayed: scoreReport.inningsPlayed,
+    })
     .from(scoreReport)
     .where(
       and(
@@ -369,8 +380,15 @@ export async function respondToScore(
       respondedAt: input.now,
     })
     .onConflictDoNothing()
-    .returning({ id: scoreResponse.id });
+    .returning({ id: scoreResponse.id, note: scoreResponse.note });
   if (!created) return err("already_answered");
+  if (input.status === "disputed")
+    await queueDisputeAlerts(db, g, report, {
+      id: created.id,
+      teamSeasonId: input.teamSeasonId,
+      note: created.note,
+      respondedAt: input.now,
+    });
   return ok(await settleGame(db, input.gameId, input.now));
 }
 
