@@ -155,8 +155,21 @@ async function Season({
           >
             Sign-up challenge
           </Link>
+          <Link
+            href={`/app/admin/seasons/${slug}/rollover`}
+            className="underline"
+          >
+            Start the next season from this one
+          </Link>
         </p>
       </header>
+      {typeof query.rolled === "string" && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          Season created as a draft from the last one, with {query.rolled}{" "}
+          {query.rolled === "1" ? "team" : "teams"}. Captains still sign the
+          waiver and pay; apply for the permits before opening registration.
+        </p>
+      )}
       {(query.created || query.saved) && (
         <p role="status" className="rounded-lg border border-success p-3">
           {query.created
