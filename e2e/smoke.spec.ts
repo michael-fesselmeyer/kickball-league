@@ -49,6 +49,19 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expectNoAxeViolations(page);
     });
 
+    test("an unknown address gets a friendly page with a way on", async ({
+      page,
+    }) => {
+      const response = await page.goto("/no-such-page");
+      expect(response?.status()).toBe(404);
+      await expect(page).toHaveTitle(/^Page not found/);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        "We can't find that page",
+      );
+      await expect(page.getByRole("link", { name: "Home page" })).toBeVisible();
+      await expectNoAxeViolations(page);
+    });
+
     for (const [path, heading] of [
       ["/history", "League history"],
       ["/records", "League records"],
@@ -73,6 +86,16 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
   });
 }
+
+test("the first Tab offers a skip link past the header", async ({ page }) => {
+  await page.goto("/faq");
+  await page.keyboard.press("Tab");
+  const skip = page.getByRole("link", { name: "Skip to content" });
+  await expect(skip).toBeFocused();
+  await expect(skip).toBeInViewport();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#content")).toBeFocused();
+});
 
 test("a signed-out visitor to /app is sent to sign in, and comes back after", async ({
   page,
