@@ -350,6 +350,11 @@ export const refereeAssignment = pgTable(
     status: refereeAssignmentStatus().notNull().default("accepted"),
     offeredAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     respondedAt: timestamp({ withTimezone: true }),
+    /**
+     * When the ref said they are at the field on game day (or an admin did
+     * for them), for the game-day command center. Null until then.
+     */
+    checkedInAt: timestamp({ withTimezone: true }),
     feeCents: integer(),
     ...audit(),
   },
