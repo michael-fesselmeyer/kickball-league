@@ -1,4 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Client } from "pg";
 import { afterAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import {
@@ -9,9 +11,17 @@ import {
   type UserId,
 } from "@/domain/ids";
 import type { ScoreInput } from "@/domain/scores/scores";
+import * as schema from "../schema";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
-import { field, game, slot, venue } from "../schema/game";
+import {
+  field,
+  game,
+  scoreReport,
+  scoreResponse,
+  slot,
+  venue,
+} from "../schema/game";
 import { league } from "../schema/league";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
@@ -19,6 +29,7 @@ import { closePool, inRolledBackDb } from "../test/transaction";
 import { required } from "./rows";
 import type { Db } from "./schedule";
 import {
+  currentScoreState,
   finalizeDueScores,
   reportScore,
   respondToScore,
@@ -372,3 +383,147 @@ describe("scores", () => {
     });
   });
 });
+
+describe("answers that arrive late or at once", () => {
+  const refReport = async (db: Db, w: Awaited<ReturnType<typeof world>>) => {
+    const reported = await reportScore(db, {
+      gameId: w.gameId,
+      userId: w.admin,
+      role: "referee",
+      teamSeasonId: null,
+      score: score(),
+      clientId: `ref-${w.tag}`,
+      now: after(2),
+    });
+    if (!reported.ok || reported.value.state !== "awaiting")
+      throw new Error("expected an open report");
+    return reportIdOf(reported.value.reportId);
+  };
+  const answer = (
+    db: Db,
+    w: Awaited<ReturnType<typeof world>>,
+    reportId: ScoreReportId,
+    side: "a" | "b",
+    status: "confirmed" | "disputed",
+    hours: number,
+  ) =>
+    respondToScore(db, {
+      gameId: w.gameId,
+      reportId,
+      teamSeasonId: side === "a" ? w.a : w.b,
+      userId: side === "a" ? w.capA : w.capB,
+      status,
+      note: "",
+      now: after(hours),
+    });
+
+  it("refuses a dispute sent from a page left open past the 24 hours", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const reportId = await refReport(db, w);
+      // The score went final by time before the job ever ran.
+      expect(await answer(db, w, reportId, "b", "disputed", 27)).toEqual({
+        ok: false,
+        error: "already_final",
+      });
+      expect((await scoreHistory(db, w.gameId)).responses).toEqual([]);
+    });
+  });
+
+  it("refuses the other team's dispute once one team has confirmed a ref's score", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const reportId = await refReport(db, w);
+      expect(await answer(db, w, reportId, "a", "confirmed", 3)).toMatchObject({
+        ok: true,
+        value: { state: "final" },
+      });
+      expect(await answer(db, w, reportId, "b", "disputed", 3)).toEqual({
+        ok: false,
+        error: "already_final",
+      });
+      expect(await gameRow(db, w.gameId)).toMatchObject({ status: "final" });
+    });
+  });
+
+  it("settles one way when both captains answer a ref's score at the same moment", async () => {
+    const clients: Client[] = [];
+    const connect = async () => {
+      const client = new Client({ connectionString: process.env.DATABASE_URL });
+      await client.connect();
+      clients.push(client);
+      return drizzle({ client, schema, casing: "snake_case" });
+    };
+    const setup = await connect();
+    const worlds: Awaited<ReturnType<typeof world>>[] = [];
+    try {
+      for (let round = 0; round < 5; round++) {
+        const w = await world(setup);
+        worlds.push(w);
+        const reportId = await refReport(setup, w);
+        const [one, two] = [await connect(), await connect()];
+        const results = await Promise.all([
+          one.transaction((tx) => answer(tx, w, reportId, "a", "confirmed", 3)),
+          two.transaction((tx) => answer(tx, w, reportId, "b", "disputed", 3)),
+        ]);
+        const row = await gameRow(setup, w.gameId);
+        const { state } = await currentScoreState(
+          setup,
+          { id: w.gameId, teamAId: w.a, teamBId: w.b },
+          after(3),
+        );
+        // Whichever lands first wins; the game row and the score agree.
+        if (results[0].ok && !results[1].ok) {
+          expect(results[1]).toEqual({ ok: false, error: "already_final" });
+          expect(row.status).toBe("final");
+          expect(state.state).toBe("final");
+        } else {
+          expect(results.every((r) => r.ok)).toBe(true);
+          expect(row.status).toBe("scheduled");
+          expect(state.state).toBe("disputed");
+        }
+      }
+    } finally {
+      const games = worlds.map((w) => w.gameId);
+      if (games.length > 0) {
+        const reports = setup
+          .select({ id: scoreReport.id })
+          .from(scoreReport)
+          .where(inArray(scoreReport.gameId, games));
+        await setup
+          .delete(scoreResponse)
+          .where(inArray(scoreResponse.scoreReportId, reports));
+        await setup
+          .delete(scoreReport)
+          .where(inArray(scoreReport.gameId, games));
+      }
+      for (const w of worlds) await removeScoreWorld(setup, w);
+      await Promise.all(clients.map((c) => c.end()));
+    }
+  });
+});
+
+/** Deletes a committed `world` row by row, as nothing cascades. */
+async function removeScoreWorld(db: Db, w: Awaited<ReturnType<typeof world>>) {
+  const [sn] = await db
+    .select({ leagueId: season.leagueId })
+    .from(season)
+    .where(eq(season.id, w.seasonId));
+  await db.delete(game).where(eq(game.id, w.gameId));
+  await db.delete(slot).where(eq(slot.seasonId, w.seasonId));
+  await db.delete(teamSeason).where(eq(teamSeason.seasonId, w.seasonId));
+  await db.delete(season).where(eq(season.id, w.seasonId));
+  if (sn) {
+    const venues = db
+      .select({ id: venue.id })
+      .from(venue)
+      .where(eq(venue.leagueId, sn.leagueId));
+    await db.delete(field).where(inArray(field.venueId, venues));
+    await db.delete(venue).where(eq(venue.leagueId, sn.leagueId));
+    await db.delete(team).where(eq(team.leagueId, sn.leagueId));
+    await db.delete(league).where(eq(league.id, sn.leagueId));
+  }
+  const people = [w.capA, w.capB, w.admin];
+  await db.delete(auditLog).where(inArray(auditLog.actorId, people));
+  await db.delete(user).where(inArray(user.id, people));
+}

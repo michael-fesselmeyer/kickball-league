@@ -309,9 +309,16 @@ export async function reportScore(
   return ok(state);
 }
 
-export type RespondError = "unknown_report" | "already_answered";
+export type RespondError =
+  "unknown_report" | "already_answered" | "already_final";
 
-/** A captain confirms or disputes a report for their team. */
+/**
+ * A captain confirms or disputes a report for their team. Run it in a
+ * transaction: it locks the game, so two captains answering at once settle
+ * it one way, and an answer that arrives once the score is final (the other
+ * team confirmed first, or the 24 hours ran out while the page sat open) is
+ * refused rather than leaving a final game marked disputed.
+ */
 export async function respondToScore(
   db: Db,
   input: {
@@ -334,6 +341,14 @@ export async function respondToScore(
       ),
     );
   if (!report) return err("unknown_report");
+  await db
+    .select({ id: game.id })
+    .from(game)
+    .where(eq(game.id, input.gameId))
+    .for("update");
+  const g = required(await gameForScoring(db, input.gameId), "game");
+  const { state } = await currentScoreState(db, g, input.now);
+  if (state.state === "final") return err("already_final");
   const [created] = await db
     .insert(scoreResponse)
     .values({
