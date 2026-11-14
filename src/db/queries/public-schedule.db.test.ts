@@ -341,8 +341,8 @@ describe("teamBySlug and publicRoster", () => {
       // The captain first; an invite that is not accepted and a person with
       // no first name are left out.
       expect(await publicRoster(db, w.entries[0])).toEqual([
-        { name: "Alex S.", role: "captain" },
-        { name: "Robin E.", role: "player" },
+        { name: "Alex S.", role: "captain", awards: [] },
+        { name: "Robin E.", role: "player", awards: [] },
       ]);
     }));
 });
