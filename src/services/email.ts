@@ -22,6 +22,8 @@ export type EmailSender = (
   email: Email,
 ) => Promise<Result<{ id: string }, string>>;
 
+const SEND_TIMEOUT_MS = 10_000;
+
 /**
  * Sends email through Resend's REST API. Failures come back as a short
  * message that never includes the API key.
@@ -30,10 +32,12 @@ export function resendSender({
   apiKey,
   from,
   fetch = globalThis.fetch,
+  timeoutMs = SEND_TIMEOUT_MS,
 }: {
   apiKey: string;
   from: string;
   fetch?: typeof globalThis.fetch;
+  timeoutMs?: number;
 }): EmailSender {
   return async ({ to, subject, html, text, idempotencyKey }) => {
     let response: Response;
@@ -46,6 +50,9 @@ export function resendSender({
           ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
         },
         body: JSON.stringify({ from, to: [to], subject, html, text }),
+        // A provider that hangs instead of refusing would hold the outbox's
+        // drain until the function is stopped; the message is retried.
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } catch {
       return err("Resend could not be reached.");
