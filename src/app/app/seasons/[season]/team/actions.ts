@@ -10,9 +10,24 @@ import {
 } from "@/db/queries/registration";
 import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
-import { requirePermissionToChange } from "@/lib/auth/permission";
+import {
+  requirePermissionToChange,
+  requireSelfToChange,
+} from "@/lib/auth/permission";
 import { setRsvp } from "@/db/queries/rsvps";
-import { type GameId, type KeepOffId, parseId } from "@/domain/ids";
+import {
+  type CaptainHandoffId,
+  type GameId,
+  type KeepOffId,
+  parseId,
+  type UserId,
+} from "@/domain/ids";
+import {
+  answerCaptaincy,
+  cancelCaptaincy,
+  offerCaptaincy,
+  setTeamRole,
+} from "@/db/queries/captaincy";
 import { readEmail, readReason } from "@/domain/keep-off/keep-off";
 import { addKeepOff, removeKeepOff, teamOfSeason } from "@/db/queries/keep-off";
 import { recordPaymentFor } from "../record-payment";
@@ -158,4 +173,131 @@ export async function removeKeepOffAction(
   );
   if (!result.ok) notFound();
   redirect(`${page}removed#keep-off`);
+}
+
+/** The person's own team this season, for captaincy changes. */
+async function ownTeam(slug: string, subject: { userId: UserId }) {
+  const league = await currentLeague(db);
+  const season = league
+    ? await seasonForRegistration(db, league.id, slug)
+    : null;
+  if (!season) notFound();
+  const mine = await myRegistration(db, season.id, subject.userId);
+  const teamSeasonId = mine?.team?.teamSeasonId;
+  if (!teamSeasonId) notFound();
+  return teamSeasonId;
+}
+
+const captaincyPage = (slug: string, code: string) =>
+  `/app/seasons/${slug}/team?captaincy=${code}`;
+
+/** The captain offers the captaincy to a teammate. */
+export async function offerCaptaincyAction(
+  slug: string,
+  form: FormData,
+): Promise<void> {
+  const page = `/app/seasons/${slug}/team`;
+  const subject = await requirePermissionToChange("registration.join", {
+    next: page,
+  });
+  const teamSeasonId = await ownTeam(slug, subject);
+  if (!can(subject, "captaincy.manage", { teamSeasonId })) notFound();
+  const toUserId = parseId<UserId>(form.get("toUserId"));
+  if (!toUserId) redirect(captaincyPage(slug, "not_on_team"));
+  const result = await txDb.transaction((tx) =>
+    offerCaptaincy(tx, {
+      teamSeasonId,
+      toUserId,
+      actorId: subject.userId,
+      now: new Date(),
+    }),
+  );
+  redirect(captaincyPage(slug, result.ok ? "offered" : result.error));
+}
+
+/** The captain withdraws the waiting offer. */
+export async function cancelCaptaincyAction(slug: string): Promise<void> {
+  const page = `/app/seasons/${slug}/team`;
+  const subject = await requirePermissionToChange("registration.join", {
+    next: page,
+  });
+  const teamSeasonId = await ownTeam(slug, subject);
+  if (!can(subject, "captaincy.manage", { teamSeasonId })) notFound();
+  const result = await txDb.transaction((tx) =>
+    cancelCaptaincy(tx, {
+      teamSeasonId,
+      actorId: subject.userId,
+      now: new Date(),
+    }),
+  );
+  redirect(captaincyPage(slug, result.ok ? "cancelled" : result.error));
+}
+
+/** The captain makes a teammate a co-captain, or a player again. */
+export async function setTeamRoleAction(
+  slug: string,
+  rawUserId: string,
+  role: "co_captain" | "player",
+): Promise<void> {
+  const page = `/app/seasons/${slug}/team`;
+  const subject = await requirePermissionToChange("registration.join", {
+    next: page,
+  });
+  const teamSeasonId = await ownTeam(slug, subject);
+  if (!can(subject, "captaincy.manage", { teamSeasonId })) notFound();
+  const userId = parseId<UserId>(rawUserId);
+  if (!userId) notFound();
+  const result = await txDb.transaction((tx) =>
+    setTeamRole(tx, {
+      teamSeasonId,
+      userId,
+      role,
+      actorId: subject.userId,
+      now: new Date(),
+    }),
+  );
+  redirect(captaincyPage(slug, result.ok ? role : result.error));
+}
+
+/** A co-captain steps down to a player. */
+export async function stepDownAction(slug: string): Promise<void> {
+  const page = `/app/seasons/${slug}/team`;
+  const subject = await requireSelfToChange("captaincy.respond", page);
+  const teamSeasonId = await ownTeam(slug, subject);
+  const result = await txDb.transaction((tx) =>
+    setTeamRole(tx, {
+      teamSeasonId,
+      userId: subject.userId,
+      role: "player",
+      actorId: subject.userId,
+      now: new Date(),
+    }),
+  );
+  redirect(captaincyPage(slug, result.ok ? "stepped_down" : result.error));
+}
+
+/** The teammate offered the captaincy accepts or declines it. */
+export async function answerCaptaincyAction(
+  slug: string,
+  rawHandoffId: string,
+  accept: boolean,
+): Promise<void> {
+  const page = `/app/seasons/${slug}/team`;
+  const subject = await requireSelfToChange("captaincy.respond", page);
+  const handoffId = parseId<CaptainHandoffId>(rawHandoffId);
+  if (!handoffId) notFound();
+  const result = await txDb.transaction((tx) =>
+    answerCaptaincy(tx, {
+      handoffId,
+      userId: subject.userId,
+      accept,
+      now: new Date(),
+    }),
+  );
+  redirect(
+    captaincyPage(
+      slug,
+      result.ok ? (accept ? "accepted" : "declined") : result.error,
+    ),
+  );
 }

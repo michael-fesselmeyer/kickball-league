@@ -31,13 +31,20 @@ import { requirePermission } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
 import { RECORD_PAYMENT_MESSAGES } from "../record-payment";
 import { teamKeepOffList } from "@/db/queries/keep-off";
+import { offerFor, teamCaptaincy } from "@/db/queries/captaincy";
 import {
   addKeepOffAction,
+  answerCaptaincyAction,
+  cancelCaptaincyAction,
   createInviteAction,
+  offerCaptaincyAction,
   recordTeamPaymentAction,
   removeKeepOffAction,
   rsvpAction,
+  setTeamRoleAction,
+  stepDownAction,
 } from "./actions";
+import { CaptaincyNotice, CaptaincyOffer, CaptaincyPanel } from "./captaincy";
 import { InviteLink } from "./invite-link";
 import { KeepOffSection } from "./keep-off";
 import { type GuaranteeView, TeamMoney } from "./team-money";
@@ -269,7 +276,18 @@ async function Team({
   const timeZone = league?.timeZone ?? "America/New_York";
   // The private "not on my team" list, for the team's captains only.
   const keepsOff = can(subject, "keep_off.manage", { teamSeasonId });
-  const keepOff = keepsOff ? await teamKeepOffList(db, teamSeasonId) : [];
+  // Who leads the team (ADR 0042): the captain changes it; a co-captain
+  // sees it and can step down; a teammate offered the captaincy answers.
+  const leads = can(subject, "captaincy.manage", { teamSeasonId });
+  const coCaptain = mine.team.role === "co_captain";
+  const [keepOff, myOffer] = await Promise.all([
+    keepsOff ? teamKeepOffList(db, teamSeasonId) : [],
+    offerFor(db, teamSeasonId, subject.userId),
+  ]);
+  const captaincy =
+    leads || coCaptain || myOffer
+      ? await teamCaptaincy(db, teamSeasonId)
+      : null;
   const deadline = season.paymentDeadlineAt;
   const guaranteeView: GuaranteeView = guarantee
     ? {
@@ -302,6 +320,17 @@ async function Team({
         <p role="status" className="rounded-lg border border-success p-3">
           Payment recorded. They&apos;re paid up.
         </p>
+      )}
+      <CaptaincyNotice
+        code={typeof query.captaincy === "string" ? query.captaincy : undefined}
+      />
+      {myOffer && captaincy && (
+        <CaptaincyOffer
+          team={mine.team.teamName}
+          from={captaincy.pending?.fromName ?? "Your captain"}
+          accept={answerCaptaincyAction.bind(null, slug, myOffer, true)}
+          decline={answerCaptaincyAction.bind(null, slug, myOffer, false)}
+        />
       )}
       {mySuspension && (
         <p className="rounded-lg border border-warning p-3">
@@ -526,6 +555,21 @@ async function Team({
           </tbody>
         </table>
       </section>
+
+      {captaincy && (leads || coCaptain) && (
+        <CaptaincyPanel
+          idPrefix="captaincy"
+          data={captaincy}
+          viewerId={subject.userId}
+          manage={leads}
+          offer={offerCaptaincyAction.bind(null, slug)}
+          cancel={cancelCaptaincyAction.bind(null, slug)}
+          setRole={(userId, role) =>
+            setTeamRoleAction.bind(null, slug, userId, role)
+          }
+          stepDown={coCaptain ? stepDownAction.bind(null, slug) : undefined}
+        />
+      )}
 
       {keepsOff && (
         <KeepOffSection
