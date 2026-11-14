@@ -1,17 +1,17 @@
 "use server";
 
 import { notFound, redirect } from "next/navigation";
-import { db, txDb } from "@/db/client";
+import { txDb } from "@/db/client";
 import {
   deleteMemberPhoto,
   reviewMemberPhoto,
 } from "@/db/queries/member-photos";
-import { currentLeague } from "@/db/queries/seasons";
 import { type MemberPhotoId, parseId } from "@/domain/ids";
 import { NOTE_MAX } from "@/domain/member-photos/limits";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshMemberPhotoPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
+import { activeLeague } from "@/lib/league/active";
 
 const PAGE = "/app/admin/photos";
 
@@ -24,7 +24,7 @@ async function photoToReview(form: FormData) {
   const subject = await requirePermissionToChange("photos.manage", {
     next: PAGE,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const id = parseId<MemberPhotoId>(text(form, "photo"));
   if (!league || !id) notFound();
   return { subject, league, id };

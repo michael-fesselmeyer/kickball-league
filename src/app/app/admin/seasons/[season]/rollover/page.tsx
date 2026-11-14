@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { rolloverPlan, rolloverSource, slugInUse } from "@/db/queries/rollover";
-import { currentLeague } from "@/db/queries/seasons";
 import { formatCents } from "@/domain/registration/pricing";
 import { fullWhen } from "@/domain/schedule/format";
 import {
@@ -18,6 +17,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { rollOverAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Start the next season" };
 
@@ -64,7 +64,7 @@ async function Rollover({
   const page = `/app/admin/seasons/${slug}/rollover`;
   await requirePermission("season.manage", { next: page });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const source = league
     ? await rolloverSource(db, league.id, slug, new Date())
     : null;

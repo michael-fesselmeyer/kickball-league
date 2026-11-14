@@ -10,17 +10,17 @@ import {
   startFriendGroup,
 } from "@/db/queries/free-agents";
 import { seasonForRegistration } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { normalizeFriendCode } from "@/domain/matcher/friend-code";
 import { parseQuiz } from "@/domain/matcher/quiz";
 import { requireSelfToChange } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 
 const pageFor = (slug: string) => `/app/seasons/${slug}/quiz`;
 
 /** The signed-in person and the season, for their own quiz and group. */
 async function context(slug: string) {
   const subject = await requireSelfToChange("profile.edit", pageFor(slug));
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

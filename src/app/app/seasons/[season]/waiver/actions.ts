@@ -4,10 +4,10 @@ import { isIP } from "node:net";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import { signWaiver, waiverForSeason } from "@/db/queries/waivers";
 import { ageMessage } from "@/domain/registration/age";
 import { requireSelfToChange } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 
 export type SignState = { signedName: string; error?: string | undefined };
 
@@ -37,7 +37,7 @@ export async function signWaiverAction(
 ): Promise<SignState> {
   const page = `/app/seasons/${slug}/waiver`;
   const subject = await requireSelfToChange("waiver.sign", page);
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const view = league
     ? await waiverForSeason(db, {
         leagueId: league.id,

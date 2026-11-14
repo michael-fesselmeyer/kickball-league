@@ -5,7 +5,6 @@ import { Suspense } from "react";
 import { MerchPhoto } from "@/components/merch-photo";
 import { db } from "@/db/client";
 import { type AdminOrder, catalogItem, merchOrders } from "@/db/queries/merch";
-import { currentLeague } from "@/db/queries/seasons";
 import { type MerchItemId, parseId } from "@/domain/ids";
 import {
   MAX_PHOTOS_PER_ITEM,
@@ -28,6 +27,7 @@ import {
 import { ItemFormFields } from "../item-form";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Merch item" };
 
@@ -85,7 +85,7 @@ async function MerchItemAdmin({
   const page = `/app/admin/merch/${itemId}`;
   await requirePermission("merch.manage", { next: page });
   const query = await searchParams;
-  const lg = await currentLeague(db);
+  const lg = await activeLeague();
   if (!lg) notFound();
   const now = new Date();
   const [item, orders] = await Promise.all([

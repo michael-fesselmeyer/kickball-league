@@ -160,9 +160,16 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - Turned on only by a server environment flag and refused in production: a banner on every page and one-tap "view as" a player, captain, ref or admin, plus a reset script that reseeds the demo database and then moves the seeded league forward by whole weeks (same weekdays and local times, in the league's time zone), so the season being played always has its next game day coming up. `npm run seed`, and so the end-to-end tests, keep the fixed calendar.
 - `npm run demo` shows the league the whole app from one laptop, offline and with no accounts: a game in progress, a rain watch on the next game day, payments through a local demo checkout, a "Demo mail" page with every email the league would have sent, and a "Reset demo" button for admins. The 10-minute walkthrough is [docs/demo.md](docs/demo.md).
 
+**Several leagues**
+
+- One deployment runs several leagues, for example a flag football league beside the kickball league ([ADR 0048](docs/adr/0048-several-leagues-on-one-deployment.md)). Each league has its own owners and admins, seasons, teams, sponsors, events, books, league credit and audit log; an admin of one league has no rights in another, which the permission tests and a database test show.
+- The default league keeps the site's own URLs; every other league's public pages live at `/l/<league>/...`, with its own home page. Pages take their league from the path alone, so they stay static HTML.
+- One account plays in any number of leagues. The app shows a league switcher to anyone in more than one, and a league's public pages hand visitors into the app in that league.
+- A schema test fails when a new table with season or team data isn't scoped to a league.
+
 **Platform operator**
 
-- A role above the league's owners for whoever runs the platform, set only in the server's environment ([ADR 0009](docs/adr/0009-platform-operator.md)). From a hidden console it sets owners and admins, makes the site read-only or pauses it (enforced on the server), switches features off, and downloads the whole league as JSON. Owners see every operator action in the audit log and can always download the same data.
+- A role above the league's owners for whoever runs the platform, set only in the server's environment ([ADR 0009](docs/adr/0009-platform-operator.md)). From a hidden console it starts leagues (name, sport, address, colors, time zone, minimum age and a first rule set), sets owners and admins per league, makes the site read-only or pauses it (enforced on the server), switches features off, and downloads the whole league as JSON. Owners see every operator action in the audit log and can always download the same data.
 
 **Sign-in**
 
@@ -208,7 +215,7 @@ It builds and starts the whole app in demo mode on this computer and opens the b
 npm install
 cp .env.example .env.local   # fill in values; DATABASE_URL is your own Neon branch
 npm run db:migrate           # apply migrations to that branch
-npm run seed                 # a demo league: 8 teams, invented players, a season half played, three past seasons
+npm run seed                 # a demo league: 8 teams, invented players, a season half played, three past seasons; plus a small second league at /l/flag-football
 npm run dev
 ```
 
@@ -311,7 +318,7 @@ In CI, the end-to-end and Lighthouse checks each build the app once and share th
 | `npm run db:check`           | Check migration files are consistent                                                                            |
 | `npm run db:studio`          | Browse the database in Drizzle Studio                                                                           |
 | `npm run test:db`            | Database constraint tests (each rolls back)                                                                     |
-| `npm run seed`               | Replace the demo league with fresh seed data; refuses production                                                |
+| `npm run seed`               | Replace the demo league and the small second league with fresh seed data; refuses production                    |
 | `npm run demo`               | Run the whole app locally in demo mode, offline, for showing the league ([walkthrough](docs/demo.md))           |
 | `npm run demo:reset`         | Reseed the demo deployment, bring its season up to today and start a game night; refuses unless demo mode is on |
 | `npm run push:keys`          | Add a new VAPID key pair for web push to `.env.local`                                                           |

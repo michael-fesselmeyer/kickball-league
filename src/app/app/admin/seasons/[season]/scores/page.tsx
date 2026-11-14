@@ -9,6 +9,7 @@ import { finalizeDueScores, scoresNeedingAttention } from "@/db/queries/scores";
 import type { GameId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Scores" };
 
@@ -31,7 +32,7 @@ async function Scores({
   await requirePermission("score.override", {
     next: `/app/admin/seasons/${slug}/scores`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const now = new Date();
   // Settle anything past its 24 hours before listing what is left.

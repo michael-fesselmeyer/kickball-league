@@ -28,6 +28,7 @@ import { EventFormFields } from "../event-form";
 import { EventTickets } from "./tickets";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId, activeLeaguePath } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Edit event" };
 
@@ -71,7 +72,7 @@ async function AdminEvent({
   await requirePermission("event.manage", {
     next: `/app/admin/events/${slug}`,
   });
-  const e = await eventBySlug(db, slug, "all");
+  const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   if (!e) notFound();
   const now = new Date();
   const [attendees, choices, names, tickets] = await Promise.all([
@@ -112,7 +113,9 @@ async function AdminEvent({
       : null,
     url: absoluteUrl(
       origin,
-      isPublic ? `/events/${e.slug}` : `/app/events/${e.slug}`,
+      isPublic
+        ? await activeLeaguePath(`/events/${e.slug}`)
+        : `/app/events/${e.slug}`,
     ),
     cancelled: e.cancelledAt !== null,
   });
@@ -138,7 +141,11 @@ async function AdminEvent({
           </p>
         )}
         <Link
-          href={isPublic ? `/events/${e.slug}` : `/app/events/${e.slug}`}
+          href={
+            isPublic
+              ? await activeLeaguePath(`/events/${e.slug}`)
+              : `/app/events/${e.slug}`
+          }
           className="inline-flex min-h-11 items-center self-start underline"
         >
           {isPublic ? "Public page" : "Event page in the app"}

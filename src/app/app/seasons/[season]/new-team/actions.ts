@@ -5,13 +5,13 @@ import { db, txDb } from "@/db/client";
 import { requestNewTeam, withdrawNewTeamRequest } from "@/db/queries/new-teams";
 import { profileOf } from "@/db/queries/profile";
 import { seasonForRegistration } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { parseId, type TeamFormationRequestId } from "@/domain/ids";
 import { readyToRegister } from "@/domain/profile/profile-form";
 import { parseNewTeamRequest } from "@/domain/registration/new-team";
 import { localDate } from "@/domain/scheduler/slots";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
+import { activeLeague } from "@/lib/league/active";
 
 export type NewTeamState = {
   values: Record<string, string>;
@@ -38,7 +38,7 @@ async function context(slug: string) {
   const subject = await requirePermissionToChange("team.request_new", {
     next: pageFor(slug),
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

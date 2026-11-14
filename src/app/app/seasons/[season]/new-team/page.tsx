@@ -10,7 +10,6 @@ import {
 } from "@/db/queries/new-teams";
 import { profileOf } from "@/db/queries/profile";
 import { seasonForRegistration } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { readyToRegister } from "@/domain/profile/profile-form";
 import { priceFor, registrationWindow } from "@/domain/registration/pricing";
 import { localDate } from "@/domain/scheduler/slots";
@@ -18,6 +17,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { requestNewTeamAction, withdrawNewTeamAction } from "./actions";
 import { NewTeamForm } from "./new-team-form";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Start a new team" };
 
@@ -138,7 +138,7 @@ async function NewTeam({
   const subject = await requirePermission("team.request_new", {
     next: `/app/seasons/${slug}/new-team`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

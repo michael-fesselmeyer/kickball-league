@@ -10,7 +10,6 @@ import {
   registerTeam,
   seasonForRegistration,
 } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { recordOf } from "@/domain/guards";
 import {
   parseId,
@@ -27,6 +26,7 @@ import { readyToRegister } from "@/domain/profile/profile-form";
 import { ageMessage } from "@/domain/registration/age";
 import { localDate } from "@/domain/scheduler/slots";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 
 export type RegisterState = {
   values: Record<string, string>;
@@ -60,7 +60,7 @@ async function context(slug: string) {
   const subject = await requirePermissionToChange("team.register", {
     next: page,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

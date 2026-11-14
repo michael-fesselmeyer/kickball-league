@@ -6,6 +6,8 @@ Status: draft v1, 2026-11-11. Phase tags match [product-spec.md](product-spec.md
 
 Public pages are indexable and need no sign-in. App pages sit behind sign-in and are not indexed.
 
+One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-one-deployment.md)). The tree below is the default league's, at the site's own URLs. Every other league's pages are the same tree under `/l/<league>`: `/l/<league>` is its home (name, sport, a sign-up button and its seasons), then `/l/<league>/seasons/...`, `/teams/...`, `/games/...`, `/events/...`, `/sponsors/...`, `/history`, `/records` and `/friends`. The default league's own content pages (about, FAQ, the park, the search landing pages) have no copy under `/l/`. `/l/<default league>/...` redirects to the plain address.
+
 ```
 /                                   Home: what, where, when, price, join; featured Instagram photos and the home cover
 ├── seasons/                        Every public season, newest first: status, dates, schedule and standings links (a sign-up link while registration is open); linked from the home page and the footer
@@ -63,9 +65,10 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── paused                          Neutral notice while the site is paused or read-only (operator setting)
 └── sign-in, sign-up                Email link, passkey (button and email-field autofill) or Google
 
-/operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
+/operator                           Platform operator console (404 for everyone else): leagues (list and start one: name, sport, address, colors, time zone, minimum age, first rule set), owners and admins per league, site status, feature switches, league export
 
-/app                                Signed-in home: next game, links to your team and its schedule, RSVP, what you owe, alerts, any giveaway you won, any season survey waiting for my answer, and the league gear you have or bring ("You have Kit A: bring it to McCarren Park, Field 2 by 6:30 PM") with one-tap "I picked it up", "I handed Kit A to Sam", "Got it" or "It's back home"
+/app                                Signed-in home: next game, links to your team and its schedule, RSVP, what you owe, alerts, any giveaway you won, any season survey waiting for my answer, and the league gear you have or bring ("You have Kit A: bring it to McCarren Park, Field 2 by 6:30 PM") with one-tap "I picked it up", "I handed Kit A to Sam", "Got it" or "It's back home", and the league switcher for anyone in more than one league
+├── league/[league]                 Shows that league in the app, then goes on to ?next= (the switcher, and the way in from a league's public pages)
 ├── account                         Profile, weeks you'll miss for each season still to come, email, push and message-limit settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON

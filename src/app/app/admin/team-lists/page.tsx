@@ -8,7 +8,6 @@ import {
   leagueKeepOffs,
   leagueTeams,
 } from "@/db/queries/keep-off";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { MANY_ON_ONE_LIST, oversight } from "@/domain/keep-off/keep-off";
 import { requirePermission } from "@/lib/auth/permission";
@@ -23,6 +22,7 @@ import {
 } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Not-on-my-team lists" };
 
@@ -55,12 +55,12 @@ async function TeamLists({ searchParams }: PageProps<"/app/admin/team-lists">) {
     next: "/app/admin/team-lists",
   });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const [entries, teams, inExport] = await Promise.all([
     leagueKeepOffs(db, league.id),
     leagueTeams(db, league.id),
-    exportsKeepOffEntries(db),
+    exportsKeepOffEntries(db, league.id),
   ]);
   const summary = oversight(entries);
   const flagged = summary.teams.filter((t) => t.many);

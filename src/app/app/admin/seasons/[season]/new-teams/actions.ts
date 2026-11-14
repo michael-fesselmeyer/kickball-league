@@ -7,12 +7,13 @@ import {
   declineNewTeamRequest,
 } from "@/db/queries/new-teams";
 import { seasonForRegistration } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { parseId, type TeamFormationRequestId } from "@/domain/ids";
 import { parseDeclineReason } from "@/domain/registration/new-team";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { sendQueuedSoon } from "@/services/outbox";
+import { activeLeague } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/new-teams`;
 
@@ -21,13 +22,14 @@ async function context(slug: string, rawId: string) {
   const subject = await requirePermissionToChange("team.approve_new", {
     next: page,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;
   if (!league || !season) notFound();
   const requestId = parseId<TeamFormationRequestId>(rawId);
   if (!requestId) redirect(`${page}?error=not_found`);
+  await requireInLeague(subject, { team_formation_request: requestId });
   return { page, subject, league, season, requestId };
 }
 

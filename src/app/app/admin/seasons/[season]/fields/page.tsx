@@ -21,6 +21,7 @@ import {
 } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Fields and permits" };
 
@@ -114,7 +115,7 @@ async function Fields({
   );
   const page = `/app/admin/seasons/${slug}/fields`;
   await requirePermission("season.manage", { next: page });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
 
   const [screen, lostGames] = await Promise.all([

@@ -19,6 +19,7 @@ import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { requireFeature } from "@/lib/platform/site";
 import { sendQueuedSoon } from "@/services/outbox";
+import { requireInLeague } from "@/lib/league/guard";
 
 const pageOf = (id: string) => `/app/admin/incidents/${id}`;
 
@@ -32,6 +33,7 @@ async function guard(right: Right, rawId: string) {
   });
   const incidentId = parseId<IncidentId>(rawId);
   if (!incidentId) notFound();
+  await requireInLeague(subject, { incident: incidentId });
   return { subject, incidentId };
 }
 
@@ -102,6 +104,7 @@ export async function liftAction(
   const { subject } = await guard("player.suspend", rawId);
   const suspensionId = parseId<SuspensionId>(rawSuspensionId);
   if (!suspensionId) notFound();
+  await requireInLeague(subject, { suspension: suspensionId });
   const done = await liftSuspension(txDb, {
     suspensionId,
     actorId: subject.userId,

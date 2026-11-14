@@ -21,6 +21,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { confirmWinnerAction, saveChallengeAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Run the sign-up challenge" };
 
@@ -58,7 +59,7 @@ async function ChallengeAdmin({ params, searchParams }: Props) {
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/challenge`;
   await requirePermission("challenge.manage", { next: page });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const challenge = await challengeForSeason(db, season.id);
   const ranked = challenge ? await challengeStandings(db, challenge) : null;

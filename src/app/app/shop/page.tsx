@@ -4,12 +4,12 @@ import { Suspense } from "react";
 import { MerchPhoto } from "@/components/merch-photo";
 import { db } from "@/db/client";
 import { catalog, type MyMerchOrder, myMerchOrders } from "@/db/queries/merch";
-import { currentLeague } from "@/db/queries/seasons";
 import { orderWindow, priceLine } from "@/domain/merch/catalog";
 import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { ConfirmingPayment } from "../seasons/[season]/confirming";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "League shop" };
 
@@ -41,7 +41,7 @@ async function Shop({ searchParams }: PageProps<"/app/shop">) {
   const subject = await requirePermission("merch.order", { next: "/app/shop" });
   const query = await searchParams;
   const now = new Date();
-  const lg = await currentLeague(db);
+  const lg = await activeLeague();
   const [items, orders] = await Promise.all([
     lg ? catalog(db, lg.id, now, { hidden: false }) : [],
     myMerchOrders(db, subject.userId, now),

@@ -12,7 +12,6 @@ import {
   myRegistration,
   seasonForRegistration,
 } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { hasSignedSeasonWaiver } from "@/db/queries/waivers";
 import { formatCents, registrationWindow } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
@@ -22,6 +21,7 @@ import { startCheckout } from "./actions";
 import { ConfirmingPayment } from "./confirming";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Your season" };
 
@@ -88,7 +88,7 @@ async function Season({
   const subject = await requirePermission("team.register", {
     next: `/app/seasons/${slug}`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;
@@ -132,7 +132,7 @@ async function Season({
   const [signed, quiz, credit] = await Promise.all([
     hasSignedSeasonWaiver(db, subject.userId, season.id),
     inPool ? myQuiz(db, season.id, subject.userId) : null,
-    creditBalance(db, subject.userId),
+    creditBalance(db, subject.userId, await activeLeagueId()),
   ]);
   const owed = amountOwed(season, mine, now);
   const deadline = season.paymentDeadlineAt

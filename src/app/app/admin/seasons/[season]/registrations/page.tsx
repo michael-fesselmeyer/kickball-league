@@ -29,6 +29,7 @@ import {
 } from "@/app/app/seasons/[season]/team/captaincy";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Registrations" };
 
@@ -246,7 +247,7 @@ async function Registrations({
     next: `/app/admin/seasons/${slug}/registrations`,
   });
   const refunds = can(subject, "refund.issue", {});
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const board = await registrationsBoard(db, season.id);
   // Who leads each team, for the admin's captaincy controls (ADR 0042).

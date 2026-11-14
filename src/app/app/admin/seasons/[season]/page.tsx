@@ -3,12 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague, seasonSettings } from "@/db/queries/seasons";
+import { seasonSettings } from "@/db/queries/seasons";
 import { toSeasonForm } from "@/domain/season/settings";
 import { requirePermission } from "@/lib/auth/permission";
 import { updateSeasonAction } from "../actions";
 import { SeasonSettingsForm } from "../season-form";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Season settings" };
 
@@ -33,7 +34,7 @@ async function Season({
   await requirePermission("season.manage", {
     next: `/app/admin/seasons/${slug}`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league ? await seasonSettings(db, league.id, slug) : null;
   if (!league || !season) notFound();
 

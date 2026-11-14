@@ -11,8 +11,11 @@ import {
   type PublicTeam,
   statusLabel,
 } from "@/domain/schedule/public-game";
+import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 
 type Props = {
+  /** The league whose public pages the links open (ADR 0048). */
+  league: LeagueRef;
   game: PublicGame;
   timeZone: string;
   /** Show the date as well as the time, for lists that span days. */
@@ -32,6 +35,7 @@ type Props = {
 
 /** One game in a list: when, where, who, and the result. Opens the game page. */
 export function GameCard({
+  league,
   game,
   timeZone,
   showDay,
@@ -55,7 +59,7 @@ export function GameCard({
 
   const card = (
     <Link
-      href={`/games/${game.id}`}
+      href={leagueHref(league, `/games/${game.id}`)}
       className={`flex min-h-11 items-center gap-3 rounded-card border bg-surface p-3 shadow-card hover:bg-surface-2 ${
         mine ? "border-2 border-brand" : "border-border"
       }`}

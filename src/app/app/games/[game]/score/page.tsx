@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   currentScoreState,
   gameForScoring,
@@ -30,6 +29,8 @@ import { GameOutbox, ScoreForm } from "./score-form";
 import { SportsmanshipForm } from "./sportsmanship-form";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
+import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Score" };
 
@@ -87,7 +88,7 @@ async function Score({
     await Promise.all([
       currentScoreState(db, found, now),
       hasReferee(db, found.id),
-      currentLeague(db),
+      activeLeague(),
       featureEnabled("discipline"),
       liveGame(db, found.id),
     ]);
@@ -385,9 +386,12 @@ async function Score({
           </ul>
         </section>
       )}
-      <Link href={`/seasons/${g.seasonSlug}/standings`} className="underline">
+      <LeagueLink
+        href={`/seasons/${g.seasonSlug}/standings`}
+        className="underline"
+      >
         Standings
-      </Link>
+      </LeagueLink>
     </>
   );
 }

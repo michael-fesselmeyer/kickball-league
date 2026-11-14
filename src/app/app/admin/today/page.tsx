@@ -3,9 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { HelpLink } from "@/components/help-link";
 import { PageLoading } from "@/components/page-loading";
-import { db } from "@/db/client";
 import type { CommandDayRow } from "@/db/queries/command-center";
-import { currentLeague } from "@/db/queries/seasons";
 import { gameForecast, rainRisk } from "@/domain/weather/forecast";
 import { requirePermission } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
@@ -13,6 +11,7 @@ import { cachedForecast } from "@/lib/weather";
 import { CommandBoard } from "./board";
 import { DayGear } from "./gear";
 import { loadCommand, parseDay } from "./load";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Game day" };
 
@@ -39,7 +38,7 @@ const NOTICES: Record<string, string> = {
 async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
   await requirePermission("season.manage", { next: "/app/admin/today" });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const now = new Date();
   const found = league
     ? await loadCommand(league.id, now, parseDay(query.date))

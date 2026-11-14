@@ -2,12 +2,12 @@
 
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { assignWaiver, publishWaiver } from "@/db/queries/waivers";
 import { parseId, type WaiverId } from "@/domain/ids";
 import type { WaiverDraftErrors } from "@/domain/waiver/waiver";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
 const PAGE = "/app/admin/waivers";
 
@@ -30,7 +30,7 @@ export async function publishWaiverAction(
   const subject = await requirePermissionToChange("season.manage", {
     next: PAGE,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const title = text(form, "title");
   const body = text(form, "body");
@@ -46,8 +46,8 @@ export async function assignWaiverAction(slug: string, form: FormData) {
   const subject = await requirePermissionToChange("season.manage", {
     next: PAGE,
   });
-  const league = await currentLeague(db);
-  const season = await seasonBySlug(db, slug);
+  const league = await activeLeague();
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!league || !season) notFound();
   // Empty means no waiver yet; anything else must be a waiver ID.
   const chosen = text(form, "waiverId");

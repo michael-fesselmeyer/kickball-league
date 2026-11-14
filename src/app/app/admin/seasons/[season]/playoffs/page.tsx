@@ -20,6 +20,8 @@ import { requirePermission } from "@/lib/auth/permission";
 import { makeBracket, publishDraftBracket } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
+import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Playoffs" };
 
@@ -57,7 +59,7 @@ async function Playoffs({
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/playoffs`;
   await requirePermission("schedule.manage", { next: page });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const [preview, brackets] = await Promise.all([
     playoffPreview(db, season.id),
@@ -137,12 +139,12 @@ async function Playoffs({
                 </SubmitButton>
               </form>
             ) : (
-              <Link
+              <LeagueLink
                 href={`/seasons/${slug}/bracket`}
                 className="btn btn-secondary"
               >
                 See the public bracket
-              </Link>
+              </LeagueLink>
             )}
           </div>
           {brackets.map((b) => (
@@ -158,7 +160,7 @@ async function Playoffs({
               )}
               <BracketBoard
                 bracket={b}
-                link={false}
+                league={null}
                 headingLevel={3}
                 {...(b.division ? { name: b.division.name } : {})}
               />

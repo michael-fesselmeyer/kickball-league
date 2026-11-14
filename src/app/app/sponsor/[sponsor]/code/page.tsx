@@ -12,6 +12,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { RefreshAt } from "./refresh";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Check-in code" };
 
@@ -35,7 +36,7 @@ export default function CodePage(props: Props) {
 async function Code({ params }: Props) {
   const { sponsor: slug } = await params;
   const page = `/app/sponsor/${slug}/code`;
-  const sponsor = await sponsorForCheckIn(db, slug);
+  const sponsor = await sponsorForCheckIn(db, await activeLeagueId(), slug);
   if (!sponsor) notFound();
   await requirePermission("sponsor.edit", {
     next: page,

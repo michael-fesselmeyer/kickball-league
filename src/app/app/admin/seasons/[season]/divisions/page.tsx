@@ -21,6 +21,7 @@ import {
 } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Divisions" };
 
@@ -79,7 +80,7 @@ async function Divisions({
   );
   const page = `/app/admin/seasons/${slug}/divisions`;
   await requirePermission("season.manage", { next: page });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const screen = await divisionsScreen(db, season.leagueId, season.id);
   const { divisions, ruleSets, teams, settings } = screen;

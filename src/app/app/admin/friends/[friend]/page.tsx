@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { friendLeagueById } from "@/db/queries/friends";
-import { currentLeague } from "@/db/queries/seasons";
 import { type FriendLeagueId, parseId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
 import {
@@ -15,6 +14,7 @@ import {
 import { FriendFormFields } from "../friend-form";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Edit a league" };
 
@@ -35,7 +35,7 @@ async function EditFriend({ params, searchParams }: Props) {
   const page = `/app/admin/friends/${friend}`;
   await requirePermission("friends.manage", { next: page });
   const id = parseId<FriendLeagueId>(friend);
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const entry = id && league ? await friendLeagueById(db, league.id, id) : null;
   if (!entry) notFound();
   const query = await searchParams;

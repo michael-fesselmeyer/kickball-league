@@ -11,7 +11,6 @@ import { DEFAULT_TIME_ZONE } from "@/db/queries/outbox";
 import { profileOf } from "@/db/queries/profile";
 import { pushSettingsOf } from "@/db/queries/push";
 import { existingReferralCode, myReferrals } from "@/db/queries/referrals";
-import { currentLeague } from "@/db/queries/seasons";
 import { REFERRAL_CREDIT_CENTS } from "@/domain/money/credit";
 import { emergencyCardOf } from "@/db/queries/emergency";
 import { toEmergencyForm } from "@/domain/emergency/emergency";
@@ -26,6 +25,7 @@ import { EmailSettings } from "./email-settings";
 import { ProfileSettingsForm } from "./profile-form";
 import { PushSettings } from "./push-settings";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Your profile" };
 
@@ -58,9 +58,9 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
     profileOf(db, subject.userId),
     emailSettingsOf(db, subject.userId),
     publicKey ? pushSettingsOf(db, subject.userId) : null,
-    currentLeague(db),
-    creditBalance(db, subject.userId),
-    creditHistory(db, subject.userId, 20),
+    activeLeague(),
+    creditBalance(db, subject.userId, await activeLeagueId()),
+    creditHistory(db, subject.userId, (await activeLeagueId()) ?? "all", 20),
     existingReferralCode(db, subject.userId),
     myReferrals(db, subject.userId),
     alertLimitsFor(db, subject.userId),

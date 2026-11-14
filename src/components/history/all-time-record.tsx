@@ -3,11 +3,16 @@ import { db } from "@/db/client";
 import { teamHistory } from "@/db/queries/history";
 import type { TeamId } from "@/domain/ids";
 import { pctText, recordLine, signedText } from "@/domain/history/history";
+import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 
-type Props = { team: { id: TeamId; slug: string; name: string } };
+type Props = {
+  /** The league whose public pages the links open (ADR 0048). */
+  league: LeagueRef;
+  team: { id: TeamId; slug: string; name: string };
+};
 
 /** A team's record over every season it played, and the titles it won. */
-export async function AllTimeRecord({ team }: Props) {
+export async function AllTimeRecord({ league, team }: Props) {
   const { record, titles } = await teamHistory(db, team.id, team.slug);
   if (record.played === 0) return null;
   const stats = [
@@ -55,7 +60,7 @@ export async function AllTimeRecord({ team }: Props) {
       )}
       <p className="text-small text-text-muted">
         Regular-season games in every season {team.name} played.{" "}
-        <Link href="/history" className="underline">
+        <Link href={leagueHref(league, "/history")} className="underline">
           League history
         </Link>
       </p>

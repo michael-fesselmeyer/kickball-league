@@ -4,7 +4,6 @@ import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import {
   createSeason,
-  currentLeague,
   SEASON_STATUSES,
   seasonSettings,
   updateSeason,
@@ -21,6 +20,7 @@ import { requirePermissionToChange } from "@/lib/auth/permission";
 import { sendQueuedSoon } from "@/services/outbox";
 import { formStrings } from "@/lib/form";
 import { refreshSeasonPages } from "@/lib/public-cache";
+import { activeLeague } from "@/lib/league/active";
 
 export type SeasonFormState = {
   values: SeasonForm;
@@ -44,7 +44,7 @@ export async function createSeasonAction(
   const subject = await requirePermissionToChange("season.manage", {
     next: "/app/admin/seasons/new",
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const values = valuesOf(form);
   const parsed = parseSeasonForm(values, league.timeZone);
@@ -69,7 +69,7 @@ export async function updateSeasonAction(
   const subject = await requirePermissionToChange("season.manage", {
     next: `/app/admin/seasons/${slug}`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const existing = await seasonSettings(db, league.id, slug);
   if (!existing) notFound();

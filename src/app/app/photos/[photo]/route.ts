@@ -1,10 +1,10 @@
 import { db } from "@/db/client";
 import { memberPhotoFile } from "@/db/queries/member-photos";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { type MemberPhotoId, parseId } from "@/domain/ids";
 import { currentSubject } from "@/lib/auth/permission";
 import { imageResponse, notFound } from "@/lib/social/image-response";
+import { activeLeague } from "@/lib/league/active";
 
 /**
  * Any stored member photo, waiting ones included: for its uploader, and for
@@ -19,7 +19,7 @@ export async function GET(
   const [subject, photo, league] = await Promise.all([
     currentSubject(),
     id ? memberPhotoFile(db, id) : null,
-    currentLeague(db),
+    activeLeague(),
   ]);
   if (!photo || !subject.userId) return notFound();
   const mine = photo.uploaderId === subject.userId;

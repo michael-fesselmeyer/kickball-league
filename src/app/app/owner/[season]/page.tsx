@@ -22,6 +22,7 @@ import {
 } from "../charts";
 import { cachedDashboard, ownerSeason } from "../load";
 import { SubmitButton } from "@/components/submit-button";
+import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Owner dashboard" };
 
@@ -560,9 +561,12 @@ async function Dashboard({
         {publishedAt ? (
           <>
             The {season.name} money summary is public.{" "}
-            <Link href={`/seasons/${season.slug}/money`} className="underline">
+            <LeagueLink
+              href={`/seasons/${season.slug}/money`}
+              className="underline"
+            >
               See it
-            </Link>
+            </LeagueLink>
           </>
         ) : (
           <>The {season.name} money summary isn&apos;t published.</>

@@ -8,6 +8,7 @@ import {
 } from "@/domain/playoffs/playoffs";
 import { kickoff, shortDay } from "@/domain/schedule/format";
 import "./bracket.css";
+import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 
 /** Class names from bracket.css. */
 const styles = {
@@ -56,7 +57,14 @@ function result(m: BracketViewMatch): string | null {
   return null;
 }
 
-function TeamName({ side, link }: { side: NonNullable<Side>; link: boolean }) {
+function TeamName({
+  side,
+  league,
+}: {
+  side: NonNullable<Side>;
+  /** The league whose team pages to link to; null for no links. */
+  league: LeagueRef | null;
+}) {
   return (
     <span className={styles.team}>
       <span
@@ -64,8 +72,11 @@ function TeamName({ side, link }: { side: NonNullable<Side>; link: boolean }) {
         className={styles.dot}
         style={{ background: side.colorHex ?? "transparent" }}
       />
-      {link && side.slug ? (
-        <Link href={`/teams/${side.slug}`} className="underline">
+      {league && side.slug ? (
+        <Link
+          href={leagueHref(league, `/teams/${side.slug}`)}
+          className="underline"
+        >
           {side.name}
         </Link>
       ) : (
@@ -80,13 +91,13 @@ function MatchSide({
   label,
   score,
   winnerId,
-  link,
+  league,
 }: {
   side: Side;
   label: string;
   score: number | null;
   winnerId: string | null;
-  link: boolean;
+  league: LeagueRef | null;
 }) {
   const won = side !== null && winnerId === side.id;
   const lost = side !== null && winnerId !== null && !won;
@@ -96,7 +107,7 @@ function MatchSide({
     >
       <span className={styles.seed}>{side?.seed ?? ""}</span>
       {side ? (
-        <TeamName side={side} link={link} />
+        <TeamName side={side} league={league} />
       ) : (
         <span className={styles.tbd}>{label}</span>
       )}
@@ -110,12 +121,13 @@ function MatchSide({
 
 export function BracketBoard({
   bracket,
-  link = true,
+  league,
   headingLevel = 2,
   name,
 }: {
   bracket: BracketView;
-  link?: boolean;
+  /** The league whose team pages to link to; null for no links. */
+  league: LeagueRef | null;
   /** The round names' heading level, below the page's own headings. */
   headingLevel?: 2 | 3;
   /** Whose bracket, when a page shows one per division. */
@@ -178,14 +190,14 @@ export function BracketBoard({
                             label={sourceLabel(m.sourceA, bracket.rounds)}
                             score={m.scoreA}
                             winnerId={m.winnerId}
-                            link={link}
+                            league={league}
                           />
                           <MatchSide
                             side={m.teamB}
                             label={sourceLabel(m.sourceB, bracket.rounds)}
                             score={m.scoreB}
                             winnerId={m.winnerId}
-                            link={link}
+                            league={league}
                           />
                         </ul>
                         <p className={styles.when}>

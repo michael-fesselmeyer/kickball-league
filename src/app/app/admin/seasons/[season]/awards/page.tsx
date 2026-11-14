@@ -17,6 +17,7 @@ import { requireFeature } from "@/lib/platform/site";
 import { closePollAction, openPollAction, removePollAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Manage awards" };
 
@@ -118,7 +119,7 @@ async function Awards({
   await requirePermission("awards.manage", {
     next: `/app/admin/seasons/${slug}/awards`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const [days, polls] = await Promise.all([
     gameDaysOf(db, season.id),

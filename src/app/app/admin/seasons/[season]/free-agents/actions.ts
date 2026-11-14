@@ -12,6 +12,8 @@ import { parseId, type RegistrationId, type TeamSeasonId } from "@/domain/ids";
 import { suggestPlacements } from "@/domain/matcher/matcher";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshSeasonPages } from "@/lib/public-cache";
+import { activeLeagueId } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/free-agents`;
 
@@ -20,7 +22,7 @@ async function context(slug: string) {
   const subject = await requirePermissionToChange("free_agents.place", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   return { page, subject, season };
 }
@@ -39,6 +41,7 @@ export async function applySuggestionAction(
 ): Promise<void> {
   const { page, subject, season } = await context(slug);
   const teamSeasonId = parseId<TeamSeasonId>(rawTeamSeasonId);
+  await requireInLeague(subject, { team_season: teamSeasonId });
   const registrationIds = ids(rawRegistrationIds);
   if (!teamSeasonId || registrationIds.length !== rawRegistrationIds.length)
     redirect(`${page}?error=unknown_team`);
@@ -107,6 +110,9 @@ export async function buildTeamAction(slug: string, form: FormData) {
   if (registrationIds.length === 0)
     redirect(`${page}?build_error=nobody_picked#new-team`);
   if (!captainId) redirect(`${page}?build_error=no_captain#new-team`);
+  await requireInLeague(subject, {
+    registration: [captainId, ...registrationIds],
+  });
   const name = form.get("name");
   const color = form.get("colorHex");
   const result = await txDb.transaction((tx) =>

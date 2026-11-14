@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 import { db } from "@/db/client";
 import { booksSeasons } from "@/db/queries/books";
-import { currentLeague } from "@/db/queries/seasons";
+import { activeLeague } from "@/lib/league/active";
 
 /**
  * The league and the season a books screen is about, from the path. Call
  * after the permission check. Unknown seasons are a 404.
  */
 export async function booksSeason(slug: string) {
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const seasons = await booksSeasons(db, league.id);
   const season = seasons.find((s) => s.slug === slug);
@@ -18,7 +18,7 @@ export async function booksSeason(slug: string) {
 
 /** The newest season's slug, where /app/books and its links land. */
 export async function newestSeasonSlug(): Promise<string | null> {
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) return null;
   return (await booksSeasons(db, league.id))[0]?.slug ?? null;
 }

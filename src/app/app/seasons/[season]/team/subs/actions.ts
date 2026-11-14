@@ -6,7 +6,6 @@ import {
   myRegistration,
   seasonForRegistration,
 } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   cancelSubRequest,
   claimTeam,
@@ -25,6 +24,7 @@ import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { sendQueuedSoon } from "@/services/outbox";
 import { requireFeature } from "@/lib/platform/site";
+import { activeLeague } from "@/lib/league/active";
 
 const pageOf = (slug: string) => `/app/seasons/${slug}/team/subs`;
 
@@ -34,7 +34,7 @@ async function captain(slug: string) {
   const subject = await requirePermissionToChange("registration.join", {
     next: page,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

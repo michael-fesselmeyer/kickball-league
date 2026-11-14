@@ -19,6 +19,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { sendLeagueAnnouncementAction } from "./actions";
 import { requireFeature } from "@/lib/platform/site";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Announcements" };
 
@@ -45,7 +46,7 @@ async function Announcements({
     next: `/app/admin/seasons/${slug}/announcements`,
     scope: "league",
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const teams = await teamsToAnnounceTo(db, season.id);
   const past = await announcementsOf(db, season.id);

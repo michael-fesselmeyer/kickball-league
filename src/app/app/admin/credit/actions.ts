@@ -5,6 +5,7 @@ import { txDb } from "@/db/client";
 import { grantGoodwill } from "@/db/queries/credit";
 import { parseGoodwillForm } from "@/domain/money/credit";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
 
 const PAGE = "/app/admin/credit";
 
@@ -27,8 +28,10 @@ export async function grantGoodwillAction(form: FormData): Promise<void> {
     redirect(`${PAGE}?error=${field}`);
   }
   const actorId = subject.userId;
+  const leagueId = await activeLeagueId();
+  if (!leagueId) redirect(`${PAGE}?error=email`);
   const result = await txDb.transaction((tx) =>
-    grantGoodwill(tx, { ...parsed.value, actorId }),
+    grantGoodwill(tx, { ...parsed.value, leagueId, actorId }),
   );
   if (!result.ok) redirect(`${PAGE}?error=${result.error}`);
   redirect(`${PAGE}?notice=granted`);

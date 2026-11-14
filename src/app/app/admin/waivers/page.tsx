@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { WaiverText } from "@/components/waiver-text";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import { waiversOf } from "@/db/queries/waivers";
 import { season as seasonTable } from "@/db/schema/season";
 import { waiver as waiverTable } from "@/db/schema/waiver";
@@ -14,6 +13,7 @@ import { assignWaiverAction } from "./actions";
 import { WaiverDraftForm } from "./draft-form";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Waivers" };
 
@@ -42,7 +42,7 @@ const day = (d: Date, timeZone: string) =>
 async function Waivers({ searchParams }: PageProps<"/app/admin/waivers">) {
   await requirePermission("season.manage", { next: "/app/admin/waivers" });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const versions = await waiversOf(db, league.id);
   const seasons = await db

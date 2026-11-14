@@ -19,6 +19,8 @@ import { refreshEventPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
 import { logError } from "@/lib/log-error";
+import { activeLeagueId } from "@/lib/league/active";
+import { requireInLeague } from "@/lib/league/guard";
 
 const pageFor = (slug: string) => `/app/admin/events/${slug}`;
 
@@ -41,10 +43,11 @@ export async function refundTicketAction(
   const signedInAt = await sessionSignedInAt();
   if (!signedInAt || !isFreshSession(signedInAt, new Date()))
     redirect(`${page}?error=stale#tickets`);
-  const e = await eventBySlug(db, slug, "all");
+  const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   if (!e) notFound();
   const ticketId = parseId<EventTicketId>(rawTicketId);
   if (!ticketId) redirect(`${page}?error=not_found#tickets`);
+  await requireInLeague(subject, { event_ticket: ticketId });
   const reason = form.get("reason");
   const started = await txDb.transaction((tx) =>
     startTicketRefund(tx, {
@@ -106,7 +109,7 @@ export async function checkInTicketAction(
   const subject = await requirePermissionToChange("event.manage", {
     next: page,
   });
-  const e = await eventBySlug(db, slug, "all");
+  const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   if (!e) notFound();
   const code = form.get("code");
   const result = await txDb.transaction((tx) =>

@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   sponsorBySlug,
   sponsorDeals,
@@ -17,6 +15,8 @@ import { requirePermission } from "@/lib/auth/permission";
 import { redeemDealAction } from "../actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
+import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Your visit" };
 
@@ -50,9 +50,9 @@ async function Visit({ params, searchParams }: Props) {
   const query = await searchParams;
   const page = `/app/check-in/${slug}`;
   const subject = await requirePermission("sponsor.check_in", { next: page });
-  const sponsor = await sponsorBySlug(db, slug);
+  const sponsor = await sponsorBySlug(db, await activeLeagueId(), slug);
   if (!sponsor) notFound();
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const timeZone = league?.timeZone ?? "America/New_York";
   const now = new Date();
   const day = localDay(now, timeZone);
@@ -145,9 +145,9 @@ async function Visit({ params, searchParams }: Props) {
           </ul>
         )}
       </section>
-      <Link href={`/sponsors/${slug}`} className="underline">
+      <LeagueLink href={`/sponsors/${slug}`} className="underline">
         About {sponsor.name}
-      </Link>
+      </LeagueLink>
     </>
   );
 }

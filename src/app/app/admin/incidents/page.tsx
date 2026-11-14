@@ -7,12 +7,12 @@ import {
   incidentQueue,
   type QueueRow,
 } from "@/db/queries/discipline";
-import { currentLeague } from "@/db/queries/seasons";
 import { INCIDENT_KINDS } from "@/domain/discipline/discipline";
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
 import { REPORTED_BY, suspensionLine } from "./words";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Incidents" };
 
@@ -48,7 +48,7 @@ async function Incidents() {
   const [queue, suspended, league] = await Promise.all([
     incidentQueue(db),
     activeSuspensions(db, now),
-    currentLeague(db),
+    activeLeague(),
   ]);
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {

@@ -8,7 +8,6 @@ import {
   photoStorage,
   uploadTargets,
 } from "@/db/queries/member-photos";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import {
   leagueStorageFull,
@@ -19,6 +18,7 @@ import { deleteMyPhotoAction, uploadPhotoAction } from "./actions";
 import { UploadForm } from "./upload-form";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Share a photo" };
 
@@ -59,7 +59,7 @@ async function Photos({ searchParams }: PageProps<"/app/photos">) {
   // Signed in, looking at their own photos.
   const subject = await requireSelf("photos.delete_own", "/app/photos");
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league || !can(subject, "photos.upload"))
     return (
       <p>

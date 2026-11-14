@@ -3,11 +3,11 @@
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { seasonForRegistration } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { joinWaitlist, leaveWaitlist } from "@/db/queries/waitlist";
 import { registrationWindow } from "@/domain/registration/pricing";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { allowAction } from "@/lib/action-limit";
+import { activeLeague } from "@/lib/league/active";
 
 /**
  * The team waitlist for a full season (roadmap item 13). Joining is for a
@@ -18,7 +18,7 @@ async function context(slug: string) {
   const subject = await requirePermissionToChange("team.register", {
     next: page,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

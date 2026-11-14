@@ -1,7 +1,7 @@
 import { txDb } from "@/db/client";
 import { queueBooksReminders } from "@/db/queries/books";
 import { queuePermitAlerts } from "@/db/queries/permit-plan";
-import { currentLeague } from "@/db/queries/seasons";
+import { allLeagues } from "@/db/queries/leagues";
 import { localDate } from "@/domain/books/ledger-csv";
 import { env } from "@/env";
 import { refuseUnlessCron } from "@/lib/jobs";
@@ -21,15 +21,19 @@ export async function GET(request: Request): Promise<Response> {
   if (refused) return refused;
   const frozen = await refuseJobsWhileFrozen();
   if (frozen) return frozen;
-  const league = await currentLeague(txDb);
-  if (!league) return Response.json({ skipped: "No league yet" });
+  const leagues = await allLeagues(txDb);
+  if (leagues.length === 0) return Response.json({ skipped: "No league yet" });
   const now = new Date();
-  const today = localDate(now, league.timeZone);
-  const queued = await txDb.transaction(
-    async (tx) =>
-      (await queueBooksReminders(tx, league.id, today, now)) +
-      (await queuePermitAlerts(tx, league.id, now)),
-  );
+  // Every league's owners, each on their own league's calendar (ADR 0048).
+  let queued = 0;
+  for (const league of leagues) {
+    const today = localDate(now, league.timeZone);
+    queued += await txDb.transaction(
+      async (tx) =>
+        (await queueBooksReminders(tx, league.id, today, now)) +
+        (await queuePermitAlerts(tx, league.id, now)),
+    );
+  }
   const delivery = queued > 0 ? await drainOutboxNow(now) : null;
   return Response.json({ queued, delivery });
 }

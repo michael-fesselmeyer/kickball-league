@@ -2,12 +2,16 @@ import Link from "next/link";
 import type { PublicTeamOfWeek } from "@/db/queries/sponsors";
 import { dayHeading } from "@/domain/schedule/format";
 import { formatCents } from "@/domain/registration/pricing";
+import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 
 /** The latest team of the week, with its tab when a sponsor put one up. */
 export function TeamOfWeekCard({
+  league,
   honor,
   linkSponsor = true,
 }: {
+  /** The league whose public pages the links open (ADR 0048). */
+  league: LeagueRef;
   honor: PublicTeamOfWeek;
   linkSponsor?: boolean;
 }) {
@@ -21,7 +25,7 @@ export function TeamOfWeekCard({
       </p>
       <h2 id="team-of-week" className="font-display text-h2">
         <Link
-          href={`/teams/${honor.teamSlug}`}
+          href={leagueHref(league, `/teams/${honor.teamSlug}`)}
           className="inline-flex min-h-6 items-center underline"
         >
           {honor.teamName}
@@ -34,7 +38,7 @@ export function TeamOfWeekCard({
           They&apos;ve got a {formatCents(honor.tabCents)} tab at{" "}
           {linkSponsor && honor.sponsorSlug ? (
             <Link
-              href={`/sponsors/${honor.sponsorSlug}`}
+              href={leagueHref(league, `/sponsors/${honor.sponsorSlug}`)}
               className="inline-flex min-h-6 items-center font-bold underline"
             >
               {honor.sponsorName}

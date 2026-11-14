@@ -1,7 +1,5 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshPhotoPagesInBackground } from "@/lib/public-cache";
 import { completeConnection } from "@/lib/social/connect";
@@ -11,6 +9,7 @@ import {
   STATE_COOKIE_PATH,
   statesMatch,
 } from "@/lib/social/oauth-state";
+import { activeLeague } from "@/lib/league/active";
 
 const PAGE = "/app/admin/instagram";
 
@@ -36,7 +35,7 @@ export async function GET(request: Request): Promise<Response> {
   if (!code) redirect(`${PAGE}?error=denied`);
 
   const config = instagramConfig();
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!config || !league) redirect(`${PAGE}?error=off`);
 
   const result = await completeConnection(config, {

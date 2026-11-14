@@ -10,7 +10,6 @@ import {
 } from "@/db/queries/merch";
 import { attachCheckoutSession, expirePurchases } from "@/db/queries/payments";
 import { profileOf } from "@/db/queries/profile";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { type MerchItemId, parseId, type TeamSeasonId } from "@/domain/ids";
 import { env } from "@/env";
@@ -20,6 +19,7 @@ import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
 import { logError } from "@/lib/log-error";
 import { allowAction } from "@/lib/action-limit";
+import { activeLeague } from "@/lib/league/active";
 
 /**
  * Orders an item for the signed-in player (merch.order): its stock is held
@@ -37,7 +37,7 @@ export async function orderMerchAction(
   const subject = await requirePermissionToChange("merch.order", {
     next: page,
   });
-  const lg = await currentLeague(db);
+  const lg = await activeLeague();
   if (!lg) notFound();
   const stripe = stripeClient();
   if (!stripe) redirect(`${page}?error=payments_off`);

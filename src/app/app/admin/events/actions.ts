@@ -10,7 +10,6 @@ import {
   eventBySlug,
   updateEvent,
 } from "@/db/queries/events";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   parseReach,
   REACH_ERRORS,
@@ -31,6 +30,7 @@ import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { refreshEventPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
 export type EventFormState = {
   values: EventForm;
@@ -120,7 +120,7 @@ export async function createEventAction(
   const subject = await requirePermissionToChange("event.manage", {
     next: `${LIST}/new`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const read = await readForm(form, league.id, league.timeZone);
   if (!read.ok) return read.state;
@@ -162,7 +162,7 @@ export async function updateEventAction(
   const subject = await requirePermissionToChange("event.manage", {
     next: page,
   });
-  const e = await eventBySlug(db, slug, "all");
+  const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   if (!e) notFound();
   const read = await readForm(form, e.leagueId, e.timeZone);
   if (!read.ok) return read.state;
@@ -222,7 +222,7 @@ export async function cancelEventAction(
     next: page,
   });
   if (form.get("confirm") !== "yes") redirect(`${page}?error=confirm`);
-  const e = await eventBySlug(db, slug, "all");
+  const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   if (!e) notFound();
   const result = await txDb.transaction((tx) =>
     cancelEvent(tx, { id: e.id, actorId: subject.userId, now: new Date() }),
@@ -243,7 +243,7 @@ export async function deleteEventAction(
     next: page,
   });
   if (form.get("confirm") !== "yes") redirect(`${page}?error=confirm`);
-  const e = await eventBySlug(db, slug, "all");
+  const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   if (!e) notFound();
   const result = await txDb.transaction((tx) =>
     deleteEvent(tx, { id: e.id, actorId: subject.userId, now: new Date() }),

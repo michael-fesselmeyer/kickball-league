@@ -11,6 +11,7 @@ import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { sendQueuedSoon } from "@/services/outbox";
 import { requireFeature } from "@/lib/platform/site";
+import { activeLeagueId } from "@/lib/league/active";
 
 /** An admin's announcement to the whole league or to one team. */
 export async function sendLeagueAnnouncementAction(
@@ -23,7 +24,7 @@ export async function sendLeagueAnnouncementAction(
     next: page,
     scope: "league",
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const values = formStrings(form, ["audience", "subject", "body"] as const);
   const teams = await teamsToAnnounceTo(db, season.id);

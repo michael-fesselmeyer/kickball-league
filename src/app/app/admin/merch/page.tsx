@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { catalog, merchOrders, photoBytesUsed } from "@/db/queries/merch";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   MERCH_PHOTO_CAP_BYTES,
   orderWindow,
@@ -11,6 +10,7 @@ import {
 } from "@/domain/merch/catalog";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Merch" };
 
@@ -30,7 +30,7 @@ const mb = (bytes: number) => (bytes / 1024 / 1024).toFixed(1);
 
 async function MerchAdmin() {
   await requirePermission("merch.manage", { next: PAGE });
-  const lg = await currentLeague(db);
+  const lg = await activeLeague();
   const now = new Date();
   const [items, toMake, used] = await Promise.all([
     lg ? catalog(db, lg.id, now, { hidden: true }) : [],

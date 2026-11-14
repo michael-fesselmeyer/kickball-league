@@ -7,7 +7,6 @@ import {
   ownerDashboard,
   summaryInputs,
 } from "@/db/queries/owner-dashboard";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   EXPENSE_CATEGORIES,
   type ExpenseCategory,
@@ -28,13 +27,14 @@ import {
   OWNER_DASHBOARD_TAG,
 } from "@/lib/owner-dashboard-cache";
 import { seasonTag } from "@/lib/public-cache";
+import { activeLeague } from "@/lib/league/active";
 
 /**
  * The league and the season an owner screen is about, from the path. Call
  * after the permission check. Unknown and draft seasons are a 404.
  */
 export async function ownerSeason(slug: string) {
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const seasons = await dashboardSeasons(db, league.id);
   const season = seasons.find((s) => s.slug === slug);
@@ -44,7 +44,7 @@ export async function ownerSeason(slug: string) {
 
 /** The newest season past draft, where /app/owner lands. */
 export async function newestOwnerSeason(): Promise<string | null> {
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) return null;
   return (await dashboardSeasons(db, league.id))[0]?.slug ?? null;
 }

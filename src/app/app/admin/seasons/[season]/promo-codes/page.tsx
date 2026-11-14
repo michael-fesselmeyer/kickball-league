@@ -11,6 +11,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { createPromoCodeAction, disablePromoCodeAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Promo codes" };
 
@@ -53,7 +54,7 @@ async function PromoCodes({
   await requirePermission("season.manage", {
     next: `/app/admin/seasons/${slug}/promo-codes`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const codes = await promoCodesForSeason(db, season.id);
   const now = new Date();

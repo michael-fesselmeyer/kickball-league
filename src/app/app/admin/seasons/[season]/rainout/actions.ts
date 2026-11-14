@@ -11,6 +11,7 @@ import type { SlotId } from "@/domain/ids";
 import { reschedule } from "@/domain/scheduler/reschedule";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshSeasonPages } from "@/lib/public-cache";
+import { activeLeagueId } from "@/lib/league/active";
 
 /**
  * Calls a rain-out for a whole date: cancels its slots and saves a draft
@@ -25,7 +26,7 @@ export async function declareRainout(
   const subject = await requirePermissionToChange("rainout.declare", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const published = (await versionsOf(db, season.id)).find(
     (v) => v.status === "published",

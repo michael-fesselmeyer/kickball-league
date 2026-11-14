@@ -17,6 +17,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { markTeamOrderedAction, setShirtStatusAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Shirts" };
 
@@ -147,7 +148,7 @@ async function Shirts({
   await requirePermission("shirts.manage", {
     next: `/app/admin/seasons/${slug}/shirts`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const board = await shirtBoard(db, season.id);
   const everyone = [

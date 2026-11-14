@@ -16,6 +16,7 @@ import {
 } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Free-agent matcher" };
 
@@ -98,7 +99,7 @@ async function FreeAgents({
   await requirePermission("free_agents.place", {
     next: `/app/admin/seasons/${slug}/free-agents`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const input = await matcherInput(db, season.id);
   if (!input) notFound();

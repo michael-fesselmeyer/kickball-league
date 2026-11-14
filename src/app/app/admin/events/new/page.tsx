@@ -4,13 +4,13 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { audienceChoices } from "@/db/queries/event-audience";
-import { currentLeague } from "@/db/queries/seasons";
 import { blankReach } from "@/domain/events/audience";
 import { FREE, ticketPriceFormValues } from "@/domain/events/tickets";
 import { requirePermission } from "@/lib/auth/permission";
 import { createEventAction } from "../actions";
 import { EventFormFields } from "../event-form";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "New event" };
 
@@ -47,7 +47,7 @@ export default function NewEventPage() {
 
 async function NewEvent() {
   await requirePermission("event.manage", { next: "/app/admin/events/new" });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const choices = await audienceChoices(db, league.id);
   return (

@@ -7,12 +7,12 @@ import { db } from "@/db/client";
 import { profileOf } from "@/db/queries/profile";
 import { ageMessage, underAge } from "@/domain/registration/age";
 import { localDay } from "@/domain/schedule/public-game";
-import { currentLeague } from "@/db/queries/seasons";
 import { waiverForSeason } from "@/db/queries/waivers";
 import { requireSelf } from "@/lib/auth/permission";
 import { signWaiverAction } from "./actions";
 import { SignWaiverForm } from "./sign-form";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Season waiver" };
 
@@ -38,7 +38,7 @@ async function Waiver({
     "waiver.sign",
     `/app/seasons/${slug}/waiver`,
   );
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const view = league
     ? await waiverForSeason(db, {
         leagueId: league.id,

@@ -17,6 +17,7 @@ import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshSeasonPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 import { applyAll, stateOf } from "./board-model";
+import { activeLeagueId } from "@/lib/league/active";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/schedule`;
 
@@ -35,7 +36,7 @@ export async function generateDraft(
   const subject = await requirePermissionToChange("schedule.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
 
   const rounds = whole(form, "rounds", 1, 60);
@@ -79,7 +80,7 @@ export async function publishDraft(
   const { moved, added, removed, teams, notified } = result.value;
   if (notified > 0) sendQueuedSoon();
   // The public schedule, standings and team pages show it right away.
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (season) refreshSeasonPages(season.id);
   redirect(
     `${page}?published=1&moved=${moved.length}&added=${added.length}&removed=${removed.length}&teams=${teams.length}&notified=${notified}`,

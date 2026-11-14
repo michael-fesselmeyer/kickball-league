@@ -10,7 +10,6 @@ import {
   seasonForRegistration,
   teamsCaptainedBy,
 } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { myWaitlistEntry, seasonSpots } from "@/db/queries/waitlist";
 import { formatMoment } from "@/domain/money/credit";
 import { mayRegisterTeam } from "@/domain/money/waitlist";
@@ -27,6 +26,7 @@ import { FreeAgentForm, TeamForm } from "./register-forms";
 import { joinWaitlistAction, leaveWaitlistAction } from "./waitlist-actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague } from "@/lib/league/active";
 
 const WAITLIST_NOTICES: Record<string, string> = {
   joined: "You're on the waitlist. We'll email you the moment a spot opens.",
@@ -61,7 +61,7 @@ async function Register({
   const subject = await requirePermission("team.register", {
     next: `/app/seasons/${slug}/register`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

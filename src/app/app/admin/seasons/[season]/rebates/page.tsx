@@ -10,6 +10,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { issueRebateAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Rain-out rebates" };
 
@@ -40,7 +41,7 @@ async function Rebates({
   await requirePermission("refund.issue", {
     next: `/app/admin/seasons/${slug}/rebates`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const { thresholdPct, rows } = await rebateBoard(db, season.id);
   const error =

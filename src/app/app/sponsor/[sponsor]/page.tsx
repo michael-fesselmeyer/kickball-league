@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   sponsorBySlug,
   sponsorDeals,
@@ -29,6 +28,8 @@ import {
 import { DealFields } from "./deal-fields";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
+import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Sponsor page" };
 
@@ -72,7 +73,7 @@ async function Portal({ params, searchParams }: Props) {
   const { sponsor: slug } = await params;
   const query = await searchParams;
   const page = `/app/sponsor/${slug}`;
-  const sponsor = await sponsorBySlug(db, slug);
+  const sponsor = await sponsorBySlug(db, await activeLeagueId(), slug);
   if (!sponsor) notFound();
   const subject = await requirePermission("sponsor.edit", {
     next: page,
@@ -82,7 +83,7 @@ async function Portal({ params, searchParams }: Props) {
   const [deals, members, league] = await Promise.all([
     sponsorDeals(db, sponsor.id),
     isAdmin ? sponsorMembers(db, sponsor.id) : Promise.resolve([]),
-    currentLeague(db),
+    activeLeague(),
   ]);
   const timeZone = league?.timeZone ?? "America/New_York";
   const day = new Intl.DateTimeFormat("en-US", {
@@ -121,9 +122,12 @@ async function Portal({ params, searchParams }: Props) {
             </Link>
           </li>
           <li>
-            <Link href={`/sponsors/${slug}`} className="btn btn-secondary">
+            <LeagueLink
+              href={`/sponsors/${slug}`}
+              className="btn btn-secondary"
+            >
               Public page
-            </Link>
+            </LeagueLink>
           </li>
         </ul>
       </header>

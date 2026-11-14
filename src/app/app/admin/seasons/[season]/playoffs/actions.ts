@@ -6,6 +6,7 @@ import { db, txDb } from "@/db/client";
 import { createBracket, publishBracket } from "@/db/queries/playoffs";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/playoffs`;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -16,7 +17,7 @@ export async function makeBracket(slug: string, form: FormData) {
   const subject = await requirePermissionToChange("schedule.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const teams = Number(form.get("teams"));
   const fromDate = form.get("date");
@@ -42,7 +43,7 @@ export async function publishDraftBracket(slug: string) {
   const subject = await requirePermissionToChange("schedule.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const result = await publishBracket(txDb, season.id, subject.userId);
   if (!result.ok) redirect(`${page}?error=${result.error}`);

@@ -2,7 +2,6 @@
 
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   addSponsorMember,
   confirmDeals,
@@ -21,6 +20,7 @@ import { parseSponsorForm } from "@/domain/sponsors/sponsor-form";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
 import { refreshSponsorPages } from "@/lib/public-cache";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
 const ADMIN_PAGE = "/app/sponsor";
 const portal = (slug: string) => `/app/sponsor/${slug}`;
@@ -41,7 +41,7 @@ function sponsorFields(form: FormData) {
 
 /** The sponsor, and the signed-in person if they may edit it. */
 async function editable(slug: string, next: string) {
-  const sponsor = await sponsorBySlug(db, slug);
+  const sponsor = await sponsorBySlug(db, await activeLeagueId(), slug);
   if (!sponsor) notFound();
   const subject = await requirePermissionToChange("sponsor.edit", {
     next,
@@ -55,7 +55,7 @@ export async function createSponsorAction(form: FormData): Promise<void> {
   const subject = await requirePermissionToChange("sponsor.edit", {
     next: ADMIN_PAGE,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) redirect(`${ADMIN_PAGE}?error=no_league`);
   const parsed = parseSponsorForm(sponsorFields(form));
   if (!parsed.ok) redirect(`${ADMIN_PAGE}?error=${parsed.error}`);
@@ -106,7 +106,7 @@ export async function updateSponsorAction(
 
 /** An admin takes a sponsor off the site. Its numbers stay. */
 export async function removeSponsorAction(slug: string): Promise<void> {
-  const sponsor = await sponsorBySlug(db, slug);
+  const sponsor = await sponsorBySlug(db, await activeLeagueId(), slug);
   if (!sponsor) notFound();
   const subject = await requirePermissionToChange("sponsor.edit", {
     next: portal(slug),
@@ -128,7 +128,7 @@ export async function addMemberAction(
   form: FormData,
 ): Promise<void> {
   const page = portal(slug);
-  const sponsor = await sponsorBySlug(db, slug);
+  const sponsor = await sponsorBySlug(db, await activeLeagueId(), slug);
   if (!sponsor) notFound();
   const subject = await requirePermissionToChange("sponsor.edit", {
     next: page,
@@ -150,7 +150,7 @@ export async function removeMemberAction(
   rawUserId: string,
 ): Promise<void> {
   const page = portal(slug);
-  const sponsor = await sponsorBySlug(db, slug);
+  const sponsor = await sponsorBySlug(db, await activeLeagueId(), slug);
   const userId = parseId<UserId>(rawUserId);
   if (!sponsor || !userId) notFound();
   const subject = await requirePermissionToChange("sponsor.edit", {

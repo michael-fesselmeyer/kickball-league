@@ -14,7 +14,6 @@ import {
   myRegistration,
   seasonForRegistration,
 } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { pickupsFor } from "@/db/queries/subs";
 import { creditBalance } from "@/db/queries/credit";
 import { describeCard, teamGuarantee } from "@/db/queries/guarantee";
@@ -53,6 +52,7 @@ import { KeepOffSection } from "./keep-off";
 import { type GuaranteeView, TeamMoney } from "./team-money";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Your team" };
 
@@ -169,7 +169,7 @@ async function Team({
   const subject = await requirePermission("registration.join", {
     next: `/app/seasons/${slug}/team`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;
@@ -281,7 +281,7 @@ async function Team({
     ? await Promise.all([
         teamBalances(db, [teamSeasonId]).then((m) => m.get(teamSeasonId)),
         teamGuarantee(db, teamSeasonId),
-        creditBalance(db, subject.userId),
+        creditBalance(db, subject.userId, await activeLeagueId()),
       ])
     : [undefined, null, 0];
   const timeZone = league?.timeZone ?? "America/New_York";

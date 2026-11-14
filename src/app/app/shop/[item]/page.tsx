@@ -7,7 +7,6 @@ import { db } from "@/db/client";
 import { creditBalance } from "@/db/queries/credit";
 import { viewerOf } from "@/db/queries/event-audience";
 import { catalogItem, playerTeams, profileShirtSize } from "@/db/queries/merch";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { type MerchItemId, parseId } from "@/domain/ids";
 import {
@@ -24,6 +23,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { orderMerchAction } from "../actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Shop item" };
 
@@ -69,13 +69,13 @@ async function ShopItem({
   const subject = await requirePermission("merch.order", {
     next: `/app/shop/${itemId}`,
   });
-  const lg = await currentLeague(db);
+  const lg = await activeLeague();
   if (!lg) notFound();
   const now = new Date();
   const [item, viewer, credit, teams, shirtSize] = await Promise.all([
     catalogItem(db, lg.id, itemId, now, { hidden: false }),
     viewerOf(db, lg.id, subject.userId, can(subject, "merch.manage", {})),
-    creditBalance(db, subject.userId),
+    creditBalance(db, subject.userId, await activeLeagueId()),
     playerTeams(db, subject.userId),
     profileShirtSize(db, subject.userId),
   ]);

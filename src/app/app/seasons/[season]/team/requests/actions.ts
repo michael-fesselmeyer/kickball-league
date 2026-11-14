@@ -6,7 +6,6 @@ import {
   myRegistration,
   seasonForRegistration,
 } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   addTeamRequest,
   removeTeamRequest,
@@ -21,6 +20,7 @@ import {
 } from "@/domain/schedule/team-requests";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
+import { activeLeague } from "@/lib/league/active";
 
 const isAdmin = (s: Subject) =>
   s.globalRole === "admin" || s.globalRole === "owner";
@@ -31,7 +31,7 @@ async function captainsTeam(slug: string) {
   const subject = await requirePermissionToChange("registration.join", {
     next: page,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

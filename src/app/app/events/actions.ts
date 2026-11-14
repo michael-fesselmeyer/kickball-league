@@ -24,6 +24,7 @@ import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
 import { logError } from "@/lib/log-error";
 import { allowAction } from "@/lib/action-limit";
+import { activeLeagueId } from "@/lib/league/active";
 
 async function eventFor(slug: string) {
   const page = `/app/events/${slug}`;
@@ -32,6 +33,7 @@ async function eventFor(slug: string) {
   // The same check guards buying a ticket.
   const e = await visibleEvent(
     db,
+    await activeLeagueId(),
     slug,
     subject.userId,
     can(subject, "event.manage", {}),

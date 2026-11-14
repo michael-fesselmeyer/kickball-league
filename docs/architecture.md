@@ -136,6 +136,8 @@ One Next.js app in one repository. A monorepo would add tooling without adding a
 
 With Cache Components, a page's static parts and cached data are prerendered into a shell that is served from the CDN; anything that reads cookies streams in behind a Suspense boundary.
 
+**Several leagues** ([ADR 0048](adr/0048-several-leagues-on-one-deployment.md)). The league pages below are one route tree, `src/app/l/[league]`. `proxy.ts` rewrites the default league's own URLs (`/`, `/seasons/...`, `/teams/...`, `/games/...`, `/events/...`, `/sponsors/...`, `/history`, `/records`, `/friends` and their calendar feeds and share images) onto the `_default` segment; another league's are served at `/l/<slug>/...` as they are. Each page reads its league from that segment inside its `use cache` data (`cachedLeague`, tag `leagues`), so every league's pages are static HTML, prerendered for every league (`l/[league]/layout.tsx` lists them). Links are built with `leagueHref(league, path)`. Cache tags are still the same across leagues, so a change can expire another league's copy of a page: an extra render, never a stale page.
+
 | Route | Strategy | Cache tags | Invalidated when |
 |---|---|---|---|
 | `/`, `/about`, `/faq`, `/refs`, `/nyc-kickball-league`, `/legal/*` | Fully prerendered; data cached for days | `league` | League settings change |
@@ -197,15 +199,17 @@ An action that changes a season's public data calls `refreshSeasonPages` (`src/l
 - File downloads (roster and payment CSVs, a person's own data as JSON) are Route Handlers that check the same permissions as pages, answer `Cache-Control: private, no-store`, and write an audit row for each CSV, since those files carry contact details.
 - The account page (`/app/profile/security`) lists signed-in devices ✔: one row per live session, named from its browser's User-Agent ("iPhone · Safari", `src/domain/auth/device-name.ts`), with when it signed in and was last used, and "This device" on the current one. The player can sign out any other device or all of them; the page deletes those sessions by id, scoped to the player, and never handles a session token. In the demo, whose personas every visitor shares, only the current device is listed and signing others out is off.
 
-**Roles.** Two layers, as described in [product-spec.md](product-spec.md):
-- A global role on the profile: player, admin or owner.
+**Roles.** Two layers, as described in [product-spec.md](product-spec.md), both per league ([ADR 0048](adr/0048-several-leagues-on-one-deployment.md)):
+- A role in each league (`league_member`): player, admin or owner. Everyone signed in is at least a player.
 - Scoped memberships: captain or co-captain of a team-season, referee for a season, member of a sponsor.
+
+A permission subject is loaded for one league: the league the app is showing, remembered in a `league` cookie that `/app/league/<slug>` sets (the switcher, and the way in from a league's public pages). Its role, teams, games and sponsors are that league's only. `can()` refuses an action whose context names another league; `requirePermission` checks that a team, game or sponsor in its context is the subject's league's; and Server Actions that take other record ids call `requireInLeague` (`src/lib/league/guard.ts`), which reads each record's league through one lookup table shared with the audit log (`src/db/queries/league-of.ts`).
 
 **The platform operator** sits above both, and is not a database role ([ADR 0009](adr/0009-platform-operator.md)). `OPERATOR_USER_IDS` in the server's environment names the operator's accounts. The console at `/operator` returns 404 to everyone else and needs a sign-in from the last 15 minutes to change anything. From it the operator sets owners and admins, sets the site status (active, read-only or paused), switches features off, and downloads the league export. Enforcement is on the server: `requirePermission` and `requireSelf` stop every Server Action but the operator's while the site is read-only or paused; scheduled jobs skip their run; and the proxy shows public pages the `/paused` notice while paused. Owners see every operator action in the audit log and can download the same export.
 
 **Checks.** One pure function, `can(actor, action, resource)`, in `domain/authz`. Rules:
 1. Every Server Action and every query function that returns non-public data calls it. There is no other way to reach the data layer.
-2. `proxy.ts` only redirects signed-out users away from `/app`, and shows public pages the paused notice while the operator has the site paused. It is never the only check. When the database can't be reached it uses the last site status this server read (none means active) and asks again after five seconds, so an outage never takes down the prerendered pages too.
+2. `proxy.ts` only redirects signed-out users away from `/app`, shows public pages the paused notice while the operator has the site paused, and maps public addresses onto each league's route tree. It is never the only check. When the database can't be reached it uses the last site status this server read (none means active) and asks again after five seconds, so an outage never takes down the prerendered pages too.
 3. The permissions matrix in the product spec is encoded as a table-driven test: every row and column is asserted.
 
 Postgres row-level security is not used. The app connects as one database role through a pooled HTTP driver, and a single tested policy function is easier to reason about than policy split across two layers.
@@ -314,6 +318,8 @@ The `digest` template carries held messages and is neither: it is never capped b
 **One-click unsubscribe** (`src/lib/unsubscribe.ts`). Each email whose topic the settings page offers also carries "Stop emails about <topic>", a link to `/unsubscribe/<token>`, and the headers `List-Unsubscribe: <…/api/unsubscribe/<token>>` and `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058), which mail apps show as their own button. The token is the person's id, the topic and an HMAC of both with `BETTER_AUTH_SECRET`, like the private events feed: nothing is stored and nobody signs in. Opening the page changes nothing (mail scanners follow links); its button, or the mail app's POST, turns that topic's email off with `turnOffEmailTopic`. It works while the site is read-only, since it withdraws consent. Suspension notices, the digest and admin operations notices have no link. A push carries the same reason as a "Because …" line under its text and a "Change alerts" button that opens the push settings.
 
 ### Scheduled jobs
+
+Jobs serve every league ([ADR 0048](adr/0048-several-leagues-on-one-deployment.md)): most work row by row across all of them; the books reminders run once per league on its own calendar, and notices to admins (rain alerts, the Instagram connection, the books) go to the admins of the league concerned. The email quota is one account's, so its notice goes to every league's admins, and quiet hours follow the default league's clock.
 
 Times are Eastern. Schedules are written in UTC, so jobs that care about local time run at both candidate UTC hours and exit early when the local hour does not match; that survives daylight-saving changes.
 

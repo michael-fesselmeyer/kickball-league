@@ -9,10 +9,10 @@ import {
   challengeStandings,
 } from "@/db/queries/challenges";
 import { seasonForRegistration } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
 import { formatMoment } from "@/domain/money/credit";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Sign-up challenge" };
 
@@ -37,7 +37,7 @@ async function Challenge({ params }: Props) {
   const subject = await requirePermission("challenge.view", {
     next: `/app/seasons/${slug}/challenge`,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;

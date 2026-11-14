@@ -13,6 +13,7 @@ import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { PageLoading } from "@/components/page-loading";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Giveaway entry code" };
 
@@ -38,7 +39,7 @@ async function Code({ params }: Props) {
   const { event: slug } = await params;
   const page = `/app/admin/events/${slug}/giveaway/code`;
   await requirePermission("giveaway.manage", { next: page });
-  const e = await eventBySlug(db, slug, "all");
+  const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   const g = e ? await giveawayCodeSecret(db, e.id) : null;
   if (!e || !g) notFound();
   await connection();

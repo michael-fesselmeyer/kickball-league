@@ -14,6 +14,7 @@ import { mayEnter } from "@/domain/drive/giveaway";
 import { isTicketed } from "@/domain/events/tickets";
 import { isCurrentCheckinCode } from "@/domain/sponsors/checkin-code";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
 
 /**
  * Enters the player, if the code they scanned at the event is still
@@ -30,7 +31,13 @@ export async function enterGiveawayAction(
     next: page,
   });
   const staff = can(subject, "event.manage");
-  const e = await visibleEvent(db, slug, subject.userId, staff);
+  const e = await visibleEvent(
+    db,
+    await activeLeagueId(),
+    slug,
+    subject.userId,
+    staff,
+  );
   const [g, secret] = e
     ? await Promise.all([
         giveawayForEvent(db, e.id),

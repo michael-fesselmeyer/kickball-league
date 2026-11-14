@@ -17,6 +17,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { enterGiveawayAction } from "../../actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Enter the giveaway" };
 
@@ -42,6 +43,7 @@ async function Enter({ params, searchParams }: Props) {
   });
   const e = await visibleEvent(
     db,
+    await activeLeagueId(),
     slug,
     subject.userId,
     can(subject, "event.manage"),

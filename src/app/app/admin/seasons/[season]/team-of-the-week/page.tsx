@@ -20,6 +20,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { removeTeamOfWeekAction, setTeamOfWeekAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Team of the week" };
 
@@ -47,7 +48,7 @@ async function TeamOfWeek({ params, searchParams }: Props) {
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/team-of-the-week`;
   await requirePermission("season.manage", { next: page });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const [schedule, honors, sponsors] = await Promise.all([
     publishedSchedule(db, season.id),

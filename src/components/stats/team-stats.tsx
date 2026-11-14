@@ -7,8 +7,11 @@ import { movementWords } from "@/domain/stats/power";
 import { rivalriesOf, seriesLine } from "@/domain/stats/rivalry";
 import { seasonStats, statGamesFrom, teamsFrom } from "@/domain/stats/season";
 import { streakLabel, streakNote } from "@/domain/stats/streaks";
+import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 
 type Props = {
+  /** The league whose public pages the links open (ADR 0048). */
+  league: LeagueRef;
   team: { id: TeamId; slug: string; name: string };
   /** The shown season's published schedule, every team's games. */
   schedule: readonly PublicGame[];
@@ -18,7 +21,7 @@ type Props = {
 const RIVALS_SHOWN = 5;
 
 /** A team's power rank, streaks this season and its all-time rivalries. */
-export async function TeamStats({ team, schedule, timeZone }: Props) {
+export async function TeamStats({ league, team, schedule, timeZone }: Props) {
   const everything = await publishedGamesForTeam(db, team.id);
   const stats = seasonStats(
     schedule,
@@ -82,7 +85,7 @@ export async function TeamStats({ team, schedule, timeZone }: Props) {
                 className="flex flex-wrap items-center justify-between gap-x-3 border-t border-border py-2"
               >
                 <Link
-                  href={`/teams/${r.y}`}
+                  href={leagueHref(league, `/teams/${r.y}`)}
                   className="inline-flex min-h-11 items-center underline"
                 >
                   {name(r.y)}
