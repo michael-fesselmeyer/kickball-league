@@ -42,7 +42,9 @@ export function contentSecurityPolicy({ dev }: { dev: boolean }): string {
     "connect-src": ["'self'", ...(dev ? ["ws:"] : [])],
     "worker-src": ["'self'"],
     "manifest-src": ["'self'"],
-    "frame-src": ["'none'"],
+    // Only this site's own pages, so /widget can preview the schedule widget;
+    // every page but the widget refuses to be framed (frame-ancestors).
+    "frame-src": ["'self'"],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'", ...FORM_TARGETS],
