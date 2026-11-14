@@ -183,8 +183,18 @@ async function Season({
       {(query.created || query.saved) && (
         <p role="status" className="rounded-lg border border-success p-3">
           {query.created
-            ? "Season created as a draft. Add its fields and permits next."
+            ? "Season created as a draft. Add its fields and permits, and choose its waiver, next."
             : "Saved."}
+        </p>
+      )}
+      {!season.hasWaiver && (
+        <p className="rounded-lg border border-warning p-3">
+          This season has no waiver yet. Players sign it before they can pay, so
+          registration can&apos;t open without one.{" "}
+          <Link href="/app/admin/waivers" className="underline">
+            Choose its waiver
+          </Link>
+          .
         </p>
       )}
       <SeasonSettingsForm
