@@ -1,5 +1,6 @@
 import type { Column } from "../export/csv";
 import { CATEGORY_LABELS, type ExpenseCategory } from "./ledger";
+import { dateTimeFormat } from "../time/format-cache";
 
 /**
  * The season's books as one line per transaction, for the owners' taxes.
@@ -50,7 +51,7 @@ const METHOD_LABELS: Readonly<Record<string, string>> = {
 
 /** YYYY-MM-DD of an instant in a time zone. */
 export function localDate(instant: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-CA", {
+  return dateTimeFormat("en-CA", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

@@ -3,12 +3,14 @@
  * dates and times ("Mondays 8 to 10 pm") and stored as instants.
  */
 
+import { dateTimeFormat } from "./format-cache";
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** Minutes the zone is ahead of UTC at an instant (negative west of UTC). */
 export function offsetMinutes(instant: Date, timeZone: string): number {
   const parts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", {
+    dateTimeFormat("en-US", {
       timeZone,
       hourCycle: "h23",
       year: "numeric",
