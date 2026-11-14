@@ -456,8 +456,8 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `/app/games/[game]/score` | `score` (ref reports, captain confirms); `season-journey` (captain reports, other captain confirms) |
 | `/app/games/[game]/live` | `live-score` |
 | `/app/seasons/[season]` | `registration`, `season-journey` (pay, all set) |
-| `/app/seasons/[season]/register` | `registration`, `season-journey` (team with split pay, free agents) |
-| `/app/seasons/[season]/waiver` | `registration`, `season-journey` |
+| `/app/seasons/[season]/register` | `registration`, `season-journey` (team with split pay, free agents), `age-check` (under the minimum, then of age at phone width) |
+| `/app/seasons/[season]/waiver` | `registration`, `season-journey`, `age-check` (the age confirmation) |
 | `/app/seasons/[season]/quiz` | `registration` |
 | `/app/seasons/[season]/new-team` | `team-formation` (ask, approved, declined with a reason) |
 | `/app/seasons/[season]/team` | `registration`, `season-journey` (invite link, enter score, find subs), `team-formation`, `admin-tools` (CSV links) |

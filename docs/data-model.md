@@ -81,6 +81,7 @@ erDiagram
     jsonb contact "email, phone, social links, WhatsApp link"
     enum site_status "active, read_only, paused; operator only"
     text_array disabled_features "features the operator switched off"
+    smallint minimum_age "18 to 99, default 21"
   }
   season {
     uuid id PK
@@ -93,6 +94,7 @@ erDiagram
     timestamptz registration_opens_at
     timestamptz registration_closes_at
     timestamptz payment_deadline_at
+    smallint minimum_age "null uses the league's"
     enum fee_model "per_team, per_player"
     int team_fee_cents
     int player_fee_cents
@@ -157,6 +159,8 @@ erDiagram
     uuid friend_group_id FK
     uuid waiver_signature_id FK
     enum shirt_status "none, ordered, received"
+    smallint age_confirmed_min "the age the player confirmed"
+    timestamptz age_confirmed_at
   }
   roster_membership {
     uuid id PK
@@ -209,6 +213,8 @@ erDiagram
     inet ip
     text user_agent
     text body_sha256 "hash of the exact text shown"
+    smallint age_confirmed_min "the age the player confirmed"
+    timestamptz age_confirmed_at
   }
   team_formation_request {
     uuid id PK
@@ -248,6 +254,8 @@ Notes:
 - A team has one main captain, who makes final decisions and handles payment, and commonly one to three co-captains (`role = co_captain`, no limit in the schema). How much say co-captains have varies by team, so it is a per-team permission setting chosen by the main captain (Phase 1), not a schema rule. Paying for and withdrawing the team stay with the main captain.
 - `team_keep_off` is a team's private "not on my team" list ([ADR 0036](adr/0036-not-on-my-team-list.md)). It hangs off the lasting `team`, so it carries over from season to season; one row per person per team (unique `(team_id, user_id)`). A person on it sees the team's invite link as expired, is never suggested for the team by the matcher (an admin placing them anyway is warned and the override audited), and never hears of or sees the team's sub requests. Nothing else reads it. `league.export_keep_off_entries` (off by default, owners only) decides whether a person's own export lists the rows about them. The audit log records who added or removed whom, never the reason.
 - `team_formation_request` is a player's ask to start a team ([information architecture, 2.7](information-architecture.md#27-start-a-new-team-p2)). A person has at most one `pending` request per season. Approval creates the `team` and its `team_season` in `forming` status, priced as of the day they asked, and makes the requester its captain: their registration is reused (a free agent becomes a team member) or created, and any active spot on another team is ended, with `left_team_season_id` recording which captain was told. A requester who paid for their own spot keeps it as their share, so the team splits its fee; one whose spot was covered by their old captain's team fee owes again ([ADR 0013](adr/0013-new-team-approval-moves-the-player.md)). The request row is locked while an admin answers it, so two admins cannot both decide it.
+
+The age check, as built ([ADR 0041](adr/0041-age-check-at-registration.md)): `league.minimum_age` (18 to 99, 21 by default) is the youngest a player may be; `season.minimum_age` overrides it for one season when set. Registering a team, joining as a free agent, joining by invite and signing the waiver each need the player to confirm they meet it, checked against the birth date already on their profile (which registration requires), so a player it shows as too young can't confirm their way in. The registration or signature stores `age_confirmed_min` and `age_confirmed_at`, set together (a check constraint); rows from before the check, and registrations an admin makes for someone (an approved new-team request), have neither, and the waiver still asks.
 
 ### 2.2 Fields, schedule, games, scores
 
@@ -1391,6 +1399,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `roster_membership` | unique `(registration_id)` where `status = 'active'` | A player is active on one team per season |
 | `roster_membership` | unique `(team_season_id)` where `role = 'captain' and status = 'active'` | Exactly one captain |
 | `team_season` | unique `(team_id, season_id)` | One entry per team per season |
+| `league`, `season` | check `minimum_age` between 18 and 99 (the season's may be null) | A minimum age that makes sense |
+| `registration`, `waiver_signature` | check `age_confirmed_min` and `age_confirmed_at` are set together, the age between 18 and 99 | An age confirmation always says when |
 | `team_keep_off` | unique `(team_id, user_id)`; check reason length 1 to 300; cascades from `team` and `user` | One entry per person per team; a deleted row takes its reason with it |
 | `team_season` | foreign key `(division_id, season_id)` to `division (id, season_id)` | A team's division is in its own season |
 | `division` | unique `(season_id, slug)`, unique `(season_id, name)`; check slug format | One division per name and public address in a season |
@@ -1529,6 +1539,7 @@ Indexes for the common reads:
 | Email, name | `user`, `profile` | The person, their captain, admins |
 | Phone | `profile` | The person, admins, their captain; teammates only if `shares_contact` |
 | Birth date | `profile` | The person and owners. Everyone else sees only "18+ confirmed" |
+| Age confirmation | `registration`, `waiver_signature` (`age_confirmed_min`, `age_confirmed_at`) | The person, admins and owners. Only the age confirmed and when, never a birth date; the person's export lists it |
 | Gender and lineup gender | `profile` | The person, their captain (for lineups), admins. A sub's lineup gender is copied to `sub_claim`, which the asking team's captains see. The kicking-order builder shows each player's lineup gender to their team's captains and admins only |
 | Kicking order | `game_lineup`, `game_lineup_spot` | The team's captains and admins; from game day, the other team's captains and the game's ref, as names in order with no genders. Each player sees only their own spot |
 | Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
