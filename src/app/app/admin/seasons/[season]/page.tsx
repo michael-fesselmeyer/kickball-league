@@ -150,6 +150,9 @@ async function Season({
           >
             Awards
           </Link>
+          <Link href={`/app/admin/seasons/${slug}/cards`} className="underline">
+            Season cards
+          </Link>
           <Link
             href={`/app/admin/seasons/${slug}/sportsmanship`}
             className="underline"

@@ -13,8 +13,11 @@ const {
   refreshEventPages,
   refreshGamePage,
   refreshSeasonPages,
+  refreshSeasonCards,
   refreshSiteNotice,
   refreshSponsorPages,
+  seasonCardsTag,
+  seasonCardTag,
   seasonTag,
 } = await import("./public-cache");
 
@@ -89,5 +92,21 @@ describe("refreshSiteNotice", () => {
 
     expect(vi.mocked(updateTag).mock.calls).toEqual([[SITE_TAG]]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([["/paused"]]);
+  });
+});
+
+describe("refreshSeasonCards", () => {
+  it("expires one card, or a season's cards, and the card route", () => {
+    refreshSeasonCards({ cardId: "card-1" });
+    refreshSeasonCards({ seasonId: "season-1" });
+
+    expect(vi.mocked(updateTag).mock.calls).toEqual([
+      [seasonCardTag("card-1")],
+      [seasonCardsTag("season-1")],
+    ]);
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([
+      ["/seasons/[season]/card/[card]", "page"],
+      ["/seasons/[season]/card/[card]", "page"],
+    ]);
   });
 });

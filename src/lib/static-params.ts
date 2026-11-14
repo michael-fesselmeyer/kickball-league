@@ -2,6 +2,7 @@ import { db } from "@/db/client";
 import { publicDivisionPages } from "@/db/queries/divisions";
 import { publicEventSlugs } from "@/db/queries/events";
 import { publishedSummarySeasons } from "@/db/queries/owner-dashboard";
+import { publicCardIds } from "@/db/queries/season-cards";
 import {
   currentPublicGames,
   publicSeasons,
@@ -159,4 +160,28 @@ export async function publicDivisionParams(): Promise<
     );
   }
   return [{ season: NO_SEASON, division: NO_DIVISION }];
+}
+
+/** As NO_SEASON, for a player's public season card. */
+export const NO_CARD = "_";
+
+/**
+ * The public season cards to prerender at build time, on the same terms.
+ * A card made public later renders on its first visit and is cached.
+ */
+export async function publicCardParams(): Promise<
+  { season: string; card: string }[]
+> {
+  try {
+    const cards = await publicCardIds(db);
+    if (cards.length > 0)
+      return cards.map((c) => ({ season: c.seasonSlug, card: c.id }));
+  } catch (error) {
+    console.warn(
+      `[build] No season cards prerendered: the database could not be read (${
+        error instanceof Error ? error.message : String(error)
+      }).`,
+    );
+  }
+  return [{ season: NO_SEASON, card: NO_CARD }];
 }

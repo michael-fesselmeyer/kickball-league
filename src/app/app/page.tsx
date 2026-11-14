@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { ballotsWaiting } from "@/db/queries/awards";
+import { myCards } from "@/db/queries/season-cards";
 import { fieldPermitForGame } from "@/db/queries/books";
 import { myGiveawayWins } from "@/db/queries/giveaways";
 import { publishedGamesFor } from "@/db/queries/public-schedule";
@@ -84,6 +85,11 @@ async function Account() {
     const id = parseId<UserId>(subject.userId);
     return id ? surveysWaitingFor(db, id) : [];
   })();
+  // End-of-season cards, newest season first, started early too.
+  const cards = (async () => {
+    const id = parseId<UserId>(subject.userId);
+    return id ? myCards(db, id) : [];
+  })();
   const isAdmin = can(subject, "season.manage", {});
   const league = await currentLeague(db);
   const now = new Date();
@@ -145,6 +151,7 @@ async function Account() {
   const showPickem = await pickemOn;
   const won = await wins;
   const surveysOpen = await surveys;
+  const [latestCard] = await cards;
   const timeZone = league?.timeZone ?? "America/New_York";
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
@@ -337,6 +344,14 @@ async function Account() {
             Schedule
           </Link>
         </>
+      )}
+      {latestCard && (
+        <Link
+          href={`/app/seasons/${latestCard.seasonSlug}/card`}
+          className="btn btn-primary"
+        >
+          Your {latestCard.seasonName} season in kickball
+        </Link>
       )}
       {ballots > 0 && (
         <Link href="/app/vote" className="btn btn-primary">
