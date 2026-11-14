@@ -36,7 +36,7 @@ export const memberPhotoStatus = pgEnum("member_photo_status", [
 ]);
 
 /**
- * A photo a member uploaded for the league's socials (ADR 0035;
+ * A photo a member uploaded for the league's socials (ADR 0039;
  * docs/data-model.md, section 2.8). One resized JPEG copy with no metadata,
  * stored here because the photos are few and small and the project has no
  * file store. Tagged to a game day, an event or a team (at least one when

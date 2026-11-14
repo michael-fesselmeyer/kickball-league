@@ -1130,7 +1130,7 @@ Friends of the league, as built (`src/db/schema/friends.ts`, `src/db/queries/fri
 - `friend_logo` is one small copy of the league's logo, made on the server with sharp (fits in 192 × 192, WebP, metadata dropped) and kept in Postgres like the Instagram photos ([ADR 0023](adr/0023-instagram-photos-stored-in-postgres.md)). Uploads are PNG, JPEG or WebP up to 800 KB. A new upload replaces the row, so its public address changes with the picture. All logos together stay under 5 MB: the save takes a transaction-scoped advisory lock and counts what is stored, minus the logo it replaces.
 - Entries go with the league (`on delete cascade`), so the seed needs no clean-up step for them.
 
-Member photos, as built (`src/db/schema/member-photo.ts`, `src/db/queries/member-photos.ts`, [ADR 0035](adr/0035-member-photos-in-postgres.md)):
+Member photos, as built (`src/db/schema/member-photo.ts`, `src/db/queries/member-photos.ts`, [ADR 0039](adr/0039-member-photos-in-postgres.md)):
 
 - A member on an active roster (or an admin) uploads a photo with the required repost consent (`repost_consent_at`), an optional caption and at least one tag: one of their teams, a published game of one of their teams from the last 30 days through today, or a public event in the same window. A tag goes to null if what it names is deleted.
 - Only one copy is stored: a JPEG at most 1440 px on its longest side and 1 MB, with no metadata, made on the server from a file checked by its bytes (`src/lib/member-photos/process-photo.ts`). Videos are not accepted.

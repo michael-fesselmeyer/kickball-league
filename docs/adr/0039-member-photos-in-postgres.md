@@ -1,4 +1,4 @@
-# ADR 0035: Member photos, photos only, stored in Postgres with hard limits
+# ADR 0039: Member photos, photos only, stored in Postgres with hard limits
 
 - Status: accepted
 - Date: 2026-11-13

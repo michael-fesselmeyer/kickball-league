@@ -3,7 +3,7 @@ import { defineTemplate } from "./define";
 import { renderEmail } from "./layout";
 
 /**
- * Tells a member whether the league used a photo they uploaded (ADR 0035).
+ * Tells a member whether the league used a photo they uploaded (ADR 0039).
  * A rejection never carries the admin's note: that stays private.
  */
 export const photoReviewPayload = z.discriminatedUnion("kind", [

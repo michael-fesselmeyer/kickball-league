@@ -8,7 +8,7 @@ import { imageResponse, notFound } from "@/lib/social/image-response";
 
 /**
  * Any stored member photo, waiting ones included: for its uploader, and for
- * admins reviewing it (ADR 0035). `?download` saves it as a file, the copy
+ * admins reviewing it (ADR 0039). `?download` saves it as a file, the copy
  * an admin reposts on Instagram. Everyone else gets 404.
  */
 export async function GET(

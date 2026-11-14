@@ -1,7 +1,7 @@
 import { err, ok, type Result } from "../result";
 
 /**
- * Photos members upload for the league's socials (ADR 0035). Every limit
+ * Photos members upload for the league's socials (ADR 0039). Every limit
  * here keeps the stored copies inside the free database tier, which every
  * other table shares (docs/architecture.md, section 15).
  */

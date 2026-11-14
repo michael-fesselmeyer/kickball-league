@@ -798,7 +798,7 @@ export async function deleteAccount(
   await db.delete(pushSubscription).where(eq(pushSubscription.userId, userId));
   // Answers to scores sent from their phone can name the other captain.
   await db.delete(offlineReceipt).where(eq(offlineReceipt.userId, userId));
-  // Photos they uploaded, shown ones too (ADR 0035).
+  // Photos they uploaded, shown ones too (ADR 0039).
   await deletePhotosOf(db, userId);
   // A new version, so a private calendar link handed out before stops working.
   await resetFeed(db, userId);

@@ -46,7 +46,7 @@ import { enqueueMessages } from "./outbox";
 import type { Db } from "./schedule";
 
 /**
- * Photos members upload for the league's socials (ADR 0035;
+ * Photos members upload for the league's socials (ADR 0039;
  * docs/architecture.md, section 18): what a member may tag, the upload with
  * its limits, the admins' review queue, and what public pages show.
  */

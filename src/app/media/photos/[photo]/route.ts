@@ -5,7 +5,7 @@ import { imageResponse, notFound } from "@/lib/social/image-response";
 
 /**
  * A member's approved photo, for the public team, event and game pages
- * (ADR 0035). A waiting, rejected or deleted photo answers 404, so taking
+ * (ADR 0039). A waiting, rejected or deleted photo answers 404, so taking
  * one down also stops its address working once caches expire, within five
  * minutes here and in the image optimizer.
  */
