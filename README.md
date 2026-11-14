@@ -300,7 +300,7 @@ In CI, the end-to-end and Lighthouse checks each build the app once and share th
 | `npm run db:studio`          | Browse the database in Drizzle Studio                                                                         |
 | `npm run test:db`            | Database constraint tests (each rolls back)                                                                   |
 | `npm run seed`               | Replace the demo league with fresh seed data; refuses production                                              |
-| `npm run demo:reset`         | Reseed the demo deployment; refuses unless demo mode is on                                                    |
+| `npm run demo:reset`         | Reseed the demo deployment and bring its season up to today; refuses unless demo mode is on                   |
 | `npm run push:keys`          | Add a new VAPID key pair for web push to `.env.local`                                                         |
 | `scripts/backup-drill.sh`    | Back up a database, restore it to a scratch database and compare ([steps](docs/launch/backup-and-restore.md)) |
 | `npm run lint`               | ESLint, failing on any warning                                                                                |
