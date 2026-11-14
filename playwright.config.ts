@@ -56,9 +56,10 @@ export default defineConfig({
           },
         },
       ]
-    : // `--shard` cuts this list, in this order, into contiguous pieces, so
-      // the flows sit between the two smoke projects: each CI shard gets
-      // half the smoke tests and half the flows.
+    : // `--shard` cuts this list, in this order, into contiguous pieces of
+      // equal test counts, so the flows sit between the two smoke projects
+      // and the long role journeys, few but slow, come last: the shard with
+      // the most flows doesn't also get the journeys.
       [
         {
           name: "phone",
@@ -71,6 +72,7 @@ export default defineConfig({
         {
           name: "flows",
           testMatch: "flows/**/*.spec.ts",
+          testIgnore: "flows/journey-*.spec.ts",
           retries: 0,
           use: {
             ...devices["Desktop Chrome"],
@@ -83,6 +85,15 @@ export default defineConfig({
           use: {
             ...devices["Desktop Chrome"],
             baseURL: `http://localhost:${SMOKE_PORT}`,
+          },
+        },
+        {
+          name: "journeys",
+          testMatch: "flows/journey-*.spec.ts",
+          retries: 0,
+          use: {
+            ...devices["Desktop Chrome"],
+            baseURL: `http://localhost:${FLOWS_PORT}`,
           },
         },
       ],
