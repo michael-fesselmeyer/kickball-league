@@ -193,7 +193,21 @@ export function quietHoursEnd(
   if (!quiet || !inQuietHours(now, timeZone, quiet)) return now;
   const today = localDate(now, timeZone);
   const found = [0, 1, 2]
-    .map((d) => startOfLocalHour(addDays(today, d), quiet.endHour, timeZone))
+    .flatMap((d) => {
+      const date = addDays(today, d);
+      const first = startOfLocalHour(date, quiet.endHour, timeZone);
+      // A fall-back change repeats an hour, so the clock can read the end
+      // hour a second time that day, one clock change (30 minutes to 2
+      // hours) after the first. Quiet hours can end then, when `now` is
+      // between the two readings.
+      const again = [30, 60, 120]
+        .map((minutes) => new Date(first.getTime() + minutes * MINUTE))
+        .filter((t) => {
+          const local = wallClock(t, timeZone);
+          return local.date === date && local.minutes === quiet.endHour * 60;
+        });
+      return [first, ...again];
+    })
     .filter((t) => t > now && !inQuietHours(t, timeZone, quiet))
     .sort((a, b) => a.getTime() - b.getTime())[0];
   // Quiet hours are shorter than a day, so one of the next three ends is
