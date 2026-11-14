@@ -85,6 +85,11 @@ export const SETTINGS_TOPICS: readonly {
     hint: "For captains, when the other team or the ref reports your game's score and you need to confirm it. For refs and captains, when a game you were in has no score yet.",
   },
   {
+    topic: "game_reminder",
+    label: "League gear",
+    hint: "The evening before a game you're bringing league gear to: which kit, where to get it, and where it goes.",
+  },
+  {
     topic: "new_team",
     label: "New-team requests",
     hint: "The league's answer when you ask to start a team, and, for captains, when a player leaves to start one.",

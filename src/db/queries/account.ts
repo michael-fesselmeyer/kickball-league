@@ -66,6 +66,7 @@ import {
 } from "./keep-off";
 import { cancelHandoffsFor, myHandoffs } from "./captaincy";
 import { myPickemData, removePickemData } from "./pickem";
+import { myGearRecords, releaseGearOf } from "./equipment";
 import { deletePhotosOf, myPhotos } from "./member-photos";
 import { heldMerchPurchases } from "./merch";
 import { expirePurchases } from "./payments";
@@ -637,6 +638,8 @@ export async function personalData(
     // only if the league's owners chose so, entries about them (ADR 0036).
     // Captaincy offered by or to the person (ADR 0042).
     captaincyOffers: await myHandoffs(db, userId),
+    // League gear they have, bring to games, handed on or reported (#286).
+    leagueGear: await myGearRecords(db, userId),
     notOnMyTeamLists: await myKeepOffEntries(
       db,
       userId,
@@ -876,6 +879,8 @@ export async function deleteAccount(
   await cancelHandoffsFor(db, userId, now);
   // Their stat award places and leaderboard choice go.
   await removeStatAwardsOf(db, userId);
+  // They bring no league gear to games to come; handoffs stop waiting.
+  await releaseGearOf(db, userId, now);
   await db
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));

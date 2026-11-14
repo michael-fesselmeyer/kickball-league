@@ -55,6 +55,11 @@ export const MESSAGE_KINDS = {
     label:
       "Your event ticket's receipt or refund, or an event spot held for you to buy by a deadline",
   },
+  gear_reminder: {
+    urgency: "non_urgent",
+    label:
+      "The evening before a game you're bringing league gear to: which kit and where it goes",
+  },
   giveaway_win: {
     urgency: "non_urgent",
     label: "A giveaway you won at a league event",

@@ -215,6 +215,10 @@ const RULES = {
   // A private "not on my team" list (ADR 0036): a team's captains for their
   // own team, admins for any team. The person listed never sees it.
   "keep_off.manage": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
+  // League gear (issue #286): picking up, handing on, returning and
+  // reporting a kit, by the person themselves. Whether they have the kit
+  // or bring it to a game is checked against the kit (src/domain/equipment).
+  "equipment.carry": self,
   // Sponsors
   "sponsor.edit": any(isAdmin, (s, c) =>
     c.sponsorId !== undefined ? s.sponsorIds.includes(c.sponsorId) : false,
@@ -253,6 +257,8 @@ const RULES = {
   // The shop's catalog, its orders, the printer's CSV and fulfillment.
   "merch.manage": isAdmin,
   "friends.manage": isAdmin,
+  // Kits, who brings them to which game, and where they are.
+  "equipment.manage": isAdmin,
   // The owner alone
   "billing.manage": isOwner,
   // The books (expenses, receipts, permit costs and documents, insurance).
