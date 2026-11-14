@@ -76,6 +76,30 @@ export async function captainEmail(
   return captain.email;
 }
 
+/**
+ * The address of a seeded player whose season card is still private and
+ * shows an award (src/seed/season-cards.ts).
+ */
+export async function seasonCardEmail(seasonSlug: string): Promise<string> {
+  const { rows } = await withDb((db) =>
+    db.query<{ email: string }>(
+      `select u.email
+         from season_card c
+         join season s on s.id = c.season_id
+         join "user" u on u.id = c.user_id
+        where s.slug = $1 and not c.is_public
+          and jsonb_array_length(c.stats -> 'awardsWon') > 0
+        order by u.email
+        limit 1`,
+      [seasonSlug],
+    ),
+  );
+  const [player] = rows;
+  if (!player)
+    throw new Error(`No private card with an award in ${seasonSlug}`);
+  return player.email;
+}
+
 /** A random address in 198.18.0.0/15, which never routes to a real host. */
 function testAddress(): string {
   const [a = 0, b = 0, c = 0] = randomBytes(3);
