@@ -393,6 +393,13 @@
       "when": 1794716359780,
       "tag": "0055_stat_awards",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1794718677621,
+      "tag": "0056_equipment",
+      "breakpoints": true
     }
   ]
 }

@@ -104,6 +104,10 @@ export type VolunteerSignupId = Brand<string, "VolunteerSignupId">;
 export type SeasonSurveyId = Brand<string, "SeasonSurveyId">;
 export type SurveyResponseId = Brand<string, "SurveyResponseId">;
 export type SurveyAnswerId = Brand<string, "SurveyAnswerId">;
+export type EquipmentKitId = Brand<string, "EquipmentKitId">;
+export type EquipmentAssignmentId = Brand<string, "EquipmentAssignmentId">;
+export type EquipmentHandoffId = Brand<string, "EquipmentHandoffId">;
+export type EquipmentReportId = Brand<string, "EquipmentReportId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
