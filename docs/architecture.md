@@ -145,6 +145,7 @@ With Cache Components, a page's static parts and cached data are prerendered int
 | `/seasons/[season]/schedule` | Static HTML, prerendered at build for every public season, refreshed in the background each minute ✔. `?team=` is rewritten to a path segment. The whole page is in the first paint; a view the build didn't list is rendered in full on its first visit (`ensureStatic = "navigation"`, [ADR 0029](adr/0029-season-pages-paint-without-a-loading-state.md)) ✔ | `season:{seasonId}`, `theme-weeks` | A schedule version is published (including a rain-out), a score is reported or answered, the season is edited, a theme week is added, changed or removed |
 | `/seasons/[season]/standings` | Static HTML, prerendered at build for every public season, refreshed in the background each minute ✔. Painted in full like the schedule ✔ | `season:{seasonId}` | As the schedule |
 | `/seasons/[season]/money` | Static HTML, prerendered at build for every season with a published money summary, refreshed in the background each minute; painted in full like the standings. A season with none is not found ✔ | `season:{seasonId}` | An owner publishes or takes down the season's summary ([ADR 0038](adr/0038-season-money-summary.md)) |
+| `/seasons/[season]/awards` | Static HTML, prerendered at build for every season with published stat awards, refreshed in the background each minute; painted in full like the standings. A season with none is not found ✔ | `season:{seasonId}` | An admin publishes, takes down or notes the season's stat awards; a player listed on them opts out of leaderboards ([ADR 0046](adr/0046-stat-awards-and-the-season-mvp-formula.md)) |
 | `/seasons/[season]/bracket` | Static HTML, prerendered at build for every public season, refreshed in the background each minute ✔. `?view=list` is rewritten to a path segment | `season:{seasonId}` | A bracket is published, a playoff score is reported or answered |
 | `/teams/[team]` | Static HTML, prerendered at build for every public team (current season), refreshed in the background each minute ✔. `?season=` is rewritten to a path segment. Painted in full like the schedule ✔ | `team:{slug}`, `season:{seasonId}` | As the schedule; roster changes show within a minute |
 | `/games/[game]` | Static HTML kept per game, with no loading state ([ADR 0029](adr/0029-season-pages-paint-without-a-loading-state.md)): the games of seasons still being played are prerendered at build time and any other game is rendered in full on its first visit. It reads the game, its season's schedule, the teams' meetings and the line score through cached reads, so a visit costs no queries. While the game is on, a small client island polls the live JSON every 10 seconds, and asks once as soon as the page loads, since the stored copy may be older than the latest half-inning; a finished game's line score is plain server HTML. The page sets `instant = false`, so an unlisted or just-expired game is rendered in full before it is served. Only the forecast and, before any photo is approved, the photo prompt (shown once the game has started) stream in ✔ | `game:{id}`, `season:{seasonId}`, `team:{slug}` | As the schedule (`refreshSeasonPages` expires every game page by path); a half-inning is entered, corrected or taken back, or who kicks first changes (`refreshGamePage` expires that game's page); a rain-out is declared |
@@ -476,6 +477,7 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | `/app/profile/export` (JSON) | `account` |
 | `/app/events`, `/app/events/[event]` | `screens`; `events` (RSVP, waitlist); `journey-admin` (a team-only event) |
 | `/app/vote`, `/app/vote/[poll]` | `awards` |
+| `/app/stats` | `stat-awards` (career table, off the leaderboards and back on) |
 | `/app/shop`, `/app/shop/[item]` | `merch` (a replacement jersey with credit applied) |
 | `/app/subs` | `season-journey` (claims a spot); `screens` |
 | `/app/join/[token]` | `season-journey` |
@@ -502,7 +504,8 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | `/app/admin/seasons/[season]` | `registration` (status, promo codes link), `announcements`, `rollover` (the new season's notice) |
 | `/app/admin/seasons/[season]/rollover` | `rollover` (preview, leave a team out, rename, create the draft) |
 | `…/announcements` | `announcements` (one team) |
-| `…/awards` | `awards` |
+| `…/awards` | `awards`; `stat-awards` (the link to stat awards) |
+| `…/awards/stats`; `/seasons/[season]/awards` | `stat-awards` (take down, reweight, recompute, note, publish; a visitor reads the formulas) |
 | `…/fields` | `season-journey` (venue, field, permits, slots) |
 | `…/free-agents` | `registration` (matcher), `season-journey` (build a team from the pool) |
 | `…/new-teams` | `team-formation` (approve, decline) |

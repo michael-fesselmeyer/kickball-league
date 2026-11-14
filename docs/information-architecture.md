@@ -14,11 +14,12 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       │   └── division/[division] One division's games and its crossovers, picked by the path; its rule set
 │       ├── standings               Standings (a table per division when the season has divisions), tiebreaker notes, power rankings and the game of the week
 │       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list, served as /bracket/list)
+│       ├── awards                  Stat awards (Season MVP, Iron Kicker, Golden Boot, Best Teammate, Rookie of the Year, Sub of the Year): winners, the top three with the numbers behind them and the games they're based on, admins' notes, and each formula with the MVP weights, only once an admin publishes them (404 until then); players who opted out never appear
 │       ├── money                   Where the money goes: the season's spending by category and how each fee divides, only once an owner publishes it (404 until then)
 │       ├── card/[card]             A player's season card, only while its player keeps the link public (404 otherwise, never indexed): their games, team runs, record and finish, awards, streak and best game, with share buttons
 │       │   └── share.png           The card's share image: name, team badge and four big numbers (404 while private)
 │       └── register                Register a team, join by invite, or free agent; each asks the player to confirm the season's minimum age
-├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries, all-time record and titles, tagged Instagram photos and the team's cover, and players' approved photos with a link to share one
+├── teams/[team]                    Team page: roster (first name, last initial, and any published stat award as a badge, with a link to the season's awards), results, next game, streaks, rivalries, all-time record and titles, tagged Instagram photos and the team's cover, and players' approved photos with a link to share one
 │   ├── calendar.ics                Team calendar feed: every published game, in the league's time zone
 │   └── share.png                   Team share image: record, place, last five results
 ├── games/[game]                    Game page: time, field, weather, score, the live line score while it is played, head-to-head history, share buttons; from kickoff, players' approved photos and a link to share one
@@ -68,6 +69,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
 │   └── delete                      Delete your account: what is deleted, what the league keeps; a fresh sign-in (passkey or email link) and your typed email address confirm it
+├── stats                           Your stats: career and each season's games played, attendance, team wins and runs while playing, sub appearances and awards won, each with "based on N of M games"; your stat awards; stay off or come back on public leaderboards
 ├── seasons/[season]/export/        CSV downloads: roster.csv (with shirt sizes) and payments.csv; the whole season for admins, ?team= for one team (its captains too)
 ├── team/[teamSeason]               Roster, RSVPs, how many are available each game week after away weeks (captains also see who is away and a prompt to ask for a sub when a week is short), payments, invites, subs, announcements (captain view adds controls and roster and payment CSV downloads)
 ├── subs                            Sub requests I can claim, and games I'm subbing in
@@ -80,7 +82,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── photos/                         Share a photo: choose it, tag a recent game day, public event or your team, an optional caption, and the required "The league may repost this on its socials"; your photos with what the league decided, each with Delete
 │   └── [photo]                     The stored copy, waiting ones included, for its uploader and admins; ?download saves it as a file
 ├── volunteer                       Volunteer shifts coming up (game days and events): the job, when and where, spots left; sign up or drop a shift until it starts; my shifts at the top
-├── vote                            Awards: open ballots (one vote each, never for yourself or your own team) and closed polls
+├── vote                            Awards: open ballots (one vote each, never for yourself or your own team; a season MVP, best-sport or best-newcomer ballot lists the stat leaders first) and closed polls
 │   └── [poll]                      Results after voting closes, ties sharing a place; until then, only when it closes
 ├── pickem                          Pick'em, for bragging rights only (no money, no fee, no prizes): pick each game's winner on the coming game day until it starts, my season record, hide or show me, and the season and game-day leaderboards (?day= picks a scored day)
 ├── check-in/[sponsor]/[code]       Where the bar's QR code lands: one tap to check in (an expired code says so)
@@ -133,6 +135,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     │   ├── rebates                 Rain-out rebates: each team's games lost and money paid; issue the pro-rata rebate as league credit
     │   ├── shirts                  Shirt sizes by team, what is still to order, and each player's shirt: not ordered, ordered or received
     │   ├── awards                  Open a game-day or season poll, close one early, remove one; results after close
+    │   │   └── stats               Stat awards: set the Season MVP weights, work the awards out (a draft only admins see), review the leaders, add a note to any award, publish or take down
     │   ├── cards                   Season cards: once the season is completed, build every rostered player's card (and tell each once), or refresh them; how many are shared
     │   ├── sportsmanship           Each team's average sportsmanship rating and the notes left for admins, lowest first, never saying who rated
     │   ├── free-agents             Matcher: suggested placements with reasons (apply one or all), the pool with quiz answers and friend groups, and building a new team from the pool
