@@ -27,6 +27,7 @@ export * from "./money";
 export * from "./money-summary";
 export * from "./pickem";
 export * from "./playoffs";
+export * from "./private-event";
 export * from "./profile";
 export * from "./schedule";
 export * from "./season";
