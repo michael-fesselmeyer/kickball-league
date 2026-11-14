@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { JsonLd } from "@/components/json-ld";
 import { LogoBadge } from "@/components/logo-badge";
 import { Arrive } from "@/components/arrive";
 import { gameMorph, Morph, teamMorph } from "@/components/motion";
@@ -32,6 +33,7 @@ import { gameShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
 import { cachedLiveSnapshot, cachedPublishedGame } from "@/lib/game-cache";
 import { MEMBER_PHOTOS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
+import { gamePageJsonLd } from "@/lib/seo/pages";
 import { shareMetadata } from "@/lib/share/metadata";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 
@@ -128,6 +130,7 @@ async function Game({ params }: PageProps<"/games/[game]">) {
 
   return (
     <>
+      <JsonLd data={gamePageJsonLd(siteOrigin(env.BETTER_AUTH_URL), game)} />
       <nav aria-label="Breadcrumb" className="text-small">
         <Link
           href={`/seasons/${game.seasonSlug}/schedule`}
