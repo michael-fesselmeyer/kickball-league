@@ -15,6 +15,17 @@ export const SESSION_FRESH_AGE_SECONDS = 15 * MINUTE;
 export const MAGIC_LINK_EXPIRES_IN_SECONDS = 15 * MINUTE;
 
 /**
+ * Rate-limit counts live in Postgres (the `rate_limit` table), so the limits
+ * apply to the whole site, not to each server instance. The rules are
+ * Better Auth's own: 5 magic-link requests or verifications a minute per IP,
+ * 3 other sign-in attempts per 10 seconds, 100 other requests per 10 seconds.
+ */
+export const RATE_LIMIT = { storage: "database" } as const;
+
+/** Counters untouched this long are swept by the daily outbox job. */
+export const RATE_LIMIT_KEEP_MS = DAY * 1000;
+
+/**
  * Whether a session was signed in recently enough for a sensitive action,
  * such as deleting the account. Renewing a session does not make it fresh:
  * only a new sign-in does.

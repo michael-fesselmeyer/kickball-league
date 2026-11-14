@@ -15,9 +15,10 @@ Status: draft v1, 2026-11-11. Postgres on Neon, schema defined in Drizzle. Table
 | Flexible settings | `jsonb` with a Zod schema in code; nothing queried often lives in JSON |
 | Names | Tables singular, snake_case |
 
-The tables Better Auth owns (`user`, `session`, `account`, `verification`, and `passkey` from its passkey plugin) keep its names and shapes. Everything about a person that the league cares about is in `profile`.
+The tables Better Auth owns (`user`, `session`, `account`, `verification`, `rate_limit`, and `passkey` from its passkey plugin) keep its names and shapes. Everything about a person that the league cares about is in `profile`.
 
 - `session` is one signed-in browser. The account page lists a person's live sessions as their signed-in devices (named from `user_agent`) and deletes one to sign that device out. Signing in again on a browser that already holds a session for the same account ends the old session, so each browser appears once.
+- `rate_limit` holds the sign-in rate-limit counters, so every server instance counts against one limit: `key` (unique) is the client's IP address and the auth path, `count` the requests in the current window, and `last_request` the time of the latest one in milliseconds since the epoch, as Better Auth writes it (indexed, for the sweep). It is not linked to an account. Better Auth deletes rows older than its longest window when a counter restarts, and the daily outbox job deletes any untouched for a day (`pruneRateLimits`).
 - `passkey` holds a person's passkeys: the public key, the WebAuthn credential id (indexed, for sign-in), a signature counter, `device_type` (`singleDevice` or `multiDevice`), `backed_up`, `transports`, the authenticator model (`aaguid`) and a `name` the person can change. Deleting the user cascades to it.
 
 A change history is kept two ways: `audit_log` records who changed what for admin-visible actions, and append-only tables (`waiver_signature`, `credit_entry`, `score_report`, `schedule_version`) are their own history.
@@ -1585,6 +1586,7 @@ Indexes for the common reads:
 | Friend group | `friend_group`, `registration.friend_group_id` | The person; others in the group see first name and last initial; admins |
 | A published season money summary | `money_summary` | Everyone, once an owner publishes it. It holds category totals and how each fee divides, never a person's amount, name, birth date or contact details; owners can fold a category into "Other" when its total would point at one person |
 | Waiver signature, IP address | `waiver_signature` | The person, owners |
+| Sign-in rate-limit counters, by IP address | `rate_limit` | Nobody: only Better Auth reads them, linked to no account, and they are deleted within a day of the last request |
 | Payment card | Never stored. Stripe holds it; we keep brand and last four digits | The person |
 | Push devices | `push_subscription` (endpoint, keys, browser) | Only the outbox. The person's export lists their devices by browser and date, without the endpoint or keys |
 | Photos and captions from the league's Instagram, which may show players | `social_post`, `social_image` | Admins; everyone once an admin features a photo. Any player can ask for a photo of them to be hidden, and hiding takes it off public pages on their next render |

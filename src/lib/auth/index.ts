@@ -19,6 +19,7 @@ import { SITE } from "@/lib/site";
 import { resendSender } from "@/services/email";
 import {
   MAGIC_LINK_EXPIRES_IN_SECONDS,
+  RATE_LIMIT,
   SESSION_EXPIRES_IN_SECONDS,
   SESSION_FRESH_AGE_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
@@ -91,6 +92,7 @@ export const auth = betterAuth({
   socialProviders: socialProviders(env),
   account: { accountLinking },
   disabledPaths: [...PASSKEY_DISABLED_PATHS],
+  rateLimit: RATE_LIMIT,
   hooks: { before: beforeAuth },
   session: {
     expiresIn: SESSION_EXPIRES_IN_SECONDS,
