@@ -402,7 +402,7 @@ describe("accounts", () => {
         answer: answer({ comment: "Great season" }),
       });
       const data = await personalData(db, a, LATER);
-      expect(data.seasonSurveysAnswered).toEqual([{ season: "Fall Social" }]);
+      expect(data?.seasonSurveysAnswered).toEqual([{ season: "Fall Social" }]);
       expect(JSON.stringify(data)).not.toContain("Great season");
       expect((await deleteAccount(db, a, LATER)).ok).toBe(true);
       expect((await surveyResults(db, w.survey)).comments).toEqual([
