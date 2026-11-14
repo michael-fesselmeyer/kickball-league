@@ -184,3 +184,6 @@ Roles: **visitor** (signed out), **player** (Pat Player), **captain** (Casey Cap
 | F-16 | Team lists for admins | admin | Admin, Team lists | Every list with reasons |
 | F-17 | Private event feed | player | Events: personal calendar link; reset | Private feed link; reset changes it |
 | F-18 | Dark theme and phone layout | all | Key screens in dark mode at 375 px | Readable, no horizontal scroll |
+| F-19 | Pick'em | player, admin | Pick'em: pick winners for the next game day; leaderboard | Picks saved and locked at kickoff; scored when games go final; admin setting for picking one's own games |
+| F-20 | Capacity planner | owner | Owners' capacity planner for a season | How many teams the season's field time fits; nearby NYC Parks fields suggested |
+| F-21 | Error page | visitor | A page that fails to load | A league error page with a way back, not a blank screen |
