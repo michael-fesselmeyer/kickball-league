@@ -36,6 +36,8 @@ const FACTS = [
     term: "When",
     detail:
       "Sunday afternoons in summer; weeknight evenings in spring and fall.",
+    href: "/seasons",
+    label: "Schedules and standings",
   },
   {
     term: "Price",
