@@ -4,9 +4,9 @@ import { pageAs } from "../support/personas";
 /**
  * Server-rendered HTML must match what React renders in the browser. A
  * mismatch (React error #418) throws the page away and renders it again on
- * the client: slower, and a click in between can be lost. These are the
- * screens where one was seen; the demo banner in the root layout is on all
- * of them.
+ * the client: slower, and a click in between can be lost. It happened on
+ * every signed-in screen when the flows server ran a build made without
+ * demo mode (#329), so these screens must load with no console errors.
  */
 const PAGES = [
   "/sign-in",
@@ -17,12 +17,18 @@ const PAGES = [
   "/app/books/fall-2026/permits/capacity",
 ] as const;
 
-test("signed-in screens hydrate without a mismatch", async ({ browser }) => {
+test("signed-in screens hydrate without console errors", async ({
+  browser,
+}) => {
   const page = await pageAs(browser, "Admin");
   const errors: string[] = [];
   page.on("pageerror", (error) =>
     errors.push(`${page.url()}: ${error.message}`),
   );
+  page.on("console", (message) => {
+    if (message.type() === "error")
+      errors.push(`${page.url()}: ${message.text()}`);
+  });
   for (const path of PAGES) {
     await page.goto(path, { waitUntil: "load" });
     // Hydration runs once the scripts have loaded; wait until React is idle.
@@ -33,6 +39,6 @@ test("signed-in screens hydrate without a mismatch", async ({ browser }) => {
         ),
     );
   }
-  expect(errors.filter((e) => /#418|#423|[Hh]ydrat/.test(e))).toEqual([]);
+  expect(errors).toEqual([]);
   await page.context().close();
 });
