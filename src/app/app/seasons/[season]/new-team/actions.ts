@@ -42,7 +42,8 @@ async function context(slug: string) {
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;
-  if (!league || !season) notFound();
+  // Private events take teams only through their invite link.
+  if (!league || !season || season.visibility === "private") notFound();
   return { subject, league, season };
 }
 

@@ -27,6 +27,7 @@ import { joinWaitlistAction, leaveWaitlistAction } from "./waitlist-actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeague } from "@/lib/league/active";
+import { mayRegister } from "@/lib/private-events/invite";
 
 const WAITLIST_NOTICES: Record<string, string> = {
   joined: "You're on the waitlist. We'll email you the moment a spot opens.",
@@ -65,7 +66,8 @@ async function Register({
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;
-  if (!league || !season) notFound();
+  // A private league or tournament takes teams only by its invite link.
+  if (!league || !season || !(await mayRegister(season))) notFound();
   if (await myRegistration(db, season.id, subject.userId))
     redirect(`/app/seasons/${slug}`);
 
@@ -244,18 +246,20 @@ async function Register({
           />
         )}
       </section>
-      <section aria-labelledby="free-agent" className="flex flex-col gap-3">
-        <h2 id="free-agent" className="text-h2">
-          Or join on your own
-        </h2>
-        <FreeAgentForm
-          action={registerFreeAgentAction.bind(null, slug)}
-          priceLabel={
-            freeAgent.ok ? `It costs ${formatCents(freeAgent.cents)}.` : ""
-          }
-          minimumAge={season.minimumAge}
-        />
-      </section>
+      {season.visibility === "league" && (
+        <section aria-labelledby="free-agent" className="flex flex-col gap-3">
+          <h2 id="free-agent" className="text-h2">
+            Or join on your own
+          </h2>
+          <FreeAgentForm
+            action={registerFreeAgentAction.bind(null, slug)}
+            priceLabel={
+              freeAgent.ok ? `It costs ${formatCents(freeAgent.cents)}.` : ""
+            }
+            minimumAge={season.minimumAge}
+          />
+        </section>
+      )}
     </>
   );
 }
