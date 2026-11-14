@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { type Browser, expect, type Page } from "@playwright/test";
 import { Client } from "pg";
 
@@ -7,7 +7,8 @@ import { Client } from "pg";
  * new person the test makes up), the way a player does: with a one-time email sign-in link. The flows server runs as
  * production and never logs links, so the test writes the link's record to
  * the test database itself, in the shape Better Auth's magic-link plugin
- * stores it, and opens the link. The token is made fresh for each call and
+ * stores it (keyed by a hash of the token, as the site stores tokens), and
+ * opens the link. The token is made fresh for each call and
  * works once.
  *
  * Better Auth allows 5 sign-in links a minute from one address, and every
@@ -40,7 +41,10 @@ export async function signIn(page: Page, email: string): Promise<void> {
     db.query(
       `insert into verification (identifier, value, expires_at)
        values ($1, $2, now() + interval '5 minutes')`,
-      [`magic-link:${token}`, JSON.stringify({ type: "magic-link", email })],
+      [
+        `magic-link:${createHash("sha256").update(token).digest("base64url")}`,
+        JSON.stringify({ type: "magic-link", email }),
+      ],
     ),
   );
   const link = new URLSearchParams({ token, callbackURL: "/app" });

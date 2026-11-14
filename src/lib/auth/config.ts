@@ -13,6 +13,11 @@ export const SESSION_UPDATE_AGE_SECONDS = 1 * DAY;
 export const SESSION_FRESH_AGE_SECONDS = 15 * MINUTE;
 /** Magic links are single use and short-lived. */
 export const MAGIC_LINK_EXPIRES_IN_SECONDS = 15 * MINUTE;
+/**
+ * A sign-in link's token is stored only as its SHA-256 hash, so a copy of
+ * the database holds no link that works.
+ */
+export const MAGIC_LINK_STORE_TOKEN = "hashed" as const;
 
 /**
  * Sign-in links are the one email anyone can ask for, and they are sent

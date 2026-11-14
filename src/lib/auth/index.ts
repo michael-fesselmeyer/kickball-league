@@ -19,6 +19,7 @@ import { SITE } from "@/lib/site";
 import { resendSender } from "@/services/email";
 import {
   MAGIC_LINK_EXPIRES_IN_SECONDS,
+  MAGIC_LINK_STORE_TOKEN,
   RATE_LIMIT,
   SESSION_EXPIRES_IN_SECONDS,
   SESSION_FRESH_AGE_SECONDS,
@@ -125,6 +126,7 @@ export const auth = betterAuth({
   plugins: [
     magicLink({
       expiresIn: MAGIC_LINK_EXPIRES_IN_SECONDS,
+      storeToken: MAGIC_LINK_STORE_TOKEN,
       sendMagicLink: withinInboxLimit(db, ({ email, url }) =>
         deliverMagicLink(
           { email, url },
