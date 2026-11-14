@@ -27,7 +27,7 @@ import {
   UNUSED_AUTH_PATHS,
 } from "./config";
 import { demoViewAs } from "./demo-view-as";
-import { accountLinking, socialProviders } from "./google";
+import { accountHooks, accountLinking, socialProviders } from "./google";
 import { deliverMagicLink, withinInboxLimit } from "./magic-link";
 import {
   followAlias,
@@ -122,6 +122,8 @@ export const auth = betterAuth({
     session: {
       create: { after: replacePreviousSession },
     },
+    // Google's tokens are never kept (docs/security-review.md, L3).
+    account: accountHooks,
   },
   plugins: [
     magicLink({
