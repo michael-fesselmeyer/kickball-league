@@ -91,7 +91,7 @@ test("a members-only event stays off every public page and feed", async ({
   await expect(page.getByRole("link", { name: /Spring prom/ })).toHaveCount(0);
   await page.goto("/events/spring-prom-2027-03-20");
   await expect(
-    page.getByRole("heading", { name: "This page could not be found." }),
+    page.getByRole("heading", { name: "We can't find that page" }),
   ).toBeVisible();
   const feed = await (await request.get("/events/calendar.ics")).text();
   expect(feed).not.toContain("Spring prom");

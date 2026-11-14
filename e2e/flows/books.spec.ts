@@ -100,7 +100,7 @@ test("someone without the books right finds nothing there", async ({
   const page = await pageAs(browser, "Captain");
   await page.goto("/app/books");
   await expect(
-    page.getByRole("heading", { name: "This page could not be found." }),
+    page.getByRole("heading", { name: "We can't find that page" }),
   ).toBeVisible();
   const file = await page.request.get(
     "/app/books/files/00000000-0000-4000-8000-000000000000",

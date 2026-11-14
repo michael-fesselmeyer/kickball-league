@@ -158,7 +158,7 @@ test("a team event with an invite reaches its teams and no one else", async ({
   await expect(ref.getByRole("link", { name: /Team mixer/ })).toHaveCount(0);
   await ref.goto(`/app/events/${slug}`);
   await expect(
-    ref.getByRole("heading", { name: "This page could not be found." }),
+    ref.getByRole("heading", { name: "We can't find that page" }),
   ).toBeVisible();
 
   // Nor does a signed-out visitor: no public page, list entry or feed entry.
@@ -172,7 +172,7 @@ test("a team event with an invite reaches its teams and no one else", async ({
   );
   await visitor.goto(`/events/${slug}`);
   await expect(
-    visitor.getByRole("heading", { name: "This page could not be found." }),
+    visitor.getByRole("heading", { name: "We can't find that page" }),
   ).toBeVisible();
   const feed = await visitor.request.get("/events/calendar.ics");
   expect(await feed.text()).not.toContain("Team mixer");

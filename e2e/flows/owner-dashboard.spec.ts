@@ -110,7 +110,7 @@ test("someone without the owners' right finds no dashboard", async ({
   ]) {
     await page.goto(path);
     await expect(
-      page.getByRole("heading", { name: "This page could not be found." }),
+      page.getByRole("heading", { name: "We can't find that page" }),
     ).toBeVisible();
   }
   const csv = await page.request.get("/app/owner/fall-2026/dashboard.csv");
@@ -123,6 +123,6 @@ test("a season without a published summary has no money page", async ({
 }) => {
   await page.goto("/seasons/spring-2027/money");
   await expect(
-    page.getByRole("heading", { name: "This page could not be found." }),
+    page.getByRole("heading", { name: "We can't find that page" }),
   ).toBeVisible();
 });

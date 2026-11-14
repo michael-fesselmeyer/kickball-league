@@ -143,7 +143,7 @@ test("the operator's switches reach owners, admins, players and visitors", async
     });
     await eventually(player, "/app/vote", async () => {
       await expect(
-        player.getByRole("heading", { name: "This page could not be found." }),
+        player.getByRole("heading", { name: "We can't find that page" }),
       ).toBeVisible();
     });
 
