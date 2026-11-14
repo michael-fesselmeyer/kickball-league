@@ -28,6 +28,7 @@ import {
   pushSubscription,
 } from "../schema/message";
 import { payment, purchase, purchaseItem } from "../schema/money";
+import { privateEvent } from "../schema/private-event";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { teamFormationRequest } from "../schema/formation";
@@ -792,6 +793,17 @@ export async function deleteAccount(
       and(
         eq(teamFormationRequest.requestedBy, userId),
         eq(teamFormationRequest.status, "pending"),
+      ),
+    );
+
+  // Nor an open request for a private league or tournament.
+  await db
+    .update(privateEvent)
+    .set({ status: "declined", decidedAt: now })
+    .where(
+      and(
+        eq(privateEvent.organizerId, userId),
+        eq(privateEvent.status, "requested"),
       ),
     );
 

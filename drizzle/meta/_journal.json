@@ -407,6 +407,13 @@
       "when": 1794720432031,
       "tag": "0057_multi_league",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1794734828063,
+      "tag": "0058_private_events",
+      "breakpoints": true
     }
   ]
 }

@@ -168,6 +168,11 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
 
   // Money
   "purchase.user_id": { kind: "move", label: "purchases and payments" },
+  "private_event.organizer_id": {
+    kind: "move",
+    label: "private leagues and tournaments organized",
+  },
+  "private_event.decided_by": actor("private event requests decided"),
   "payment.recorded_by": actor("payments recorded"),
   "refund.issued_by": actor("refunds issued"),
   "credit_entry.user_id": {

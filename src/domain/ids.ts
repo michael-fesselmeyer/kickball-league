@@ -122,3 +122,4 @@ export function parseId<Id extends Brand<string, string>>(
 ): Id | null {
   return typeof value === "string" && UUID.test(value) ? (value as Id) : null;
 }
+export type PrivateEventId = Brand<string, "PrivateEventId">;

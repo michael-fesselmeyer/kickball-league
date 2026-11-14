@@ -21,6 +21,16 @@ import { user } from "./auth";
 import { league } from "./league";
 import { waiver } from "./waiver";
 
+/**
+ * Who a season is for (ADR 0049): the league's own seasons, or a private
+ * league or tournament booked by an organization, which is invite-only and
+ * kept off every public page, standings, records and awards.
+ */
+export const seasonVisibility = pgEnum("season_visibility", [
+  "league",
+  "private",
+]);
+
 export const seasonStatus = pgEnum("season_status", [
   "draft",
   "registration_open",
@@ -64,6 +74,7 @@ export const season = pgTable(
     name: text().notNull(),
     slug: text().notNull(),
     status: seasonStatus().notNull().default("draft"),
+    visibility: seasonVisibility().notNull().default("league"),
     startsOn: date({ mode: "string" }).notNull(),
     endsOn: date({ mode: "string" }).notNull(),
     registrationOpensAt: timestamp({ withTimezone: true }),

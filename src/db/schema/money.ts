@@ -143,6 +143,7 @@ export const purchaseItemKind = pgEnum("purchase_item_kind", [
   "balance",
   "event_ticket",
   "merch",
+  "private_event",
 ]);
 
 export const purchaseItem = pgTable(
