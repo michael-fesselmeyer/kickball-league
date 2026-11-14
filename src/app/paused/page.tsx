@@ -1,14 +1,30 @@
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
-import { connection } from "next/server";
-import { Suspense } from "react";
-import { currentSite } from "@/lib/platform/site";
-import { PageLoading } from "@/components/page-loading";
+import { db } from "@/db/client";
+import { siteSettings } from "@/db/queries/platform";
+import { PUBLIC_PAGE_LIFE, SITE_TAG } from "@/lib/public-cache";
 
 export const metadata: Metadata = {
   title: "Paused",
   robots: { index: false },
 };
+
+/**
+ * Static HTML with no loading state, so the notice is the first paint (as
+ * the season and game pages, ADR 0029). The operator's status change
+ * expires it (`refreshSiteNotice`).
+ */
+export const ensureStatic = "navigation";
+
+/** The site's name and status, kept until the operator changes the status. */
+async function cachedSite() {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
+  cacheTag(SITE_TAG);
+  const site = await siteSettings(db);
+  return site ? { name: site.name, status: site.status } : null;
+}
 
 /**
  * Where the proxy sends public pages while the site is paused, and where a
@@ -17,16 +33,13 @@ export const metadata: Metadata = {
 export default function PausedPage() {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-16">
-      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
-        <Notice />
-      </Suspense>
+      <Notice />
     </main>
   );
 }
 
 async function Notice() {
-  await connection();
-  const site = await currentSite();
+  const site = await cachedSite();
   const name = site?.name ?? "The league";
   if (site?.status === "read_only")
     return (
