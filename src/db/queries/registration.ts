@@ -71,6 +71,54 @@ export type SeasonForRegistration = NonNullable<
   Awaited<ReturnType<typeof seasonForRegistration>>
 >;
 
+/** Seasons still running or ahead: a player's home links to these. */
+const CURRENT_SEASON = [
+  "registration_open",
+  "registration_closed",
+  "in_progress",
+  "playoffs",
+] as const;
+
+/**
+ * The seasons a person plays in that are still running or ahead, with their
+ * team when they're on one (a free agent waiting for a team has none), so
+ * their home screen can link to the team page with its games, RSVPs and
+ * payments. Cancelled and refunded registrations and removed roster spots
+ * are left out. Soonest season first.
+ */
+export async function myCurrentSeasons(db: Db, userId: UserId) {
+  return db
+    .select({
+      seasonSlug: season.slug,
+      seasonName: season.name,
+      teamName: team.name,
+      role: rosterMembership.role,
+    })
+    .from(registration)
+    .innerJoin(season, eq(season.id, registration.seasonId))
+    .leftJoin(
+      rosterMembership,
+      and(
+        eq(rosterMembership.registrationId, registration.id),
+        eq(rosterMembership.status, "active"),
+      ),
+    )
+    .leftJoin(teamSeason, eq(teamSeason.id, rosterMembership.teamSeasonId))
+    .leftJoin(team, eq(team.id, teamSeason.teamId))
+    .where(
+      and(
+        eq(registration.userId, userId),
+        inArray(registration.status, [
+          "pending_waiver",
+          "pending_payment",
+          "active",
+        ]),
+        inArray(season.status, [...CURRENT_SEASON]),
+      ),
+    )
+    .orderBy(season.startsOn, team.name);
+}
+
 /** Seasons a player can register for right now, soonest first. */
 export async function openSeasons(db: Db, leagueId: LeagueId, now: Date) {
   const rows = await db
