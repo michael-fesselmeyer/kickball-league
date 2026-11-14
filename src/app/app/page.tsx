@@ -15,6 +15,7 @@ import { AllOutboxStatus } from "@/components/offline-outbox";
 import { Pickups } from "@/components/pickups";
 import { can } from "@/domain/authz/permissions";
 import { isGameDay } from "@/domain/lineup/access";
+import { newestTeamSeason } from "@/domain/schedule/public-game";
 import {
   type GameId,
   parseId,
@@ -91,7 +92,12 @@ async function Account() {
     db,
     refereeing.map((g) => g.id),
   );
-  const nextGame = pickNextGame(await myGames, now);
+  const games = await myGames;
+  const nextGame = pickNextGame(games, now);
+  const teamSeason = newestTeamSeason(
+    games,
+    subject.roster.map((m) => m.teamSeasonId),
+  );
   // The next game's park permit, for its ref and captains (ADR 0034).
   const nextGameId = parseId<GameId>(nextGame?.id);
   const permitShown =
@@ -145,9 +151,31 @@ async function Account() {
         <h1 className="text-h1">You&apos;re in!</h1>
         <p className="text-text-muted">
           Signed in as <strong className="text-text">{name || email}</strong>.
-          Your season stuff will live here.
         </p>
       </div>
+      {nextGame && (
+        <section
+          aria-labelledby="next-game"
+          className="flex flex-col gap-1 rounded-card border-2 border-text bg-surface p-4"
+        >
+          <h2 id="next-game" className="text-h3">
+            Your next game
+          </h2>
+          <Link
+            href={`/games/${nextGame.id}`}
+            className="inline-flex min-h-11 items-center font-bold underline"
+          >
+            {nextGame.teamA.name} vs {nextGame.teamB.name}
+          </Link>
+          {nextGame.startsAt && (
+            <p className="text-small text-text-muted">
+              {when(nextGame.startsAt)}
+              {nextGame.field ? ` · ${nextGame.field}` : ""}
+              {nextGame.venue ? `, ${nextGame.venue.name}` : ""}
+            </p>
+          )}
+        </section>
+      )}
       {offeredInstall(subject) && <AllOutboxStatus />}
       {won.length > 0 && (
         <section
@@ -263,6 +291,22 @@ async function Account() {
         >
           Park permit for your next game
         </Link>
+      )}
+      {teamSeason && (
+        <>
+          <Link
+            href={`/app/seasons/${teamSeason}/team`}
+            className="btn btn-secondary"
+          >
+            Your team
+          </Link>
+          <Link
+            href={`/seasons/${teamSeason}/schedule`}
+            className="btn btn-secondary"
+          >
+            Schedule
+          </Link>
+        </>
       )}
       {ballots > 0 && (
         <Link href="/app/vote" className="btn btn-primary">
