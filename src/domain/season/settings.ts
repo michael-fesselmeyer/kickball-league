@@ -2,6 +2,11 @@ import { isOneOf, recordOf } from "../guards";
 import { slugify } from "../slug";
 import { localDate } from "../scheduler/slots";
 import { zonedInstant } from "../time/zoned";
+import {
+  HIGHEST_MINIMUM_AGE,
+  LOWEST_MINIMUM_AGE,
+  parseMinimumAge,
+} from "@/domain/registration/age";
 
 /**
  * The season setup form (product-spec.md: "Season setup: price per team or
@@ -33,6 +38,8 @@ export type SeasonSettings = {
   rosterMin: number;
   rosterMax: number;
   gamesPerTeamPerDay: 1 | 2;
+  /** The season's own minimum age; null uses the league's (ADR 0041). */
+  minimumAge: number | null;
 };
 
 /** The form's fields, all strings, as an admin types them. */
@@ -53,6 +60,7 @@ export const SEASON_FIELDS = [
   "rosterMin",
   "rosterMax",
   "gamesPerTeamPerDay",
+  "minimumAge",
 ] as const;
 export type SeasonField = (typeof SEASON_FIELDS)[number];
 export type SeasonForm = Record<SeasonField, string>;
@@ -174,13 +182,17 @@ export function parseSeasonForm(
 
   if (f.gamesPerTeamPerDay !== "1" && f.gamesPerTeamPerDay !== "2")
     errors.gamesPerTeamPerDay = "One game or a doubleheader.";
+  const minimumAge = parseMinimumAge(f.minimumAge);
+  if (!minimumAge.ok)
+    errors.minimumAge = `From ${LOWEST_MINIMUM_AGE} to ${HIGHEST_MINIMUM_AGE}, or leave it empty for the league's.`;
 
   // Every null below has an error above; the checks narrow the types.
   if (
     Object.keys(errors).length > 0 ||
     !feeModel ||
     rosterMin === null ||
-    rosterMax === null
+    rosterMax === null ||
+    !minimumAge.ok
   )
     return { ok: false, errors };
 
@@ -208,6 +220,7 @@ export function parseSeasonForm(
       rosterMin,
       rosterMax,
       gamesPerTeamPerDay: f.gamesPerTeamPerDay === "2" ? 2 : 1,
+      minimumAge: minimumAge.value,
     },
   };
 }
@@ -238,6 +251,7 @@ export function toSeasonForm(
     rosterMin: String(s.rosterMin),
     rosterMax: String(s.rosterMax),
     gamesPerTeamPerDay: String(s.gamesPerTeamPerDay),
+    minimumAge: s.minimumAge === null ? "" : String(s.minimumAge),
   };
 }
 
@@ -259,4 +273,5 @@ export const EMPTY_SEASON_FORM: SeasonForm = {
   rosterMin: "12",
   rosterMax: "20",
   gamesPerTeamPerDay: "1",
+  minimumAge: "",
 };

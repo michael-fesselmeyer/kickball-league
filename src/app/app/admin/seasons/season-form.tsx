@@ -187,6 +187,12 @@ export function SeasonSettingsForm({
             required: true,
           })}
         </div>
+        {field(
+          "minimumAge",
+          "Minimum age",
+          { inputMode: "numeric" },
+          "Players confirm they're at least this old to register and sign the waiver. Leave empty for the league's (21 unless the league changed it).",
+        )}
         <label className="flex flex-col gap-1">
           Games per team on a game day
           <select
