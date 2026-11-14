@@ -14,7 +14,7 @@ import {
   seasonGameTimes,
 } from "@/db/queries/team-requests";
 import { can, type Subject } from "@/domain/authz/permissions";
-import type { TeamConstraintId } from "@/domain/ids";
+import { parseId, type TeamConstraintId } from "@/domain/ids";
 import {
   parseTeamRequest,
   requestsOpen,
@@ -80,8 +80,11 @@ export async function addTeamRequestAction(
 /** A captain or co-captain removes one of their team's requests. */
 export async function removeTeamRequestAction(
   slug: string,
-  id: TeamConstraintId,
+  rawId: string,
 ): Promise<void> {
+  const id = parseId<TeamConstraintId>(rawId);
+  // A malformed id is not found, not a database error.
+  if (!id) notFound();
   const { page, subject, team, open } = await captainsTeam(slug);
   if (!open) redirect(`${page}?error=closed`);
   const removed = await txDb.transaction((tx) =>

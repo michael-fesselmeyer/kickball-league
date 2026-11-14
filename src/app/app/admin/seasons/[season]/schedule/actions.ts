@@ -10,7 +10,7 @@ import {
   saveVersion,
 } from "@/db/queries/schedule";
 import { seasonBySlug, versionsOf } from "@/db/queries/schedule-screen";
-import type { ScheduleVersionId } from "@/domain/ids";
+import { parseId, type ScheduleVersionId } from "@/domain/ids";
 import { applyEdit } from "@/domain/scheduler/edits";
 import { generate } from "@/domain/scheduler/generate";
 import { requirePermissionToChange } from "@/lib/auth/permission";
@@ -65,8 +65,11 @@ export async function generateDraft(
 /** Publishes a draft version and sends any rain-out notices it queued. */
 export async function publishDraft(
   slug: string,
-  versionId: ScheduleVersionId,
+  rawVersionId: string,
 ): Promise<void> {
+  const versionId = parseId<ScheduleVersionId>(rawVersionId);
+  // A malformed id is not found, not a database error.
+  if (!versionId) notFound();
   const page = pageFor(slug);
   const subject = await requirePermissionToChange("schedule.manage", {
     next: page,
@@ -90,9 +93,12 @@ export async function publishDraft(
  */
 export async function editGame(
   slug: string,
-  versionId: ScheduleVersionId,
+  rawVersionId: string,
   form: FormData,
 ): Promise<void> {
+  const versionId = parseId<ScheduleVersionId>(rawVersionId);
+  // A malformed id is not found, not a database error.
+  if (!versionId) notFound();
   const page = pageFor(slug);
   const subject = await requirePermissionToChange("schedule.manage", {
     next: page,
@@ -156,9 +162,12 @@ function parseEdits(raw: FormDataEntryValue | null) {
  */
 export async function saveBoard(
   slug: string,
-  versionId: ScheduleVersionId,
+  rawVersionId: string,
   form: FormData,
 ): Promise<void> {
+  const versionId = parseId<ScheduleVersionId>(rawVersionId);
+  // A malformed id is not found, not a database error.
+  if (!versionId) notFound();
   const page = pageFor(slug);
   const subject = await requirePermissionToChange("schedule.manage", {
     next: page,
