@@ -466,8 +466,11 @@ async function Team({
             Invite players
           </h2>
           <p>
-            Share one link in your team chat. Each player signs in, joins, signs
-            the waiver and pays their own share.
+            Share one link in your team chat. Each player signs in, joins and
+            signs the waiver
+            {season.feeModel === "per_team" && mine.team.paymentMode === "full"
+              ? "; you're paying the whole fee, so they don't pay anything."
+              : ", and pays their own share."}
           </p>
           <InviteLink
             action={createInviteAction.bind(null, slug)}
