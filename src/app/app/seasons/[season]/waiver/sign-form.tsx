@@ -2,15 +2,22 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { AgeConfirmation } from "@/components/age-confirmation";
 import type { SignState } from "./actions";
 
 type Props = {
   action: (previous: SignState, form: FormData) => Promise<SignState>;
   shownSha256: string;
   fullName: string | null;
+  minimumAge: number;
 };
 
-export function SignWaiverForm({ action, shownSha256, fullName }: Props) {
+export function SignWaiverForm({
+  action,
+  shownSha256,
+  fullName,
+  minimumAge,
+}: Props) {
   const [state, formAction, pending] = useActionState(action, {
     signedName: "",
   });
@@ -60,6 +67,7 @@ export function SignWaiverForm({ action, shownSha256, fullName }: Props) {
           As on your profile: {fullName}.
         </span>
       </label>
+      <AgeConfirmation minimumAge={minimumAge} />
       <button
         type="submit"
         disabled={pending}

@@ -24,6 +24,7 @@ import {
   REFERRAL_COOKIE,
 } from "@/domain/money/referral";
 import { parseProfileForm, toProfileForm } from "@/domain/profile/profile-form";
+import { ageMessage } from "@/domain/registration/age";
 import { localDate } from "@/domain/scheduler/slots";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 
@@ -45,6 +46,13 @@ const MESSAGES: Record<string, string> = {
   bad_color: "Pick a team color.",
   profile_incomplete: "Finish your profile before registering.",
 };
+
+/** The message for an error code, with the season's minimum age. */
+function messageFor(error: string, minimumAge: number): string | undefined {
+  return error === "age_unconfirmed" || error === "under_age"
+    ? ageMessage(error, minimumAge)
+    : MESSAGES[error];
+}
 
 /** Loads what both actions need and checks the person may register. */
 async function context(slug: string) {
@@ -125,6 +133,7 @@ export async function registerTeamAction(
         paymentMode: values.paymentMode === "full" ? "full" : "split",
         rosterSize: Number(values.rosterSize),
       },
+      ageConfirmed: form.get("ageConfirmed") === "yes",
       now: new Date(),
     });
     if (registered.ok)
@@ -135,7 +144,8 @@ export async function registerTeamAction(
       });
     return registered;
   });
-  if (!result.ok) return { values, error: MESSAGES[result.error] };
+  if (!result.ok)
+    return { values, error: messageFor(result.error, season.minimumAge) };
   if (code) (await cookies()).delete(REFERRAL_COOKIE);
   redirect(`/app/seasons/${slug}?registered=team`);
 }
@@ -143,6 +153,7 @@ export async function registerTeamAction(
 export async function registerFreeAgentAction(
   slug: string,
   previous: RegisterState,
+  form: FormData,
 ): Promise<RegisterState> {
   const { subject, season, complete } = await context(slug);
   if (!complete) return { ...previous, error: MESSAGES.profile_incomplete };
@@ -152,6 +163,7 @@ export async function registerFreeAgentAction(
     const registered = await registerFreeAgent(tx, {
       season,
       userId,
+      ageConfirmed: form.get("ageConfirmed") === "yes",
       now: new Date(),
     });
     if (registered.ok)
@@ -162,7 +174,11 @@ export async function registerFreeAgentAction(
       });
     return registered;
   });
-  if (!result.ok) return { ...previous, error: MESSAGES[result.error] };
+  if (!result.ok)
+    return {
+      ...previous,
+      error: messageFor(result.error, season.minimumAge),
+    };
   if (code) (await cookies()).delete(REFERRAL_COOKIE);
   redirect(`/app/seasons/${slug}?registered=free_agent`);
 }

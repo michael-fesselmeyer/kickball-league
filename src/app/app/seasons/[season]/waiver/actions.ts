@@ -6,6 +6,7 @@ import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { currentLeague } from "@/db/queries/seasons";
 import { signWaiver, waiverForSeason } from "@/db/queries/waivers";
+import { ageMessage } from "@/domain/registration/age";
 import { requireSelfToChange } from "@/lib/auth/permission";
 
 export type SignState = { signedName: string; error?: string | undefined };
@@ -52,12 +53,19 @@ export async function signWaiverAction(
       seasonId: view.seasonId,
       shownSha256: String(form.get("shownSha256") ?? ""),
       agreed: form.get("agree") === "yes",
+      ageConfirmed: form.get("ageConfirmed") === "yes",
       signedName,
       ip: await clientIp(),
       userAgent: (await headers()).get("user-agent"),
     }),
   );
   if (!result.ok && result.error !== "already_signed")
-    return { signedName, error: MESSAGES[result.error] };
+    return {
+      signedName,
+      error:
+        result.error === "age_unconfirmed" || result.error === "under_age"
+          ? ageMessage(result.error, view.minimumAge)
+          : MESSAGES[result.error],
+    };
   redirect(`${page}?signed=1`);
 }

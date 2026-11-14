@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { profileOf } from "@/db/queries/profile";
+import { ageMessage, underAge } from "@/domain/registration/age";
 import {
   myRegistration,
   seasonForRegistration,
@@ -86,6 +87,27 @@ async function Register({
             ? "Registration has not opened yet."
             : "Registration for this season is closed."}
         </p>
+      </>
+    );
+  if (
+    underAge(
+      season.minimumAge,
+      person?.birthDate ?? null,
+      localDate(now, league.timeZone),
+    )
+  )
+    return (
+      <>
+        {header}
+        <p role="alert" className="rounded-lg border border-warning p-3">
+          {ageMessage("under_age", season.minimumAge)}
+        </p>
+        <Link
+          href="/app/profile"
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
+          Your profile
+        </Link>
       </>
     );
   if (!complete)
@@ -216,6 +238,7 @@ async function Register({
             }
             rosterMin={season.rosterMin}
             rosterMax={season.rosterMax}
+            minimumAge={season.minimumAge}
           />
         )}
       </section>
@@ -228,6 +251,7 @@ async function Register({
           priceLabel={
             freeAgent.ok ? `It costs ${formatCents(freeAgent.cents)}.` : ""
           }
+          minimumAge={season.minimumAge}
         />
       </section>
     </>
