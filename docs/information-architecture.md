@@ -64,7 +64,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 
 /operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
 
-/app                                Signed-in home: next game, links to your team and its schedule, RSVP, what you owe, alerts, any giveaway you won, and any season survey waiting for my answer
+/app                                Signed-in home: next game, links to your team and its schedule, RSVP, what you owe, alerts, any giveaway you won, any season survey waiting for my answer, and the league gear you have or bring ("You have Kit A: bring it to McCarren Park, Field 2 by 6:30 PM") with one-tap "I picked it up", "I handed Kit A to Sam", "Got it" or "It's back home"
 ├── account                         Profile, weeks you'll miss for each season still to come, email, push and message-limit settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
@@ -105,6 +105,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── games/[game]/lineup             Both teams' kicking orders: a team's captains any time, the other captain and the ref from game day (names only); each player sees their own spot
 │   └── [team]                      Captain: who is away that week and whether the team is short, then the kicking-order builder from the players who are in, with drag, keyboard and button moves, live two-in-a-row checks, auto-arrange and copy from the last game
 ├── games/[game]/emergency          Emergency contacts and first-aid notes of everyone playing (both rosters and approved subs), for the game's two captains and its ref, on game day only; every load audited; kept on the phone with the next game until midnight
+├── equipment/[kit]/missing         Report what's missing from a kit you have, are handed or bring: tick its items and add a note
 ├── games/[game]/permit             The park permit at the field: number, field, hours and document, for the game's ref and both captains (and owners); kept on the phone with the next game
 │   └── document                    The permit document itself, for the same people, never cached by a CDN
 ├── books/                          Owners and the platform operator only (404 for everyone else); opens on the newest season
@@ -128,6 +129,9 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── (dashboard)                 Next game day: weather, games, missing scores, alerts; sign-up rate per team, lowest first, with how many players each still needs
     ├── today                       Game-day command center, phone first: today (or the next game day, or ?date=) with every game's field, ref and check-in, score state (not started, playing, live with runs and inning, reported, final, called off, missing), the weather, and one tap to a rain-out, an announcement or ref assignments; refreshes itself every 10 seconds
     │   └── state.json              The same state as JSON for the screen to poll; admins only, never cached
+    │                               Below the games, the day's league gear: each kit, who brings it to which field by when, and whether they have it yet
+    ├── equipment/                  League gear: where every kit is right now (with whom, on its way, or at home), its next game and open missing-items reports; add a kit
+    │   └── [kit]                   One kit: open reports to mark sorted, the games it goes to (assign a game's ref, captain or an admin; take one off), "Where is it really?" to correct it, its name, contents and home, retire it, and its history
     ├── seasons/[season]/           Setup, pricing, divisions, rule set, waiver, and the season's own minimum age (empty uses the league's 21)
     │   ├── registrations           Teams, players, payments, waivers, full or partial refunds; roster and payment CSV downloads; each team's captain and co-captains, folded away, with the captain's controls
     │   ├── promo-codes             The season's promo codes: add one, see its uses, turn it off
@@ -361,6 +365,15 @@ Rules:
 1. A player opens "Away some weeks? Mark them" on the team page, or the profile directly, and ticks the weeks they'll miss in each season still to come. Weeks already gone are not offered.
 2. On the team page, each game still to come shows how many players are available that week. Captains also see who is away, and, when the players left can't field a full lineup under the fielding rule, a prompt with an "Ask for a sub" link to the sub request form for that game. The kicking-order builder shows the same for its game.
 3. The first time a player's change leaves a week short, the team's other captains get one email about that week, with the same link. It is a non-urgent message, so it respects their daily limit and quiet hours.
+
+### 2.11 League gear
+
+1. An admin adds each kit on the League gear screen: a name, what's in it (one item per line) and where it lives between game days.
+2. For a game day, the admin opens the kit, picks a game and who brings it: the game's ref, one of its captains or co-captains, or an admin. A kit goes to one game a day.
+3. That person sees the kit on their home screen next to the game: "Kit A is yours tomorrow: get it from Jo S., then bring it to McCarren Park, Field 2 by 6:30 PM", and the evening before they get a reminder (non-urgent, under "League gear" in their email settings).
+4. If the kit is at home, they tap "I picked up Kit A". Once they have it, the line reads "You have Kit A: bring it to McCarren Park, Field 2 by 6:30 PM". After the game, "I handed Kit A to Sam" names whoever brings it next; the kit is Sam's only when Sam taps "Got it" ("I don't have it" leaves it with the giver, and the giver can take a handoff back while it waits). With nobody next, "It's back home".
+5. "Something missing from Kit A?" lets anyone with the kit tick the missing items and add a note. Admins see open reports on the League gear screen and the kit's page, and mark them sorted once restocked.
+6. On game day the command center lists each kit, who brings it where and whether they have it yet. The kit's page has its whole history, and admins can correct where a kit really is. Every change is in the audit log.
 
 ## 3. Key screens
 
