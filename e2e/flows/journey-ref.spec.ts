@@ -31,7 +31,7 @@ test("an admin assigns a new ref, who checks the permit, reports the score and s
 }) => {
   // Three people sign in.
   test.slow();
-  await unscoreGame("Pitch Please", "Red Rubber Ballers");
+  await unscoreGame("Pitch Please", "Red Rubber Ballers", SEASON);
   // An account must exist before the admin can assign it.
   const quinn = await memberPage(browser, ref);
   let scorePage = "";
