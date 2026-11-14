@@ -10,6 +10,7 @@ import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { db } from "@/db/client";
 import { canonicalEmail } from "@/db/queries/account-merge";
+import { claimKeepOffsForNewAccount } from "@/db/queries/keep-off";
 import * as schema from "@/db/schema";
 import { parseId, type UserId } from "@/domain/ids";
 import { canWrite } from "@/domain/platform/operator";
@@ -116,6 +117,9 @@ export const auth = betterAuth({
           const id = parseId<UserId>(user.id);
           if (!id) throw new Error("Expected a UUID account id");
           await createProfileForUser(db, id);
+          // A "not on my team" entry added for this address before it had
+          // an account applies from the first sign-in.
+          await claimKeepOffsForNewAccount(db, id, user.email);
         },
       },
     },

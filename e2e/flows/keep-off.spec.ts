@@ -58,9 +58,13 @@ test.describe.serial("a captain keeps someone off the team, quietly", () => {
     await list.getByLabel(/^Reason/).fill(REASON);
     await list.getByRole("button", { name: "Add to the list" }).click();
     await expect(captain.getByRole("status")).toHaveText(
-      "Added. Nobody tells them.",
+      /^Added\. Nobody tells them/,
     );
-    await expect(list.getByRole("listitem")).toContainText([PERSON.name]);
+    // The list shows the address as typed, never whose it is.
+    await expect(list.getByRole("listitem")).toContainText([
+      PERSON.email.toLowerCase(),
+    ]);
+    await expect(list.getByRole("listitem")).not.toContainText(PERSON.name);
     await expectNoAxeViolations(captain);
 
     await captain

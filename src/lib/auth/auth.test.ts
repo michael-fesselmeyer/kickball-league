@@ -1,10 +1,16 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { auth as Auth } from "./index";
+import { claimKeepOffsForNewAccount } from "@/db/queries/keep-off";
 import { allowSignInLink } from "@/db/queries/rate-limit";
 import { createProfileForUser } from "./profile";
 
 vi.mock("./profile", () => ({
   createProfileForUser: vi.fn(() => Promise.resolve()),
+}));
+
+// Claiming list entries for a new address is a database write.
+vi.mock("@/db/queries/keep-off", () => ({
+  claimKeepOffsForNewAccount: vi.fn(() => Promise.resolve(0)),
 }));
 
 // The per-inbox count lives in the database; here it always has room
@@ -69,6 +75,12 @@ describe("auth instance", () => {
     expect(createProfileForUser).toHaveBeenCalledWith(
       expect.anything(),
       user.id,
+    );
+    // Not-on-my-team entries added for the address before it had an account.
+    expect(claimKeepOffsForNewAccount).toHaveBeenCalledWith(
+      expect.anything(),
+      user.id,
+      user.email,
     );
   });
 

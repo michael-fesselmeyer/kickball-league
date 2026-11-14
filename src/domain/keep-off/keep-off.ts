@@ -54,15 +54,20 @@ export function inviteStateFor<S extends string>(
 export type Entry = {
   teamId: string;
   teamName: string;
-  userId: string;
-  name: string;
+  /** Null for an address with no account yet. */
+  userId: string | null;
+  name: string | null;
+  email: string;
 };
 
 export type Oversight = {
   /** Each team with a list, longest first, flagged at MANY_ON_ONE_LIST. */
   teams: { teamId: string; teamName: string; count: number; many: boolean }[];
-  /** People on more than one team's list, most lists first. */
-  people: { userId: string; name: string; teams: string[] }[];
+  /**
+   * People on more than one team's list, most lists first: by account, or
+   * by address for one with no account yet (`key`).
+   */
+  people: { key: string; name: string; teams: string[] }[];
 };
 
 /** What admins look for across every list: long lists, repeated names. */
@@ -79,13 +84,10 @@ export function oversight(entries: readonly Entry[]): Oversight {
     t.count += 1;
     t.many = t.count >= MANY_ON_ONE_LIST;
     teams.set(e.teamId, t);
-    const p = people.get(e.userId) ?? {
-      userId: e.userId,
-      name: e.name,
-      teams: [],
-    };
+    const key = e.userId ?? `address:${e.email}`;
+    const p = people.get(key) ?? { key, name: e.name ?? e.email, teams: [] };
     if (!p.teams.includes(e.teamName)) p.teams.push(e.teamName);
-    people.set(e.userId, p);
+    people.set(key, p);
   }
   return {
     teams: [...teams.values()].sort(

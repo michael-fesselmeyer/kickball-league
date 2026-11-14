@@ -48,15 +48,21 @@ export async function teamOfSeason(
 
 export type KeepOffRow = {
   id: KeepOffId;
-  userId: UserId;
-  name: string;
+  /** Null for an address with no account yet. */
+  userId: UserId | null;
+  /** Shown to admins only; a team's own list never names anyone. */
+  name: string | null;
+  /** The address as it was typed (or the account's, for older entries). */
   email: string;
   reason: string | null;
   addedAt: Date;
 };
 
+/** The address an entry was added with, or its account's for older ones. */
+const entryEmail = sql<string>`coalesce(${teamKeepOff.email}, lower(${user.email}))`;
+
 /**
- * One team's list, for its captains: name, address, reason, oldest first.
+ * One team's list, for its captains: address, reason, oldest first.
  * Read through any of the team's seasons; the list is the lasting team's.
  */
 export async function teamKeepOffList(
@@ -67,27 +73,31 @@ export async function teamKeepOffList(
     .select({
       id: teamKeepOff.id,
       userId: teamKeepOff.userId,
-      name: fullName,
-      email: user.email,
+      // The address only, as it was typed: a name would tell the captain
+      // which addresses belong to league members.
+      name: sql<null>`null`,
+      email: entryEmail,
       reason: teamKeepOff.reason,
       addedAt: teamKeepOff.createdAt,
     })
     .from(teamSeason)
     .innerJoin(teamKeepOff, eq(teamKeepOff.teamId, teamSeason.teamId))
-    .innerJoin(user, eq(teamKeepOff.userId, user.id))
-    .leftJoin(profile, eq(profile.userId, user.id))
+    .leftJoin(user, eq(teamKeepOff.userId, user.id))
     .where(eq(teamSeason.id, teamSeasonId))
     .orderBy(asc(teamKeepOff.createdAt), asc(teamKeepOff.id));
 }
 
 export type AddError =
-  "not_found" | "self" | "on_team" | "already_listed" | "reason_too_long";
+  "self" | "on_team" | "already_listed" | "reason_too_long";
 
 /**
- * Adds the league member with `email` to the team's list. Refuses the
- * person adding (a captain can't list themselves) and anyone on the team's
- * roster in a season not over yet, who has to leave the team through the
- * league first.
+ * Adds an address to the team's list. It answers the same whether or not
+ * the address belongs to an account, so the list never tells a captain who
+ * is a league member (security review, L7): an address with no account yet
+ * is kept, and applies once someone signs up with it
+ * (`claimKeepOffsForNewAccount`). Refuses the person adding (a captain
+ * can't list themselves) and anyone on the team's roster in a season not
+ * over yet, who has to leave the team through the league first.
  */
 export async function addKeepOff(
   db: Db,
@@ -99,36 +109,39 @@ export async function addKeepOff(
     now: Date;
   },
 ): Promise<Result<KeepOffId, AddError>> {
+  const address = input.email.trim().toLowerCase();
   const [person] = await db
     .select({ id: user.id })
     .from(user)
-    .where(sql`lower(${user.email}) = ${input.email.toLowerCase()}`);
-  if (!person) return err("not_found");
-  if (person.id === input.actorId) return err("self");
-  const [onTeam] = await db
-    .select({ id: rosterMembership.id })
-    .from(rosterMembership)
-    .innerJoin(
-      registration,
-      eq(rosterMembership.registrationId, registration.id),
-    )
-    .innerJoin(teamSeason, eq(rosterMembership.teamSeasonId, teamSeason.id))
-    .innerJoin(season, eq(teamSeason.seasonId, season.id))
-    .where(
-      and(
-        eq(teamSeason.teamId, input.teamId),
-        eq(registration.userId, person.id),
-        eq(rosterMembership.status, "active"),
-        ne(season.status, "completed"),
-      ),
-    )
-    .limit(1);
-  if (onTeam) return err("on_team");
+    .where(sql`lower(${user.email}) = ${address}`);
+  if (person?.id === input.actorId) return err("self");
+  if (person) {
+    const [onTeam] = await db
+      .select({ id: rosterMembership.id })
+      .from(rosterMembership)
+      .innerJoin(
+        registration,
+        eq(rosterMembership.registrationId, registration.id),
+      )
+      .innerJoin(teamSeason, eq(rosterMembership.teamSeasonId, teamSeason.id))
+      .innerJoin(season, eq(teamSeason.seasonId, season.id))
+      .where(
+        and(
+          eq(teamSeason.teamId, input.teamId),
+          eq(registration.userId, person.id),
+          eq(rosterMembership.status, "active"),
+          ne(season.status, "completed"),
+        ),
+      )
+      .limit(1);
+    if (onTeam) return err("on_team");
+  }
   const [created] = await db
     .insert(teamKeepOff)
     .values({
       teamId: input.teamId,
-      userId: person.id,
+      userId: person?.id ?? null,
+      email: address,
       reason: input.reason,
       addedBy: input.actorId,
       createdAt: input.now,
@@ -141,9 +154,36 @@ export async function addKeepOff(
     action: "keep_off.add",
     entityType: "team",
     entityId: input.teamId,
-    after: { userId: person.id, withReason: input.reason !== null },
+    // The account, when there is one; never the typed address or reason.
+    after: {
+      userId: person?.id ?? null,
+      entryId: created.id,
+      withReason: input.reason !== null,
+    },
   });
   return ok(created.id);
+}
+
+/**
+ * A new account takes on the list entries added for its address before it
+ * existed, so they apply from its first sign-in.
+ */
+export async function claimKeepOffsForNewAccount(
+  db: Db,
+  userId: UserId,
+  email: string,
+): Promise<number> {
+  const claimed = await db
+    .update(teamKeepOff)
+    .set({ userId })
+    .where(
+      and(
+        sql`${teamKeepOff.userId} is null`,
+        eq(teamKeepOff.email, email.trim().toLowerCase()),
+      ),
+    )
+    .returning({ id: teamKeepOff.id });
+  return claimed.length;
 }
 
 /** Takes one entry off a team's list. `teamId` scopes it to that team. */
@@ -220,8 +260,9 @@ export async function keptOffAmong(
         inArray(teamKeepOff.userId, [...userIds]),
       ),
     );
-  for (const r of rows)
-    result.set(r.userId, [...(result.get(r.userId) ?? []), r.teamSeasonId]);
+  for (const { userId, teamSeasonId } of rows)
+    if (userId)
+      result.set(userId, [...(result.get(userId) ?? []), teamSeasonId]);
   return result;
 }
 
@@ -288,15 +329,17 @@ export async function leagueKeepOffs(
       teamId: team.id,
       teamName: team.name,
       userId: teamKeepOff.userId,
-      name: fullName,
-      email: user.email,
+      name: sql<
+        string | null
+      >`case when ${user.id} is null then null else ${fullName} end`,
+      email: entryEmail,
       reason: teamKeepOff.reason,
       addedAt: teamKeepOff.createdAt,
       addedBy: teamKeepOff.addedBy,
     })
     .from(teamKeepOff)
     .innerJoin(team, eq(teamKeepOff.teamId, team.id))
-    .innerJoin(user, eq(teamKeepOff.userId, user.id))
+    .leftJoin(user, eq(teamKeepOff.userId, user.id))
     .leftJoin(profile, eq(profile.userId, user.id))
     .where(eq(team.leagueId, leagueId))
     .orderBy(asc(team.name), asc(teamKeepOff.createdAt), asc(teamKeepOff.id));
@@ -374,14 +417,14 @@ export async function myKeepOffEntries(db: Db, userId: UserId) {
       teamName: team.name,
       userId: teamKeepOff.userId,
       addedBy: teamKeepOff.addedBy,
-      name: fullName,
+      name: entryEmail,
       reason: teamKeepOff.reason,
       addedAt: teamKeepOff.createdAt,
     })
     .from(teamKeepOff)
     .innerJoin(team, eq(teamKeepOff.teamId, team.id))
     .innerJoin(league, eq(league.id, team.leagueId))
-    .innerJoin(user, eq(teamKeepOff.userId, user.id))
+    .leftJoin(user, eq(teamKeepOff.userId, user.id))
     .leftJoin(profile, eq(profile.userId, user.id))
     .where(or(eq(teamKeepOff.addedBy, userId), eq(teamKeepOff.userId, userId)))
     .orderBy(asc(teamKeepOff.createdAt));

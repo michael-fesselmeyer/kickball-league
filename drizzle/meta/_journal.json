@@ -414,6 +414,13 @@
       "when": 1794734828063,
       "tag": "0058_private_events",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1794736091648,
+      "tag": "0059_narrow_doctor_doom",
+      "breakpoints": true
     }
   ]
 }

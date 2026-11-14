@@ -5,6 +5,7 @@ import type { TeamSeasonId, UserId } from "@/domain/ids";
 import { suggestPlacements } from "@/domain/matcher/matcher";
 import { err, ok } from "@/domain/result";
 import { auditLog } from "../schema/audit";
+import { user } from "../schema/auth";
 import { teamKeepOff } from "../schema/keep-off";
 import { league } from "../schema/league";
 import { message } from "../schema/message";
@@ -18,6 +19,7 @@ import { matcherInput, placeTogether } from "./free-agents";
 import { acceptInvite, createTeamInvite, inviteByToken } from "./invites";
 import {
   addKeepOff,
+  claimKeepOffsForNewAccount,
   isKeptOff,
   leagueKeepOffs,
   removeKeepOff,
@@ -81,14 +83,18 @@ describe("a team's not-on-my-team list", () => {
         {
           action: "keep_off.add",
           entityId: w.acesTeamId,
-          after: { userId: w.freeAgent.userId, withReason: true },
+          after: {
+            userId: w.freeAgent.userId,
+            entryId: expect.any(String),
+            withReason: true,
+          },
         },
       ]);
       expect(JSON.stringify(audit)).not.toContain("second base");
     });
   });
 
-  it("refuses an unknown address, the captain themselves, a teammate and a repeat", async () => {
+  it("refuses the captain themselves, a teammate and a repeat", async () => {
     await inRolledBackDb(async (db) => {
       const w = await world(db);
       const add = (email: string) =>
@@ -99,10 +105,63 @@ describe("a team's not-on-my-team list", () => {
           actorId: w.aces.captain.userId,
           now: NOW,
         });
-      expect(await add("nobody-here@example.test")).toEqual(err("not_found"));
       expect(await add(w.aces.captain.email)).toEqual(err("self"));
       expect(await add(w.aces.players[0]!.email)).toEqual(err("on_team"));
       expect(await add(w.freeAgent.email)).toEqual(err("already_listed"));
+    });
+  });
+
+  it("answers and lists an address with no account exactly as a member's, then applies it when they sign up", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const add = (email: string) =>
+        addKeepOff(db, {
+          teamId: w.acesTeamId,
+          email,
+          reason: "Not this season",
+          actorId: w.aces.captain.userId,
+          now: NOW,
+        });
+      const stranger = `Not-Yet-${w.aces.id.slice(0, 6)}@Example.test`;
+      const member = w.bees.players[0]!;
+      const [unknown, known] = [await add(stranger), await add(member.email)];
+      expect(unknown.ok && known.ok).toBe(true);
+      // A repeat is refused the same way for both.
+      expect(await add(stranger.toLowerCase())).toEqual(err("already_listed"));
+      expect(await add(member.email)).toEqual(err("already_listed"));
+
+      // The captain's list shows each as the address typed, and no names.
+      const list = await teamKeepOffList(db, w.aces.id);
+      const shown = (email: string) => {
+        const entry = list.find((e) => e.email === email.toLowerCase());
+        return entry
+          ? { name: entry.name, email: entry.email, reason: entry.reason }
+          : null;
+      };
+      expect(shown(stranger)).toEqual({
+        name: null,
+        email: stranger.toLowerCase(),
+        reason: "Not this season",
+      });
+      expect(shown(member.email)).toEqual({
+        name: null,
+        email: member.email.toLowerCase(),
+        reason: "Not this season",
+      });
+      // The audit never holds the typed address.
+      expect(JSON.stringify(await actionsOn(db, "keep_off."))).not.toContain(
+        stranger.toLowerCase(),
+      );
+
+      // They join later: the entry is theirs from the first sign-in.
+      const [joined] = await db
+        .insert(user)
+        .values({ name: "New Player", email: stranger.toLowerCase() })
+        .returning({ id: user.id });
+      if (!joined) throw new Error("no account");
+      expect(await claimKeepOffsForNewAccount(db, joined.id, stranger)).toBe(1);
+      expect(await isKeptOff(db, w.aces.id, joined.id)).toBe(true);
+      expect(await isKeptOff(db, w.bees.id, joined.id)).toBe(false);
     });
   });
 
@@ -405,7 +464,12 @@ describe("data rights", () => {
       const w = await world(db);
       const mine = await personalData(db, w.aces.captain.userId, NOW);
       expect(mine?.notOnMyTeamLists.added).toMatchObject([
-        { team: "Aces", person: "free", reason: "Too rough at second base" },
+        // By the address typed, as the captain's list shows it.
+        {
+          team: "Aces",
+          person: w.freeAgent.email.toLowerCase(),
+          reason: "Too rough at second base",
+        },
       ]);
     });
   });
