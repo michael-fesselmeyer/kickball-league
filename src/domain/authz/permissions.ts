@@ -156,6 +156,9 @@ const RULES = {
   "sub_request.decide": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   // Who is playing as a pickup: both captains and the ref, as the rulebook asks.
   "sub_request.view_pickups": any(isAdmin, captainsGame, refereesGame),
+  // Emergency contacts, on game day only (src/domain/emergency): the game's
+  // captains and ref, and nobody else, admins included.
+  "emergency_contact.view": any(captainsGame, refereesGame),
   "conflicts.submit": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   // Cash or Venmo paid outside the app (product-spec.md, section 9).
   "payment.record_offline": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),

@@ -416,6 +416,15 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     ).toEqual(["captain", "admin", "owner"]);
   });
 
+  it("shows a game's emergency contacts to its captains and ref only, admins included", () => {
+    expect(allowed("emergency_contact.view", { game: g1 })).toEqual([
+      "captain",
+      "coCaptain",
+      "referee",
+    ]);
+    expect(allowed("emergency_contact.view", { game: g2 })).toEqual([]);
+  });
+
   it("lets sponsors manage their own page and report", () => {
     for (const action of ["sponsor.edit", "sponsor.report"] as const) {
       expect(allowed(action, { sponsorId: "bar" })).toEqual([

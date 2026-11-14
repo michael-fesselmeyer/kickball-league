@@ -2,8 +2,10 @@ import { isOneOf, recordOf } from "../guards";
 
 /**
  * The player profile form (product-spec.md, "Accounts and profile"): name,
- * phone, gender, shirt size, birth date with an 18+ check, and an emergency
- * contact. Pure: the caller passes today's date in the league's time zone.
+ * phone, gender, shirt size and birth date with an 18+ check. The emergency
+ * contact on the same screen is kept apart and sealed
+ * (src/domain/emergency/emergency.ts). Pure: the caller passes today's date
+ * in the league's time zone.
  */
 
 export const GENDERS = [
@@ -30,8 +32,6 @@ export type ProfileSettings = {
   lineupGender: LineupGender;
   shirtSize: ShirtSize;
   birthDate: string;
-  emergencyContactName: string;
-  emergencyContactPhone: string;
 };
 
 export const PROFILE_FIELDS = [
@@ -42,8 +42,6 @@ export const PROFILE_FIELDS = [
   "lineupGender",
   "shirtSize",
   "birthDate",
-  "emergencyContactName",
-  "emergencyContactPhone",
 ] as const;
 export type ProfileField = (typeof PROFILE_FIELDS)[number];
 export type ProfileForm = Record<ProfileField, string>;
@@ -95,7 +93,10 @@ const validDate = (value: string) =>
   /^\d{4}-\d{2}-\d{2}$/.test(value) &&
   new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) === value;
 
-/** Checks the profile form; every field is needed before registration. */
+/**
+ * Checks the profile form; every field is needed before registration, and
+ * so is a saved emergency contact (`readyToRegister`).
+ */
 export function parseProfileForm(
   form: ProfileForm,
   today: string,
@@ -127,24 +128,13 @@ export function parseProfileForm(
   else if (!isAtLeast(MINIMUM_AGE, f.birthDate, today))
     errors.birthDate = `Players must be ${MINIMUM_AGE} or older.`;
 
-  if (f.emergencyContactName === "" || f.emergencyContactName.length > 120)
-    errors.emergencyContactName = "Enter who we should call.";
-  const emergency = normalizePhone(f.emergencyContactPhone);
-  if (!emergency)
-    errors.emergencyContactPhone =
-      "Enter a phone number, such as (718) 555-0123.";
-  else if (emergency === phone)
-    errors.emergencyContactPhone =
-      "Use someone else's number, so we can reach them if you are hurt.";
-
   // Every null below has an error above; the checks narrow the types.
   if (
     Object.keys(errors).length > 0 ||
     !phone ||
     !gender ||
     !lineup ||
-    !shirtSize ||
-    !emergency
+    !shirtSize
   )
     return { ok: false, errors };
   return {
@@ -157,8 +147,6 @@ export function parseProfileForm(
       lineupGender: lineup,
       shirtSize,
       birthDate: f.birthDate,
-      emergencyContactName: f.emergencyContactName,
-      emergencyContactPhone: emergency,
     },
   };
 }
@@ -175,9 +163,21 @@ export function toProfileForm(p: {
     lineupGender: p.lineupGender ?? "",
     shirtSize: p.shirtSize ?? "",
     birthDate: p.birthDate ?? "",
-    emergencyContactName: p.emergencyContactName ?? "",
-    emergencyContactPhone: p.emergencyContactPhone
-      ? formatPhone(p.emergencyContactPhone)
-      : "",
   };
+}
+
+/**
+ * Whether a person's profile is complete enough to register: every profile
+ * field valid, and an emergency contact saved.
+ */
+export function readyToRegister(
+  person: {
+    [K in keyof ProfileSettings]: ProfileSettings[K] | null;
+  } & { hasEmergencyContact: boolean },
+  today: string,
+): boolean {
+  return (
+    person.hasEmergencyContact &&
+    parseProfileForm(toProfileForm(person), today).ok
+  );
 }
