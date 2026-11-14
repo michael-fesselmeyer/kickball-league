@@ -54,8 +54,24 @@ describe("describeChange", () => {
     ).toEqual([
       "disabled: none → subs, weather",
       "role: player → none",
-      "extra: none → (details)",
+      "extra: (details)",
     ]);
+  });
+
+  it("leaves out internal ids, and reads added counts and camelCase keys as words", () => {
+    // What publishing a schedule records: the old version's id, then counts.
+    expect(
+      describeChange(
+        { publishedVersionId: "d56ce4f4-291a-4b71-ac97-0cee79403f02" },
+        { added: 36, moved: 0, teamsAffected: 9 },
+      ),
+    ).toEqual(["added: 36", "moved: 0", "teams affected: 9"]);
+    expect(
+      describeChange(
+        { captain: "d3e30000-0000-4000-8000-000000000002" },
+        { captain: "d3e30000-0000-4000-8000-000000000001" },
+      ),
+    ).toEqual([]);
   });
 
   it("makes no comparison without two records", () => {
