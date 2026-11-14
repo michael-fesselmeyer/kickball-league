@@ -20,6 +20,7 @@ import {
   mergeAccounts,
   mergePreview,
 } from "./account-merge";
+import { deleteAccount } from "./account";
 import { grantGoodwill } from "./credit";
 import { required } from "./rows";
 import type { Db } from "./schedule";
@@ -381,6 +382,10 @@ describe("merging duplicate accounts", () => {
         kind: "already_merged",
         which: "merged",
       });
+
+      // Deleting the kept account later ends the alias too.
+      expect((await deleteAccount(db, keptId, NOW)).ok).toBe(true);
+      expect(await canonicalEmail(db, d.dup.email)).toBeNull();
     });
   });
 
