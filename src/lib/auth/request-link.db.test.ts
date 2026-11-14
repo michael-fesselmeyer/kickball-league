@@ -1,11 +1,18 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins/magic-link";
+import { eq, like } from "drizzle-orm";
+import { createHash } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import * as schema from "@/db/schema";
+import { verification } from "@/db/schema/auth";
 import { closePool, inRolledBackDb } from "@/db/test/transaction";
 import type { Db } from "@/db/queries/schedule";
-import { RATE_LIMIT, SIGN_IN_LINKS_PER_IP } from "./config";
+import {
+  MAGIC_LINK_STORE_TOKEN,
+  RATE_LIMIT,
+  SIGN_IN_LINKS_PER_IP,
+} from "./config";
 import { withinInboxLimit } from "./magic-link";
 import { requestSignInLink } from "./request-link";
 
@@ -14,7 +21,7 @@ afterAll(closePool);
 const BASE = "http://localhost:3000";
 
 /** The site's sign-in setup, with limits on as in production. */
-const instance = (db: Db, sent: string[]) =>
+const instance = (db: Db, sent: string[], tokens: string[] = []) =>
   betterAuth({
     baseURL: BASE,
     // A placeholder of the required length, not a real value.
@@ -28,8 +35,11 @@ const instance = (db: Db, sent: string[]) =>
     rateLimit: { ...RATE_LIMIT, enabled: true },
     plugins: [
       magicLink({
-        sendMagicLink: withinInboxLimit(db, async ({ email }) => {
+        storeToken: MAGIC_LINK_STORE_TOKEN,
+        sendMagicLink: withinInboxLimit(db, async ({ email, url }) => {
           sent.push(email);
+          const token = new URL(url).searchParams.get("token");
+          if (token) tokens.push(token);
         }),
       }),
     ],
@@ -100,6 +110,41 @@ describe("requestSignInLink", () => {
       });
       expect(outcome).toBe("failed");
       expect(sent).toEqual([]);
+    });
+  });
+
+  it("stores only a hash of the link's token, so a copy of the database signs nobody in", async () => {
+    await inRolledBackDb(async (db) => {
+      const sent: string[] = [];
+      const tokens: string[] = [];
+      const auth = instance(db, sent, tokens);
+      expect(await ask(auth, "203.0.113.23", inbox(7))).toBe("sent");
+      const [token] = tokens;
+      if (!token) throw new Error("no link was sent");
+      const hashed = createHash("sha256").update(token).digest("base64url");
+      const rows = await db
+        .select({ identifier: verification.identifier })
+        .from(verification)
+        .where(like(verification.identifier, "magic-link:%"));
+      const ids = rows.map((r) => r.identifier);
+      expect(ids).toContain(`magic-link:${hashed}`);
+      expect(ids).not.toContain(`magic-link:${token}`);
+      // The emailed link still signs in, once.
+      const verify = (t: string) =>
+        auth.handler(
+          new Request(
+            `${BASE}/api/auth/magic-link/verify?token=${t}&callbackURL=/app`,
+            { headers: { "x-forwarded-for": "203.0.113.23" } },
+          ),
+        );
+      const used = await verify(token);
+      expect(used.headers.get("location")).toBe(`${BASE}/app`);
+      expect(
+        await db
+          .select({ id: verification.id })
+          .from(verification)
+          .where(eq(verification.identifier, `magic-link:${hashed}`)),
+      ).toEqual([]);
     });
   });
 });
