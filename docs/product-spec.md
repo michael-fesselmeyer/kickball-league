@@ -38,6 +38,7 @@ It replaces brooklynkickballclub.com, which today offers account registration, a
 | Regular-season games can end in a tie; playoff games cannot | Rulebook 3.1.2 |
 | A game called after 4 complete innings counts, with the score at the last complete inning | Rulebook 3.1.5 |
 | Players must be 18+, registered, on a team, and must have signed the "Amateur Athletic and Release of Liability" | Rulebook 2.1 |
+| The app's minimum age is a league setting, 21 by default, and a season can set its own (never below the rulebook's 18). Players confirm it to register and to sign the waiver ([ADR 0041](adr/0041-age-check-at-registration.md)) | Owner of this project |
 | On defense: at most 11 fielders and at most 6 of any gender. Short-handed options: 9 (4 and 5) or 7 (4 and 3). Fewer than 7 is a forfeit | Rulebook 2.3 |
 | Kicking order: no more than 2 players of the same gender in a row | Rulebook 2.2.4 |
 | Short teams may pick up other registered players, who kick last. Not allowed in playoffs. A team needs at least 6 of its own players for the game to count | Rulebook 2.1.4, 2.1.6.1, 2.7 |

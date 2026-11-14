@@ -15,7 +15,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       ├── standings               Standings (a table per division when the season has divisions), tiebreaker notes, power rankings and the game of the week
 │       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list, served as /bracket/list)
 │       ├── money                   Where the money goes: the season's spending by category and how each fee divides, only once an owner publishes it (404 until then)
-│       └── register                Register a team, join by invite, or free agent
+│       └── register                Register a team, join by invite, or free agent; each asks the player to confirm the season's minimum age
 ├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries, all-time record and titles, tagged Instagram photos and the team's cover, and players' approved photos with a link to share one
 │   ├── calendar.ics                Team calendar feed: every published game, in the league's time zone
 │   └── share.png                   Team share image: record, place, last five results
@@ -77,7 +77,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
 ├── seasons/[season]/team/requests  Captain: dates the team can't play and times it would rather have or avoid, until registration closes
 ├── seasons/[season]/new-team       Ask the league to start a new team; see the answer or withdraw while it waits
-├── seasons/[season]/register       Register a team or join as a free agent; when the season is full, the team waitlist: join, see your place, leave, or take a held spot
+├── seasons/[season]/register       Register a team or join as a free agent, confirming the season's minimum age ("I'm 21 or older"); a player the profile shows as too young sees why instead of the forms; when the season is full, the team waitlist: join, see your place, leave, or take a held spot
 ├── seasons/[season]/team (challenge) The season's sign-up challenge on the team page: "9 of 12 signed up", a bar, the prize and a link to the leaderboard
 ├── seasons/[season]/challenge      The sign-up challenge leaderboard: teams by the share of their roster with an account and a signed waiver (team names and counts only), my team marked, the winner once confirmed
 ├── seasons/[season]/team (fee)     Split-pay captains: the team fee, what is paid and left, pay the rest, and the card that guarantees it
@@ -108,7 +108,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       └── report                  Weekly numbers: check-ins, players, teams and deals used by week
 └── admin/
     ├── (dashboard)                 Next game day: weather, games, missing scores, alerts; sign-up rate per team, lowest first, with how many players each still needs
-    ├── seasons/[season]/           Setup, pricing, divisions, rule set, waiver
+    ├── seasons/[season]/           Setup, pricing, divisions, rule set, waiver, and the season's own minimum age (empty uses the league's 21)
     │   ├── registrations           Teams, players, payments, waivers, full or partial refunds; roster and payment CSV downloads
     │   ├── promo-codes             The season's promo codes: add one, see its uses, turn it off
     │   ├── waitlist                The team waitlist in order: who waits, who holds an offer and until when; offer free spots now
