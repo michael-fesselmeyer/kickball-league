@@ -48,13 +48,15 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── media/instagram/[image]         Our copy of a featured Instagram photo (404 once hidden)
 ├── media/friends/[logo]            A friend league's logo, as stored (404 once removed or replaced)
 ├── media/photos/[photo]            A member's approved photo (404 while waiting, once rejected or deleted)
+├── (not found)                     Any address that doesn't exist, and pages a visitor may not see: "We can't find that page" with links on, never saying which
+├── (error)                         A page that fails to load: not the player's fault, "Try again", a way home and the error code for the league's logs
 ├── offline                         Shown by the service worker when a page needs the network; links the saved next game
 ├── paused                          Neutral notice while the site is paused or read-only (operator setting)
 └── sign-in, sign-up                Email link, passkey (button and email-field autofill) or Google
 
 /operator                           Platform operator console (404 for everyone else): owners and admins, site status, feature switches, league export
 
-/app                                Signed-in home: next game, RSVP, what you owe, alerts, and any giveaway you won
+/app                                Signed-in home: next game, links to your team and its schedule, RSVP, what you owe, alerts, and any giveaway you won
 ├── account                         Profile, weeks you'll miss for each season still to come, email, push and message-limit settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON

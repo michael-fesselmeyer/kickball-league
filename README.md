@@ -136,6 +136,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 - Players' approved photos on the team, event and game pages they were tagged to, with a link to share one.
 - Home, About, FAQ and a park page, with a generated sitemap, robots file and structured data for the league, teams and games.
 - Search landing pages: a city-wide page with subway routes and rough travel times from every borough, a free-agent page that explains joining without a team, and a "how to play kickball" guide. Each carries its own metadata and structured data (league, FAQ and article) and is linked from the home page and the sitemap.
+- Built for phones and keyboards alike: a skip link on every page, fields and buttons at least 44px tall, loading states that hold their space, a friendly page-not-found and error page with a way on, and forms that can't be sent twice by a double tap. A signed-in player's home shows their next game and links to their team and its schedule.
 - Sharing to WhatsApp: every game and team has a generated share image (1200 × 630, in the league's colors) for link previews, with the score on a final. One tap on a game or team page opens WhatsApp with a ready-made message and the link; a second button opens the phone's share sheet or copies the message. Admins can copy a rain-out notice, with every makeup, and any sent announcement as one message for the group chat.
 
 **Demo mode**
