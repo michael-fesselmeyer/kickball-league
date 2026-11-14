@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { completeProfile, pageAs } from "../support/personas";
+import { confirmAge } from "../support/season";
 import {
   moveDeadline,
   openCheckoutSession,
@@ -85,6 +86,7 @@ test("a captain registers a team with split pay and reaches Checkout", async ({
   await expect(
     team.getByRole("radio", { name: /^Split it: everyone pays a fixed \$80 / }),
   ).toBeChecked();
+  await confirmAge(team);
   await team.getByRole("button", { name: "Register the team" }).click();
 
   await expect(page).toHaveURL(
@@ -102,6 +104,7 @@ test("a captain registers a team with split pay and reaches Checkout", async ({
     .getByLabel("I have read the whole waiver and I agree to it.")
     .check();
   await page.getByLabel("Type your full name to sign").fill("Casey Captain");
+  await confirmAge(page);
   await expectNoAxeViolations(page);
   await page.getByRole("button", { name: "Sign the waiver" }).click();
   await expect(page.getByRole("status")).toContainText("Signed.");
@@ -194,6 +197,7 @@ test("a player joins the season as a free agent", async ({ browser }) => {
   await page.goto(`/app/seasons/${SEASON_SLUG}/register`);
   const freeAgent = page.getByRole("region", { name: "Or join on your own" });
   await expect(freeAgent.getByText("It costs $75.")).toBeVisible();
+  await confirmAge(freeAgent);
   await freeAgent.getByRole("button", { name: "Join as a free agent" }).click();
 
   await expect(page).toHaveURL(
@@ -217,6 +221,7 @@ test("the free agent signs, pays with a promo code and is confirmed by Stripe", 
     .getByLabel("I have read the whole waiver and I agree to it.")
     .check();
   await page.getByLabel("Type your full name to sign").fill("Pat Player");
+  await confirmAge(page);
   await page.getByRole("button", { name: "Sign the waiver" }).click();
   await expect(page.getByRole("status")).toContainText("Signed.");
 
@@ -434,6 +439,7 @@ test("a full season sends the next captain to the waitlist, then offers a spot",
   const second = admin.getByRole("region", { name: "Register a team" });
   await second.getByLabel("Team name").fill("Front Office");
   await second.getByLabel("Expected roster size").fill("12");
+  await confirmAge(second);
   await second.getByRole("button", { name: "Register the team" }).click();
   await expect(admin).toHaveURL(/\?registered=team/);
   const setLimit = async (teams: string) => {
