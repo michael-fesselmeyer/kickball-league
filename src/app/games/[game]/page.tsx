@@ -38,6 +38,16 @@ import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { publicGameParams } from "@/lib/static-params";
 
 /**
+ * The page reads its game id outside any <Suspense> boundary, so it has no
+ * generic fallback shell: a game the build didn't list, or one whose page
+ * was just expired, is rendered in full before it is served, then kept.
+ * It can't be `ensureStatic = "navigation"`, which would also check this,
+ * because the forecast and the photo prompt read the feature switches and
+ * the clock per request.
+ */
+export const instant = false;
+
+/**
  * The games of seasons still being played are prerendered at build time;
  * any other game is rendered in full on its first visit and kept.
  */
@@ -193,14 +203,16 @@ async function Game({ params }: PageProps<"/games/[game]">) {
         {result && <p className="text-center text-body-lg">{result}</p>}
       </header>
 
-      {snapshot &&
-        (snapshot.closed || !game.startsAt ? (
-          <LiveLine
-            teamA={game.teamA.name}
-            teamB={game.teamB.name}
-            snapshot={snapshot}
-          />
-        ) : (
+      {snapshot && (snapshot.closed || !game.startsAt) ? (
+        <LiveLine
+          teamA={game.teamA.name}
+          teamB={game.teamB.name}
+          snapshot={snapshot}
+        />
+      ) : (
+        game.startsAt &&
+        (snapshot || (!done && !calledOff)) && (
+          // Also before the first half: this copy of the page may predate it.
           <LiveScore
             gameId={game.id}
             teamA={game.teamA.name}
@@ -208,7 +220,8 @@ async function Game({ params }: PageProps<"/games/[game]">) {
             initial={snapshot}
             {...pollWindow(game.startsAt, game.endsAt)}
           />
-        ))}
+        )
+      )}
 
       <dl className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1 rounded-card border border-border bg-surface p-4">
