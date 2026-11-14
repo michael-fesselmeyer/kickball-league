@@ -12,6 +12,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type {
+  LeagueId,
   CreditEntryId,
   PurchaseId,
   ReferralId,
@@ -22,6 +23,7 @@ import type {
   UserId,
 } from "@/domain/ids";
 import { user } from "./auth";
+import { league } from "./league";
 import { purchase } from "./money";
 import { season } from "./season";
 import { registration, teamSeason } from "./team";
@@ -139,6 +141,11 @@ export const creditEntry = pgTable(
       .notNull()
       .$type<UserId>()
       .references(() => user.id, { onDelete: "restrict" }),
+    /** Credit is the league's own: it pays only that league's fees (ADR 0048). */
+    leagueId: uuid()
+      .notNull()
+      .$type<LeagueId>()
+      .references(() => league.id, { onDelete: "restrict" }),
     /** Positive grants credit; negative spends it. */
     deltaCents: integer().notNull(),
     reason: creditReason().notNull(),
@@ -159,7 +166,7 @@ export const creditEntry = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index("credit_entry_user_idx").on(t.userId, t.createdAt),
+    index("credit_entry_user_idx").on(t.userId, t.leagueId, t.createdAt),
     // A checkout spends once and gives back at most once.
     uniqueIndex("credit_entry_purchase_reason_once")
       .on(t.purchaseId, t.reason)

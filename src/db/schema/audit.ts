@@ -9,8 +9,9 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
-import type { AuditLogId, UserId } from "@/domain/ids";
+import type { AuditLogId, LeagueId, UserId } from "@/domain/ids";
 import { user } from "./auth";
+import { league } from "./league";
 
 /**
  * Who changed what, with before and after, for every admin and captain
@@ -24,6 +25,11 @@ export const auditLog = pgTable(
     actorId: uuid()
       .$type<UserId>()
       .references(() => user.id, { onDelete: "set null" }),
+    /** Whose audit log this is: each league's owners read only their own (ADR 0048). */
+    leagueId: uuid()
+      .notNull()
+      .$type<LeagueId>()
+      .references(() => league.id, { onDelete: "cascade" }),
     /** For example schedule.publish or payment.refund. */
     action: text().notNull(),
     entityType: text().notNull(),
@@ -40,6 +46,7 @@ export const auditLog = pgTable(
       t.occurredAt.desc(),
     ),
     index("audit_log_actor_idx").on(t.actorId, t.occurredAt.desc()),
+    index("audit_log_league_idx").on(t.leagueId, t.occurredAt.desc()),
     check("audit_log_action_format", sql`${t.action} ~ '^[a-z_]+\\.[a-z_]+$'`),
   ],
 );

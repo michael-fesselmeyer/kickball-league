@@ -12,6 +12,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type {
+  LeagueId,
   PaymentId,
   PromoCodeId,
   PurchaseId,
@@ -24,6 +25,7 @@ import type {
   WebhookEventId,
 } from "@/domain/ids";
 import { user } from "./auth";
+import { league } from "./league";
 import { season } from "./season";
 import { registration, teamSeason } from "./team";
 
@@ -92,6 +94,11 @@ export const purchase = pgTable(
       .notNull()
       .$type<UserId>()
       .references(() => user.id, { onDelete: "restrict" }),
+    /** The league the money is for (ADR 0048). Tickets and merch have no season. */
+    leagueId: uuid()
+      .notNull()
+      .$type<LeagueId>()
+      .references(() => league.id, { onDelete: "restrict" }),
     seasonId: uuid()
       .$type<SeasonId>()
       .references(() => season.id, { onDelete: "restrict" }),
@@ -119,6 +126,7 @@ export const purchase = pgTable(
     unique("purchase_checkout_session_unique").on(t.stripeCheckoutSessionId),
     unique("purchase_payment_intent_unique").on(t.stripePaymentIntentId),
     index("purchase_user_idx").on(t.userId),
+    index("purchase_league_idx").on(t.leagueId, t.createdAt),
     index("purchase_promo_code_idx").on(t.promoCodeId),
     check(
       "purchase_amounts",
