@@ -1,11 +1,21 @@
 import type { Metric, Metrics } from "@/domain/scheduler/measure";
 
+/** "2027-04-19" as the rest of the screen writes a day: "Mon, Apr 19". */
+const day = (iso: string) =>
+  new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${iso}T12:00:00Z`));
+
 /**
- * The scheduler names games by key (`r3:<team id>:<team id>`) and teams by
- * id; this shows team names instead.
+ * The scheduler names games by key (`r3:<team id>:<team id>`), teams by id
+ * and days as ISO dates; this shows team names and days as people write them.
  */
 export function readable(note: string, teams: ReadonlyMap<string, string>) {
   return note
+    .replace(/\b(\d{4}-\d{2}-\d{2})\b/g, (_, iso: string) => day(iso))
     .replace(
       /r(\d+):([0-9a-f-]{36}):([0-9a-f-]{36})/g,
       (key, round: string, a: string, b: string) =>
