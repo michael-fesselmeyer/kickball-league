@@ -17,6 +17,7 @@ import {
   setOwnGamesAllowed,
 } from "./pickem";
 import type { Db } from "./schedule";
+import { newestLeague } from "../test/leagues";
 
 afterAll(closePool);
 
@@ -181,7 +182,7 @@ describe("saving picks", () => {
     await inRolledBackDb(async (db) => {
       const w = await pickemWorld(db);
       const captain = w.aces.captain;
-      expect(await ownGamesAllowed(db)).toBe(true);
+      expect(await ownGamesAllowed(db, await newestLeague(db))).toBe(true);
       expect(
         (await pick(db, captain, [[w.games.nextAB, w.aces.id]])).saved,
       ).toBe(1);
@@ -191,7 +192,7 @@ describe("saving picks", () => {
         on: false,
         actorId: captain.userId,
       });
-      expect(await ownGamesAllowed(db)).toBe(false);
+      expect(await ownGamesAllowed(db, await newestLeague(db))).toBe(false);
       const result = await pick(db, captain, [
         [w.games.nextAB, w.bees.id],
         [w.games.nextCD, w.cats],
@@ -222,7 +223,13 @@ describe("saving picks", () => {
         },
       ]);
 
-      const page = await pickemPage(db, captain.userId, NOW, null);
+      const page = await pickemPage(
+        db,
+        await newestLeague(db),
+        captain.userId,
+        NOW,
+        null,
+      );
       expect(page.ownGamesAllowed).toBe(false);
       expect(page.coming?.games.map((g) => [g.mine, g.myPick])).toEqual([
         [true, w.aces.id],
@@ -237,7 +244,13 @@ describe("the pick'em page", () => {
     await inRolledBackDb(async (db) => {
       const w = await pickemWorld(db);
       await pick(db, w.ana, [[w.games.nextCD, w.dogs]]);
-      const page = await pickemPage(db, w.ana.userId, NOW, null);
+      const page = await pickemPage(
+        db,
+        await newestLeague(db),
+        w.ana.userId,
+        NOW,
+        null,
+      );
       expect(page.season?.name).toBe("Fall 2026");
       expect(page.coming?.day).toBe("2026-10-12");
       expect(
@@ -248,7 +261,13 @@ describe("the pick'em page", () => {
       ]);
       // After the first game starts, the day stays with that game locked.
       const between = new Date(NEXT_MONDAY.getTime() - 1_800_000);
-      const later = await pickemPage(db, w.ana.userId, between, null);
+      const later = await pickemPage(
+        db,
+        await newestLeague(db),
+        w.ana.userId,
+        between,
+        null,
+      );
       expect(later.coming?.games.map((g) => g.locked)).toEqual([true, false]);
     });
   });
@@ -271,7 +290,13 @@ describe("the pick'em page", () => {
         .update(game)
         .set({ slotId: makeup.slotId })
         .where(eq(game.id, w.games.nextAB.gameId));
-      const page = await pickemPage(db, w.ana.userId, NOW, null);
+      const page = await pickemPage(
+        db,
+        await newestLeague(db),
+        w.ana.userId,
+        NOW,
+        null,
+      );
       const moved = page.coming?.games.find(
         (g) => g.id === w.games.nextAB.gameId,
       );
@@ -325,7 +350,13 @@ describe("leaderboards", () => {
   it("ranks the season by right picks, ties sharing a place, voids counting for nobody", async () => {
     await inRolledBackDb(async (db) => {
       const w = await scoredWorld(db);
-      const page = await pickemPage(db, w.ana.userId, NOW, null);
+      const page = await pickemPage(
+        db,
+        await newestLeague(db),
+        w.ana.userId,
+        NOW,
+        null,
+      );
       expect(board(page.seasonBoard)).toEqual([
         [1, "Ana A.", 2],
         [2, "Robin E.", 1],
@@ -341,14 +372,26 @@ describe("leaderboards", () => {
   it("ranks one game day at a time, the latest by default", async () => {
     await inRolledBackDb(async (db) => {
       const w = await scoredWorld(db);
-      const latest = await pickemPage(db, w.bo.userId, NOW, null);
+      const latest = await pickemPage(
+        db,
+        await newestLeague(db),
+        w.bo.userId,
+        NOW,
+        null,
+      );
       expect(latest.day).toBe("2026-10-05");
       expect(board(latest.dayBoard)).toEqual([
         [1, "Ana A.", 1],
         [1, "Cy G.", 1],
         [3, "Bo B.", 0],
       ]);
-      const first = await pickemPage(db, w.bo.userId, NOW, "2026-09-28");
+      const first = await pickemPage(
+        db,
+        await newestLeague(db),
+        w.bo.userId,
+        NOW,
+        "2026-09-28",
+      );
       expect(board(first.dayBoard)).toEqual([
         [1, "Ana A.", 1],
         [1, "Bo B.", 1],
@@ -356,9 +399,17 @@ describe("leaderboards", () => {
         [4, "Cy G.", 0],
       ]);
       // A day with nothing scored falls back to the latest.
-      expect((await pickemPage(db, w.bo.userId, NOW, "2026-10-12")).day).toBe(
-        "2026-10-05",
-      );
+      expect(
+        (
+          await pickemPage(
+            db,
+            await newestLeague(db),
+            w.bo.userId,
+            NOW,
+            "2026-10-12",
+          )
+        ).day,
+      ).toBe("2026-10-05");
     });
   });
 
@@ -367,14 +418,21 @@ describe("leaderboards", () => {
       const w = await scoredWorld(db);
       await setHidden(db, w.ana.userId, true);
       await setHidden(db, w.ana.userId, true);
-      const page = await pickemPage(db, w.ana.userId, NOW, null);
+      const page = await pickemPage(
+        db,
+        await newestLeague(db),
+        w.ana.userId,
+        NOW,
+        null,
+      );
       expect(page.hidden).toBe(true);
       expect(page.seasonBoard.map((r) => r.name)).not.toContain("Ana A.");
       expect(board(page.seasonBoard)[0]).toEqual([1, "Robin E.", 1]);
       expect(page.me.correct).toBe(2);
       await setHidden(db, w.ana.userId, false);
       expect(
-        (await pickemPage(db, w.ana.userId, NOW, null)).seasonBoard[0]?.name,
+        (await pickemPage(db, await newestLeague(db), w.ana.userId, NOW, null))
+          .seasonBoard[0]?.name,
       ).toBe("Ana A.");
     });
   });
@@ -392,7 +450,13 @@ describe("leaderboards", () => {
         .update(game)
         .set({ slotId: makeup.slotId })
         .where(eq(game.id, w.games.weekOneAB.gameId));
-      const page = await pickemPage(db, w.ana.userId, NOW, null);
+      const page = await pickemPage(
+        db,
+        await newestLeague(db),
+        w.ana.userId,
+        NOW,
+        null,
+      );
       expect(board(page.seasonBoard)).toEqual([
         [1, "Ana A.", 1],
         [1, "Cy G.", 1],

@@ -26,6 +26,7 @@ const PLATFORM_TABLES: Record<string, string> = {
   alert_setting: "a person's alert limits and quiet hours",
   push_subscription: "a person's phone",
   calendar_feed: "a person's private calendar link",
+  pickem_hidden: "a person's choice to stay off the pick'em leaderboards",
   referral_code: "a person's referral link",
   message: "a notice to one person, sent by the outbox",
   account_merge: "two accounts of one person merged by an admin",
