@@ -76,7 +76,7 @@ test.describe.serial("emergency contacts on game day", () => {
   test("a player who isn't a captain can't open it", async ({ browser }) => {
     const page = await pageSignedInAs(browser, DANA);
     await page.goto(`/app/games/${today.gameId}/emergency`);
-    await expect(page.getByText("This page could not be found.")).toBeVisible();
+    await expect(page.getByText("We can't find that page")).toBeVisible();
     await expect(page.getByText("Lee Example")).toHaveCount(0);
     await page.context().close();
   });

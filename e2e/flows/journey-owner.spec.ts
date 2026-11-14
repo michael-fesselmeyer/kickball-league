@@ -38,7 +38,7 @@ const admin: Member = {
 async function expectNotFound(page: Page, path: string) {
   await page.goto(path);
   await expect(
-    page.getByRole("heading", { name: "This page could not be found." }),
+    page.getByRole("heading", { name: "We can't find that page" }),
   ).toBeVisible();
 }
 

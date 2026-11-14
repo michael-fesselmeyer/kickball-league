@@ -70,7 +70,7 @@ test("the game-day screen and its numbers are for admins only", async ({
   const page = await pageAs(browser, "Captain");
   await page.goto(`/app/admin/today?date=${DAY}`);
   await expect(
-    page.getByRole("heading", { name: "This page could not be found." }),
+    page.getByRole("heading", { name: "We can't find that page" }),
   ).toBeVisible();
   const state = await page.request.get(
     `/app/admin/today/state.json?date=${DAY}`,

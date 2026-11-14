@@ -45,7 +45,7 @@ for (const path of [
   test(`${path} shows the not-found page`, async ({ page }) => {
     await page.goto(path);
     await expect(
-      page.getByRole("heading", { name: "This page could not be found." }),
+      page.getByRole("heading", { name: "We can't find that page" }),
     ).toBeVisible();
   });
 }
