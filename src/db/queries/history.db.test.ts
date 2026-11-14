@@ -188,6 +188,7 @@ describe("leagueHistory", () => {
       expect(await leagueHistory(db, (lg as { id: LeagueId }).id)).toEqual({
         pastSeasons: [],
         allTime: [],
+        seasonIds: [],
       });
     });
   });

@@ -19,11 +19,19 @@ describe("viewRewrite", () => {
     );
   });
 
+  it("turns the bracket's list view into a path segment", () => {
+    expect(rewrite("/seasons/fall-2026/bracket?view=list")).toBe(
+      "/seasons/fall-2026/bracket/list",
+    );
+  });
+
   it.each([
     "/seasons/fall-2026/schedule",
     "/seasons/fall-2026/schedule?team=",
     "/teams/the-big-kicks",
     "/teams/the-big-kicks?season=",
+    "/seasons/fall-2026/bracket",
+    "/seasons/fall-2026/bracket?view=board",
   ])("leaves the default view alone: %s", (url) => {
     expect(rewrite(url)).toBeNull();
   });

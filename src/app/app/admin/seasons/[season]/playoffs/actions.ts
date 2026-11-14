@@ -1,6 +1,7 @@
 "use server";
 
 import { notFound, redirect } from "next/navigation";
+import { refreshSeasonPages } from "@/lib/public-cache";
 import { db, txDb } from "@/db/client";
 import { createBracket, publishBracket } from "@/db/queries/playoffs";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
@@ -45,5 +46,7 @@ export async function publishDraftBracket(slug: string) {
   if (!season) notFound();
   const result = await publishBracket(txDb, season.id, subject.userId);
   if (!result.ok) redirect(`${page}?error=${result.error}`);
+  // The public bracket is cached; show the published one at once.
+  refreshSeasonPages(season.id);
   redirect(`${page}?published=1`);
 }

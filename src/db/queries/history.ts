@@ -11,6 +11,7 @@ import type { StandingsRow } from "@/domain/standings/standings";
 import { bracket } from "../schema/playoffs";
 import { season } from "../schema/season";
 import { teamSeason } from "../schema/team";
+import { required } from "./rows";
 import type { Db } from "./schedule";
 import { seasonStandings, type StandingsTeam } from "./standings";
 
@@ -71,8 +72,12 @@ async function seasonResults(db: Db, seasons: readonly SeasonInfo[]) {
         ).map((b) => [b.seasonId as string, b.championId]),
   );
   const results: (Omit<SeasonResult, "rows"> & { rows: StandingsRow[] })[] = [];
-  for (const s of seasons) {
-    const { rows, teams: entries } = await seasonStandings(db, s.id);
+  // Each season's standings are independent, so they load together.
+  const standings = await Promise.all(
+    seasons.map((s) => seasonStandings(db, s.id)),
+  );
+  for (const [i, s] of seasons.entries()) {
+    const { rows, teams: entries } = required(standings[i], "standings");
     const bySlug = rows.flatMap((r) => {
       const t = entries.get(r.teamId);
       if (!t) return [];
@@ -107,7 +112,12 @@ export type AllTimeRow = AllTimeRecord & { info: StandingsTeam | null };
 export async function leagueHistory(
   db: Db,
   leagueId: LeagueId,
-): Promise<{ pastSeasons: PastSeason[]; allTime: AllTimeRow[] }> {
+): Promise<{
+  pastSeasons: PastSeason[];
+  allTime: AllTimeRow[];
+  /** Every public season it covers, so a cached page can be tagged. */
+  seasonIds: SeasonId[];
+}> {
   const seasons = await db
     .select(SEASON_COLUMNS)
     .from(season)
@@ -130,6 +140,7 @@ export async function leagueHistory(
     ];
   });
   return {
+    seasonIds: seasons.map((s) => s.id),
     pastSeasons: pastSeasons.reverse(),
     allTime: allTimeRecords(results).map((r) => ({
       ...r,
