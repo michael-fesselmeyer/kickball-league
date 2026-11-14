@@ -859,6 +859,13 @@ export async function deleteAccount(
       ),
     );
   await db.delete(referralCode).where(eq(referralCode.userId, userId));
+  // Addresses merged into this account stop being aliases.
+  await db
+    .update(accountMerge)
+    .set({
+      mergedEmail: sql`'merged-' || ${accountMerge.mergedUserId} || '@deleted.invalid'`,
+    })
+    .where(eq(accountMerge.keptUserId, userId));
   await db.delete(profile).where(eq(profile.userId, userId));
   await db
     .update(user)
