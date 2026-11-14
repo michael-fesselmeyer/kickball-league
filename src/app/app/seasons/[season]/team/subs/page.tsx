@@ -29,6 +29,7 @@ import {
 } from "./actions";
 import { requireFeature } from "@/lib/platform/site";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Find subs" };
 
@@ -137,9 +138,9 @@ function RequestCard({
                       "approved",
                     )}
                   >
-                    <button type="submit" className="btn btn-primary">
+                    <SubmitButton className="btn btn-primary">
                       Approve<span className="sr-only"> {c.name}</span>
-                    </button>
+                    </SubmitButton>
                   </form>
                   <form
                     action={decideClaimAction.bind(
@@ -149,9 +150,9 @@ function RequestCard({
                       "declined",
                     )}
                   >
-                    <button type="submit" className="btn btn-secondary">
+                    <SubmitButton className="btn btn-secondary">
                       Decline<span className="sr-only"> {c.name}</span>
-                    </button>
+                    </SubmitButton>
                   </form>
                 </span>
               )}
@@ -160,12 +161,9 @@ function RequestCard({
         </ul>
       )}
       <form action={cancelRequestAction.bind(null, slug, request.id)}>
-        <button
-          type="submit"
-          className="inline-flex min-h-11 items-center underline"
-        >
+        <SubmitButton className="inline-flex min-h-11 items-center underline">
           Take this request down<span className="sr-only">: {label}</span>
-        </button>
+        </SubmitButton>
       </form>
     </li>
   );
@@ -364,9 +362,9 @@ async function TeamSubs({
                   className="min-h-11 rounded-input border border-border-strong bg-surface px-3 py-2"
                 />
               </label>
-              <button type="submit" className="btn self-start btn-primary">
+              <SubmitButton className="btn self-start btn-primary">
                 Post and email players
-              </button>
+              </SubmitButton>
             </form>
           )}
         </section>

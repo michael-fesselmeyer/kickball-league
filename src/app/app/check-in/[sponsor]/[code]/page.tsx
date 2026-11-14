@@ -10,6 +10,7 @@ import { isCurrentCheckinCode } from "@/domain/sponsors/checkin-code";
 import { requirePermission } from "@/lib/auth/permission";
 import { checkInAction } from "../../actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Check in" };
 
@@ -72,9 +73,7 @@ async function CheckIn({ params, searchParams }: Props) {
         </p>
       </div>
       <form action={checkInAction.bind(null, slug, code)}>
-        <button type="submit" className="btn w-full btn-primary">
-          Check in
-        </button>
+        <SubmitButton className="btn w-full btn-primary">Check in</SubmitButton>
       </form>
     </>
   );

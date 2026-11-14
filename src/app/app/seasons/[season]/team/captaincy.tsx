@@ -1,4 +1,5 @@
 import type { Captaincy } from "@/db/queries/captaincy";
+import { SubmitButton } from "@/components/submit-button";
 
 type Action = (form: FormData) => Promise<void>;
 
@@ -90,14 +91,12 @@ export function CaptaincyOffer({
       </p>
       <div className="flex flex-wrap gap-3">
         <form action={accept}>
-          <button type="submit" className="btn btn-primary">
+          <SubmitButton className="btn btn-primary">
             Become captain
-          </button>
+          </SubmitButton>
         </form>
         <form action={decline}>
-          <button type="submit" className="btn btn-secondary">
-            No thanks
-          </button>
+          <SubmitButton className="btn btn-secondary">No thanks</SubmitButton>
         </form>
       </div>
     </section>
@@ -173,15 +172,12 @@ export function CaptaincyPanel({
                   m.role === "co_captain" ? "player" : "co_captain",
                 )}
               >
-                <button
-                  type="submit"
-                  className="inline-flex min-h-11 items-center underline"
-                >
+                <SubmitButton className="inline-flex min-h-11 items-center underline">
                   {m.role === "co_captain"
                     ? "Make a player"
                     : "Make co-captain"}
                   <span className="sr-only"> for {m.name}</span>
-                </button>
+                </SubmitButton>
               </form>
             )}
             {!manage &&
@@ -189,12 +185,9 @@ export function CaptaincyPanel({
               m.userId === viewerId &&
               m.role === "co_captain" && (
                 <form action={stepDown}>
-                  <button
-                    type="submit"
-                    className="inline-flex min-h-11 items-center underline"
-                  >
+                  <SubmitButton className="inline-flex min-h-11 items-center underline">
                     Step down as co-captain
-                  </button>
+                  </SubmitButton>
                 </form>
               )}
           </li>
@@ -209,12 +202,9 @@ export function CaptaincyPanel({
               {pending.fromName} stays captain until then.
             </p>
             <form action={cancel}>
-              <button
-                type="submit"
-                className="inline-flex min-h-11 items-center underline"
-              >
+              <SubmitButton className="inline-flex min-h-11 items-center underline">
                 Withdraw the offer
-              </button>
+              </SubmitButton>
             </form>
           </div>
         ) : teammates.length > 0 ? (
@@ -236,9 +226,9 @@ export function CaptaincyPanel({
               They have to accept. Until they do, nothing changes; then the
               current captain stays on as a co-captain.
             </p>
-            <button type="submit" className="btn self-start btn-secondary">
+            <SubmitButton className="btn self-start btn-secondary">
               Offer the captaincy
-            </button>
+            </SubmitButton>
           </form>
         ) : null)}
     </section>

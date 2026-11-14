@@ -6,6 +6,7 @@ import { safeNextPath } from "@/lib/safe-next";
 import { signInWithGoogle } from "./actions";
 import { PasskeySignIn } from "./passkey-sign-in";
 import { SignInForm } from "./sign-in-form";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -51,9 +52,9 @@ function GoogleSignIn({ next }: { next: string }) {
   return (
     <form action={signInWithGoogle} className="flex flex-col gap-3">
       <input type="hidden" name="next" value={next} />
-      <button type="submit" className="btn btn-secondary">
+      <SubmitButton className="btn btn-secondary">
         Continue with Google
-      </button>
+      </SubmitButton>
     </form>
   );
 }

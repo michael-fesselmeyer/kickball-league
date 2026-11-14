@@ -22,6 +22,7 @@ import {
   setSiteStatusAction,
 } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 // No title: the page must not hint that it exists to anyone else.
 export const metadata: Metadata = { robots: { index: false } };
@@ -133,12 +134,9 @@ async function Console({ searchParams }: PageProps<"/operator">) {
                   </span>
                 </label>
               ))}
-              <button
-                type="submit"
-                className="min-h-11 self-start rounded-full border-2 border-text px-5 font-semibold"
-              >
+              <SubmitButton className="min-h-11 self-start rounded-full border-2 border-text px-5 font-semibold">
                 Save status
-              </button>
+              </SubmitButton>
             </fieldset>
           </form>
         </section>
@@ -167,8 +165,7 @@ async function Console({ searchParams }: PageProps<"/operator">) {
                       name="on"
                       value={on ? "false" : "true"}
                     />
-                    <button
-                      type="submit"
+                    <SubmitButton
                       disabled={!fresh}
                       className="inline-flex min-h-11 items-center underline disabled:no-underline disabled:opacity-60"
                     >
@@ -177,7 +174,7 @@ async function Console({ searchParams }: PageProps<"/operator">) {
                         {" "}
                         {FEATURES[f].toLowerCase()}
                       </span>
-                    </button>
+                    </SubmitButton>
                   </form>
                 </li>
               );
@@ -230,12 +227,9 @@ async function Console({ searchParams }: PageProps<"/operator">) {
                 <option value="owner">Owner</option>
               </select>
             </label>
-            <button
-              type="submit"
-              className="min-h-11 self-start rounded-full border-2 border-text px-5 font-semibold"
-            >
+            <SubmitButton className="min-h-11 self-start rounded-full border-2 border-text px-5 font-semibold">
               Save role
-            </button>
+            </SubmitButton>
           </fieldset>
         </form>
       </section>

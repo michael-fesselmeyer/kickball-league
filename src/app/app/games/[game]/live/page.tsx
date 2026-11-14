@@ -17,6 +17,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { kicksFirstAction } from "./actions";
 import { Scoring } from "./scoring";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Live score" };
 
@@ -127,15 +128,14 @@ async function Live({
           </p>
           <div className="grid grid-cols-2 gap-3">
             {(["A", "B"] as const).map((side) => (
-              <button
+              <SubmitButton
                 key={side}
-                type="submit"
                 name="side"
                 value={side}
                 className="btn min-w-0 btn-primary"
               >
                 <span className="truncate">{names[side]}</span>
-              </button>
+              </SubmitButton>
             ))}
           </div>
         </form>

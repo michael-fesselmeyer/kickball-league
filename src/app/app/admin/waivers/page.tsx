@@ -13,6 +13,7 @@ import { desc, eq } from "drizzle-orm";
 import { assignWaiverAction } from "./actions";
 import { WaiverDraftForm } from "./draft-form";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Waivers" };
 
@@ -109,9 +110,7 @@ async function Waivers({ searchParams }: PageProps<"/app/admin/waivers">) {
                 ))}
               </select>
             </label>
-            <button type="submit" className="btn btn-secondary">
-              Save
-            </button>
+            <SubmitButton className="btn btn-secondary">Save</SubmitButton>
           </form>
         ))}
       </section>

@@ -1,6 +1,7 @@
 import { viewAs } from "@/app/demo/actions";
 import { demoStatus } from "@/lib/demo/guard";
 import { PERSONA_KEYS, PERSONAS } from "@/lib/demo/personas";
+import { SubmitButton } from "@/components/submit-button";
 
 /**
  * Shown on every page of the demo deployment, and nowhere else: says the
@@ -30,15 +31,14 @@ export function DemoBanner() {
           className="grid grid-cols-4 gap-2 md:flex md:shrink-0"
         >
           {PERSONA_KEYS.map((key) => (
-            <button
+            <SubmitButton
               key={key}
-              type="submit"
               name="persona"
               value={key}
               className="btn min-h-11 px-2 text-small btn-secondary md:px-4"
             >
               {PERSONAS[key].label}
-            </button>
+            </SubmitButton>
           ))}
         </form>
       </div>

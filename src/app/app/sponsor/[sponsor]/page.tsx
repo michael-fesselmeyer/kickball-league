@@ -28,6 +28,7 @@ import {
 } from "../actions";
 import { DealFields } from "./deal-fields";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Sponsor page" };
 
@@ -148,9 +149,9 @@ async function Portal({ params, searchParams }: Props) {
               {oldest && <> (oldest: {day.format(oldest)})</>}. Same as last
               week?
             </p>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Yes, all still current
-            </button>
+            </SubmitButton>
           </form>
         )}
         {deals.length === 0 && (
@@ -186,21 +187,18 @@ async function Portal({ params, searchParams }: Props) {
                   className="mt-3 flex flex-col gap-3"
                 >
                   <DealFields idPrefix={`deal-${d.id}`} values={d} />
-                  <button type="submit" className="btn self-start btn-primary">
+                  <SubmitButton className="btn self-start btn-primary">
                     Save deal
-                  </button>
+                  </SubmitButton>
                 </form>
               </details>
               <form
                 action={setDealActiveAction.bind(null, slug, d.id, !d.active)}
               >
-                <button
-                  type="submit"
-                  className="inline-flex min-h-6 items-center underline"
-                >
+                <SubmitButton className="inline-flex min-h-6 items-center underline">
                   {d.active ? "Turn off" : "Turn back on"}
                   <span className="sr-only">: {d.title}</span>
-                </button>
+                </SubmitButton>
               </form>
             </li>
           ))}
@@ -217,9 +215,9 @@ async function Portal({ params, searchParams }: Props) {
             className="mt-3 flex flex-col gap-3"
           >
             <DealFields idPrefix="new" />
-            <button type="submit" className="btn self-start btn-primary">
+            <SubmitButton className="btn self-start btn-primary">
               Add deal
-            </button>
+            </SubmitButton>
           </form>
         </details>
       </section>
@@ -314,9 +312,9 @@ async function Portal({ params, searchParams }: Props) {
               </label>
             </fieldset>
           )}
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Save details
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -344,12 +342,9 @@ async function Portal({ params, searchParams }: Props) {
                     </span>
                   </span>
                   <form action={removeMemberAction.bind(null, slug, m.userId)}>
-                    <button
-                      type="submit"
-                      className="inline-flex min-h-6 items-center underline"
-                    >
+                    <SubmitButton className="inline-flex min-h-6 items-center underline">
                       Remove<span className="sr-only">: {m.name}</span>
-                    </button>
+                    </SubmitButton>
                   </form>
                 </li>
               ))}
@@ -369,17 +364,12 @@ async function Portal({ params, searchParams }: Props) {
                 className={input}
               />
             </label>
-            <button type="submit" className="btn btn-secondary">
-              Add
-            </button>
+            <SubmitButton className="btn btn-secondary">Add</SubmitButton>
           </form>
           <form action={removeSponsorAction.bind(null, slug)}>
-            <button
-              type="submit"
-              className="inline-flex min-h-6 items-center text-danger underline"
-            >
+            <SubmitButton className="inline-flex min-h-6 items-center text-danger underline">
               Take {sponsor.name} off the site
-            </button>
+            </SubmitButton>
           </form>
         </section>
       )}

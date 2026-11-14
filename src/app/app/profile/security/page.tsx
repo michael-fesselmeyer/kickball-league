@@ -19,6 +19,7 @@ import {
   signOutOtherDevicesAction,
 } from "./actions";
 import { AddPasskey } from "./add-passkey";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Passkeys and devices" };
 
@@ -150,23 +151,20 @@ async function Security({ searchParams }: PageProps<"/app/profile/security">) {
                         className="min-h-11 rounded-input border-2 border-border-strong bg-surface px-3 py-2 text-body text-text"
                       />
                     </label>
-                    <button type="submit" className="btn btn-secondary">
+                    <SubmitButton className="btn btn-secondary">
                       Rename
-                    </button>
+                    </SubmitButton>
                   </form>
                   {fresh && (
                     <form action={removePasskeyAction}>
                       <input type="hidden" name="passkey" value={key.id} />
-                      <button
-                        type="submit"
-                        className="btn border-danger bg-surface text-danger"
-                      >
+                      <SubmitButton className="btn border-danger bg-surface text-danger">
                         Remove
                         <span className="sr-only">
                           {" "}
                           {key.name || "this passkey"}
                         </span>
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
                 </div>
@@ -218,9 +216,9 @@ async function Security({ searchParams }: PageProps<"/app/profile/security">) {
               {!device.current && !demo && (
                 <form action={signOutDeviceAction}>
                   <input type="hidden" name="session" value={device.id} />
-                  <button type="submit" className="btn btn-secondary">
+                  <SubmitButton className="btn btn-secondary">
                     Sign out<span className="sr-only"> {device.name}</span>
-                  </button>
+                  </SubmitButton>
                 </form>
               )}
             </li>
@@ -230,9 +228,9 @@ async function Security({ searchParams }: PageProps<"/app/profile/security">) {
           <p>In the demo, only this device is shown.</p>
         ) : others.length > 1 ? (
           <form action={signOutOtherDevicesAction}>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Sign out all other devices
-            </button>
+            </SubmitButton>
           </form>
         ) : null}
       </section>

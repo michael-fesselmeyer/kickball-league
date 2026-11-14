@@ -2,6 +2,7 @@ import { ShareButtons } from "@/components/share";
 import { type CreditReason, describeCredit } from "@/domain/money/credit";
 import { formatCents } from "@/domain/registration/pricing";
 import { makeReferralLinkAction } from "./referral-actions";
+import { SubmitButton } from "@/components/submit-button";
 
 type Entry = {
   id: string;
@@ -110,9 +111,9 @@ export function CreditSection({
           </>
         ) : (
           <form action={makeReferralLinkAction}>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Get my invite link
-            </button>
+            </SubmitButton>
           </form>
         )}
       </section>

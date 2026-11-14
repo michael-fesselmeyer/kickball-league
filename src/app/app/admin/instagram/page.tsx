@@ -24,6 +24,7 @@ import {
   togglePostAction,
 } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Instagram photos" };
 
@@ -178,14 +179,16 @@ async function Instagram({ searchParams }: PageProps<"/app/admin/instagram">) {
               {account.status === "active"
                 ? config && (
                     <form action={syncNowAction}>
-                      <button className="btn btn-secondary">Sync now</button>
+                      <SubmitButton className="btn btn-secondary">
+                        Sync now
+                      </SubmitButton>
                     </form>
                   )
                 : config && (
                     <form action={connectInstagramAction}>
-                      <button className="btn btn-primary">
+                      <SubmitButton className="btn btn-primary">
                         Reconnect Instagram
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
             </div>
@@ -202,7 +205,7 @@ async function Instagram({ searchParams }: PageProps<"/app/admin/instagram">) {
                 />
                 Show new posts on the site without featuring each one
               </label>
-              <button className="btn btn-secondary">Save</button>
+              <SubmitButton className="btn btn-secondary">Save</SubmitButton>
             </form>
             <details className="rounded-lg border border-border p-3">
               <summary className="min-h-11 cursor-pointer content-center font-bold">
@@ -233,7 +236,9 @@ async function Instagram({ searchParams }: PageProps<"/app/admin/instagram">) {
                   </label>
                 </fieldset>
                 <p>
-                  <button className="btn btn-secondary">Disconnect</button>
+                  <SubmitButton className="btn btn-secondary">
+                    Disconnect
+                  </SubmitButton>
                 </p>
               </form>
             </details>
@@ -247,7 +252,9 @@ async function Instagram({ searchParams }: PageProps<"/app/admin/instagram">) {
                 account. The site only reads posts; it never posts or comments.
               </p>
               <form action={connectInstagramAction}>
-                <button className="btn btn-primary">Connect Instagram</button>
+                <SubmitButton className="btn btn-primary">
+                  Connect Instagram
+                </SubmitButton>
               </form>
             </div>
           )
@@ -354,16 +361,16 @@ function PostCard({
             !post.featured,
           )}
         >
-          <button className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             {post.featured ? "Unfeature" : "Feature"}
-          </button>
+          </SubmitButton>
         </form>
         <form
           action={togglePostAction.bind(null, post.id, "hide", !post.hidden)}
         >
-          <button className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             {post.hidden ? "Unhide" : "Hide"}
-          </button>
+          </SubmitButton>
         </form>
       </div>
       <details>
@@ -428,7 +435,7 @@ function PostCard({
             />
           </label>
           <p>
-            <button className="btn btn-secondary">Save</button>
+            <SubmitButton className="btn btn-secondary">Save</SubmitButton>
           </p>
         </form>
       </details>

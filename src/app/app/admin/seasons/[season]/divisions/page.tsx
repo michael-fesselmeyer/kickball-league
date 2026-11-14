@@ -20,6 +20,7 @@ import {
   updateDivisionAction,
 } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Divisions" };
 
@@ -165,9 +166,9 @@ async function Divisions({
                       {ruleSetOptions}
                     </select>
                   </label>
-                  <button type="submit" className="btn btn-secondary">
+                  <SubmitButton className="btn btn-secondary">
                     Save {d.name}
-                  </button>
+                  </SubmitButton>
                 </form>
                 <p className="text-small text-text-muted">
                   {teams.filter((t) => t.divisionId === d.id).length} teams
@@ -181,9 +182,9 @@ async function Divisions({
                   )}
                 </p>
                 <form action={deleteDivisionAction.bind(null, slug, d.id)}>
-                  <button type="submit" className="btn btn-secondary">
+                  <SubmitButton className="btn btn-secondary">
                     Remove {d.name}
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -209,9 +210,7 @@ async function Divisions({
               {ruleSetOptions}
             </select>
           </label>
-          <button type="submit" className="btn btn-primary">
-            Add division
-          </button>
+          <SubmitButton className="btn btn-primary">Add division</SubmitButton>
         </form>
       </section>
 
@@ -266,9 +265,9 @@ async function Divisions({
                   </li>
                 ))}
               </ul>
-              <button type="submit" className="btn self-start btn-primary">
+              <SubmitButton className="btn self-start btn-primary">
                 Save teams
-              </button>
+              </SubmitButton>
             </form>
           )}
         </section>
@@ -322,9 +321,9 @@ async function Divisions({
             bracket. Without one, each division gets its own bracket and
             champion.
           </p>
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Save settings
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -394,9 +393,9 @@ async function Divisions({
             <input name="stealing" type="checkbox" className="size-5" />
             Stealing
           </label>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             Add rule set
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>

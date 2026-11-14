@@ -20,6 +20,7 @@ import { booksSeason } from "../load";
 import { SeasonPicker } from "../season-picker";
 import { addExpenseAction, removeExpenseAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Books" };
 
@@ -261,9 +262,9 @@ async function Books({
             hint={`Take a photo or pick one. It's shrunk to under 1 MB. Storage used: ${storageLine(used)}.`}
             camera
           />
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Add expense
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -304,13 +305,13 @@ async function Books({
                   )}
                   <form action={removeExpenseAction.bind(null, slug)}>
                     <input type="hidden" name="expenseId" value={e.id} />
-                    <button type="submit" className="btn btn-secondary">
+                    <SubmitButton className="btn btn-secondary">
                       Remove
                       <span className="sr-only">
                         {" "}
                         {CATEGORY_LABELS[e.category]}, {day(e.spentOn)}
                       </span>
-                    </button>
+                    </SubmitButton>
                   </form>
                 </span>
               </li>

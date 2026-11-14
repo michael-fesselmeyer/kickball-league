@@ -14,6 +14,7 @@ import {
 import { currentSubject } from "@/lib/auth/permission";
 import { createSponsorAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Sponsors" };
 
@@ -161,9 +162,9 @@ async function Sponsors({ searchParams }: PageProps<"/app/sponsor">) {
                 className={input}
               />
             </label>
-            <button type="submit" className="btn self-start btn-primary">
+            <SubmitButton className="btn self-start btn-primary">
               Add sponsor
-            </button>
+            </SubmitButton>
           </form>
         </section>
       )}

@@ -9,6 +9,7 @@ import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { grantGoodwillAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "League credit" };
 
@@ -100,9 +101,9 @@ async function Credit({ searchParams }: PageProps<"/app/admin/credit">) {
             <span className="text-small">Why (the player sees this)</span>
             <input name="note" required maxLength={200} className={input} />
           </label>
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Give credit
-          </button>
+          </SubmitButton>
         </form>
       </section>
 

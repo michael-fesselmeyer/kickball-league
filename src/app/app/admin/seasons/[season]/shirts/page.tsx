@@ -16,6 +16,7 @@ import {
 import { requirePermission } from "@/lib/auth/permission";
 import { markTeamOrderedAction, setShirtStatusAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Shirts" };
 
@@ -80,9 +81,8 @@ function StatusButtons({
       aria-label={`Shirt status for ${player.name}`}
     >
       {SHIRT_STATUSES.map((status) => (
-        <button
+        <SubmitButton
           key={status}
-          type="submit"
           name="status"
           value={status}
           aria-pressed={player.status === status}
@@ -93,7 +93,7 @@ function StatusButtons({
           }`}
         >
           {SHIRT_STATUS_LABEL[status]}
-        </button>
+        </SubmitButton>
       ))}
     </form>
   );
@@ -282,10 +282,10 @@ async function Shirts({
                       t.teamSeasonId,
                     )}
                   >
-                    <button type="submit" className="underline">
+                    <SubmitButton className="underline">
                       Mark {waiting} unordered{" "}
                       {waiting === 1 ? "shirt" : "shirts"} as ordered
-                    </button>
+                    </SubmitButton>
                   </form>
                 )}
               </div>

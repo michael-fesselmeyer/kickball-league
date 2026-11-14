@@ -37,6 +37,7 @@ import {
   WEEKDAYS,
 } from "./request";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Permits and insurance" };
 
@@ -323,12 +324,9 @@ async function Permits({
                       }
                       hint={`A photo or a PDF of 1 MB or less. The ref and captains see it on the game's page. Storage used: ${storageLine(used)}.`}
                     />
-                    <button
-                      type="submit"
-                      className="btn self-start btn-primary"
-                    >
+                    <SubmitButton className="btn self-start btn-primary">
                       Save permit
-                    </button>
+                    </SubmitButton>
                   </form>
                 </details>
               </article>
@@ -422,9 +420,9 @@ async function Permits({
               ))}
             </fieldset>
           )}
-          <button type="submit" className="btn self-start btn-secondary">
+          <SubmitButton className="btn self-start btn-secondary">
             Work it out
-          </button>
+          </SubmitButton>
         </form>
         {sheet.ok ? (
           <>
@@ -544,13 +542,13 @@ async function Permits({
                   )}
                   <form action={removeInsuranceAction.bind(null, slug)}>
                     <input type="hidden" name="id" value={c.id} />
-                    <button type="submit" className="btn btn-secondary">
+                    <SubmitButton className="btn btn-secondary">
                       Remove
                       <span className="sr-only">
                         {" "}
                         {c.insurer}, until {day(c.expiresOn)}
                       </span>
-                    </button>
+                    </SubmitButton>
                   </form>
                 </span>
               </li>
@@ -590,9 +588,9 @@ async function Permits({
             label="Certificate (optional)"
             hint="A photo or a PDF of 1 MB or less."
           />
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Add certificate
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>

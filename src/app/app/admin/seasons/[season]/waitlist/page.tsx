@@ -10,6 +10,7 @@ import { freeSpots } from "@/domain/money/waitlist";
 import { requirePermission } from "@/lib/auth/permission";
 import { offerNowAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Waitlist" };
 
@@ -80,9 +81,9 @@ async function Waitlist({
       </p>
       {spots.waiting > 0 && Number.isFinite(free) && free > 0 && (
         <form action={offerNowAction.bind(null, slug)}>
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Offer the free {free === 1 ? "spot" : "spots"} now
-          </button>
+          </SubmitButton>
         </form>
       )}
       {board.length === 0 ? (

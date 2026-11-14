@@ -34,6 +34,7 @@ import { InstallPrompt } from "./install-prompt";
 import { cardsVisible } from "@/domain/emergency/emergency";
 import { OfflineSync, SignOutForm } from "./offline-sync";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -211,13 +212,13 @@ async function Account() {
                     ) : (
                       <form action={checkInAsRefereeAction}>
                         <input type="hidden" name="gameId" value={g.id} />
-                        <button type="submit" className="btn btn-secondary">
+                        <SubmitButton className="btn btn-secondary">
                           I&apos;m at the field
                           <span className="sr-only">
                             {" "}
                             for {g.teamAName} vs {g.teamBName}
                           </span>
-                        </button>
+                        </SubmitButton>
                       </form>
                     ))}
                   {isGameDay(g.startsAt, now, timeZone) && (

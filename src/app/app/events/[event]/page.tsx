@@ -33,6 +33,7 @@ import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { joinEventAction, leaveEventAction } from "../actions";
 import { TicketPanel } from "./ticket";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "RSVP" };
 
@@ -258,9 +259,9 @@ async function EventRsvp({
               gets it.
             </p>
             <form action={leaveEventAction.bind(null, e.slug)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 I can&apos;t make it
-              </button>
+              </SubmitButton>
             </form>
           </>
         ) : mine?.status === "waitlisted" ? (
@@ -273,9 +274,9 @@ async function EventRsvp({
               an email.
             </p>
             <form action={leaveEventAction.bind(null, e.slug)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 Leave the waitlist
-              </button>
+              </SubmitButton>
             </form>
           </>
         ) : (
@@ -288,9 +289,9 @@ async function EventRsvp({
                   : `${left} of ${e.capacity} spots left.`}
             </p>
             <form action={joinEventAction.bind(null, e.slug)}>
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton className="btn btn-primary">
                 {left === 0 ? "Join the waitlist" : "I'm going"}
-              </button>
+              </SubmitButton>
             </form>
           </>
         )}

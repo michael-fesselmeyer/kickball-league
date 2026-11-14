@@ -5,6 +5,7 @@ import {
   removeGuaranteeAction,
   startGuaranteeSetup,
 } from "./money-actions";
+import { SubmitButton } from "@/components/submit-button";
 
 const NOTICES: Record<string, { text: string; good: boolean }> = {
   saving: {
@@ -109,9 +110,9 @@ export function TeamMoney({
               Use my {formatCents(creditCents)} league credit
             </label>
           )}
-          <button type="submit" className="btn self-start btn-secondary">
+          <SubmitButton className="btn self-start btn-secondary">
             Pay the remaining {formatCents(left)}
-          </button>
+          </SubmitButton>
         </form>
       )}
 
@@ -144,9 +145,9 @@ export function TeamMoney({
           )}
           {guarantee.charge === "none" && (
             <form action={removeGuaranteeAction.bind(null, slug)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 Remove card
-              </button>
+              </SubmitButton>
             </form>
           )}
         </div>
@@ -160,9 +161,9 @@ export function TeamMoney({
               we email you what&apos;s left, then charge only that.
             </p>
             <form action={startGuaranteeSetup.bind(null, slug)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 Save a card as guarantee
-              </button>
+              </SubmitButton>
             </form>
           </div>
         )

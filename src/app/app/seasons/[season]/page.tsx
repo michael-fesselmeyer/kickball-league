@@ -19,6 +19,7 @@ import { stripeClient } from "@/services/stripe";
 import { startCheckout } from "./actions";
 import { ConfirmingPayment } from "./confirming";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Your season" };
 
@@ -269,10 +270,10 @@ async function Season({
                   Use my {formatCents(credit)} league credit
                 </label>
               )}
-              <button type="submit" className="btn self-start btn-primary">
+              <SubmitButton className="btn self-start btn-primary">
                 Pay {owed.ok && credit === 0 ? formatCents(owed.cents) : ""}{" "}
                 securely with Stripe
-              </button>
+              </SubmitButton>
               <span className="text-small text-text-muted">
                 Card, Apple Pay or Google Pay.
                 {deadline && ` Pay by ${deadline}.`}

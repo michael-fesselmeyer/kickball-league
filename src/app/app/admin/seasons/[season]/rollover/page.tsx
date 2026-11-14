@@ -17,6 +17,7 @@ import {
 import { requirePermission } from "@/lib/auth/permission";
 import { rollOverAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Start the next season" };
 
@@ -188,9 +189,9 @@ async function Rollover({
             ))}
           </fieldset>
         )}
-        <button type="submit" className="btn self-start btn-secondary">
+        <SubmitButton className="btn self-start btn-secondary">
           Update the preview
-        </button>
+        </SubmitButton>
       </form>
 
       {plan.ok ? (
@@ -278,9 +279,9 @@ async function Rollover({
                 value={t.teamSeasonId}
               />
             ))}
-            <button type="submit" className="btn btn-primary" disabled={taken}>
+            <SubmitButton className="btn btn-primary" disabled={taken}>
               Create {plan.value.name} as a draft
-            </button>
+            </SubmitButton>
           </form>
         </section>
       ) : (

@@ -27,6 +27,7 @@ import {
 } from "../actions";
 import { ItemFormFields } from "../item-form";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Merch item" };
 
@@ -121,9 +122,9 @@ async function MerchItemAdmin({
           {item.hiddenAt ? "Hidden from the shop" : "In the shop"}
         </p>
         <form action={setHiddenAction.bind(null, item.id, !item.hiddenAt)}>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             {item.hiddenAt ? "Put back in the shop" : "Hide from the shop"}
-          </button>
+          </SubmitButton>
         </form>
       </header>
 
@@ -165,9 +166,9 @@ async function MerchItemAdmin({
         ) : (
           <>
             <form action={fulfillAction.bind(null, item.id, null)}>
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton className="btn btn-primary">
                 Mark all {toMake.length} fulfilled
-              </button>
+              </SubmitButton>
             </form>
             <ul className="flex flex-col gap-3">
               {toMake.map((o) => (
@@ -221,12 +222,9 @@ async function MerchItemAdmin({
               <li key={p.id} className="flex flex-col gap-1">
                 <MerchPhoto id={p.id} alt={p.alt} sizes="180px" admin />
                 <form action={removePhotoAction.bind(null, item.id, p.id)}>
-                  <button
-                    type="submit"
-                    className="inline-flex min-h-11 items-center text-small underline"
-                  >
+                  <SubmitButton className="inline-flex min-h-11 items-center text-small underline">
                     Remove<span className="sr-only"> photo: {p.alt}</span>
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -262,9 +260,7 @@ async function MerchItemAdmin({
                 className={`${control} w-full`}
               />
             </div>
-            <button type="submit" className="btn btn-secondary">
-              Add photo
-            </button>
+            <SubmitButton className="btn btn-secondary">Add photo</SubmitButton>
             <p className="text-small text-text-muted">
               Stored small: shrunk to 1000 pixels wide, with location data
               removed.
@@ -328,10 +324,10 @@ function OrderRow({ itemId, order: o }: { itemId: string; order: AdminOrder }) {
       <div className="flex flex-wrap items-start gap-3">
         {o.status === "paid" && (
           <form action={fulfillAction.bind(null, itemId, o.id)}>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Mark fulfilled
               <span className="sr-only"> for {o.name}</span>
-            </button>
+            </SubmitButton>
           </form>
         )}
         <details>
@@ -365,9 +361,9 @@ function OrderRow({ itemId, order: o }: { itemId: string; order: AdminOrder }) {
               />
               Yes, refund this order
             </label>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Refund the order
-            </button>
+            </SubmitButton>
           </form>
         </details>
       </div>

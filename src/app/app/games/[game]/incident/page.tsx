@@ -16,6 +16,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
 import { fileIncidentAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Report an incident" };
 
@@ -152,9 +153,9 @@ async function Report({
               Stick to what you saw: when, who and what was said or done.
             </p>
           </div>
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Send the report
-          </button>
+          </SubmitButton>
         </form>
       )}
     </>
