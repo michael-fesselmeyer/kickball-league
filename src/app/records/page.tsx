@@ -11,6 +11,7 @@ import {
   recordValue,
 } from "@/domain/stats/records";
 import { statGamesFrom, teamsFrom } from "@/domain/stats/season";
+import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
 import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 
 export const metadata: Metadata = {
@@ -48,10 +49,13 @@ export default function RecordsPage() {
 async function Records() {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
-  const [games, league] = await Promise.all([
-    allPublishedGames(db),
-    currentLeague(db),
-  ]);
+  const { games, league } = (await readUnlessBuildHasNoDatabase(async () => {
+    const [games, league] = await Promise.all([
+      allPublishedGames(db),
+      currentLeague(db),
+    ]);
+    return { games, league };
+  })) ?? { games: [], league: null };
   const seasonIds = [...new Set(games.map((g) => g.seasonId))];
   if (seasonIds.length > 0) cacheTag(...seasonIds.map(seasonTag));
   const timeZone = league?.timeZone ?? "America/New_York";
