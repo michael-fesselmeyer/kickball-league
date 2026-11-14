@@ -145,6 +145,31 @@ export function expireGameScore(seasonId: string, gameId: string): void {
   for (const route of SEASON_PAGE_ROUTES) revalidatePath(route, "layout");
 }
 
+/** One player's public end-of-season card. */
+export const seasonCardTag = (cardId: string) => `season-card:${cardId}`;
+/** Every public card of a season, which rebuilding the cards changes. */
+export const seasonCardsTag = (seasonId: string) => `season-cards:${seasonId}`;
+
+/** The public card page's route. */
+const SEASON_CARD_ROUTE = "/seasons/[season]/card/[card]";
+
+/**
+ * From a Server Action: a card made public or private, or every card of a
+ * season rebuilt, shows on its next request. As with the other refreshes,
+ * the route is expired by path too, so its prerendered pages don't serve
+ * the card they were built with; a card made private is gone at once.
+ */
+export function refreshSeasonCards(
+  scope: { cardId: string } | { seasonId: string },
+): void {
+  updateTag(
+    "cardId" in scope
+      ? seasonCardTag(scope.cardId)
+      : seasonCardsTag(scope.seasonId),
+  );
+  revalidatePath(SEASON_CARD_ROUTE, "page");
+}
+
 /** The events list, the events calendar feed and every event page. */
 export const EVENTS_TAG = "events";
 export const eventTag = (slug: string) => `event:${slug}`;
