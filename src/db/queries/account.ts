@@ -50,6 +50,7 @@ import { waiver, waiverSignature } from "../schema/waiver";
 import { waitlistEntry } from "../schema/waitlist";
 import { accountMerge } from "../schema/account-merge";
 import { recordAudit } from "./audit";
+import { myStatAwards, removeStatAwardsOf } from "./stat-awards";
 import {
   emergencyCardOf,
   hasEmergencyContact,
@@ -618,6 +619,8 @@ export async function personalData(
       pick: v.pickedPlayer ?? v.pickedTeam,
     })),
     seasonCards,
+    // Stat awards they placed in, and whether they're off leaderboards.
+    ...(await myStatAwards(db, userId)),
     checkIns,
     giveawayEntries,
     giveawaysWon,
@@ -871,6 +874,8 @@ export async function deleteAccount(
   await removeKeepOffsFor(db, userId);
   // A captaincy offered by or to them stops waiting.
   await cancelHandoffsFor(db, userId, now);
+  // Their stat award places and leaderboard choice go.
+  await removeStatAwardsOf(db, userId);
   await db
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));
