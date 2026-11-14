@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { db } from "@/db/client";
@@ -53,8 +53,21 @@ async function Enter({ params, searchParams }: Props) {
       ])
     : [null, null];
   if (!e || !g || !secret) notFound();
+  // Answered here, not with a redirect: this runs after the page has started
+  // streaming, where a redirect turns into a late client-side one that can
+  // cut off whatever the player opens next.
   if (await hasEntered(db, g.id, subject.userId))
-    redirect(`${giveawayPage}?notice=already`);
+    return (
+      <>
+        <h1 className="text-h1">Win {g.prize}</h1>
+        <p role="status" className="rounded-lg border border-success p-3">
+          You&apos;re already entered. One entry per person.
+        </p>
+        <Link href={giveawayPage} className="btn btn-secondary">
+          See the giveaway
+        </Link>
+      </>
+    );
   await connection();
   const current =
     query.error !== "expired" &&
