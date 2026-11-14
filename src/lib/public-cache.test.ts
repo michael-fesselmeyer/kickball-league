@@ -8,7 +8,9 @@ const {
   SPONSORS_TAG,
   THEME_WEEKS_TAG,
   eventTag,
+  gameTag,
   refreshEventPages,
+  refreshGamePage,
   refreshSeasonPages,
   refreshSponsorPages,
   seasonTag,
@@ -22,14 +24,24 @@ beforeEach(() => {
 // A page whose tag expired is answered from its route's shell, so the shells,
 // which carry only path tags, are expired by path too.
 describe("refreshSeasonPages", () => {
-  it("expires the season's tag and the season and team routes", () => {
+  it("expires the season's tag and the season, team and game routes", () => {
     refreshSeasonPages("season-1");
 
     expect(vi.mocked(updateTag).mock.calls).toEqual([[seasonTag("season-1")]]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
       ["/seasons/[season]", "layout"],
       ["/teams/[team]", "layout"],
+      ["/games/[game]", "layout"],
     ]);
+  });
+});
+
+describe("refreshGamePage", () => {
+  it("expires the game's tag and its own page, not every game's", () => {
+    refreshGamePage("game-1");
+
+    expect(vi.mocked(updateTag).mock.calls).toEqual([[gameTag("game-1")]]);
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([["/games/game-1"]]);
   });
 });
 

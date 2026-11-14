@@ -10,6 +10,7 @@ import { slot } from "@/db/schema/game";
 import type { SlotId } from "@/domain/ids";
 import { reschedule } from "@/domain/scheduler/reschedule";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { refreshSeasonPages } from "@/lib/public-cache";
 
 /**
  * Calls a rain-out for a whole date: cancels its slots and saves a draft
@@ -71,5 +72,7 @@ export async function declareRainout(
     });
     return id;
   });
+  // The cancelled slots show as called off on the public pages at once.
+  refreshSeasonPages(season.id);
   redirect(`/app/admin/seasons/${slug}/schedule?rainout=${draftId}`);
 }

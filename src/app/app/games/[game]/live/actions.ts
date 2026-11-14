@@ -1,6 +1,5 @@
 "use server";
 
-import { updateTag } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import {
@@ -17,7 +16,7 @@ import { type GameId, parseId } from "@/domain/ids";
 import { HALVES } from "@/domain/scores/live";
 import { PLAYOFF_TIE } from "@/domain/scores/scores";
 import { requirePermissionToChange } from "@/lib/auth/permission";
-import { gameTag, refreshSeasonPages } from "@/lib/public-cache";
+import { refreshGamePage, refreshSeasonPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 
 const pageFor = (gameId: string) => `/app/games/${gameId}/live`;
@@ -57,7 +56,7 @@ export async function kicksFirstAction(
     setKicksFirst(tx, { gameId: g.id, side, now: new Date() }),
   );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
-  updateTag(gameTag(g.id));
+  refreshGamePage(g.id);
   redirect(page);
 }
 
@@ -89,7 +88,7 @@ export async function saveHalfAction(
     }),
   );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
-  updateTag(gameTag(g.id));
+  refreshGamePage(g.id);
   redirect(page);
 }
 
@@ -99,7 +98,7 @@ export async function undoAction(rawGameId: string): Promise<void> {
     undoLastHalf(tx, { gameId: g.id, now: new Date() }),
   );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
-  updateTag(gameTag(g.id));
+  refreshGamePage(g.id);
   redirect(page);
 }
 
@@ -143,7 +142,7 @@ export async function endGameAction(
     redirect(
       `${page}?error=${typeof result.error === "string" ? result.error : result.error.scoreB === PLAYOFF_TIE ? "playoff_tie" : "invalid"}`,
     );
-  updateTag(gameTag(g.id));
+  refreshGamePage(g.id);
   refreshSeasonPages(g.seasonId);
   // The final score goes out for confirmation like any reported score.
   sendQueuedSoon();
