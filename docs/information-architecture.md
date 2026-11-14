@@ -81,6 +81,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/[season]/team (challenge) The season's sign-up challenge on the team page: "9 of 12 signed up", a bar, the prize and a link to the leaderboard
 ├── seasons/[season]/challenge      The sign-up challenge leaderboard: teams by the share of their roster with an account and a signed waiver (team names and counts only), my team marked, the winner once confirmed
 ├── seasons/[season]/team (fee)     Split-pay captains: the team fee, what is paid and left, pay the rest, and the card that guarantees it
+├── seasons/[season]/team (roles)   Captain and co-captains: the captain makes or unmakes co-captains and offers the captaincy to a teammate (withdraw while it waits); a co-captain can step down; the teammate offered it accepts or declines at the top of the page
 ├── seasons/[season]/team (list)    Captains: the team's private "not on my team" list, folded away: add a league member by email with an optional reason, or take them off
 ├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps and an optional note) and a friend code to start, join, switch or leave
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; with no signal, saved on the phone and sent later; once final, a captain rates the other team's sportsmanship; a link to report an incident
@@ -111,7 +112,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── today                       Game-day command center, phone first: today (or the next game day, or ?date=) with every game's field, ref and check-in, score state (not started, playing, live with runs and inning, reported, final, called off, missing), the weather, and one tap to a rain-out, an announcement or ref assignments; refreshes itself every 10 seconds
     │   └── state.json              The same state as JSON for the screen to poll; admins only, never cached
     ├── seasons/[season]/           Setup, pricing, divisions, rule set, waiver, and the season's own minimum age (empty uses the league's 21)
-    │   ├── registrations           Teams, players, payments, waivers, full or partial refunds; roster and payment CSV downloads
+    │   ├── registrations           Teams, players, payments, waivers, full or partial refunds; roster and payment CSV downloads; each team's captain and co-captains, folded away, with the captain's controls
     │   ├── promo-codes             The season's promo codes: add one, see its uses, turn it off
     │   ├── waitlist                The team waitlist in order: who waits, who holds an offer and until when; offer free spots now
     │   ├── rebates                 Rain-out rebates: each team's games lost and money paid; issue the pro-rata rebate as league credit
@@ -290,6 +291,14 @@ Rules:
 5. The captain approves (the player is emailed that they're playing) or declines (the spot opens again). The request is filled when approved subs take every spot. A sub can drop out until game time, which reopens it.
 6. The sub sees game details on the sub page. Both captains and the ref see each team's pickups, by first name and last initial, on the team page, the score page and the ref's home, as the rulebook requires.
 7. The request closes at game time, or when the captain takes it down (anyone holding a spot is told). Sub requests are not offered for playoff games.
+
+### 2.6b Captain handoff and co-captains
+
+1. On the team page, the captain opens "Captain and co-captains": everyone on the roster with their role. "Make co-captain" gives a teammate the team's tools (kicking orders, sub requests, scores, who has paid, the private list); "Make a player" takes them back. Each change emails the teammate.
+2. To hand the team over, the captain picks a teammate and taps "Offer the captaincy". The teammate is emailed and sees the offer at the top of their team page. Until they answer, nothing changes; the captain can withdraw it, quietly.
+3. "Become captain" swaps the roles at once: the teammate leads the team and the old captain stays on as a co-captain, who can step down. "No thanks" changes nothing. The old captain is emailed the answer either way.
+4. While a team-fee checkout is open, the captaincy doesn't change hands. An offer stops working if the captain changed by other means or the teammate left.
+5. Admins do the same from the season's registrations screen, under each team. Every change is in the audit log. See [ADR 0042](adr/0042-captain-handoff-and-co-captains.md).
 
 ### 2.6a Not on my team (private list)
 
