@@ -5,6 +5,7 @@ import {
   hasResult,
   isCalledOff,
   localDay,
+  newestTeamSeason,
   nextGame,
   opponentOf,
   outcomeFor,
@@ -139,5 +140,52 @@ describe("placeLine", () => {
   it("joins whatever is known", () => {
     expect(placeLine(publicGame())).toBe("Field 2, Riverside Park, 1 Park Ave");
     expect(placeLine(publicGame({ field: null, venue: null }))).toBeNull();
+  });
+});
+
+describe("newestTeamSeason", () => {
+  const at = (iso: string) => new Date(iso);
+
+  it("picks the season of the newest game on one of the player's teams", () => {
+    const games = [
+      publicGame({
+        seasonSlug: "spring-2026",
+        startsAt: at("2026-05-01T00:00:00Z"),
+      }),
+      publicGame({
+        seasonSlug: "fall-2026",
+        startsAt: at("2026-10-01T00:00:00Z"),
+      }),
+      publicGame({
+        seasonSlug: "summer-2026",
+        startsAt: at("2026-07-01T00:00:00Z"),
+      }),
+    ];
+    expect(newestTeamSeason(games, ["a"])).toBe("fall-2026");
+    expect(newestTeamSeason(games, ["b"])).toBe("fall-2026");
+  });
+
+  it("skips games the player only referees", () => {
+    const games = [
+      publicGame({ seasonSlug: "fall-2026" }),
+      publicGame({
+        seasonSlug: "winter-2027",
+        startsAt: at("2027-01-01T00:00:00Z"),
+        teamA: { id: "x", name: "X", slug: "x", colorHex: null },
+        teamB: { id: "y", name: "Y", slug: "y", colorHex: null },
+      }),
+    ];
+    expect(newestTeamSeason(games, ["a"])).toBe("fall-2026");
+  });
+
+  it("counts a makeup with no time yet, and is null with no team games", () => {
+    expect(
+      newestTeamSeason(
+        [publicGame({ startsAt: null, seasonSlug: "fall-2026" })],
+        ["a"],
+      ),
+    ).toBe("fall-2026");
+    expect(newestTeamSeason([publicGame()], ["z"])).toBeNull();
+    expect(newestTeamSeason([], ["a"])).toBeNull();
   });
 });
