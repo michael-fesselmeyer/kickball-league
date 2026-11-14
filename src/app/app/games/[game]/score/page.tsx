@@ -191,7 +191,7 @@ async function Score({
           {g.teamAName} vs {g.teamBName}
         </h1>
         <HelpLink
-          role="captain"
+          audience="captain"
           article="scores"
           topic="entering and confirming scores"
         />

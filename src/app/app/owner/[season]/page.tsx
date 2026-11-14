@@ -92,7 +92,7 @@ async function Dashboard({
         <p className="text-text-muted">{season.name}</p>
         <h1 className="text-h1">Owner dashboard</h1>
         <HelpLink
-          role="owner"
+          audience="owner"
           article="dashboard"
           topic="the owner dashboard"
         />

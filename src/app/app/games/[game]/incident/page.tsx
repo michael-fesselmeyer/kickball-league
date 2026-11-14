@@ -77,7 +77,7 @@ async function Report({
         </Link>
         <h1 className="text-h1">Report an incident</h1>
         <HelpLink
-          role="ref"
+          audience="ref"
           article="incidents"
           topic="reporting an incident"
         />

@@ -101,7 +101,7 @@ async function Season({
         Home
       </Link>
       <h1 className="text-h1">{season.name}</h1>
-      <HelpLink role="player" article="pay" topic="signing up and paying" />
+      <HelpLink audience="player" article="pay" topic="signing up and paying" />
     </header>
   );
   if (!mine) {

@@ -89,7 +89,7 @@ async function Books({
           League admin
         </Link>
         <h1 className="text-h1">Books: {season.name}</h1>
-        <HelpLink role="owner" article="books" topic="keeping the books" />
+        <HelpLink audience="owner" article="books" topic="keeping the books" />
         <p className="text-text-muted">
           Money in comes from the payments the app records. Add what the league
           spends, with a photo of the receipt. Only owners see this.

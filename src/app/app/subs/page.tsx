@@ -163,7 +163,7 @@ async function Subs({ searchParams }: PageProps<"/app/subs">) {
           Home
         </Link>
         <h1 className="text-h1">Sub for a team</h1>
-        <HelpLink role="player" article="subs" topic="subbing" />
+        <HelpLink audience="player" article="subs" topic="subbing" />
         <p className="text-text-muted">
           Teams that are short post here. Tap &quot;I&apos;m in&quot; to hold a
           spot; the captain confirms. You need to be registered this season with

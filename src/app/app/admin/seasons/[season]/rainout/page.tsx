@@ -61,7 +61,7 @@ async function Rainout({
     <header className="flex flex-col gap-1">
       <p className="text-text-muted">{season.name}</p>
       <h1 className="text-h1">Call a rain-out</h1>
-      <HelpLink role="admin" article="rain-outs" topic="rain-outs" />
+      <HelpLink audience="admin" article="rain-outs" topic="rain-outs" />
       <Link href={`/app/admin/seasons/${slug}/schedule`} className="underline">
         Back to the schedule
       </Link>

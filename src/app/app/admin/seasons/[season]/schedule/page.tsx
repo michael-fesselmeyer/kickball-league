@@ -113,7 +113,11 @@ async function Schedule({
       <header className="flex flex-col gap-1">
         <p className="text-text-muted">{season.name}</p>
         <h1 className="text-h1">Schedule</h1>
-        <HelpLink role="admin" article="schedule" topic="making the schedule" />
+        <HelpLink
+          audience="admin"
+          article="schedule"
+          topic="making the schedule"
+        />
         <Link href={`/app/admin/seasons/${slug}/fields`} className="underline">
           Fields, permits and slots
         </Link>

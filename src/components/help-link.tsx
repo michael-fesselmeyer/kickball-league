@@ -6,18 +6,19 @@ import { type HelpRole, helpHref } from "@/app/help/articles";
  * how-to's anchor; a test checks every one used in src/app exists.
  */
 export function HelpLink({
-  role,
+  audience,
   article,
   topic,
 }: {
-  role: HelpRole["slug"];
+  /** Whose help page: a prop named `role` would read as an ARIA role. */
+  audience: HelpRole["slug"];
   article: string;
   /** What the how-to is about, for screen readers ("Help: paying"). */
   topic: string;
 }) {
   return (
     <Link
-      href={helpHref(role, article)}
+      href={helpHref(audience, article)}
       prefetch={false}
       className="inline-flex min-h-11 items-center self-start text-small underline underline-offset-4"
     >
