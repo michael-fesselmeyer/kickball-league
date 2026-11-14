@@ -330,6 +330,13 @@
       "when": 1794654475837,
       "tag": "0046_ref_check_in",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1794655498248,
+      "tag": "0047_captaincy",
+      "breakpoints": true
     }
   ]
 }
