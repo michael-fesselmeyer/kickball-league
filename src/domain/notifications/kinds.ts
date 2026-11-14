@@ -92,6 +92,11 @@ export const MESSAGE_KINDS = {
     urgency: "non_urgent",
     label: "Answers to new-team requests",
   },
+  private_event: {
+    urgency: "urgent",
+    label:
+      "Your request for a private league or tournament: received, set up or declined",
+  },
   payment_reminder: {
     urgency: "urgent",
     label: "Payment deadline reminders",
