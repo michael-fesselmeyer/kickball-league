@@ -61,6 +61,11 @@ export const league = pgTable(
      * A season can set its own.
      */
     minimumAge: smallint().notNull().default(21),
+    /**
+     * Whether players may pick their own team's games in pick'em (ADR 0044).
+     * An admin decides; allowed by default.
+     */
+    pickemOwnGames: boolean().notNull().default(true),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()

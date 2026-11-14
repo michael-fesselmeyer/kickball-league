@@ -89,6 +89,7 @@ erDiagram
     enum site_status "active, read_only, paused; operator only"
     text_array disabled_features "features the operator switched off"
     smallint minimum_age "18 to 99, default 21"
+    boolean pickem_own_games "players may pick their own team's games; default true"
   }
   season {
     uuid id PK
@@ -848,6 +849,9 @@ erDiagram
   user ||--o| calendar_feed : "subscribes with"
   season ||--o{ award_poll : runs
   award_poll ||--o{ award_vote : collects
+  game ||--o{ pickem_pick : "is picked in"
+  user ||--o{ pickem_pick : picks
+  user ||--o| pickem_hidden : "hides with"
   league ||--o{ post : publishes
   league ||--o| social_account : connects
   social_account ||--o{ social_post : syncs
@@ -1002,6 +1006,19 @@ erDiagram
     uuid nominee_user_id FK "player awards"
     uuid nominee_team_season_id FK "team awards"
     timestamptz cast_at
+  }
+  pickem_pick {
+    uuid id PK
+    uuid game_id FK
+    uuid user_id FK
+    uuid team_season_id FK "the team picked to win"
+    uuid slot_id FK "the game's slot when picked; null if the slot went"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  pickem_hidden {
+    uuid user_id PK
+    timestamptz created_at
   }
   social_account {
     uuid id PK
@@ -1159,6 +1176,13 @@ Awards, as built (`src/db/schema/awards.ts`, `src/db/queries/awards.ts`):
 
 - An admin opens an `award_poll` for one `game_day` (a weekly poll) or the whole season. Voting runs from `opens_at` until `closes_at`; closing early sets `closes_at` to now. The category decides whether a vote names a player (`nominee_user_id`) or a team (`nominee_team_season_id`), and a check keeps exactly one of them set. Anyone on an active roster that season may vote; a weekly ballot lists only the teams with a game that day (and their players). Totals are read only after `closes_at`, and who voted for whom is never shown to anyone but the voter.
 - Deleting a poll deletes its votes; deleting a season deletes its polls.
+
+Pick'em, as built ([ADR 0044](adr/0044-pickem-for-bragging-rights-scored-from-results.md); `src/db/schema/pickem.ts`, `src/db/queries/pickem.ts`), for bragging rights only: nothing in it holds money, a fee or a prize.
+
+- A `pickem_pick` is one player's predicted winner for one game (unique `(game_id, user_id)`), saved or changed while the game is scheduled, its slot is open and its start is still ahead. `slot_id` is the game's slot when the pick was saved; a pick for a slot the game has since left (a rain-out move) or that was deleted is void.
+- Results are never stored. A pick counts only when its game is `final` with a winner: right or wrong. A forfeit, a tie, a cancellation, a postponement or a called-off slot voids it. The game day and season leaderboards count right picks per player over the scored games in one grouped query; equal counts share a place.
+- `pickem_hidden` holds the players who chose to stay off the leaderboards (one row each). `league.pickem_own_games` (an admin's choice, audited as `pickem.own_games`) decides whether players may pick their own team's games.
+- Deleting a game, team entry or account deletes its picks; deleting a slot leaves the pick, void.
 
 Friends of the league, as built (`src/db/schema/friends.ts`, `src/db/queries/friends.ts`):
 
@@ -1482,6 +1506,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `checkin` | unique `(sponsor_id, user_id, on_date)` | One check-in per bar per day |
 | `award_vote` | unique `(award_poll_id, voter_id)`; check exactly one nominee; check `nominee_user_id <> voter_id` | One vote per player per poll, for one person or team, never yourself |
 | `award_poll` | check `closes_at > opens_at`; check `game_day` is set exactly when `kind = 'weekly'` | A poll has a voting window; weekly polls name their game day |
+| `pickem_pick` | unique `(game_id, user_id)` | One pick per player per game; saving again replaces it |
 | `deal_redemption` | unique `(deal_id, checkin_id)` | A deal once per visit |
 | `giveaway` | unique `(event_id)`; check `closes_at > opens_at`; check `winner_count` between 1 and 20; check the rules' length | One giveaway per event, with a real entry window |
 | `giveaway_entry` | unique `(giveaway_id, user_id)` | One entry per person, even when the same check-in lands twice at once |
@@ -1550,6 +1575,7 @@ Indexes for the common reads:
 | `merch_order` | `(item_id, status)`; `(user_id)` | Stock left and the admin's order list; a person's orders |
 | `award_poll` | `(season_id, closes_at)` | Open and closed polls of a season |
 | `award_vote` | `(voter_id)` | A player's own votes |
+| `pickem_pick` | `(user_id)` | A player's own picks, for the page, the export and account deletion |
 | `social_post` | `(account_id, taken_at desc)`, `(team_id)`, `(event_id)` | Newest photos for the home page and the admin screen; a team's or an event's photos |
 | `member_photo` | `(league_id, status, created_at desc)`; `(uploader_id, created_at desc)`; `(team_id, created_at desc)`, `(event_id, …)` and `(game_id, …)` where approved | The review queue and the storage total; a person's photos and daily count; each public page's photos |
 | `sportsmanship_rating` | `(rated_team_season_id)`; `(rated_by)` | A team's ratings; a person's own ratings |
@@ -1581,6 +1607,7 @@ Indexes for the common reads:
 | Suspensions | `suspension` | The player and admins see the length and why; the player's captains see only that they are suspended and for how long still |
 | Giveaway entries and wins | `giveaway_entry`, `giveaway_winner` | The player and admins. Admins see winners' names to hand over the prize; the giveaway page shows only counts. The audit log holds entry and account ids, no names |
 | Award votes | `award_vote` | The voter alone sees whom they picked; everyone sees only the totals after a poll closes. Deleting an account withdraws votes in polls still open |
+| Pick'em picks | `pickem_pick`, `pickem_hidden` | The player sees their picks. Signed-in players see each player's count of right picks on the leaderboards (first name and last initial), never the picks themselves, unless the player hid from them. The export lists every pick; deleting an account deletes them |
 | Emergency contact (name, relationship, phone) and first-aid note | `emergency_contact`, sealed: AES-256-GCM with a key derived from the server's auth secret, bound to the player's id ([ADR 0043](adr/0043-emergency-contacts-sealed-and-shown-on-game-day.md)) | The person. On the day of a game they play in (league time zone), that game's captains and co-captains and its ref; each read writes an `emergency_contact.view` audit row with the reader and the game, never the contact. Admins and owners don't see it. A database copy alone reads nothing. When two accounts are merged, the merged-away account's contact is sealed again for the kept one only if that one has none, and deleted either way |
 | Free-agent quiz answers and note | `free_agent_profile` | The person and admins |
 | Friend group | `friend_group`, `registration.friend_group_id` | The person; others in the group see first name and last initial; admins |
