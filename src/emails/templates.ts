@@ -29,6 +29,7 @@ import { scoreConfirmationEmail } from "./score-confirmation";
 import { scoreReminderEmail } from "./score-reminder";
 import { subRequestEmail, subUpdateEmail } from "./sub-request";
 import { suspensionEmail } from "./suspension";
+import { teamRoleEmail } from "./team-role";
 
 /**
  * Every email the outbox can send, by the template name stored on the
@@ -40,6 +41,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
   {
     announcement: announcementEmail,
     books_reminder: booksReminderEmail,
+    captain_handoff: teamRoleEmail,
     digest: digestEmail,
     email_budget: emailBudgetEmail,
     event_news: eventNoticeEmail,
@@ -64,6 +66,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     sub_request: subRequestEmail,
     sub_update: subUpdateEmail,
     suspension: suspensionEmail,
+    team_role: teamRoleEmail,
     waitlist_offer: waitlistOfferEmail,
   };
 

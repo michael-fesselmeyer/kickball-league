@@ -38,6 +38,7 @@ describe("MESSAGE_KINDS", () => {
       "rebate_credit",
       "referral_credit",
       "score_reminder",
+      "team_role",
     ]);
     expect(URGENT_LABELS).toContain("Rain-outs and makeup times");
   });
