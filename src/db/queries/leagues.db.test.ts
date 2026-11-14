@@ -209,13 +209,18 @@ describe("the audit log", () => {
     inRolledBackDb(async (db) => {
       const w = await twoLeagues(db);
       await expect(
-        recordAudit(db, {
-          actorId: w.admin,
-          action: "account.merge",
-          entityId: w.captain,
-          // What a caller that forgot the league would send.
-          ...({ entityType: "user" } as unknown as { entityType: "season" }),
-        }),
+        recordAudit(
+          db,
+          // What a caller that forgot the league would send, past the types.
+          JSON.parse(
+            JSON.stringify({
+              actorId: w.admin,
+              action: "account.merge",
+              entityType: "user",
+              entityId: w.captain,
+            }),
+          ),
+        ),
       ).rejects.toThrow(/needs its league/);
     }));
 });
