@@ -175,7 +175,7 @@ export function PushSettings({
         <button
           type="submit"
           disabled={cannot || saving}
-          className="self-start rounded-full border border-text px-4 py-1 disabled:opacity-60"
+          className="min-h-11 self-start rounded-full border border-text px-4 py-1 disabled:opacity-60"
         >
           {saving ? "Saving…" : "Save push settings"}
         </button>
@@ -185,7 +185,7 @@ export function PushSettings({
           <button
             type="submit"
             disabled={turningOff}
-            className="underline disabled:opacity-60"
+            className="min-h-11 underline disabled:opacity-60"
           >
             Turn off push on this device
           </button>

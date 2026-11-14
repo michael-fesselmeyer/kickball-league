@@ -43,7 +43,7 @@ export function EmailSettings({
             </label>
           ))}
         </fieldset>
-        <SubmitButton className="self-start rounded-full border border-text px-4 py-1">
+        <SubmitButton className="min-h-11 self-start rounded-full border border-text px-4 py-1">
           Save email settings
         </SubmitButton>
       </form>
