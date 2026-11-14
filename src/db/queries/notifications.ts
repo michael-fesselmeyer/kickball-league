@@ -4,6 +4,7 @@ import { type AlertLimits, nextDigestAt } from "@/domain/notifications/limits";
 import {
   type Choice,
   SETTINGS_TOPICS,
+  type Topic,
   wantsEmail,
 } from "@/domain/notifications/topics";
 import {
@@ -55,6 +56,28 @@ export async function saveEmailSettings(
         set: { enabled },
       });
   }
+}
+
+/**
+ * Turns one topic's email off for a person, from an email's one-click
+ * unsubscribe (src/lib/unsubscribe.ts). Doing it again changes nothing.
+ */
+export async function turnOffEmailTopic(
+  db: Db,
+  userId: UserId,
+  topic: Topic,
+): Promise<void> {
+  await db
+    .insert(notificationPreference)
+    .values({ userId, topic, channel: "email", enabled: false })
+    .onConflictDoUpdate({
+      target: [
+        notificationPreference.userId,
+        notificationPreference.topic,
+        notificationPreference.channel,
+      ],
+      set: { enabled: false },
+    });
 }
 
 /** A person's alert limits for the settings page: theirs, or the defaults. */

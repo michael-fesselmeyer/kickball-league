@@ -15,6 +15,11 @@ export const escapeHtml = (value: string) =>
 export type RenderContext = {
   /** The site's address, such as https://league.example.test, for links. */
   siteUrl: string;
+  /**
+   * The recipient's one-click unsubscribe for this email's topic, when they
+   * can turn it off (src/lib/unsubscribe.ts): absolute URLs.
+   */
+  unsubscribe?: { pageUrl: string; oneClickUrl: string; topicLabel: string };
 };
 
 export type EmailParts = {
@@ -49,7 +54,7 @@ export function renderEmail(
     reason,
     settings = EMAIL_SETTINGS,
   }: EmailParts,
-  { siteUrl }: RenderContext,
+  { siteUrl, unsubscribe }: RenderContext,
 ) {
   const site = siteUrl.replace(/\/$/, "");
   const link = (path: string) => `${site}${path}`;
@@ -78,7 +83,7 @@ export function renderEmail(
 ${body}
 ${list}
 ${button}
-<p style="${muted};margin-top:32px">You got this email because ${escapeHtml(reason)}. <a href="${escapeHtml(settingsUrl)}" style="color:#5c5650">${escapeHtml(settings.label)}</a>.</p>
+<p style="${muted};margin-top:32px">You got this email because ${escapeHtml(reason)}. <a href="${escapeHtml(settingsUrl)}" style="color:#5c5650">${escapeHtml(settings.label)}</a>.${unsubscribe ? ` <a href="${escapeHtml(unsubscribe.pageUrl)}" style="color:#5c5650">Stop emails about ${escapeHtml(unsubscribe.topicLabel.toLowerCase())}</a>.` : ""}</p>
 </td></tr></tbody></table>
 </body></html>`;
   const text = [
@@ -94,11 +99,17 @@ ${button}
     ...(action ? [`${action.label}: ${link(action.path)}`, ""] : []),
     `You got this email because ${reason}.`,
     `${settings.label}: ${settingsUrl}`,
+    ...(unsubscribe
+      ? [
+          `Stop emails about ${unsubscribe.topicLabel.toLowerCase()}: ${unsubscribe.pageUrl}`,
+        ]
+      : []),
   ].join("\n");
   return {
     subject,
     html,
     text,
+    ...(unsubscribe ? { listUnsubscribe: unsubscribe.oneClickUrl } : {}),
     push: pushFrom(
       action
         ? { heading, paragraphs, action, reason }

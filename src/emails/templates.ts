@@ -1,6 +1,12 @@
 import type { Renderer } from "@/db/queries/outbox";
 import type { DIGEST_KIND, MessageKind } from "@/domain/notifications/kinds";
 import { err } from "@/domain/result";
+import {
+  topicLabel,
+  unsubscribePagePath,
+  unsubscribePostPath,
+  unsubscribeToken,
+} from "@/lib/unsubscribe";
 import { announcementEmail } from "./announcement";
 import { awayShortEmail } from "./away-short";
 import { booksReminderEmail } from "./books-reminder";
@@ -86,11 +92,34 @@ const isTemplateName = (name: string): name is keyof typeof TEMPLATES =>
   Object.hasOwn(TEMPLATES, name);
 
 /** The outbox's renderer for this site. */
-export function rendererFor(context: RenderContext): Renderer {
-  return (name, payload) => {
+/**
+ * The outbox's renderer. With the server's secret, each email whose topic
+ * the person can turn off carries their one-click unsubscribe.
+ */
+export function rendererFor(
+  context: RenderContext & { unsubscribeSecret?: string },
+): Renderer {
+  const { unsubscribeSecret, ...base } = context;
+  const site = base.siteUrl.replace(/\/$/, "");
+  return (name, payload, recipient) => {
     const template = isTemplateName(name) ? TEMPLATES[name] : undefined;
-    return template
-      ? template(payload, context)
-      : err(`No email template named ${name}`);
+    if (!template) return err(`No email template named ${name}`);
+    const token =
+      unsubscribeSecret && recipient
+        ? unsubscribeToken(unsubscribeSecret, recipient.userId, recipient.topic)
+        : null;
+    return template(
+      payload,
+      token && recipient
+        ? {
+            ...base,
+            unsubscribe: {
+              pageUrl: `${site}${unsubscribePagePath(token)}`,
+              oneClickUrl: `${site}${unsubscribePostPath(token)}`,
+              topicLabel: topicLabel(recipient.topic),
+            },
+          }
+        : base,
+    );
   };
 }
