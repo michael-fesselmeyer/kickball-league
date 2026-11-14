@@ -14,6 +14,12 @@
  */
 
 export const STORED_WIDTH = 1000;
+/**
+ * A decoded image larger than this is refused before it is resized, so a
+ * small file that claims huge dimensions can't take the server's memory.
+ * Instagram serves at most 1440 pixels wide; merch photos come from a phone.
+ */
+export const MAX_INPUT_PIXELS = 50_000_000;
 export const STORED_QUALITY = 80;
 
 export type StoredPhoto = { contentType: "image/webp"; bytes: Buffer };
@@ -24,7 +30,10 @@ export async function compressPhoto(
 ): Promise<StoredPhoto | null> {
   const { default: sharp } = await import("sharp");
   try {
-    const bytes = await sharp(input, { failOn: "error" })
+    const bytes = await sharp(input, {
+      failOn: "error",
+      limitInputPixels: MAX_INPUT_PIXELS,
+    })
       .rotate() // Apply the camera's orientation before the metadata goes.
       .resize({ width: STORED_WIDTH, withoutEnlargement: true })
       .webp({ quality: STORED_QUALITY })

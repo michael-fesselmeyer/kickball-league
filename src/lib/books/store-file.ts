@@ -28,6 +28,11 @@ export type PreparedFile = {
 };
 
 const LOWER_QUALITY = 50;
+/**
+ * A decoded photo larger than this is refused before it is resized, so a
+ * small file that claims huge dimensions can't take the server's memory.
+ */
+export const MAX_INPUT_PIXELS = 50_000_000;
 
 export async function prepareUpload(
   file: Blob,
@@ -40,7 +45,7 @@ export async function prepareUpload(
   }
   const { default: sharp } = await import("sharp");
   const encode = (quality: number) =>
-    sharp(input, { failOn: "error" })
+    sharp(input, { failOn: "error", limitInputPixels: MAX_INPUT_PIXELS })
       .rotate()
       .resize({
         width: STORED_EDGE,
