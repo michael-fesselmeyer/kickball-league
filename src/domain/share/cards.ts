@@ -54,7 +54,22 @@ export type TeamCard = {
   alt: string;
 };
 
-export type ShareCard = GameCard | TeamCard;
+/** A player's end-of-season card (src/domain/season-card/share.ts). */
+export type SeasonShareCard = {
+  kind: "season";
+  /** "Robin Q.'s season" */
+  headline: string;
+  team: { name: string; color: string | null };
+  season: string;
+  /** "Champions", an award, or null. */
+  sticker: string | null;
+  /** Up to four big numbers with their labels. */
+  tiles: { value: string; label: string }[];
+  footer: string;
+  alt: string;
+};
+
+export type ShareCard = GameCard | TeamCard | SeasonShareCard;
 
 function toneFor(g: PublicGame): StickerTone {
   if (isCalledOff(g)) return "danger";
