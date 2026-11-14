@@ -305,7 +305,7 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 
 | Job | When | Does |
 |---|---|---|
-| Outbox sweep | Every minute | Sends due messages, retries failures, sends messages that waited out quiet hours or for the next day's email quota |
+| Outbox sweep | Every minute | Sends due messages, retries failures, sends messages that waited out quiet hours or for the next day's email quota; deletes sign-in rate-limit counters untouched for a day (section 13) |
 | Digests ✔ | Daily, 18:00 or later (`/api/jobs/digests`) | Gathers each person's held non-urgent messages whose digest is due into one email, then drains the outbox |
 | Rain alerts ✔ | Daily 18:00 (`/api/jobs/rain-alerts`) | Checks the forecast for each game day whose first game starts in the next 30 hours and alerts every admin on "watch" or "likely", once per level per game day |
 | Game reminders | Two days before game day, 18:00 | Reminds players of their next game and asks for an RSVP |
@@ -595,7 +595,7 @@ Third-party material stays out of the public repository until the league agrees:
 
 | Action | Limit |
 |---|---|
-| Sign-in attempts, magic-link requests | 5 per 15 minutes per email and per IP (Better Auth's built-in limiter) |
+| Sign-in attempts, magic-link requests | Magic-link requests and checks: 5 a minute per IP. Other sign-in paths: 3 per 10 seconds per IP. Any other auth request: 100 per 10 seconds per IP (Better Auth's built-in limiter, counted site-wide; see below) |
 | Account creation | 3 per hour per IP |
 | Checkout session creation | 10 per hour per user |
 | Invite sends | 50 per day per team |
@@ -606,6 +606,8 @@ Third-party material stays out of the public repository until the league agrees:
 | Bar check-ins | 1 per sponsor per user per day (also a unique index) |
 | Giveaway entries | 1 per giveaway per user (a unique index), only with a current code from the event |
 | Everything else by IP | Vercel Firewall rule as a coarse backstop |
+
+**Where the sign-in counts live** (`RATE_LIMIT` in `src/lib/auth/config.ts`, tested in `src/db/queries/rate-limit.db.test.ts`). Better Auth keeps its counters in the `rate_limit` table in Postgres (`rateLimit.storage: "database"`), not in each server instance's memory, so a host running several instances still enforces one limit for the whole site. Each check is one atomic conditional `update` on the client's row, so two instances answering at once cannot both let a request over the limit. The key is the client's IP address and the auth path; the IP comes from `x-forwarded-for`, which Vercel sets. The limiter only runs on requests to `/api/auth/*`; pages read the session on the server without it, so ordinary browsing writes nothing. Better Auth deletes rows older than its longest window whenever a counter restarts, and the daily outbox sweep (`/api/jobs/outbox`, `pruneRateLimits`) deletes any left untouched for a day, so the table holds about a day of sign-in traffic at most. It costs no new service ([ADR 0021](adr/0021-free-services-only.md)).
 
 ### Notifications: channels and opt-out
 
