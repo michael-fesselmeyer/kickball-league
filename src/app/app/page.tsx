@@ -68,6 +68,8 @@ async function Account() {
     if (!(await featureEnabled("awards"))) return 0;
     return ballotsWaiting(db, id, new Date());
   })();
+  // Whether pick'em is on, started early too.
+  const pickemOn = featureEnabled("pickem");
   // Giveaways this person won at league events, started early too.
   const wins = (async () => {
     const id = parseId<UserId>(subject.userId);
@@ -126,6 +128,7 @@ async function Account() {
       : null;
   const emergencyUntil = emergency?.ok ? emergency.until : null;
   const ballots = await waiting;
+  const showPickem = await pickemOn;
   const won = await wins;
   const timeZone = league?.timeZone ?? "America/New_York";
   const when = (d: Date) =>
@@ -265,6 +268,11 @@ async function Account() {
       {ballots > 0 && (
         <Link href="/app/vote" className="btn btn-primary">
           Vote for awards ({ballots} open)
+        </Link>
+      )}
+      {showPickem && (
+        <Link href="/app/pickem" className="btn btn-secondary">
+          Pick&apos;em
         </Link>
       )}
       <Link href="/app/subs" className="btn btn-secondary">
