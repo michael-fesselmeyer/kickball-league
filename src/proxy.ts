@@ -1,7 +1,7 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 import { reachableWhilePaused } from "@/domain/platform/operator";
-import { currentSite } from "@/lib/platform/site";
+import { siteForProxy } from "@/lib/platform/site";
 import { viewRewrite } from "@/lib/view-rewrite";
 
 export async function proxy(request: NextRequest) {
@@ -10,7 +10,7 @@ export async function proxy(request: NextRequest) {
   // notice. Signing in, the app (where owners export their data) and the
   // operator console stay reachable. See ADR 0009.
   if (!reachableWhilePaused(pathname)) {
-    const site = await currentSite();
+    const site = await siteForProxy();
     if (site?.status === "paused")
       return NextResponse.rewrite(new URL("/paused", request.url));
   }
