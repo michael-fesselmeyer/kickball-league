@@ -111,3 +111,53 @@ describe("LineScore", () => {
     expect(document.querySelector(".winner-burst")).toBeNull();
   });
 });
+
+describe("a page copy from before the score", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+    vi.setSystemTime(NOW);
+  });
+
+  it("asks as soon as it loads, even outside the game's window", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify(ON)));
+    vi.stubGlobal("fetch", fetch);
+    const { container } = render(
+      <LiveScore
+        gameId="g1"
+        teamA="Sun Kickers"
+        teamB="Red Rubber Ballers"
+        initial={null}
+        pollFrom="2026-09-20T22:30:00Z"
+        pollUntil="2026-09-21T03:00:00Z"
+      />,
+    );
+    expect(container.innerHTML).toBe("");
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(fetch).toHaveBeenCalledWith("/api/games/g1/live");
+    expect(total("Sun Kickers")).toHaveProperty("textContent", "2");
+  });
+
+  it("shows nothing while the game has no score yet", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("{}", { status: 404 })),
+    );
+    const { container } = render(
+      <LiveScore
+        gameId="g1"
+        teamA="Sun Kickers"
+        teamB="Red Rubber Ballers"
+        initial={null}
+        {...WINDOW}
+      />,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(container.innerHTML).toBe("");
+  });
+});
