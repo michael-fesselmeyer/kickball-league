@@ -40,6 +40,7 @@ async function rolloverWorld(db: Db) {
       earlyBirdDiscountCents: 500,
       maxTeams: 10,
       crossoverGames: 2,
+      minimumAge: 25,
     })
     .where(eq(season.id, w.season.id));
   const [rules] = await db
@@ -146,6 +147,7 @@ describe("season rollover", () => {
         rosterMin: 1,
         rosterMax: 20,
         crossoverGames: 2,
+        minimumAge: 25,
       });
       // Midnight on March 1 (before the clocks go forward) stays midnight
       // 210 days later, in daylight saving time.
