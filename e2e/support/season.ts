@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export type NewSeason = {
   name: string;
@@ -59,6 +59,14 @@ export async function openSeason(admin: Page, season: NewSeason) {
   );
 }
 
+/**
+ * Ticks "I'm 21 or older" (or the season's minimum) inside `scope`. By role,
+ * so a page Next keeps mounted but hidden behind this one never matches.
+ */
+export async function confirmAge(scope: Page | Locator) {
+  await scope.getByRole("checkbox", { name: /^I'm \d+ or older$/ }).check();
+}
+
 /** Signs a season's waiver from the season page's link. */
 export async function signWaiver(page: Page, slug: string, fullName: string) {
   await page.goto(`/app/seasons/${slug}`);
@@ -67,6 +75,7 @@ export async function signWaiver(page: Page, slug: string, fullName: string) {
     .getByLabel("I have read the whole waiver and I agree to it.")
     .check();
   await page.getByLabel("Type your full name to sign").fill(fullName);
+  await confirmAge(page);
   await page.getByRole("button", { name: "Sign the waiver" }).click();
   await expect(page.getByRole("status")).toContainText("Signed.");
 }
@@ -74,10 +83,9 @@ export async function signWaiver(page: Page, slug: string, fullName: string) {
 /** Joins a season's free-agent pool from its registration page. */
 export async function joinAsFreeAgent(page: Page, slug: string) {
   await page.goto(`/app/seasons/${slug}/register`);
-  await page
-    .getByRole("region", { name: "Or join on your own" })
-    .getByRole("button", { name: "Join as a free agent" })
-    .click();
+  const pool = page.getByRole("region", { name: "Or join on your own" });
+  await confirmAge(pool);
+  await pool.getByRole("button", { name: "Join as a free agent" }).click();
   await expect(page.getByRole("status")).toContainText(
     "You're in the free-agent pool",
   );

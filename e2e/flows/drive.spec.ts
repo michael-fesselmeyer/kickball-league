@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { completeProfile, pageAs } from "../support/personas";
-import { openSeason, signWaiver } from "../support/season";
+import { confirmAge, openSeason, signWaiver } from "../support/season";
 
 // Players mostly use the app on phones.
 test.use({ viewport: { width: 390, height: 844 } });
@@ -201,6 +201,7 @@ test("a team reaches 100% and leads the sign-up challenge", async ({
     const register = captain.getByRole("region", { name: "Register a team" });
     await register.getByLabel("Team name").fill(TEAM);
     await register.getByLabel("Expected roster size").fill("2");
+    await confirmAge(register);
     await register.getByRole("button", { name: "Register the team" }).click();
     await expect(captain.getByRole("status")).toContainText(
       "Your team is registered",
@@ -222,6 +223,7 @@ test("a team reaches 100% and leads the sign-up challenge", async ({
     const player = await pageAs(browser, "Player");
     await completeProfile(player);
     await player.goto(new URL(invite).pathname);
+    await confirmAge(player);
     await player.getByRole("button", { name: `Join ${TEAM}` }).click();
     await expect(player.getByRole("status")).toHaveText(
       `You're on ${TEAM}. Next, sign the waiver.`,

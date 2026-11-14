@@ -1,7 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { completeProfile, pageAs } from "../support/personas";
-import { joinAsFreeAgent, openSeason, signWaiver } from "../support/season";
+import {
+  confirmAge,
+  joinAsFreeAgent,
+  openSeason,
+  signWaiver,
+} from "../support/season";
 import {
   openCheckoutSession,
   sendCheckoutCompleted,
@@ -150,6 +155,7 @@ test("a whole season, from setting it up to a rain-out", async ({
         name: /^Split it: everyone pays a fixed \$100 /,
       }),
     ).toBeChecked();
+    await confirmAge(team);
     await team.getByRole("button", { name: "Register the team" }).click();
     await expect(captain.getByRole("status")).toContainText(
       "Your team is registered",
@@ -174,6 +180,7 @@ test("a whole season, from setting it up to a rain-out", async ({
     await player.goto(new URL(inviteLink).pathname);
     await expect(player.getByText("Your share is $100.")).toBeVisible();
     await expectNoAxeViolations(player);
+    await confirmAge(player);
     await player.getByRole("button", { name: `Join ${HOME}` }).click();
     await expect(player.getByRole("status")).toHaveText(
       `You're on ${HOME}. Next, sign the waiver.`,
