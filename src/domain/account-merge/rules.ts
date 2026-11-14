@@ -372,6 +372,7 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
 export type MergeBlocker =
   | { kind: "same_account" }
   | { kind: "acting_admin" }
+  | { kind: "operator" }
   | { kind: "already_merged"; which: "kept" | "merged" }
   | { kind: "higher_role"; role: string }
   | { kind: "both_registered"; season: string }
@@ -384,6 +385,8 @@ export function describeBlocker(b: MergeBlocker): string {
       return "Pick two different accounts.";
     case "acting_admin":
       return "You can't merge away the account you're signed in with.";
+    case "operator":
+      return "The account to merge away runs the site's operator console. Merge it the other way, keeping this account.";
     case "already_merged":
       return b.which === "kept"
         ? "The account to keep was itself merged into another account. Keep that one instead."

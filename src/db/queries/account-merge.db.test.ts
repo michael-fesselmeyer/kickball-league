@@ -511,4 +511,32 @@ describe("merging duplicate accounts", () => {
       expect(still?.email).toBe(d.dup.email);
     });
   });
+
+  it("refuses to merge away the operator's account", async () => {
+    await inRolledBackDb(async (db) => {
+      const d = await duplicateWorld(db);
+      const attempt = await mergeAccounts(db, {
+        keptId: d.kept.userId,
+        mergedId: d.dup.userId,
+        actorId: d.admin.userId,
+        now: NOW,
+        secret: SECRET,
+        operatorIds: new Set([d.dup.userId]),
+      });
+      expect(attempt).toEqual({ ok: false, error: [{ kind: "operator" }] });
+      const [still] = await db
+        .select({ email: user.email })
+        .from(user)
+        .where(eq(user.id, d.dup.userId));
+      expect(still?.email).toBe(d.dup.email);
+      // Merging the other way, into the operator's account, is fine.
+      const other = await mergePreview(db, {
+        keptId: d.dup.userId,
+        mergedId: d.kept.userId,
+        actorId: d.admin.userId,
+        operatorIds: new Set([d.dup.userId]),
+      });
+      expect(other?.blockers).not.toContainEqual({ kind: "operator" });
+    });
+  });
 });
