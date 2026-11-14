@@ -359,6 +359,25 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
   "suspension.lifted_by": actor("suspensions lifted"),
   "sportsmanship_rating.rated_by": actor("sportsmanship ratings"),
 
+  // League gear: the kept account has the kits, brings them and keeps the log.
+  "equipment_kit.holder_id": { kind: "move", label: "league gear they have" },
+  "equipment_assignment.user_id": {
+    kind: "move",
+    label: "league gear to bring to games",
+  },
+  "equipment_assignment.assigned_by": actor("league gear assigned"),
+  "equipment_handoff.from_user_id": {
+    kind: "move",
+    label: "league gear handed on",
+  },
+  "equipment_handoff.to_user_id": {
+    kind: "move",
+    label: "league gear handed to them",
+  },
+  "equipment_handoff.created_by": actor("gear handoffs logged"),
+  "equipment_report.reporter_id": actor("missing gear reported"),
+  "equipment_report.resolved_by": actor("missing gear reports sorted"),
+
   // League setup
   "league.created_by": actor("leagues created"),
   "season.created_by": actor("seasons created"),
