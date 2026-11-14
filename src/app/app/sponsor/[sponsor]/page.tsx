@@ -237,6 +237,7 @@ async function Portal({ params, searchParams }: Props) {
             Name
             <input
               name="name"
+              autoComplete="off"
               required
               maxLength={80}
               defaultValue={sponsor.name}

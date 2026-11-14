@@ -150,6 +150,7 @@ async function Divisions({
                     Name
                     <input
                       name="name"
+                      autoComplete="off"
                       required
                       maxLength={MAX_DIVISION_NAME}
                       defaultValue={d.name}
@@ -198,6 +199,7 @@ async function Divisions({
             New division
             <input
               name="name"
+              autoComplete="off"
               required
               maxLength={MAX_DIVISION_NAME}
               placeholder="Social"
@@ -359,6 +361,7 @@ async function Divisions({
             Rule set name
             <input
               name="name"
+              autoComplete="off"
               required
               maxLength={MAX_DIVISION_NAME}
               placeholder="Competitive"

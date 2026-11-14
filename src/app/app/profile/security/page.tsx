@@ -145,6 +145,7 @@ async function Security({ searchParams }: PageProps<"/app/profile/security">) {
                       </span>
                       <input
                         name="name"
+                        autoComplete="off"
                         defaultValue={key.name ?? ""}
                         maxLength={PASSKEY_NAME_MAX}
                         required

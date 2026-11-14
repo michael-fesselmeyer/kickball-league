@@ -228,7 +228,13 @@ async function Fields({
         >
           <label className="flex flex-col gap-1">
             Venue name
-            <input name="name" required maxLength={80} className={input} />
+            <input
+              name="name"
+              autoComplete="off"
+              required
+              maxLength={80}
+              className={input}
+            />
           </label>
           <label className="flex flex-col gap-1">
             Neighborhood
@@ -257,7 +263,13 @@ async function Fields({
             </label>
             <label className="flex flex-col gap-1">
               Field name
-              <input name="name" required maxLength={80} className={input} />
+              <input
+                name="name"
+                autoComplete="off"
+                required
+                maxLength={80}
+                className={input}
+              />
             </label>
             <SubmitButton className="btn btn-secondary">Add field</SubmitButton>
           </form>
