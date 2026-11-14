@@ -90,7 +90,14 @@ export function NycParksPanel() {
             date. Each season has a renewal period for returning permit holders,
             then a period for new requests, then first come, first served.
           </p>
-          <div className="overflow-x-auto">
+          <div
+            role="region"
+            aria-label="NYC Parks application periods"
+            // A scrolling region must be reachable by keyboard, even with no links.
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+            tabIndex={0}
+            className="overflow-x-auto"
+          >
             <table className="w-full text-left text-small">
               <caption className="sr-only">
                 NYC Parks application periods by season
