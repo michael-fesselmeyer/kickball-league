@@ -6,6 +6,8 @@ import {
   game,
   gameRsvp,
   refereeAssignment,
+  scoreReport,
+  scoreResponse,
   slot,
   venue,
 } from "../schema/game";
@@ -302,6 +304,58 @@ describe("admin dashboard", () => {
         new Date("2099-06-09T02:30:00Z"),
       );
       expect(during.map((g) => g.id)).toEqual([unscored]);
+    });
+  });
+
+  it("lists a disputed score on its own game day, without waiting a day", async () => {
+    await inRolledBackDb(async (db) => {
+      const { sn, aces, bees, unscored, early } = await build(db);
+      const current = { id: sn.id, timeZone: "America/New_York" };
+      const captain = required(
+        (
+          await db
+            .insert(user)
+            .values({ name: "Cap", email: `dash-cap-${sn.id}@example.test` })
+            .returning({ id: user.id })
+        )[0],
+        "user",
+      );
+      const report = required(
+        (
+          await db
+            .insert(scoreReport)
+            .values({
+              gameId: early,
+              reportedBy: captain.id,
+              reporterRole: "captain",
+              teamSeasonId: aces,
+              scoreA: 6,
+              scoreB: 2,
+              clientId: `dash-${sn.id}`,
+              reportedAt: new Date("2099-06-09T00:10:00Z"),
+            })
+            .returning({ id: scoreReport.id })
+        )[0],
+        "report",
+      );
+      await db.insert(scoreResponse).values({
+        scoreReportId: report.id,
+        teamSeasonId: bees,
+        userId: captain.id,
+        status: "disputed",
+        respondedAt: new Date("2099-06-09T00:20:00Z"),
+      });
+      // Still June 8 in New York: the 7 pm game's dispute shows now, while
+      // the 10 pm game, still being played, does not.
+      const during = await missingScores(
+        db,
+        current,
+        new Date("2099-06-09T02:30:00Z"),
+      );
+      expect(during.map((g) => [g.id, g.state.state])).toEqual([
+        [unscored, "none"],
+        [early, "disputed"],
+      ]);
     });
   });
 
