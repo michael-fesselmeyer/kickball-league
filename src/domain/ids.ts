@@ -79,6 +79,7 @@ export type IncidentNoteId = Brand<string, "IncidentNoteId">;
 export type SuspensionId = Brand<string, "SuspensionId">;
 export type GameLineupId = Brand<string, "GameLineupId">;
 export type GameLineupSpotId = Brand<string, "GameLineupSpotId">;
+export type AwayWeekId = Brand<string, "AwayWeekId">;
 export type MemberPhotoId = Brand<string, "MemberPhotoId">;
 export type BooksFileId = Brand<string, "BooksFileId">;
 export type ExpenseId = Brand<string, "ExpenseId">;
