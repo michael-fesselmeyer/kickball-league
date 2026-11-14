@@ -78,10 +78,21 @@ describe("offlineGame", () => {
       path: `/games/${game.id}`,
       label: "Kickers vs Sluggers, Mon, Sep 14 at 8:00 PM",
       permit: null,
+      emergency: null,
+      emergencyUntil: null,
     });
     expect(offlineGame(game, "America/New_York", true).permit).toBe(
       `/app/games/${game.id}/permit`,
     );
+  });
+
+  it("names the emergency contacts page only with the time it stops being kept", () => {
+    const game = publicGame({ startsAt: new Date("2026-09-15T00:00:00Z") });
+    const until = new Date("2026-09-15T04:00:00Z");
+    expect(offlineGame(game, "America/New_York", true, until)).toMatchObject({
+      emergency: `/app/games/${game.id}/emergency`,
+      emergencyUntil: "2026-09-15T04:00:00.000Z",
+    });
   });
 
   it("leaves the time out when the game has none", () => {

@@ -5,8 +5,18 @@
 export const NEXT_GAME_CACHE = "kb-next-game-v1";
 export const NEXT_GAME_INFO = "/offline/next-game.json";
 
-/** `permit` is the game's permit page, saved for its ref and captains. */
-export type SavedGame = { path: string; label: string; permit?: string };
+/**
+ * `permit` is the game's permit page, saved for its ref and captains;
+ * `emergency` its emergency contacts page, saved for them on game day only,
+ * until `emergencyUntil`.
+ */
+export type SavedGame = {
+  path: string;
+  label: string;
+  permit?: string;
+  emergency?: string;
+  emergencyUntil?: string;
+};
 
 const isSavedGame = (value: unknown): value is SavedGame =>
   typeof value === "object" &&
@@ -18,7 +28,12 @@ const isSavedGame = (value: unknown): value is SavedGame =>
   typeof value.label === "string" &&
   (!("permit" in value) ||
     (typeof value.permit === "string" &&
-      value.permit.startsWith("/app/games/")));
+      value.permit.startsWith("/app/games/"))) &&
+  (!("emergency" in value) ||
+    (typeof value.emergency === "string" &&
+      value.emergency.startsWith("/app/games/") &&
+      "emergencyUntil" in value &&
+      typeof value.emergencyUntil === "string"));
 
 /** The part of Cache Storage the offline page reads. */
 type CacheReader = {
@@ -55,6 +70,10 @@ export type WorkerMessage =
       label: string;
       /** The game's permit page, only for its ref and captains. */
       permit: string | null;
+      /** The game's emergency contacts page, for them on game day only. */
+      emergency?: string | null;
+      /** When the emergency page stops being kept (ISO). */
+      emergencyUntil?: string | null;
     }
   | { type: "forget" };
 
