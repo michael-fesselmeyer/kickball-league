@@ -852,6 +852,8 @@ erDiagram
   game ||--o{ pickem_pick : "is picked in"
   user ||--o{ pickem_pick : picks
   user ||--o| pickem_hidden : "hides with"
+  season ||--o{ season_card : "sums up"
+  user ||--o{ season_card : "gets"
   league ||--o{ post : publishes
   league ||--o| social_account : connects
   social_account ||--o{ social_post : syncs
@@ -1027,6 +1029,15 @@ erDiagram
   pickem_hidden {
     uuid user_id PK
     timestamptz created_at
+  }
+  season_card {
+    uuid id PK "also the public link, so it cannot be guessed"
+    uuid season_id FK
+    uuid user_id FK
+    jsonb stats "the card's numbers, stored when built"
+    boolean is_public "false until the player shares the link"
+    timestamptz created_at
+    timestamptz built_at "last built or refreshed"
   }
   social_account {
     uuid id PK
@@ -1570,6 +1581,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `award_vote` | unique `(award_poll_id, voter_id)`; check exactly one nominee; check `nominee_user_id <> voter_id` | One vote per player per poll, for one person or team, never yourself |
 | `award_poll` | check `closes_at > opens_at`; check `game_day` is set exactly when `kind = 'weekly'` | A poll has a voting window; weekly polls name their game day |
 | `pickem_pick` | unique `(game_id, user_id)` | One pick per player per game; saving again replaces it |
+| `season_card` | unique `(season_id, user_id)` | One card per player per season, so refreshing updates it in place |
 | `deal_redemption` | unique `(deal_id, checkin_id)` | A deal once per visit |
 | `giveaway` | unique `(event_id)`; check `closes_at > opens_at`; check `winner_count` between 1 and 20; check the rules' length | One giveaway per event, with a real entry window |
 | `giveaway_entry` | unique `(giveaway_id, user_id)` | One entry per person, even when the same check-in lands twice at once |
@@ -1639,6 +1651,7 @@ Indexes for the common reads:
 | `award_poll` | `(season_id, closes_at)` | Open and closed polls of a season |
 | `award_vote` | `(voter_id)` | A player's own votes |
 | `pickem_pick` | `(user_id)` | A player's own picks, for the page, the export and account deletion |
+| `season_card` | `(user_id)` | A player's own cards, for home and the export |
 | `social_post` | `(account_id, taken_at desc)`, `(team_id)`, `(event_id)` | Newest photos for the home page and the admin screen; a team's or an event's photos |
 | `member_photo` | `(league_id, status, created_at desc)`; `(uploader_id, created_at desc)`; `(team_id, created_at desc)`, `(event_id, …)` and `(game_id, …)` where approved | The review queue and the storage total; a person's photos and daily count; each public page's photos |
 | `sportsmanship_rating` | `(rated_team_season_id)`; `(rated_by)` | A team's ratings; a person's own ratings |
@@ -1671,6 +1684,7 @@ Indexes for the common reads:
 | Giveaway entries and wins | `giveaway_entry`, `giveaway_winner` | The player and admins. Admins see winners' names to hand over the prize; the giveaway page shows only counts. The audit log holds entry and account ids, no names |
 | Award votes | `award_vote` | The voter alone sees whom they picked; everyone sees only the totals after a poll closes. Deleting an account withdraws votes in polls still open |
 | Pick'em picks | `pickem_pick`, `pickem_hidden` | The player sees their picks. Signed-in players see each player's count of right picks on the leaderboards (first name and last initial), never the picks themselves, unless the player hid from them. The export lists every pick; deleting an account deletes them |
+| Season cards | `season_card` | The player. Anyone with the link while the player keeps it public, as first name and last initial, their team and their own numbers; never another player's name, and votes only as a count. Admins see how many cards exist and how many are shared. The card is in the player's export and is deleted with their account |
 | Emergency contact (name, relationship, phone) and first-aid note | `emergency_contact`, sealed: AES-256-GCM with a key derived from the server's auth secret, bound to the player's id ([ADR 0043](adr/0043-emergency-contacts-sealed-and-shown-on-game-day.md)) | The person. On the day of a game they play in (league time zone), that game's captains and co-captains and its ref; each read writes an `emergency_contact.view` audit row with the reader and the game, never the contact. Admins and owners don't see it. A database copy alone reads nothing. When two accounts are merged, the merged-away account's contact is sealed again for the kept one only if that one has none, and deleted either way |
 | Free-agent quiz answers and note | `free_agent_profile` | The person and admins |
 | Friend group | `friend_group`, `registration.friend_group_id` | The person; others in the group see first name and last initial; admins |
