@@ -246,6 +246,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | Kind (template) | Urgency | What it is |
 |---|---|---|
 | `announcement` | non-urgent | Announcements from admins and captains |
+| `away_short` | non-urgent | For captains: a week your team may be short because players will be away |
 | `books_reminder` | non-urgent | For owners: a permit application window, renewal or insurance expiry coming up |
 | `captain_handoff` | urgent | Your team's captaincy offered to you, waiting for your answer |
 | `email_budget` | urgent | For admins: urgent email waiting for tomorrow's email allowance |
