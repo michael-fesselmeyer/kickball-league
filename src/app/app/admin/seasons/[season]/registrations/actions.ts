@@ -14,7 +14,13 @@ import {
   parseId,
   type RegistrationId,
   type TeamSeasonId,
+  type UserId,
 } from "@/domain/ids";
+import {
+  cancelCaptaincy,
+  offerCaptaincy,
+  setTeamRole,
+} from "@/db/queries/captaincy";
 import { isFreshSession } from "@/lib/auth/config";
 import {
   requirePermissionToChange,
@@ -136,4 +142,84 @@ export async function refundPaymentAction(
     }),
   );
   redirect(`${page}?notice=refund_sent`);
+}
+
+/** An admin's change to who leads a team (ADR 0042), back to its team. */
+async function captaincyGuard(slug: string, rawTeamSeasonId: string) {
+  const page = pageFor(slug);
+  const teamSeasonId = parseId<TeamSeasonId>(rawTeamSeasonId);
+  if (!teamSeasonId) notFound();
+  const subject = await requirePermissionToChange("captaincy.manage", {
+    teamSeasonId,
+    next: page,
+  });
+  const season = await seasonBySlug(db, slug);
+  if (!season) notFound();
+  const back = (code: string) =>
+    `${page}?captaincy=${code}&team=${teamSeasonId}#captaincy-${teamSeasonId}`;
+  return { subject, teamSeasonId, back };
+}
+
+export async function adminOfferCaptaincyAction(
+  slug: string,
+  rawTeamSeasonId: string,
+  form: FormData,
+): Promise<void> {
+  const { subject, teamSeasonId, back } = await captaincyGuard(
+    slug,
+    rawTeamSeasonId,
+  );
+  const toUserId = parseId<UserId>(form.get("toUserId"));
+  if (!toUserId) redirect(back("not_on_team"));
+  const result = await txDb.transaction((tx) =>
+    offerCaptaincy(tx, {
+      teamSeasonId,
+      toUserId,
+      actorId: subject.userId,
+      now: new Date(),
+    }),
+  );
+  redirect(back(result.ok ? "offered" : result.error));
+}
+
+export async function adminCancelCaptaincyAction(
+  slug: string,
+  rawTeamSeasonId: string,
+): Promise<void> {
+  const { subject, teamSeasonId, back } = await captaincyGuard(
+    slug,
+    rawTeamSeasonId,
+  );
+  const result = await txDb.transaction((tx) =>
+    cancelCaptaincy(tx, {
+      teamSeasonId,
+      actorId: subject.userId,
+      now: new Date(),
+    }),
+  );
+  redirect(back(result.ok ? "cancelled" : result.error));
+}
+
+export async function adminSetTeamRoleAction(
+  slug: string,
+  rawTeamSeasonId: string,
+  rawUserId: string,
+  role: "co_captain" | "player",
+): Promise<void> {
+  const { subject, teamSeasonId, back } = await captaincyGuard(
+    slug,
+    rawTeamSeasonId,
+  );
+  const userId = parseId<UserId>(rawUserId);
+  if (!userId) notFound();
+  const result = await txDb.transaction((tx) =>
+    setTeamRole(tx, {
+      teamSeasonId,
+      userId,
+      role,
+      actorId: subject.userId,
+      now: new Date(),
+    }),
+  );
+  redirect(back(result.ok ? role : result.error));
 }

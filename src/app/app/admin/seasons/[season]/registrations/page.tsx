@@ -15,10 +15,18 @@ import { refundableCents } from "@/domain/registration/refund";
 import { requirePermission } from "@/lib/auth/permission";
 import { RECORD_PAYMENT_MESSAGES } from "@/app/app/seasons/[season]/record-payment";
 import {
+  adminCancelCaptaincyAction,
+  adminOfferCaptaincyAction,
+  adminSetTeamRoleAction,
   placeFreeAgentAction,
   recordPaymentAction,
   refundPaymentAction,
 } from "./actions";
+import { captaincies } from "@/db/queries/captaincy";
+import {
+  CaptaincyNotice,
+  CaptaincyPanel,
+} from "@/app/app/seasons/[season]/team/captaincy";
 
 export const metadata: Metadata = { title: "Registrations" };
 
@@ -245,6 +253,11 @@ async function Registrations({
   const season = await seasonBySlug(db, slug);
   if (!season) notFound();
   const board = await registrationsBoard(db, season.id);
+  // Who leads each team, for the admin's captaincy controls (ADR 0042).
+  const leaders = await captaincies(
+    db,
+    board.teams.map((t) => t.teamSeasonId),
+  );
   const everyone = [
     ...board.teams.flatMap((t) => t.members),
     ...board.freeAgents,
@@ -428,6 +441,61 @@ async function Registrations({
                   </tbody>
                 </table>
               </div>
+            )}
+            {leaders.get(t.teamSeasonId) && (
+              <details
+                open={query.team === t.teamSeasonId && "captaincy" in query}
+                className="mt-2"
+              >
+                <summary className="inline-flex min-h-11 cursor-pointer items-center underline">
+                  Captain and co-captains
+                  <span className="sr-only"> of {t.name}</span>
+                </summary>
+                <div className="mt-2 flex flex-col gap-3">
+                  {query.team === t.teamSeasonId && (
+                    <CaptaincyNotice
+                      code={
+                        typeof query.captaincy === "string"
+                          ? query.captaincy
+                          : undefined
+                      }
+                    />
+                  )}
+                  <CaptaincyPanel
+                    idPrefix={`captaincy-${t.teamSeasonId}`}
+                    heading="h4"
+                    data={
+                      leaders.get(t.teamSeasonId) ?? {
+                        members: [],
+                        pending: null,
+                      }
+                    }
+                    viewerId={subject.userId}
+                    manage={can(subject, "captaincy.manage", {
+                      teamSeasonId: t.teamSeasonId,
+                    })}
+                    offer={adminOfferCaptaincyAction.bind(
+                      null,
+                      slug,
+                      t.teamSeasonId,
+                    )}
+                    cancel={adminCancelCaptaincyAction.bind(
+                      null,
+                      slug,
+                      t.teamSeasonId,
+                    )}
+                    setRole={(userId, role) =>
+                      adminSetTeamRoleAction.bind(
+                        null,
+                        slug,
+                        t.teamSeasonId,
+                        userId,
+                        role,
+                      )
+                    }
+                  />
+                </div>
+              </details>
             )}
           </article>
         ))}
