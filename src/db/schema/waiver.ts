@@ -5,6 +5,7 @@ import {
   inet,
   integer,
   pgTable,
+  smallint,
   text,
   timestamp,
   unique,
@@ -77,11 +78,22 @@ export const waiverSignature = pgTable(
     ip: inet(),
     userAgent: text(),
     bodySha256: text().notNull(),
+    /**
+     * The minimum age the person confirmed they meet, and when (ADR 0041).
+     * Only the confirmation is kept, never a birth date. Null on rows from
+     * before the check, and on registrations an admin made for someone.
+     */
+    ageConfirmedMin: smallint(),
+    ageConfirmedAt: timestamp({ withTimezone: true }),
   },
   (t) => [
     unique("waiver_signature_once").on(t.waiverId, t.userId, t.seasonId),
     index("waiver_signature_user_idx").on(t.userId),
     check("waiver_signature_name", sql`length(trim(${t.signedName})) > 0`),
+    check(
+      "waiver_signature_age_confirmed",
+      sql`(${t.ageConfirmedMin} is null) = (${t.ageConfirmedAt} is null) and (${t.ageConfirmedMin} is null or ${t.ageConfirmedMin} between 18 and 99)`,
+    ),
   ],
 );
 

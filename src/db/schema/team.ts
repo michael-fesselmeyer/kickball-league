@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   foreignKey,
@@ -7,12 +8,12 @@ import {
   integer,
   pgEnum,
   pgTable,
+  smallint,
   text,
   timestamp,
   unique,
   uniqueIndex,
   uuid,
-  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import type {
   DivisionId,
@@ -187,6 +188,13 @@ export const registration = pgTable(
         onDelete: "restrict",
       }),
     shirtStatus: registrationShirtStatus().notNull().default("none"),
+    /**
+     * The minimum age the person confirmed they meet, and when (ADR 0041).
+     * Only the confirmation is kept, never a birth date. Null on rows from
+     * before the check, and on registrations an admin made for someone.
+     */
+    ageConfirmedMin: smallint(),
+    ageConfirmedAt: timestamp({ withTimezone: true }),
     /** Friends who signed up together; set from the free-agent quiz. */
     friendGroupId: uuid()
       .$type<FriendGroupId>()
@@ -198,6 +206,10 @@ export const registration = pgTable(
     index("registration_friend_group_idx").on(t.friendGroupId),
     index("registration_season_status_idx").on(t.seasonId, t.status),
     index("registration_user_idx").on(t.userId),
+    check(
+      "registration_age_confirmed",
+      sql`(${t.ageConfirmedMin} is null) = (${t.ageConfirmedAt} is null) and (${t.ageConfirmedMin} is null or ${t.ageConfirmedMin} between 18 and 99)`,
+    ),
   ],
 );
 
