@@ -607,13 +607,13 @@ Third-party material stays out of the public repository until the league agrees:
 | Action | Limit |
 |---|---|
 | Sign-in attempts, magic-link requests | Sign-in links: 20 a day per IP (the count restarts after a day without one), and 3 per inbox for each 15-minute link lifetime, so a link from the last window always still works (`SIGN_IN_LINKS_PER_IP` and `SIGN_IN_LINKS_PER_INBOX` in `src/lib/auth/config.ts`; the inbox is counted under a hash of its address). Link checks: 5 a minute per IP. Other sign-in paths: 3 per 10 seconds per IP. Any other auth request: 100 per 10 seconds per IP (Better Auth's built-in limiter, counted site-wide; see below). Sign-in links are sent outside the outbox's email budget, so these limits are what keep one visitor from using up the free plan's day of email |
-| Account creation | 3 per hour per IP |
-| Checkout session creation | 10 per hour per user |
-| Invite sends | 50 per day per team |
+| Account creation | Planned: 3 per hour per IP. Today accounts start from a sign-in link, so the sign-in link limits apply ([security review](security-review.md), L10) |
+| Checkout session creation | Planned: 10 per hour per user; not enforced yet ([security review](security-review.md), L10) |
+| Invite sends | Planned: 50 per day per team; not enforced yet ([security review](security-review.md), L10) |
 | Sub requests | 3 open per team |
 | Announcements | Captain: 3 per day. Admin: 10 per day |
-| Score reports | 10 per game per user |
-| Waitlist and interest signups | 5 per hour per IP |
+| Score reports | Planned: 10 per game per user; not enforced yet ([security review](security-review.md), L10) |
+| Waitlist and interest signups | Planned: 5 per hour per IP; not enforced yet ([security review](security-review.md), L10) |
 | Bar check-ins | 1 per sponsor per user per day (also a unique index) |
 | Giveaway entries | 1 per giveaway per user (a unique index), only with a current code from the event |
 | Everything else by IP | Vercel Firewall rule as a coarse backstop |

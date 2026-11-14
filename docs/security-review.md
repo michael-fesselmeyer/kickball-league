@@ -1,0 +1,63 @@
+# Security review before launch
+
+- Date: 2026-11-14
+- Scope: every layer of the app at `main` c8c9b716: authorization, input handling, sign-in, webhooks and jobs, response headers and cookies, secrets and privacy, dependencies.
+- Issue: #280
+
+## Severity
+
+| Severity | Meaning |
+|---|---|
+| High | Anyone can do real harm to players or the league without special access |
+| Medium | Real harm that needs an account, or a missing layer of defense that the platform expects |
+| Low | Defense in depth, hardening or cleanup; no direct harm on its own |
+
+Every High and Medium finding is fixed in this review's pull request, each with a regression test. Low findings are follow-ups.
+
+## Findings
+
+| ID | Severity | Where | What | Fix | Status |
+|---|---|---|---|---|---|
+| H1 | High | `src/app/sign-in/actions.ts`, `src/lib/auth/confirm-actions.ts` | Better Auth counts requests against its rate limits only when they pass through its HTTP router. The sign-in form and the "confirm it's you" button called `auth.api.signInMagicLink` directly, so sign-in links from them were never limited: anyone could have the server email any address over and over, and use up the email provider's free plan for everyone. | Both ask for links through the router (`requestSignInLink`, `src/lib/auth/request-link.ts`). Test: `src/lib/auth/request-link.db.test.ts`. | Fixed |
+| M1 | Medium | `src/lib/auth/config.ts` | Even through the router, 5 links a minute per IP let one address send a day's worth of the free plan's 100 emails in 20 minutes (sign-in links are sent outside the outbox's email budget), and nothing limited how many links went to one inbox. | Sign-in links: 20 a day per IP, and 3 per inbox for each 15-minute link lifetime (`SIGN_IN_LINKS_PER_IP`, `SIGN_IN_LINKS_PER_INBOX`; `withinInboxLimit`, `consumeRateLimit`). The inbox is counted under a hash of its address. Tests: `request-link.db.test.ts`, `rate-limit.db.test.ts`. | Fixed |
+| M2 | Medium | `next.config.ts` | No security headers: any site could frame any page (including account deletion and payments), no Content Security Policy, no `nosniff`, referrer policy or explicit HSTS. | Headers on every response ([ADR 0044](adr/0044-security-headers-without-nonces.md), `src/lib/security-headers.ts`): a CSP without nonces so public pages stay static, `frame-ancestors 'none'`, HSTS, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`. Tests: `security-headers.test.ts`, `e2e/smoke.spec.ts`. | Fixed |
+| M3 | Medium | `src/domain/notifications/push.ts` | A push subscription's endpoint, which the outbox later posts to, could be any https address, so a signed-in person could make the server send requests to hosts that are not push services. | Endpoints must be on the browsers' push services (Firebase Cloud Messaging, Mozilla, Apple, Windows) on the default port (`isPushServiceUrl`). Test: `push.test.ts`. | Fixed |
+| M4 | Medium | `src/db/queries/payments.ts` | `webhook_event.payload` kept every Stripe event whole: the buyer's name, email, address and card details, forever. Nothing reads it, and a person's data export and account deletion never reached it. | The row keeps the event's id and type and the kind and id of its object (`storedEventPayload`). Test: `payments.db.test.ts`. | Fixed |
+| M5 | Medium | `src/lib/auth/index.ts` | Better Auth routes the site never uses were reachable at `/api/auth`: changing the name or picture (skipping the profile form's checks and the read-only switch), revoking sessions (skipping the demo's refusal) and reading the Google tokens. | Switched off (`UNUSED_AUTH_PATHS`); they answer 404. Test: `src/lib/auth/unused-paths.test.ts`. | Fixed |
+| L1 | Low | `webhook_event` | Rows written before M4's fix keep the whole event. | If live Stripe events reached a database before this fix, reduce those rows to the same four fields once, by hand. | Follow-up |
+| L2 | Low | Better Auth `verification` | Sign-in link tokens are stored as they are (Better Auth's default), so a copy of the database holds links that work for up to 15 minutes. | `storeToken: "hashed"` in the magic-link plugin; the e2e sign-in helper then stores the hash. | Follow-up |
+| L3 | Low | Better Auth `account` | Google's access and refresh tokens are stored unencrypted. The site never uses them (M5 switched off the routes that read them). | Turn on `account.encryptOAuthTokens`, or stop keeping the tokens. | Follow-up |
+| L4 | Low | `signInWithGoogle` in `src/app/sign-in/actions.ts` | Starting Google sign-in calls Better Auth directly, outside its rate limit, and each start writes a short-lived state row. | Start it through the router, as H1 does for links, keeping the state cookie. | Follow-up |
+| L5 | Low | `src/lib/books/store-file.ts`, `src/lib/social/compress-photo.ts` | Receipt photos (owners), merch photos (admins) and Instagram copies use sharp's default pixel limit, far above what these images need; a small file that claims huge dimensions costs a lot of memory to refuse. Member photos and friend logos already set a limit. | Pass `limitInputPixels` as member photos do. | Follow-up |
+| L6 | Low | `src/db/queries/account-merge.ts` | Account merges block merging away an owner or admin, but not an account named in `OPERATOR_USER_IDS`. | Refuse a merge whose merged-away account is the operator's. | Follow-up |
+| L7 | Low | `addKeepOff` in `src/db/queries/keep-off.ts` | Adding to a team's "not on my team" list tells the captain whether an address belongs to a league member. Each add is audited and admins review the lists. | Answer the same way for unknown addresses, or accept it with the audit. | Follow-up |
+| L8 | Low | Server Actions that take a bound id without `parseId` (team requests, and admin schedule versions, divisions and permit windows) | A malformed id reaches Postgres and answers 500 instead of 404. Ids are still matched to the caller's team or need an admin. | Parse bound ids with `parseId` and answer not found. | Follow-up |
+| L9 | Low | `console.error` in the outbox, guarantee charges and Stripe actions | A logged database error can include the query's parameters, which may hold an email address. | Log the error's code and message only. | Follow-up |
+| L10 | Low | `docs/architecture.md`, section 13 (Rate limits) | Some listed limits are not enforced: checkout sessions per user, account creation per IP beyond the sign-in link limits, team links per team, score reports per game and waitlist sign-ups per IP. Each needs an account or a captain, and Stripe and the database bear the load. | Enforce them with `consumeRateLimit`, or take them out of the table. The table marks them. | Follow-up |
+| L11 | Low | `package.json` (dev dependencies) | `npm audit`: 9 high and 12 moderate advisories, all in development tools (Lighthouse CI's browser and proxy packages, typescript-eslint's `minimatch`, drizzle-kit's bundled `esbuild` dev server). None is in the app's runtime dependencies, which have none. | Update when fixed versions ship; nothing reaches production. | Follow-up |
+| L12 | Low | `src/lib/security-headers.ts` | The Content Security Policy allows inline scripts, so it would not stop an injected inline script. No page renders user text as HTML. | Accepted in ADR 0044; revisit if Next.js offers static pages with hashes for inline scripts. | Accepted |
+| L13 | Low | Sign-in links | Someone with many IP addresses can still send enough sign-in links to use up the free email plan for a day. | A free bot check or firewall rule in front of `/sign-in` if it happens; the limits in M1 make it costly. | Follow-up |
+| L14 | Low | `/app/admin/league.json`, `/app/profile/export` | Downloading the whole league's data (owners, operator) or a person's own data needs only a session, not a recent sign-in. | Ask for a fresh sign-in, as deleting an account does. | Follow-up |
+
+## Checked and sound
+
+**Authorization.** Every Server Action calls `requirePermissionToChange` or `requireSelfToChange` (checked by `src/lib/auth/server-actions.test.ts`), and route handlers that read private data check `can(...)` and answer 404. Actions find the caller's team from their own registration, never from a form field, and match every id they are given to that team, game or record before changing anything. Checked in particular:
+
+- Captains and co-captains: roster changes, team links, payments recorded off the app, the guarantee card and balance, sub requests and claims, team requests, announcements and lineups are limited to their own team; a co-captain can't remove the captain or hand over the captaincy (`roster.manage`, `captaincy.manage`).
+- Refs and captains: scores, live scoring (including the offline sync route, which also refuses entries saved by another person on the same phone), incidents, sportsmanship ratings and check-ins need the game's own captains or ref.
+- Emergency contacts: sealed at rest and shown only to the game's captains and ref on game day; admins excluded; every read audited.
+- The books, permit documents, owner dashboard and league export: owners and the operator only; admins never see permit documents.
+- Not-on-my-team lists: a team's own captains, or admins; the person listed never sees it.
+- Account merges: admins only, a recent sign-in, typed confirmation, and no merging away an owner or admin from a lesser account.
+- Member photos: the uploader or an admin; tags checked against the uploader's own teams, games and events; waiting photos never public.
+- Exports: CSVs per team need that team's captains; whole-season files need an admin; every download is audited.
+- Sponsors: a sponsor's own people edit only their sponsor's details and deals; adding people and removing sponsors needs an admin.
+- Private calendar links: an HMAC of the person and a version, compared in constant time; resetting it invalidates old links.
+
+**Input and output.** No page renders user text as HTML; the only `dangerouslySetInnerHTML` are two fixed scripts and JSON-LD, which escapes `<`, `>`, `&` and line separators. Emails escape every value. Calendar files escape text per RFC 5545. CSV cells that start with `=`, `+`, `-`, `@`, a tab or a carriage return get a leading apostrophe. SQL is parameterized through Drizzle; the only raw SQL fragments come from the merge rules in code. `?next=` and every `callbackURL` go through `safeNextPath`, and Better Auth checks callback URLs against the site's origin. Sponsor, friend-league and event links must be https. Instagram copies are fetched only from Instagram's and Facebook's CDNs over https, with type and size checks. Uploads are sniffed by their first bytes and decoded by sharp before anything is stored; metadata (including location) is dropped; PDFs are served as downloads with `default-src 'none'` and `nosniff`.
+
+**Sign-in.** Sessions last 90 days and renew at most daily; cookies are Better Auth's HTTP-only, `SameSite=Lax` and `Secure` on https. Sign-in links last 15 minutes and are consumed on first use. Adding or removing a passkey, deleting the account, merging accounts and the operator's changes need a sign-in from the last 15 minutes. Signing in again on the same browser ends the old session; the security page signs other devices out; deleting an account removes every session and clears the cookies. Demo mode turns itself off unless every check passes (database name, production address, Stripe not live).
+
+**Webhooks and jobs.** The Stripe webhook verifies the signature on the raw body (Stripe's five-minute tolerance limits replays), records each event id once, and applies it in the same transaction; a purchase is marked paid only when Stripe says `paid`, with amounts set on the server. Every `/api/jobs/*` route needs `Authorization: Bearer $CRON_SECRET`, compared in constant time, refuses all calls when no secret is set, and skips its run while the site is read-only or paused.
+
+**Secrets and privacy.** No `NEXT_PUBLIC_` variables, no client component reads the environment, and a search of the production build's client chunks found no secret values or secret variable names. Logs carry ids, not personal data (apart from L9). The personal data export and account deletion cover every table that names a person (the merge rules' coverage test lists every column that references `user.id`), and with M4 no longer miss Stripe's copies. Emergency contacts and the Instagram token are sealed with AES-256-GCM under purpose-specific keys.
