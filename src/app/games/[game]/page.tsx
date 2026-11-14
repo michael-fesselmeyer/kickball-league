@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { JsonLd } from "@/components/json-ld";
 import { LogoBadge } from "@/components/logo-badge";
-import { Arrive } from "@/components/arrive";
 import { gameMorph, Morph, teamMorph } from "@/components/motion";
 import { ForecastChip } from "@/components/forecast-chip";
 import { ShareButtons } from "@/components/share";
@@ -13,7 +13,6 @@ import { LiveLine } from "@/components/line-score";
 import { LiveScore } from "@/components/live-score";
 import { MemberPhotos } from "@/components/member-photos";
 import { GameStats } from "@/components/stats/game-stats";
-import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { approvedPhotos } from "@/db/queries/member-photos";
 import type { Hex } from "@/domain/color/contrast";
@@ -31,11 +30,20 @@ import {
 import { cardVersion, gameCard } from "@/domain/share/cards";
 import { gameShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
-import { cachedLiveSnapshot, cachedPublishedGame } from "@/lib/game-cache";
+import { cachedPageSnapshot, cachedPublishedGame } from "@/lib/game-cache";
 import { MEMBER_PHOTOS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 import { gamePageJsonLd } from "@/lib/seo/pages";
 import { shareMetadata } from "@/lib/share/metadata";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
+import { publicGameParams } from "@/lib/static-params";
+
+/**
+ * The games of seasons still being played are prerendered at build time;
+ * any other game is rendered in full on its first visit and kept.
+ */
+export async function generateStaticParams() {
+  return publicGameParams();
+}
 
 /** Players' approved photos of the game, refreshed when one is approved. */
 async function cachedGamePhotos(gameId: GameId) {
@@ -79,14 +87,18 @@ export async function generateMetadata({
   };
 }
 
+/**
+ * The game is static HTML kept per game, with no <Suspense> boundary around
+ * it, so the teams, date and place are part of the first paint (as the team
+ * and season pages, ADR 0029). Behind a boundary, React moves a finished
+ * segment larger than its progressive chunk to the end of the document; a
+ * browser that painted the fallback first then revealed the game up to
+ * 300 ms later. Only the forecast and the photo prompt stream in.
+ */
 export default function GamePage(props: PageProps<"/games/[game]">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:px-6">
-      <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>
-        <Arrive>
-          <Game {...props} />
-        </Arrive>
-      </Suspense>
+      <Game {...props} />
     </main>
   );
 }
@@ -118,7 +130,7 @@ async function Game({ params }: PageProps<"/games/[game]">) {
   const id = parseId<GameId>(param);
   const [found, snapshot, photos] = await Promise.all([
     load(param),
-    id ? cachedLiveSnapshot(id) : null,
+    id ? cachedPageSnapshot(id) : null,
     id ? cachedGamePhotos(id) : [],
   ]);
   if (!found) notFound();
@@ -287,15 +299,23 @@ async function Game({ params }: PageProps<"/games/[game]">) {
 
       <GameStats game={game} timeZone={timeZone} />
 
-      {/* Once it has started: there's nothing to photograph before. */}
-      {(photos.length > 0 ||
-        (game.startsAt !== null && game.startsAt <= new Date())) && (
+      {photos.length > 0 ? (
         <MemberPhotos
           id="player-photos"
           about={`${game.teamA.name} vs ${game.teamB.name}`}
           photos={photos}
           shareHref={`/app/photos?game=${game.id}`}
         />
+      ) : (
+        game.startsAt && (
+          <Suspense fallback={null}>
+            <PhotoPromptOnceStarted
+              startsAt={game.startsAt}
+              about={`${game.teamA.name} vs ${game.teamB.name}`}
+              shareHref={`/app/photos?game=${game.id}`}
+            />
+          </Suspense>
+        )
       )}
 
       <section aria-labelledby="follow" className="flex flex-col gap-2">
@@ -316,6 +336,32 @@ async function Game({ params }: PageProps<"/games/[game]">) {
         </ul>
       </section>
     </>
+  );
+}
+
+/**
+ * The invitation to share photos, once the game has started: there's
+ * nothing to photograph before. It depends on the clock, so it streams in
+ * below the fold instead of making the page render per request.
+ */
+async function PhotoPromptOnceStarted({
+  startsAt,
+  about,
+  shareHref,
+}: {
+  startsAt: Date;
+  about: string;
+  shareHref: string;
+}) {
+  await connection();
+  if (startsAt > new Date()) return null;
+  return (
+    <MemberPhotos
+      id="player-photos"
+      about={about}
+      photos={[]}
+      shareHref={shareHref}
+    />
   );
 }
 

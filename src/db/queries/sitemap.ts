@@ -1,4 +1,6 @@
-import { asc, desc, eq, max, ne } from "drizzle-orm";
+import { and, asc, desc, eq, max, ne, notInArray } from "drizzle-orm";
+import { game } from "../schema/game";
+import { gamePlacement, scheduleVersion } from "../schema/schedule";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
@@ -40,4 +42,27 @@ export async function publicTeamPages(db: Db) {
   return rows.flatMap((r) =>
     r.updatedAt ? [{ slug: r.slug, updatedAt: r.updatedAt }] : [],
   );
+}
+
+/**
+ * Games on a published schedule of a season still being played (open for
+ * registration, under way or in its playoffs): the game pages worth having
+ * ready before anyone asks. A finished season's games render on their first
+ * visit and are kept.
+ */
+export async function currentPublicGames(db: Db) {
+  return db
+    .selectDistinct({ id: game.id })
+    .from(gamePlacement)
+    .innerJoin(
+      scheduleVersion,
+      and(
+        eq(gamePlacement.scheduleVersionId, scheduleVersion.id),
+        eq(scheduleVersion.status, "published"),
+      ),
+    )
+    .innerJoin(game, eq(gamePlacement.gameId, game.id))
+    .innerJoin(season, eq(game.seasonId, season.id))
+    .where(notInArray(season.status, ["draft", "completed"]))
+    .orderBy(asc(game.id));
 }
