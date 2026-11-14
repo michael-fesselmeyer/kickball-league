@@ -397,9 +397,13 @@ async function Team({
           Away some weeks? Mark them
         </Link>
         {manages ? (
-          <HelpLink role="captain" article="invite" topic="running your team" />
+          <HelpLink
+            audience="captain"
+            article="invite"
+            topic="running your team"
+          />
         ) : (
-          <HelpLink role="player" article="rsvp" topic="your team page" />
+          <HelpLink audience="player" article="rsvp" topic="your team page" />
         )}
       </header>
 

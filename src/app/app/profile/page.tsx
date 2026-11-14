@@ -80,7 +80,7 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
         </Link>
         <h1 className="text-h1">Your profile</h1>
         <HelpLink
-          role="player"
+          audience="player"
           article="alerts"
           topic="alerts and notifications"
         />

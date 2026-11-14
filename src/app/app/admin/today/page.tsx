@@ -85,7 +85,7 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
         </p>
         <h1 className="text-h1">Game day</h1>
         <HelpLink
-          role="admin"
+          audience="admin"
           article="command-center"
           topic="the game-day command center"
         />

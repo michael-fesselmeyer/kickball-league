@@ -91,7 +91,7 @@ async function Live({
         <h1 className="text-h2">
           {g.teamAName} vs {g.teamBName}
         </h1>
-        <HelpLink role="ref" article="live-scoring" topic="live scoring" />
+        <HelpLink audience="ref" article="live-scoring" topic="live scoring" />
         <p className="text-small text-text-muted">
           Enter the runs after each half-inning. The{" "}
           <Link href={`/games/${g.id}`} className="underline">

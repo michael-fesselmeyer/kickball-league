@@ -65,7 +65,7 @@ describe("the help center's how-tos", () => {
     const links = screens().flatMap((file) =>
       [
         ...readFileSync(file, "utf8").matchAll(
-          /<HelpLink\s+role="([a-z]+)"\s+article="([a-z-]+)"/g,
+          /<HelpLink\s+audience="([a-z]+)"\s+article="([a-z-]+)"/g,
         ),
       ].map(([, role, article]) => ({ file, role, article })),
     );

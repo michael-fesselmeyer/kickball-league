@@ -108,7 +108,7 @@ async function Builder({
         <h1 className="text-h2">
           {teamName} vs {opponent}
         </h1>
-        <HelpLink role="captain" article="lineup" topic="kicking orders" />
+        <HelpLink audience="captain" article="lineup" topic="kicking orders" />
         <p className="text-small text-text-muted">
           League rule 2.2.4: no more than two players of the same gender kick in
           a row, and the order wraps from the last kicker to the first. Only

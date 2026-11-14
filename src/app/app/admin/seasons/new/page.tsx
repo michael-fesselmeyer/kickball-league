@@ -19,7 +19,7 @@ export default function NewSeasonPage() {
         </Link>
         <h1 className="text-h1">New season</h1>
         <HelpLink
-          role="admin"
+          audience="admin"
           article="season-setup"
           topic="setting up a season"
         />
