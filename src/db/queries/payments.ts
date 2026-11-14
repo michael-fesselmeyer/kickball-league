@@ -323,6 +323,37 @@ const chargeEvent = z.object({
 
 export type StripeEventLike = { id: string; type: string; data: unknown };
 
+/**
+ * What `webhook_event` keeps of an event: enough to find it in Stripe's
+ * dashboard and see what it was about. Stripe's objects carry the buyer's
+ * name, email, address and card details, which the league neither needs
+ * nor could export or delete with the rest of a person's data, so the
+ * object itself is never stored.
+ */
+export function storedEventPayload(event: StripeEventLike): {
+  id: string;
+  type: string;
+  object: string | null;
+  objectId: string | null;
+} {
+  const data: unknown = event.data;
+  const object =
+    data && typeof data === "object" && "object" in data
+      ? (data as { object: unknown }).object
+      : null;
+  const field = (name: "object" | "id") => {
+    if (!object || typeof object !== "object" || !(name in object)) return null;
+    const value: unknown = (object as Record<string, unknown>)[name];
+    return typeof value === "string" ? value : null;
+  };
+  return {
+    id: event.id,
+    type: event.type,
+    object: field("object"),
+    objectId: field("id"),
+  };
+}
+
 export type EventOutcome = "processed" | "duplicate" | "ignored";
 
 const SESSION_EVENTS = new Set([
@@ -349,7 +380,7 @@ export async function handleStripeEvent(
       provider: "stripe",
       eventId: event.id,
       type: event.type,
-      payload: event,
+      payload: storedEventPayload(event),
     })
     .onConflictDoNothing()
     .returning({ id: webhookEvent.id });
