@@ -113,6 +113,7 @@ const ACTIONS: Record<string, string> = {
   "schedule.save_version": "Saved a schedule draft",
   "score.override": "Corrected a score",
   "season.assign_waiver": "Chose the season's waiver",
+  "season.rollover": "Started a new season from an earlier one",
   "season.create": "Created a season",
   "season.division_settings": "Changed crossover games and the playoff format",
   "season.update": "Changed season settings",
