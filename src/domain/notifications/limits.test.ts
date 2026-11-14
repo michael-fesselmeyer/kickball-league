@@ -186,6 +186,19 @@ describe("quietHoursEnd", () => {
     ).toBe("2026-11-01T13:00:00.000Z");
   });
 
+  it("ends when a clock change turns the clock back to before they start", () => {
+    // Troll falls back two hours at 01:00 UTC on Oct 25, 2026: 02:59 (+02)
+    // is followed by 01:00 (+00), outside quiet hours from 2 am to midnight.
+    const twoToMidnight = { startHour: 2, endHour: 0 };
+    expect(
+      quietHoursEnd(
+        new Date("2026-10-25T00:59:00Z"),
+        "Antarctica/Troll",
+        twoToMidnight,
+      ).toISOString(),
+    ).toBe("2026-10-25T01:00:00.000Z");
+  });
+
   it("is now when it is not quiet", () => {
     const now = new Date("2026-07-02T16:00:00Z");
     expect(quietHoursEnd(now, NY, DEFAULT_LIMITS.quietHours)).toBe(now);

@@ -198,7 +198,37 @@ export function quietHoursEnd(
     .sort((a, b) => a.getTime() - b.getTime())[0];
   // Quiet hours are shorter than a day, so one of the next three ends is
   // always found; a day later is a safe answer if a zone ever proves odd.
-  return found ?? new Date(now.getTime() + 24 * HOUR);
+  const end = found ?? new Date(now.getTime() + 24 * HOUR);
+  // A clock change can also end them early, by turning the clock back to
+  // before they start: Antarctica/Troll falls back two hours, from 2:59 to
+  // 1:00, out of quiet hours that start at 2. There is at most one change
+  // in a day, and only its moment can leave quiet hours before `end`.
+  if (offsetAt(now.getTime(), timeZone) !== offsetAt(end.getTime(), timeZone)) {
+    const change = new Date(
+      clockChange(now.getTime(), end.getTime(), timeZone),
+    );
+    if (change > now && change < end && !inQuietHours(change, timeZone, quiet))
+      return change;
+  }
+  return end;
+}
+
+/**
+ * The first whole minute in (`from`, `to`] with the zone's offset at `to`,
+ * when the offset changes once in between. Zones change their clocks on a
+ * whole minute.
+ */
+function clockChange(from: number, to: number, timeZone: string): number {
+  const after = offsetAt(to, timeZone);
+  let lo = from;
+  let hi = to;
+  while (hi - lo > MINUTE) {
+    const mid = Math.floor((lo + hi) / 2 / MINUTE) * MINUTE;
+    if (mid <= lo) break;
+    if (offsetAt(mid, timeZone) === after) hi = mid;
+    else lo = mid;
+  }
+  return hi;
 }
 
 const weekday = (date: string) => new Date(`${date}T12:00:00Z`).getUTCDay();
