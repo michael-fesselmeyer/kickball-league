@@ -160,6 +160,7 @@ With Cache Components, a page's static parts and cached data are prerendered int
 | `sitemap.xml`, `robots.txt` | `sitemap.ts`, `robots.ts`, cached daily | `league` | — |
 | `/app/**` | Dynamic, streamed with Suspense; never cached across users | — | — |
 | `/app/admin/**` | Dynamic. The schedule board is a lazily loaded client component | — | — |
+| `/app/admin/today` | Dynamic, server-rendered complete with the day's state; a small client island then asks `/app/admin/today/state.json` for fresh state every 10 seconds while the tab is visible (polling, as with live scores in [ADR 0011](adr/0011-live-scores-by-polling.md); no realtime service). Each poll is two reads: the day, then every game on it in one grouped query with its ref, check-in, latest report and halves. The weather comes from the cached forecast (section 7) and is not polled ✔ | — (`private, no-store`: a handful of admins poll it) | — |
 | `/app/owner/[season]` | Dynamic (the permission check reads the session); the dashboard's numbers come from one `use cache` read of ten grouped queries in parallel, kept up to five minutes (`OWNER_DASHBOARD_LIFE`, `src/lib/owner-dashboard-cache.ts`). No client script: bars are elements sized in tables and the week chart is server SVG ✔ | `owner-dashboard`, `season:{id}` for every season shown | An expense or a permit cost changes, a summary is published or taken down, the owner presses "Refresh now", or any action that refreshes a season's public pages |
 
 Public pages show the same thing to everyone. "My team" highlighting and the signed-in header are client islands, so a signed-in player still gets the cached page.
@@ -465,7 +466,8 @@ Every signed-in screen and download, and the flow in `e2e/` that reaches it, by 
 | `/app/seasons/[season]/team/subs` | `season-journey` (post a request, approve the claim); `screens` |
 | `/app/seasons/[season]/team/announcements` | `announcements` |
 | `/app/seasons/[season]/export/roster.csv`, `payments.csv` | `admin-tools` (team and season files) |
-| `/app/admin` | `screens`; `owner-dashboard` (Owner dashboard link) |
+| `/app/admin` | `screens`; `owner-dashboard` (Owner dashboard link); `game-day` (Game day screen link) |
+| `/app/admin/today`, `state.json` | `game-day` (the ref checks in on their phone and the admin's open screen shows it within 15 seconds without a reload; a captain finds nothing) |
 | `/app/owner/[season]`, `dashboard.csv`, `summary`; `/seasons/[season]/money` | `owner-dashboard` (read, download, fold a category, publish, a visitor reads it; a captain finds nothing) |
 | `/app/admin/credit` | `registration` (league credit) |
 | `/app/admin/audit` | `admin-tools` (export and role changes, operator filter); `site-wide/operator` (status and feature switches); `screens` |
