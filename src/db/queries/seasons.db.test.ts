@@ -11,6 +11,7 @@ import { league } from "../schema/league";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import type { Db } from "./schedule";
 import { createSeason, seasonSettings, updateSeason } from "./seasons";
+import { assignWaiver, publishWaiver } from "./waivers";
 
 afterAll(closePool);
 
@@ -47,6 +48,21 @@ async function world(db: Db) {
     .values({ name: "Test League", slug: `seasons-${tag}` })
     .returning({ id: league.id });
   return { actor: admin!.id, leagueId: lg!.id };
+}
+
+/** A synthetic placeholder waiver, published for the league. */
+async function sampleWaiver(db: Db, w: Awaited<ReturnType<typeof world>>) {
+  const published = await publishWaiver(
+    db,
+    {
+      leagueId: w.leagueId,
+      title: "Sample release (test only)",
+      body: "Placeholder text for tests. Not a legal document. ".repeat(6),
+    },
+    w.actor,
+  );
+  if (!published.ok) throw new Error(JSON.stringify(published.error));
+  return published.value.id;
 }
 
 describe("seasons", () => {
@@ -104,6 +120,11 @@ describe("seasons", () => {
       );
       if (!created.ok) throw new Error();
       const seasonId = created.value.id;
+      await assignWaiver(
+        db,
+        { leagueId: w.leagueId, seasonId, waiverId: await sampleWaiver(db, w) },
+        w.actor,
+      );
       const update = (
         s: SeasonSettings,
         status = "registration_open" as const,
@@ -132,15 +153,16 @@ describe("seasons", () => {
         .where(eq(auditLog.entityId, seasonId))
         .orderBy(auditLog.action);
       expect(rows.map((r) => r.action)).toEqual([
+        "season.assign_waiver",
         "season.create",
         "season.update",
       ]);
-      expect(rows[1]?.before).toEqual({
+      expect(rows[2]?.before).toEqual({
         playerFeeCents: 8500,
         gamesPerTeamPerDay: 1,
         status: "draft",
       });
-      expect(rows[1]?.after).toEqual({
+      expect(rows[2]?.after).toEqual({
         playerFeeCents: 9000,
         gamesPerTeamPerDay: 2,
         status: "registration_open",
@@ -173,6 +195,57 @@ describe("seasons", () => {
           other.actor,
         ),
       ).toEqual({ ok: false, error: "unknown_season" });
+    });
+  });
+
+  it("won't open registration until the season has a waiver", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const created = await createSeason(
+        db,
+        { leagueId: w.leagueId, settings: settings() },
+        w.actor,
+      );
+      if (!created.ok) throw new Error();
+      const seasonId = created.value.id;
+      const open = () =>
+        updateSeason(
+          db,
+          {
+            leagueId: w.leagueId,
+            seasonId,
+            settings: settings(),
+            status: "registration_open",
+          },
+          w.actor,
+        );
+      expect(await open()).toEqual({ ok: false, error: "no_waiver" });
+      expect(
+        (await seasonSettings(db, w.leagueId, "spring-2027"))?.status,
+      ).toBe("draft");
+      expect(
+        (await seasonSettings(db, w.leagueId, "spring-2027"))?.hasWaiver,
+      ).toBe(false);
+
+      const waiverId = await sampleWaiver(db, w);
+      await assignWaiver(
+        db,
+        { leagueId: w.leagueId, seasonId, waiverId },
+        w.actor,
+      );
+      expect(await open()).toEqual({
+        ok: true,
+        value: { slug: "spring-2027" },
+      });
+
+      // Once registration is open, its waiver can be swapped but not removed.
+      expect(
+        await assignWaiver(
+          db,
+          { leagueId: w.leagueId, seasonId, waiverId: null },
+          w.actor,
+        ),
+      ).toEqual({ ok: false, error: "registration_open" });
     });
   });
 });

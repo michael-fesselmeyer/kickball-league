@@ -33,6 +33,8 @@ const valuesOf = (form: FormData): SeasonForm =>
   formStrings(form, SEASON_FIELDS);
 
 const CHECK = "Check the fields marked below.";
+const NO_WAIVER =
+  "Choose this season's waiver before opening registration: players sign it before they can pay. Pick it on the Waivers screen (League admin > Waivers), then open registration here.";
 const DUPLICATE = "Another season already has that name.";
 
 export async function createSeasonAction(
@@ -96,6 +98,8 @@ export async function updateSeasonAction(
   );
   if (!updated.ok) {
     if (updated.error === "unknown_season") notFound();
+    if (updated.error === "no_waiver")
+      return { values, status, errors: {}, message: NO_WAIVER };
     return { values, status, errors: { name: DUPLICATE }, message: CHECK };
   }
   // A higher team limit frees spots: offer them to the waitlist now.

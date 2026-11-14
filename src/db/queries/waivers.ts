@@ -85,14 +85,19 @@ export async function assignWaiver(
   db: Db,
   input: { leagueId: LeagueId; seasonId: SeasonId; waiverId: WaiverId | null },
   actorId: UserId,
-): Promise<Result<void, "unknown_season" | "unknown_waiver">> {
+): Promise<
+  Result<void, "unknown_season" | "unknown_waiver" | "registration_open">
+> {
   const [found] = await db
-    .select({ waiverId: season.waiverId })
+    .select({ waiverId: season.waiverId, status: season.status })
     .from(season)
     .where(
       and(eq(season.id, input.seasonId), eq(season.leagueId, input.leagueId)),
     );
   if (!found) return err("unknown_season");
+  // Players registering now need a waiver to sign before they can pay.
+  if (input.waiverId === null && found.status === "registration_open")
+    return err("registration_open");
   if (input.waiverId !== null) {
     const [own] = await db
       .select({ id: waiver.id })
