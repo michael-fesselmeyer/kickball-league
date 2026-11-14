@@ -24,6 +24,13 @@ export const CONTENT_PAGES = [
   { path: "/friends", changeFrequency: "monthly", priority: 0.4 },
   { path: "/records", changeFrequency: "weekly", priority: 0.5 },
   { path: "/history", changeFrequency: "weekly", priority: 0.5 },
+  { path: "/help", changeFrequency: "monthly", priority: 0.5 },
+  { path: "/help/player", changeFrequency: "monthly", priority: 0.4 },
+  { path: "/help/captain", changeFrequency: "monthly", priority: 0.4 },
+  { path: "/help/ref", changeFrequency: "monthly", priority: 0.3 },
+  { path: "/help/admin", changeFrequency: "monthly", priority: 0.3 },
+  { path: "/help/owner", changeFrequency: "monthly", priority: 0.3 },
+  { path: "/widget", changeFrequency: "monthly", priority: 0.3 },
 ] as const satisfies readonly {
   path: string;
   changeFrequency: "weekly" | "monthly";

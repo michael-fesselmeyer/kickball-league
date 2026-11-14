@@ -24,6 +24,13 @@ describe("buildSitemap", () => {
       `${ORIGIN}/friends`,
       `${ORIGIN}/records`,
       `${ORIGIN}/history`,
+      `${ORIGIN}/help`,
+      `${ORIGIN}/help/player`,
+      `${ORIGIN}/help/captain`,
+      `${ORIGIN}/help/ref`,
+      `${ORIGIN}/help/admin`,
+      `${ORIGIN}/help/owner`,
+      `${ORIGIN}/widget`,
     ]);
     expect(urls).toHaveLength(CONTENT_PAGES.length);
   });
