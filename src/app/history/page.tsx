@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
-import { Suspense } from "react";
 import { LogoBadge } from "@/components/logo-badge";
 import { db } from "@/db/client";
 import { type AllTimeRow, leagueHistory } from "@/db/queries/history";
@@ -13,6 +13,7 @@ import {
   seasonDates,
   signedText,
 } from "@/domain/history/history";
+import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 
 export const metadata: Metadata = {
   title: "League history",
@@ -33,18 +34,23 @@ export default function HistoryPage() {
           the table finished, and who has won the most since day one.
         </p>
       </header>
-      <Suspense fallback={<p>Digging through the archives…</p>}>
-        <History />
-      </Suspense>
+      <History />
     </main>
   );
 }
 
+/**
+ * Cached and part of the static page: any change to a public season's
+ * results expires that season's tag, and with it this page.
+ */
 async function History() {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
   const league = await currentLeague(db);
-  const { pastSeasons, allTime } = league
+  const { pastSeasons, allTime, seasonIds } = league
     ? await leagueHistory(db, league.id)
-    : { pastSeasons: [], allTime: [] };
+    : { pastSeasons: [], allTime: [], seasonIds: [] };
+  if (seasonIds.length > 0) cacheTag(...seasonIds.map(seasonTag));
 
   if (pastSeasons.length === 0)
     return (

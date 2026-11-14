@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { BracketBoard, BracketList, Champion } from "@/components/bracket";
 import { db } from "@/db/client";
 import { bracketViews } from "@/db/queries/playoffs";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
+import { NO_SEASON, publicSeasonParams } from "@/lib/static-params";
 
 export const metadata: Metadata = {
   title: "Playoff bracket",
@@ -13,30 +15,45 @@ export const metadata: Metadata = {
     "The playoff bracket: seeds from the final standings, game times and fields, and who moves on.",
 };
 
-export default function BracketPage(
-  props: PageProps<"/seasons/[season]/bracket">,
-) {
+type Props = PageProps<"/seasons/[season]/bracket/[[...view]]">;
+
+/**
+ * Static, like the schedule (ADR 0029): each public season's bracket is
+ * prerendered, and another view is rendered in full on its first visit.
+ */
+export const ensureStatic = "navigation";
+
+export async function generateStaticParams() {
+  return (await publicSeasonParams()).map((p) => ({ ...p, view: [] }));
+}
+
+/**
+ * The list view arrives as `?view=list`. src/proxy.ts rewrites it to the
+ * optional `[[...view]]` segment, so the page never reads the query string.
+ */
+export default async function BracketPage({ params }: Props) {
+  const { season: slug, view } = await params;
+  // The build's placeholder when it had no database to read.
+  if (slug === NO_SEASON) notFound();
+  const asList = view?.[0] === "list";
+  if (view !== undefined && view.length > 0 && !asList) notFound();
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
-      <Suspense fallback={<p>Loading the bracket…</p>}>
-        <Bracket {...props} />
-      </Suspense>
+      <Bracket slug={slug} asList={asList} />
     </main>
   );
 }
 
-async function Bracket({
-  params,
-  searchParams,
-}: PageProps<"/seasons/[season]/bracket">) {
-  const { season: slug } = await params;
-  const { view } = await searchParams;
+/** Cached; publishing a bracket or a final playoff score expires it. */
+async function Bracket({ slug, asList }: { slug: string; asList: boolean }) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
   const season = await seasonBySlug(db, slug);
   // Drafts are the league's work in progress, not public.
   if (!season || season.status === "draft") notFound();
+  cacheTag(seasonTag(season.id));
   // One bracket, or one per division without a combined final (ADR 0040).
   const brackets = await bracketViews(db, season.id);
-  const asList = view === "list";
   const base = `/seasons/${season.slug}/bracket`;
 
   return (

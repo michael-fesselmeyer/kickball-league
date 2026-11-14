@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
-import { Suspense } from "react";
-import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { allPublishedGames } from "@/db/queries/public-schedule";
 import { currentLeague } from "@/db/queries/seasons";
@@ -12,6 +11,7 @@ import {
   recordValue,
 } from "@/domain/stats/records";
 import { statGamesFrom, teamsFrom } from "@/domain/stats/season";
+import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 
 export const metadata: Metadata = {
   title: "League records",
@@ -36,18 +36,24 @@ export default function RecordsPage() {
           .
         </p>
       </header>
-      <Suspense fallback={<PageLoading>Loading the record book…</PageLoading>}>
-        <Records />
-      </Suspense>
+      <Records />
     </main>
   );
 }
 
+/**
+ * Cached and part of the static page: a final score in any season expires
+ * that season's tag, and with it this page.
+ */
 async function Records() {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
   const [games, league] = await Promise.all([
     allPublishedGames(db),
     currentLeague(db),
   ]);
+  const seasonIds = [...new Set(games.map((g) => g.seasonId))];
+  if (seasonIds.length > 0) cacheTag(...seasonIds.map(seasonTag));
   const timeZone = league?.timeZone ?? "America/New_York";
   const records = leagueRecords(statGamesFrom(games));
   const teams = teamsFrom(games);
