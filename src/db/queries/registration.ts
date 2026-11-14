@@ -1,4 +1,4 @@
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import type {
   LeagueId,
   RegistrationId,
@@ -12,8 +12,10 @@ import {
   priceFor,
   registrationWindow,
 } from "@/domain/registration/pricing";
+import type { AgeRefusal } from "@/domain/registration/age";
 import { err, ok, type Result } from "@/domain/result";
 import { slugify } from "@/domain/slug";
+import { league } from "../schema/league";
 import { season } from "../schema/season";
 import {
   registration,
@@ -22,6 +24,7 @@ import {
   teamSeason,
 } from "../schema/team";
 import { waiverSignature } from "../schema/waiver";
+import { confirmAge } from "./age";
 import { recordAudit } from "./audit";
 import { acceptOffer, checkTeamSpot } from "./waitlist";
 import type { Db } from "./schedule";
@@ -55,8 +58,11 @@ export async function seasonForRegistration(
       rosterMin: season.rosterMin,
       rosterMax: season.rosterMax,
       waiverId: season.waiverId,
+      /** The season's minimum age, else the league's (ADR 0041). */
+      minimumAge: sql<number>`coalesce(${season.minimumAge}, ${league.minimumAge})::int`,
     })
     .from(season)
+    .innerJoin(league, eq(league.id, season.leagueId))
     .where(and(eq(season.leagueId, leagueId), eq(season.slug, slug)));
   return found ?? null;
 }
@@ -127,7 +133,8 @@ export type RegisterError =
   | "bad_name"
   | "name_taken"
   | "bad_roster_size"
-  | "bad_color";
+  | "bad_color"
+  | AgeRefusal;
 
 async function alreadyRegistered(db: Db, seasonId: SeasonId, userId: UserId) {
   const [found] = await db
@@ -172,12 +179,25 @@ export async function startingState(
 /** Joins the free-agent pool; an admin places free agents on teams later. */
 export async function registerFreeAgent(
   db: Db,
-  input: { season: SeasonForRegistration; userId: UserId; now: Date },
+  input: {
+    season: SeasonForRegistration;
+    userId: UserId;
+    /** They ticked "I'm 21 or older" (or the season's minimum). */
+    ageConfirmed: boolean;
+    now: Date;
+  },
 ): Promise<Result<RegistrationId, RegisterError>> {
   const { season: s, userId, now } = input;
   if (registrationWindow(s, now) !== "open") return err("closed");
   if (await alreadyRegistered(db, s.id, userId))
     return err("already_registered");
+  const age = await confirmAge(db, {
+    userId,
+    seasonId: s.id,
+    confirmed: input.ageConfirmed,
+    now,
+  });
+  if (!age.ok) return age;
   if (!priceFor(s, { kind: "free_agent" }, now).ok) return err("no_price");
   const [created] = await db
     .insert(registration)
@@ -186,6 +206,7 @@ export async function registerFreeAgent(
       userId,
       kind: "free_agent",
       ...(await startingState(db, s, userId)),
+      ...age.value,
       createdBy: userId,
     })
     .returning({ id: registration.id });
@@ -213,6 +234,8 @@ export async function registerTeam(
     season: SeasonForRegistration;
     userId: UserId;
     team: TeamInput;
+    /** They ticked "I'm 21 or older" (or the season's minimum). */
+    ageConfirmed: boolean;
     now: Date;
   },
 ): Promise<
@@ -229,6 +252,13 @@ export async function registerTeam(
   if (registrationWindow(s, now) !== "open") return err("closed");
   if (await alreadyRegistered(db, s.id, userId))
     return err("already_registered");
+  const age = await confirmAge(db, {
+    userId,
+    seasonId: s.id,
+    confirmed: input.ageConfirmed,
+    now,
+  });
+  if (!age.ok) return age;
   if (
     !Number.isInteger(t.rosterSize) ||
     t.rosterSize < s.rosterMin ||
@@ -309,6 +339,7 @@ export async function registerTeam(
       userId,
       kind: "team_member",
       ...(await startingState(db, s, userId)),
+      ...age.value,
       createdBy: userId,
     })
     .returning({ id: registration.id });

@@ -206,11 +206,13 @@ describe("the invite link for someone the team keeps off", () => {
       );
 
       const tryExpired = await acceptInvite(db, {
+        ageConfirmed: true,
         token: old.token,
         userId: someoneElse,
         now: NOW,
       });
       const tryKeptOff = await acceptInvite(db, {
+        ageConfirmed: true,
         token,
         userId: listed,
         now: NOW,

@@ -66,6 +66,7 @@ async function world(db: Db) {
   )) as SeasonForRegistration;
   const userId = captain!.id;
   const team = await registerTeam(db, {
+    ageConfirmed: true,
     leagueId,
     season: s,
     userId,
@@ -282,6 +283,7 @@ describe("payments", () => {
       });
       const sign = (userId: UserId, name: string) =>
         signWaiver(db, {
+          ageConfirmed: true,
           userId,
           seasonId: lg!.id,
           shownSha256: hashWaiverBody(body),
@@ -299,7 +301,12 @@ describe("payments", () => {
         )[0]?.status;
 
       // Sam joins and signs before the captain pays.
-      await acceptInvite(db, { token: link.token, userId: sam, now: NOW });
+      await acceptInvite(db, {
+        ageConfirmed: true,
+        token: link.token,
+        userId: sam,
+        now: NOW,
+      });
       await sign(sam, "Sam Example");
       expect(await statusOf(sam)).toBe("pending_payment");
       await handleStripeEvent(
@@ -315,7 +322,12 @@ describe("payments", () => {
       expect(await statusOf(sam)).toBe("active");
 
       // Alex joins after: signing the waiver is the last step.
-      await acceptInvite(db, { token: link.token, userId: alex, now: NOW });
+      await acceptInvite(db, {
+        ageConfirmed: true,
+        token: link.token,
+        userId: alex,
+        now: NOW,
+      });
       expect(await statusOf(alex)).toBe("pending_waiver");
       await sign(alex, "Alex Example");
       expect(await statusOf(alex)).toBe("active");

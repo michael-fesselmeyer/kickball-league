@@ -106,6 +106,7 @@ async function world(db: Db, rosterMax = 6) {
     UserId,
   ];
   const t = await registerTeam(db, {
+    ageConfirmed: true,
     leagueId: lg.id,
     season: s,
     userId: captain,
@@ -126,7 +127,12 @@ async function world(db: Db, rosterMax = 6) {
     ["cleo", cleo],
     ["dev", dev],
   ] as const) {
-    const r = await registerFreeAgent(db, { season: s, userId: id, now: NOW });
+    const r = await registerFreeAgent(db, {
+      ageConfirmed: true,
+      season: s,
+      userId: id,
+      now: NOW,
+    });
     if (!r.ok) throw new Error(r.error);
     reg[name] = r.value;
   }
@@ -273,6 +279,7 @@ describe("friend codes", () => {
       for (const userId of [w.ben, w.cleo, w.dev])
         await joinFriendGroup(db, { seasonId: s, userId, code });
       const extra = await registerFreeAgent(db, {
+        ageConfirmed: true,
         season: w.season,
         userId: w.admin,
         now: NOW,
