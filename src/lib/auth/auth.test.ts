@@ -1,9 +1,16 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { auth as Auth } from "./index";
+import { allowSignInLink } from "@/db/queries/rate-limit";
 import { createProfileForUser } from "./profile";
 
 vi.mock("./profile", () => ({
   createProfileForUser: vi.fn(() => Promise.resolve()),
+}));
+
+// The per-inbox count lives in the database; here it always has room
+// unless a test says otherwise.
+vi.mock("@/db/queries/rate-limit", () => ({
+  allowSignInLink: vi.fn(() => Promise.resolve(true)),
 }));
 
 let auth: typeof Auth;
@@ -84,6 +91,29 @@ describe("auth instance", () => {
     expect(info).toHaveBeenCalledWith(
       expect.stringContaining("http://x/verify"),
     );
+    info.mockRestore();
+  });
+
+  it("sends nothing once an inbox has had its links for now", async () => {
+    const plugin = auth.options.plugins?.find((p) => p.id === "magic-link") as
+      | {
+          options: {
+            sendMagicLink: (data: {
+              email: string;
+              url: string;
+            }) => Promise<void>;
+          };
+        }
+      | undefined;
+    vi.mocked(allowSignInLink).mockResolvedValueOnce(false);
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    await expect(
+      plugin!.options.sendMagicLink({
+        email: "player@example.com",
+        url: "http://x/verify",
+      }),
+    ).rejects.toMatchObject({ statusCode: 429 });
+    expect(info).not.toHaveBeenCalled();
     info.mockRestore();
   });
 });
