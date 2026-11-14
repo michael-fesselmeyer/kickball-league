@@ -269,6 +269,23 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
       "Both entered the same giveaway; the merged-away entry stays as history",
   },
   "giveaway.created_by": actor("giveaways created"),
+  "volunteer_signup.user_id": {
+    kind: "dedupe",
+    label: "volunteer shifts",
+    by: ["shift_id"],
+    resolve: "drop",
+    clash: "Both took a spot on the same shift; the kept account's spot stays",
+  },
+  "volunteer_shift.created_by": actor("volunteer shifts posted"),
+  "survey_response.user_id": {
+    kind: "dedupe",
+    label: "season surveys answered",
+    by: ["survey_id"],
+    resolve: "drop",
+    clash:
+      "Both answered the same season survey; the answers stay, unlinked from either",
+  },
+  "season_survey.opened_by": actor("season surveys opened"),
   "giveaway_winner.drawn_by": actor("giveaway winners drawn"),
   "checkin.user_id": {
     kind: "dedupe",

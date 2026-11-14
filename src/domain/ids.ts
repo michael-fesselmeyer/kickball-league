@@ -97,6 +97,11 @@ export type FriendLogoId = Brand<string, "FriendLogoId">;
 export type AccountMergeId = Brand<string, "AccountMergeId">;
 export type CaptainHandoffId = Brand<string, "CaptainHandoffId">;
 export type PickemPickId = Brand<string, "PickemPickId">;
+export type VolunteerShiftId = Brand<string, "VolunteerShiftId">;
+export type VolunteerSignupId = Brand<string, "VolunteerSignupId">;
+export type SeasonSurveyId = Brand<string, "SeasonSurveyId">;
+export type SurveyResponseId = Brand<string, "SurveyResponseId">;
+export type SurveyAnswerId = Brand<string, "SurveyAnswerId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
