@@ -29,7 +29,10 @@ describe("sealing", () => {
       unseal(sealed, { ...at, secret: "another-unit-test-secret-000000002" }),
     ).toBeNull();
     const [v, iv, tag, body] = sealed.split(".");
-    expect(unseal([v, iv, tag, `A${body?.slice(1)}`].join("."), at)).toBeNull();
+    // Change the body's first character to a different one; setting it to a
+    // fixed letter left the value unchanged whenever it already was that letter.
+    const altered = `${body?.startsWith("A") ? "B" : "A"}${body?.slice(1)}`;
+    expect(unseal([v, iv, tag, altered].join("."), at)).toBeNull();
     expect(unseal("v2.a.b.c", at)).toBeNull();
     expect(unseal("not sealed", at)).toBeNull();
   });
