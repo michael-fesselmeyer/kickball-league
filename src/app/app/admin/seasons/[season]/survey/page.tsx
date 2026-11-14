@@ -18,8 +18,9 @@ import {
 } from "@/domain/survey/questions";
 import { requirePermission } from "@/lib/auth/permission";
 import { closeSurveyAction, openSurveyAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
-export const metadata: Metadata = { title: "Season survey" };
+export const metadata: Metadata = { title: "Run the season survey" };
 
 type Props = PageProps<"/app/admin/seasons/[season]/survey">;
 
@@ -112,9 +113,9 @@ async function SurveyAdmin({ params, searchParams }: Props) {
                   the survey.
                 </p>
                 <form action={openSurveyAction.bind(null, slug)}>
-                  <button type="submit" className="btn btn-primary">
+                  <SubmitButton className="btn btn-primary">
                     Open the survey and invite players
-                  </button>
+                  </SubmitButton>
                 </form>
               </>
             ) : (
@@ -154,9 +155,9 @@ async function SurveyAdmin({ params, searchParams }: Props) {
                   />
                   Stop taking answers
                 </label>
-                <button type="submit" className="btn self-start btn-secondary">
+                <SubmitButton className="btn self-start btn-secondary">
                   Close the survey
-                </button>
+                </SubmitButton>
               </form>
             )}
           </section>

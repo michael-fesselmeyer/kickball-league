@@ -15,6 +15,7 @@ import {
 import { requirePermission } from "@/lib/auth/permission";
 import { deleteShiftAction, saveShiftAction } from "../actions";
 import { ShiftFormFields } from "../shift-form";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Edit a shift" };
 
@@ -102,9 +103,9 @@ async function EditShift({ params, searchParams }: Props) {
               ? `Remove it and the ${shift.taken} ${shift.taken === 1 ? "person" : "people"} signed up`
               : "Remove it"}
           </label>
-          <button type="submit" className="btn self-start btn-secondary">
+          <SubmitButton className="btn self-start btn-secondary">
             Remove the shift
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>
