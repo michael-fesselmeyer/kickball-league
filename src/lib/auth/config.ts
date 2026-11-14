@@ -22,6 +22,23 @@ export const MAGIC_LINK_EXPIRES_IN_SECONDS = 15 * MINUTE;
  */
 export const RATE_LIMIT = { storage: "database" } as const;
 
+/**
+ * Better Auth routes the site never calls, switched off so nobody can call
+ * them either (they answer 404). The profile form is the only way to change
+ * a name, with its checks and the read-only switch; the security page signs
+ * devices out, and refuses in the demo, whose personas every visitor shares;
+ * and Google's tokens stay on the server.
+ */
+export const UNUSED_AUTH_PATHS: readonly string[] = [
+  "/update-user",
+  "/revoke-session",
+  "/revoke-sessions",
+  "/revoke-other-sessions",
+  "/get-access-token",
+  "/refresh-token",
+  "/account-info",
+];
+
 /** Counters untouched this long are swept by the daily outbox job. */
 export const RATE_LIMIT_KEEP_MS = DAY * 1000;
 

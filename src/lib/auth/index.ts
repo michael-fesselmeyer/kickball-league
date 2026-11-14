@@ -23,6 +23,7 @@ import {
   SESSION_EXPIRES_IN_SECONDS,
   SESSION_FRESH_AGE_SECONDS,
   SESSION_UPDATE_AGE_SECONDS,
+  UNUSED_AUTH_PATHS,
 } from "./config";
 import { demoViewAs } from "./demo-view-as";
 import { accountLinking, socialProviders } from "./google";
@@ -91,7 +92,7 @@ export const auth = betterAuth({
   advanced: { database: { generateId: "uuid" } },
   socialProviders: socialProviders(env),
   account: { accountLinking },
-  disabledPaths: [...PASSKEY_DISABLED_PATHS],
+  disabledPaths: [...PASSKEY_DISABLED_PATHS, ...UNUSED_AUTH_PATHS],
   rateLimit: RATE_LIMIT,
   hooks: { before: beforeAuth },
   session: {
