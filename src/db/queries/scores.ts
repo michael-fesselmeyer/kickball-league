@@ -84,22 +84,39 @@ export type ScoringGame = NonNullable<
 
 /** Every report for a game, newest first, with the answers to each. */
 export async function scoreHistory(db: Db, gameId: GameId) {
-  const reports = await db
-    .select({
-      id: scoreReport.id,
-      role: scoreReport.reporterRole,
-      teamSeasonId: scoreReport.teamSeasonId,
-      outcome: scoreReport.outcome,
-      scoreA: scoreReport.scoreA,
-      scoreB: scoreReport.scoreB,
-      inningsPlayed: scoreReport.inningsPlayed,
-      reportedAt: scoreReport.reportedAt,
-      reporterName: user.name,
-    })
-    .from(scoreReport)
-    .innerJoin(user, eq(scoreReport.reportedBy, user.id))
-    .where(eq(scoreReport.gameId, gameId))
-    .orderBy(desc(scoreReport.reportedAt));
+  return required((await scoreHistories(db, [gameId])).get(gameId), "history");
+}
+
+export type ScoreHistory =
+  Awaited<ReturnType<typeof scoreHistories>> extends Map<GameId, infer H>
+    ? H
+    : never;
+
+/**
+ * `scoreHistory` for several games in two queries, whatever their number,
+ * keyed by game. A game with no reports gets empty lists.
+ */
+export async function scoreHistories(db: Db, gameIds: readonly GameId[]) {
+  const reports =
+    gameIds.length === 0
+      ? []
+      : await db
+          .select({
+            gameId: scoreReport.gameId,
+            id: scoreReport.id,
+            role: scoreReport.reporterRole,
+            teamSeasonId: scoreReport.teamSeasonId,
+            outcome: scoreReport.outcome,
+            scoreA: scoreReport.scoreA,
+            scoreB: scoreReport.scoreB,
+            inningsPlayed: scoreReport.inningsPlayed,
+            reportedAt: scoreReport.reportedAt,
+            reporterName: user.name,
+          })
+          .from(scoreReport)
+          .innerJoin(user, eq(scoreReport.reportedBy, user.id))
+          .where(inArray(scoreReport.gameId, [...gameIds]))
+          .orderBy(desc(scoreReport.reportedAt));
   const responses =
     reports.length === 0
       ? []
@@ -117,7 +134,24 @@ export async function scoreHistory(db: Db, gameId: GameId) {
               reports.map((r) => r.id),
             ),
           );
-  return { reports, responses };
+  const gameOf = new Map(reports.map((r) => [r.id, r.gameId]));
+  const result = new Map(
+    gameIds.map((id) => [
+      id,
+      {
+        reports: [] as Omit<(typeof reports)[number], "gameId">[],
+        responses: [] as typeof responses,
+      },
+    ]),
+  );
+  for (const { gameId, ...report } of reports) {
+    result.get(gameId)?.reports.push(report);
+  }
+  for (const response of responses) {
+    const gameId = gameOf.get(response.reportId);
+    if (gameId) result.get(gameId)?.responses.push(response);
+  }
+  return result;
 }
 
 /** Where a game's score stands now, from its reports and responses. */
@@ -127,10 +161,19 @@ export async function currentScoreState(
   now: Date,
 ): Promise<{
   state: ScoreState;
-  history: Awaited<ReturnType<typeof scoreHistory>>;
+  history: ScoreHistory;
 }> {
   const history = await scoreHistory(db, g.id);
-  const state = scoreState(
+  return { state: stateOf(g, history, now), history };
+}
+
+/** Where a game's score stands, from its already loaded history. */
+function stateOf(
+  g: Pick<ScoringGame, "teamAId" | "teamBId">,
+  history: ScoreHistory,
+  now: Date,
+): ScoreState {
+  return scoreState(
     history.reports.map((r) => ({
       id: r.id,
       role: r.role,
@@ -141,7 +184,6 @@ export async function currentScoreState(
     [g.teamAId, g.teamBId],
     now,
   );
-  return { state, history };
 }
 
 /**
@@ -364,8 +406,12 @@ export async function scoresNeedingAttention(
     teams: string;
     state: ScoreState;
   }[] = [];
+  const histories = await scoreHistories(
+    db,
+    started.map((g) => g.id),
+  );
   for (const g of started) {
-    const { state } = await currentScoreState(db, g, now);
+    const state = stateOf(g, required(histories.get(g.id), "history"), now);
     result.push({
       id: g.id,
       startsAt: g.startsAt,

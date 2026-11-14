@@ -105,61 +105,87 @@ export async function teamRsvps(
   teamSeasonId: TeamSeasonId,
   gameIds: readonly GameId[],
 ): Promise<Map<GameId, TeamRsvps>> {
-  const result = new Map<GameId, TeamRsvps>();
-  const [first] = gameIds;
+  return (
+    (await teamsRsvps(db, new Map([[teamSeasonId, gameIds]]))).get(
+      teamSeasonId,
+    ) ?? new Map()
+  );
+}
+
+/**
+ * `teamRsvps` for several teams at once, in three queries whatever the
+ * number of teams: each team's answers for its own games. Every game is in
+ * the same season, so the first one's fielding rules apply to all.
+ */
+export async function teamsRsvps(
+  db: Db,
+  gamesOf: ReadonlyMap<TeamSeasonId, readonly GameId[]>,
+): Promise<Map<TeamSeasonId, Map<GameId, TeamRsvps>>> {
+  const result = new Map<TeamSeasonId, Map<GameId, TeamRsvps>>();
+  const teams = [...gamesOf.keys()];
+  const allGames = [...new Set([...gamesOf.values()].flat())];
+  const [first] = allGames;
   if (first === undefined) return result;
-  const members = await db
-    .select({
-      userId: registration.userId,
-      lineupGender: profile.lineupGender,
-    })
-    .from(rosterMembership)
-    .innerJoin(
-      registration,
-      eq(rosterMembership.registrationId, registration.id),
-    )
-    .leftJoin(profile, eq(profile.userId, registration.userId))
-    .where(
-      and(
-        eq(rosterMembership.teamSeasonId, teamSeasonId),
-        eq(rosterMembership.status, "active"),
+  const [members, answers, rules] = await Promise.all([
+    db
+      .select({
+        teamSeasonId: rosterMembership.teamSeasonId,
+        userId: registration.userId,
+        lineupGender: profile.lineupGender,
+      })
+      .from(rosterMembership)
+      .innerJoin(
+        registration,
+        eq(rosterMembership.registrationId, registration.id),
+      )
+      .leftJoin(profile, eq(profile.userId, registration.userId))
+      .where(
+        and(
+          inArray(rosterMembership.teamSeasonId, teams),
+          eq(rosterMembership.status, "active"),
+        ),
       ),
-    );
-  const answers = await db
-    .select({
-      gameId: gameRsvp.gameId,
-      userId: gameRsvp.userId,
-      status: gameRsvp.status,
-    })
-    .from(gameRsvp)
-    .where(
-      and(
-        eq(gameRsvp.teamSeasonId, teamSeasonId),
-        inArray(gameRsvp.gameId, [...gameIds]),
+    db
+      .select({
+        teamSeasonId: gameRsvp.teamSeasonId,
+        gameId: gameRsvp.gameId,
+        userId: gameRsvp.userId,
+        status: gameRsvp.status,
+      })
+      .from(gameRsvp)
+      .where(
+        and(
+          inArray(gameRsvp.teamSeasonId, teams),
+          inArray(gameRsvp.gameId, allGames),
+        ),
       ),
-    );
-  // Every game is in the same season, so the first one's rules apply.
-  const rules = await rulesFor(db, first);
-  for (const gameId of gameIds) {
-    const said = new Map(
-      answers
-        .filter((a) => a.gameId === gameId)
-        .map((a) => [a.userId, a.status]),
-    );
-    const coming = members.filter((m) => said.get(m.userId) === "in");
-    const counts = {
-      women: coming.filter((m) => m.lineupGender === "woman").length,
-      men: coming.filter((m) => m.lineupGender === "man").length,
-      unknown: coming.filter((m) => m.lineupGender === null).length,
-    };
-    result.set(gameId, {
-      in: coming.length,
-      maybe: members.filter((m) => said.get(m.userId) === "maybe").length,
-      out: members.filter((m) => said.get(m.userId) === "out").length,
-      noAnswer: members.filter((m) => !said.has(m.userId)).length,
-      coming: counts,
-      fielding: checkFielding(counts, rules),
-    });
+    rulesFor(db, first),
+  ]);
+  for (const [teamSeasonId, gameIds] of gamesOf) {
+    const roster = members.filter((m) => m.teamSeasonId === teamSeasonId);
+    const perGame = new Map<GameId, TeamRsvps>();
+    for (const gameId of gameIds) {
+      const said = new Map(
+        answers
+          .filter((a) => a.teamSeasonId === teamSeasonId && a.gameId === gameId)
+          .map((a) => [a.userId, a.status]),
+      );
+      const coming = roster.filter((m) => said.get(m.userId) === "in");
+      const counts = {
+        women: coming.filter((m) => m.lineupGender === "woman").length,
+        men: coming.filter((m) => m.lineupGender === "man").length,
+        unknown: coming.filter((m) => m.lineupGender === null).length,
+      };
+      perGame.set(gameId, {
+        in: coming.length,
+        maybe: roster.filter((m) => said.get(m.userId) === "maybe").length,
+        out: roster.filter((m) => said.get(m.userId) === "out").length,
+        noAnswer: roster.filter((m) => !said.has(m.userId)).length,
+        coming: counts,
+        fielding: checkFielding(counts, rules),
+      });
+    }
+    result.set(teamSeasonId, perGame);
   }
   return result;
 }
