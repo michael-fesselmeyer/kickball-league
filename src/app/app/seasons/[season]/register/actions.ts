@@ -143,6 +143,9 @@ export async function registerTeamAction(
       });
     return registered;
   });
+  // A second tap, or a resend, finds the first one's registration: show it.
+  if (!result.ok && result.error === "already_registered")
+    redirect(`/app/seasons/${slug}`);
   if (!result.ok)
     return { values, error: messageFor(result.error, season.minimumAge) };
   if (code) (await cookies()).delete(REFERRAL_COOKIE);
@@ -173,6 +176,8 @@ export async function registerFreeAgentAction(
       });
     return registered;
   });
+  if (!result.ok && result.error === "already_registered")
+    redirect(`/app/seasons/${slug}`);
   if (!result.ok)
     return {
       ...previous,
