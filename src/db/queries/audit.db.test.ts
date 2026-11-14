@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
+import type { AuditLogId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
 import { leagueWorld } from "../test/league-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
@@ -46,7 +47,7 @@ describe("auditLogPage", () => {
 
       const next = await auditLogPage(db, {
         limit: 2,
-        before: first.rows.at(-1)!.occurredAt,
+        before: first.rows.at(-1)!,
       });
       expect(next.rows[0]?.action).toBe("season.update");
 
@@ -57,5 +58,39 @@ describe("auditLogPage", () => {
       expect(operator.rows.map((r) => r.action)).toContain(
         "operator.site_status",
       );
+    }));
+
+  it("pages through rows written in one transaction without skipping any", () =>
+    inRolledBackDb(async (db) => {
+      const w = await leagueWorld(db);
+      // One transaction stamps every row with the same time, as a rollover
+      // or a bulk change does. Far in the future, so they come first.
+      const at = new Date(Date.UTC(2099, 5, 1));
+      for (let i = 0; i < 7; i++)
+        await recordAudit(db, {
+          actorId: w.admin,
+          action: "season.update",
+          entityType: "season",
+          entityId: w.season.id,
+          after: { step: i },
+        });
+      await db
+        .update(auditLog)
+        .set({ occurredAt: at })
+        .where(eq(auditLog.entityId, w.season.id));
+      const seen: string[] = [];
+      let before: { occurredAt: Date; id: AuditLogId } | undefined;
+      for (let page = 0; page < 4; page++) {
+        const found = await auditLogPage(db, { limit: 3, before });
+        seen.push(
+          ...found.rows
+            .filter((r) => r.occurredAt.getTime() === at.getTime())
+            .map((r) => r.id),
+        );
+        before = found.rows.at(-1);
+        if (!before || before.occurredAt.getTime() !== at.getTime()) break;
+      }
+      expect(seen).toHaveLength(7);
+      expect(new Set(seen).size).toBe(7);
     }));
 });
