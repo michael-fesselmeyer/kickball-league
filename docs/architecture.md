@@ -338,7 +338,7 @@ If orchestration grows beyond this (multi-step flows with waits), Vercel's Workf
 
 Rules for every webhook:
 1. Verify the provider's signature against the raw request body before parsing.
-2. Insert into `webhook_event` with a unique `(provider, event_id)`. A duplicate returns 200 at once.
+2. Insert into `webhook_event` with a unique `(provider, event_id)`. A duplicate returns 200 at once. The row keeps the event's id, type and the kind and id of its object, never the object itself, which names the buyer and their card (`storedEventPayload`).
 3. Do the work in a transaction, mark the row processed, and return 200. On an error return 500 so the provider retries.
 4. The browser returning from Checkout never marks anything paid. Only the webhook does. The return page shows "confirming your payment" and polls for a few seconds.
 

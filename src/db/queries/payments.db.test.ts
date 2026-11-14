@@ -166,6 +166,36 @@ describe("payments", () => {
     });
   });
 
+  it("keeps none of the buyer's details from a webhook", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const completed = event(`evt_${w.tag}`, "checkout.session.completed", {
+        id: w.sessionId,
+        object: "checkout.session",
+        payment_status: "paid",
+        payment_intent: `pi_${w.tag}`,
+        amount_total: 120_000,
+        customer_email: "buyer@example.test",
+        customer_details: {
+          email: "buyer@example.test",
+          name: "Pat Example",
+          address: { line1: "1 Example Street", postal_code: "00000" },
+        },
+      });
+      expect(await handleStripeEvent(db, completed, NOW)).toBe("processed");
+      const [row] = await db
+        .select({ payload: webhookEvent.payload })
+        .from(webhookEvent)
+        .where(eq(webhookEvent.eventId, `evt_${w.tag}`));
+      expect(row?.payload).toEqual({
+        id: `evt_${w.tag}`,
+        type: "checkout.session.completed",
+        object: "checkout.session",
+        objectId: w.sessionId,
+      });
+    });
+  });
+
   it("leaves an unpaid completion open, and records failures and expiries", async () => {
     await inRolledBackDb(async (db) => {
       const w = await world(db);

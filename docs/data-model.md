@@ -1278,7 +1278,7 @@ erDiagram
     text provider "stripe, resend"
     text event_id UK
     text type
-    jsonb payload
+    jsonb payload "event id, type, object kind and id only"
     enum status "received, processed, failed"
     timestamptz processed_at
   }
