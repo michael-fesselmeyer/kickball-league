@@ -8,6 +8,7 @@ import { registrationWindow } from "@/domain/registration/pricing";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { allowAction } from "@/lib/action-limit";
 import { activeLeague } from "@/lib/league/active";
+import { mayRegister } from "@/lib/private-events/invite";
 
 /**
  * The team waitlist for a full season (roadmap item 13). Joining is for a
@@ -22,7 +23,7 @@ async function context(slug: string) {
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;
-  if (!season) notFound();
+  if (!season || !(await mayRegister(season))) notFound();
   return { page, subject, season };
 }
 

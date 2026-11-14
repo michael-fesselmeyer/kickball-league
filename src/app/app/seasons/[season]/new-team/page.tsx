@@ -142,7 +142,8 @@ async function NewTeam({
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;
-  if (!league || !season) notFound();
+  // Private events take teams only through their invite link.
+  if (!league || !season || season.visibility === "private") notFound();
   const now = new Date();
   const [request, standing, person] = await Promise.all([
     myNewTeamRequest(db, season.id, subject.userId),

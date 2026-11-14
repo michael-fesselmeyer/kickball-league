@@ -27,6 +27,7 @@ import { ageMessage } from "@/domain/registration/age";
 import { localDate } from "@/domain/scheduler/slots";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";
+import { mayRegister } from "@/lib/private-events/invite";
 
 export type RegisterState = {
   values: Record<string, string>;
@@ -64,7 +65,7 @@ async function context(slug: string) {
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;
-  if (!league || !season) notFound();
+  if (!league || !season || !(await mayRegister(season))) notFound();
   const person = await profileOf(db, subject.userId);
   const today = localDate(new Date(), league.timeZone);
   const complete = person !== null && readyToRegister(person, today);
@@ -158,6 +159,8 @@ export async function registerFreeAgentAction(
   form: FormData,
 ): Promise<RegisterState> {
   const { subject, season, complete } = await context(slug);
+  // A private event takes whole teams, not free agents.
+  if (season.visibility === "private") notFound();
   if (!complete) return { ...previous, error: MESSAGES.profile_incomplete };
   const code = await referralCode();
   const userId = subject.userId;
