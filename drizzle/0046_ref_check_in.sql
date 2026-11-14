@@ -1,0 +1,1 @@
+ALTER TABLE "referee_assignment" ADD COLUMN "checked_in_at" timestamp with time zone;
