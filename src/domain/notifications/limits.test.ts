@@ -199,6 +199,54 @@ describe("quietHoursEnd", () => {
     ).toBe("2026-10-25T01:00:00.000Z");
   });
 
+  it("ends when the clock reads the end hour again after falling back", () => {
+    // Found by the property below (seed -457536855, path "266:1:2"). Troll
+    // falls back two hours at 01:00 UTC on Oct 25, 2026: 02:59 is followed
+    // by 01:00, which is quiet again, and quiet hours end when the clock
+    // reads 02:00 a second time, an hour later, not the next day.
+    expect(
+      quietHoursEnd(new Date("2026-10-25T01:00:00Z"), "Antarctica/Troll", {
+        startHour: 0,
+        endHour: 2,
+      }).toISOString(),
+    ).toBe("2026-10-25T02:00:00.000Z");
+  });
+
+  it("can be more than 24 hours away on a day the clock falls back", () => {
+    // Quiet from 4 am to 3 am, starting the day before Troll's clocks go
+    // back two hours: 23 hours by the clock, 25 by the watch.
+    expect(
+      quietHoursEnd(new Date("2026-10-24T02:00:00Z"), "Antarctica/Troll", {
+        startHour: 4,
+        endHour: 3,
+      }).toISOString(),
+    ).toBe("2026-10-25T03:00:00.000Z");
+  });
+
+  it("lasts a day longer when the clocks spring forward over its end", () => {
+    // Havana skips midnight on Mar 8, 2026 (23:59 is followed by 01:00), so
+    // quiet hours from 1 am to midnight run on to the next midnight. Found
+    // by the property below at 10,000 runs.
+    expect(
+      quietHoursEnd(new Date("2026-03-08T04:59:00Z"), "America/Havana", {
+        startHour: 1,
+        endHour: 0,
+      }).toISOString(),
+    ).toBe("2026-03-09T04:00:00.000Z");
+  });
+
+  it("joins two nights when the clocks skip the only hour that is not quiet", () => {
+    // London skips 1 am on Mar 29, 2026, the only hour outside quiet hours
+    // from 2 am to 1 am, so they run from Saturday night to Monday at 1 am.
+    // Found by the property below at 10,000 runs.
+    expect(
+      quietHoursEnd(new Date("2026-03-28T22:59:00Z"), "Europe/London", {
+        startHour: 2,
+        endHour: 1,
+      }).toISOString(),
+    ).toBe("2026-03-30T00:00:00.000Z");
+  });
+
   it("is now when it is not quiet", () => {
     const now = new Date("2026-07-02T16:00:00Z");
     expect(quietHoursEnd(now, NY, DEFAULT_LIMITS.quietHours)).toBe(now);
@@ -214,7 +262,11 @@ describe("quietHoursEnd", () => {
           return;
         }
         expect(end.getTime()).toBeGreaterThan(now.getTime());
-        expect(end.getTime() - now.getTime()).toBeLessThanOrEqual(24 * HOUR);
+        // Quiet hours last under a day by the clock, but a clock change
+        // can stretch them: a fall-back adds up to two hours, and a
+        // spring-forward that skips the only hour that is not quiet joins
+        // two nights into one. Never more than two days.
+        expect(end.getTime() - now.getTime()).toBeLessThanOrEqual(48 * HOUR);
         expect(inQuietHours(end, tz, quiet)).toBe(false);
         // Everything before it is still quiet, checked every 10 minutes and
         // at the minute before.
