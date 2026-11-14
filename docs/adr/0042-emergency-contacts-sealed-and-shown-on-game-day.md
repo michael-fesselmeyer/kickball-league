@@ -34,3 +34,4 @@ An emergency contact, and above all a note about allergies or conditions, is sen
 - The contacts can't be searched or filtered in SQL, and the league can't send them anywhere in bulk, by design.
 - A captain whose phone stays offline past midnight sees the offline page instead of the contacts.
 - The data export opens the contact for its owner; a deleted account's contact is deleted, not kept.
+- Merging two accounts ([ADR 0041](0041-merging-duplicate-accounts.md)) can't move a sealed contact as a row: it is opened and sealed again for the kept account when that one has none, and deleted from the merged-away account.
