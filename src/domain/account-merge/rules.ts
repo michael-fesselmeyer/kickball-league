@@ -260,6 +260,14 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     handler: "award_nominee",
   },
   "award_poll.created_by": actor("award polls opened"),
+  "season_card.user_id": {
+    kind: "dedupe",
+    label: "season cards",
+    by: ["season_id"],
+    resolve: "drop",
+    clash:
+      "Both have a card for the same season; the kept account's card stays",
+  },
   "giveaway_entry.user_id": {
     kind: "dedupe",
     label: "giveaway entries",

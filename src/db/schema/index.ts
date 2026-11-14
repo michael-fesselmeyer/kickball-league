@@ -29,6 +29,7 @@ export * from "./playoffs";
 export * from "./profile";
 export * from "./schedule";
 export * from "./season";
+export * from "./season-card";
 export * from "./social";
 export * from "./sponsor";
 export * from "./subs";
