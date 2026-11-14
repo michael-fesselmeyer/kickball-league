@@ -673,6 +673,96 @@ describe("service worker: the next game", () => {
   });
 });
 
+describe("service worker: a game's emergency contacts", () => {
+  const EMERGENCY = `/app/games/${GAME.split("/")[2]}/emergency`;
+  const later = () => new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const save = (until: string, emergency = EMERGENCY, path = GAME) =>
+    worker.message({
+      type: "next-game",
+      path,
+      label: "Kickers vs Sluggers",
+      permit: null,
+      emergency,
+      emergencyUntil: until,
+    });
+
+  beforeEach(() => {
+    network.serve(EMERGENCY, page("Emergency contacts", [CSS, JS]));
+  });
+
+  it("saves the page with this person's cookies, and its expiry", async () => {
+    await worker.install();
+    const until = later();
+    await save(until);
+    expect(network.fetched(EMERGENCY)[0]?.init?.credentials).toBe(
+      "same-origin",
+    );
+    expect(games()?.paths()).toEqual([EMERGENCY, GAME, NEXT_GAME_INFO].sort());
+    expect(await savedGame(storage)).toEqual({
+      path: GAME,
+      label: "Kickers vs Sluggers",
+      emergency: EMERGENCY,
+      emergencyUntil: until,
+    });
+  });
+
+  it("opens the saved page with no signal until its time, then deletes it", async () => {
+    await worker.install();
+    await save(later());
+    network.online = false;
+    const html = await (await worker.fetch(navigate(EMERGENCY)))?.text();
+    expect(html).toContain("Emergency contacts");
+
+    // Midnight passes with the phone still offline.
+    const info = await games()?.match(NEXT_GAME_INFO);
+    const saved = (await info?.json()) as Record<string, string>;
+    await games()?.put(
+      NEXT_GAME_INFO,
+      new Response(
+        JSON.stringify({
+          ...saved,
+          emergencyUntil: new Date(Date.now() - 1000).toISOString(),
+        }),
+      ),
+    );
+    const after = await (await worker.fetch(navigate(EMERGENCY)))?.text();
+    expect(after).toContain("No signal");
+    expect(games()?.paths()).toEqual([GAME, NEXT_GAME_INFO].sort());
+    expect(await savedGame(storage)).toEqual({
+      path: GAME,
+      label: "Kickers vs Sluggers",
+    });
+  });
+
+  it("drops it when the home screen next names the game without it", async () => {
+    await worker.install();
+    await save(later());
+    await worker.message({
+      type: "next-game",
+      path: GAME,
+      label: "Kickers vs Sluggers",
+      permit: null,
+    });
+    expect(games()?.paths()).toEqual([GAME, NEXT_GAME_INFO].sort());
+  });
+
+  it("refuses a page for another game, an expired time or no time", async () => {
+    await worker.install();
+    await save(later(), `/app/games/${OTHER_GAME.split("/")[2]}/emergency`);
+    await save(new Date(Date.now() - 1000).toISOString());
+    await save("not a time");
+    expect(games()?.paths()).toEqual([GAME, NEXT_GAME_INFO].sort());
+    expect(network.fetched(EMERGENCY)).toEqual([]);
+  });
+
+  it("deletes it on sign-out", async () => {
+    await worker.install();
+    await save(later());
+    await worker.message({ type: "forget" });
+    expect(storage.stores.has(worker.NEXT_GAME_CACHE)).toBe(false);
+  });
+});
+
 describe("service worker: push notifications", () => {
   let screen: FakeWindows;
   beforeEach(() => {

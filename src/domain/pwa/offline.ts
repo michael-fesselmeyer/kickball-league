@@ -48,23 +48,30 @@ export function pickNextGame(
 
 /**
  * What the offline page links to: the game's page and a one-line label, and
- * for the game's ref and captains, its park permit page (ADR 0034).
+ * for the game's ref and captains, its park permit page (ADR 0034) and, on
+ * game day, its emergency contacts page until midnight after (ADR 0041).
  */
 export type OfflineGame = {
   path: string;
   label: string;
   permit: string | null;
+  emergency: string | null;
+  /** ISO time the emergency page stops being kept. */
+  emergencyUntil: string | null;
 };
 
 export function offlineGame(
   game: PublicGame,
   timeZone: string,
   withPermit = false,
+  emergencyUntil: Date | null = null,
 ): OfflineGame {
   const matchup = `${game.teamA.name} vs ${game.teamB.name}`;
   return {
     path: `/games/${game.id}`,
     permit: withPermit ? `/app/games/${game.id}/permit` : null,
+    emergency: emergencyUntil ? `/app/games/${game.id}/emergency` : null,
+    emergencyUntil: emergencyUntil?.toISOString() ?? null,
     label: game.startsAt
       ? `${matchup}, ${shortDay(game.startsAt, timeZone)} at ${kickoff(game.startsAt, timeZone)}`
       : matchup,

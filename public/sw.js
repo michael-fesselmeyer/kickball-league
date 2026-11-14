@@ -11,6 +11,11 @@
  *    document, which a park officer may ask to see (ADR 0034). The home
  *    screen names them only for someone allowed to see them, the server
  *    checks again when they are fetched, and signing out deletes them.
+ * 4. For that game's ref and captains, on game day only: its emergency
+ *    contacts page (ADR 0041), kept with an expiry at midnight after game
+ *    day. The saved copy is deleted when that time passes, even with no
+ *    signal, the next time the home screen names a game without it, and on
+ *    signing out.
  *
  * Everything else goes to the network untouched: signed-in screens
  * (payments, waivers, admin), API routes, Server Actions and the client
@@ -54,6 +59,7 @@ const ID = "[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}";
 const GAME_PAGE = new RegExp(`^/games/(${ID})$`);
 const PERMIT_PAGE = new RegExp(`^/app/games/(${ID})/permit$`);
 const PERMIT_FILE = new RegExp(`^/app/games/(${ID})/permit/document$`);
+const EMERGENCY_PAGE = new RegExp(`^/app/games/(${ID})/emergency$`);
 const STATIC_ASSET = /\/_next\/static\/[^"'\s)<>\\]+/g;
 
 /**
@@ -115,7 +121,8 @@ self.addEventListener("message", (event) => {
     // only that same game's permit.
     if (path !== null && !GAME_PAGE.test(path)) return;
     const permit = permitFor(path, data.permit);
-    event.waitUntil(saveForOffline(path, label, permit));
+    const emergency = emergencyFor(path, data.emergency, data.emergencyUntil);
+    event.waitUntil(saveForOffline(path, label, permit, emergency));
   } else if (data.type === "forget") {
     // Signing out also drops entries not sent yet: they are that person's.
     event.waitUntil(
@@ -248,6 +255,45 @@ function permitFor(path, permit) {
   return match && match[1] === game ? permit : null;
 }
 
+/**
+ * The emergency contacts page and when it stops being kept, if it is the
+ * saved game's own and the time is still to come; otherwise null.
+ */
+function emergencyFor(path, emergency, until) {
+  if (path === null || typeof emergency !== "string") return null;
+  const game = GAME_PAGE.exec(path)?.[1];
+  const match = EMERGENCY_PAGE.exec(emergency);
+  const ends = typeof until === "string" ? Date.parse(until) : NaN;
+  if (!match || match[1] !== game || !(ends > Date.now())) return null;
+  return { path: emergency, until: new Date(ends).toISOString() };
+}
+
+/** Whether a saved emergency contacts page is past its time; deletes it if so. */
+async function expiredEmergency(path) {
+  if (!EMERGENCY_PAGE.test(path)) return false;
+  const info = await caches.match(NEXT_GAME_INFO, {
+    cacheName: NEXT_GAME_CACHE,
+  });
+  const saved = info ? await info.json().catch(() => null) : null;
+  const ends =
+    saved && saved.emergency === path ? Date.parse(saved.emergencyUntil) : NaN;
+  if (ends > Date.now()) return false;
+  const games = await caches.open(NEXT_GAME_CACHE);
+  await games.delete(path);
+  if (saved && saved.emergency === path) {
+    const rest = { ...saved };
+    delete rest.emergency;
+    delete rest.emergencyUntil;
+    await games.put(
+      NEXT_GAME_INFO,
+      new Response(JSON.stringify(rest), {
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  }
+  return true;
+}
+
 async function savedFile(request) {
   try {
     return await fetch(request);
@@ -271,7 +317,9 @@ async function page(event) {
     // fetch would let the browser answer with its stored copy (#204).
     const response = await fetch(event.request, { cache: "no-cache" });
     if (
-      (GAME_PAGE.test(path) || PERMIT_PAGE.test(path)) &&
+      (GAME_PAGE.test(path) ||
+        PERMIT_PAGE.test(path) ||
+        EMERGENCY_PAGE.test(path)) &&
       response.ok &&
       !response.redirected
     )
@@ -279,7 +327,9 @@ async function page(event) {
       event.waitUntil(refreshSavedGame(path, response.clone()));
     return response;
   } catch {
-    const saved = await caches.match(path, { cacheName: NEXT_GAME_CACHE });
+    const saved = (await expiredEmergency(path))
+      ? undefined
+      : await caches.match(path, { cacheName: NEXT_GAME_CACHE });
     if (saved) return withOfflineNote(saved);
     const offline = await caches.match(OFFLINE_PAGE, {
       cacheName: SHELL_CACHE,
@@ -378,7 +428,12 @@ async function refreshShell() {
     for (const request of await games.keys()) {
       const saved = await games.match(request);
       const path = new URL(request.url).pathname;
-      if (saved && (GAME_PAGE.test(path) || PERMIT_PAGE.test(path)))
+      if (
+        saved &&
+        (GAME_PAGE.test(path) ||
+          PERMIT_PAGE.test(path) ||
+          EMERGENCY_PAGE.test(path))
+      )
         for (const asset of assetsIn(await saved.text())) wanted.add(asset);
     }
   }
@@ -417,14 +472,23 @@ async function saveAssets(shell, paths) {
   }
 }
 
+/** Saves a page fetched with this person's cookies, as the server allows. */
+async function savePrivatePage(games, path) {
+  const response = await get(path, { credentials: "same-origin" });
+  if (!response) return false;
+  await games.put(path, stamped(await response.text(), response));
+  return true;
+}
+
 /**
  * Keeps one game for offline use, replacing any other, then refreshes the
  * shell around it. A null path forgets the saved game (no upcoming game).
  * Offline, the saved game stays as it is. With a permit path, the permit
- * page and document are saved too, with this person's cookies: the server
- * shows them only to the game's ref and captains.
+ * page and document are saved too, and with an emergency page, that page
+ * and its expiry, both with this person's cookies: the server shows them
+ * only to the game's ref and captains, and the contacts only on game day.
  */
-async function saveForOffline(path, label, permit) {
+async function saveForOffline(path, label, permit, emergency) {
   if (path === null) {
     await caches.delete(NEXT_GAME_CACHE);
   } else {
@@ -436,12 +500,19 @@ async function saveForOffline(path, label, permit) {
       for (const request of await games.keys()) await games.delete(request);
       await games.put(path, stamped(html, response));
       const permitSaved = permit !== null && (await savePermit(games, permit));
+      const emergencySaved =
+        emergency !== null && (await savePrivatePage(games, emergency.path));
       await games.put(
         NEXT_GAME_INFO,
         new Response(
-          JSON.stringify(
-            permitSaved ? { path, label, permit } : { path, label },
-          ),
+          JSON.stringify({
+            path,
+            label,
+            ...(permitSaved ? { permit } : {}),
+            ...(emergencySaved
+              ? { emergency: emergency.path, emergencyUntil: emergency.until }
+              : {}),
+          }),
           { headers: { "Content-Type": "application/json" } },
         ),
       );
