@@ -14,6 +14,7 @@ import { rendererFor } from "@/emails/templates";
 import { env } from "@/env";
 import { type EmailSender, resendSender } from "./email";
 import { pushSenderFrom } from "./push";
+import { logError } from "@/lib/log-error";
 
 /**
  * Prints each email instead of sending it, for local development without an
@@ -132,10 +133,7 @@ export function sendQueuedSoon(): void {
     try {
       await drainOutboxNow();
     } catch (error) {
-      console.error(
-        "[outbox] immediate send failed; the sweep will retry",
-        error,
-      );
+      logError("[outbox] immediate send failed; the sweep will retry", error);
     }
   });
 }

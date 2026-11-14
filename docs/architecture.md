@@ -611,7 +611,7 @@ Third-party material stays out of the public repository until the league agrees:
 | Errors, with release and user role attached (never email or name) | Sentry's free Developer plan |
 | Real-user Core Web Vitals | Vercel Speed Insights, within Hobby's included events |
 | Traffic | Vercel Web Analytics (cookieless), within Hobby's included events |
-| Logs | Structured JSON with a request ID, viewable in Vercel |
+| Logs | Structured JSON with a request ID, viewable in Vercel. A caught error is logged as its code and one-line message through `logError` (`src/lib/log-error.ts`), never whole: a failed query's error carries its parameters, which can include an email address |
 | Job health | Heartbeat row per job; admin health card shows last run, outbox backlog, failed messages, failed webhooks |
 | Alerts | Free email alerts from Sentry's Developer plan for: webhook failures, outbox backlog older than 5 minutes, a job that missed two runs, a Stripe dispute. The admin health card shows the same, and a free limit nearing its end (section 15) |
 | Uptime | UptimeRobot's free plan on `/robots.txt` every 5 minutes and the home page hourly, so checks never keep the database awake; `/api/health` hourly once it exists. The launch plan, with each free tier's limits, is in [launch/monitoring.md](launch/monitoring.md) |

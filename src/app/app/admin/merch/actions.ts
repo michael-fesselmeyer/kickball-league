@@ -34,6 +34,7 @@ import {
 import { compressPhoto } from "@/lib/social/compress-photo";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
+import { logError } from "@/lib/log-error";
 
 const LIST = "/app/admin/merch";
 const pageFor = (itemId: string) => `${LIST}/${itemId}`;
@@ -268,7 +269,7 @@ export async function refundOrderAction(
             { idempotencyKey: `refund-${refund.refundId}` },
           )
           .catch((error: unknown) => {
-            console.error("Stripe refund failed", refund.refundId, error);
+            logError("Stripe refund failed", error, refund.refundId);
             return null;
           })
       : null;

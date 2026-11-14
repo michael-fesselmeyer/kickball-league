@@ -7,6 +7,7 @@ import {
 } from "@/db/queries/guarantee";
 import { stripeClient } from "@/services/stripe";
 import { chargeSavedCard } from "@/services/stripe-guarantee";
+import { logError } from "@/lib/log-error";
 
 export type GuaranteeRun = {
   warned: number;
@@ -48,11 +49,7 @@ export async function runGuaranteeCharges(now: Date): Promise<GuaranteeRun> {
         run.declined += 1;
       }
     } catch (error) {
-      console.error(
-        "Guarantee charge failed to send",
-        charge.purchaseId,
-        error,
-      );
+      logError("Guarantee charge failed to send", error, charge.purchaseId);
       run.retry += 1;
     }
   }

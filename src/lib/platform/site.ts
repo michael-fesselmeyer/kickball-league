@@ -8,6 +8,7 @@ import {
   isOperator,
   parseOperatorIds,
 } from "@/domain/platform/operator";
+import { logError } from "@/lib/log-error";
 
 /**
  * The platform operator's account ids, from the server's environment only.
@@ -57,7 +58,7 @@ export async function siteForProxy(): Promise<SiteSettings | null> {
     return await currentSite();
   } catch (error) {
     failedAt = Date.now();
-    console.error("Site settings unavailable; using the last known", error);
+    logError("Site settings unavailable; using the last known", error);
     return lastKnown;
   }
 }
