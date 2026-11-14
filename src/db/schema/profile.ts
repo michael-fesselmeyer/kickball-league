@@ -59,8 +59,6 @@ export const profile = pgTable("profile", {
   lineupGender: profileLineupGender(),
   shirtSize: profileShirtSize(),
   birthDate: date({ mode: "string" }),
-  emergencyContactName: text(),
-  emergencyContactPhone: text(),
   globalRole: profileGlobalRole().notNull().default("player"),
   stripeCustomerId: text(),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
