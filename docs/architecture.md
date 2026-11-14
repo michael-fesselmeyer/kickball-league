@@ -199,7 +199,7 @@ An action that changes a season's public data calls `refreshSeasonPages` (`src/l
 
 **Checks.** One pure function, `can(actor, action, resource)`, in `domain/authz`. Rules:
 1. Every Server Action and every query function that returns non-public data calls it. There is no other way to reach the data layer.
-2. `proxy.ts` only redirects signed-out users away from `/app`, and shows public pages the paused notice while the operator has the site paused. It is never the only check.
+2. `proxy.ts` only redirects signed-out users away from `/app`, and shows public pages the paused notice while the operator has the site paused. It is never the only check. When the database can't be reached it uses the last site status this server read (none means active) and asks again after five seconds, so an outage never takes down the prerendered pages too.
 3. The permissions matrix in the product spec is encoded as a table-driven test: every row and column is asserted.
 
 Postgres row-level security is not used. The app connects as one database role through a pooled HTTP driver, and a single tested policy function is easier to reason about than policy split across two layers.
@@ -527,6 +527,34 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | `/operator` | `admin-tools` (export, roles); `site-wide/operator` (read-only, paused, features); `screens` |
 
 Flows that run side by side share the four personas, so each works in its own season or on data no other flow checks, and the Stripe helpers pick a person's payment by season.
+
+### Edge cases checked
+
+The cases a real league hits that no single feature's tests aim at, where each is checked and what it found. A fix links nothing here: its test names the case.
+
+| Area | Case | Checked by | Outcome |
+|---|---|---|---|
+| Time | Kickoffs, deadlines and day boundaries across both daylight-saving changes, in zones where the change falls at midnight or is 30 minutes, east of UTC and at UTC+14 | `src/domain/time/zoned.test.ts` (property), a two-year sweep of nine zones | Correct; date formatters are now built once per zone, as a season five times the seed converts thousands of times |
+| Time | An evening event or game (after 7 or 8 pm in New York, the next day in UTC) | `src/domain/dashboard/csv.test.ts` | Fixed: the owner dashboard and its CSV dated events in UTC; the waivers page used the server's zone |
+| Time | Team requests with no registration close | `src/domain/schedule/team-requests.test.ts` | Fixed: they closed at UTC midnight, 8 pm the evening before the season |
+| Time | A season over New Year, leap days, a phone in another zone | `zoned.test.ts`, `csv.test.ts`, `e2e/public-views.spec.ts` (Tokyo against New York) | Correct: public pages render the league's times on the server |
+| Concurrency | Two captains answering a ref's score at once; a correction racing a confirmation | `src/db/queries/scores.db.test.ts` (separate connections) | Fixed: the game could end final in the standings while its score read disputed or awaiting. Reports and answers lock the game |
+| Concurrency | A dispute from a page left open past the 24 hours | `scores.db.test.ts` | Fixed: refused once the score is final |
+| Concurrency | A double-tapped Register (team or free agent); two captains taking one new name | `src/db/queries/registration-races.db.test.ts` | Fixed: a server error; now one registration, and "name taken" for the other captain |
+| Concurrency | Offline sync racing an online entry; resends | `offline-scores.db.test.ts` | Correct (ADR 0025) |
+| Concurrency | Webhooks twice, refunds and payments at once | `payments.db.test.ts`, `refunds.db.test.ts` | Correct: the event id is unique and refunds lock the payment |
+| Concurrency | A refund event that arrives before its payment | Reading `handleStripeEvent` | Open: [#295](https://github.com/michael-fesselmeyer/kickball-league/issues/295) |
+| Scale | 200 teams over 30 game days; a 40-player team | The scheduler at that size; `pricing.test.ts` (split shares, property) | The scheduler finishes in seconds, past its 300 ms budget for 24 teams, which is the size it is built for; shares cover the fee at any roster size |
+| Scale | Paging through the audit log | `audit.db.test.ts` | Fixed: rows written in one transaction share a time, so a page ending among them skipped the rest |
+| Odd data | A brand-new league with nothing in it | Every public page against an empty database | Each renders its empty state; unknown seasons and teams are not found |
+| Odd data | Team names in Arabic, Hebrew, Japanese or only emoji | `src/domain/slug.test.ts`, `registration-races.db.test.ts` | Fixed: refused as "too long"; they now get a stable slug |
+| Odd data | Deleted and merged accounts; apostrophes and formula-like names in exports | `account.db.test.ts`, `account-merge.db.test.ts`, `exports.db.test.ts` | Correct |
+| Money | Partial refunds, credit, promo codes to zero, cancelled checkouts, a declined guarantee card | `refunds.db.test.ts`, `money-two.db.test.ts` | Correct |
+| Lifecycle | A suspended captain at rollover or in a lineup; deleting an account while captaining | `rollover.db.test.ts`, `lineups.db.test.ts`, `account.db.test.ts` | Correct |
+| Lifecycle | A ref who plays on one of the game's teams | Reading the score rules | Open: [#296](https://github.com/michael-fesselmeyer/kickball-league/issues/296) |
+| Lifecycle | A read-only or paused site during every change | Every Server Action goes through a freeze check; `e2e/site-wide/operator.spec.ts` | Correct |
+| Failure | Database unavailable during a page load | `src/lib/platform/site.test.ts`; the app against a database that isn't there | Fixed: the proxy's status read failed every page, the prerendered ones too. It now uses the last status it read, and pages that fail show an error page that only retries when asked |
+| Failure | Email provider down, hanging or over quota; expired push devices | `src/services/email.test.ts`, `email-budget.db.test.ts`, `push.db.test.ts` | Fixed: a hanging provider held the outbox; sends now give up after 10 seconds and retry |
 
 ### How the checks run
 
