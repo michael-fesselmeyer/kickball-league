@@ -26,6 +26,7 @@ import { registerFreeAgentAction, registerTeamAction } from "./actions";
 import { FreeAgentForm, TeamForm } from "./register-forms";
 import { joinWaitlistAction, leaveWaitlistAction } from "./waitlist-actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 const WAITLIST_NOTICES: Record<string, string> = {
   joined: "You're on the waitlist. We'll email you the moment a spot opens.",
@@ -194,9 +195,9 @@ async function Register({
               opens, we&apos;ll email you and hold it for 48 hours.
             </p>
             <form action={leaveWaitlistAction.bind(null, slug)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 Leave the waitlist
-              </button>
+              </SubmitButton>
             </form>
           </div>
         ) : (
@@ -221,9 +222,9 @@ async function Register({
                   className="w-56 rounded-md border border-border bg-surface px-2 py-1"
                 />
               </label>
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton className="btn btn-primary">
                 Join the waitlist
-              </button>
+              </SubmitButton>
             </form>
           </div>
         )}

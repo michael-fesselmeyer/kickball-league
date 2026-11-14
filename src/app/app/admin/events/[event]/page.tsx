@@ -27,6 +27,7 @@ import {
 import { EventFormFields } from "../event-form";
 import { EventTickets } from "./tickets";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Edit event" };
 
@@ -270,9 +271,9 @@ async function AdminEvent({
               />
               Yes, call it off
             </label>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Call off the event
-            </button>
+            </SubmitButton>
           </form>
         )}
         <form
@@ -293,9 +294,9 @@ async function AdminEvent({
             />
             Yes, delete it
           </label>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             Delete the event
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>

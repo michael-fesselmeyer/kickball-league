@@ -8,6 +8,7 @@ import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { requirePermission } from "@/lib/auth/permission";
 import { assignRefereeAction, unassignRefereeAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Referees" };
 
@@ -112,13 +113,12 @@ async function Referees({
                     className="flex items-center gap-3"
                   >
                     <span>{g.referee.name || g.referee.email}</span>
-                    <button
-                      type="submit"
+                    <SubmitButton
                       className="underline"
                       aria-label={`Remove the referee from ${g.teamAName} vs ${g.teamBName}`}
                     >
                       Remove
-                    </button>
+                    </SubmitButton>
                   </form>
                 ) : (
                   <form
@@ -133,9 +133,7 @@ async function Referees({
                       aria-label={`Referee's email for ${g.teamAName} vs ${g.teamBName}`}
                       className="w-48 rounded-md border border-border bg-surface px-2 py-1"
                     />
-                    <button type="submit" className="underline">
-                      Assign
-                    </button>
+                    <SubmitButton className="underline">Assign</SubmitButton>
                   </form>
                 )}
               </li>

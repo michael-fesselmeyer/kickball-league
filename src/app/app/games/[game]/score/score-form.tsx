@@ -7,6 +7,7 @@ import { isOneOf } from "@/domain/guards";
 import { OUTCOMES, type ScoreInput } from "@/domain/scores/scores";
 import { canSaveOffline, newKey, saveOffline } from "@/lib/pwa/score-outbox";
 import { submitScoreAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 type Game = { id: string; teamAName: string; teamBName: string };
 
@@ -166,9 +167,7 @@ export function ScoreForm({
           {problem}
         </p>
       )}
-      <button type="submit" className="btn btn-primary">
-        {label}
-      </button>
+      <SubmitButton className="btn btn-primary">{label}</SubmitButton>
     </form>
   );
 }

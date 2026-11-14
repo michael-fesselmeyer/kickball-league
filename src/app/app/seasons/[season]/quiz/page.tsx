@@ -19,6 +19,7 @@ import {
   saveQuizAction,
   startGroupAction,
 } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Team-fit quiz" };
 
@@ -194,9 +195,9 @@ async function Quiz({
             className="min-h-11 rounded-lg border border-border px-3"
           />
         </label>
-        <button type="submit" className="btn self-start btn-primary">
+        <SubmitButton className="btn self-start btn-primary">
           {mine.answers ? "Update my answers" : "Save my answers"}
-        </button>
+        </SubmitButton>
       </form>
 
       <section
@@ -233,9 +234,9 @@ async function Quiz({
                 : friendsSentence("In your group:", mine.friends)}
             </p>
             <form action={leaveGroupAction.bind(null, slug)}>
-              <button type="submit" className="underline">
+              <SubmitButton className="underline">
                 Leave this group
-              </button>
+              </SubmitButton>
             </form>
           </>
         ) : (
@@ -245,9 +246,9 @@ async function Quiz({
               Up to {FRIEND_GROUP_MAX} of you land on the same team.
             </p>
             <form action={startGroupAction.bind(null, slug)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 Start a group
-              </button>
+              </SubmitButton>
             </form>
           </>
         )}
@@ -269,9 +270,7 @@ async function Quiz({
               className="min-h-11 w-36 rounded-lg border border-border px-3 font-mono uppercase"
             />
           </label>
-          <button type="submit" className="btn btn-secondary">
-            Join
-          </button>
+          <SubmitButton className="btn btn-secondary">Join</SubmitButton>
         </form>
       </section>
     </>

@@ -27,6 +27,7 @@ import { rateSportsmanshipAction } from "./rate";
 import { GameOutbox, ScoreForm } from "./score-form";
 import { SportsmanshipForm } from "./sportsmanship-form";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Score" };
 
@@ -256,22 +257,20 @@ async function Score({
                 />
               </label>
               <div className="flex flex-wrap gap-3">
-                <button
-                  type="submit"
+                <SubmitButton
                   name="status"
                   value="confirmed"
                   className="btn btn-primary"
                 >
                   Confirm
-                </button>
-                <button
-                  type="submit"
+                </SubmitButton>
+                <SubmitButton
                   name="status"
                   value="disputed"
                   className="btn btn-secondary"
                 >
                   Dispute
-                </button>
+                </SubmitButton>
               </div>
             </form>
           )}

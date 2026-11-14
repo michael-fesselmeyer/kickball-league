@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import type { OfflineGame } from "@/domain/pwa/offline";
 import { tellWorker } from "@/lib/pwa/offline-cache";
+import { SubmitButton } from "@/components/submit-button";
 
 /**
  * Tells the service worker which game to keep for offline use: this
@@ -31,9 +32,7 @@ export function OfflineSync({ game }: { game: OfflineGame | null }) {
 export function SignOutForm({ action }: { action: () => Promise<void> }) {
   return (
     <form action={action} onSubmit={() => void tellWorker({ type: "forget" })}>
-      <button type="submit" className="btn btn-secondary">
-        Sign out
-      </button>
+      <SubmitButton className="btn btn-secondary">Sign out</SubmitButton>
     </form>
   );
 }

@@ -16,6 +16,7 @@ import { isCurrentCheckinCode } from "@/domain/sponsors/checkin-code";
 import { requirePermission } from "@/lib/auth/permission";
 import { enterGiveawayAction } from "../../actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Enter the giveaway" };
 
@@ -85,9 +86,9 @@ async function Enter({ params, searchParams }: Props) {
         <p className="text-small">{NO_PURCHASE_LINE}</p>
       </div>
       <form action={enterGiveawayAction.bind(null, slug, code)}>
-        <button type="submit" className="btn w-full btn-primary">
+        <SubmitButton className="btn w-full btn-primary">
           Enter the giveaway
-        </button>
+        </SubmitButton>
       </form>
       <Link
         href={giveawayPage}

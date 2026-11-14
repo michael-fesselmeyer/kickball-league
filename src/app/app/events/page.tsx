@@ -17,6 +17,7 @@ import { feedPath, feedToken } from "@/lib/event-feed";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { resetFeedAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Your events" };
 
@@ -143,9 +144,9 @@ async function MyEvents({ searchParams }: PageProps<"/app/events">) {
           </a>
         </div>
         <form action={resetFeedAction}>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             Reset my calendar link
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>

@@ -1,5 +1,6 @@
 import type { KeepOffRow } from "@/db/queries/keep-off";
 import { REASON_MAX } from "@/domain/keep-off/keep-off";
+import { SubmitButton } from "@/components/submit-button";
 
 /** Messages by code; an unknown code from the URL finds nothing. */
 export const KEEP_OFF_MESSAGES: Record<string, { ok: boolean; text: string }> =
@@ -120,13 +121,10 @@ export function KeepOffSection({
                     )}
                   </span>
                   <form action={remove(e.id)}>
-                    <button
-                      type="submit"
-                      className="inline-flex min-h-11 items-center underline"
-                    >
+                    <SubmitButton className="inline-flex min-h-11 items-center underline">
                       Remove
                       <span className="sr-only"> {e.name} from the list</span>
-                    </button>
+                    </SubmitButton>
                   </form>
                 </li>
               ))}
@@ -134,9 +132,9 @@ export function KeepOffSection({
           )}
           <form action={add} className="flex flex-col gap-2">
             <KeepOffFields idPrefix="keep-off" />
-            <button type="submit" className="btn self-start btn-secondary">
+            <SubmitButton className="btn self-start btn-secondary">
               Add to the list
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </details>

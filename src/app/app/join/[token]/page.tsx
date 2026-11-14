@@ -15,6 +15,7 @@ import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { joinTeamAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = {
   title: "Join a team",
@@ -113,9 +114,9 @@ async function Join({ params, searchParams }: PageProps<"/app/join/[token]">) {
           className="flex flex-col gap-3"
         >
           <AgeConfirmation minimumAge={found.minimumAge} />
-          <button type="submit" className="btn self-start btn-primary">
+          <SubmitButton className="btn self-start btn-primary">
             Join {found.teamName}
-          </button>
+          </SubmitButton>
         </form>
       )}
     </>

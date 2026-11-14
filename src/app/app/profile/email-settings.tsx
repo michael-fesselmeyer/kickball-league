@@ -1,4 +1,5 @@
 import { saveEmailSettingsAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 /** Which league emails the person gets, one checkbox per topic. */
 export function EmailSettings({
@@ -42,12 +43,9 @@ export function EmailSettings({
             </label>
           ))}
         </fieldset>
-        <button
-          type="submit"
-          className="self-start rounded-full border border-text px-4 py-1"
-        >
+        <SubmitButton className="self-start rounded-full border border-text px-4 py-1">
           Save email settings
-        </button>
+        </SubmitButton>
       </form>
     </section>
   );

@@ -1,5 +1,6 @@
 import type { Rating } from "@/domain/discipline/discipline";
 import { RATING_NOTE_MAX } from "@/domain/discipline/discipline";
+import { SubmitButton } from "@/components/submit-button";
 
 const LABELS = ["", "Poor", "Rough", "Fine", "Good", "Great"] as const;
 
@@ -58,9 +59,9 @@ export function SportsmanshipForm({
             className="rounded-md border border-border bg-surface px-2 py-1"
           />
         </label>
-        <button type="submit" className="btn self-start btn-secondary">
+        <SubmitButton className="btn self-start btn-secondary">
           {current ? "Update rating" : "Save rating"}
-        </button>
+        </SubmitButton>
       </form>
     </section>
   );

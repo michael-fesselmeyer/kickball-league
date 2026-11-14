@@ -19,6 +19,7 @@ import { gameDays } from "@/domain/stats/weekly";
 import { requirePermission } from "@/lib/auth/permission";
 import { removeTeamOfWeekAction, setTeamOfWeekAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Team of the week" };
 
@@ -237,9 +238,9 @@ async function TeamOfWeek({ params, searchParams }: Props) {
                   />
                 </label>
               </div>
-              <button type="submit" className="btn self-start btn-primary">
+              <SubmitButton className="btn self-start btn-primary">
                 {existing ? "Save the change" : "Name them"}
-              </button>
+              </SubmitButton>
             </form>
           </section>
         </>
@@ -270,15 +271,12 @@ async function TeamOfWeek({ params, searchParams }: Props) {
                 <form
                   action={removeTeamOfWeekAction.bind(null, slug, h.weekOf)}
                 >
-                  <button
-                    type="submit"
-                    className="inline-flex min-h-6 items-center underline"
-                  >
+                  <SubmitButton className="inline-flex min-h-6 items-center underline">
                     Remove
                     <span className="sr-only">
                       : {h.teamName}, {dayHeading(h.weekOf)}
                     </span>
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}

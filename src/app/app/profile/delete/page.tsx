@@ -12,6 +12,7 @@ import { requireSelf, sessionSignedInAt } from "@/lib/auth/permission";
 import { demoStatus } from "@/lib/demo/guard";
 import { deleteAccountAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Delete your account" };
 
@@ -168,12 +169,9 @@ async function DeleteAccount({
               required
               className="min-h-11 rounded-input border-2 border-border-strong bg-surface px-3 py-2 text-body text-text"
             />
-            <button
-              type="submit"
-              className="btn self-start border-danger bg-surface text-danger"
-            >
+            <SubmitButton className="btn self-start border-danger bg-surface text-danger">
               Delete my account
-            </button>
+            </SubmitButton>
           </form>
         )}
       </section>

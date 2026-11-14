@@ -19,6 +19,7 @@ import { dayHeading } from "@/domain/schedule/format";
 import { requirePermission } from "@/lib/auth/permission";
 import { makeBracket, publishDraftBracket } from "./actions";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Playoffs" };
 
@@ -129,11 +130,11 @@ async function Playoffs({
             </h2>
             {bracket.status === "draft" ? (
               <form action={publishDraftBracket.bind(null, slug)}>
-                <button type="submit" className="btn btn-primary">
+                <SubmitButton className="btn btn-primary">
                   {brackets.length > 1
                     ? "Publish the brackets"
                     : "Publish the bracket"}
-                </button>
+                </SubmitButton>
               </form>
             ) : (
               <Link
@@ -221,13 +222,13 @@ async function Playoffs({
                   ))}
                 </select>
               </label>
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton className="btn btn-primary">
                 {bracket
                   ? "Replace the draft"
                   : divided && preview.mode === "per_division"
                     ? "Make the brackets"
                     : "Make the bracket"}
-              </button>
+              </SubmitButton>
             </form>
           )}
           <p className="text-small text-text-muted">

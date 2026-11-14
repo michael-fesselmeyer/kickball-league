@@ -23,6 +23,7 @@ import {
   saveHalfAction,
   undoAction,
 } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 /** Runs most halves end with, one tap each. */
 const QUICK_RUNS = [0, 1, 2, 3, 4, 5, 6, 7];
@@ -198,15 +199,14 @@ export function Scoring({
                 Runs in the {positionLabel(next).toLowerCase()}
               </legend>
               {QUICK_RUNS.map((runs) => (
-                <button
+                <SubmitButton
                   key={runs}
-                  type="submit"
                   name="runs"
                   value={runs}
                   className="btn px-0 text-h3 btn-secondary tabular-nums"
                 >
                   {runs}
-                </button>
+                </SubmitButton>
               ))}
             </fieldset>
           </form>
@@ -225,9 +225,7 @@ export function Scoring({
                 className="min-h-11 w-24 rounded-input border border-border-strong bg-surface px-3 text-center tabular-nums"
               />
             </label>
-            <button type="submit" className="btn btn-primary">
-              Save
-            </button>
+            <SubmitButton className="btn btn-primary">Save</SubmitButton>
           </form>
         </section>
       )}
@@ -238,9 +236,9 @@ export function Scoring({
             Fix a mistake
           </h2>
           <form action={() => online(() => undoAction(gameId), NEEDS_SIGNAL)}>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Take back the {positionLabel(last).toLowerCase()}
-            </button>
+            </SubmitButton>
           </form>
           <details className="rounded-lg border border-border p-3">
             <summary className="min-h-11 content-center">
@@ -280,9 +278,7 @@ export function Scoring({
                   className="min-h-11 w-20 rounded-input border border-border-strong bg-surface px-3 text-center tabular-nums"
                 />
               </label>
-              <button type="submit" className="btn btn-primary">
-                Save
-              </button>
+              <SubmitButton className="btn btn-primary">Save</SubmitButton>
             </form>
           </details>
         </section>
@@ -298,24 +294,22 @@ export function Scoring({
             screen as usual.
           </p>
           <form action={end} className="flex flex-col gap-2">
-            <button
-              type="submit"
+            <SubmitButton
               name="ending"
               value="normal"
               className="btn btn-primary"
             >
               Game over: {names.A} {line.totalA}, {names.B} {line.totalB}
-            </button>
+            </SubmitButton>
             {called ? (
-              <button
-                type="submit"
+              <SubmitButton
                 name="ending"
                 value="called"
                 className="btn btn-secondary"
               >
                 Called after the {ordinal(called.inningsPlayed)}: {names.A}{" "}
                 {called.scoreA}, {names.B} {called.scoreB}
-              </button>
+              </SubmitButton>
             ) : (
               <p className="text-small text-text-muted">
                 A game called before {MIN_CALLED_INNINGS} complete innings
@@ -349,14 +343,13 @@ export function Scoring({
           <p className="text-small text-text-muted">
             Switching moves every top half to the other team.
           </p>
-          <button
-            type="submit"
+          <SubmitButton
             name="side"
             value={kicksFirst === "A" ? "B" : "A"}
             className="btn btn-secondary"
           >
             {team(kicksFirst === "A" ? "B" : "A")} kick first
-          </button>
+          </SubmitButton>
         </form>
       </details>
     </>
