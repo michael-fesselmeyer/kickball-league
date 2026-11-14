@@ -51,7 +51,7 @@ export default function DivisionSchedulePage(props: Props) {
 }
 
 /**
- * One division's games, crossovers included (ADR 0035). The division comes
+ * One division's games, crossovers included (ADR 0040). The division comes
  * from the path, never the query string, so the page is static HTML.
  */
 async function DivisionSchedule({ params }: Props) {

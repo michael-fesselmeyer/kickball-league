@@ -66,7 +66,7 @@ export const bracket = pgTable(
       .references(() => season.id, { onDelete: "restrict" }),
     /**
      * The division this bracket crowns. Null for the season's only bracket,
-     * which with two divisions seeds each into its own half (ADR 0035).
+     * which with two divisions seeds each into its own half (ADR 0040).
      */
     divisionId: uuid()
       .$type<DivisionId>()

@@ -33,7 +33,7 @@ function teamsOf(games: PublicGame[]): PublicTeam[] {
 /**
  * A season's public schedule: every game, one team's (the `[[...team]]`
  * route) or one division's with its crossovers (`division/[division]`,
- * ADR 0035). Each view is picked by the path, never the query string, so
+ * ADR 0040). Each view is picked by the path, never the query string, so
  * each is served as static HTML with the games in the first paint
  * (docs/architecture.md, section 3).
  */

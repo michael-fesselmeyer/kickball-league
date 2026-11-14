@@ -94,7 +94,7 @@ export const season = pgTable(
         "coin_flip",
       ]),
     rebatePolicy: jsonb().$type<RebatePolicy>().notNull().default({}),
-    /** Games each team plays against the other division (ADR 0035). */
+    /** Games each team plays against the other division (ADR 0040). */
     crossoverGames: integer().notNull().default(0),
     /** Whether crossover results count in division standings. */
     crossoversCount: boolean().notNull().default(true),

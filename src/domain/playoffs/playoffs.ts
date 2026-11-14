@@ -243,7 +243,7 @@ export function sourceLabel(source: MatchSource, rounds: number): string {
 
 /**
  * A bracket's seeds when two divisions each send `n` teams and their
- * champions meet in a combined final (ADR 0035). The first division's
+ * champions meet in a combined final (ADR 0040). The first division's
  * teams fill the top half of the bracket and the second's the bottom, each
  * in its own standard order (1 v n, 2 v n−1, ...), so no division meets the
  * other before the final. Returns the teams in bracket-seed order, ready

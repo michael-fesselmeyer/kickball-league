@@ -154,7 +154,7 @@ One known quirk drives the rest of the design: the team in the fixed seat is alw
 
 ### Stage A, continued: crossover rounds
 
-With exactly two divisions and `crossoverGames = k > 0`, Stage A adds `k` crossover rounds, in which every game is between the divisions ([ADR 0035](adr/0035-divisions-and-crossover-games.md)).
+With exactly two divisions and `crossoverGames = k > 0`, Stage A adds `k` crossover rounds, in which every game is between the divisions ([ADR 0040](adr/0040-divisions-and-crossover-games.md)).
 
 ```
 buildCrossoverRounds(larger, smaller, k, rng):

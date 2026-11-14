@@ -2,7 +2,7 @@ import { err, ok, type Result } from "../result";
 import { slugify } from "../slug";
 
 /**
- * Divisions and rule sets as an admin enters them (ADR 0035). Pure: the
+ * Divisions and rule sets as an admin enters them (ADR 0040). Pure: the
  * queries in src/db/queries/divisions.ts store what these accept.
  */
 

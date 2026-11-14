@@ -142,7 +142,7 @@ export const gameStatus = pgEnum("game_status", [
 /**
  * A matchup between two team entries. slot_id is its place in the published
  * schedule. A game has no division of its own: its teams' divisions say
- * which division it belongs to, and a crossover belongs to two (ADR 0035).
+ * which division it belongs to, and a crossover belongs to two (ADR 0040).
  */
 export const game = pgTable(
   "game",

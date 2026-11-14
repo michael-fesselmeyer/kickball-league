@@ -6,7 +6,7 @@ import type { SeedData } from "./generate";
 import { generatePastSeasons } from "./past-seasons";
 
 /**
- * Two divisions in the demo league (ADR 0035): Summer 2026 split into
+ * Two divisions in the demo league (ADR 0040): Summer 2026 split into
  * Competitive and Social, each with its own rule set. Every team played its
  * three division rivals and the four teams of the other division, so the
  * season counts four crossover games a team, and the public standings,

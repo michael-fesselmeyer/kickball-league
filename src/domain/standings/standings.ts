@@ -294,7 +294,7 @@ export function standings(
 export type StandingsGroup = { id: string; teamIds: readonly string[] };
 
 /**
- * Standings for each division (ADR 0035). Each team is ranked only against
+ * Standings for each division (ADR 0040). Each team is ranked only against
  * its own division, and head-to-head looks only at games inside it.
  *
  * Crossover games, between two divisions, count toward each team's record

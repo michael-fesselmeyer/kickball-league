@@ -1,4 +1,4 @@
-# ADR 0035: Divisions play their own round robin, plus crossover rounds that count by default
+# ADR 0040: Divisions play their own round robin, plus crossover rounds that count by default
 
 - Status: accepted
 - Date: 2026-11-13
