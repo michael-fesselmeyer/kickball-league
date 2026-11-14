@@ -41,6 +41,7 @@ import {
 } from "../schema/team";
 import { recordAudit } from "./audit";
 import type { Db } from "./schedule";
+import { publicSeasons } from "./season-scope";
 
 /**
  * The owner dashboard (product-spec.md, section 9) and the season money
@@ -519,11 +520,7 @@ export async function publicSummary(db: Db, leagueId: LeagueId, slug: string) {
     .innerJoin(league, eq(league.id, season.leagueId))
     .leftJoin(moneySummary, eq(moneySummary.seasonId, season.id))
     .where(
-      and(
-        eq(season.leagueId, leagueId),
-        eq(season.slug, slug),
-        ne(season.status, "draft"),
-      ),
+      and(eq(season.leagueId, leagueId), eq(season.slug, slug), publicSeasons),
     );
   return row ?? null;
 }
@@ -534,6 +531,6 @@ export async function publishedSummarySeasons(db: Db, leagueId: LeagueId) {
     .select({ slug: season.slug, publishedAt: moneySummary.publishedAt })
     .from(moneySummary)
     .innerJoin(season, eq(season.id, moneySummary.seasonId))
-    .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
+    .where(and(eq(season.leagueId, leagueId), publicSeasons))
     .orderBy(desc(season.startsOn));
 }

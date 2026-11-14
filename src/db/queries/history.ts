@@ -14,6 +14,7 @@ import { teamSeason } from "../schema/team";
 import { required } from "./rows";
 import type { Db } from "./schedule";
 import { seasonStandings, type StandingsTeam } from "./standings";
+import { publicSeasons } from "./season-scope";
 
 /**
  * League history: past seasons with their champions and final standings,
@@ -121,7 +122,7 @@ export async function leagueHistory(
   const seasons = await db
     .select(SEASON_COLUMNS)
     .from(season)
-    .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
+    .where(and(eq(season.leagueId, leagueId), publicSeasons))
     .orderBy(asc(season.startsOn));
   const { results, teams } = await seasonResults(db, seasons);
   const pastSeasons = seasons.flatMap((s, i): PastSeason[] => {
@@ -169,7 +170,7 @@ export async function teamHistory(
       and(
         eq(teamSeason.teamId, teamId),
         ne(teamSeason.status, "withdrawn"),
-        ne(season.status, "draft"),
+        publicSeasons,
       ),
     )
     .orderBy(asc(season.startsOn));

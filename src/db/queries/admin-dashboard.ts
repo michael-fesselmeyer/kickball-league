@@ -10,6 +10,7 @@ import { teamsRsvps, type TeamRsvps } from "./rsvps";
 import { seasonBySlug } from "./schedule-screen";
 import type { Db } from "./schedule";
 import { scoresNeedingAttention } from "./scores";
+import { leagueSeasons } from "./season-scope";
 
 /**
  * The admin home (product-spec.md, "League admin"; information-architecture.md,
@@ -48,6 +49,7 @@ export async function dashboardSeason(
         eq(season.leagueId, leagueId),
         inArray(game.status, ["scheduled", "in_progress"]),
         eq(slot.status, "open"),
+        leagueSeasons,
         // Today in the league's own time zone counts as upcoming.
         sql`(${slot.startsAt} at time zone ${league.timezone})::date >= (${now.toISOString()}::timestamptz at time zone ${league.timezone})::date`,
       ),
@@ -59,7 +61,7 @@ export async function dashboardSeason(
     : await db
         .select({ slug: season.slug })
         .from(season)
-        .where(eq(season.leagueId, leagueId))
+        .where(and(eq(season.leagueId, leagueId), leagueSeasons))
         .orderBy(
           // Past-draft seasons first, then the most recent start.
           sql`(${season.status} = 'draft')`,

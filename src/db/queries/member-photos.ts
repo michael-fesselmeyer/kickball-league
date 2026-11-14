@@ -47,6 +47,7 @@ import { league } from "../schema/league";
 import { defaultLeague } from "./leagues";
 import type { Db } from "./schedule";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
+import { publicSeasons } from "./season-scope";
 
 /**
  * Photos members upload for the league's socials (ADR 0039;
@@ -143,7 +144,7 @@ export async function uploadTargets(
           .where(
             and(
               eq(season.leagueId, input.leagueId),
-              ne(season.status, "draft"),
+              publicSeasons,
               or(
                 inArray(game.teamAId, entries),
                 inArray(game.teamBId, entries),

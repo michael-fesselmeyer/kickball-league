@@ -1,15 +1,4 @@
-import {
-  and,
-  asc,
-  eq,
-  gte,
-  inArray,
-  isNull,
-  lt,
-  lte,
-  ne,
-  sql,
-} from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lt, lte, sql } from "drizzle-orm";
 import type { Audience, Reach } from "@/domain/events/audience";
 import {
   type EventInput,
@@ -42,6 +31,7 @@ import { recordAudit } from "./audit";
 import { giveUpTickets, offerOpenSpots } from "./event-tickets";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
 import type { Db } from "./schedule";
+import { publicSeasons } from "./season-scope";
 
 /** League events and their RSVPs (docs/data-model.md, section 2.5). */
 
@@ -832,7 +822,7 @@ export async function seasonOn(
     .where(
       and(
         eq(season.leagueId, leagueId),
-        ne(season.status, "draft"),
+        publicSeasons,
         lte(season.startsOn, day),
         gte(season.endsOn, day),
       ),

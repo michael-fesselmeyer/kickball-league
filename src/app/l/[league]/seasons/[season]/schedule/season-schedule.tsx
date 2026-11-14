@@ -22,6 +22,7 @@ import {
 } from "@/lib/public-cache";
 import type { LeagueInfo } from "@/db/queries/leagues";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
+import { isPublicSeason } from "@/domain/private-events/visibility";
 
 function teamsOf(games: PublicGame[]): PublicTeam[] {
   const teams = new Map<string, PublicTeam>();
@@ -54,7 +55,7 @@ export async function SeasonSchedule({
   cacheLife(PUBLIC_PAGE_LIFE);
   const season = await seasonBySlug(db, league.id, slug);
   // Drafts are the league's work in progress, not public.
-  if (!season || season.status === "draft") notFound();
+  if (!season || !isPublicSeason(season)) notFound();
   cacheTag(seasonTag(season.id), THEME_WEEKS_TAG);
   const [all, themes, divisions, divisionOf] = await Promise.all([
     publishedSchedule(db, season.id),

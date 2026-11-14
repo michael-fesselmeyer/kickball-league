@@ -12,6 +12,7 @@ import {
   publicSeasonParams,
 } from "@/lib/static-params";
 import { SeasonSchedule } from "../season-schedule";
+import { isPublicSeason } from "@/domain/private-events/visibility";
 
 type Props = PageProps<"/l/[league]/seasons/[season]/schedule/[[...team]]">;
 
@@ -48,9 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const season = league ? await cachedSeason(league.id, slug) : null;
   return {
     title:
-      season && season.status !== "draft"
-        ? `${season.name} schedule`
-        : "Schedule",
+      season && isPublicSeason(season) ? `${season.name} schedule` : "Schedule",
   };
 }
 
