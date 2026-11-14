@@ -13,6 +13,7 @@ import {
   seasonDates,
   signedText,
 } from "@/domain/history/history";
+import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
 import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 
 export const metadata: Metadata = {
@@ -46,10 +47,11 @@ export default function HistoryPage() {
 async function History() {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
-  const league = await currentLeague(db);
-  const { pastSeasons, allTime, seasonIds } = league
-    ? await leagueHistory(db, league.id)
-    : { pastSeasons: [], allTime: [], seasonIds: [] };
+  const { pastSeasons, allTime, seasonIds } =
+    (await readUnlessBuildHasNoDatabase(async () => {
+      const league = await currentLeague(db);
+      return league ? leagueHistory(db, league.id) : null;
+    })) ?? { pastSeasons: [], allTime: [], seasonIds: [] };
   if (seasonIds.length > 0) cacheTag(...seasonIds.map(seasonTag));
 
   if (pastSeasons.length === 0)
