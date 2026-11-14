@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   date,
@@ -8,11 +9,11 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  smallint,
   text,
   timestamp,
   unique,
   uuid,
-  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import type { LeagueId, SeasonId, UserId, WaiverId } from "@/domain/ids";
 import type { Tiebreaker } from "@/domain/standings/standings";
@@ -77,6 +78,8 @@ export const season = pgTable(
     maxTeams: integer(),
     rosterMin: integer().notNull(),
     rosterMax: integer().notNull(),
+    /** This season's minimum age; null uses the league's (ADR 0041). */
+    minimumAge: smallint(),
     gamesPerTeamPerDay: integer().notNull().default(1),
     /** The waiver version players sign for this season. */
     waiverId: uuid()
@@ -118,6 +121,10 @@ export const season = pgTable(
       sql`${t.rosterMin} > 0 and ${t.rosterMax} >= ${t.rosterMin}`,
     ),
     check("season_games_per_day", sql`${t.gamesPerTeamPerDay} in (1, 2)`),
+    check(
+      "season_minimum_age",
+      sql`${t.minimumAge} is null or ${t.minimumAge} between 18 and 99`,
+    ),
     check(
       "season_crossover_games_range",
       sql`${t.crossoverGames} between 0 and 10`,

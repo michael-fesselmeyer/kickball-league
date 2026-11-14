@@ -5,6 +5,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  smallint,
   text,
   timestamp,
   uuid,
@@ -55,6 +56,11 @@ export const league = pgTable(
      * about them (ADR 0036). Off by default; the owners decide.
      */
     exportKeepOffEntries: boolean().notNull().default(false),
+    /**
+     * The youngest a player may be to register or sign a waiver (ADR 0041).
+     * A season can set its own.
+     */
+    minimumAge: smallint().notNull().default(21),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -69,6 +75,7 @@ export const league = pgTable(
       "league_slug_format",
       sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`,
     ),
+    check("league_minimum_age", sql`${table.minimumAge} between 18 and 99`),
   ],
 );
 
