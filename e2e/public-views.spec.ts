@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 /**
  * The schedule, standings and team pages are cached and served as static
@@ -81,3 +81,35 @@ for (const path of [
     expect(away).toBe(home);
   });
 }
+
+/** The structured data a page carries, as a list of its nodes' types. */
+async function jsonLdTypes(page: Page) {
+  const scripts = await page
+    .locator('script[type="application/ld+json"]')
+    .allTextContents();
+  return scripts
+    .flatMap((s) => [JSON.parse(s) as unknown].flat())
+    .map((node) => (node as { "@type": string })["@type"]);
+}
+
+test("team and game pages carry SportsTeam and SportsEvent structured data", async ({
+  page,
+}) => {
+  await page.goto("/teams/the-big-kicks");
+  expect(await jsonLdTypes(page)).toContain("SportsTeam");
+
+  await page.goto("/seasons/fall-2026/schedule");
+  const game = await page
+    .locator('main a[href^="/games/"]')
+    .first()
+    .getAttribute("href");
+  expect(game).toBeTruthy();
+  await page.goto(game ?? "/");
+  expect(await jsonLdTypes(page)).toContain("SportsEvent");
+});
+
+test("the sitemap lists team and schedule pages", async ({ request }) => {
+  const sitemap = await (await request.get("/sitemap.xml")).text();
+  expect(sitemap).toMatch(/\/teams\/the-big-kicks</);
+  expect(sitemap).toMatch(/\/seasons\/fall-2026\/schedule</);
+});
