@@ -20,6 +20,7 @@ import {
 } from "@/domain/schedule/team-requests";
 import { requirePermission } from "@/lib/auth/permission";
 import { addTeamRequestAction, removeTeamRequestAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Scheduling requests" };
 
@@ -35,7 +36,7 @@ export default function TeamRequestsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <TeamRequests {...props} />
       </Suspense>
     </main>

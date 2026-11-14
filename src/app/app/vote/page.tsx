@@ -7,13 +7,14 @@ import { CATEGORIES, type Nominee } from "@/domain/awards/awards";
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
 import { castVoteAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Awards" };
 
 export default function VotePage(props: PageProps<"/app/vote">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading the ballots…</p>}>
+      <Suspense fallback={<PageLoading>Loading the ballots…</PageLoading>}>
         <Vote {...props} />
       </Suspense>
     </main>

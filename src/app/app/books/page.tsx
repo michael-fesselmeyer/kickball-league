@@ -2,12 +2,13 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { requirePermission } from "@/lib/auth/permission";
 import { newestSeasonSlug } from "./load";
+import { PageLoading } from "@/components/page-loading";
 
 /** The books open on the newest season. */
 export default function BooksHome() {
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Go />
       </Suspense>
     </main>

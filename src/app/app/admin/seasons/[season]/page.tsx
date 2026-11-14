@@ -8,6 +8,7 @@ import { toSeasonForm } from "@/domain/season/settings";
 import { requirePermission } from "@/lib/auth/permission";
 import { updateSeasonAction } from "../actions";
 import { SeasonSettingsForm } from "../season-form";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Season settings" };
 
@@ -16,7 +17,7 @@ export default function SeasonPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Season {...props} />
       </Suspense>
     </main>

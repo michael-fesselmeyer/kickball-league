@@ -25,6 +25,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { registerFreeAgentAction, registerTeamAction } from "./actions";
 import { FreeAgentForm, TeamForm } from "./register-forms";
 import { joinWaitlistAction, leaveWaitlistAction } from "./waitlist-actions";
+import { PageLoading } from "@/components/page-loading";
 
 const WAITLIST_NOTICES: Record<string, string> = {
   joined: "You're on the waitlist. We'll email you the moment a spot opens.",
@@ -42,7 +43,7 @@ export default function RegisterPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Register {...props} />
       </Suspense>
     </main>

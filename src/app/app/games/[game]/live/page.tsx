@@ -16,13 +16,14 @@ import { MIN_CALLED_INNINGS, PLAYOFF_TIE } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
 import { kicksFirstAction } from "./actions";
 import { Scoring } from "./scoring";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Live score" };
 
 export default function LivePage(props: PageProps<"/app/games/[game]/live">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
-      <Suspense fallback={<p>Loading the game…</p>}>
+      <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>
         <Live {...props} />
       </Suspense>
     </main>

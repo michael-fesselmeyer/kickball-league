@@ -17,6 +17,7 @@ import { editGame, generateDraft, publishDraft, saveBoard } from "./actions";
 import { BoardLoader } from "./board-loader";
 import type { BoardSlot } from "./board-model";
 import { metricRows, readable } from "./labels";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Schedule" };
 
@@ -25,7 +26,7 @@ export default function SchedulePage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10 lg:max-w-6xl">
-      <Suspense fallback={<p>Loading the schedule…</p>}>
+      <Suspense fallback={<PageLoading>Loading the schedule…</PageLoading>}>
         <Schedule {...props} />
       </Suspense>
     </main>

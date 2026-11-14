@@ -15,13 +15,14 @@ import { describeBlocker } from "@/domain/account-merge/rules";
 import { parseId, type UserId } from "@/domain/ids";
 import { requirePermission, sessionIsFresh } from "@/lib/auth/permission";
 import { findAccountsAction, mergeAccountsAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Merge accounts" };
 
 export default function AccountsPage(props: PageProps<"/app/admin/accounts">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Accounts {...props} />
       </Suspense>
     </main>

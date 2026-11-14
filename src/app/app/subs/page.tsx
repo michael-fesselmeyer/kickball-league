@@ -7,13 +7,14 @@ import { describeSpots } from "@/domain/subs/eligibility";
 import { requirePermission } from "@/lib/auth/permission";
 import { claimAction, withdrawAction } from "./actions";
 import { requireFeature } from "@/lib/platform/site";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Sub for a team" };
 
 export default function SubsPage(props: PageProps<"/app/subs">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading sub requests…</p>}>
+      <Suspense fallback={<PageLoading>Loading sub requests…</PageLoading>}>
         <Subs {...props} />
       </Suspense>
     </main>

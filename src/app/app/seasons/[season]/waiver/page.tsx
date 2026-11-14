@@ -12,6 +12,7 @@ import { waiverForSeason } from "@/db/queries/waivers";
 import { requireSelf } from "@/lib/auth/permission";
 import { signWaiverAction } from "./actions";
 import { SignWaiverForm } from "./sign-form";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Season waiver" };
 
@@ -20,7 +21,7 @@ export default function WaiverPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading the waiver…</p>}>
+      <Suspense fallback={<PageLoading>Loading the waiver…</PageLoading>}>
         <Waiver {...props} />
       </Suspense>
     </main>

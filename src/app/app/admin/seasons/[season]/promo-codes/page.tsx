@@ -9,6 +9,7 @@ import { formatCents } from "@/domain/registration/pricing";
 import { describePromo } from "@/domain/registration/promo";
 import { requirePermission } from "@/lib/auth/permission";
 import { createPromoCodeAction, disablePromoCodeAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Promo codes" };
 
@@ -17,7 +18,7 @@ export default function PromoCodesPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <PromoCodes {...props} />
       </Suspense>
     </main>

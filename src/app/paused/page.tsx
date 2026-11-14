@@ -3,6 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { currentSite } from "@/lib/platform/site";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = {
   title: "Paused",
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
 export default function PausedPage() {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-4 px-4 py-16">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Notice />
       </Suspense>
     </main>

@@ -7,6 +7,7 @@ import { currentLeague } from "@/db/queries/seasons";
 import { ACTIVITY_LABELS, displayHost } from "@/domain/friends/friend-form";
 import { MAX_TOTAL_LOGO_BYTES } from "@/domain/friends/logo";
 import { requirePermission } from "@/lib/auth/permission";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Friends of the league" };
 
@@ -23,7 +24,7 @@ export default function AdminFriendsPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading the directory…</p>}>
+      <Suspense fallback={<PageLoading>Loading the directory…</PageLoading>}>
         <AdminFriends {...props} />
       </Suspense>
     </main>

@@ -19,13 +19,14 @@ import { FileInput } from "../file-input";
 import { booksSeason } from "../load";
 import { SeasonPicker } from "../season-picker";
 import { addExpenseAction, removeExpenseAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Books" };
 
 export default function BooksPage(props: PageProps<"/app/books/[season]">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Books {...props} />
       </Suspense>
     </main>

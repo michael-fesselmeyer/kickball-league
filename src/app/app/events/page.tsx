@@ -16,6 +16,7 @@ import { feedLinks } from "@/lib/calendar-links";
 import { feedPath, feedToken } from "@/lib/event-feed";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { resetFeedAction } from "./actions";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Your events" };
 
@@ -35,7 +36,7 @@ export default function MyEventsPage(props: PageProps<"/app/events">) {
           Full events have a waitlist, and we&apos;ll email you if a spot opens.
         </p>
       </header>
-      <Suspense fallback={<p className="min-h-svh">Loading events…</p>}>
+      <Suspense fallback={<PageLoading>Loading events…</PageLoading>}>
         <MyEvents {...props} />
       </Suspense>
     </main>

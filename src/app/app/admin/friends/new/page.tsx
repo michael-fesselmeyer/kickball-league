@@ -5,6 +5,7 @@ import { BLANK_FRIEND_FORM } from "@/domain/friends/friend-form";
 import { requirePermission } from "@/lib/auth/permission";
 import { createFriendAction } from "../actions";
 import { FriendFormFields } from "../friend-form";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Add a league" };
 
@@ -20,7 +21,7 @@ export default function NewFriendPage() {
         </Link>
         <h1 className="text-h1">Add a league</h1>
       </header>
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <NewFriend />
       </Suspense>
     </main>

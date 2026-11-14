@@ -26,6 +26,7 @@ import {
 } from "../actions";
 import { EventFormFields } from "../event-form";
 import { EventTickets } from "./tickets";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Edit event" };
 
@@ -53,7 +54,7 @@ export default function AdminEventPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading the event…</p>}>
+      <Suspense fallback={<PageLoading>Loading the event…</PageLoading>}>
         <AdminEvent {...props} />
       </Suspense>
     </main>

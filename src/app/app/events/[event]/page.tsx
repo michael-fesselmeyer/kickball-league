@@ -32,6 +32,7 @@ import { googleEventLink } from "@/lib/calendar-links";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { joinEventAction, leaveEventAction } from "../actions";
 import { TicketPanel } from "./ticket";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "RSVP" };
 
@@ -68,7 +69,7 @@ const TICKET: Record<string, string> = {
 export default function EventRsvpPage(props: PageProps<"/app/events/[event]">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading the event…</p>}>
+      <Suspense fallback={<PageLoading>Loading the event…</PageLoading>}>
         <EventRsvp {...props} />
       </Suspense>
     </main>

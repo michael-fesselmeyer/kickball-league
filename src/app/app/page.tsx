@@ -33,13 +33,14 @@ import { checkInAsRefereeAction } from "./referee-actions";
 import { InstallPrompt } from "./install-prompt";
 import { cardsVisible } from "@/domain/emergency/emergency";
 import { OfflineSync, SignOutForm } from "./offline-sync";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Home" };
 
 export default function AppHome() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-4 py-12">
-      <Suspense fallback={<p>Loading your account…</p>}>
+      <Suspense fallback={<PageLoading>Loading your account…</PageLoading>}>
         <Account />
       </Suspense>
     </main>

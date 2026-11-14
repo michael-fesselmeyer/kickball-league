@@ -17,6 +17,7 @@ import {
 import { requireSelf } from "@/lib/auth/permission";
 import { deleteMyPhotoAction, uploadPhotoAction } from "./actions";
 import { UploadForm } from "./upload-form";
+import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Share a photo" };
 
@@ -37,7 +38,7 @@ export default function PhotosPage(props: PageProps<"/app/photos">) {
           may end up on the league&apos;s socials.
         </p>
       </header>
-      <Suspense fallback={<p className="min-h-svh">Loading your photos…</p>}>
+      <Suspense fallback={<PageLoading>Loading your photos…</PageLoading>}>
         <Photos {...props} />
       </Suspense>
     </main>
