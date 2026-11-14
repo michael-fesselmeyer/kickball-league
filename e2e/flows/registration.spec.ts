@@ -119,7 +119,9 @@ test("a captain registers a team with split pay and reaches Checkout", async ({
   await expectNoAxeViolations(page);
   await page.getByRole("button", { name: "Sign the waiver" }).click();
   await expect(page.getByRole("status")).toContainText("Signed.");
-  await page.goto(`/app/seasons/${SEASON_SLUG}`);
+  // The waiver leads on to what's left: paying, on the season page.
+  await page.getByRole("link", { name: /^Next: back to / }).click();
+  await expect(page).toHaveURL(new RegExp(`/app/seasons/${SEASON_SLUG}$`));
 
   // Stripe's hosted page is out of scope: stop at its address.
   await page.route("https://checkout.stripe.com/**", (route) =>
