@@ -276,7 +276,8 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
         ) : (
           <>
             <p className="text-small text-text-muted">
-              Games from past game days that still have no final score.
+              Games from past game days that still have no final score, and any
+              score a captain disputed.
             </p>
             <ul className="flex flex-col">
               {missing.map((g) => (

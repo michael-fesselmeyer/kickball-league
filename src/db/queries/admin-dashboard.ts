@@ -165,7 +165,8 @@ export async function nextGameDay(
 /**
  * Games from earlier game days that still have no final score: nobody
  * reported, a report awaits confirmation, or a captain disputed it. Today's
- * games are left out; they are still being played.
+ * games are left out while they are still being played, unless a captain
+ * already disputed the score: that needs an admin now.
  */
 export async function missingScores(
   db: Db,
@@ -175,9 +176,11 @@ export async function missingScores(
   const today = localDate(now, current.timeZone);
   return (await scoresNeedingAttention(db, current.id, now)).filter(
     (g) =>
-      localDate(g.startsAt, current.timeZone) < today &&
-      // Due to finalize on the next run of the scores job.
-      g.state.state !== "final",
+      // A dispute needs an admin at once, even on the game's own day.
+      g.state.state === "disputed" ||
+      (localDate(g.startsAt, current.timeZone) < today &&
+        // Due to finalize on the next run of the scores job.
+        g.state.state !== "final"),
   );
 }
 
