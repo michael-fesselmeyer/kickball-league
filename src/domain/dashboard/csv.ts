@@ -1,3 +1,4 @@
+import { localDate } from "../books/ledger-csv";
 import type { Column } from "../export/csv";
 import type { DashboardView } from "./view";
 
@@ -29,9 +30,14 @@ const dollars = (cents: number) => Math.round(cents) / 100;
 const pct = (r: number | null) =>
   r === null ? null : Math.round(r * 1000) / 10;
 
+/**
+ * An event is dated by the league's calendar, so an evening event (after
+ * 7 or 8 pm in New York, already the next day in UTC) keeps its own date.
+ */
 export function dashboardLines(
   view: DashboardView,
   selectedName: string,
+  timeZone: string,
 ): DashboardLine[] {
   const lines: DashboardLine[] = [];
   const add = (
@@ -102,7 +108,7 @@ export function dashboardLines(
   }
   for (const e of view.selected.events) {
     const s = "Events";
-    const item = `${e.title} (${e.startsAt.toISOString().slice(0, 10)})`;
+    const item = `${e.title} (${localDate(e.startsAt, timeZone)})`;
     add(s, selectedName, item, "Going", e.signedUp);
     add(s, selectedName, item, "Checked in", e.checkedIn);
     add(s, selectedName, item, "Turnout %", pct(e.turnout));

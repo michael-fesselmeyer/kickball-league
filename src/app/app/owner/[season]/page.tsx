@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { money } from "@/domain/books/ledger";
+import { localDate } from "@/domain/books/ledger-csv";
 import { percent } from "@/domain/dashboard/metrics";
 import { spentCategories } from "@/domain/dashboard/view";
 import { requirePermission } from "@/lib/auth/permission";
@@ -458,7 +459,7 @@ async function Dashboard({
                     <th scope="row" className={th}>
                       {e.title}{" "}
                       <span className="text-small text-text-muted">
-                        {weekLabel(e.startsAt.toISOString().slice(0, 10))}
+                        {weekLabel(localDate(e.startsAt, league.timeZone))}
                       </span>
                     </th>
                     <td className={num}>{e.signedUp}</td>
