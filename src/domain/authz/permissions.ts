@@ -109,6 +109,10 @@ const RULES = {
   "challenge.view": signedIn,
   // Buy from the league shop, for themselves.
   "merch.order": signedIn,
+  // Take and give back a spot on a volunteer shift.
+  "volunteer.claim": signedIn,
+  // A season's survey; being on a roster that season is checked with it.
+  "survey.answer": signedIn,
   "sub_request.claim": (s, c) => signedIn(s, c) && c.eligibleToSub === true,
   "awards.vote": (s) => s.roster.length > 0,
   // Pick'em, for bragging rights only (ADR 0044).
@@ -228,6 +232,10 @@ const RULES = {
   "event.manage": isAdmin,
   "giveaway.manage": isAdmin,
   "challenge.manage": isAdmin,
+  "volunteer.manage": isAdmin,
+  "survey.manage": isAdmin,
+  // A survey's totals and anonymous comments; never who said what.
+  "survey.results": isAdmin,
   "referee.manage": isAdmin,
   "player.suspend": isAdmin,
   "incident.review": isAdmin,

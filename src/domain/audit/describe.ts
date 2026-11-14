@@ -137,6 +137,8 @@ const ACTIONS: Record<string, string> = {
   "sportsmanship.rate": "Rated a team's sportsmanship",
   "suspension.issue": "Suspended a player",
   "suspension.lift": "Lifted a player's suspension",
+  "survey.close": "Closed a season survey",
+  "survey.open": "Opened a season survey",
   "team.approve_new": "Approved a new team",
   "team.decline_new": "Declined a new team",
   "team.register": "Registered a team",
@@ -147,6 +149,9 @@ const ACTIONS: Record<string, string> = {
   "team_request.add": "Added a scheduling request",
   "team_request.remove": "Removed a scheduling request",
   "venue.create": "Added a venue",
+  "volunteer.create": "Posted a volunteer shift",
+  "volunteer.delete": "Removed a volunteer shift",
+  "volunteer.update": "Changed a volunteer shift",
   "waiver.publish": "Published a waiver",
 };
 

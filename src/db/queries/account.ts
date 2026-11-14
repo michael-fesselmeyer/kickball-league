@@ -71,6 +71,8 @@ import { creditHistory } from "./credit";
 import { myGiveawayWins } from "./giveaways";
 import { myReferrals } from "./referrals";
 import { withdrawSubClaim } from "./subs";
+import { mySurveysAnswered } from "./surveys";
+import { dropFutureShifts, myVolunteerShifts } from "./volunteer";
 import type { Db } from "./schedule";
 
 /**
@@ -605,6 +607,10 @@ export async function personalData(
     checkIns,
     giveawayEntries,
     giveawaysWon,
+    volunteerShifts: await myVolunteerShifts(db, userId),
+    // Only that they answered: the answers themselves are anonymous and
+    // can't be found from the person.
+    seasonSurveysAnswered: await mySurveysAnswered(db, userId),
     dealsUsed,
     sponsorsManaged,
     discipline: await myDisciplineRecords(db, userId, now),
@@ -839,6 +845,8 @@ export async function deleteAccount(
         ),
       ),
     );
+  // Spots on volunteer shifts still to come go back; past ones stay.
+  await dropFutureShifts(db, userId, now);
   // Check-ins stay, for the sponsor's counts, under the anonymized user.
   await db.delete(sponsorMember).where(eq(sponsorMember.userId, userId));
   // Incidents, suspensions and ratings stay as league records; the notes
