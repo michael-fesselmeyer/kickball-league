@@ -137,8 +137,9 @@ async function DeleteAccount({
         ) : blocker?.reason === "captain" ? (
           <p>
             You captain {blocker.team} in {blocker.season}, which is not over.
-            Hand the team to a new captain before you delete your account. A
-            league admin can help.
+            Hand the team to a teammate first, under &quot;Captain and
+            co-captains&quot; on your team page; once they accept, you can
+            delete your account.
           </p>
         ) : blocker?.reason === "last_owner" ? (
           <p>
