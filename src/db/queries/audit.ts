@@ -1,5 +1,5 @@
-import { and, desc, eq, like, lt, notLike } from "drizzle-orm";
-import type { UserId } from "@/domain/ids";
+import { and, desc, eq, like, lt, notLike, or } from "drizzle-orm";
+import type { AuditLogId, UserId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
 import { profile } from "../schema/profile";
@@ -33,7 +33,7 @@ export async function recordAudit(db: Db, entry: AuditEntry): Promise<void> {
 }
 
 export type AuditRow = {
-  id: string;
+  id: AuditLogId;
   action: string;
   entityType: string;
   actorEmail: string | null;
@@ -44,8 +44,9 @@ export type AuditRow = {
 };
 
 /**
- * The audit log, newest first, `limit` at a time. Pass the oldest
- * `occurredAt` already shown as `before` for the next page. With
+ * The audit log, newest first, `limit` at a time. Pass the last row shown
+ * (its time and id) as `before` for the next page: rows written in one
+ * transaction share a time, so the id breaks the tie and none is skipped. With
  * `operatorOnly`, just the platform operator's actions (ADR 0009). The
  * owners' books (`books.*`, ADR 0034) are left out unless `withBooks`, so
  * admins who read the log never see them.
@@ -53,7 +54,7 @@ export type AuditRow = {
 export async function auditLogPage(
   db: Db,
   options: {
-    before?: Date | undefined;
+    before?: { occurredAt: Date; id?: AuditLogId | undefined } | undefined;
     limit?: number;
     operatorOnly?: boolean;
     withBooks?: boolean;
@@ -77,7 +78,7 @@ export async function auditLogPage(
     .leftJoin(profile, eq(profile.userId, auditLog.actorId))
     .where(
       and(
-        options.before ? lt(auditLog.occurredAt, options.before) : undefined,
+        afterRow(options.before),
         options.operatorOnly ? like(auditLog.action, "operator.%") : undefined,
         options.withBooks ? undefined : notLike(auditLog.action, "books.%"),
       ),
@@ -97,4 +98,16 @@ export async function auditLogPage(
     })),
     more: found.length > limit,
   };
+}
+
+/** Rows that sort after `row` in the log's order: older, or as old with a lower id. */
+function afterRow(
+  row: { occurredAt: Date; id?: AuditLogId | undefined } | undefined,
+) {
+  if (!row) return undefined;
+  if (!row.id) return lt(auditLog.occurredAt, row.occurredAt);
+  return or(
+    lt(auditLog.occurredAt, row.occurredAt),
+    and(eq(auditLog.occurredAt, row.occurredAt), lt(auditLog.id, row.id)),
+  );
 }

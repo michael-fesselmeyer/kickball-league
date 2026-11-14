@@ -5,6 +5,7 @@ import { db } from "@/db/client";
 import { auditLogPage } from "@/db/queries/audit";
 import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
+import { type AuditLogId, parseId } from "@/domain/ids";
 import {
   describeAction,
   describeChange,
@@ -37,7 +38,10 @@ async function Audit({ searchParams }: PageProps<"/app/admin/audit">) {
   const operatorOnly = query.only === "operator";
   const before =
     typeof query.before === "string" && !Number.isNaN(Date.parse(query.before))
-      ? new Date(query.before)
+      ? {
+          occurredAt: new Date(query.before),
+          id: parseId<AuditLogId>(query.before_id) ?? undefined,
+        }
       : undefined;
   const [league, page] = await Promise.all([
     currentLeague(db),
@@ -52,7 +56,7 @@ async function Audit({ searchParams }: PageProps<"/app/admin/audit">) {
     timeZone: league?.timeZone ?? "America/New_York",
   });
   const filter = operatorOnly ? "&only=operator" : "";
-  const oldest = page.rows.at(-1)?.occurredAt;
+  const last = page.rows.at(-1);
 
   return (
     <>
@@ -127,9 +131,9 @@ async function Audit({ searchParams }: PageProps<"/app/admin/audit">) {
           })}
         </ol>
       )}
-      {page.more && oldest && (
+      {page.more && last && (
         <Link
-          href={`/app/admin/audit?before=${encodeURIComponent(oldest.toISOString())}${filter}`}
+          href={`/app/admin/audit?before=${encodeURIComponent(last.occurredAt.toISOString())}&before_id=${last.id}${filter}`}
           className="inline-flex min-h-11 items-center self-start underline"
         >
           Older
