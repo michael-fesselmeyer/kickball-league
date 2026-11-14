@@ -9,13 +9,7 @@ import {
   type GiveawayInput,
   parseGiveawayForm,
 } from "@/domain/drive/giveaway";
-import type {
-  EventId,
-  GiveawayId,
-  LeagueId,
-  SeasonId,
-  UserId,
-} from "@/domain/ids";
+import type { GiveawayId, LeagueId, UserId } from "@/domain/ids";
 import * as schema from "../schema";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
@@ -416,39 +410,68 @@ describe("permissions and accounts", () => {
 
 describe("entering at the same moment", () => {
   it("keeps one entry per person when the same check-in lands five times at once", async () => {
-    // Real concurrency needs real transactions, so this test commits to its
-    // own invented league and removes it afterwards.
+    // Real concurrency needs real transactions, so this test commits rows
+    // other test files, running at the same time in their own rolled-back
+    // transactions, can see. It commits only what no other test reads: two
+    // people with no profile (so no admin), a league dated far ahead (so it
+    // is never the oldest, "current" league), a members-only event and a
+    // giveaway inserted directly (no audit row). It removes them afterwards.
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       max: 6,
     });
     const db = drizzle({ client: pool, schema, casing: "snake_case" });
-    let made:
-      | {
-          leagueId: LeagueId;
-          seasonId: SeasonId;
-          eventId: EventId;
-          people: UserId[];
-        }
-      | undefined;
+    const tag = Math.random().toString(36).slice(2, 8);
+    let made: { leagueId: LeagueId; people: UserId[] } | undefined;
     try {
-      const w = await withGiveaway(db, 2);
-      made = {
-        leagueId: w.leagueId,
-        seasonId: w.seasonId,
-        eventId: w.eventId,
-        people: [w.admin, ...w.players],
-      };
-      const [player, other] = w.players;
+      const people = await db
+        .insert(user)
+        .values(
+          ["one", "two"].map((p) => ({
+            name: `Racer ${p}`,
+            email: `giveaway-race-${p}-${tag}@example.test`,
+          })),
+        )
+        .returning({ id: user.id });
+      const [lg] = await db
+        .insert(league)
+        .values({
+          name: "Race League",
+          slug: `giveaway-race-${tag}`,
+          createdAt: new Date("2999-01-01T00:00:00Z"),
+        })
+        .returning({ id: league.id });
+      if (!lg) throw new Error("no league");
+      made = { leagueId: lg.id, people: people.map((p) => p.id) };
+      const [e] = await db
+        .insert(event)
+        .values({
+          leagueId: lg.id,
+          kind: "bar_night",
+          title: "Race night",
+          slug: `race-night-${tag}`,
+          place: "The Example Bar",
+          startsAt: STARTS,
+          endsAt: ENDS,
+          audience: "members",
+        })
+        .returning({ id: event.id });
+      if (!e) throw new Error("no event");
+      const [g] = await db
+        .insert(giveaway)
+        .values({
+          eventId: e.id,
+          ...prizeInput(),
+          checkinSecret: "0".repeat(64),
+        })
+        .returning({ id: giveaway.id });
+      if (!g) throw new Error("no giveaway");
+      const [player, other] = made.people;
       if (!player || !other) throw new Error("no players");
       const tries = await Promise.all(
         [player, player, player, player, player, other, other].map((userId) =>
           db.transaction((tx) =>
-            enterGiveaway(tx, {
-              giveawayId: w.giveawayId,
-              userId,
-              now: DURING,
-            }),
+            enterGiveaway(tx, { giveawayId: g.id, userId, now: DURING }),
           ),
         ),
       );
@@ -457,18 +480,13 @@ describe("entering at the same moment", () => {
       const rows = await db
         .select({ userId: giveawayEntry.userId })
         .from(giveawayEntry)
-        .where(eq(giveawayEntry.giveawayId, w.giveawayId));
+        .where(eq(giveawayEntry.giveawayId, g.id));
       expect(rows.map((r) => r.userId).sort()).toEqual([player, other].sort());
     } finally {
       if (made) {
-        await db.delete(event).where(eq(event.id, made.eventId));
-        await db
-          .delete(registration)
-          .where(eq(registration.seasonId, made.seasonId));
-        await db.delete(season).where(eq(season.id, made.seasonId));
+        // The event goes first; its giveaway and entries go with it.
+        await db.delete(event).where(eq(event.leagueId, made.leagueId));
         await db.delete(league).where(eq(league.id, made.leagueId));
-        await db.delete(auditLog).where(inArray(auditLog.actorId, made.people));
-        await db.delete(profile).where(inArray(profile.userId, made.people));
         await db.delete(user).where(inArray(user.id, made.people));
       }
       await pool.end();
