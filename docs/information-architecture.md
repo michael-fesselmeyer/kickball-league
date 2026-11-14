@@ -108,6 +108,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       └── report                  Weekly numbers: check-ins, players, teams and deals used by week
 └── admin/
     ├── (dashboard)                 Next game day: weather, games, missing scores, alerts; sign-up rate per team, lowest first, with how many players each still needs
+    ├── today                       Game-day command center, phone first: today (or the next game day, or ?date=) with every game's field, ref and check-in, score state (not started, playing, live with runs and inning, reported, final, called off, missing), the weather, and one tap to a rain-out, an announcement or ref assignments; refreshes itself every 10 seconds
+    │   └── state.json              The same state as JSON for the screen to poll; admins only, never cached
     ├── seasons/[season]/           Setup, pricing, divisions, rule set, waiver, and the season's own minimum age (empty uses the league's 21)
     │   ├── registrations           Teams, players, payments, waivers, full or partial refunds; roster and payment CSV downloads
     │   ├── promo-codes             The season's promo codes: add one, see its uses, turn it off
@@ -339,6 +341,7 @@ Rules:
 | Incident report | Kind, a checkbox list of each team's players, what happened, one send button | Same, no wider than a phone |
 | Incident review (admin) | What happened and who, suspensions with a lift button, a suspend form per person with the ladder's suggestion, notes, resolve | Same, one column |
 | Checkout | Stripe's hosted page | Stripe's hosted page |
+| Admin: game day (command center) | Four counts (games, refs at the field, playing now, scores missing), then one card per game in kickoff order: time and field, score state, both teams with runs, the ref with a dot for checked in, late or missing, and "Mark here" and "Score". The weather chip and the rain-out, announcement and refs buttons sit at the top | Same, no wider than 768px |
 | Admin: next game day | Weather risk, game list with status dots, missing scores, rain-out button | Same with the field grid |
 | Admin: schedule | Read-only list, metrics, and move-by-form; full editing is a desktop job | Board from 1024px wide: one row per date and time, one column per field. Drag a game to move or swap it, or use the arrow keys, Enter and Escape; a side panel shows the new hard-rule problems and metric changes for the slot under the pointer or focus, then the unsaved changes with Undo, Discard and Save as one new draft. The board's code loads only at that width; the move-or-swap form stays below it |
 | Admin: registrations | Team list with paid and waiver counts; tap for roster | Table with filters and CSV export |

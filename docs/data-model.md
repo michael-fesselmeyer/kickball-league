@@ -1192,6 +1192,7 @@ erDiagram
     enum status "offered, accepted, declined, completed, no_show, cancelled"
     timestamptz offered_at
     timestamptz responded_at
+    timestamptz checked_in_at "the ref is at the field"
     int fee_cents
     int bonus_cents
     text bonus_reason
@@ -1210,6 +1211,8 @@ erDiagram
 ```
 
 The MVP uses only `referee_assignment` with `status = accepted`, created by an admin, so score entry can be tied to it. The rest waits for approval.
+
+`checked_in_at` is set when the ref taps "I'm at the field" on game day, which checks them in to every game they referee that day at once, or when an admin marks them as there (audited as `referee.check_in`). The first time stays; the game-day command center reads it.
 
 ### 2.7 Platform
 
