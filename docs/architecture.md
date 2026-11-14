@@ -272,7 +272,9 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `sub_request` | urgent | Teams that need a sub when you're free |
 | `sub_update` | urgent | Answers to your sub offers |
 | `suspension` | urgent | A suspension, its games and how to appeal |
+| `survey_invite` | non-urgent | An end-of-season survey for a season you played in |
 | `team_role` | non-urgent | Becoming or no longer being a co-captain, and the answer to a captaincy you offered |
+| `volunteer_reminder` | non-urgent | A reminder the day before a volunteer shift you signed up for |
 | `waitlist_offer` | urgent | A team spot held for you from the waitlist |
 
 The `digest` template carries held messages and is neither: it is never capped but waits out quiet hours. Event notices pick their kind when they are queued (`eventNoticeKind`): a spot that opened for the person, or a cancellation or a change to the time or place within 24 hours of the start (the earlier of the old and new start), is `event_notice`; announcements, other edits and anything further ahead are `event_news`. Both render with the same email.
@@ -315,6 +317,7 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Payment reminders | Daily 10:00 | Reminds unpaid players at 7, 3 and 1 days before the deadline. A missed day still sends the closest milestone; each is queued once per registration and deadline |
 | Guarantee charges ✔ | Daily (`/api/jobs/guarantee-charges`) | Warns each captain with a saved card about 72 hours before the payment deadline, once per deadline, then charges the card off-session for the team's unpaid balance, never sooner than 72 hours after the warning. The database half (warnings and the `balance` purchase) commits first; each Stripe call uses the purchase as its idempotency key, and a charge Stripe could not take is sent again on the next run. A decline fails the purchase and emails the captain; the card is not retried |
 | Permit and insurance reminders ✔ | Daily (`/api/jobs/books-reminders`) | Emails every owner 30 and 7 days before a permit application window opens, a permit renews or the newest insurance certificate expires. A missed day still sends the closest reminder; each is queued once per deadline, milestone and owner ([ADR 0034](adr/0034-owners-books-and-permits-in-postgres.md)) |
+| Volunteer reminders ✔ | Daily (`/api/jobs/volunteer-reminders`) | Reminds everyone on a volunteer shift that starts tomorrow in the league's time zone (`volunteer_reminder`, non-urgent, topic `events`); each is queued once per shift and person |
 | Waitlist offers ✔ | Daily (`/api/jobs/waitlist-offers`) | Marks offers whose 48 hours ran out as expired and offers each free team spot to the next captain in line. Offers stop holding their spot the moment they run out, whether or not this has run. Raising a season's team limit, or an admin's "Offer now", sends offers at once |
 | Sponsor stats rollup (P2) | Daily 3:00 | Aggregates impressions and clicks into `sponsor_stat_daily` |
 | Instagram sync (P2) ✔ | Every 3 hours (`/api/jobs/instagram-sync`; daily on Hobby) | Fetches the 25 newest posts from the connected account, copies new photos and removes posts deleted on Instagram |
@@ -524,6 +527,8 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | `/app/admin/seasons/[season]/challenge` | `drive` (start the challenge, confirm the winner) |
 | `/app/seasons/[season]/challenge` | `drive` (the leaderboard, the winner) |
 | `/app` (giveaway won), `/app/seasons/[season]/team` (challenge progress), `/app/admin` (sign-up rate) | `drive` |
+| `/app/volunteer`, `/app/admin/volunteer`, `/new`, `/[shift]` | `volunteer-survey` (post a one-spot shift, claim it, find it full, see who's on it, drop it and let the next person take it) |
+| `/app/seasons/[season]/survey`, `/app/admin/seasons/[season]/survey`, `/app` (survey waiting) | `volunteer-survey` (open the survey, answer once from the home screen, results with no name) |
 | `/operator` | `admin-tools` (export, roles); `site-wide/operator` (read-only, paused, features); `screens` |
 
 Flows that run side by side share the four personas, so each works in its own season or on data no other flow checks, and the Stripe helpers pick a person's payment by season.

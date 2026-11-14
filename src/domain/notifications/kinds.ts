@@ -131,10 +131,18 @@ export const MESSAGE_KINDS = {
     urgency: "urgent",
     label: "A suspension, its games and how to appeal",
   },
+  survey_invite: {
+    urgency: "non_urgent",
+    label: "An end-of-season survey for a season you played in",
+  },
   team_role: {
     urgency: "non_urgent",
     label:
       "Becoming or no longer being a co-captain, and the answer to a captaincy you offered",
+  },
+  volunteer_reminder: {
+    urgency: "non_urgent",
+    label: "A reminder the day before a volunteer shift you signed up for",
   },
   waitlist_offer: {
     urgency: "urgent",
