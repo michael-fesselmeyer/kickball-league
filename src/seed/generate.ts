@@ -342,8 +342,10 @@ export function generateSeed(seed = 2026) {
     }
   }
 
-  // Slots: every game day, every field, at each kickoff hour. Each slot's local
-  // game day is kept aside: a 9 pm New York kickoff is already the next day in UTC.
+  // Slots: every game day, every field, at each kickoff hour, an hour each, as
+  // the slot cutter makes them from the season's 8 to 10 pm permits (so an
+  // admin who cuts slots again keeps these). Each slot's local game day is kept
+  // aside: a 9 pm New York kickoff is already the next day in UTC.
   const gameDayOf = new Map<SlotId, string>();
   const slots = GAME_DAYS.flatMap((date) =>
     KICKOFF_HOURS.flatMap((hour, timeIndex) =>
@@ -356,7 +358,7 @@ export function generateSeed(seed = 2026) {
           seasonId: season.id,
           fieldId: field.id,
           startsAt,
-          endsAt: new Date(startsAt.getTime() + 55 * 60_000),
+          endsAt: new Date(startsAt.getTime() + 60 * 60_000),
           timeIndex,
         };
       }),

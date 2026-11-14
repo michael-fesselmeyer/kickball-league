@@ -9,6 +9,7 @@ import {
   TEAMS,
 } from "./generate";
 import { seededRandom } from "@/domain/random";
+import { generateSlots } from "@/domain/scheduler/slots";
 
 describe("seededRandom", () => {
   it("repeats exactly for the same seed and differs for another", () => {
@@ -136,6 +137,41 @@ describe("generateSeed", () => {
     for (const game of data.games) {
       const slot = data.slots.find((s) => s.id === game.slotId);
       expect(slot && local.format(slot.startsAt).startsWith("Tue")).toBe(true);
+    }
+  });
+
+  it("has the slots that cutting its 8 to 10 pm permits again would make", () => {
+    // src/seed/books.ts gives each field and game day a permit from its
+    // first slot's start to its last slot's end. Cutting that permit with
+    // the slots' own length must give the same slots, or an admin who adds
+    // permit hours and cuts slots again would cancel the season's games.
+    const groups = Map.groupBy(
+      data.slots,
+      (s) => `${s.fieldId}@${s.startsAt.toISOString().slice(0, 10)}`,
+    );
+    const minutes = new Set(
+      data.slots.map(
+        (s) => (s.endsAt.getTime() - s.startsAt.getTime()) / 60_000,
+      ),
+    );
+    expect([...minutes]).toEqual([60]);
+    for (const slots of groups.values()) {
+      const from = Math.min(...slots.map((s) => s.startsAt.getTime()));
+      const to = Math.max(...slots.map((s) => s.endsAt.getTime()));
+      const cut = generateSlots(
+        [
+          {
+            fieldId: slots[0]!.fieldId,
+            startsAt: new Date(from).toISOString(),
+            endsAt: new Date(to).toISOString(),
+          },
+        ],
+        [],
+        { slotMinutes: 60, timeZone: "America/New_York" },
+      );
+      expect(cut.map((c) => c.startsAt).sort()).toEqual(
+        slots.map((s) => s.startsAt.toISOString()).sort(),
+      );
     }
   });
 
