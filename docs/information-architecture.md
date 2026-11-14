@@ -72,6 +72,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │   └── [photo]                     The stored copy, waiting ones included, for its uploader and admins; ?download saves it as a file
 ├── vote                            Awards: open ballots (one vote each, never for yourself or your own team) and closed polls
 │   └── [poll]                      Results after voting closes, ties sharing a place; until then, only when it closes
+├── pickem                          Pick'em, for bragging rights only (no money, no fee, no prizes): pick each game's winner on the coming game day until it starts, my season record, hide or show me, and the season and game-day leaderboards (?day= picks a scored day)
 ├── check-in/[sponsor]/[code]       Where the bar's QR code lands: one tap to check in (an expired code says so)
 ├── check-in/[sponsor]              Today's visit: checked in or not, today's deals and "Use this deal"
 ├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
@@ -136,6 +137,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── games                       Scores, forfeits, corrections
     ├── incidents/                  Review queue (open reports oldest first), everyone suspended now, recently resolved
     │   └── [incident]              What happened and who; notes; suspend someone named (the outside-alcohol ladder suggested) or lift a suspension; resolve or reopen
+    ├── pickem                      Pick'em settings: whether players may pick their own team's games
     ├── team-lists                  Every team's "not on my team" list with reasons and who added each entry; teams listing 5 or more people and anyone on several lists; add or remove an entry; owners choose whether a person's own export lists entries about them
     ├── people                      Players, roles
     ├── refs                        Referee pool and assignments
@@ -364,6 +366,7 @@ Rules:
 | Admin: rain-out | Three steps: scope, preview, confirm | Same on one screen |
 | Admin: playoffs | Draft or published bracket first; then teams, playoff day and the seeding table | Same, with the whole board |
 | Awards (player) | One card per open poll: the award, when it closes, and a team-grouped picker with one Cast vote button; after voting, your pick and "results when voting closes". Closed polls link to results | Same, picker and button on one line |
+| Pick'em | The "just for bragging rights" note; the coming game day as one card per game with two big team choices (or "Locked at 8:00 PM" and my pick) and one Save picks button; my season record with Hide or Show me; the season leaderboard, then the game day's, top 25 plus me, ties marked T-2nd; links to other scored days | Same, the two team choices side by side |
 | Award results | The winner (or everyone tied) in a highlighted box, then every nominee with place, votes and a bar | Same |
 | Ref home | Today's assignments with accept and decline; "enter score" on each | Same |
 | Owner dashboard | Four headline numbers per section, then one table per chart: each row's bar sits under its label so nothing scrolls sideways; the week chart with its table in a fold-out | Same, no wider than 896px |

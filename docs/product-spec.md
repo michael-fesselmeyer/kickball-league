@@ -82,6 +82,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - Claim an open sub spot on another team when I am free.
 - Check in at the home bar and use the day's deal.
 - Vote for weekly and season awards.
+- Pick the winners of each game day's games, for bragging rights only, and see where I rank.
 - Ask the league to let me start a new team, with my current captain kept informed.
 
 ### Free agent
@@ -180,6 +181,8 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | View own referee earnings | — | — | — | own | — | — | — |
 | Vote in awards | — | ✓ (rostered) | ✓ | — | — | — | — |
 | Open, close and remove awards polls | — | — | — | — | — | ✓ | ✓ |
+| Make pick'em picks (bragging rights only) | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Choose whether players may pick their own team's games | — | — | — | — | — | ✓ | ✓ |
 | Log an incident | — | — | own team's games | assigned | — | ✓ | ✓ |
 | Review incidents, suspend a player or lift a suspension | — | — | — | — | — | ✓ | ✓ |
 | Keep a person off the team with a private "not on my team" list ([ADR 0036](adr/0036-not-on-my-team-list.md)) | — | — | own team | — | — | ✓ (any team) | ✓ (any team) |
@@ -265,6 +268,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Sub finder: captains post, eligible players claim, captain approves | P2 |
 | Fun with scores: power rankings, streaks, rivalry history, game of the week, records | P2 |
 | Awards voting (weekly MVP, season awards) | P2 |
+| Pick'em: predict each game day's winners, for bragging rights only | P3 |
 | Offline score entry that syncs when signal returns | P3 |
 | Lineup and kicking-order builder that enforces the two-in-a-row rule | P3 |
 | Sportsmanship ratings, incident reports and suspensions | P3 |
