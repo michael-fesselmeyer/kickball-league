@@ -23,6 +23,10 @@ describe("contentSecurityPolicy", () => {
     expect(csp.get("frame-ancestors")).toEqual(["'none'"]);
   });
 
+  it("frames only this site's own pages, for the widget's preview", () => {
+    expect(csp.get("frame-src")).toEqual(["'self'"]);
+  });
+
   it("loads scripts, images and requests from this site only", () => {
     expect(csp.get("default-src")).toEqual(["'self'"]);
     expect(csp.get("script-src")).toEqual(["'self'", "'unsafe-inline'"]);
