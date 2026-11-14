@@ -52,7 +52,7 @@ test("an admin settles a missing score, sends the recap and posts a team-only ev
 }) => {
   // Three people sign in, and two public and private lists are compared.
   test.slow();
-  await unscoreGame("Kickin' Chicken", "Grand Slammers");
+  await unscoreGame("Kickin' Chicken", "Grand Slammers", SEASON);
   const admin = await pageAs(browser, "Admin");
 
   await test.step("a missing score is set and leaves the scores list", async () => {

@@ -47,7 +47,7 @@ test("a captain reports a score, the other confirms, standings move and an incid
 }) => {
   // Three people sign in and two public pages are read twice.
   test.slow();
-  await unscoreGame(HOME, AWAY);
+  await unscoreGame(HOME, AWAY, SEASON);
   const before = await wins(browser);
 
   const home = await pageSignedInAs(browser, await captainEmail(HOME, SEASON));

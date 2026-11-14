@@ -3,11 +3,16 @@ import { Client } from "pg";
 /**
  * Puts a seeded game back the way the seed leaves it: scheduled, with no
  * score reported or confirmed, no innings entered, nobody kicking first and
- * no offline entries received. A flow that scores a game calls it first, so
+ * no offline entries received, in one season when given: a later season
+ * can pair the same teams. A flow that scores a game calls it first, so
  * it can run again (a retry, or `--repeat-each`) without a reseed.
  * Incidents and ratings stay: they are not part of the score.
  */
-export async function unscoreGame(teamA: string, teamB: string): Promise<void> {
+export async function unscoreGame(
+  teamA: string,
+  teamB: string,
+  seasonSlug?: string,
+): Promise<void> {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
   try {
@@ -18,8 +23,10 @@ export async function unscoreGame(teamA: string, teamB: string): Promise<void> {
          join team ta on ta.id = tsa.team_id
          join team_season tsb on tsb.id = g.team_b_id
          join team tb on tb.id = tsb.team_id
-        where ta.name = $1 and tb.name = $2`,
-      [teamA, teamB],
+         join season s on s.id = g.season_id
+        where ta.name = $1 and tb.name = $2
+          and ($3::text is null or s.slug = $3)`,
+      [teamA, teamB, seasonSlug ?? null],
     );
     const [only] = rows;
     if (!only || rows.length !== 1)
