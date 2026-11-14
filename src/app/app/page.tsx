@@ -29,6 +29,7 @@ import {
 import { currentAuthSession, currentSubject } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
 import { signOut } from "./actions";
+import { checkInAsRefereeAction } from "./referee-actions";
 import { InstallPrompt } from "./install-prompt";
 import { OfflineSync, SignOutForm } from "./offline-sync";
 
@@ -177,6 +178,23 @@ async function Account() {
                       Score
                     </Link>
                   )}
+                  {isGameDay(g.startsAt, now, timeZone) &&
+                    (g.checkedInAt ? (
+                      <span className="text-small text-success">
+                        Checked in
+                      </span>
+                    ) : (
+                      <form action={checkInAsRefereeAction}>
+                        <input type="hidden" name="gameId" value={g.id} />
+                        <button type="submit" className="btn btn-secondary">
+                          I&apos;m at the field
+                          <span className="sr-only">
+                            {" "}
+                            for {g.teamAName} vs {g.teamBName}
+                          </span>
+                        </button>
+                      </form>
+                    ))}
                   {isGameDay(g.startsAt, now, timeZone) && (
                     <Link
                       href={`/app/games/${g.id}/lineup`}

@@ -256,6 +256,19 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     ]);
   });
 
+  it("lets the game's ref check in on game day, and an admin for them", () => {
+    expect(
+      allowed("referee.check_in", { game: { ...g1, gameDay: true } }),
+    ).toEqual(["referee", "admin", "owner"]);
+    expect(allowed("referee.check_in", { game: g1 })).toEqual([
+      "admin",
+      "owner",
+    ]);
+    expect(
+      allowed("referee.check_in", { game: { ...g2, gameDay: true } }),
+    ).toEqual(["admin", "owner"]);
+  });
+
   it("lets the ref, or a captain when there is no ref, score inning by inning", () => {
     // g1 has a ref (the referee person is assigned to it).
     expect(
