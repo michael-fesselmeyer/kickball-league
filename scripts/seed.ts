@@ -37,6 +37,7 @@ import { addSeedLineups } from "../src/seed/lineups";
 import { addMerchDemo, removeSeedMerch } from "../src/seed/merch";
 import { addTicketDemo, removeSeedTickets } from "../src/seed/tickets";
 import { addFreeAgentPool } from "../src/seed/free-agent-pool";
+import { removeAccountMerges } from "../src/seed/account-merges";
 import { removeMoneyRecords } from "../src/seed/money";
 import {
   addInstagramPhotos,
@@ -256,6 +257,7 @@ async function main(): Promise<void> {
       ).map((r) => r.id);
       if (seedUsers.length) {
         await removeMoneyRecords(tx, { userIds: seedUsers });
+        await removeAccountMerges(tx, seedUsers);
         await tx
           .update(registration)
           .set({ waiverSignatureId: null })
