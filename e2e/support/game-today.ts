@@ -10,6 +10,19 @@ export async function addGameToday(
   teamA: string,
   teamB: string,
 ): Promise<{ gameId: string; remove: () => Promise<void> }> {
+  return addGameInDays(teamA, teamB, 0, 12);
+}
+
+/**
+ * The same exhibition game `days` days from today, kicking off at `hour`
+ * league time, for flows that need a game still to come.
+ */
+export async function addGameInDays(
+  teamA: string,
+  teamB: string,
+  days: number,
+  hour: number,
+): Promise<{ gameId: string; remove: () => Promise<void> }> {
   const ids = await withDb(async (db) => {
     const { rows } = await db.query<{ game: string; slot: string }>(
       `with teams as (
@@ -21,7 +34,8 @@ export async function addGameToday(
           where s.slug = 'fall-2026' and t.name in ($1, $2)
        ), noon as (
          select (date_trunc('day', now() at time zone timezone)
-                   + interval '12 hours') at time zone timezone as starts_at,
+                   + make_interval(days => $3::int, hours => $4::int))
+                  at time zone timezone as starts_at,
                 season_id, league_id
            from teams limit 1
        ), place as (
@@ -43,10 +57,11 @@ export async function addGameToday(
               'exhibition', new_slot.id
          from new_slot
        returning id as game, slot_id as slot`,
-      [teamA, teamB],
+      [teamA, teamB, days, hour],
     );
     const [row] = rows;
-    if (!row) throw new Error(`Could not add ${teamA} vs ${teamB} today`);
+    if (!row)
+      throw new Error(`Could not add ${teamA} vs ${teamB} in ${days} days`);
     return row;
   });
   return {
