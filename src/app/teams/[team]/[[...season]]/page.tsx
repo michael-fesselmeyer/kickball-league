@@ -20,6 +20,7 @@ import {
 import { approvedPhotos } from "@/db/queries/member-photos";
 import { teamPhotos } from "@/db/queries/social";
 import { seasonDivisionStandings } from "@/db/queries/standings";
+import { STAT_AWARDS } from "@/domain/awards/stat-awards";
 import type { Hex } from "@/domain/color/contrast";
 import { shortDay } from "@/domain/schedule/format";
 import {
@@ -415,9 +416,27 @@ async function TeamView({
                         {p.role === "captain" ? "Captain" : "Co-captain"}
                       </span>
                     )}
+                    {p.awards.map((award) => (
+                      <span
+                        key={award}
+                        className="rounded-full border border-brand px-2 text-micro font-bold tracking-wide text-brand uppercase"
+                      >
+                        {STAT_AWARDS[award].label}
+                      </span>
+                    ))}
                   </li>
                 ))}
               </ul>
+            )}
+            {entry && roster.some((p) => p.awards.length > 0) && (
+              <p>
+                <Link
+                  href={`/seasons/${entry.seasonSlug}/awards`}
+                  className="inline-flex min-h-11 items-center underline"
+                >
+                  {entry.seasonName} awards
+                </Link>
+              </p>
             )}
           </section>
 

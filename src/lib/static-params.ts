@@ -9,6 +9,7 @@ import {
   publicTeams,
 } from "@/db/queries/sitemap";
 import { publicSponsorPages } from "@/db/queries/sponsors";
+import { publishedAwardSeasons } from "@/db/queries/stat-awards";
 
 /**
  * A slug no season can have (slugs are lowercase words joined by hyphens),
@@ -132,6 +133,24 @@ export async function moneySummaryParams(): Promise<{ season: string }[]> {
   } catch (error) {
     console.warn(
       `[build] No money summaries prerendered: the database could not be read (${
+        error instanceof Error ? error.message : String(error)
+      }).`,
+    );
+  }
+  return [{ season: NO_SEASON }];
+}
+
+/**
+ * The seasons whose stat awards are published, to prerender at build time,
+ * on the same terms. Awards published later render on their first visit.
+ */
+export async function statAwardParams(): Promise<{ season: string }[]> {
+  try {
+    const seasons = await publishedAwardSeasons(db);
+    if (seasons.length > 0) return seasons.map((s) => ({ season: s.slug }));
+  } catch (error) {
+    console.warn(
+      `[build] No awards pages prerendered: the database could not be read (${
         error instanceof Error ? error.message : String(error)
       }).`,
     );

@@ -24,6 +24,7 @@ import {
   team,
   teamSeason,
 } from "../schema/team";
+import { publishedStatAwards } from "./stat-awards";
 import type { Db } from "./schedule";
 
 /**
@@ -259,6 +260,7 @@ export async function publicRoster(db: Db, teamSeasonId: TeamSeasonId) {
       firstName: profile.firstName,
       lastInitial: sql<string | null>`left(${profile.lastName}, 1)`,
       role: rosterMembership.role,
+      awards: publishedStatAwards(registration.userId, registration.seasonId),
     })
     .from(rosterMembership)
     .innerJoin(
@@ -285,6 +287,7 @@ export async function publicRoster(db: Db, teamSeasonId: TeamSeasonId) {
               ? `${r.firstName} ${r.lastInitial.toUpperCase()}.`
               : r.firstName,
             role: r.role,
+            awards: r.awards,
           },
         ]
       : [],
