@@ -29,6 +29,7 @@ import {
   removeInsuranceAction,
   savePermitDetailsAction,
 } from "./actions";
+import { NycParksPanel } from "./nyc-parks-panel";
 import {
   choicesQuery,
   requestChoices,
@@ -146,6 +147,12 @@ async function Permits({
           current={season.slug}
           path={(s) => `/app/books/${s}/permits`}
         />
+        <Link
+          href={`/app/books/${slug}/permits/capacity`}
+          className="btn self-start btn-secondary"
+        >
+          Capacity planner: how many teams fit
+        </Link>
       </header>
 
       {error && (
@@ -345,6 +352,20 @@ async function Permits({
           teams, the game day and the slot length. Copy it into the NYC Parks
           application.
         </p>
+        {choices.games !== null && (
+          <p role="status" className="rounded-lg border border-border p-3">
+            Asking for {choices.games} extra{" "}
+            {choices.games === 1 ? "game" : "games"} each{" "}
+            {WEEKDAYS[choices.weekday]}, from the{" "}
+            <Link
+              href={`/app/books/${slug}/permits/capacity`}
+              className="underline"
+            >
+              capacity planner
+            </Link>
+            .
+          </p>
+        )}
         <form method="get" action={page} className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-3">
             <label className="flex flex-col gap-1">
@@ -388,6 +409,19 @@ async function Permits({
                 name="last"
                 defaultValue={choices.latestEnd}
                 className={input}
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-small">
+                Games each day (optional, instead of teams)
+              </span>
+              <input
+                type="number"
+                name="games"
+                min={1}
+                max={100}
+                defaultValue={choices.games ?? ""}
+                className={`${input} w-24`}
               />
             </label>
             <label className="flex flex-col gap-1">
@@ -492,6 +526,8 @@ async function Permits({
           </p>
         )}
       </section>
+
+      <NycParksPanel />
 
       <section aria-labelledby="insurance" className="flex flex-col gap-4">
         <h2 id="insurance" className="text-h2">
