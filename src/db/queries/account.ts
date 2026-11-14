@@ -56,6 +56,7 @@ import {
   myKeepOffEntries,
   removeKeepOffsFor,
 } from "./keep-off";
+import { cancelHandoffsFor, myHandoffs } from "./captaincy";
 import { deletePhotosOf, myPhotos } from "./member-photos";
 import { heldMerchPurchases } from "./merch";
 import { expirePurchases } from "./payments";
@@ -583,6 +584,8 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
     discipline: await myDisciplineRecords(db, userId, now),
     // Entries the person added to a team's "not on my team" list, and,
     // only if the league's owners chose so, entries about them (ADR 0036).
+    // Captaincy offered by or to the person (ADR 0042).
+    captaincyOffers: await myHandoffs(db, userId),
     notOnMyTeamLists: await myKeepOffEntries(
       db,
       userId,
@@ -803,6 +806,8 @@ export async function deleteAccount(
   await removeDisciplineNotes(db, userId);
   // "Not on my team" entries about them, and the ones they added, go.
   await removeKeepOffsFor(db, userId);
+  // A captaincy offered by or to them stops waiting.
+  await cancelHandoffsFor(db, userId, now);
   await db
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));
