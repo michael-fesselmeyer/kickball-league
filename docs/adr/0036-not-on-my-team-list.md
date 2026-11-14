@@ -11,7 +11,7 @@ Two things must not happen. The list must not become a way to punish someone acr
 
 ## Decision
 
-**One row keeps one person off one team.** `team_keep_off` hangs off the lasting `team`, not the season's entry, so a captain doesn't have to list someone again every season. A captain or co-captain manages their own team's list from the team page; admins and owners manage any team's from the admin screen. A captain adds a league member by their email address, which names exactly one account, with an optional private reason of up to 300 characters. A current teammate can't be added; the league moves them first.
+**One row keeps one person off one team.** `team_keep_off` hangs off the lasting `team`, not the season's entry, so a captain doesn't have to list someone again every season. A captain or co-captain manages their own team's list from the team page; admins and owners manage any team's from the admin screen. A captain adds someone by their email address, with an optional private reason of up to 300 characters. The list answers and shows every address the same way, member or not, so it never tells a captain who plays in the league; an address with no account yet applies once someone signs up with it (security review, L7). A current teammate can't be added; the league moves them first.
 
 **It changes three things, and only for that team.**
 
