@@ -13,7 +13,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       ├── schedule                Full schedule, filter by team or date; theme weeks marked on their game days; crossover games marked
 │       │   └── division/[division] One division's games and its crossovers, picked by the path; its rule set
 │       ├── standings               Standings (a table per division when the season has divisions), tiebreaker notes, power rankings and the game of the week
-│       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list)
+│       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list, served as /bracket/list)
 │       ├── money                   Where the money goes: the season's spending by category and how each fee divides, only once an owner publishes it (404 until then)
 │       └── register                Register a team, join by invite, or free agent
 ├── teams/[team]                    Team page: roster (first name, last initial), results, next game, streaks, rivalries, all-time record and titles, tagged Instagram photos and the team's cover, and players' approved photos with a link to share one

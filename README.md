@@ -253,7 +253,7 @@ E2E_PREBUILT=true npm run test:e2e:site-wide
 
 The database's name must contain `demo`, because the flows sign in with one-tap "view as". To run beside another checkout's tests on the same machine, set `E2E_SMOKE_PORT` and `E2E_FLOWS_PORT` (3100 and 3110 by default). `npm run lighthouse` measures a production build (`npm run build` first) against the same seeded database, with the budgets in [design-system.md](docs/design-system.md#performance-budgets). It starts the server on port 3200 and warms every page before the first measurement.
 
-In CI, the end-to-end and Lighthouse checks each build the app once and share that build across their shards: Playwright runs on two shards (`E2E_PREBUILT=true` starts the existing build instead of building again), and Lighthouse's pages are split across three runners (`node scripts/lighthouse-shard.mjs <shard> 3` writes one shard's config, with the same five runs and budgets). A pull request that changes only Markdown or `docs/` skips that work and still reports every required check as passed. The layout is in [architecture](docs/architecture.md#11-continuous-integration).
+In CI, the end-to-end and Lighthouse checks each build the app once and share that build across their shards: Playwright runs on two shards (`E2E_PREBUILT=true` starts the existing build instead of building again), and Lighthouse's pages are split across four runners (`node scripts/lighthouse-shard.mjs <shard> 4` writes one shard's config, with the same five runs and budgets). A pull request that changes only Markdown or `docs/` skips that work and still reports every required check as passed. The layout is in [architecture](docs/architecture.md#11-continuous-integration).
 
 ## Scripts
 
@@ -277,6 +277,7 @@ In CI, the end-to-end and Lighthouse checks each build the app once and share th
 | `npm run test:e2e`           | Seed, build, then smoke tests and core flows with axe            |
 | `npm run test:e2e:site-wide` | Reseed, then the operator's site-wide switches on their own      |
 | `npm run lighthouse`         | Lighthouse budgets on the public pages of the last build         |
+| `npm run check:route-js`     | Every route's first-load JavaScript against its budget           |
 
 ## How changes land
 
