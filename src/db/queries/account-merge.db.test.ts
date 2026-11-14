@@ -22,12 +22,19 @@ import {
 } from "./account-merge";
 import { deleteAccount } from "./account";
 import { grantGoodwill } from "./credit";
+import {
+  emergencyCardOf,
+  hasEmergencyContact,
+  saveEmergencyContact,
+} from "./emergency";
 import { required } from "./rows";
 import type { Db } from "./schedule";
 
 afterAll(closePool);
 
 const NOW = new Date("2026-09-20T17:00:00Z");
+// A stand-in for the auth secret: long enough, plainly not a real one.
+const SECRET = "merge-test-secret-not-a-real-one-000001";
 const DAY = 86_400_000;
 
 /**
@@ -232,6 +239,66 @@ describe("merging duplicate accounts", () => {
     });
   });
 
+  it("carries a sealed emergency contact over only when the kept account has none", async () => {
+    await inRolledBackDb(async (db) => {
+      const d = await duplicateWorld(db);
+      const card = {
+        name: "Sam Example",
+        relationship: "partner",
+        phone: "+17185550199",
+        firstAid: "Asthma",
+      };
+      await saveEmergencyContact(db, {
+        userId: d.dup.userId,
+        card,
+        secret: SECRET,
+        now: NOW,
+      });
+      const result = await mergeAccounts(db, {
+        keptId: d.kept.userId,
+        mergedId: d.dup.userId,
+        actorId: d.admin.userId,
+        now: NOW,
+        secret: SECRET,
+      });
+      expect(result.ok && result.value.moved["emergency contact"]).toBe(1);
+      // Sealed again for the kept account, and gone from the other.
+      expect(await emergencyCardOf(db, d.kept.userId, SECRET)).toEqual(card);
+      expect(await hasEmergencyContact(db, d.dup.userId)).toBe(false);
+    });
+  });
+
+  it("keeps the kept account's own emergency contact over the other's", async () => {
+    await inRolledBackDb(async (db) => {
+      const d = await duplicateWorld(db);
+      const mine = {
+        name: "Jo Example",
+        relationship: null,
+        phone: "+17185550188",
+        firstAid: null,
+      };
+      for (const [userId, name] of [
+        [d.kept.userId, "Jo Example"],
+        [d.dup.userId, "Sam Example"],
+      ] as const)
+        await saveEmergencyContact(db, {
+          userId,
+          card: { ...mine, name },
+          secret: SECRET,
+          now: NOW,
+        });
+      await mergeAccounts(db, {
+        keptId: d.kept.userId,
+        mergedId: d.dup.userId,
+        actorId: d.admin.userId,
+        now: NOW,
+        secret: SECRET,
+      });
+      expect(await emergencyCardOf(db, d.kept.userId, SECRET)).toEqual(mine);
+      expect(await hasEmergencyContact(db, d.dup.userId)).toBe(false);
+    });
+  });
+
   it("moves everything to the kept account in one transaction", async () => {
     await inRolledBackDb(async (db) => {
       const d = await duplicateWorld(db);
@@ -242,6 +309,7 @@ describe("merging duplicate accounts", () => {
         mergedId: dupId,
         actorId: d.admin.userId,
         now: NOW,
+        secret: SECRET,
       });
       expect(result.ok).toBe(true);
 
@@ -406,6 +474,7 @@ describe("merging duplicate accounts", () => {
         mergedId: d.dup.userId,
         actorId: d.admin.userId,
         now: NOW,
+        secret: SECRET,
       });
       expect(attempt.ok).toBe(false);
       if (!attempt.ok)

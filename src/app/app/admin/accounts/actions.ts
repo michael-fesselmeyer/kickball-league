@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { accountByEmail, mergeAccounts } from "@/db/queries/account-merge";
 import { parseId, type UserId } from "@/domain/ids";
+import { env } from "@/env";
 import {
   requirePermissionToChange,
   sessionIsFresh,
@@ -49,7 +50,13 @@ export async function mergeAccountsAction(form: FormData): Promise<void> {
   if (form.get("same") !== "on") redirect(`${back}&error=unconfirmed`);
   const actorId = subject.userId;
   const result = await txDb.transaction((tx) =>
-    mergeAccounts(tx, { keptId, mergedId, actorId, now: new Date() }),
+    mergeAccounts(tx, {
+      keptId,
+      mergedId,
+      actorId,
+      now: new Date(),
+      secret: env.BETTER_AUTH_SECRET,
+    }),
   );
   if (!result.ok) redirect(`${back}&error=blocked`);
   redirect(`${PAGE}?merged=${keptId}`);
