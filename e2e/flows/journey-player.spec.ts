@@ -8,7 +8,12 @@ import {
   signInMember,
 } from "../support/people";
 import { pageAs } from "../support/personas";
-import { leagueDate, openSeason, signWaiver } from "../support/season";
+import {
+  confirmAge,
+  leagueDate,
+  openSeason,
+  signWaiver,
+} from "../support/season";
 import {
   openCheckoutSession,
   sendCheckoutCompleted,
@@ -88,6 +93,7 @@ async function joinPool(page: Page, price: string) {
   await page.goto(`/app/seasons/${SLUG}/register`);
   const pool = page.getByRole("region", { name: "Or join on your own" });
   await expect(pool.getByText(`It costs ${price}.`)).toBeVisible();
+  await confirmAge(pool);
   await pool.getByRole("button", { name: "Join as a free agent" }).click();
   await expect(page.getByRole("status")).toContainText(
     "You're in the free-agent pool",
@@ -186,6 +192,7 @@ test("a new player signs up, pays the early-bird price, is placed on a team and 
     await team
       .getByRole("radio", { name: /^I'll pay it all: \$890, / })
       .check();
+    await confirmAge(team);
     await team.getByRole("button", { name: "Register the team" }).click();
     await expect(captain.getByRole("status")).toContainText(
       "Your team is registered",
