@@ -1,4 +1,4 @@
-import { and, desc, eq, max } from "drizzle-orm";
+import { and, desc, eq, max, sql } from "drizzle-orm";
 import type {
   LeagueId,
   SeasonId,
@@ -6,6 +6,7 @@ import type {
   WaiverId,
   WaiverSignatureId,
 } from "@/domain/ids";
+import type { AgeRefusal } from "@/domain/registration/age";
 import { err, ok, type Result } from "@/domain/result";
 import {
   checkWaiverDraft,
@@ -14,12 +15,14 @@ import {
   signatureMatches,
   type WaiverDraftErrors,
 } from "@/domain/waiver/waiver";
+import { league } from "../schema/league";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { registration } from "../schema/team";
 import { waiver, waiverSignature } from "../schema/waiver";
 import { recordAudit } from "./audit";
 import { settleCoveredRegistrations, teamOfRegistration } from "./payments";
+import { confirmAge } from "./age";
 import type { Db } from "./schedule";
 import { required } from "./rows";
 
@@ -129,8 +132,11 @@ export async function waiverForSeason(
       title: waiver.title,
       bodyMd: waiver.bodyMd,
       bodySha256: waiver.bodySha256,
+      /** The season's minimum age, else the league's (ADR 0041). */
+      minimumAge: sql<number>`coalesce(${season.minimumAge}, ${league.minimumAge})::int`,
     })
     .from(season)
+    .innerJoin(league, eq(league.id, season.leagueId))
     .leftJoin(waiver, eq(season.waiverId, waiver.id))
     .where(
       and(eq(season.leagueId, input.leagueId), eq(season.slug, input.slug)),
@@ -160,7 +166,8 @@ export type SignError =
   | "not_agreed"
   | "profile_incomplete"
   | "name_mismatch"
-  | "already_signed";
+  | "already_signed"
+  | AgeRefusal;
 
 /**
  * Records a signature. `shownSha256` is the hash of the text the page showed;
@@ -174,6 +181,8 @@ export async function signWaiver(
     seasonId: SeasonId;
     shownSha256: string;
     agreed: boolean;
+    /** They ticked "I'm 21 or older" (or the season's minimum). */
+    ageConfirmed: boolean;
     signedName: string;
     ip: string | null;
     userAgent: string | null;
@@ -194,6 +203,13 @@ export async function signWaiver(
   if (!person?.firstName || !person.lastName) return err("profile_incomplete");
   if (!signatureMatches(input.signedName, person.firstName, person.lastName))
     return err("name_mismatch");
+  const age = await confirmAge(db, {
+    userId: input.userId,
+    seasonId: input.seasonId,
+    confirmed: input.ageConfirmed,
+    now: new Date(),
+  });
+  if (!age.ok) return age;
   const [created] = await db
     .insert(waiverSignature)
     .values({
@@ -204,6 +220,7 @@ export async function signWaiver(
       ip: input.ip,
       userAgent: input.userAgent?.slice(0, 512) ?? null,
       bodySha256: current.bodySha256,
+      ...age.value,
     })
     .onConflictDoNothing()
     .returning({ id: waiverSignature.id });

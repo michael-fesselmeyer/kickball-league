@@ -112,6 +112,7 @@ async function moneyWorld(db: Db, options: { maxTeams?: number } = {}) {
   };
   const register = async (userId: UserId, name: string, rosterSize = 4) =>
     registerTeam(db, {
+      ageConfirmed: true,
       leagueId: lg.id,
       season: s,
       userId,
@@ -154,6 +155,7 @@ describe("league credit at checkout", () => {
       const admin = await w.person("admin");
       const player = await w.person("player");
       const fa = await registerFreeAgent(db, {
+        ageConfirmed: true,
         season: w.season,
         userId: player.id,
         now: NOW,
@@ -246,6 +248,7 @@ describe("league credit at checkout", () => {
       const admin = await w.person("admin");
       const player = await w.person("player");
       const fa = await registerFreeAgent(db, {
+        ageConfirmed: true,
         season: w.season,
         userId: player.id,
         now: NOW,
@@ -702,6 +705,7 @@ describe("waitlist", () => {
       // A newcomer cannot take the held spot, nor can the third in line.
       const register = (userId: UserId, name: string, at: Date) =>
         registerTeam(db, {
+          ageConfirmed: true,
           leagueId: w.leagueId,
           season: s2,
           userId,
@@ -786,6 +790,7 @@ describe("referrals", () => {
       const code = await referralCodeFor(db, referrer.id);
       expect(await referralCodeFor(db, referrer.id)).toBe(code);
       const fa = await registerFreeAgent(db, {
+        ageConfirmed: true,
         season: w.season,
         userId: friend.id,
         now: NOW,
@@ -850,6 +855,7 @@ describe("referrals", () => {
       const regular = await w.person("regular");
       const code = await referralCodeFor(db, referrer.id);
       const first = await registerFreeAgent(db, {
+        ageConfirmed: true,
         season: w.season,
         userId: regular.id,
         now: NOW,

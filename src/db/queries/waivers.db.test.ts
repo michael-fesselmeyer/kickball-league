@@ -69,6 +69,7 @@ const sign = (
   change: Partial<Parameters<typeof signWaiver>[1]> = {},
 ) =>
   signWaiver(db, {
+    ageConfirmed: true,
     userId: w.player,
     seasonId: w.seasonId,
     shownSha256: hashWaiverBody(BODY),

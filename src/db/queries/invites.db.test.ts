@@ -69,6 +69,7 @@ async function world(db: Db, rosterMax = 20) {
   const ids = people.map((p) => p.id);
   const team = async (captain: UserId, name: string) => {
     const r = await registerTeam(db, {
+      ageConfirmed: true,
       leagueId,
       season: s,
       userId: captain,
@@ -114,13 +115,23 @@ describe("invites", () => {
         members: 1,
       });
       expect(
-        await acceptInvite(db, { token, userId: player, now: NOW }),
+        await acceptInvite(db, {
+          ageConfirmed: true,
+          token,
+          userId: player,
+          now: NOW,
+        }),
       ).toEqual({
         ok: true,
         value: { seasonSlug: "spring", teamName: "Kick Bottom" },
       });
       expect(
-        await acceptInvite(db, { token, userId: player, now: NOW }),
+        await acceptInvite(db, {
+          ageConfirmed: true,
+          token,
+          userId: player,
+          now: NOW,
+        }),
       ).toEqual({
         ok: false,
         error: "already_member",
@@ -155,6 +166,7 @@ describe("invites", () => {
       });
       expect(
         await acceptInvite(db, {
+          ageConfirmed: true,
           token: first.token,
           userId: player,
           now: NOW,
@@ -169,6 +181,7 @@ describe("invites", () => {
       );
       expect(
         await acceptInvite(db, {
+          ageConfirmed: true,
           token: second.token,
           userId: player,
           now: later,
@@ -179,6 +192,7 @@ describe("invites", () => {
       });
       expect(
         await acceptInvite(db, {
+          ageConfirmed: true,
           token: "not-a-token",
           userId: player,
           now: NOW,
@@ -194,6 +208,7 @@ describe("invites", () => {
         .where(eq(season.id, w.season.id));
       expect(
         await acceptInvite(db, {
+          ageConfirmed: true,
           token: second.token,
           userId: player,
           now: NOW,
@@ -217,9 +232,21 @@ describe("invites", () => {
         now: NOW,
       });
       // A free agent joining keeps their registration and becomes a team member.
-      await registerFreeAgent(db, { season: w.season, userId: c, now: NOW });
+      await registerFreeAgent(db, {
+        ageConfirmed: true,
+        season: w.season,
+        userId: c,
+        now: NOW,
+      });
       expect(
-        (await acceptInvite(db, { token: link.token, userId: c, now: NOW })).ok,
+        (
+          await acceptInvite(db, {
+            ageConfirmed: true,
+            token: link.token,
+            userId: c,
+            now: NOW,
+          })
+        ).ok,
       ).toBe(true);
       const [cReg] = await db
         .select({ kind: registration.kind })
@@ -227,7 +254,12 @@ describe("invites", () => {
         .where(eq(registration.userId, c));
       expect(cReg?.kind).toBe("team_member");
       expect(
-        await acceptInvite(db, { token: link.token, userId: d, now: NOW }),
+        await acceptInvite(db, {
+          ageConfirmed: true,
+          token: link.token,
+          userId: d,
+          now: NOW,
+        }),
       ).toEqual({
         ok: false,
         error: "full",
@@ -238,7 +270,12 @@ describe("invites", () => {
         now: NOW,
       });
       expect(
-        await acceptInvite(db, { token: other.token, userId: c, now: NOW }),
+        await acceptInvite(db, {
+          ageConfirmed: true,
+          token: other.token,
+          userId: c,
+          now: NOW,
+        }),
       ).toEqual({
         ok: false,
         error: "on_another_team",

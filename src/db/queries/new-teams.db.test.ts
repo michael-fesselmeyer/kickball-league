@@ -134,6 +134,7 @@ async function request(
 /** Alex captains Base Invaders, paid in full; Sam plays on it. */
 async function samOnATeam(db: Db, w: World, mode: "full" | "split" = "full") {
   const registered = await registerTeam(db, {
+    ageConfirmed: true,
     leagueId: w.leagueId,
     season: w.season,
     userId: w.alex,
@@ -398,6 +399,7 @@ describe("new-team requests", () => {
     await inRolledBackDb(async (db) => {
       const w = await world(db);
       const fa = await registerFreeAgent(db, {
+        ageConfirmed: true,
         season: w.season,
         userId: w.robin,
         now: NOW,
@@ -466,6 +468,7 @@ describe("new-team requests", () => {
       expect(await approve()).toEqual({ ok: false, error: "season_full" });
       // Meanwhile someone registered a team with the same name directly.
       const direct = await registerTeam(db, {
+        ageConfirmed: true,
         leagueId: w.leagueId,
         season: { ...w.season, maxTeams: null },
         userId: w.admin,

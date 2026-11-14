@@ -92,6 +92,7 @@ describe("registration", () => {
     await inRolledBackDb(async (db) => {
       const w = await world(db);
       const result = await registerTeam(db, {
+        ageConfirmed: true,
         leagueId: w.leagueId,
         season: w.season,
         userId: w.a,
@@ -118,6 +119,7 @@ describe("registration", () => {
 
       expect(
         await registerTeam(db, {
+          ageConfirmed: true,
           leagueId: w.leagueId,
           season: w.season,
           userId: w.a,
@@ -127,6 +129,7 @@ describe("registration", () => {
       ).toEqual({ ok: false, error: "already_registered" });
       expect(
         await registerTeam(db, {
+          ageConfirmed: true,
           leagueId: w.leagueId,
           season: w.season,
           userId: w.b,
@@ -136,6 +139,7 @@ describe("registration", () => {
       ).toEqual({ ok: false, error: "name_taken" });
       expect(
         await registerTeam(db, {
+          ageConfirmed: true,
           leagueId: w.leagueId,
           season: w.season,
           userId: w.b,
@@ -145,6 +149,7 @@ describe("registration", () => {
       ).toEqual({ ok: false, error: "bad_name" });
       expect(
         await registerTeam(db, {
+          ageConfirmed: true,
           leagueId: w.leagueId,
           season: w.season,
           userId: w.b,
@@ -154,6 +159,7 @@ describe("registration", () => {
       ).toEqual({ ok: false, error: "bad_roster_size" });
       expect(
         await registerTeam(db, {
+          ageConfirmed: true,
           leagueId: w.leagueId,
           season: w.season,
           userId: w.b,
@@ -163,6 +169,7 @@ describe("registration", () => {
       ).toEqual({ ok: false, error: "bad_color" });
       expect(
         await registerTeam(db, {
+          ageConfirmed: true,
           leagueId: w.leagueId,
           season: w.season,
           userId: w.b,
@@ -177,6 +184,7 @@ describe("registration", () => {
     await inRolledBackDb(async (db) => {
       const w = await world(db, { maxTeams: 1 });
       await registerTeam(db, {
+        ageConfirmed: true,
         leagueId: w.leagueId,
         season: w.season,
         userId: w.a,
@@ -185,6 +193,7 @@ describe("registration", () => {
       });
       expect(
         await registerTeam(db, {
+          ageConfirmed: true,
           leagueId: w.leagueId,
           season: w.season,
           userId: w.b,
@@ -195,6 +204,7 @@ describe("registration", () => {
       expect(
         (
           await registerFreeAgent(db, {
+            ageConfirmed: true,
             season: w.season,
             userId: w.b,
             now: NOW,
@@ -203,6 +213,7 @@ describe("registration", () => {
       ).toBe(true);
       expect(
         await registerFreeAgent(db, {
+          ageConfirmed: true,
           season: w.season,
           userId: w.b,
           now: NOW,
@@ -232,6 +243,7 @@ describe("registration", () => {
         w.a,
       );
       const signed = await signWaiver(db, {
+        ageConfirmed: true,
         userId: w.c,
         seasonId: w.season.id,
         shownSha256: hashWaiverBody(BODY),
@@ -242,7 +254,12 @@ describe("registration", () => {
       });
       expect(signed.ok).toBe(true);
       const s = (await seasonForRegistration(db, w.leagueId, "spring"))!;
-      await registerFreeAgent(db, { season: s, userId: w.c, now: NOW });
+      await registerFreeAgent(db, {
+        ageConfirmed: true,
+        season: s,
+        userId: w.c,
+        now: NOW,
+      });
       expect(await myRegistration(db, s.id, w.c)).toMatchObject({
         status: "pending_payment",
       });
@@ -257,6 +274,7 @@ describe("registration", () => {
         playerFeeCents: 8500,
       });
       const result = await registerTeam(db, {
+        ageConfirmed: true,
         leagueId: w.leagueId,
         season: w.season,
         userId: w.a,
@@ -274,6 +292,7 @@ describe("registration", () => {
     await inRolledBackDb(async (db) => {
       const w = await world(db);
       await registerTeam(db, {
+        ageConfirmed: true,
         leagueId: w.leagueId,
         season: w.season,
         userId: w.a,
@@ -300,6 +319,7 @@ describe("registration", () => {
       // Someone else cannot claim it.
       expect(
         await registerTeam(db, {
+          ageConfirmed: true,
           leagueId: w.leagueId,
           season: summer,
           userId: w.b,
@@ -308,6 +328,7 @@ describe("registration", () => {
         }),
       ).toEqual({ ok: false, error: "bad_name" });
       const back = await registerTeam(db, {
+        ageConfirmed: true,
         leagueId: w.leagueId,
         season: summer,
         userId: w.a,

@@ -83,6 +83,7 @@ async function world(db: Db, rosterMax = 20) {
     UserId,
   ];
   const team = await registerTeam(db, {
+    ageConfirmed: true,
     leagueId,
     season: s,
     userId: captain,
@@ -97,6 +98,7 @@ async function world(db: Db, rosterMax = 20) {
   });
   if (!team.ok) throw new Error(team.error);
   const fa = await registerFreeAgent(db, {
+    ageConfirmed: true,
     season: s,
     userId: agent,
     now: NOW,
@@ -156,6 +158,7 @@ describe("the registrations board", () => {
 
       // The team is now full.
       const third = await registerFreeAgent(db, {
+        ageConfirmed: true,
         season: w.season,
         userId: w.admin,
         now: NOW,

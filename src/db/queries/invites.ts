@@ -1,4 +1,4 @@
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import type { RegistrationId, TeamSeasonId, UserId } from "@/domain/ids";
 import {
   hashInviteToken,
@@ -7,9 +7,11 @@ import {
   newInviteToken,
 } from "@/domain/invite/token";
 import { inviteStateFor } from "@/domain/keep-off/keep-off";
+import type { AgeRefusal } from "@/domain/registration/age";
 import { registrationWindow } from "@/domain/registration/pricing";
 import { err, ok, type Result } from "@/domain/result";
 import { user } from "../schema/auth";
+import { league } from "../schema/league";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import {
@@ -19,6 +21,7 @@ import {
   team,
   teamSeason,
 } from "../schema/team";
+import { confirmAge } from "./age";
 import { recordAudit } from "./audit";
 import { isKeptOff } from "./keep-off";
 import { settleCoveredRegistrations } from "./payments";
@@ -124,11 +127,14 @@ export async function inviteByToken(
       seasonSlug: season.slug,
       seasonName: season.name,
       rosterMax: season.rosterMax,
+      minimumAge: sql<number>`coalesce(${season.minimumAge}, ${league.minimumAge})::int`,
+      timeZone: league.timezone,
     })
     .from(invite)
     .innerJoin(teamSeason, eq(invite.teamSeasonId, teamSeason.id))
     .innerJoin(team, eq(teamSeason.teamId, team.id))
     .innerJoin(season, eq(teamSeason.seasonId, season.id))
+    .innerJoin(league, eq(league.id, season.leagueId))
     .where(eq(invite.tokenHash, hashInviteToken(token)));
   if (!found) return null;
   const [members, keptOff] = await Promise.all([
@@ -153,7 +159,8 @@ export type AcceptError =
   | "closed"
   | "full"
   | "already_member"
-  | "on_another_team";
+  | "on_another_team"
+  | AgeRefusal;
 
 /**
  * Puts the person on the team through a link: a new registration, or their
@@ -162,7 +169,13 @@ export type AcceptError =
  */
 export async function acceptInvite(
   db: Db,
-  input: { token: string; userId: UserId; now: Date },
+  input: {
+    token: string;
+    userId: UserId;
+    /** They ticked "I'm 21 or older" (or the season's minimum). */
+    ageConfirmed: boolean;
+    now: Date;
+  },
 ): Promise<Result<{ seasonSlug: string; teamName: string }, AcceptError>> {
   const found = await inviteByToken(db, input.token, input.now, input.userId);
   if (!found) return err("invalid");
@@ -170,6 +183,13 @@ export async function acceptInvite(
   if (found.state !== "open") return err("revoked");
   const s = await seasonForRegistration(db, found.leagueId, found.seasonSlug);
   if (!s || registrationWindow(s, input.now) !== "open") return err("closed");
+  const age = await confirmAge(db, {
+    userId: input.userId,
+    seasonId: s.id,
+    confirmed: input.ageConfirmed,
+    now: input.now,
+  });
+  if (!age.ok) return age;
 
   const [existing] = await db
     .select({ id: registration.id })
@@ -205,7 +225,7 @@ export async function acceptInvite(
     // A free agent who joins a team becomes a team member.
     await db
       .update(registration)
-      .set({ kind: "team_member" })
+      .set({ kind: "team_member", ...age.value })
       .where(eq(registration.id, existing.id));
     registrationId = existing.id;
   } else {
@@ -216,6 +236,7 @@ export async function acceptInvite(
         userId: input.userId,
         kind: "team_member",
         ...(await startingState(db, s, input.userId)),
+        ...age.value,
         createdBy: input.userId,
       })
       .returning({ id: registration.id });

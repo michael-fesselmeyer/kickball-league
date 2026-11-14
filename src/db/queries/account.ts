@@ -161,6 +161,8 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
       status: registration.status,
       shirtStatus: registration.shirtStatus,
       registeredAt: registration.createdAt,
+      ageConfirmed: registration.ageConfirmedMin,
+      ageConfirmedAt: registration.ageConfirmedAt,
     })
     .from(registration)
     .innerJoin(season, eq(registration.seasonId, season.id))
@@ -214,6 +216,8 @@ export async function personalData(db: Db, userId: UserId, now: Date) {
       signedAt: waiverSignature.signedAt,
       ipAddress: waiverSignature.ip,
       userAgent: waiverSignature.userAgent,
+      ageConfirmed: waiverSignature.ageConfirmedMin,
+      ageConfirmedAt: waiverSignature.ageConfirmedAt,
     })
     .from(waiverSignature)
     .innerJoin(waiver, eq(waiverSignature.waiverId, waiver.id))

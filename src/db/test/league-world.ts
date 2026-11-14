@@ -90,6 +90,7 @@ export async function leagueWorld(db: Db) {
 
   const register = async (userId: UserId, name: string) => {
     const result = await registerTeam(db, {
+      ageConfirmed: true,
       leagueId: lg.id,
       season: s,
       userId,
@@ -128,6 +129,7 @@ export async function leagueWorld(db: Db) {
   });
 
   const fa = await registerFreeAgent(db, {
+    ageConfirmed: true,
     season: s,
     userId: agent,
     now: NOW,

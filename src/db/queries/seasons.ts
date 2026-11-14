@@ -48,6 +48,7 @@ const SETTINGS = {
   rosterMin: season.rosterMin,
   rosterMax: season.rosterMax,
   gamesPerTeamPerDay: season.gamesPerTeamPerDay,
+  minimumAge: season.minimumAge,
 };
 
 /** The column allows 1 or 2 (a check constraint); anything else reads as 1. */
