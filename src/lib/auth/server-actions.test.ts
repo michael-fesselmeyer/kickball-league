@@ -20,6 +20,9 @@ const ALLOWED_WITHOUT_GUARD = new Set([
   "app/operator/actions.ts",
   // Emails a fresh sign-in link; the operator needs it while frozen.
   "lib/auth/confirm-actions.ts",
+  // An email's one-click unsubscribe: withdrawing consent to email must
+  // work even while the site is read-only. Its signed link is the check.
+  "app/unsubscribe/[token]/actions.ts",
 ]);
 
 function files(dir: string): string[] {

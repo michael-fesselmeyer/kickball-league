@@ -307,7 +307,9 @@ The `digest` template carries held messages and is neither: it is never capped b
 - **The provider's word wins.** A `429` with `daily_quota_exceeded` or `monthly_quota_exceeded` (another sender on the account, or sign-in links) is treated the same way, without using a retry, and stops the drain from trying more email.
 - **Admins are told.** When urgent email had to wait, every admin and owner gets an `email_budget` message, once per UTC day (`email-budget/<date>/<admin>`), saying how many are waiting, when the quota resets in the league's time, and that "Copy for WhatsApp" reaches everyone sooner. It is urgent and may use the reserve.
 
-**Every message says why.** Each email's footer finishes "You got this email because …" and links to the setting that changes it: the email settings, or for the digest the daily limit, digest and quiet hours. A push carries the same reason as a "Because …" line under its text and a "Change alerts" button that opens the push settings.
+**Every message says why.** Each email's footer finishes "You got this email because …" and links to the setting that changes it: the email settings, or for the digest the daily limit, digest and quiet hours.
+
+**One-click unsubscribe** (`src/lib/unsubscribe.ts`). Each email whose topic the settings page offers also carries "Stop emails about <topic>", a link to `/unsubscribe/<token>`, and the headers `List-Unsubscribe: <…/api/unsubscribe/<token>>` and `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (RFC 8058), which mail apps show as their own button. The token is the person's id, the topic and an HMAC of both with `BETTER_AUTH_SECRET`, like the private events feed: nothing is stored and nobody signs in. Opening the page changes nothing (mail scanners follow links); its button, or the mail app's POST, turns that topic's email off with `turnOffEmailTopic`. It works while the site is read-only, since it withdraws consent. Suspension notices, the digest and admin operations notices have no link. A push carries the same reason as a "Because …" line under its text and a "Change alerts" button that opens the push settings.
 
 ### Scheduled jobs
 
