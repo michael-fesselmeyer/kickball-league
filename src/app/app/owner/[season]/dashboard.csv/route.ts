@@ -35,7 +35,7 @@ export async function GET(
   );
   if (!season) return notFound();
   const { view } = await cachedDashboard(league.id, season);
-  const lines = dashboardLines(view, season.name);
+  const lines = dashboardLines(view, season.name, league.timeZone);
   await recordAudit(db, {
     actorId: userId,
     action: "dashboard.export",
