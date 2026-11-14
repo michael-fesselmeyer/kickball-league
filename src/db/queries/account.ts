@@ -63,6 +63,7 @@ import {
   removeKeepOffsFor,
 } from "./keep-off";
 import { cancelHandoffsFor, myHandoffs } from "./captaincy";
+import { myPickemData, removePickemData } from "./pickem";
 import { deletePhotosOf, myPhotos } from "./member-photos";
 import { heldMerchPurchases } from "./merch";
 import { expirePurchases } from "./payments";
@@ -607,6 +608,8 @@ export async function personalData(
     dealsUsed,
     sponsorsManaged,
     discipline: await myDisciplineRecords(db, userId, now),
+    // Pick'em picks and whether they hid from the leaderboards (ADR 0044).
+    pickem: await myPickemData(db, userId),
     // Entries the person added to a team's "not on my team" list, and,
     // only if the league's owners chose so, entries about them (ADR 0036).
     // Captaincy offered by or to the person (ADR 0042).
@@ -708,7 +711,7 @@ export type DeleteError = "not_found" | DeleteBlocker["reason"];
  * and tells the captains; past claims stay as history without the copied
  * lineup gender.
  * Votes in awards polls still open are withdrawn; closed polls keep their
- * totals.
+ * totals. Pick'em picks are removed, so the leaderboards drop them.
  * The user row stays, renamed and with an address that cannot receive
  * mail, so registrations, rosters, scores, payments, waiver signatures and
  * the audit log keep pointing at it.
@@ -819,6 +822,7 @@ export async function deleteAccount(
         ),
       ),
     );
+  await removePickemData(db, userId);
   // Entries in giveaways not drawn yet come out; a drawn giveaway keeps
   // its entries, under the anonymized user, so its draw record still adds up.
   await db

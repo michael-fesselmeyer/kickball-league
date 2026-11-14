@@ -200,6 +200,19 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     resolve: "drop",
     clash: "Both answered for the same game; the kept account's answer stays",
   },
+  "pickem_pick.user_id": {
+    kind: "dedupe",
+    label: "pick'em picks",
+    by: ["game_id"],
+    resolve: "drop",
+    clash:
+      "Both picked a winner for the same game; the kept account's pick stays",
+  },
+  "pickem_hidden.user_id": {
+    kind: "special",
+    label: "pick'em leaderboard choice",
+    handler: "one_per_person",
+  },
   "game_lineup_spot.user_id": {
     kind: "dedupe",
     label: "lineup spots",

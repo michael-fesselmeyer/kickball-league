@@ -299,7 +299,9 @@ async function conflictCounts(
        + (select count(*)::int from calendar_feed where user_id = ${keptId}) *
          (select count(*)::int from calendar_feed where user_id = ${mergedId})
        + (select count(*)::int from referral_code where user_id = ${keptId}) *
-         (select count(*)::int from referral_code where user_id = ${mergedId})) as single`,
+         (select count(*)::int from referral_code where user_id = ${mergedId})
+       + (select count(*)::int from pickem_hidden where user_id = ${keptId}) *
+         (select count(*)::int from pickem_hidden where user_id = ${mergedId})) as single`,
   );
   if (special?.votes)
     lines.push({
@@ -328,7 +330,7 @@ async function conflictCounts(
   if (special?.single)
     lines.push({
       label:
-        "Both have alert settings, a calendar feed or a referral link; the kept account's stay",
+        "Both have alert settings, a calendar feed, a referral link or a pick'em leaderboard choice; the kept account's stay",
       count: special.single,
     });
   return lines;
@@ -553,7 +555,12 @@ export async function mergeAccounts(
   );
 
   // One row per person: the kept account's wins.
-  for (const table of ["alert_setting", "calendar_feed", "referral_code"]) {
+  for (const table of [
+    "alert_setting",
+    "calendar_feed",
+    "referral_code",
+    "pickem_hidden",
+  ]) {
     const rule = PERSON_COLUMNS[`${table}.user_id`];
     const label = rule && rule.kind !== "skip" ? rule.label : table;
     await db.execute(
