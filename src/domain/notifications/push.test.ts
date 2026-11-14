@@ -1,6 +1,6 @@
 import { createECDH, randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { parseDeviceSubscription } from "./push";
+import { isPushServiceUrl, parseDeviceSubscription } from "./push";
 
 /** What a browser reports for a new subscription: a P-256 key and a 16-byte secret. */
 const ecdh = createECDH("prime256v1");
@@ -10,7 +10,7 @@ const keys = {
   auth: randomBytes(16).toString("base64url"),
 };
 const json = (value: unknown) => JSON.stringify(value);
-const valid = { endpoint: "https://push.example.test/send/abc", keys };
+const valid = { endpoint: "https://fcm.googleapis.com/fcm/send/abc", keys };
 
 describe("parseDeviceSubscription", () => {
   it("accepts what a browser sends, with the user agent", () => {
@@ -29,10 +29,17 @@ describe("parseDeviceSubscription", () => {
   });
 
   it.each([
-    ["an http endpoint", { ...valid, endpoint: "http://push.example.test/a" }],
+    [
+      "an http endpoint",
+      { ...valid, endpoint: "http://fcm.googleapis.com/fcm/send/a" },
+    ],
     [
       "credentials in the endpoint",
-      { ...valid, endpoint: "https://u:p@push.example.test/a" },
+      { ...valid, endpoint: "https://u:p@fcm.googleapis.com/fcm/send/a" },
+    ],
+    [
+      "an endpoint that is not a push service",
+      { ...valid, endpoint: "https://push.example.test/send/a" },
     ],
     ["no keys", { endpoint: valid.endpoint }],
     ["a short device key", { ...valid, keys: { ...keys, p256dh: "BAAA" } }],
@@ -53,5 +60,30 @@ describe("parseDeviceSubscription", () => {
         null,
       ),
     ).toBeNull();
+  });
+});
+
+describe("isPushServiceUrl", () => {
+  it.each([
+    "https://fcm.googleapis.com/fcm/send/abc:def",
+    "https://updates.push.services.mozilla.com/wpush/v2/abc",
+    "https://web.push.apple.com/QAbc",
+    "https://wns2-bl2p.notify.windows.com/w/?token=abc",
+  ])("accepts the browsers' push services: %s", (url) => {
+    expect(isPushServiceUrl(url)).toBe(true);
+  });
+
+  it.each([
+    ["another site", "https://example.test/hook"],
+    ["an address inside the network", "https://10.0.0.5/"],
+    ["the cloud metadata address", "https://169.254.169.254/latest"],
+    ["a lookalike host", "https://fcm.googleapis.com.example.test/x"],
+    ["a host that only ends the same", "https://evilfcm.googleapis.com/x"],
+    ["another port", "https://fcm.googleapis.com:8443/fcm/send/a"],
+    ["plain http", "http://fcm.googleapis.com/fcm/send/a"],
+    ["credentials", "https://u:p@web.push.apple.com/a"],
+    ["not a URL", "fcm.googleapis.com/fcm/send/a"],
+  ])("refuses %s", (_, url) => {
+    expect(isPushServiceUrl(url)).toBe(false);
   });
 });
