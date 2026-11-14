@@ -8,6 +8,7 @@ import { err, ok, type Result } from "../result";
  *
  * Each game day:
  * - games = teams × games per team ÷ 2, rounded down (an odd team out sits),
+ *   unless the owner sets the games per day (the capacity planner does),
  * - each field fits as many back-to-back slots as the day's hours allow,
  * - the league asks for the fewest fields that hold every game, with the
  *   games spread evenly so no field is held longer than it needs,
@@ -19,6 +20,11 @@ import { err, ok, type Result } from "../result";
 
 export type RequestInput = {
   teams: number;
+  /**
+   * Games each game day, when the owner asks for a set number instead of
+   * one game per pair of teams: the capacity planner's extra games.
+   */
+  gamesPerDay?: number;
   gamesPerTeamPerDay: number;
   /** Game days, YYYY-MM-DD. */
   dates: readonly string[];
@@ -66,7 +72,9 @@ export function clock(minutes: number): string {
 export function buildRequestSheet(
   input: RequestInput,
 ): Result<RequestSheet, RequestProblem> {
-  const gamesPerDay = Math.floor((input.teams * input.gamesPerTeamPerDay) / 2);
+  const gamesPerDay =
+    input.gamesPerDay ??
+    Math.floor((input.teams * input.gamesPerTeamPerDay) / 2);
   if (gamesPerDay < 1) return err("no_teams");
   if (input.dates.length === 0) return err("no_dates");
   const first = minutesOf(input.firstGame);

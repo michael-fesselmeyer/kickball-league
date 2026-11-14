@@ -45,6 +45,8 @@ export type RequestChoices = {
   latestEnd: string;
   slotMinutes: number;
   fieldIds: string[];
+  /** A set number of games each game day, from the capacity planner. */
+  games: number | null;
 };
 
 export function requestChoices(
@@ -57,6 +59,7 @@ export function requestChoices(
     const minutes = raw === undefined ? null : minutesOf(raw);
     return minutes === null ? fallback : clock(minutes);
   };
+  const games = whole(one(query, "games"), 0);
   return {
     weekday: weekday >= 0 && weekday <= 6 ? weekday : defaults.weekday,
     teams: Math.max(
@@ -67,6 +70,7 @@ export function requestChoices(
     latestEnd: time("last", "18:00"),
     slotMinutes: whole(one(query, "slot"), 60),
     fieldIds: all(query, "field"),
+    games: games >= 1 && games <= 100 ? games : null,
   };
 }
 
@@ -84,6 +88,7 @@ export function requestSheetFor(
   });
   return buildRequestSheet({
     teams: choices.teams,
+    gamesPerDay: choices.games ?? undefined,
     gamesPerTeamPerDay: season.gamesPerTeamPerDay,
     dates: gameDates(
       season.startsOn,
@@ -107,6 +112,7 @@ export function choicesQuery(choices: RequestChoices): string {
     last: choices.latestEnd,
     slot: String(choices.slotMinutes),
   });
+  if (choices.games !== null) params.set("games", String(choices.games));
   for (const id of choices.fieldIds) params.append("field", id);
   return params.toString();
 }
