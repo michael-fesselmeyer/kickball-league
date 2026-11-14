@@ -76,9 +76,19 @@ async function Score({
   const found = gameId ? await gameForScoring(db, gameId) : null;
   if (!found) notFound();
   const now = new Date();
-  // An undisputed score past its 24 hours is settled on the way in.
-  await settleGame(db, found.id, now);
-  const g = (await gameForScoring(db, found.id)) ?? found;
+  const [{ state, history }, refereed, league, discipline] = await Promise.all([
+    currentScoreState(db, found, now),
+    hasReferee(db, found.id),
+    currentLeague(db),
+    featureEnabled("discipline"),
+  ]);
+  // An undisputed score past its 24 hours is settled on the way in. Settling
+  // writes only a final score, so the game is read again only then.
+  let g = found;
+  if (state.state === "final") {
+    await settleGame(db, found.id, now);
+    g = (await gameForScoring(db, found.id)) ?? found;
+  }
   const ctx = {
     game: { id: g.id, teamSeasonIds: [g.teamAId, g.teamBId] as const },
   };
@@ -89,13 +99,12 @@ async function Score({
     g.status !== "cancelled" &&
     (!g.startsAt || g.startsAt <= now) &&
     can(subject, "score.live", {
-      game: { ...ctx.game, hasReferee: await hasReferee(db, g.id) },
+      game: { ...ctx.game, hasReferee: refereed },
     });
   const isAdmin = can(subject, "score.override", {});
   if (!mayEnter && !can(subject, "score.confirm", ctx)) notFound();
-  const { state, history } = await currentScoreState(db, g, now);
   const latest = history.reports[0];
-  const tz = (await currentLeague(db))?.timeZone ?? "America/New_York";
+  const tz = league?.timeZone ?? "America/New_York";
   const when = whenIn(tz);
   const myTeam = [g.teamAId, g.teamBId].find((t) =>
     subject.roster.some(
@@ -139,7 +148,6 @@ async function Score({
     : undefined;
   // Game-day discipline: a captain rates the other team once the score is
   // final; the ref, a captain or an admin can report an incident.
-  const discipline = await featureEnabled("discipline");
   const rates =
     discipline &&
     myTeam !== undefined &&

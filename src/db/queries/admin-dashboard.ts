@@ -6,7 +6,7 @@ import { league } from "../schema/league";
 import { season } from "../schema/season";
 import { refereeBoard } from "./referees";
 import { registrationsBoard } from "./registrations-admin";
-import { teamRsvps, type TeamRsvps } from "./rsvps";
+import { teamsRsvps, type TeamRsvps } from "./rsvps";
 import { seasonBySlug } from "./schedule-screen";
 import type { Db } from "./schedule";
 import { scoresNeedingAttention } from "./scores";
@@ -118,14 +118,12 @@ export async function nextGameDay(
   if (date === undefined) return null;
   const onDay = board.filter((g) => g.date === date);
 
-  // One RSVP lookup per team, covering all of its games that day.
+  // Every team's RSVPs for its games that day, in one batch.
   const gamesOf = new Map<TeamSeasonId, GameId[]>();
   for (const g of onDay)
     for (const t of [g.teamAId, g.teamBId])
       gamesOf.set(t, [...(gamesOf.get(t) ?? []), g.id]);
-  const rsvpsOf = new Map<TeamSeasonId, Map<GameId, TeamRsvps>>();
-  for (const [teamSeasonId, gameIds] of gamesOf)
-    rsvpsOf.set(teamSeasonId, await teamRsvps(db, teamSeasonId, gameIds));
+  const rsvpsOf = await teamsRsvps(db, gamesOf);
   const rsvps = (teamSeasonId: TeamSeasonId, gameId: GameId): TeamRsvps => {
     const found = rsvpsOf.get(teamSeasonId)?.get(gameId);
     if (!found) throw new Error(`No RSVPs loaded for game ${gameId}`);

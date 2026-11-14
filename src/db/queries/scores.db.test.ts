@@ -22,6 +22,8 @@ import {
   finalizeDueScores,
   reportScore,
   respondToScore,
+  scoreHistories,
+  scoreHistory,
   scoresNeedingAttention,
 } from "./scores";
 
@@ -224,6 +226,13 @@ describe("scores", () => {
       expect(await scoresNeedingAttention(db, w.seasonId, after(4))).toEqual(
         [],
       );
+      // Several games' histories at once match one at a time; a game with
+      // no reports gets empty lists.
+      const unreported = randomUUID() as GameId;
+      const many = await scoreHistories(db, [w.gameId, unreported]);
+      expect(many.get(w.gameId)).toEqual(await scoreHistory(db, w.gameId));
+      expect(many.get(w.gameId)?.reports).toHaveLength(1);
+      expect(many.get(unreported)).toEqual({ reports: [], responses: [] });
       // A captain cannot change a final score.
       expect(
         await reportScore(db, {

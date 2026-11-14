@@ -14,7 +14,7 @@ import {
 } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { required } from "./rows";
-import { myRsvps, setRsvp, teamRsvps } from "./rsvps";
+import { myRsvps, setRsvp, teamRsvps, teamsRsvps } from "./rsvps";
 
 afterAll(closePool);
 
@@ -145,6 +145,22 @@ describe("RSVPs", () => {
       expect((await myRsvps(db, ids[0] as UserId, [g.id])).get(g.id)).toBe(
         "maybe",
       );
+
+      // Several teams at once: each gets its own answers, as one at a time.
+      const both = await teamsRsvps(
+        db,
+        new Map([
+          [aces, [g.id]],
+          [bees, [g.id]],
+        ]),
+      );
+      expect(both.get(aces)?.get(g.id)).toEqual(counts);
+      expect(both.get(bees)?.get(g.id)).toMatchObject({
+        in: 0,
+        maybe: 0,
+        out: 0,
+        noAnswer: 0,
+      });
 
       // Not their game, and not after it is final.
       expect(
