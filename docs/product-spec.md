@@ -128,7 +128,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 
 ## 5. Permissions matrix
 
-Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigned** = only games they are assigned to. — not allowed. Captain rights apply to the team and season they captain; a co-captain has the same rights except removing the captain.
+Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigned** = only games they are assigned to. — not allowed. Captain rights apply to the team and season they captain; a co-captain has the same rights except removing the captain, handing the team over and changing co-captains.
 
 | Action | Visitor | Player | Captain | Referee | Sponsor | Admin | Owner |
 |---|---|---|---|---|---|---|---|
@@ -145,6 +145,8 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | See roster payment and waiver status | — | own | own team | — | — | ✓ | ✓ |
 | RSVP for a game | — | own | own | — | — | — | — |
 | See team RSVPs | — | own team | own team | — | — | ✓ | ✓ |
+| Hand the team to a teammate, who must accept; make or unmake co-captains ([ADR 0042](adr/0042-captain-handoff-and-co-captains.md)) | — | — | own (captain only, not co-captains) | — | — | ✓ | ✓ |
+| Accept or decline the captaincy offered to you; step down as a co-captain | — | own | own | — | — | own | own |
 | Post a sub request | — | — | own | — | — | ✓ | ✓ |
 | Claim a sub request | — | ✓ (registered, waiver signed, not suspended) | ✓ | ✓ if also a player | — | — | — |
 | Approve or decline sub claims; take a request down | — | — | own | — | — | ✓ | ✓ |
