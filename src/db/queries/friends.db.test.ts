@@ -77,6 +77,11 @@ async function setUp(db: Db) {
   return { w, id: created.value };
 }
 
+/**
+ * The entry's audit actions, sorted. Every row in a test's transaction has
+ * the same occurred_at, so the database can return them in any order; the
+ * tests compare them as a sorted list (repeats included) instead.
+ */
 const auditActions = async (db: Db, id: FriendLeagueId) =>
   (
     await db
@@ -88,8 +93,11 @@ const auditActions = async (db: Db, id: FriendLeagueId) =>
           like(auditLog.action, "friend_league.%"),
         ),
       )
-      .orderBy(auditLog.occurredAt)
-  ).map((r) => r.action);
+  )
+    .map((r) => r.action)
+    .sort();
+
+const sorted = (actions: string[]) => [...actions].sort();
 
 describe("friends directory", () => {
   it("lets only admins manage the directory", async () => {
@@ -131,11 +139,13 @@ describe("friends directory", () => {
         }),
       ).toEqual({ ok: true, value: null });
       expect(await friendDirectory(db, w.leagueId)).toEqual([]);
-      expect(await auditActions(db, id)).toEqual([
-        "friend_league.create",
-        "friend_league.update",
-        "friend_league.remove",
-      ]);
+      expect(await auditActions(db, id)).toEqual(
+        sorted([
+          "friend_league.create",
+          "friend_league.update",
+          "friend_league.remove",
+        ]),
+      );
     });
   });
 
@@ -194,12 +204,14 @@ describe("friends directory", () => {
         value: null,
       });
       expect(await storedFriendLogo(db, second.value)).toBeNull();
-      expect(await auditActions(db, id)).toEqual([
-        "friend_league.create",
-        "friend_league.logo_set",
-        "friend_league.logo_set",
-        "friend_league.logo_remove",
-      ]);
+      expect(await auditActions(db, id)).toEqual(
+        sorted([
+          "friend_league.create",
+          "friend_league.logo_set",
+          "friend_league.logo_set",
+          "friend_league.logo_remove",
+        ]),
+      );
     });
   });
 

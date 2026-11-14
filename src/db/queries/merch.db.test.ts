@@ -246,16 +246,14 @@ describe("the catalog", () => {
         ok: false,
         error: "hidden",
       });
+      // Rows in one transaction share occurred_at, so compare them sorted.
       const audit = await db
         .select({ action: auditLog.action })
         .from(auditLog)
-        .where(eq(auditLog.entityId, id))
-        .orderBy(auditLog.occurredAt);
-      expect(audit.map((a) => a.action)).toEqual([
-        "merch.item_create",
-        "merch.item_update",
-        "merch.item_hide",
-      ]);
+        .where(eq(auditLog.entityId, id));
+      expect(audit.map((a) => a.action).sort()).toEqual(
+        ["merch.item_create", "merch.item_update", "merch.item_hide"].sort(),
+      );
     });
   });
 
