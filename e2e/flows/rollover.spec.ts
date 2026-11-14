@@ -20,19 +20,27 @@ test("an admin starts the next season from the last one", async ({
   ).toBeVisible();
   await expectNoAxeViolations(page);
 
-  // Every team that played is ticked; leave one out and rename the season.
+  // Every team that played is ticked. Leave out the teams a demo persona
+  // captains, so no persona gets a registration in the new season and the
+  // other flows, which look up a persona's newest team, are unaffected.
   const teams = page.getByRole("group", { name: "Teams to bring along" });
   const boxes = teams.getByRole("checkbox");
-  const count = await boxes.count();
-  expect(count).toBeGreaterThan(1);
-  await boxes.first().uncheck();
+  expect(await boxes.count()).toBeGreaterThan(1);
+  const personaTeams = teams
+    .locator("label")
+    .filter({ hasText: /Casey Captain|Pat Player|Reese Ref|Addie Admin/ });
+  for (const box of await personaTeams.getByRole("checkbox").all())
+    await box.uncheck();
+  expect(await personaTeams.count()).toBeGreaterThan(0);
+  const count = await teams.locator("input[type=checkbox]:checked").count();
+  expect(count).toBeGreaterThan(0);
   await page.getByLabel("New season's name").fill("Winter league 2026");
   await page.getByRole("button", { name: "Update the preview" }).click();
 
   const preview = page.getByRole("region", {
     name: "What Winter league 2026 gets",
   });
-  await expect(preview).toContainText(`${count - 1}, with`);
+  await expect(preview).toContainText(`${count}, with`);
   await expect(preview).toContainText("all as requested");
   await expect(preview.getByRole("list")).toContainText(
     "Waiver signatures (everyone signs again)",
@@ -45,7 +53,7 @@ test("an admin starts the next season from the last one", async ({
   await expect(page).toHaveURL(/\/app\/admin\/seasons\/winter-league-2026\?/);
   await expect(
     page.getByRole("status").filter({ hasText: "Season created as a draft" }),
-  ).toContainText(`${count - 1} teams`);
+  ).toContainText(`${count} teams`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Winter league 2026",
   );
