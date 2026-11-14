@@ -64,9 +64,11 @@ test("search the help center, then get the schedule widget", async ({
   const preview = page.frameLocator(
     'iframe[title="Kickball League: next games (preview)"]',
   );
-  await preview.locator("h1").scrollIntoViewIfNeeded();
+  // The heading and the footer both link home; check the heading's.
+  const heading = preview.getByRole("heading", { level: 1 });
+  await heading.scrollIntoViewIfNeeded();
   await expect(
-    preview.getByRole("link", { name: "Kickball League" }),
+    heading.getByRole("link", { name: "Kickball League" }),
   ).toBeVisible();
 
   await page.locator("summary", { hasText: "The Big Kicks" }).click();
