@@ -32,6 +32,7 @@ One diagram per domain keeps them readable. Columns shown are the important ones
 erDiagram
   user ||--|| profile : has
   user ||--o{ registration : makes
+  registration ||--o{ away_week : "will miss"
   league ||--o{ season : runs
   league ||--o{ team : has
   league ||--o{ rule_set : defines
@@ -163,6 +164,11 @@ erDiagram
     smallint age_confirmed_min "the age the player confirmed"
     timestamptz age_confirmed_at
   }
+  away_week {
+    uuid id PK
+    uuid registration_id FK
+    date week_start "the week's Monday, league time"
+  }
   roster_membership {
     uuid id PK
     uuid team_season_id FK
@@ -255,6 +261,7 @@ erDiagram
 Notes:
 - `team` is the lasting identity (name, colors, logo, history). `team_season` is that team's entry in one season; rosters, payments and games hang off it.
 - `registration` is one person's entry in one season and carries the waiver and payment state. `roster_membership` puts a registration on a team and keeps history when someone moves teams mid-season.
+- `away_week` is a week of a season a player says they'll miss, named by its Monday in the league's time zone, so a game falls in one week whatever night the league plays. It hangs off the registration, so it belongs to one person in one season. A player changes only this week and later; weeks already gone keep what they had. Captains see, for each game still to come, how many players are available that week, who is away, and whether they can still field a full lineup under the fielding rule; nothing is stored about that. When a player's change leaves a week with a game short, each of the team's other captains gets one `away_short` email for that week, with a link to ask for a sub.
 - `profile.lineup_gender` exists because the fielding rule counts two groups. How nonbinary players are counted is the league's call; the default is that the player chooses **(A)**. The kicking-order rule uses the same answer, and a player who has not chosen counts toward neither side ([ADR 0030](adr/0030-kicking-order-sides.md)).
 - Divisions are optional ([ADR 0040](adr/0040-divisions-and-crossover-games.md)). A season with none plays as one pool; with divisions, each `team_season` joins one through `division_id`, which with `season_id` references `division (id, season_id)`, so a team can only be in a division of its own season. A team with no division in a divided season plays as a pool of its own. A division has an optional `rule_set` from its league; deleting a rule set leaves its divisions without one. A division a bracket crowns cannot be deleted.
 - A game has no division of its own: a crossover game belongs to two. The teams' divisions say which division's schedule shows a game and whether it is a crossover; the season's `crossover_games`, `crossovers_count` and `combined_final` say how many crossovers the scheduler plays, whether they count in the division standings, and how the playoffs are seeded.
@@ -1410,6 +1417,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | Table | Constraint or index | Purpose |
 |---|---|---|
 | `registration` | unique `(season_id, user_id)` | One entry per person per season |
+| `away_week` | unique `(registration_id, week_start)`; check `week_start` is a Monday | Each week once, named by its Monday |
 | `roster_membership` | unique `(team_season_id, registration_id)` where `status <> 'removed'` | No duplicate roster spots |
 | `roster_membership` | unique `(registration_id)` where `status = 'active'` | A player is active on one team per season |
 | `roster_membership` | unique `(team_season_id)` where `role = 'captain' and status = 'active'` | Exactly one captain |
@@ -1557,6 +1565,7 @@ Indexes for the common reads:
 | Birth date | `profile` | The person and owners. Everyone else sees only "18+ confirmed" |
 | Age confirmation | `registration`, `waiver_signature` (`age_confirmed_min`, `age_confirmed_at`) | The person, admins and owners. Only the age confirmed and when, never a birth date; the person's export lists it |
 | Gender and lineup gender | `profile` | The person, their captain (for lineups), admins. A sub's lineup gender is copied to `sub_claim`, which the asking team's captains see. The kicking-order builder shows each player's lineup gender to their team's captains and admins only |
+| Away weeks | `away_week` | The person, their team's captains (who is away, for planning a lineup), admins. Teammates see only how many players are available each week |
 | Kicking order | `game_lineup`, `game_lineup_spot` | The team's captains and admins; from game day, the other team's captains and the game's ref, as names in order with no genders. Each player sees only their own spot |
 | Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
 | New-team requests, with the player's note | `team_formation_request` | The player and admins |
@@ -1584,7 +1593,7 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Addresses that were merged into the account stop being aliases. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted. A captaincy offer waiting for or from them is cancelled.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), their away weeks (`away_week`, which would otherwise stay with the kept registration), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Addresses that were merged into the account stop being aliases. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted. A captaincy offer waiting for or from them is cancelled.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, entries and wins in drawn giveaways, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
