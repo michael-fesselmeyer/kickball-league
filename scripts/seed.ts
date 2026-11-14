@@ -17,6 +17,7 @@ import {
   SEED_LEAGUE_SLUG,
 } from "../src/seed/generate";
 import { addSeedAwards } from "../src/seed/awards";
+import { addSeedPicks } from "../src/seed/pickem";
 import { addSeedAwayWeeks } from "../src/seed/away-weeks";
 import { addDemoPersonas, removeDemoPersonas } from "../src/seed/demo-personas";
 import { addSeedDivisions, removeSeedDivisions } from "../src/seed/divisions";
@@ -305,6 +306,7 @@ async function main(): Promise<void> {
       await addTicketDemo(tx, data);
       await addMerchDemo(tx, data);
       await addSeedAwards(tx, data, new Date());
+      await addSeedPicks(tx, data);
       await addSeedSponsors(tx, data);
       await addInstagramPhotos(tx, data);
       await addSeedBooks(tx, data);
