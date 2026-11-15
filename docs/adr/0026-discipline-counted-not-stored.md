@@ -19,7 +19,7 @@ Ratings must never show who rated what. A team plays one game against each oppon
 
 **Ratings are only ever shown as aggregates.** Admins see each team's average for the season with the notes sorted alphabetically, never which game or team a rating came from. A captain sees their own team's average over whole blocks of three ratings: it appears after the third rated game and moves only when the next block of three fills, so neither the average nor how it changed gives one rating away. The audit row for a rating records that one was given, not the score. The rater's id is stored only so the person's own export can list it and deleting their account can remove the note.
 
-**The ladder is a suggestion.** For outside alcohol, rulebook 4.0's 1 game, then a season ban (since [ADR 0068](0068-ejections-are-incidents.md), one full season counted in the team's games), then a permanent ban is preselected from the player's earlier outside-alcohol suspensions (lifted ones do not count). The admin can always choose another length.
+**The ladder is a suggestion.** For outside alcohol, rulebook 4.0's 1 game, then a season ban (since [ADR 0073](0073-ejections-are-incidents.md), one full season counted in the team's games), then a permanent ban is preselected from the player's earlier outside-alcohol suspensions (lifted ones do not count). The admin can always choose another length.
 
 ## Alternatives considered
 

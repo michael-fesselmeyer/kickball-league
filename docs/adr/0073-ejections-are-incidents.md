@@ -1,4 +1,4 @@
-# ADR 0068: A ref's ejection is an incident, and a full season is counted in games
+# ADR 0073: A ref's ejection is an incident, and a full season is counted in games
 
 - Status: accepted
 - Date: 2026-11-15
