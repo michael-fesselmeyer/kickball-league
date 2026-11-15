@@ -56,6 +56,8 @@ export type OfflineGame = {
   label: string;
   permit: string | null;
   emergency: string | null;
+  /** The game-day checklist page (issue #409), kept like the emergency page. */
+  checklist: string | null;
   /** ISO time the emergency page stops being kept. */
   emergencyUntil: string | null;
 };
@@ -73,6 +75,7 @@ export function offlineGame(
     path: `${base}/games/${game.id}`,
     permit: withPermit ? `/app/games/${game.id}/permit` : null,
     emergency: emergencyUntil ? `/app/games/${game.id}/emergency` : null,
+    checklist: emergencyUntil ? `/app/games/${game.id}/checklist` : null,
     emergencyUntil: emergencyUntil?.toISOString() ?? null,
     label: game.startsAt
       ? `${matchup}, ${shortDay(game.startsAt, timeZone)} at ${kickoff(game.startsAt, timeZone)}`

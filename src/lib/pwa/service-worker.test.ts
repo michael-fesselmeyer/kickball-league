@@ -763,6 +763,86 @@ describe("service worker: a game's emergency contacts", () => {
   });
 });
 
+describe("service worker: a game's checklist (issue #409)", () => {
+  const id = GAME.split("/")[2];
+  const EMERGENCY = `/app/games/${id}/emergency`;
+  const CHECKLIST = `/app/games/${id}/checklist`;
+  const later = () => new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const save = (until: string, checklist = CHECKLIST) =>
+    worker.message({
+      type: "next-game",
+      path: GAME,
+      label: "Kickers vs Sluggers",
+      permit: null,
+      emergency: EMERGENCY,
+      checklist,
+      emergencyUntil: until,
+    });
+
+  beforeEach(() => {
+    network.serve(EMERGENCY, page("Emergency contacts", [CSS, JS]));
+    network.serve(CHECKLIST, page("Game-day checklist", [CSS, JS]));
+  });
+
+  it("saves it beside the emergency page, with this person's cookies", async () => {
+    await worker.install();
+    const until = later();
+    await save(until);
+    expect(network.fetched(CHECKLIST)[0]?.init?.credentials).toBe(
+      "same-origin",
+    );
+    expect(games()?.paths()).toEqual(
+      [CHECKLIST, EMERGENCY, GAME, NEXT_GAME_INFO].sort(),
+    );
+    expect(await savedGame(storage)).toEqual({
+      path: GAME,
+      label: "Kickers vs Sluggers",
+      emergency: EMERGENCY,
+      checklist: CHECKLIST,
+      emergencyUntil: until,
+    });
+  });
+
+  it("opens with no signal until midnight, then both pages go", async () => {
+    await worker.install();
+    await save(later());
+    network.online = false;
+    const html = await (await worker.fetch(navigate(CHECKLIST)))?.text();
+    expect(html).toContain("Game-day checklist");
+
+    const info = await games()?.match(NEXT_GAME_INFO);
+    const saved = (await info?.json()) as Record<string, string>;
+    await games()?.put(
+      NEXT_GAME_INFO,
+      new Response(
+        JSON.stringify({
+          ...saved,
+          emergencyUntil: new Date(Date.now() - 1000).toISOString(),
+        }),
+      ),
+    );
+    const after = await (await worker.fetch(navigate(CHECKLIST)))?.text();
+    expect(after).toContain("No signal");
+    // The emergency page is still named until it is opened, and then goes.
+    expect(await savedGame(storage)).toMatchObject({ emergency: EMERGENCY });
+    await worker.fetch(navigate(EMERGENCY));
+    expect(games()?.paths()).toEqual([GAME, NEXT_GAME_INFO].sort());
+    expect(await savedGame(storage)).toEqual({
+      path: GAME,
+      label: "Kickers vs Sluggers",
+    });
+  });
+
+  it("refuses another game's checklist", async () => {
+    await worker.install();
+    await save(later(), `/app/games/${OTHER_GAME.split("/")[2]}/checklist`);
+    expect(games()?.paths()).toEqual(
+      [EMERGENCY, GAME, NEXT_GAME_INFO].sort(),
+    );
+    expect(network.fetched(CHECKLIST)).toEqual([]);
+  });
+});
+
 describe("service worker: push notifications", () => {
   let screen: FakeWindows;
   beforeEach(() => {

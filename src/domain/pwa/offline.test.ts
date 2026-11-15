@@ -79,6 +79,7 @@ describe("offlineGame", () => {
       label: "Kickers vs Sluggers, Mon, Sep 14 at 8:00 PM",
       permit: null,
       emergency: null,
+      checklist: null,
       emergencyUntil: null,
     });
     expect(offlineGame(game, "America/New_York", true).permit).toBe(
@@ -91,6 +92,7 @@ describe("offlineGame", () => {
     const until = new Date("2026-09-15T04:00:00Z");
     expect(offlineGame(game, "America/New_York", true, until)).toMatchObject({
       emergency: `/app/games/${game.id}/emergency`,
+      checklist: `/app/games/${game.id}/checklist`,
       emergencyUntil: "2026-09-15T04:00:00.000Z",
     });
   });

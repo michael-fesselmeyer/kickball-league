@@ -15,7 +15,8 @@
  *    contacts page (ADR 0043), kept with an expiry at midnight after game
  *    day. The saved copy is deleted when that time passes, even with no
  *    signal, the next time the home screen names a game without it, and on
- *    signing out.
+ *    signing out. Its game-day checklist page (issue #409) is kept the same
+ *    way, with the same expiry.
  *
  * Everything else goes to the network untouched: signed-in screens
  * (payments, waivers, admin), API routes, Server Actions and the client
@@ -60,6 +61,7 @@ const GAME_PAGE = new RegExp(`^/games/(${ID})$`);
 const PERMIT_PAGE = new RegExp(`^/app/games/(${ID})/permit$`);
 const PERMIT_FILE = new RegExp(`^/app/games/(${ID})/permit/document$`);
 const EMERGENCY_PAGE = new RegExp(`^/app/games/(${ID})/emergency$`);
+const CHECKLIST_PAGE = new RegExp(`^/app/games/(${ID})/checklist$`);
 const STATIC_ASSET = /\/_next\/static\/[^"'\s)<>\\]+/g;
 
 /**
@@ -121,8 +123,22 @@ self.addEventListener("message", (event) => {
     // only that same game's permit.
     if (path !== null && !GAME_PAGE.test(path)) return;
     const permit = permitFor(path, data.permit);
-    const emergency = emergencyFor(path, data.emergency, data.emergencyUntil);
-    event.waitUntil(saveForOffline(path, label, permit, emergency));
+    const emergency = dayPageFor(
+      path,
+      data.emergency,
+      data.emergencyUntil,
+      EMERGENCY_PAGE,
+    );
+    // The checklist is kept for the same people, until the same time.
+    const checklist = dayPageFor(
+      path,
+      data.checklist,
+      data.emergencyUntil,
+      CHECKLIST_PAGE,
+    );
+    event.waitUntil(
+      saveForOffline(path, label, permit, emergency, checklist),
+    );
   } else if (data.type === "forget") {
     // Signing out also drops entries not sent yet: they are that person's.
     event.waitUntil(
@@ -256,34 +272,43 @@ function permitFor(path, permit) {
 }
 
 /**
- * The emergency contacts page and when it stops being kept, if it is the
- * saved game's own and the time is still to come; otherwise null.
+ * A game-day page (the emergency contacts or the checklist) and when it
+ * stops being kept, if it is the saved game's own and the time is still to
+ * come; otherwise null.
  */
-function emergencyFor(path, emergency, until) {
-  if (path === null || typeof emergency !== "string") return null;
+function dayPageFor(path, page, until, pattern) {
+  if (path === null || typeof page !== "string") return null;
   const game = GAME_PAGE.exec(path)?.[1];
-  const match = EMERGENCY_PAGE.exec(emergency);
+  const match = pattern.exec(page);
   const ends = typeof until === "string" ? Date.parse(until) : NaN;
   if (!match || match[1] !== game || !(ends > Date.now())) return null;
-  return { path: emergency, until: new Date(ends).toISOString() };
+  return { path: page, until: new Date(ends).toISOString() };
 }
 
-/** Whether a saved emergency contacts page is past its time; deletes it if so. */
-async function expiredEmergency(path) {
-  if (!EMERGENCY_PAGE.test(path)) return false;
+/**
+ * Whether a saved game-day page (emergency contacts or checklist) is past
+ * its time; deletes it if so.
+ */
+async function expiredDayPage(path) {
+  const key = EMERGENCY_PAGE.test(path)
+    ? "emergency"
+    : CHECKLIST_PAGE.test(path)
+      ? "checklist"
+      : null;
+  if (key === null) return false;
   const info = await caches.match(NEXT_GAME_INFO, {
     cacheName: NEXT_GAME_CACHE,
   });
   const saved = info ? await info.json().catch(() => null) : null;
   const ends =
-    saved && saved.emergency === path ? Date.parse(saved.emergencyUntil) : NaN;
+    saved && saved[key] === path ? Date.parse(saved.emergencyUntil) : NaN;
   if (ends > Date.now()) return false;
   const games = await caches.open(NEXT_GAME_CACHE);
   await games.delete(path);
-  if (saved && saved.emergency === path) {
+  if (saved && saved[key] === path) {
     const rest = { ...saved };
-    delete rest.emergency;
-    delete rest.emergencyUntil;
+    delete rest[key];
+    if (!rest.emergency && !rest.checklist) delete rest.emergencyUntil;
     await games.put(
       NEXT_GAME_INFO,
       new Response(JSON.stringify(rest), {
@@ -319,7 +344,8 @@ async function page(event) {
     if (
       (GAME_PAGE.test(path) ||
         PERMIT_PAGE.test(path) ||
-        EMERGENCY_PAGE.test(path)) &&
+        EMERGENCY_PAGE.test(path) ||
+        CHECKLIST_PAGE.test(path)) &&
       response.ok &&
       !response.redirected
     )
@@ -327,7 +353,7 @@ async function page(event) {
       event.waitUntil(refreshSavedGame(path, response.clone()));
     return response;
   } catch {
-    const saved = (await expiredEmergency(path))
+    const saved = (await expiredDayPage(path))
       ? undefined
       : await caches.match(path, { cacheName: NEXT_GAME_CACHE });
     if (saved) return withOfflineNote(saved);
@@ -432,7 +458,8 @@ async function refreshShell() {
         saved &&
         (GAME_PAGE.test(path) ||
           PERMIT_PAGE.test(path) ||
-          EMERGENCY_PAGE.test(path))
+          EMERGENCY_PAGE.test(path) ||
+          CHECKLIST_PAGE.test(path))
       )
         for (const asset of assetsIn(await saved.text())) wanted.add(asset);
     }
@@ -487,8 +514,9 @@ async function savePrivatePage(games, path) {
  * page and document are saved too, and with an emergency page, that page
  * and its expiry, both with this person's cookies: the server shows them
  * only to the game's ref and captains, and the contacts only on game day.
+ * A checklist page is saved the same way as the emergency page.
  */
-async function saveForOffline(path, label, permit, emergency) {
+async function saveForOffline(path, label, permit, emergency, checklist) {
   if (path === null) {
     await caches.delete(NEXT_GAME_CACHE);
   } else {
@@ -502,6 +530,9 @@ async function saveForOffline(path, label, permit, emergency) {
       const permitSaved = permit !== null && (await savePermit(games, permit));
       const emergencySaved =
         emergency !== null && (await savePrivatePage(games, emergency.path));
+      const checklistSaved =
+        checklist !== null && (await savePrivatePage(games, checklist.path));
+      const until = emergency?.until ?? checklist?.until;
       await games.put(
         NEXT_GAME_INFO,
         new Response(
@@ -509,8 +540,10 @@ async function saveForOffline(path, label, permit, emergency) {
             path,
             label,
             ...(permitSaved ? { permit } : {}),
-            ...(emergencySaved
-              ? { emergency: emergency.path, emergencyUntil: emergency.until }
+            ...(emergencySaved ? { emergency: emergency.path } : {}),
+            ...(checklistSaved ? { checklist: checklist.path } : {}),
+            ...(emergencySaved || checklistSaved
+              ? { emergencyUntil: until }
               : {}),
           }),
           { headers: { "Content-Type": "application/json" } },

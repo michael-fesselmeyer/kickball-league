@@ -14,6 +14,7 @@ export function OfflineSync({ game }: { game: OfflineGame | null }) {
   const label = game?.label ?? "";
   const permit = game?.permit ?? null;
   const emergency = game?.emergency ?? null;
+  const checklist = game?.checklist ?? null;
   const emergencyUntil = game?.emergencyUntil ?? null;
   useEffect(() => {
     void tellWorker({
@@ -22,9 +23,10 @@ export function OfflineSync({ game }: { game: OfflineGame | null }) {
       label,
       permit,
       emergency,
+      checklist,
       emergencyUntil,
     });
-  }, [path, label, permit, emergency, emergencyUntil]);
+  }, [path, label, permit, emergency, checklist, emergencyUntil]);
   return null;
 }
 

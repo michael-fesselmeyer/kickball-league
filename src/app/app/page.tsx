@@ -433,6 +433,14 @@ async function Account({ searchParams }: PageProps<"/app">) {
           Emergency contacts for today&apos;s game
         </Link>
       )}
+      {emergencyUntil && nextGame && (
+        <Link
+          href={`/app/games/${nextGame.id}/checklist`}
+          className="btn btn-secondary"
+        >
+          Today&apos;s game-day checklist
+        </Link>
+      )}
       {permitShown && nextGame && (
         <Link
           href={`/app/games/${nextGame.id}/permit`}
