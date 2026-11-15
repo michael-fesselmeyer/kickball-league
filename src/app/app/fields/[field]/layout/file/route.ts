@@ -1,7 +1,7 @@
 import { db } from "@/db/client";
 import { fieldLayoutFile, onSetupShift } from "@/db/queries/field-layouts";
 import { can } from "@/domain/authz/permissions";
-import { type FieldId, parseId } from "@/domain/ids";
+import { type FieldId, parseId, type UserId } from "@/domain/ids";
 import { currentSubject } from "@/lib/auth/permission";
 import { privateFileResponse } from "@/lib/books/store-file";
 import { activeLeagueId } from "@/lib/league/active";
@@ -23,11 +23,12 @@ export async function GET(
 ) {
   const subject = await currentSubject();
   const fieldId = parseId<FieldId>((await ctx.params).field);
-  if (!fieldId || !subject.userId) return notFound();
+  const userId = parseId<UserId>(subject.userId);
   const leagueId = await activeLeagueId();
+  if (!fieldId || !userId || !leagueId) return notFound();
   const allowed =
     can(subject, "season.manage") ||
-    (await onSetupShift(db, subject.userId, leagueId, new Date()));
+    (await onSetupShift(db, userId, leagueId, new Date()));
   if (!allowed) return notFound();
   const file = await fieldLayoutFile(db, leagueId, fieldId);
   if (!file) return notFound();
