@@ -119,6 +119,7 @@ const ACTIONS: Record<string, string> = {
   "books.insurance_remove": "Removed an insurance certificate",
   "books.permit_details": "Changed a permit's cost, document or dates",
   "dashboard.export": "Downloaded the owner dashboard numbers",
+  "report_card.export": "Downloaded a season report card",
   "money_summary.publish": "Published a season money summary",
   "money_summary.unpublish": "Took down a season money summary",
   "permit.create": "Added a permit window",
