@@ -366,7 +366,8 @@ export async function dayFields(
         lt(slot.startsAt, until),
       ),
     )
-    .orderBy(asc(slot.startsAt));
+    // Fields with a game at the same time keep one order: by name, then id.
+    .orderBy(asc(slot.startsAt), asc(field.name), asc(field.id));
   const fields = new Map<FieldId, DayField>();
   for (const r of rows) {
     if (localDay(r.startsAt, timeZone) !== date) continue;
