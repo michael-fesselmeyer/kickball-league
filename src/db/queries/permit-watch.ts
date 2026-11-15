@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import type { FieldId, GameId } from "@/domain/ids";
 import {
   type PermitEndRule,
@@ -8,6 +8,7 @@ import {
 import { type GameLimits, gameLimits } from "@/domain/gameday/game-clock";
 import { division, ruleSet } from "../schema/division";
 import { game, slot } from "../schema/game";
+import { gameDayStatus, gameDayStatusGame } from "../schema/game-day";
 import { permitWindow } from "../schema/schedule";
 import { teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
@@ -23,6 +24,11 @@ export type PermitInfo = {
   /** The end of the league's hold on the field for this game's slot. */
   permitEndsAt: Date;
   slotStartsAt: Date;
+  /**
+   * When the game's clock starts: the new start when the day's status
+   * delays it, otherwise the slot's start.
+   */
+  clockStartsAt: Date;
   timeLimitMinutes: number | null;
   innings: number | null;
   rule: PermitEndRule;
@@ -61,6 +67,10 @@ export async function permitInfoFor(
     .leftJoin(ruleSet, eq(division.ruleSetId, ruleSet.id))
     .where(inArray(game.id, [...gameIds]));
   if (rows.length === 0) return out;
+  const delayed = await delayedStarts(
+    db,
+    rows.map((r) => r.id),
+  );
   const fields = [...new Set(rows.map((r) => r.fieldId))] as FieldId[];
   const held = await db
     .select({
@@ -83,12 +93,44 @@ export async function permitInfoFor(
         held.filter((h) => h.fieldId === r.fieldId),
       ),
       slotStartsAt: r.slotStartsAt,
+      clockStartsAt: delayed.get(r.id) ?? r.slotStartsAt,
       timeLimitMinutes: limits.timeLimitMinutes,
       innings: limits.innings,
       rule: permitEndRule(r.options),
     });
   }
   return out;
+}
+
+/**
+ * The new start of each of these games that its day's status delays
+ * (issue #383). A game whose day is Off, On or Watching is left out, and so
+ * is a delay saved for a game day the game has since moved away from: the
+ * new start must fall after the slot's start and within the same day.
+ * One query, whatever the number of games.
+ */
+export async function delayedStarts(
+  db: Db,
+  gameIds: readonly GameId[],
+): Promise<Map<GameId, Date>> {
+  if (gameIds.length === 0) return new Map();
+  const rows = await db
+    .select({ id: game.id, newStartsAt: gameDayStatusGame.newStartsAt })
+    .from(gameDayStatusGame)
+    .innerJoin(gameDayStatus, eq(gameDayStatus.id, gameDayStatusGame.statusId))
+    .innerJoin(game, eq(game.id, gameDayStatusGame.gameId))
+    .innerJoin(slot, eq(slot.id, game.slotId))
+    .where(
+      and(
+        inArray(gameDayStatusGame.gameId, [...gameIds]),
+        eq(gameDayStatus.state, "delayed"),
+        gt(gameDayStatusGame.newStartsAt, slot.startsAt),
+        sql`${gameDayStatusGame.newStartsAt} < ${slot.startsAt} + interval '1 day'`,
+      ),
+    );
+  return new Map(
+    rows.flatMap((r) => (r.newStartsAt ? [[r.id, r.newStartsAt]] : [])),
+  );
 }
 
 /**

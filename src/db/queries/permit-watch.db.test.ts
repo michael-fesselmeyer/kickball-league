@@ -1,12 +1,13 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { division, ruleSet } from "../schema/division";
 import { field, game, slot, venue } from "../schema/game";
+import { gameDayStatus, gameDayStatusGame } from "../schema/game-day";
 import { league } from "../schema/league";
 import { permitWindow } from "../schema/schedule";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
-import { gameLimitsFor, permitInfoFor } from "./permit-watch";
+import { delayedStarts, gameLimitsFor, permitInfoFor } from "./permit-watch";
 import { required } from "./rows";
 import type { Db } from "./schedule";
 
@@ -184,6 +185,7 @@ describe("permit info for a game", () => {
       expect(info).toEqual({
         permitEndsAt: at("03:00", "2026-11-15"),
         slotStartsAt: at("01:00", "2026-11-15"),
+        clockStartsAt: at("01:00", "2026-11-15"),
         timeLimitMinutes: 60,
         innings: 5,
         rule: "last_inning_to_start",
@@ -266,4 +268,71 @@ describe("permit info for a game", () => {
       expect((await permitInfoFor(db, [id])).size).toBe(0);
       expect((await permitInfoFor(db, [])).size).toBe(0);
     }));
+
+  it("starts the clock at a delayed game's new start, not its slot's", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db, { withRules: true });
+      const p = await permit(
+        db,
+        w,
+        w.f1,
+        at("00:00", "2026-11-15"),
+        at("03:00", "2026-11-15"),
+      );
+      const late = await play(db, w, w.f1, p);
+      const other = await permit(
+        db,
+        w,
+        w.f2,
+        at("00:00", "2026-11-15"),
+        at("03:00", "2026-11-15"),
+      );
+      const onTime = await play(db, w, w.f2, other);
+      await delay(db, w.seasonId, late, at("01:45", "2026-11-15"));
+      const info = await permitInfoFor(db, [late, onTime]);
+      expect(info.get(late)?.clockStartsAt).toEqual(at("01:45", "2026-11-15"));
+      expect(info.get(onTime)?.clockStartsAt).toEqual(
+        at("01:00", "2026-11-15"),
+      );
+      expect(await delayedStarts(db, [late, onTime])).toEqual(
+        new Map([[late, at("01:45", "2026-11-15")]]),
+      );
+    }));
+
+  it("ignores a delay once the day is off, and a stale delay for a game moved to another day", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db, { withRules: false });
+      const offGame = await play(db, w, w.f1, null);
+      const moved = await play(db, w, w.f2, null);
+      const [off] = await db
+        .insert(gameDayStatus)
+        .values({ seasonId: w.seasonId, date: "2026-11-14", state: "off" })
+        .returning({ id: gameDayStatus.id });
+      if (!off) throw new Error("no status");
+      await db
+        .insert(gameDayStatusGame)
+        .values({ statusId: off.id, gameId: offGame, newStartsAt: null });
+      // Delayed on an earlier game day, then moved a week later.
+      await delay(db, w.seasonId, moved, at("01:30", "2026-11-08"), "2026-11-07");
+      expect((await delayedStarts(db, [offGame, moved])).size).toBe(0);
+      expect((await delayedStarts(db, [])).size).toBe(0);
+    }));
 });
+
+/** Marks a game's day Delayed, with the game starting at `newStartsAt`. */
+async function delay(
+  db: Db,
+  seasonId: Awaited<ReturnType<typeof world>>["seasonId"],
+  gameId: Awaited<ReturnType<typeof play>>,
+  newStartsAt: Date,
+  date = "2026-11-14",
+) {
+  const [row] = await db
+    .insert(gameDayStatus)
+    .values({ seasonId, date, state: "delayed" })
+    .returning({ id: gameDayStatus.id });
+  if (!row) throw new Error("no status");
+  await db
+    .insert(gameDayStatusGame)
+    .values({ statusId: row.id, gameId, newStartsAt });
+}

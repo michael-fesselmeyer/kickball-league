@@ -166,8 +166,9 @@ describe("commandState", () => {
   });
 
   describe("permit end", () => {
-    const permit = (endsAt: Date) => ({
+    const permit = (endsAt: Date, clockStartsAt = KICKOFF) => ({
       permitEndsAt: endsAt,
+      clockStartsAt,
       timeLimitMinutes: 75,
       innings: 7,
       rule: "call_at_last_complete" as const,
@@ -203,6 +204,26 @@ describe("commandState", () => {
       // A game with no permit window saved says nothing.
       expect(state.games[1]?.permit).toBeNull();
       expect(state.counts.pastPermit).toBe(1);
+    });
+
+    it("runs a delayed game's time limit from its new start", () => {
+      // The permit ends 90 minutes after the slot's start. On time, the
+      // 75-minute limit fits; delayed 30 minutes, it runs past the permit.
+      const onTime = commandState(
+        [live({ permit: permit(minutes(90)) })],
+        "2026-11-14",
+        minutes(40),
+      );
+      expect(onTime.games[0]?.permit?.level).toBe("ok");
+      const delayed = commandState(
+        [live({ permit: permit(minutes(90), minutes(30)) })],
+        "2026-11-14",
+        minutes(40),
+      );
+      expect(delayed.games[0]?.permit).toMatchObject({
+        level: "watch",
+        reason: "time_limit",
+      });
     });
 
     it("says nothing about a game not started, final or called off", () => {
