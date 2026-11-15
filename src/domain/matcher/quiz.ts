@@ -3,11 +3,39 @@ import { err, ok, type Result } from "../result";
 
 /**
  * The free-agent quiz (roadmap section 4, milestone 5; product-spec.md,
- * "Free agent"): five one-tap questions and an optional note, so it takes
- * well under two minutes. The answers feed the matcher; the scores are kept
- * beside them so admins can sort and compare at a glance.
+ * "Free agent"): a quick self-assessment of five one-tap questions and an
+ * optional note. Players rate their own kicking, fielding and running, say
+ * how competitive they are and how many game nights they can make. The
+ * answers feed the matcher; the scores are kept beside them so admins can
+ * sort and compare at a glance.
+ *
+ * Answers saved by the first version of the quiz (experience, positions and
+ * captaining) still read back, so a player who took it keeps their match.
  */
 
+/** How a player rates one of their skills. */
+export const RATINGS = ["learning", "solid", "strong"] as const;
+/** The skills a player rates, in the order the quiz asks. */
+export const SKILLS = ["kicking", "fielding", "running"] as const;
+export const AVAILABILITY = ["every_week", "most_weeks", "some_weeks"] as const;
+export const VIBES = ["social", "both", "competitive"] as const;
+
+export type Rating = (typeof RATINGS)[number];
+export type Skill = (typeof SKILLS)[number];
+export type Availability = (typeof AVAILABILITY)[number];
+export type Vibe = (typeof VIBES)[number];
+
+/** The quiz's answers, as saved now. */
+export type QuizAnswers = {
+  version: 2;
+  kicking: Rating;
+  fielding: Rating;
+  running: Rating;
+  vibe: Vibe;
+  availability: Availability;
+};
+
+/** The first version's answers, still stored for players who took it. */
 export const EXPERIENCE = [
   "new",
   "a_little",
@@ -16,17 +44,12 @@ export const EXPERIENCE = [
   "competitive",
 ] as const;
 export const POSITIONS = ["pitcher", "catcher", "infield", "outfield"] as const;
-export const AVAILABILITY = ["every_week", "most_weeks", "some_weeks"] as const;
-export const VIBES = ["social", "both", "competitive"] as const;
 export const CAPTAIN = ["yes", "help", "no"] as const;
-
 export type Experience = (typeof EXPERIENCE)[number];
 export type Position = (typeof POSITIONS)[number];
-export type Availability = (typeof AVAILABILITY)[number];
-export type Vibe = (typeof VIBES)[number];
 export type CaptainAnswer = (typeof CAPTAIN)[number];
 
-export type QuizAnswers = {
+export type LegacyQuizAnswers = {
   version: 1;
   experience: Experience;
   /** Empty means "anywhere". */
@@ -36,28 +59,28 @@ export type QuizAnswers = {
   captain: CaptainAnswer;
 };
 
+/** Whatever a stored row holds: this version's answers or the first's. */
+export type StoredQuizAnswers = QuizAnswers | LegacyQuizAnswers;
+
 type Choice<T extends string> = { value: T; label: string };
+
+const RATING_CHOICES: readonly Choice<Rating>[] = [
+  { value: "learning", label: "Still learning" },
+  { value: "solid", label: "Solid" },
+  { value: "strong", label: "A strength" },
+];
 
 /** The questions in order, with the words players see. */
 export const QUESTIONS = {
-  experience: {
-    title: "How much kickball have you played?",
+  kicking: { title: "How's your kicking?", choices: RATING_CHOICES },
+  fielding: { title: "How's your fielding?", choices: RATING_CHOICES },
+  running: { title: "How's your running?", choices: RATING_CHOICES },
+  vibe: {
+    title: "Competitive, or here for fun?",
     choices: [
-      { value: "new", label: "Not since recess" },
-      { value: "a_little", label: "A game or two" },
-      { value: "some", label: "A season or two" },
-      { value: "regular", label: "I play most seasons" },
-      { value: "competitive", label: "I've played competitively" },
-    ],
-  },
-  positions: {
-    title: "Where do you like to play?",
-    hint: "Pick any. Skip it if you'll play anywhere.",
-    choices: [
-      { value: "pitcher", label: "Pitcher" },
-      { value: "catcher", label: "Catcher" },
-      { value: "infield", label: "Infield" },
-      { value: "outfield", label: "Outfield" },
+      { value: "social", label: "Here for fun" },
+      { value: "both", label: "Fun, but I like to win" },
+      { value: "competitive", label: "Competitive" },
     ],
   },
   availability: {
@@ -68,37 +91,49 @@ export const QUESTIONS = {
       { value: "some_weeks", label: "About half" },
     ],
   },
-  vibe: {
-    title: "What are you here for?",
-    choices: [
-      { value: "social", label: "New friends and a good time" },
-      { value: "both", label: "Fun first, but I'd like to win some" },
-      { value: "competitive", label: "Here to win it all" },
-    ],
+} as const satisfies Record<
+  Skill,
+  { title: string; choices: readonly Choice<Rating>[] }
+> & {
+  vibe: { title: string; choices: readonly Choice<Vibe>[] };
+  availability: { title: string; choices: readonly Choice<Availability>[] };
+};
+
+/** The first version's words, for answers saved before the self-rating. */
+const LEGACY_LABELS: Record<
+  "experience" | "positions" | "captain",
+  Record<string, string>
+> = {
+  experience: {
+    new: "Not since recess",
+    a_little: "A game or two",
+    some: "A season or two",
+    regular: "Plays most seasons",
+    competitive: "Has played competitively",
+  },
+  positions: {
+    pitcher: "Pitcher",
+    catcher: "Catcher",
+    infield: "Infield",
+    outfield: "Outfield",
   },
   captain: {
-    title: "Would you captain a team made of free agents?",
-    choices: [
-      { value: "yes", label: "Sure, I'll captain" },
-      { value: "help", label: "I'd help a captain" },
-      { value: "no", label: "I just want to play" },
-    ],
+    yes: "Will captain",
+    help: "Would help a captain",
+    no: "Just wants to play",
   },
-} as const satisfies {
-  experience: { title: string; choices: readonly Choice<Experience>[] };
-  positions: {
-    title: string;
-    hint: string;
-    choices: readonly Choice<Position>[];
-  };
-  availability: { title: string; choices: readonly Choice<Availability>[] };
-  vibe: { title: string; choices: readonly Choice<Vibe>[] };
-  captain: { title: string; choices: readonly Choice<CaptainAnswer>[] };
 };
 
 export const NOTES_MAX = 200;
 
-/** 1 (new) to 5 (has played competitively). */
+/** A self-rating as a point on the 1 to 5 skill scale. */
+export const RATING_SCORE: Record<Rating, number> = {
+  learning: 1,
+  solid: 3,
+  strong: 5,
+};
+
+/** The first version's experience on the same 1 to 5 scale. */
 export const SKILL_SCORE: Record<Experience, number> = {
   new: 1,
   a_little: 2,
@@ -121,27 +156,54 @@ export const TURNOUT: Record<Availability, number> = {
   some_weeks: 0.5,
 };
 
+/** The skill score: the three self-ratings averaged, 1 to 5. */
+export function skillScore(answers: Pick<QuizAnswers, Skill>): number {
+  const total = SKILLS.reduce((sum, s) => sum + RATING_SCORE[answers[s]], 0);
+  return Math.round(total / SKILLS.length);
+}
+
 export function vibeLabel(score: number): string {
   if (score <= 2) return "mostly social";
   if (score < 4) return "fun with a little competition";
   return "here to win";
 }
 
-export function labelOf<K extends keyof typeof QUESTIONS>(
-  question: K,
+/** An answer in the words players see, this version's or the first's. */
+export function labelOf(
+  question: keyof typeof QUESTIONS | keyof typeof LEGACY_LABELS,
   value: string,
 ): string {
-  const found = (QUESTIONS[question].choices as readonly Choice<string>[]).find(
-    (c) => c.value === value,
-  );
+  if (question in LEGACY_LABELS)
+    return (
+      LEGACY_LABELS[question as keyof typeof LEGACY_LABELS][value] ?? value
+    );
+  const found = (
+    QUESTIONS[question as keyof typeof QUESTIONS]
+      .choices as readonly Choice<string>[]
+  ).find((c) => c.value === value);
   return found?.label ?? value;
 }
 
+/** How a player rates themselves, in one line for admins. */
+export function selfRating(answers: StoredQuizAnswers): string {
+  if (answers.version === 1) {
+    const played = labelOf("experience", answers.experience);
+    const positions = answers.positions.map((p) => labelOf("positions", p));
+    return positions.length > 0
+      ? `${played} (${positions.join(", ")})`
+      : played;
+  }
+  return SKILLS.map(
+    (s) => `${s[0]?.toUpperCase()}${s.slice(1)}: ${labelOf(s, answers[s])}`,
+  ).join(" · ");
+}
+
 export type QuizError =
-  | "missing_experience"
-  | "missing_availability"
+  | "missing_kicking"
+  | "missing_fielding"
+  | "missing_running"
   | "missing_vibe"
-  | "missing_captain"
+  | "missing_availability"
   | "notes_too_long";
 
 export type ParsedQuiz = {
@@ -152,55 +214,86 @@ export type ParsedQuiz = {
   notes: string | null;
 };
 
-/**
- * Reads the quiz from submitted fields. `positions` may repeat; unknown
- * values are dropped rather than refused, so a stale form still saves.
- */
+const pick = <const O extends readonly string[]>(v: unknown, options: O) =>
+  isOneOf(options, v) ? v : null;
+
+/** Reads the quiz from submitted fields. */
 export function parseQuiz(fields: {
-  experience?: unknown;
-  positions?: readonly unknown[];
-  availability?: unknown;
+  kicking?: unknown;
+  fielding?: unknown;
+  running?: unknown;
   vibe?: unknown;
-  captain?: unknown;
+  availability?: unknown;
   notes?: unknown;
 }): Result<ParsedQuiz, QuizError> {
-  const pick = <const O extends readonly string[]>(v: unknown, options: O) =>
-    isOneOf(options, v) ? v : null;
-  const experience = pick(fields.experience, EXPERIENCE);
-  if (!experience) return err("missing_experience");
-  const availability = pick(fields.availability, AVAILABILITY);
-  if (!availability) return err("missing_availability");
+  const kicking = pick(fields.kicking, RATINGS);
+  if (!kicking) return err("missing_kicking");
+  const fielding = pick(fields.fielding, RATINGS);
+  if (!fielding) return err("missing_fielding");
+  const running = pick(fields.running, RATINGS);
+  if (!running) return err("missing_running");
   const vibe = pick(fields.vibe, VIBES);
   if (!vibe) return err("missing_vibe");
-  const captain = pick(fields.captain, CAPTAIN);
-  if (!captain) return err("missing_captain");
+  const availability = pick(fields.availability, AVAILABILITY);
+  if (!availability) return err("missing_availability");
   const notes =
     typeof fields.notes === "string"
       ? fields.notes.trim().replace(/\s+/g, " ")
       : "";
   if (notes.length > NOTES_MAX) return err("notes_too_long");
-  const positions = POSITIONS.filter((p) =>
-    (fields.positions ?? []).includes(p),
-  );
+  const answers: QuizAnswers = {
+    version: 2,
+    kicking,
+    fielding,
+    running,
+    vibe,
+    availability,
+  };
   return ok({
-    answers: { version: 1, experience, positions, availability, vibe, captain },
-    skillScore: SKILL_SCORE[experience],
+    answers,
+    skillScore: skillScore(answers),
     vibeScore: VIBE_SCORE[vibe],
-    wouldCaptain: captain === "yes",
+    // Captains come from the admin's pick now; the quiz no longer asks.
+    wouldCaptain: false,
     notes: notes || null,
   });
 }
 
-/** Reads stored answers back, tolerating rows written by older versions. */
-export function readAnswers(raw: unknown): QuizAnswers | null {
+/** The first version's answers, or null if they aren't whole. */
+function readLegacy(r: Record<string, unknown>): LegacyQuizAnswers | null {
+  const experience = pick(r.experience, EXPERIENCE);
+  const availability = pick(r.availability, AVAILABILITY);
+  const vibe = pick(r.vibe, VIBES);
+  const captain = pick(r.captain, CAPTAIN);
+  if (!experience || !availability || !vibe || !captain) return null;
+  const raw = Array.isArray(r.positions) ? (r.positions as unknown[]) : [];
+  const positions = POSITIONS.filter((p) => raw.includes(p));
+  return { version: 1, experience, positions, availability, vibe, captain };
+}
+
+/** Reads stored answers back, from either version of the quiz. */
+export function readAnswers(raw: unknown): StoredQuizAnswers | null {
   if (typeof raw !== "object" || raw === null) return null;
   const r = raw as Record<string, unknown>;
-  const parsed = parseQuiz({
-    experience: r.experience,
-    positions: Array.isArray(r.positions) ? r.positions : [],
-    availability: r.availability,
-    vibe: r.vibe,
-    captain: r.captain,
-  });
-  return parsed.ok ? parsed.value.answers : null;
+  if (r.version === 2) {
+    const parsed = parseQuiz(r);
+    return parsed.ok ? parsed.value.answers : null;
+  }
+  return readLegacy(r);
+}
+
+/** What the matcher reads from stored answers. */
+export function matcherView(answers: StoredQuizAnswers | null): {
+  availability: Availability | null;
+  positions: readonly Position[];
+  captain: CaptainAnswer | null;
+} {
+  if (!answers) return { availability: null, positions: [], captain: null };
+  return answers.version === 1
+    ? {
+        availability: answers.availability,
+        positions: answers.positions,
+        captain: answers.captain,
+      }
+    : { availability: answers.availability, positions: [], captain: null };
 }

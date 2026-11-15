@@ -41,11 +41,11 @@ function rolls(...values: number[]) {
 
 const quiz = (over: Record<string, unknown> = {}) => {
   const parsed = parseQuiz({
-    experience: "some",
-    positions: ["pitcher"],
-    availability: "every_week",
+    kicking: "solid",
+    fielding: "solid",
+    running: "solid",
     vibe: "social",
-    captain: "no",
+    availability: "every_week",
     ...over,
   });
   if (!parsed.ok) throw new Error(parsed.error);
@@ -161,19 +161,53 @@ describe("the quiz", () => {
       });
       await saveQuiz(db, {
         ...input,
-        quiz: quiz({ vibe: "competitive", captain: "yes" }),
+        quiz: quiz({ vibe: "competitive", kicking: "strong" }),
       });
       const [row] = await db
         .select()
         .from(freeAgentProfile)
         .where(eq(freeAgentProfile.registrationId, w.reg.ana));
       expect(row).toMatchObject({
-        skillScore: 3,
+        skillScore: 4,
         vibeScore: 5,
-        wouldCaptain: true,
+        wouldCaptain: false,
       });
       expect((await myQuiz(db, w.season.id, w.ana))?.answers).toMatchObject({
+        version: 2,
+        kicking: "strong",
         vibe: "competitive",
+      });
+    });
+  });
+
+  it("still reads answers saved by the quiz's first version", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const legacy = {
+        version: 1 as const,
+        experience: "regular" as const,
+        positions: ["pitcher" as const],
+        availability: "most_weeks" as const,
+        vibe: "both" as const,
+        captain: "yes" as const,
+      };
+      await db.insert(freeAgentProfile).values({
+        registrationId: w.reg.ana,
+        answers: legacy,
+        skillScore: 4,
+        vibeScore: 3,
+        wouldCaptain: true,
+      });
+      expect((await myQuiz(db, w.season.id, w.ana))?.answers).toEqual(legacy);
+      const ana = (await matcherInput(db, w.season.id))?.pool.find(
+        (p) => p.registrationId === w.reg.ana,
+      );
+      expect(ana).toMatchObject({
+        skill: 4,
+        vibe: 3,
+        availability: "most_weeks",
+        positions: ["pitcher"],
+        captain: "yes",
       });
     });
   });

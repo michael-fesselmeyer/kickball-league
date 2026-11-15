@@ -8,43 +8,63 @@ import {
   newFriendCode,
   normalizeFriendCode,
 } from "./friend-code";
-import { labelOf, parseQuiz, QUESTIONS, readAnswers } from "./quiz";
+import {
+  labelOf,
+  matcherView,
+  parseQuiz,
+  QUESTIONS,
+  RATINGS,
+  readAnswers,
+  selfRating,
+  skillScore,
+} from "./quiz";
 
 const complete = {
-  experience: "some",
-  positions: ["outfield", "pitcher", "goalie"],
-  availability: "most_weeks",
+  kicking: "strong",
+  fielding: "solid",
+  running: "learning",
   vibe: "social",
-  captain: "yes",
+  availability: "most_weeks",
   notes: "  Lefty   kicker ",
 };
 
+/** A row saved by the quiz's first version. */
+const legacy = {
+  version: 1,
+  experience: "some",
+  positions: ["outfield", "pitcher"],
+  availability: "every_week",
+  vibe: "both",
+  captain: "yes",
+};
+
 describe("parseQuiz", () => {
-  it("scores the answers and keeps positions in a fixed order", () => {
+  it("scores the self-ratings and the vibe", () => {
     expect(parseQuiz(complete)).toEqual({
       ok: true,
       value: {
         answers: {
-          version: 1,
-          experience: "some",
-          positions: ["pitcher", "outfield"],
-          availability: "most_weeks",
+          version: 2,
+          kicking: "strong",
+          fielding: "solid",
+          running: "learning",
           vibe: "social",
-          captain: "yes",
+          availability: "most_weeks",
         },
         skillScore: 3,
         vibeScore: 1,
-        wouldCaptain: true,
+        wouldCaptain: false,
         notes: "Lefty kicker",
       },
     });
   });
 
   it.each([
-    ["experience", "missing_experience"],
-    ["availability", "missing_availability"],
+    ["kicking", "missing_kicking"],
+    ["fielding", "missing_fielding"],
+    ["running", "missing_running"],
     ["vibe", "missing_vibe"],
-    ["captain", "missing_captain"],
+    ["availability", "missing_availability"],
   ])("asks for %s", (field, error) => {
     expect(parseQuiz({ ...complete, [field]: "nope" })).toEqual({
       ok: false,
@@ -62,23 +82,95 @@ describe("parseQuiz", () => {
     });
   });
 
-  it("stays short enough for under two minutes", () => {
-    expect(Object.keys(QUESTIONS)).toHaveLength(5);
+  it("is five quick taps", () => {
+    expect(Object.keys(QUESTIONS)).toEqual([
+      "kicking",
+      "fielding",
+      "running",
+      "vibe",
+      "availability",
+    ]);
     for (const q of Object.values(QUESTIONS))
-      expect(q.choices.length).toBeLessThanOrEqual(5);
+      expect(q.choices.length).toBeLessThanOrEqual(3);
   });
 
-  it("reads stored answers back, and refuses junk", () => {
+  it("keeps the skill score on the 1 to 5 scale, rising with each rating", () => {
+    const rating = fc.constantFrom(...RATINGS);
+    fc.assert(
+      fc.property(rating, rating, rating, (kicking, fielding, running) => {
+        const score = skillScore({ kicking, fielding, running });
+        expect(score).toBeGreaterThanOrEqual(1);
+        expect(score).toBeLessThanOrEqual(5);
+        expect(
+          skillScore({ kicking: "strong", fielding, running }),
+        ).toBeGreaterThanOrEqual(score);
+      }),
+    );
+    expect(
+      skillScore({
+        kicking: "learning",
+        fielding: "learning",
+        running: "learning",
+      }),
+    ).toBe(1);
+    expect(
+      skillScore({ kicking: "strong", fielding: "strong", running: "strong" }),
+    ).toBe(5);
+  });
+});
+
+describe("stored answers", () => {
+  it("reads this version's answers back, and refuses junk", () => {
     const parsed = parseQuiz(complete);
     if (!parsed.ok) throw new Error("expected a parse");
     expect(readAnswers(parsed.value.answers)).toEqual(parsed.value.answers);
+    expect(readAnswers({ version: 2, kicking: "x" })).toBeNull();
     expect(readAnswers({ experience: "x" })).toBeNull();
     expect(readAnswers(null)).toBeNull();
   });
 
+  it("still reads the first version's, positions in a fixed order", () => {
+    expect(readAnswers(legacy)).toEqual({
+      ...legacy,
+      positions: ["pitcher", "outfield"],
+    });
+    // Rows from before the version field read the same way.
+    expect(readAnswers({ ...legacy, version: undefined })?.version).toBe(1);
+  });
+
+  it("gives the matcher positions and captaining only from the first version", () => {
+    const parsed = parseQuiz(complete);
+    if (!parsed.ok) throw new Error("expected a parse");
+    expect(matcherView(parsed.value.answers)).toEqual({
+      availability: "most_weeks",
+      positions: [],
+      captain: null,
+    });
+    expect(matcherView(readAnswers(legacy))).toEqual({
+      availability: "every_week",
+      positions: ["pitcher", "outfield"],
+      captain: "yes",
+    });
+    expect(matcherView(null)).toEqual({
+      availability: null,
+      positions: [],
+      captain: null,
+    });
+  });
+
   it("labels answers in the players' words", () => {
-    expect(labelOf("vibe", "competitive")).toBe("Here to win it all");
+    expect(labelOf("vibe", "competitive")).toBe("Competitive");
+    expect(labelOf("kicking", "strong")).toBe("A strength");
+    expect(labelOf("experience", "some")).toBe("A season or two");
     expect(labelOf("vibe", "unknown")).toBe("unknown");
+    const parsed = parseQuiz(complete);
+    if (!parsed.ok) throw new Error("expected a parse");
+    expect(selfRating(parsed.value.answers)).toBe(
+      "Kicking: A strength · Fielding: Solid · Running: Still learning",
+    );
+    const old = readAnswers(legacy);
+    if (!old) throw new Error("expected answers");
+    expect(selfRating(old)).toBe("A season or two (Pitcher, Outfield)");
   });
 });
 
