@@ -28,8 +28,11 @@ describe("sealing", () => {
     expect(
       unseal(sealed, { ...at, secret: "another-unit-test-secret-000000002" }),
     ).toBeNull();
-    const [v, iv, tag, body] = sealed.split(".");
-    expect(unseal([v, iv, tag, `A${body?.slice(1)}`].join("."), at)).toBeNull();
+    const [v, iv, tag, body = ""] = sealed.split(".");
+    // Change the first character for certain: a body that already starts
+    // with "A" (1 time in 64) would otherwise be left as it was, and open.
+    const altered = `${body.startsWith("A") ? "B" : "A"}${body.slice(1)}`;
+    expect(unseal([v, iv, tag, altered].join("."), at)).toBeNull();
     expect(unseal("v2.a.b.c", at)).toBeNull();
     expect(unseal("not sealed", at)).toBeNull();
   });
