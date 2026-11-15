@@ -561,6 +561,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "dashboard.view",
       "money_summary.publish",
       "checklist.template",
+      "rulebook.manage",
     ] as const)
       expect(allowed(action)).toEqual(["owner"]);
   });

@@ -7,6 +7,7 @@ import { db } from "@/db/client";
 import { currentRules, ruleChanges, rulesVersion } from "@/db/queries/rules";
 import { localDate } from "@/domain/books/ledger-csv";
 import { earliestWithNotice } from "@/domain/rules/rules";
+import { can } from "@/domain/authz/permissions";
 import { requirePermission } from "@/lib/auth/permission";
 import { leagueHref } from "@/domain/league/paths";
 import { activeLeague } from "@/lib/league/active";
@@ -34,7 +35,10 @@ const dayLabel = (on: string) =>
 
 async function Rules({ searchParams }: PageProps<"/app/admin/rules">) {
   const query = await searchParams;
-  await requirePermission("rules.manage", { next: "/app/admin/rules" });
+  const subject = await requirePermission("rules.manage", {
+    next: "/app/admin/rules",
+  });
+  const isOwner = can(subject, "rulebook.manage", {});
   const league = await activeLeague();
   if (!league) notFound();
   const [sections, changes, version] = await Promise.all([
@@ -63,6 +67,13 @@ async function Rules({ searchParams }: PageProps<"/app/admin/rules">) {
           from its rule set.
         </p>
       </header>
+      {isOwner && (
+        <p>
+          <Link href="/app/admin/rules/rulebook" className="font-bold underline">
+            Import the rulebook and choose who can read it
+          </Link>
+        </p>
+      )}
       {query.published === "1" && (
         <p role="status" className="rounded-lg border border-success p-3">
           Published.

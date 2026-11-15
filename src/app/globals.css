@@ -336,3 +336,9 @@ button[data-pending] {
     scroll-behavior: auto !important;
   }
 }
+
+/* The words a rulebook search matched, in the rule it jumped to. */
+::highlight(rule-match) {
+  background-color: Mark;
+  color: MarkText;
+}
