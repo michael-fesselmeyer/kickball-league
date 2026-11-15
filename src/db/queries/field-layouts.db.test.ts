@@ -160,6 +160,15 @@ describe("setting a field's layout", () => {
       expect(await db.select().from(booksFile)).toHaveLength(0);
     }));
 
+  it("puts a field back to no answer when 'no layout needed' is unticked", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const base = { leagueId: w.lg, fieldId: w.f1, file: null, note: null };
+      await setFieldLayout(db, { ...base, noLayoutNeeded: true }, w.admin);
+      await setFieldLayout(db, { ...base, noLayoutNeeded: false }, w.admin);
+      expect((await layoutsOf(db, [w.f1])).get(w.f1)?.state).toBe("missing");
+    }));
+
   it("refuses a note for a field with no layout and no answer", () =>
     inRolledBackDb(async (db) => {
       const w = await world(db);
