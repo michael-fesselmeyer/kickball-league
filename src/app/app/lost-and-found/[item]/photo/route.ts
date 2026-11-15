@@ -1,5 +1,6 @@
 import { db } from "@/db/client";
 import { lostFoundPhoto } from "@/db/queries/lost-found";
+import { can } from "@/domain/authz/permissions";
 import { type LostFoundItemId, parseId } from "@/domain/ids";
 import { currentSubject } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";
@@ -30,6 +31,12 @@ export async function GET(
     id ? lostFoundPhoto(db, id, size) : null,
     activeLeague(),
   ]);
-  if (!subject.userId || !photo || photo.leagueId !== league?.id) return gone();
+  if (
+    !photo ||
+    photo.leagueId !== league?.id ||
+    !can(subject, "lost_found.use", { leagueId: photo.leagueId })
+  ) {
+    return gone();
+  }
   return imageResponse(photo, "private, no-store");
 }
