@@ -8,6 +8,7 @@ vi.mock("@/lib/platform/site", () => ({
   siteForProxy: async () => ({
     leagueId: "league",
     name: "Test League",
+    slug: "demo-league",
     status: site.status,
     disabledFeatures: [],
   }),
@@ -24,6 +25,25 @@ const request = (path: string, cookie?: string) =>
   );
 
 describe("proxy", () => {
+  it("redirects the default league's slug to the site's own address, over HTTP", async () => {
+    for (const [path, target] of [
+      ["/l/demo-league/records", "/records"],
+      ["/l/demo-league", "/"],
+      ["/l/demo-league/seasons/fall-2026?x=1", "/seasons/fall-2026?x=1"],
+    ] as const) {
+      const response = await proxy(request(path));
+      expect(response.status, path).toBe(308);
+      const location = new URL(response.headers.get("location")!);
+      expect(`${location.pathname}${location.search}`, path).toBe(target);
+    }
+  });
+
+  it("serves another league's pages as they are", async () => {
+    const response = await proxy(request("/l/football/records"));
+    expect(response.headers.get("location")).toBeNull();
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
   it("sends a signed-out visitor to sign-in, remembering where they were going", async () => {
     const response = await proxy(request("/app/teams?season=spring"));
     expect(response.status).toBe(307);

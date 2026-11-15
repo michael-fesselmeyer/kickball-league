@@ -26,6 +26,8 @@ import type { Db } from "./schedule";
 export type SiteSettings = {
   leagueId: LeagueId;
   name: string;
+  /** The default league's slug, for the proxy's redirect. */
+  slug: string;
   status: SiteStatus;
   disabledFeatures: string[];
 };
@@ -39,6 +41,7 @@ export async function siteSettings(db: Db): Promise<SiteSettings | null> {
     .select({
       leagueId: league.id,
       name: league.name,
+      slug: league.slug,
       status: league.siteStatus,
       disabledFeatures: league.disabledFeatures,
     })
