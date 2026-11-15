@@ -82,6 +82,7 @@ export async function submitScoreAction(
         ? "captain"
         : "referee";
   const innings = number(form, "inningsPlayed");
+  const reason = form.get("reason");
   const result = await txDb.transaction((tx) =>
     reportScore(tx, {
       gameId: g.id,
@@ -94,6 +95,7 @@ export async function submitScoreAction(
         scoreB: number(form, "scoreB"),
         inningsPlayed: Number.isNaN(innings) ? null : innings,
       },
+      reason: typeof reason === "string" ? reason : null,
       clientId: clientId.slice(0, 64),
       now: new Date(),
     }),
@@ -102,8 +104,9 @@ export async function submitScoreAction(
     redirect(
       `${page}?error=${typeof result.error === "string" ? result.error : result.error.scoreB === PLAYOFF_TIE ? "playoff_tie" : "invalid"}`,
     );
-  // An admin's score is final at once; anyone's shows as reported, and the
-  // captains who can confirm it are told.
+  // An admin's score is final at once, and a ruling tells both captains and
+  // the ref; anyone's shows as reported, and the captains who can confirm it
+  // are told.
   refreshSeasonPages(g.seasonId);
   updateTag(gameTag(g.id));
   sendQueuedSoon();

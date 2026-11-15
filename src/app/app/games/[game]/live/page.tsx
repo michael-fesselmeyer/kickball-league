@@ -41,6 +41,8 @@ const ERRORS: Record<string, string> = {
   too_many_runs: "A team can’t have more than 99 runs in a game.",
   not_started: "This game hasn’t started yet.",
   already_final: "This game is final. Ask an admin to correct it.",
+  reason_needed:
+    "This game already has a score. To change it, set the score from the score page, with a reason.",
   no_kicks_first: "Choose who kicks first.",
   no_innings: "Enter at least one inning first.",
   too_few_innings: `A game called before ${MIN_CALLED_INNINGS} complete innings doesn’t count. If the weather stopped it, tell an admin it’s a rain-out.`,
