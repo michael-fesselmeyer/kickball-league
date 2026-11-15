@@ -1,6 +1,9 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import { acceptPrivateEvent, requestPrivateEvent } from "@/db/queries/private-events";
+import {
+  acceptPrivateEvent,
+  requestPrivateEvent,
+} from "@/db/queries/private-events";
 import { privateEvent } from "@/db/schema/private-event";
 import { season } from "@/db/schema/season";
 import { leagueWorld, NOW } from "@/db/test/league-world";

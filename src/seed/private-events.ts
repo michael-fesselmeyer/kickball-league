@@ -18,7 +18,9 @@ export async function removeSeedPrivateEvents(
     .delete(privateEvent)
     .where(
       or(
-        leagueIds.length ? inArray(privateEvent.leagueId, leagueIds) : undefined,
+        leagueIds.length
+          ? inArray(privateEvent.leagueId, leagueIds)
+          : undefined,
         userIds.length ? inArray(privateEvent.organizerId, userIds) : undefined,
       ),
     );
