@@ -2,7 +2,7 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LiveSnapshot } from "@/domain/scores/live";
-import { LineScore } from "./line-score";
+import { LineScore, LiveLine } from "./line-score";
 import { LiveScore } from "./live-score";
 
 const NOW = new Date("2026-09-13T23:30:00Z");
@@ -159,5 +159,34 @@ describe("a page copy from before the score", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(container.innerHTML).toBe("");
+  });
+});
+
+describe("LiveLine", () => {
+  it("marks the innings unofficial while the game is on", () => {
+    render(<LiveLine teamA="Reds" teamB="Blues" snapshot={ON} />);
+    expect(screen.getByText("Unofficial until final.")).toBeTruthy();
+    expect(screen.queryByText(/Thanks to whoever kept score/)).toBeNull();
+  });
+
+  it("stays unofficial while a reported score waits for confirmation", () => {
+    render(
+      <LiveLine
+        teamA="Reds"
+        teamB="Blues"
+        snapshot={{
+          ...ON,
+          reported: true,
+          pending: { scoreA: 2, scoreB: 1, inningsPlayed: null },
+        }}
+      />,
+    );
+    expect(screen.getByText("Unofficial until final.")).toBeTruthy();
+  });
+
+  it("thanks the scorer once the score is final", () => {
+    render(<LiveLine teamA="Reds" teamB="Blues" snapshot={FINAL} />);
+    expect(screen.queryByText("Unofficial until final.")).toBeNull();
+    expect(screen.getByText(/Thanks to whoever kept score/)).toBeTruthy();
   });
 });
