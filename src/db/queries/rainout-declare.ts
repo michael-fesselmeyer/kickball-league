@@ -4,6 +4,7 @@ import { type Result, err, ok } from "@/domain/result";
 import { reschedule } from "@/domain/scheduler/reschedule";
 import { scheduleVersion } from "../schema/schedule";
 import { recordAudit } from "./audit";
+import { settleDayOnRainout } from "./game-day-status";
 import { cancelOpenSlots } from "./rainout-decision";
 import {
   type Db,
@@ -31,6 +32,7 @@ export async function declareRainout(
     seasonId: SeasonId;
     date: string;
     actorId: UserId;
+    now?: Date;
   },
 ): Promise<Result<ScheduleVersionId, DeclareRainoutError>> {
   await lockSchedulePublish(db, input.seasonId);
@@ -89,6 +91,14 @@ export async function declareRainout(
       draftVersionId: id,
       builtOn: base.id,
     },
+  });
+  // A watch or delay on this day gives way to the rain-out.
+  await settleDayOnRainout(db, {
+    seasonId: input.seasonId,
+    date: input.date,
+    slotIds: cancelled,
+    actorId: input.actorId,
+    now: input.now ?? new Date(),
   });
   return ok(id);
 }

@@ -11,7 +11,12 @@ import { message, notificationPreference } from "../schema/message";
 import { gamePlacement, scheduleVersion } from "../schema/schedule";
 import { messagingWorld } from "../test/messaging-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
-import { dayGames, setDayStatus, statusesFrom } from "./game-day-status";
+import {
+  dayGames,
+  setDayStatus,
+  settleDayOnRainout,
+  statusesFrom,
+} from "./game-day-status";
 import { drainOutbox } from "./outbox";
 import { required } from "./rows";
 import type { Db } from "./schedule";
@@ -262,6 +267,73 @@ describe("a game day's status", () => {
           (m) => m.status === "suppressed",
         ),
       ).toBe(true);
+    });
+  });
+
+  it("turns a watch into Off when the day is rained out, without the decision reminder or a second notice", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await dayWorld(db);
+      await save(db, w, {
+        state: "watching",
+        decideBy: edt(15),
+        reason: "Storms",
+        games: new Map(),
+      });
+      const statusId = required(
+        (await statusesFrom(db, w.season.id, DATE)).get(DATE),
+        "status",
+      ).id;
+      const settled = await settleDayOnRainout(db, {
+        seasonId: w.season.id,
+        date: DATE,
+        slotIds: [w.early.slotId, w.late.slotId],
+        actorId: w.admin.userId,
+        now: edt(14),
+      });
+      expect(settled).toBe(true);
+      const after = required(
+        (await statusesFrom(db, w.season.id, DATE)).get(DATE),
+        "status",
+      );
+      expect(after.state).toBe("off");
+      expect(after.decideBy).toBeNull();
+      expect(after.reason).toBe("Storms");
+      expect([...after.games.keys()].sort()).toEqual(
+        [w.early.gameId, w.late.gameId].sort(),
+      );
+      // Nobody is told the decision time passed with no decision.
+      expect(
+        (await queued(db, `game-day-decide/${statusId}/`)).every(
+          (m) => m.status === "suppressed",
+        ),
+      ).toBe(true);
+      // The rain-out tells the players; the status adds nothing.
+      expect(await queued(db, "game-day/")).toEqual([]);
+      const audits = await db
+        .select({ after: auditLog.after })
+        .from(auditLog)
+        .where(eq(auditLog.action, "game_day.status"));
+      expect(audits.at(-1)?.after).toMatchObject({
+        date: DATE,
+        state: "off",
+        rainout: true,
+      });
+    });
+  });
+
+  it("leaves a day with no status alone when it is rained out", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await dayWorld(db);
+      expect(
+        await settleDayOnRainout(db, {
+          seasonId: w.season.id,
+          date: DATE,
+          slotIds: [w.early.slotId, w.late.slotId],
+          actorId: w.admin.userId,
+          now: edt(14),
+        }),
+      ).toBe(false);
+      expect((await statusesFrom(db, w.season.id, DATE)).size).toBe(0);
     });
   });
 });
