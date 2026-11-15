@@ -33,6 +33,19 @@ test("an admin opens registration and emails a past player to come back", async 
   await page.getByLabel("Largest roster").fill("20");
   await page.getByRole("button", { name: "Create season" }).click();
   await expect(page).toHaveURL(new RegExp(`/app/admin/seasons/${SLUG}\\?`));
+  // Registration opens only once the season has a waiver.
+  await page.goto("/app/admin/waivers");
+  const seasonWaiver = page.getByLabel(new RegExp(`^${SEASON}`));
+  await seasonWaiver.selectOption({ index: 1 });
+  await page
+    .locator("form")
+    .filter({ has: seasonWaiver })
+    .getByRole("button", { name: "Save" })
+    .click();
+  await expect(page.getByRole("status")).toHaveText(
+    `Saved the waiver for ${SEASON}.`,
+  );
+  await page.goto(`/app/admin/seasons/${SLUG}`);
   await page.getByLabel("Status").selectOption({ label: "Registration open" });
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page).toHaveURL(/\?saved=1/);
