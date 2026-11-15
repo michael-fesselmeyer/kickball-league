@@ -57,7 +57,6 @@ import { canSeed } from "../src/seed/guard";
 import { addPastSeasons } from "../src/seed/past-seasons";
 import { addSeasonCards } from "../src/seed/season-cards";
 import { addSeedChecklist } from "../src/seed/checklist";
-import { addSeedRulebook } from "../src/seed/rulebook";
 import { addSeedSponsors, removeSeedSponsors } from "../src/seed/sponsors";
 import { addSeedStatAwards } from "../src/seed/stat-awards";
 import { addSeedInterest } from "../src/seed/interest";
@@ -373,7 +372,6 @@ async function main(): Promise<void> {
       await addSeedStatAwards(tx, data, new Date());
       await addSeedRefereePool(tx, data);
       await addSeedChecklist(tx, data, new Date());
-      await addSeedRulebook(tx, data, new Date());
       await addSeedRules(tx, data, new Date());
       await addDemoShirtOrder(tx, data, new Date());
       await addDemoConcerns(tx, data, new Date());
