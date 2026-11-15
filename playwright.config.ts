@@ -109,7 +109,7 @@ export default defineConfig({
       ? []
       : [
           {
-            command: `${BUILD_FIRST}npm run start -- --port ${SMOKE_PORT}`,
+            command: `${BUILD_FIRST}npm run --silent start:e2e -- --port ${SMOKE_PORT}`,
             url: `http://localhost:${SMOKE_PORT}`,
             reuseExistingServer: false,
             // A local run builds twice first: the normal build and the demo one.
@@ -126,7 +126,7 @@ export default defineConfig({
         SITE_WIDE && !PREBUILT
           ? `npm run --silent seed && ${BUILD_DEMO} && `
           : ""
-      }npm run start -- --port ${FLOWS_PORT}`,
+      }npm run --silent start:e2e -- --port ${FLOWS_PORT}`,
       url: `http://localhost:${FLOWS_PORT}`,
       reuseExistingServer: false,
       timeout: SITE_WIDE && !PREBUILT ? 240_000 : 60_000,
