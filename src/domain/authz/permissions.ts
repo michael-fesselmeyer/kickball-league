@@ -250,6 +250,9 @@ const RULES = {
   // Merge a duplicate account into another (ADR 0041).
   "accounts.merge": isAdmin,
   "audit.read": isAdmin,
+  // The demo's mail page and its reset, and only while demo mode is on
+  // (docs/adr/0052-local-demo-runs-offline.md).
+  "demo.manage": isAdmin,
   "shirts.manage": isAdmin,
   "awards.manage": isAdmin,
   "pickem.manage": isAdmin,

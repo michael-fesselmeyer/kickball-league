@@ -1,4 +1,5 @@
 import { viewAs } from "@/app/demo/actions";
+import { DemoAdminTools } from "@/components/demo-admin-tools";
 import { demoStatus } from "@/lib/demo/guard";
 import { PERSONA_KEYS, PERSONAS } from "@/lib/demo/personas";
 import { SubmitButton } from "@/components/submit-button";
@@ -42,6 +43,7 @@ export function DemoBanner() {
           ))}
         </form>
       </div>
+      <DemoAdminTools />
     </aside>
   );
 }

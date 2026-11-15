@@ -1,10 +1,17 @@
 "use server";
 
 import { isAPIError } from "better-auth/api";
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { can } from "@/domain/authz/permissions";
 import { auth } from "@/lib/auth";
+import {
+  currentSubject,
+  requirePermissionToChange,
+} from "@/lib/auth/permission";
 import { demoStatus } from "@/lib/demo/guard";
+import { localResetAvailable, runLocalReset } from "@/lib/demo/local-reset";
 
 /**
  * One tap from the demo banner: sign in as a seeded persona. With demo mode
@@ -24,4 +31,29 @@ export async function viewAs(formData: FormData): Promise<void> {
     throw error;
   }
   redirect(landing);
+}
+
+/**
+ * What the demo banner offers the person viewing: admins get the demo's
+ * mail and, in the local demo, its reset. Asked from the browser, because
+ * the banner sits on public pages that are served as static HTML and never
+ * read who is signed in.
+ */
+export async function demoTools(): Promise<{ mail: boolean; reset: boolean }> {
+  if (!demoStatus(process.env).on) return { mail: false, reset: false };
+  const admin = can(await currentSubject(), "demo.manage", {});
+  return { mail: admin, reset: admin && localResetAvailable() };
+}
+
+/**
+ * "Reset demo": puts the demo league back to fresh seed data, as
+ * `npm run demo:reset` does, then drops every cached page so nothing from
+ * before shows. The reseed rebuilds the personas, so everyone is signed out.
+ */
+export async function resetDemo(): Promise<void> {
+  if (!demoStatus(process.env).on || !localResetAvailable()) notFound();
+  await requirePermissionToChange("demo.manage", { next: "/" });
+  const reset = await runLocalReset();
+  revalidatePath("/", "layout");
+  redirect(reset ? "/" : "/app/admin/demo-mail?reset=failed");
 }
