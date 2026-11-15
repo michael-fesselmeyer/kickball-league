@@ -19,6 +19,8 @@ const SCREENS: [Persona, string, string | RegExp][] = [
   ["Admin", "/app/admin/seasons/fall-2026/rebates", "Rain-out rebates"],
   ["Admin", "/app/sponsor", "Sponsors"],
   ["Admin", "/app/admin/friends", "Friends of the league"],
+  ["Admin", "/app/admin/shirt-makers", "Shirt makers"],
+  ["Admin", "/app/admin/shirt-waiting", "Late-joiner shirts"],
   ["Admin", "/app/admin/friends/new", "Add a league"],
   ["Admin", "/operator", "Operator"],
   ["Admin", "/app/admin/audit", "Audit log"],

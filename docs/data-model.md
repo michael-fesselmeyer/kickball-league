@@ -171,6 +171,8 @@ erDiagram
     int target_roster_size
     int seed
     text vibe "set by captain for matching"
+    boolean own_shirts "the team wears its own shirts; the league's order and the late-joiner list skip it"
+    text shirt_design "what the team's shirt looks like, up to 120 characters; shown in the history's shirt archive"
   }
   registration {
     uuid id PK
@@ -307,6 +309,11 @@ Notes:
 - `team_keep_off` is a team's private "not on my team" list ([ADR 0036](adr/0036-not-on-my-team-list.md)). It hangs off the lasting `team`, so it carries over from season to season; one row per person per team (unique `(team_id, user_id)` and `(team_id, email)`). A captain or admin adds an email address, and the list answers and shows it the same way whether or not the address has an account, so it never tells a captain who is a league member: an address with no account yet is kept with `user_id` null, and the account created for it later takes it on at sign-up. The team's own list shows each entry as the address typed, never a name; admins also see the account's name when there is one. A person on it sees the team's invite link as expired, is never suggested for the team by the matcher (an admin placing them anyway is warned and the override audited), and never hears of or sees the team's sub requests. Nothing else reads it. `league.export_keep_off_entries` (off by default, owners only) decides whether a person's own export lists the rows about them. The audit log records who added or removed whom, never the reason.
 - `team_formation_request` is a player's ask to start a team ([information architecture, 2.7](information-architecture.md#27-start-a-new-team-p2)). A person has at most one `pending` request per season. Approval creates the `team` and its `team_season` in `forming` status, priced as of the day they asked, and makes the requester its captain: their registration is reused (a free agent becomes a team member) or created, and any active spot on another team is ended, with `left_team_season_id` recording which captain was told. A requester who paid for their own spot keeps it as their share, so the team splits its fee; one whose spot was covered by their old captain's team fee owes again ([ADR 0013](adr/0013-new-team-approval-moves-the-player.md)). The request row is locked while an admin answers it, so two admins cannot both decide it.
 - `season_shirts` is a season's shirt order. A season without a row offers the default sizes and has no order yet; the row is made the first time an admin changes either. A player's size lives only on `profile.shirt_size`: every sign-up form (registering a team, joining as a free agent, joining by invite) asks for one from the season's `sizes` and saves it there, so the profile and the order never disagree. A size the season doesn't offer counts as no size. The order counts sign-ups that hold a spot (`pending_waiver`, `pending_payment`, `active`), never waitlisted, cancelled or refunded ones. Placing the order sets `placed_at` once and marks those players' `registration.shirt_status` `ordered`; later sign-ups stay `none`, so shirt tracking shows who joined after it. Receiving it marks every `ordered` shirt `received`. Once placed, the sizes are fixed. `expense_id` links the one "shirts" expense an owner adds to the books from the order; after that the cost changes only in the books. Paid replacement jerseys (`merch_order` for a `team_jersey` item, section 2.3) for the season's teams are listed with the order and its vendor CSV. The reminder to pick a size is a `shirt_size_reminder` message keyed `shirt-size/<registration id>`, so each sign-up is asked once ever.
+
+- Shirts for late joiners (the waiting list, spare stock, a team's own shirts, the makers directory and the shirt archive) build on the same `registration.shirt_status`. The waiting list is not stored: it is every sign-up in a current or coming season of the league whose order is placed or received, that holds a spot, is on an active roster spot of a team not in its own shirts, has `shirt_status = none` and a size on the profile. Free agents without a team, players with no size, and cancelled or waitlisted sign-ups are not on it. A batch is ready when what is left after spares of each size reaches 12 (`BATCH_MINIMUM` in `src/domain/shirts/late.ts`). Marking the batch ordered sets `ordered` for everyone on the list; marking it received sets `received` for `ordered` shirts in seasons whose own order is already received, so shirts in an order still on its way stay with that order.
+- `shirt_spare` is the league's spare stock as a ledger: a positive `delta` logs spares left from an earlier order, `-1` hands one to a player (and sets that registration's shirt `received`). A size's stock is the sum of its rows. Writes take a per-league advisory lock, so the last spare cannot go to two players. Rows are never edited or deleted.
+- `team_season.own_shirts` is a captain's choice of "our own shirts or jerseys". The season's order (counts, the vendor CSV, and marking players ordered when the order is placed) and the waiting list skip a team in its own shirts, except players whose shirt was already ordered before the team chose that: they stay in the order that has them. Either choice is audited (`shirts.own_shirts`) and can be changed back. `team_season.shirt_design` is the line a captain writes about the team's shirt; with `own_shirts` it feeds the shirt archive on `/history`, which lists, for each public season, every team with a description or its own shirts.
+- `shirt_maker` is the directory of local custom jersey and t-shirt makers that captains in their own shirts see on their team page. Only admins add, change or remove entries (`shirts.manage`), each change writes an audit row, and a removed entry is deleted (the audit row keeps what it said). Links are https only and checked on the server like the friends directory's; listings are free.
 
 The age check, as built ([ADR 0041](adr/0041-age-check-at-registration.md), with the default from [ADR 0050](adr/0050-minimum-age-defaults-to-18.md)): `league.minimum_age` (18 to 99, 18 by default, the profile's floor) is the youngest a player may be; `season.minimum_age` overrides it for one season when set. Registering a team, joining as a free agent, joining by invite and signing the waiver each need the player to confirm they meet it, checked against the birth date already on their profile (which registration requires), so a player it shows as too young can't confirm their way in. The registration or signature stores `age_confirmed_min` and `age_confirmed_at`, set together (a check constraint); rows from before the check, and registrations an admin makes for someone (an approved new-team request), have neither, and the waiver still asks.
 
@@ -1037,6 +1044,8 @@ erDiagram
   user ||--o{ survey_response : answers
   season_survey ||--o{ survey_answer : "collects (no person)"
   league ||--o{ friend_league : "lists"
+  league ||--o{ shirt_maker : "lists"
+  league ||--o{ shirt_spare : "keeps spare shirts as"
   friend_league ||--o| friend_logo : "shown with"
   user ||--o{ member_photo : uploads
   team ||--o{ member_photo : "tagged in"
@@ -1284,6 +1293,25 @@ erDiagram
     int notice_recipients
     uuid created_by FK
     timestamptz created_at "clock_timestamp()"
+  }
+  shirt_maker {
+    uuid id PK
+    uuid league_id FK
+    text name "unique per league, 1 to 80 characters"
+    text url "https only"
+    text makes "what they make, 1 to 200 characters"
+    int minimum_order "optional, 1 to 1000 pieces"
+    uuid created_by FK
+  }
+  shirt_spare {
+    uuid id PK
+    uuid league_id FK
+    enum size "shirt_size"
+    int delta "positive: spares logged; -1: one handed to a player"
+    uuid registration_id FK "the player a spare went to"
+    text note "optional, up to 200 characters"
+    uuid actor_id FK
+    timestamptz created_at
   }
   friend_league {
     uuid id PK
@@ -2142,6 +2170,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `expense` | index `(paid_by)` where `reimbursed_at` is null | "Owed to owners" reads only what is still owed |
 | `permit_window` | check `cost_cents` is null or at least 0; check the application window closes on or after it opens | A permit's details make sense |
 | `insurance_certificate` | check `expires_on > starts_on` | A certificate covers a period |
+| `shirt_maker` | unique `(league_id, name)`; check `url` starts with `https://` and is at most 300 characters; checks on name, makes and minimum order | One entry per maker name; only https links reach the page |
+| `shirt_spare` | check `delta` between -1 and 500 and not zero; a positive delta has no registration; note up to 200 characters | Stock is only ever added in batches and handed out one at a time |
 | `friend_league` | unique `(league_id, name)`; check `url` starts with `https://` and is at most 300 characters; checks on name, area and description lengths | One entry per league name; only https links reach the page |
 | `friend_logo` | unique `friend_league_id`; check type is WebP or PNG, `byte_size = octet_length(bytes)` up to 100 KB, and both sides at most 192 px | One small logo per entry; the 5 MB total is enforced by the save |
 | `member_photo` | check type is JPEG; `bytes` and `byte_size` are null exactly when `status = 'rejected'`; `byte_size = octet_length(bytes)` up to 1 MB; width and height 1 to 1440; caption up to 200 and note up to 500 characters; `reviewed_at` is null exactly while pending | One small stored copy per photo, none kept once rejected; the 100 MB total and the daily limit are enforced on upload |

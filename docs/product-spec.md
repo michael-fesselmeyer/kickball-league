@@ -260,6 +260,10 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Season rebate tool: pro-rata credit or refund when too many games are lost | P2 |
 | Referral credits | P2 |
 | Shirt tracking: sizes by team, "received" flag, late-joiner order list | P2 |
+| Shirts for late joiners: a league-wide waiting list by team and size, spare stock to hand out, and a batch reorder once enough have built up | P3 |
+| A captain can choose "our own shirts or jerseys", which skips the league's shirt order and is noted on the roster | P3 |
+| Shirt makers directory: local custom jersey and t-shirt makers, curated by admins, free to list, shown to captains who opt out | P3 |
+| Shirt archive: each team's shirt by season on the league history page | P3 |
 | Merch and replacement jersey orders | P3 |
 
 ### Scheduling
