@@ -157,7 +157,7 @@ export function ScoreForm({
               inputMode="numeric"
               min={0}
               max={99}
-              required
+              required={!forfeiting}
               defaultValue={filled?.[name]}
               className={input}
             />
@@ -190,7 +190,7 @@ export function ScoreForm({
         />
         <span className="text-small text-text-muted">
           A called game counts after 4 complete innings, with the score at the
-          last complete inning. For a forfeit, leave the runs at 0.
+          last complete inning. For a forfeit, the runs are ignored.
         </span>
       </label>
       {asAdmin && (
