@@ -47,7 +47,10 @@ export const conductCode = pgTable(
   (t) => [
     unique("conduct_code_league_version_unique").on(t.leagueId, t.version),
     check("conduct_code_version_positive", sql`${t.version} > 0`),
-    check("conduct_code_sha256_format", sql`${t.bodySha256} ~ '^[0-9a-f]{64}$'`),
+    check(
+      "conduct_code_sha256_format",
+      sql`${t.bodySha256} ~ '^[0-9a-f]{64}$'`,
+    ),
   ],
 );
 

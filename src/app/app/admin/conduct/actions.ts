@@ -38,7 +38,11 @@ export async function publishConductAction(
   const title = text(form, "title");
   const body = text(form, "body");
   const result = await txDb.transaction((tx) =>
-    publishConductCode(tx, { leagueId: league.id, title, body }, subject.userId),
+    publishConductCode(
+      tx,
+      { leagueId: league.id, title, body },
+      subject.userId,
+    ),
   );
   if (!result.ok) return { title, body, errors: result.error };
   refreshRulesPage(league);

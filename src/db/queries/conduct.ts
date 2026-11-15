@@ -198,7 +198,10 @@ export async function teamAcceptance(
         inArray(rosterMembership.status, ["active", "invited"]),
       ),
     )
-    .innerJoin(registration, eq(registration.id, rosterMembership.registrationId))
+    .innerJoin(
+      registration,
+      eq(registration.id, rosterMembership.registrationId),
+    )
     .innerJoin(user, eq(user.id, registration.userId))
     .leftJoin(profile, eq(profile.userId, registration.userId))
     .leftJoin(
