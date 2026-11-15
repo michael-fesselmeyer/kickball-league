@@ -43,6 +43,7 @@ const SECONDS_PER_RUN = {
   "/style": 11.0,
   "/games/05cd8fa2-c2b9-48d9-b6d4-0d4e3414b25b": 10.3,
   "/friends": 10.3,
+  "/fields/mccarren-park": 11.5,
   "/events": 10.3,
   "/news/how-to-play-kickball": 10.2,
   "/seasons/fall-2026/money": 10.2,

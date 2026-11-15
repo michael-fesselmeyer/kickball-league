@@ -53,7 +53,7 @@ const GROUPS = [
     total: 185,
     own: 45,
     match: (r) =>
-      /^\/(seasons|teams|games|events|sponsors|records|history|friends)(\/|$)/.test(
+      /^\/(seasons|teams|games|events|sponsors|records|history|friends|fields)(\/|$)/.test(
         r,
       ),
   },
