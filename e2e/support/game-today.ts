@@ -262,6 +262,148 @@ export async function addRefereedGameSoon(
   };
 }
 
+/**
+ * A game under way (it kicked off 30 minutes ago) that Reese Ref referees,
+ * with a kicking order saved for `teamA`: three of its fall players,
+ * registered in a small private season of their own so nothing else they
+ * see changes. Nobody but admins sees a private season. Returns the order's
+ * names as "First L.", and `remove` deletes it all, ejection reports
+ * included.
+ */
+export async function addGameUnderWayWithOrder(
+  teamA: string,
+  teamB: string,
+): Promise<{
+  gameId: string;
+  order: string[];
+  remove: () => Promise<void>;
+}> {
+  const tag = Math.random().toString(36).slice(2, 8);
+  const made = await withDb(async (db) => {
+    const { rows } = await db.query<{ season: string; game: string }>(
+      `with new_season as (
+         insert into season (league_id, name, slug, status, visibility,
+                             starts_on, ends_on, fee_model, player_fee_cents,
+                             roster_min, roster_max)
+         select s.league_id, $3, $4, 'in_progress', 'private',
+                current_date - 1, current_date + 7,
+                s.fee_model, s.player_fee_cents, s.roster_min, s.roster_max
+           from season s where s.slug = 'fall-2026'
+            and s.league_id = (select id from league where is_default)
+         returning id, league_id
+       ), entries as (
+         insert into team_season (team_id, season_id)
+         select t.id, new_season.id from team t, new_season
+          where t.league_id = new_season.league_id and t.name in ($1, $2)
+         returning id, team_id
+       ), place as (
+         select f.id as field_id from field f
+           join venue v on v.id = f.venue_id
+          where v.league_id = (select league_id from new_season)
+          order by f.name desc limit 1
+       ), new_slot as (
+         insert into slot (season_id, field_id, starts_at, ends_at, time_index)
+         select new_season.id, (select field_id from place),
+                now() - interval '30 minutes',
+                now() + interval '60 minutes', 0
+           from new_season
+         returning id, season_id
+       ), new_game as (
+         insert into game (season_id, team_a_id, team_b_id, kind, slot_id)
+         select new_slot.season_id,
+                (select e.id from entries e join team t on t.id = e.team_id
+                  where t.name = $1),
+                (select e.id from entries e join team t on t.id = e.team_id
+                  where t.name = $2),
+                'exhibition', new_slot.id
+           from new_slot
+         returning id, season_id
+       ), ref as (
+         insert into referee_assignment (game_id, user_id, status, responded_at)
+         select new_game.id, u.id, 'accepted', now()
+           from new_game, "user" u
+          where u.email = 'reese.ref@example.test'
+         returning game_id
+       )
+       select new_game.season_id as season, new_game.id as game
+         from new_game, ref`,
+      [teamA, teamB, `Under way ${tag}`, `under-way-${tag}`],
+    );
+    const [row] = rows;
+    if (!row) throw new Error(`Could not add ${teamA} vs ${teamB} under way`);
+    // Three of team A's fall players, on its roster in the new season.
+    const players = await db.query<{ user_id: string; name: string }>(
+      `select r.user_id,
+              coalesce(p.first_name || coalesce(' ' || left(p.last_name, 1) || '.', ''),
+                       nullif(u.name, ''), 'A player') as name
+         from roster_membership rm
+         join registration r on r.id = rm.registration_id
+         join team_season ts on ts.id = rm.team_season_id
+         join team t on t.id = ts.team_id
+         join season s on s.id = ts.season_id and s.slug = 'fall-2026'
+         join "user" u on u.id = r.user_id
+         left join profile p on p.user_id = r.user_id
+        where t.name = $1 and rm.status = 'active' and rm.role = 'player'
+        order by r.user_id
+        limit 3`,
+      [teamA],
+    );
+    if (players.rows.length < 3)
+      throw new Error(`${teamA} has too few players`);
+    const team = await db.query<{ id: string }>(
+      `select ts.id from team_season ts join team t on t.id = ts.team_id
+        where ts.season_id = $1 and t.name = $2`,
+      [row.season, teamA],
+    );
+    const teamSeasonId = team.rows[0]?.id;
+    for (const p of players.rows) {
+      const reg = await db.query<{ id: string }>(
+        `insert into registration (season_id, user_id, kind, status)
+         values ($1, $2, 'team_member', 'active') returning id`,
+        [row.season, p.user_id],
+      );
+      await db.query(
+        `insert into roster_membership (team_season_id, registration_id, role, status)
+         values ($1, $2, 'player', 'active')`,
+        [teamSeasonId, reg.rows[0]?.id],
+      );
+    }
+    const lineup = await db.query<{ id: string }>(
+      `insert into game_lineup (game_id, team_season_id, run_breaks)
+       values ($1, $2, 0) returning id`,
+      [row.game, teamSeasonId],
+    );
+    for (const [i, p] of players.rows.entries())
+      await db.query(
+        `insert into game_lineup_spot (lineup_id, position, user_id)
+         values ($1, $2, $3)`,
+        [lineup.rows[0]?.id, i + 1, p.user_id],
+      );
+    return { ...row, order: players.rows.map((p) => p.name) };
+  });
+  return {
+    gameId: made.game,
+    order: made.order,
+    remove: () =>
+      withDb(async (db) => {
+        await db.query("delete from game where season_id = $1", [made.season]);
+        await db.query("delete from slot where season_id = $1", [made.season]);
+        await db.query(
+          `delete from roster_membership where team_season_id in
+             (select id from team_season where season_id = $1)`,
+          [made.season],
+        );
+        await db.query("delete from registration where season_id = $1", [
+          made.season,
+        ]);
+        await db.query("delete from team_season where season_id = $1", [
+          made.season,
+        ]);
+        await db.query("delete from season where id = $1", [made.season]);
+      }),
+  };
+}
+
 async function withDb<T>(body: (db: Client) => Promise<T>): Promise<T> {
   const db = new Client({ connectionString: process.env.DATABASE_URL });
   await db.connect();
