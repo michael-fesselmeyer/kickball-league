@@ -527,12 +527,16 @@ export type SaveAnswerError = "not_found" | "closed" | "choice";
  * answering again replaces the earlier answer, so a second submission
  * never double-counts and never says whether the address had answered.
  *
- * Choosing an option the league has already decided to run (the page was
- * open when it went ahead) queues that option's message at once, since
- * going ahead told only those who had picked it by then. The option rows
- * are read `for share` and going ahead updates them, so an answer and a
- * go-ahead that cross are ordered: one of them sends the message, and the
- * dedupe key keeps it to one.
+ * An answer never queues an email: anyone can type any address, so mail
+ * sent from here would let a visitor make the app write to someone else
+ * and use up the day's email allowance. An option the league already
+ * decided to run is refused as a bad `choice` (the page hides it, so only
+ * a page left open across the go-ahead sends one); people who picked it
+ * earlier keep that pick when they answer again. The option rows are read
+ * `for share` and going ahead updates them, so an answer and a go-ahead
+ * that cross are ordered: the go-ahead either sees the answer's pick and
+ * tells that address, or the answer sees the option already gone ahead and
+ * is refused.
  */
 export async function saveAnswer(
   db: Db,
@@ -540,14 +544,10 @@ export async function saveAnswer(
 ): Promise<Result<{ id: InterestAnswerId }, SaveAnswerError>> {
   return db.transaction(async (tx) => {
     const [form] = await tx
-      .select({
-        status: interestForm.status,
-        leagueName: league.name,
-      })
+      .select({ status: interestForm.status })
       .from(interestForm)
-      .innerJoin(league, eq(league.id, interestForm.leagueId))
       .where(eq(interestForm.id, input.formId))
-      .for("share", { of: interestForm });
+      .for("share");
     if (!form) return err("not_found");
     if (form.status !== "open") return err("closed");
     const chosen = input.answer.choices.map(
@@ -559,11 +559,7 @@ export async function saveAnswer(
         : await tx
             .select({
               id: interestOption.id,
-              park: interestOption.park,
-              night: interestOption.night,
-              format: interestOption.format,
               goAheadAt: interestOption.goAheadAt,
-              goAheadNote: interestOption.goAheadNote,
             })
             .from(interestOption)
             .where(
@@ -573,7 +569,11 @@ export async function saveAnswer(
               ),
             )
             .for("share");
-    if (options.length !== new Set(chosen).size) return err("choice");
+    if (
+      options.length !== new Set(chosen).size ||
+      options.some((o) => o.goAheadAt !== null)
+    )
+      return err("choice");
     const [saved] = await tx
       .insert(interestAnswer)
       .values({
@@ -589,9 +589,25 @@ export async function saveAnswer(
       })
       .returning({ id: interestAnswer.id });
     if (!saved) throw new Error("The answer was not saved");
-    await tx
-      .delete(interestChoice)
-      .where(eq(interestChoice.answerId, saved.id));
+    // Replace the earlier picks, except those on options already gone ahead:
+    // that person was told, and the form no longer offers them.
+    await tx.delete(interestChoice).where(
+      and(
+        eq(interestChoice.answerId, saved.id),
+        inArray(
+          interestChoice.optionId,
+          tx
+            .select({ id: interestOption.id })
+            .from(interestOption)
+            .where(
+              and(
+                eq(interestOption.formId, input.formId),
+                isNull(interestOption.goAheadAt),
+              ),
+            ),
+        ),
+      ),
+    );
     if (input.answer.choices.length > 0)
       await tx.insert(interestChoice).values(
         input.answer.choices.map((c) => ({
@@ -600,21 +616,6 @@ export async function saveAnswer(
           response: c.response,
         })),
       );
-    const late = options.filter((o) => o.goAheadAt !== null);
-    await enqueueMessages(
-      tx,
-      late.map((o) =>
-        goAheadMessage({
-          answerId: saved.id,
-          optionId: o.id,
-          email: input.answer.email,
-          leagueName: form.leagueName,
-          optionLabel: optionLabel(o),
-          note: o.goAheadNote ?? "",
-          now: input.now,
-        }),
-      ),
-    );
     return ok({ id: saved.id });
   });
 }

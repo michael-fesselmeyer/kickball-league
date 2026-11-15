@@ -616,10 +616,11 @@ describe("going ahead", () => {
       expect(await goMessages(db)).toEqual([]);
     }));
 
-  it("tells someone who picks it afterwards, once, however often they edit", () =>
+  it("refuses an answer that picks an option that already went ahead, and queues no email", () =>
     inRolledBackDb(async (db) => {
       const w = await world(db);
       const thursday = optionOf(w, "thursday");
+      const sunday = optionOf(w, "sunday");
       await goAhead(db, {
         optionId: thursday,
         leagueId: w.leagueId,
@@ -627,14 +628,69 @@ describe("going ahead", () => {
         note: "See you there.",
         now: NOW,
       });
-      const late = answer("late@example.test", [
+      const late = answer("stranger@example.test", [
         { optionId: thursday, response: "yes" },
+        { optionId: sunday, response: "yes" },
       ]);
-      await save(db, w, late);
-      await save(db, w, { ...late, friends: 4 });
-      const sent = await goMessages(db);
-      expect(sent.map((m) => m.to)).toEqual(["late@example.test"]);
-      expect(sent[0]?.payload).toMatchObject({ note: "See you there." });
+      expect(
+        await saveAnswer(db, { formId: w.formId, answer: late, now: NOW }),
+      ).toEqual({ ok: false, error: "choice" });
+      // Nothing was saved, and no mail went to the typed address.
+      expect(await db.select().from(interestAnswer)).toEqual([]);
+      expect(await goMessages(db)).toEqual([]);
+      // An answer to the other option saves, and still queues no email.
+      await save(
+        db,
+        w,
+        answer("stranger@example.test", [
+          { optionId: sunday, response: "yes" },
+        ]),
+      );
+      expect(await goMessages(db)).toEqual([]);
+      expect(
+        await db
+          .select({ id: message.id })
+          .from(message)
+          .where(eq(message.recipientEmail, "stranger@example.test")),
+      ).toEqual([]);
+    }));
+
+  it("keeps an earlier pick of an option that went ahead when the answer is replaced", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const thursday = optionOf(w, "thursday");
+      const sunday = optionOf(w, "sunday");
+      await save(
+        db,
+        w,
+        answer("pat@example.test", [
+          { optionId: thursday, response: "yes" },
+          { optionId: sunday, response: "yes" },
+        ]),
+      );
+      await goAhead(db, {
+        optionId: thursday,
+        leagueId: w.leagueId,
+        actorId: w.admin,
+        note: "",
+        now: NOW,
+      });
+      // Pat changes the Sunday answer; the page no longer offers Thursday.
+      await save(
+        db,
+        w,
+        answer("pat@example.test", [{ optionId: sunday, response: "unsure" }]),
+      );
+      const [form] = await interestForms(db, w.leagueId);
+      expect(
+        form?.options.find((o) => o.id === thursday)?.counts.yesAnswers,
+      ).toBe(1);
+      expect(form?.options.find((o) => o.id === sunday)?.counts).toMatchObject({
+        yesAnswers: 0,
+        unsureAnswers: 1,
+      });
+      // Pat was told once about Thursday and nothing more.
+      expect(await goMessages(db)).toHaveLength(1);
     }));
 
   it("sends one message per option to someone who picked two that went ahead", () =>
@@ -734,6 +790,11 @@ describe("people's addresses", () => {
     inRolledBackDb(async (db) => {
       const w = await world(db);
       const thursday = optionOf(w, "thursday");
+      await save(
+        db,
+        w,
+        answer("late@example.test", [{ optionId: thursday, response: "yes" }]),
+      );
       await goAhead(db, {
         optionId: thursday,
         leagueId: w.leagueId,
@@ -741,11 +802,6 @@ describe("people's addresses", () => {
         note: "",
         now: NOW,
       });
-      await save(
-        db,
-        w,
-        answer("late@example.test", [{ optionId: thursday, response: "yes" }]),
-      );
       await save(db, w, answer("stay@example.test", []));
       expect(
         await removeAnswer(db, {
@@ -785,13 +841,6 @@ describe("people's addresses", () => {
         w,
         answer("a@example.test", [{ optionId: thursday, response: "yes" }], 2),
       );
-      await goAhead(db, {
-        optionId: optionOf(w, "sunday"),
-        leagueId: w.leagueId,
-        actorId: w.admin,
-        note: "",
-        now: NOW,
-      });
       await save(
         db,
         w,
@@ -799,6 +848,13 @@ describe("people's addresses", () => {
           { optionId: optionOf(w, "sunday"), response: "yes" },
         ]),
       );
+      await goAhead(db, {
+        optionId: optionOf(w, "sunday"),
+        leagueId: w.leagueId,
+        actorId: w.admin,
+        note: "",
+        now: NOW,
+      });
       await closeInterestForm(db, {
         formId: w.formId,
         leagueId: w.leagueId,
