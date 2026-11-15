@@ -1,8 +1,8 @@
 "use server";
 
 import { notFound, redirect } from "next/navigation";
-import { db, txDb } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
+import { txDb } from "@/db/client";
+import { activeLeague } from "@/lib/league/active";
 import { createShift, deleteShift, updateShift } from "@/db/queries/volunteer";
 import { parseId, type VolunteerShiftId } from "@/domain/ids";
 import {
@@ -47,7 +47,7 @@ export async function saveShiftAction(
   const subject = await requirePermissionToChange("volunteer.manage", {
     next: PAGE,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const shiftId =
     rawShiftId === null ? null : parseId<VolunteerShiftId>(rawShiftId);
@@ -85,7 +85,7 @@ export async function deleteShiftAction(
     next: PAGE,
   });
   const shiftId = parseId<VolunteerShiftId>(rawShiftId);
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!shiftId || !league) notFound();
   if (form.get("confirm") !== "yes")
     redirect(`${PAGE}/${shiftId}?error=confirm`);

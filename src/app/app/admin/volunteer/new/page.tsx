@@ -3,7 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
+import { activeLeague } from "@/lib/league/active";
 import { occasionChoices } from "@/db/queries/volunteer";
 import { localDay } from "@/domain/schedule/public-game";
 import { occasionValue } from "@/domain/volunteer/shifts";
@@ -37,7 +37,7 @@ async function NewShift() {
     next: "/app/admin/volunteer/new",
   });
   await connection();
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const now = new Date();
   const choices = league ? await occasionChoices(db, league.id, now) : [];
   if (!league || choices.length === 0)

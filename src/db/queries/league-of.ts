@@ -44,6 +44,10 @@ export const LEAGUE_OF = {
     sql`select s.league_id from announcement a join season s on s.id = a.season_id where a.id = ${id}`,
   team_constraint: (id) =>
     sql`select s.league_id from team_constraint c join team_season ts on ts.id = c.team_season_id join season s on s.id = ts.season_id where c.id = ${id}`,
+  season_survey: (id) =>
+    sql`select s.league_id from season_survey v join season s on s.id = v.season_id where v.id = ${id}`,
+  volunteer_shift: (id) =>
+    sql`select league_id from volunteer_shift where id = ${id}`,
   sponsor: (id) => sql`select league_id from sponsor where id = ${id}`,
   deal: (id) =>
     sql`select sp.league_id from deal d join sponsor sp on sp.id = d.sponsor_id where d.id = ${id}`,

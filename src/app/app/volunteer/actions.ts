@@ -1,8 +1,8 @@
 "use server";
 
 import { notFound, redirect } from "next/navigation";
-import { db, txDb } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
+import { txDb } from "@/db/client";
+import { activeLeague } from "@/lib/league/active";
 import { claimShift, dropShift } from "@/db/queries/volunteer";
 import { parseId, type VolunteerShiftId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
@@ -19,7 +19,7 @@ export async function claimShiftAction(rawShiftId: string): Promise<void> {
     next: PAGE,
   });
   const shiftId = parseId<VolunteerShiftId>(rawShiftId);
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!shiftId || !league) notFound();
   const claimed = await txDb.transaction((tx) =>
     claimShift(tx, {

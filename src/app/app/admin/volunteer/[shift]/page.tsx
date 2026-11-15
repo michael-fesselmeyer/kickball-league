@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
+import { activeLeague } from "@/lib/league/active";
 import { occasionChoices, shiftById } from "@/db/queries/volunteer";
 import { parseId, type VolunteerShiftId } from "@/domain/ids";
 import {
@@ -39,7 +39,7 @@ async function EditShift({ params, searchParams }: Props) {
   });
   await connection();
   const id = parseId<VolunteerShiftId>(raw);
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!id || !league) notFound();
   const [shift, choices] = await Promise.all([
     shiftById(db, id),
