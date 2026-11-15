@@ -124,6 +124,12 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
           <Link href={`${base}/referees`} className="btn btn-secondary">
             Assign refs
           </Link>
+          <Link
+            href={`/app/admin/today/print?date=${state.date}`}
+            className="btn btn-secondary"
+          >
+            Print game-day pack
+          </Link>
         </nav>
       </header>
       {needRef.length > 0 && (
