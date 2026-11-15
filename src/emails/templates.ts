@@ -54,6 +54,7 @@ import { shirtSizeEmail } from "./shirt-size";
 import { subRequestEmail, subUpdateEmail } from "./sub-request";
 import { surveyInviteEmail } from "./survey-invite";
 import { winBackEmail } from "./win-back";
+import { concernUpdateEmail } from "./concern-update";
 import { suspensionEmail } from "./suspension";
 import { teamRoleEmail } from "./team-role";
 import { volunteerReminderEmail } from "./volunteer-reminder";
@@ -108,6 +109,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     shirt_size_reminder: shirtSizeEmail,
     sub_request: subRequestEmail,
     sub_update: subUpdateEmail,
+    concern_update: concernUpdateEmail,
     suspension: suspensionEmail,
     survey_invite: surveyInviteEmail,
     team_role: teamRoleEmail,

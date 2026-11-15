@@ -52,6 +52,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── nyc-kickball-league             City-wide landing page: subway routes and travel times by borough (see seo-plan.md)
 ├── refs                            Become a referee
 ├── faq
+├── contact                         Public contact form (a question, a problem at the field, park rules): no account, honeypot and rate limits, static page with a server action
 ├── about                           The league, the commissioners, contact
 ├── join                            Landing page for the QR codes on field signs and at the bar (P3)
 ├── r/[code]                        A player's referral link: remembers who sent the visitor for 30 days, then opens the home page
@@ -183,8 +184,10 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   ├── challenge               Team sign-up challenge: start it (prize, deadline) or change it, every team's progress with who needs a nudge, and confirm the winner (pick between teams in a dead heat)
     │   └── playoffs                Seed from standings, place on fields, publish the bracket
     ├── games                       Scores, forfeits, corrections
-    ├── incidents/                  Review queue (open reports oldest first), everyone suspended now, recently resolved
+    ├── incidents/                  Concerns and public messages waiting (with the share answered within a day), then the review queue (open reports oldest first), everyone suspended now, recently resolved
     │   └── [incident]              What happened and who; notes; suspend someone named (the outside-alcohol ladder suggested) or lift a suspension; resolve or reopen
+    ├── concerns/
+    │   └── [concern]               A private concern or public contact message: what was said, the sender (an address is shown to admins only and each view is audited), the thread of replies and notes; reply by email, add a note, close with what was done, reopen
     ├── pickem                      Pick'em settings: whether players may pick their own team's games
     ├── team-lists                  Every team's "not on my team" list with reasons and who added each entry; teams listing 5 or more people and anyone on several lists; add or remove an entry; owners choose whether a person's own export lists entries about them
     ├── people                      Players, roles

@@ -253,6 +253,8 @@ How a message is never sent twice (`src/db/queries/outbox.ts`, tested in `outbox
 
 **Rain-out notices** (`src/db/queries/rainout-notices.ts`, tested in `rainout-notices.db.test.ts`). The rain-out screen cancels the date's slots and saves the makeups as a draft; nothing is sent yet. When an admin publishes that draft, `publishVersion` queues the notices in its own transaction, so the new schedule and its emails commit together. A game counts as rained out when the slot it moved from is cancelled. Each active player on both teams of such a game gets one message with that game, where it was and its makeup time (or "no makeup yet"). Games that did not move, or moved for another reason, send nothing. The dedupe key is `rainout/<game>/<rained-out slot>/<person>`, so publishing again, a second draft of the same rain-out, or a retried request never sends twice, while the same game rained out again from a different slot is a new notice. The `rainout` topic is on the email settings page, and the publish action calls `after()` to send right away.
 
+**Concern replies** (`src/db/queries/concerns.ts`, tested in `concerns.db.test.ts`). A concern's acknowledgement, each admin reply and the closing note are `concern_update` messages (topic `discipline`), written in the same transaction as the change. A signed-in sender's go to their account; a public sender's go to the address they left (`message.recipient_email`, no user), and a sender with no address gets none. Dedupe keys are `concern/<id>/received`, `/reply/<message id>` and `/closed`. Notes are never emailed. The daily outbox sweep clears addresses 12 months after closing and deletes the queued mail to them ([ADR 0060](adr/0060-one-queue-for-concerns-and-public-contact.md)).
+
 **Suspension notices** (`suspendPlayer` in `src/db/queries/discipline.ts`, tested in `discipline.db.test.ts`). When an admin suspends a player from an incident report, the suspension, its audit row and one `suspension` message (topic `discipline`) commit together. The email gives the length, what it blocks and how to appeal (reply, or the league's contact address when one is set), and never who reported it. The dedupe key is `suspension/<id>`. The `discipline` topic is not offered on the email settings page, so a player can't switch off being told they are suspended; the action calls `after()` to send right away. Games served are counted when read, not stored ([ADR 0026](adr/0026-discipline-counted-not-stored.md)).
 
 ### Urgent and non-urgent messages
@@ -302,6 +304,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `shirt_size_reminder` | non-urgent | A reminder to pick your shirt size before the league orders shirts |
 | `sub_request` | urgent | Teams that need a sub when you're free |
 | `sub_update` | urgent | Answers to your sub offers |
+| `concern_update` | urgent | The league's acknowledgement, reply or closing note on a concern you sent |
 | `suspension` | urgent | A suspension, its games and how to appeal |
 | `survey_invite` | non-urgent | An end-of-season survey for a season you played in |
 | `team_role` | non-urgent | Becoming or no longer being a co-captain, and the answer to a captaincy you offered |
@@ -719,6 +722,7 @@ Third-party material stays out of the public repository until the league agrees:
 | Sub requests | 3 open per team |
 | Announcements | Captain: 3 per day. Admin: 10 per day |
 | Score reports | 10 a day per person for one game |
+| Public contact form | 3 a day per email address, 10 a day per network, 60 an hour for everyone (`PUBLIC_LIMITS` in `src/domain/concerns/concerns.ts`, counted by `allowPublicConcern`), keyed by a hash of the address or network, plus a honeypot field and a cap of two links ([ADR 0060](adr/0060-one-queue-for-concerns-and-public-contact.md)) |
 | Waitlist | Joining or leaving a season's waitlist: 5 an hour per person (it needs an account, so it is counted per person, not per IP) |
 | Bar check-ins | 1 per sponsor per user per day (also a unique index) |
 | Giveaway entries | 1 per giveaway per user (a unique index), only with a current code from the event |

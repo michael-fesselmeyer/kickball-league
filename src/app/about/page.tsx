@@ -125,7 +125,8 @@ export default function AboutPage() {
         <p>
           The FAQ covers fees, rain-outs, what to wear and more. Once
           you&apos;re on a team, your captain is the quickest way to reach the
-          league.
+          league. Neighbors, park staff and visitors can write to the league
+          without an account.
         </p>
         <div className="flex flex-wrap gap-4">
           <Link href="/faq" className="btn btn-primary">
@@ -133,6 +134,9 @@ export default function AboutPage() {
           </Link>
           <Link href="/parks/mccarren-park" className="btn btn-secondary">
             Find the fields
+          </Link>
+          <Link href="/contact" className="btn btn-secondary">
+            Contact the league
           </Link>
         </div>
       </section>

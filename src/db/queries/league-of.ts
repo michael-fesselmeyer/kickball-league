@@ -95,6 +95,7 @@ export const LEAGUE_OF = {
     sql`select s.league_id from score_report r join game g on g.id = r.game_id join season s on s.id = g.season_id where r.id = ${id}`,
   team_keep_off: (id) =>
     sql`select t.league_id from team_keep_off k join team t on t.id = k.team_id where k.id = ${id}`,
+  concern: (id) => sql`select league_id from concern where id = ${id}`,
   purchase: (id) => sql`select league_id from purchase where id = ${id}`,
 } satisfies Record<string, (id: string) => SQL>;
 

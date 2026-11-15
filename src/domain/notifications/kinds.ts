@@ -192,6 +192,11 @@ export const MESSAGE_KINDS = {
     urgency: "urgent",
     label: "Answers to your sub offers",
   },
+  concern_update: {
+    urgency: "urgent",
+    label:
+      "The league's acknowledgement, reply or closing note on a concern you sent",
+  },
   suspension: {
     urgency: "urgent",
     label: "A suspension, its games and how to appeal",

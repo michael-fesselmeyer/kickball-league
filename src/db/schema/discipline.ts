@@ -22,6 +22,7 @@ import type {
   TeamSeasonId,
   UserId,
 } from "@/domain/ids";
+import { parkRule } from "./concern";
 import { user } from "./auth";
 import { game } from "./game";
 import { season } from "./season";
@@ -103,6 +104,8 @@ export const incident = pgTable(
       .$type<GameId>()
       .references(() => game.id, { onDelete: "cascade" }),
     kind: incidentKind().notNull(),
+    /** Set when the report is about use of the park (alcohol, noise, litter...). */
+    parkRule: parkRule(),
     details: text().notNull(),
     reportedBy: uuid()
       .$type<UserId>()

@@ -13,6 +13,7 @@ export const CONTENT_PAGES = [
   { path: "/seasons", changeFrequency: "weekly", priority: 0.8 },
   { path: "/faq", changeFrequency: "monthly", priority: 0.7 },
   { path: "/rules", changeFrequency: "weekly", priority: 0.6 },
+  { path: "/contact", changeFrequency: "monthly", priority: 0.4 },
   { path: "/nyc-kickball-league", changeFrequency: "monthly", priority: 0.7 },
   { path: "/free-agents", changeFrequency: "monthly", priority: 0.7 },
   {

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, lte } from "drizzle-orm";
 import type { MessageId, UserId } from "@/domain/ids";
 import { DIGEST_KIND } from "@/domain/notifications/kinds";
 import { DEFAULT_LIMITS } from "@/domain/notifications/limits";
@@ -59,7 +59,7 @@ export async function buildDigests(
     suppressed: 0,
     failed: 0,
   };
-  const held: HeldRow[] = await db
+  const heldRows = await db
     .select({
       id: message.id,
       userId: message.userId,
@@ -70,10 +70,19 @@ export async function buildDigests(
       dedupeKey: message.dedupeKey,
     })
     .from(message)
-    .where(and(eq(message.status, "held"), lte(message.sendAfter, now)))
+    .where(
+      and(
+        eq(message.status, "held"),
+        lte(message.sendAfter, now),
+        isNotNull(message.userId),
+      ),
+    )
     .orderBy(asc(message.userId), asc(message.createdAt))
     .limit(limit)
     .for("update", { skipLocked: true });
+  const held: HeldRow[] = heldRows.flatMap((m) =>
+    m.userId ? [{ ...m, userId: m.userId }] : [],
+  );
   if (held.length === 0) return result;
 
   const userIds = [...new Set(held.map((m) => m.userId))];
