@@ -4,7 +4,12 @@ import { err, ok, type Result } from "@/domain/result";
 import { user } from "../schema/auth";
 import { field, game, refereeAssignment, slot } from "../schema/game";
 import { season } from "../schema/season";
-import { team, teamSeason } from "../schema/team";
+import {
+  registration,
+  rosterMembership,
+  team,
+  teamSeason,
+} from "../schema/team";
 import { recordAudit } from "./audit";
 import type { Db } from "./schedule";
 
@@ -62,18 +67,20 @@ export async function refereeBoard(db: Db, seasonId: SeasonId) {
   return games.map((g) => ({ ...g, referee: refOf.get(g.id) ?? null }));
 }
 
-export type AssignError = "unknown_game" | "no_account";
+export type AssignError = "unknown_game" | "no_account" | "own_team";
 
 /**
  * Makes the person with this email the game's referee, replacing anyone
- * assigned before. They need an account, so they can sign in and score.
+ * assigned before. They need an account, so they can sign in and score,
+ * and they can't play on either team: a ref's report lets either captain
+ * make the score final (issue #296).
  */
 export async function assignReferee(
   db: Db,
   input: { seasonId: SeasonId; gameId: GameId; email: string; actorId: UserId },
 ): Promise<Result<void, AssignError>> {
   const [found] = await db
-    .select({ id: game.id })
+    .select({ id: game.id, teamAId: game.teamAId, teamBId: game.teamBId })
     .from(game)
     .where(and(eq(game.id, input.gameId), eq(game.seasonId, input.seasonId)));
   if (!found) return err("unknown_game");
@@ -82,6 +89,22 @@ export async function assignReferee(
     .from(user)
     .where(eq(sql`lower(${user.email})`, input.email.trim().toLowerCase()));
   if (!person) return err("no_account");
+  const [plays] = await db
+    .select({ id: rosterMembership.id })
+    .from(rosterMembership)
+    .innerJoin(
+      registration,
+      eq(rosterMembership.registrationId, registration.id),
+    )
+    .where(
+      and(
+        eq(registration.userId, person.id),
+        eq(rosterMembership.status, "active"),
+        inArray(rosterMembership.teamSeasonId, [found.teamAId, found.teamBId]),
+      ),
+    )
+    .limit(1);
+  if (plays) return err("own_team");
   await db
     .update(refereeAssignment)
     .set({ status: "cancelled", respondedAt: new Date() })
