@@ -142,15 +142,19 @@ test("a featured player-run club is promoted and its clicks are counted", async 
     (r) => r.method() === "POST" && /\/api\/friends\/.+\/click$/.test(r.url()),
   );
   await link.click();
-  const sent = await ping;
-  expect((await sent.response())?.status()).toBe(204);
+  await ping;
+  await visitor.waitForURL(CLUB_SITE);
   await visitor.context().close();
 
+  // The page has left by the time the ping answers, so the browser doesn't
+  // report its response; the admin's count shows it arrived.
   const admin = await pageAs(browser, "Admin");
-  await admin.goto("/app/admin/friends");
   const row = admin.getByRole("row").filter({ hasText: CLUB });
+  await expect(async () => {
+    await admin.goto("/app/admin/friends");
+    await expect(row).toContainText(/[1-9]\d* in 30 days/, { timeout: 1000 });
+  }).toPass({ timeout: 10_000 });
   await expect(row).toContainText("Run by our players");
-  await expect(row).toContainText(/[1-9]\d* in 30 days/);
   await expectNoAxeViolations(admin);
   await admin.context().close();
 });
