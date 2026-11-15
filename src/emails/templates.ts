@@ -7,6 +7,7 @@ import {
   unsubscribePostPath,
   unsubscribeToken,
 } from "@/lib/unsubscribe";
+import { actingAdminEmail } from "./acting-admin";
 import { announcementEmail } from "./announcement";
 import { awayShortEmail } from "./away-short";
 import { booksNudgeEmail } from "./books-nudge";
@@ -72,6 +73,7 @@ import { volunteerReminderEmail } from "./volunteer-reminder";
  */
 const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
   {
+    acting_admin: actingAdminEmail,
     announcement: announcementEmail,
     away_short: awayShortEmail,
     books_nudge: booksNudgeEmail,

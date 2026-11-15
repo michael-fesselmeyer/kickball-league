@@ -266,6 +266,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 
 | Kind (template) | Urgency | What it is |
 |---|---|---|
+| `acting_admin` | urgent | An acting admin handover starting or ending, for the acting admin and the owners |
 | `announcement` | non-urgent | Announcements from admins and captains |
 | `away_short` | non-urgent | For captains: a week your team may be short because players will be away |
 | `books_nudge` | non-urgent | For owners: a monthly list of expected costs to confirm and receipts still missing |
