@@ -214,9 +214,7 @@ async function ShirtOrder({
         </p>
       </header>
 
-      {saved && (
-        <FlashMessage kind="notice">{saved}</FlashMessage>
-      )}
+      {saved && <FlashMessage kind="notice">{saved}</FlashMessage>}
       {remindedNow !== null && Number.isInteger(remindedNow) && (
         <FlashMessage kind="notice">
           {remindedNow === 0
@@ -226,9 +224,7 @@ async function ShirtOrder({
               : `Reminded ${remindedNow} players to pick a size.`}
         </FlashMessage>
       )}
-      {error && (
-        <FlashMessage kind="error">{error}</FlashMessage>
-      )}
+      {error && <FlashMessage kind="error">{error}</FlashMessage>}
 
       <section
         id="order"
