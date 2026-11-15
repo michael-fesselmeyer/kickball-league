@@ -41,7 +41,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 **Refs**
 
 - See assigned games, take an uncovered game with one tap, enter the final score or keep score live inning by inning, with offline entry that syncs when the signal returns.
-- Report incidents and see the permit for the field they are at.
+- Report incidents, eject a player from the live game screen (after confirming), and see the permit for the field they are at.
 
 **Admins**
 
