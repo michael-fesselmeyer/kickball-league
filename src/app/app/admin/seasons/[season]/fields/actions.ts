@@ -13,10 +13,16 @@ import {
   setPermitStatus,
   syncSlots,
 } from "@/db/queries/fields";
+import {
+  tellOwnersOfNewGaps,
+  uncoveredKeys,
+} from "@/db/queries/permit-coverage";
+import type { Db } from "@/db/queries/schedule";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import type {
   BlackoutId,
   FieldId,
+  LeagueId,
   PermitWindowId,
   VenueId,
 } from "@/domain/ids";
@@ -27,6 +33,7 @@ import { requirePermissionToChange } from "@/lib/auth/permission";
 import { activeLeagueId } from "@/lib/league/active";
 import { refreshParkPages } from "@/lib/public-cache";
 import { requireInLeague } from "@/lib/league/guard";
+import { sendQueuedSoon } from "@/services/outbox";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/fields`;
 const STATUSES = [
@@ -39,6 +46,24 @@ const text = (form: FormData, name: string) => {
   const value = form.get(name);
   return typeof value === "string" ? value.trim() : "";
 };
+
+/**
+ * Runs a permit change, then emails the owners once if games or events
+ * that were covered before no longer are (issue #407). In the change's
+ * transaction, so the email goes only with a change that was saved.
+ */
+async function withGapEmail<T extends { ok: boolean }>(
+  tx: Db,
+  leagueId: LeagueId,
+  change: () => Promise<T>,
+): Promise<T> {
+  const now = new Date();
+  const before = await uncoveredKeys(tx, leagueId, now);
+  const result = await change();
+  if (result.ok && (await tellOwnersOfNewGaps(tx, { leagueId, before, now })))
+    sendQueuedSoon();
+  return result;
+}
 
 /** Checks the admin may manage the season, and finds it. */
 async function context(slug: string) {
@@ -158,7 +183,9 @@ export async function changePermitStatus(
   if (!isOneOf(STATUSES, status))
     back(page, "permits", { error: "permit_bad_input" });
   const result = await txDb.transaction((tx) =>
-    setPermitStatus(tx, { seasonId: season.id, permitId, status }, actor),
+    withGapEmail(tx, season.leagueId, () =>
+      setPermitStatus(tx, { seasonId: season.id, permitId, status }, actor),
+    ),
   );
   if (!result.ok) back(page, "permits", { error: `permit_${result.error}` });
   refreshParkPages();
@@ -171,7 +198,9 @@ export async function deletePermit(slug: string, rawPermitId: string) {
   if (!permitId) notFound();
   const { page, actor, season } = await context(slug);
   const result = await txDb.transaction((tx) =>
-    removePermitWindow(tx, { seasonId: season.id, permitId }, actor),
+    withGapEmail(tx, season.leagueId, () =>
+      removePermitWindow(tx, { seasonId: season.id, permitId }, actor),
+    ),
   );
   if (!result.ok) back(page, "permits", { error: `permit_${result.error}` });
   refreshParkPages();

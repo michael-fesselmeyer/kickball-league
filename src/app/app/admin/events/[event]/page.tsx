@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { CopyForWhatsApp } from "@/components/share";
 import { db } from "@/db/client";
 import { audienceChoices, audienceNames } from "@/db/queries/event-audience";
+import { leagueFields } from "@/db/queries/permit-coverage";
 import { eventTickets } from "@/db/queries/event-tickets";
 import { eventAttendees, eventBySlug } from "@/db/queries/events";
 import {
@@ -75,11 +76,12 @@ async function AdminEvent({
   const e = await eventBySlug(db, await activeLeagueId(), slug, "all");
   if (!e) notFound();
   const now = new Date();
-  const [attendees, choices, names, tickets] = await Promise.all([
+  const [attendees, choices, names, tickets, fields] = await Promise.all([
     eventAttendees(db, e.id),
     audienceChoices(db, e.leagueId),
     audienceNames(db, e.audience),
     eventTickets(db, e.id, now),
+    leagueFields(db, e.leagueId),
   ]);
   const ticketed = isTicketed(e) || tickets.holders.length > 0;
   const isPublic = e.audience.kind === "public";
@@ -240,6 +242,7 @@ async function AdminEvent({
         <EventFormFields
           action={updateEventAction.bind(null, e.slug)}
           values={eventFormValues(e, e.timeZone)}
+          fields={fields}
           reach={reachFormValues(e, choices)}
           prices={ticketPriceFormValues(e)}
           choices={choices}

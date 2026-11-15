@@ -8,6 +8,8 @@ import { renderEmail } from "./layout";
  * or field time coming up that the league won't use and should give back.
  * Nothing is sent to NYC Parks; the email says who to call and links to
  * the permits screen, where the cancellation form's answers are ready.
+ * Also: games or events at a park that a permit no longer covers, after a
+ * permit was marked lost or a window removed (issue #407).
  */
 const office = z.object({ name: z.string(), phone: z.string() }).nullable();
 
@@ -33,6 +35,22 @@ export const permitAlertPayload = z.discriminatedUnion("kind", [
     permitNumber: z.string().nullable(),
     office,
   }),
+  z.object({
+    kind: z.literal("uncovered"),
+    /** All the items that lost their cover; `items` lists the first few. */
+    count: z.number().int().positive(),
+    items: z
+      .array(
+        z.object({
+          what: z.string().min(1),
+          when: z.string().min(1),
+          place: z.string().min(1),
+          why: z.string().min(1),
+        }),
+      )
+      .min(1)
+      .max(10),
+  }),
 ]);
 
 export type PermitAlertPayload = z.infer<typeof permitAlertPayload>;
@@ -46,6 +64,28 @@ const longDate = (on: string) =>
   }).format(new Date(`${on}T12:00:00Z`));
 
 export const permitAlertEmail = defineTemplate(permitAlertPayload, (p, ctx) => {
+  if (p.kind === "uncovered") {
+    const subject =
+      p.count === 1
+        ? "A game or event is no longer covered by a permit"
+        : `${p.count} games or events are no longer covered by a permit`;
+    const more = p.count - p.items.length;
+    return renderEmail(
+      {
+        subject,
+        heading: subject,
+        paragraphs: [
+          "A permit was marked lost or a permit window was removed, so the league no longer holds the field for:",
+          ...p.items.map((i) => `${i.what}, ${i.when}, ${i.place}. ${i.why}`),
+          ...(more > 0 ? [`And ${more} more on the permits screen.`] : []),
+          "Move them, get the permit back, or call them off before anyone turns up.",
+        ],
+        action: { label: "Open permits", path: "/app/books/permits" },
+        reason: "you are an owner of the league",
+      },
+      ctx,
+    );
+  }
   const path = `/app/books/${p.seasonSlug}/permits`;
   if (p.kind === "give_back") {
     const subject = `Give back ${p.place} on ${longDate(p.on)}`;
