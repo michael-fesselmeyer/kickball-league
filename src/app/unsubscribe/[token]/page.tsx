@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { SubmitButton } from "@/components/submit-button";
 import { env } from "@/env";
 import { readUnsubscribeToken, topicLabel } from "@/lib/unsubscribe";
 import { unsubscribeAction } from "./actions";
@@ -69,9 +70,9 @@ async function Unsubscribe({ params, searchParams }: Props) {
         time.
       </p>
       <form action={unsubscribeAction.bind(null, token)}>
-        <button type="submit" className="btn btn-primary">
+        <SubmitButton className="btn btn-primary">
           Stop these emails
-        </button>
+        </SubmitButton>
       </form>
     </>
   );
