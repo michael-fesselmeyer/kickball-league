@@ -36,7 +36,9 @@ export default function EmergencyPage(
   );
 }
 
-async function Contacts({ params }: PageProps<"/[lang]/app/games/[game]/emergency">) {
+async function Contacts({
+  params,
+}: PageProps<"/[lang]/app/games/[game]/emergency">) {
   const { game: rawId } = await params;
   const subject = await requirePermission("public.view", {
     next: `/app/games/${rawId}/emergency`,

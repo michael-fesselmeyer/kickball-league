@@ -44,7 +44,9 @@ export default function AdminFriendsPage(
 
 const kb = (bytes: number) => `${Math.ceil(bytes / 1024)} KB`;
 
-async function AdminFriends({ searchParams }: PageProps<"/[lang]/app/admin/friends">) {
+async function AdminFriends({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/friends">) {
   await requirePermission("friends.manage", { next: PAGE });
   const query = await searchParams;
   const league = await activeLeague();

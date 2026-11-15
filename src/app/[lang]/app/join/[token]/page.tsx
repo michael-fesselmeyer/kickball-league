@@ -51,7 +51,10 @@ const ERRORS: Record<string, string> = {
 const isAgeRefusal = (code: unknown): code is AgeRefusal =>
   code === "age_unconfirmed" || code === "under_age";
 
-async function Join({ params, searchParams }: PageProps<"/[lang]/app/join/[token]">) {
+async function Join({
+  params,
+  searchParams,
+}: PageProps<"/[lang]/app/join/[token]">) {
   const { token } = await params;
   const query = await searchParams;
   const subject = await requirePermission("registration.join", {

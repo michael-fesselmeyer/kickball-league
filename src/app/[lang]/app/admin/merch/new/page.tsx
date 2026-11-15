@@ -20,7 +20,9 @@ export default function NewMerchItemPage(
   );
 }
 
-async function NewItem({ searchParams }: PageProps<"/[lang]/app/admin/merch/new">) {
+async function NewItem({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/merch/new">) {
   await requirePermission("merch.manage", { next: "/app/admin/merch/new" });
   const query = await searchParams;
   return (

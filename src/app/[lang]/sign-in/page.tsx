@@ -11,7 +11,9 @@ import { SignInForm } from "./sign-in-form";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-export default function SignInPage({ searchParams }: PageProps<"/[lang]/sign-in">) {
+export default function SignInPage({
+  searchParams,
+}: PageProps<"/[lang]/sign-in">) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-4 py-12">
       <div className="flex flex-col gap-2">

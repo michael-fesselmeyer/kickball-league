@@ -13,7 +13,9 @@ import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Award results" };
 
-export default function ResultsPage(props: PageProps<"/[lang]/app/vote/[poll]">) {
+export default function ResultsPage(
+  props: PageProps<"/[lang]/app/vote/[poll]">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Counting the votes…</PageLoading>}>

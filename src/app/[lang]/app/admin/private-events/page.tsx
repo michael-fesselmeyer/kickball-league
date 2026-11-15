@@ -43,7 +43,9 @@ export default function AdminPrivateEventsPage(
 const who = (r: QueueRow) =>
   [r.firstName, r.lastName].filter(Boolean).join(" ") || r.organizerName;
 
-async function Queue({ searchParams }: PageProps<"/[lang]/app/admin/private-events">) {
+async function Queue({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/private-events">) {
   await requirePermission("private_event.manage", { next: PAGE });
   const query = await searchParams;
   const league = await activeLeague();

@@ -21,7 +21,9 @@ import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Merge accounts" };
 
-export default function AccountsPage(props: PageProps<"/[lang]/app/admin/accounts">) {
+export default function AccountsPage(
+  props: PageProps<"/[lang]/app/admin/accounts">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -67,7 +69,9 @@ function Account({
   );
 }
 
-async function Accounts({ searchParams }: PageProps<"/[lang]/app/admin/accounts">) {
+async function Accounts({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/accounts">) {
   const query = await searchParams;
   const subject = await requirePermission("accounts.merge", {
     next: "/app/admin/accounts",

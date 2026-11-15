@@ -42,7 +42,9 @@ const SAVED: Record<string, string> = {
   removed: "Shift removed.",
 };
 
-async function Shifts({ searchParams }: PageProps<"/[lang]/app/admin/volunteer">) {
+async function Shifts({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/volunteer">) {
   await requirePermission("volunteer.manage", { next: "/app/admin/volunteer" });
   const query = await searchParams;
   await connection();

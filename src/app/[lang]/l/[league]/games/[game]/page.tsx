@@ -119,7 +119,9 @@ export async function generateMetadata({
  * 300 ms later. Only the day's status, the forecast and the photo prompt
  * stream in; the first two keep their space while they load (#495).
  */
-export default function GamePage(props: PageProps<"/[lang]/l/[league]/games/[game]">) {
+export default function GamePage(
+  props: PageProps<"/[lang]/l/[league]/games/[game]">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:px-6">
       <Game {...props} />

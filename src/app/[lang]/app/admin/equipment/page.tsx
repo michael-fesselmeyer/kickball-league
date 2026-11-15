@@ -30,7 +30,9 @@ export default function EquipmentPage(
   );
 }
 
-async function Equipment({ searchParams }: PageProps<"/[lang]/app/admin/equipment">) {
+async function Equipment({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/equipment">) {
   await requirePermission("equipment.manage", {
     next: "/app/admin/equipment",
   });

@@ -23,7 +23,9 @@ export default function PickemSettingsPage(
   );
 }
 
-async function Settings({ searchParams }: PageProps<"/[lang]/app/admin/pickem">) {
+async function Settings({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/pickem">) {
   await requirePermission("pickem.manage", { next: "/app/admin/pickem" });
   const query = await searchParams;
   const league = await activeLeague();

@@ -35,7 +35,9 @@ export default function PermitPage(
   );
 }
 
-async function Permit({ params }: PageProps<"/[lang]/app/games/[game]/permit">) {
+async function Permit({
+  params,
+}: PageProps<"/[lang]/app/games/[game]/permit">) {
   const { game: rawId } = await params;
   const subject = await requirePermission("public.view", {
     next: `/app/games/${rawId}/permit`,

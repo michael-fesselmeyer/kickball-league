@@ -32,7 +32,9 @@ export const metadata: Metadata = { title: "Game day" };
  * score; the weather; one tap to a rain-out or an announcement. The games
  * refresh on their own every ten seconds.
  */
-export default function GameDayPage(props: PageProps<"/[lang]/app/admin/today">) {
+export default function GameDayPage(
+  props: PageProps<"/[lang]/app/admin/today">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
       <Suspense fallback={<PageLoading>Loading game day…</PageLoading>}>

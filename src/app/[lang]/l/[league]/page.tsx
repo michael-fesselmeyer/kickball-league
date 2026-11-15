@@ -98,7 +98,9 @@ const NEW_HERE = [
   { href: "/free-agents", label: "Joining without a team" },
 ] as const;
 
-export default async function Home({ params }: PageProps<"/[lang]/l/[league]">) {
+export default async function Home({
+  params,
+}: PageProps<"/[lang]/l/[league]">) {
   const { league: segment } = await params;
   // The default league's home is the site's own and reads no league data, so
   // it serves even before there is a league (a new site, or the end-to-end

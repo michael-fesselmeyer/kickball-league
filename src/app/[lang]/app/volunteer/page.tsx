@@ -21,7 +21,9 @@ import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Volunteer" };
 
-export default function VolunteerPage(props: PageProps<"/[lang]/app/volunteer">) {
+export default function VolunteerPage(
+  props: PageProps<"/[lang]/app/volunteer">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
       <header className="flex flex-col gap-1">
