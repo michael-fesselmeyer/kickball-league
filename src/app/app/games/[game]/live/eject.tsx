@@ -8,6 +8,7 @@ import { ejectAction } from "./actions";
 /** What went wrong ejecting a player, by error code from the URL. */
 export const EJECT_ERRORS: Record<string, string> = {
   no_person: "Choose the player to eject.",
+  confirm: "Tick the box to confirm the ejection.",
   unknown_person: "That player isn't on either team in this game.",
   already_ejected: "That player is already ejected from this game.",
   details_too_long: `Keep the reason under ${EJECTION_REASON_MAX} characters.`,
@@ -99,6 +100,16 @@ export async function EjectSection({
           of this game. The league reviews the report and decides on anything
           more.
         </p>
+        <label className="flex min-h-11 items-center gap-2">
+          <input
+            type="checkbox"
+            name="confirm"
+            value="yes"
+            required
+            className="size-5 accent-brand"
+          />
+          Yes, eject this player
+        </label>
         <SubmitButton className="btn self-start btn-secondary">
           Eject the player
         </SubmitButton>

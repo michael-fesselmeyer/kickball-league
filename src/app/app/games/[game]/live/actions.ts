@@ -165,6 +165,8 @@ export async function ejectAction(
   });
   const person = parseId<UserId>(String(form.get("person") ?? ""));
   if (!person) redirect(`${page}?error=no_person#eject`);
+  // An ejection files a report and changes the kicking order: confirm first.
+  if (form.get("confirm") !== "yes") redirect(`${page}?error=confirm#eject`);
   const details = ejectionDetails(String(form.get("reason") ?? ""));
   if (!details.ok) redirect(`${page}?error=${details.error}#eject`);
   const result = await ejectPlayer(txDb, {

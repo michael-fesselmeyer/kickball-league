@@ -29,6 +29,20 @@ test("a ref ejects a player, who leaves the kicking order", async ({
     await section
       .getByLabel("Reason (optional)")
       .fill("Argued after a warning");
+    // Nothing happens until the ref confirms: the box is required.
+    const confirm = section.getByRole("checkbox", {
+      name: "Yes, eject this player",
+    });
+    await expect(confirm).not.toBeChecked();
+    await section.getByRole("button", { name: "Eject the player" }).click();
+    await expect(section.getByRole("status")).toHaveCount(0);
+    await expect(
+      section.getByRole("option", { name: out, exact: true }),
+    ).toHaveCount(1);
+    // Confirmed with the keyboard, as a screen-reader user would.
+    await confirm.focus();
+    await ref.keyboard.press("Space");
+    await expect(confirm).toBeChecked();
     await section.getByRole("button", { name: "Eject the player" }).click();
     await expect(section.getByRole("status")).toContainText("Ejected.");
     await expect(section).toContainText(`Ejected this game: ${out}.`);
