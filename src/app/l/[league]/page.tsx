@@ -6,11 +6,11 @@ import { JsonLd } from "@/components/json-ld";
 import { Kickball } from "@/components/kickball";
 import { revealOrder } from "@/components/motion";
 import { db } from "@/db/client";
-import type { LeagueId } from "@/domain/ids";
 import { sportLabel } from "@/domain/league/new-league";
-import { leagueHref } from "@/domain/league/paths";
+import { DEFAULT_LEAGUE_SEGMENT, leagueHref } from "@/domain/league/paths";
 import { cachedLeague, publicLeague } from "@/lib/league/public";
 import { LeagueHome } from "./league-home";
+import { defaultLeague } from "@/db/queries/leagues";
 import { homePhotos } from "@/db/queries/social";
 import { env } from "@/env";
 import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
@@ -22,7 +22,9 @@ import { SITE, siteOrigin } from "@/lib/site";
 export async function generateMetadata({
   params,
 }: PageProps<"/l/[league]">): Promise<Metadata> {
-  const league = await cachedLeague((await params).league);
+  const { league: segment } = await params;
+  const league =
+    segment === DEFAULT_LEAGUE_SEGMENT ? null : await cachedLeague(segment);
   if (league && !league.isDefault)
     return {
       title: { absolute: `${league.name} · ${sportLabel(league.sport)}` },
@@ -88,10 +90,13 @@ const NEW_HERE = [
 ] as const;
 
 export default async function Home({ params }: PageProps<"/l/[league]">) {
-  const page = await publicLeague((await params).league, "/");
-  // The default league's home is the site's own; another league gets its own
-  // plain home page with its seasons (ADR 0048).
-  if (!page.isDefault) return <LeagueHome league={page} />;
+  const { league: segment } = await params;
+  // The default league's home is the site's own and reads no league data, so
+  // it serves even before there is a league (a new site, or the end-to-end
+  // tests' server before they seed). Another league gets its own plain home
+  // page with its seasons (ADR 0048).
+  if (segment !== DEFAULT_LEAGUE_SEGMENT)
+    return <LeagueHome league={await publicLeague(segment, "/")} />;
   const league = leagueInfo(siteOrigin(env.BETTER_AUTH_URL));
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-16 px-4 py-12 md:px-6 md:py-16">
@@ -209,7 +214,7 @@ export default async function Home({ params }: PageProps<"/l/[league]">) {
         </p>
       </section>
 
-      <HomePhotos leagueId={page.id} />
+      <HomePhotos />
 
       <section aria-labelledby="new-here" className="flex flex-col gap-4">
         <h2 id="new-here" className="text-h2">
@@ -236,13 +241,15 @@ export default async function Home({ params }: PageProps<"/l/[league]">) {
  * Featured photos from the league's Instagram, cached with the rest of the
  * page and refreshed when an admin curates or the sync brings new ones.
  */
-async function HomePhotos({ leagueId }: { leagueId: LeagueId }) {
+/** The default league's latest photos, for the site's own home page. */
+async function HomePhotos() {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   cacheTag(PHOTOS_TAG);
-  const found = await readUnlessBuildHasNoDatabase(() =>
-    homePhotos(db, leagueId),
-  );
+  const found = await readUnlessBuildHasNoDatabase(async () => {
+    const league = await defaultLeague(db);
+    return league ? homePhotos(db, league.id) : null;
+  });
   if (!found) return null;
   return (
     <InstagramPhotos
