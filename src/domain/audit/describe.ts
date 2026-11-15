@@ -57,6 +57,9 @@ const ACTIONS: Record<string, string> = {
   "event.create": "Added an event",
   "event.permit_override":
     "Posted an event on a field before its permit document was uploaded",
+  "photo_cache.purge_failed":
+    "A taken-down photo's cached copies could not be cleared yet; the daily job tries again",
+  "photo_cache.purged": "Cleared a taken-down photo's cached copies on a retry",
   "private_event.request": "Asked for a private league or tournament",
   "private_event.accept": "Set up a private league or tournament",
   "private_event.decline": "Declined a private league or tournament",
