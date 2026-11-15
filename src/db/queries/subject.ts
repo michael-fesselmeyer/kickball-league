@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { type Subject, VISITOR } from "@/domain/authz/permissions";
 import type { LeagueId, UserId } from "@/domain/ids";
+import { actingPowersOf } from "./acting-admin";
 import { game, refereeAssignment } from "../schema/game";
 import { leagueMember } from "../schema/league";
 import { refereeProfile } from "../schema/referees";
@@ -20,9 +21,10 @@ export async function loadSubject(
   db: Db,
   userId: UserId | null,
   leagueId: LeagueId,
+  now: Date = new Date(),
 ): Promise<Subject> {
   if (userId === null) return VISITOR;
-  const [[person], roster, refereeing, [pooled], sponsors] = await Promise.all([
+  const [[person], roster, refereeing, [pooled], sponsors, acting] = await Promise.all([
     db
       .select({ role: leagueMember.role })
       .from(profile)
@@ -80,6 +82,7 @@ export async function loadSubject(
       )
       .limit(1),
     sponsorIdsOf(db, userId, leagueId),
+    actingPowersOf(db, userId, leagueId, now),
   ]);
   if (!person) return VISITOR;
   return {
@@ -91,5 +94,9 @@ export async function loadSubject(
     isReferee: refereeing.length > 0 || pooled !== undefined,
     refereeGameIds: refereeing.map((r) => r.gameId),
     sponsorIds: sponsors,
+    // Only a player acts for the admins; an admin or owner already has more.
+    ...((person.role ?? "player") === "player" && acting.length > 0
+      ? { acting }
+      : {}),
   };
 }

@@ -4,6 +4,8 @@
   "crons": [
     { "path": "/api/jobs/finalize-scores", "schedule": "0 9 * * *" },
     { "path": "/api/jobs/outbox", "schedule": "30 13 * * *" },
+    { "path": "/api/jobs/acting-admin-notices", "schedule": "0 5 * * *" },
+    { "path": "/api/jobs/acting-admin-notices", "schedule": "0 17 * * *" },
     { "path": "/api/jobs/digests", "schedule": "0 23 * * *" },
     { "path": "/api/jobs/payment-reminders", "schedule": "0 14 * * *" },
     { "path": "/api/jobs/guarantee-charges", "schedule": "0 15 * * *" },

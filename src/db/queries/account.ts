@@ -73,6 +73,7 @@ import { cancelHandoffsFor, myHandoffs } from "./captaincy";
 import { myPickemData, removePickemData } from "./pickem";
 import { myGearRecords, releaseGearOf } from "./equipment";
 import { deleteLostFoundOf, myLostFoundData } from "./lost-found";
+import { endActingAdminsOf } from "./acting-admin";
 import { deletePhotosOf, myPhotos } from "./member-photos";
 import { heldMerchPurchases } from "./merch";
 import { expirePurchases } from "./payments";
@@ -843,6 +844,8 @@ export async function deleteAccount(
       ),
     );
 
+  // No handover outlives the account.
+  await endActingAdminsOf(db, userId, now);
   await db.delete(session).where(eq(session.userId, userId));
   await db.delete(account).where(eq(account.userId, userId));
   await db.delete(passkey).where(eq(passkey.userId, userId));

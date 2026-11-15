@@ -18,6 +18,11 @@
 export type Urgency = "urgent" | "non_urgent";
 
 export const MESSAGE_KINDS = {
+  acting_admin: {
+    urgency: "urgent",
+    label:
+      "An acting admin handover starting or ending, for the acting admin and the owners",
+  },
   announcement: {
     urgency: "non_urgent",
     label: "Announcements from admins and captains",

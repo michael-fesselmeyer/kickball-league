@@ -231,6 +231,9 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               ["/app/admin/friends", "Friends of the league"],
               ["/app/admin/photos", "Member photos"],
               ["/app/admin/accounts", "Merge accounts"],
+              ...(isOwner
+                ? [["/app/admin/acting-admins", "Acting admins"]]
+                : []),
               ["/app/admin/audit", "Audit log"],
             ].map(([href, label]) => (
               <li key={label}>
