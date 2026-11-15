@@ -198,6 +198,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Add or remove admins | — | — | — | — | — | — | ✓ |
 | Keep the books: expenses and receipts, permit costs and documents, insurance, request sheet | — | — | — | — | — | — | ✓ |
 | See the owner dashboard and download its numbers | — | — | — | — | — | — | ✓ |
+| See a season report card, its CSV and its version for sponsors | — | — | — | — | — | — | ✓ |
 | Publish or take down a season money summary | — | — | — | — | — | — | ✓ |
 | Read a published season money summary | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | See a game's park permit at the field | — | — | own team's games | assigned | — | — | ✓ |
