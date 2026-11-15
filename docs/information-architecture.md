@@ -114,6 +114,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │   │   ├── ledger.csv              Every transaction for taxes, no player names
 │   │   └── permits                 Permits (cost or fee estimate, document, dates), games on lost permits, fees due and the season's hours against the 50-hour line, field time to give back, "What to request" and its copy button, "How NYC Parks permits work", the insurance certificate
 │   │       ├── capacity            Capacity planner: teams the field time fits, the gap to teams wanting in, options with the teams each adds and links to the request sheet, nearby NYC Parks fields
+│   │       ├── renewal             Renew for next year: NYC Parks' renewal and new-request dates, the draft renewal from this season's permits, the owners' changes with warnings, the renewal and any separate new request to copy
+│   │       └── packet              Application packet: the league and its website, schedule and roster counts (names only if chosen), applications by borough from the request sheet, the insurance certificate; copy or download as text (packet/packet.txt)
 │   │       └── request.csv         The request sheet as a CSV, with the screen's choices
 │   ├── permits                     Opens the newest season's permits (where the reminder emails point)
 │   └── files/[file]                A receipt, permit document or certificate, for owners and the operator
