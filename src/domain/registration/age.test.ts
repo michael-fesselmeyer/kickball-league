@@ -16,7 +16,7 @@ describe("the minimum age", () => {
   it("is the season's own, else the league's", () => {
     expect(minimumAgeFor({ minimumAge: 21 }, { minimumAge: null })).toBe(21);
     expect(minimumAgeFor({ minimumAge: 21 }, { minimumAge: 25 })).toBe(25);
-    expect(DEFAULT_MINIMUM_AGE).toBe(21);
+    expect(DEFAULT_MINIMUM_AGE).toBe(18);
   });
 
   it("reads the season form: blank for the league's, else 18 to 99", () => {
@@ -86,8 +86,8 @@ describe("the age check", () => {
   });
 
   it("speaks plainly", () => {
-    expect(ageConfirmationLabel(21)).toBe("I'm 21 or older");
-    expect(ageMessage("under_age", 21)).toContain("must be 21 or older");
+    expect(ageConfirmationLabel(18)).toBe("I'm 18 or older");
+    expect(ageMessage("under_age", 25)).toContain("must be 25 or older");
     expect(ageMessage("age_unconfirmed", 25)).toBe(
       "Confirm you're 25 or older to go on.",
     );

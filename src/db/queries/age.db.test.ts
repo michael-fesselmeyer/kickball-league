@@ -26,7 +26,7 @@ const BODY = `# Sample\n\n${"Sample text for tests only. ".repeat(10)}`;
 
 /**
  * An invented league with an open spring season and three people: Robin
- * (born 1994), Sam (turns 21 the day after NOW, in New York) and Alex (no
+ * (born 1994), Sam (turns 18 the day after NOW, in New York) and Alex (no
  * birth date on file).
  */
 async function world(db: Db, seasonMinimum: number | null = null) {
@@ -56,7 +56,7 @@ async function world(db: Db, seasonMinimum: number | null = null) {
       userId: sam,
       firstName: "Sam",
       lastName: "Example",
-      birthDate: "2006-02-16",
+      birthDate: "2009-02-16",
     },
     { userId: alex, firstName: "Alex", lastName: "Example" },
   ]);
@@ -106,9 +106,9 @@ const stored = async (db: Db, userId: UserId) => {
 };
 
 describe("the age check at registration", () => {
-  it("uses the league's 21 unless the season sets its own", () =>
+  it("uses the league's 18 unless the season sets its own", () =>
     inRolledBackDb(async (db) => {
-      expect((await world(db)).season.minimumAge).toBe(21);
+      expect((await world(db)).season.minimumAge).toBe(18);
       expect((await world(db, 25)).season.minimumAge).toBe(25);
     }));
 
@@ -124,7 +124,7 @@ describe("the age check at registration", () => {
         now: NOW,
       });
       expect(registered.ok).toBe(true);
-      expect(await stored(db, w.robin)).toEqual({ min: 21, at: NOW });
+      expect(await stored(db, w.robin)).toEqual({ min: 18, at: NOW });
     }));
 
   it("refuses a registration without the confirmation", () =>
@@ -152,7 +152,7 @@ describe("the age check at registration", () => {
           now: NOW,
         }),
       ).toEqual({ ok: false, error: "under_age" });
-      // The next day in New York, Sam is 21.
+      // The next day in New York, Sam is 18.
       const later = new Date("2027-02-16T17:00:00Z");
       expect(
         (
@@ -221,7 +221,7 @@ describe("the age check at registration", () => {
         error: "age_unconfirmed",
       });
       expect((await join(w.alex, true)).ok).toBe(true);
-      expect(await stored(db, w.alex)).toEqual({ min: 21, at: NOW });
+      expect(await stored(db, w.alex)).toEqual({ min: 18, at: NOW });
     }));
 });
 
@@ -268,7 +268,7 @@ describe("the age check on the waiver", () => {
         .select({ min: waiverSignature.ageConfirmedMin })
         .from(waiverSignature)
         .where(eq(waiverSignature.userId, w.robin));
-      expect(row?.min).toBe(21);
+      expect(row?.min).toBe(18);
     }));
 });
 

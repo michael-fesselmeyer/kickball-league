@@ -247,7 +247,7 @@ export async function registerFreeAgent(
   input: {
     season: SeasonForRegistration;
     userId: UserId;
-    /** They ticked "I'm 21 or older" (or the season's minimum). */
+    /** They ticked "I'm 18 or older" (or the season's minimum). */
     ageConfirmed: boolean;
     now: Date;
   },
@@ -299,7 +299,7 @@ export async function registerTeam(
     season: SeasonForRegistration;
     userId: UserId;
     team: TeamInput;
-    /** They ticked "I'm 21 or older" (or the season's minimum). */
+    /** They ticked "I'm 18 or older" (or the season's minimum). */
     ageConfirmed: boolean;
     now: Date;
   },

@@ -2,24 +2,26 @@ import { isAtLeast, MINIMUM_AGE } from "@/domain/profile/profile-form";
 import { err, ok, type Result } from "@/domain/result";
 
 /**
- * The league's age check (ADR 0041). Registering for a season and signing
+ * The league's age check (ADRs 0041 and 0050). Registering for a season and signing
  * its waiver each need the player to confirm they meet the minimum age: the
- * season's own, else the league's (21 unless the league changes it). The
+ * season's own, else the league's (18 unless the league changes it). The
  * profile already holds a birth date, which registration requires, so the
  * confirmation is checked against it; only the confirmation and the age it
  * confirmed are stored with the registration or signature. Pure: no clock
  * and no database.
  */
 
-export const DEFAULT_MINIMUM_AGE = 21;
+/** The league's minimum age unless it sets its own (ADR 0050). */
+export const DEFAULT_MINIMUM_AGE = 18;
 
 /**
- * The birth date's hint on the profile form. The profile refuses anyone under
- * MINIMUM_AGE, but each season asks for its own minimum when a player
+ * The birth date's hint on the profile form. The profile refuses anyone
+ * under MINIMUM_AGE, and each season asks for its own minimum when a player
  * registers (DEFAULT_MINIMUM_AGE unless the league or season changed it,
- * ADR 0041), so the hint names both rather than promising 18 is enough.
+ * ADRs 0041 and 0050), so the hint says a season can ask for more rather
+ * than promising 18 is always enough.
  */
-export const BIRTH_DATE_HINT = `Each season sets a minimum age, usually ${DEFAULT_MINIMUM_AGE}, and nobody under ${MINIMUM_AGE} can play. Only you and the league owners see it.`;
+export const BIRTH_DATE_HINT = `Nobody under ${MINIMUM_AGE} can play, and a season can set an older minimum. Only you and the league owners see it.`;
 /** The law's floor for the waiver, and a sane ceiling for a typo. */
 export const LOWEST_MINIMUM_AGE = 18;
 export const HIGHEST_MINIMUM_AGE = 99;
@@ -65,7 +67,7 @@ export function underAge(
   return birthDate !== null && !isAtLeast(minimumAge, birthDate, today);
 }
 
-/** The box a player ticks: "I'm 21 or older". */
+/** The box a player ticks: "I'm 18 or older". */
 export function ageConfirmationLabel(minimumAge: number): string {
   return `I'm ${minimumAge} or older`;
 }

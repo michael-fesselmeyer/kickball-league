@@ -181,11 +181,12 @@ describe("readyToRegister", () => {
 });
 
 describe("the birth date hint", () => {
-  it("names the league's usual minimum age as well as the floor of 18", () => {
-    // Registration asks for the season's minimum (21 by default); the profile
-    // only refuses under 18. A hint that said "18 or older" alone misled.
-    expect(BIRTH_DATE_HINT).toContain(String(DEFAULT_MINIMUM_AGE));
+  it("names the floor of 18 and says a season can ask for more", () => {
+    // Registration asks for the season's minimum (18 by default, ADR 0050);
+    // a season can set an older one, so "18 or older" alone would mislead.
+    expect(DEFAULT_MINIMUM_AGE).toBe(MINIMUM_AGE);
     expect(BIRTH_DATE_HINT).toContain(String(MINIMUM_AGE));
+    expect(BIRTH_DATE_HINT).toMatch(/a season can set an older minimum/);
     expect(BIRTH_DATE_HINT).not.toMatch(/must be 18 or older/);
   });
 });

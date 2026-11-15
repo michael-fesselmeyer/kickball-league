@@ -68,10 +68,11 @@ export const league = pgTable(
      */
     exportKeepOffEntries: boolean().notNull().default(false),
     /**
-     * The youngest a player may be to register or sign a waiver (ADR 0041).
-     * A season can set its own.
+     * The youngest a player may be to register or sign a waiver (ADRs 0041
+     * and 0050): 18, the profile's floor, unless the league raises it. A
+     * season can set its own.
      */
-    minimumAge: smallint().notNull().default(21),
+    minimumAge: smallint().notNull().default(18),
     /**
      * Whether players may pick their own team's games in pick'em (ADR 0044).
      * An admin decides; allowed by default.
