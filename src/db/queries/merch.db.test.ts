@@ -36,6 +36,7 @@ import {
   playerTeams,
   removeMerchPhoto,
   setItemHidden,
+  shopImageIds,
   startMerchRefund,
   updateMerchItem,
 } from "./merch";
@@ -313,7 +314,19 @@ describe("the catalog", () => {
           actorId: w.admin,
         }),
       ).toEqual({ ok: true, value: undefined });
-      expect((await add()).ok).toBe(true);
+      const added = await add();
+      if (!added.ok) throw new Error("no photo");
+      // A takedown purges what leaves this list (ADR 0064).
+      expect(await shopImageIds(db)).toContain(added.value);
+      expect(await shopImageIds(db)).not.toContain(first.value);
+      await setItemHidden(db, {
+        leagueId: w.leagueId,
+        itemId: id,
+        hidden: true,
+        actorId: w.admin,
+        now: NOW,
+      });
+      expect(await shopImageIds(db)).not.toContain(added.value);
       const item = await catalogItem(db, w.leagueId, id, NOW, {
         hidden: true,
       });
