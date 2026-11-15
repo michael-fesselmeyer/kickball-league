@@ -40,7 +40,7 @@ It replaces brooklynkickballclub.com, which today offers account registration, a
 | Players must be 18+, registered, on a team, and must have signed the "Amateur Athletic and Release of Liability" | Rulebook 2.1 |
 | The app's minimum age is a league setting, 21 by default, and a season can set its own (never below the rulebook's 18). Players confirm it to register and to sign the waiver ([ADR 0041](adr/0041-age-check-at-registration.md)) | Owner of this project |
 | On defense: at most 11 fielders and at most 6 of any gender. Short-handed options: 9 (4 and 5) or 7 (4 and 3). Fewer than 7 is a forfeit | Rulebook 2.3 |
-| Kicking order: no more than 2 players of the same gender in a row | Rulebook 2.2.4 |
+| Kicking order: no more than 2 players of the same gender in a row. A team with more than twice as many of one gender as the other may keep a separate order for each | Rulebook 2.2.4 |
 | Short teams may pick up other registered players, who kick last. Not allowed in playoffs. A team needs at least 6 of its own players for the game to count | Rulebook 2.1.4, 2.1.6.1, 2.7 |
 | Home and away are decided by rock-paper-scissors at the field | Rulebook 3.1.6.2.2 |
 | Outside alcohol at the sponsor bar: 1-game suspension, then a season ban, then a permanent ban | Rulebook 4.0 |
@@ -288,6 +288,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Pick'em: predict each game day's winners, for bragging rights only | P3 |
 | Offline score entry that syncs when signal returns | P3 |
 | Lineup and kicking-order builder that enforces the two-in-a-row rule | P3 |
+| Game clock on the live scorer: time left, and no new inning near the time limit | P3 |
 | Sportsmanship ratings, incident reports and suspensions | P3 |
 
 ### Free agents and teams
@@ -376,6 +377,21 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | WhatsApp is supported by sharing, not replaced | The league already lives there; fighting it would lose |
 | One league per deployment, with a `league` record on every season | Cheap now, and it keeps the door open for the football league later |
 | Free services only: no feature may need a paid plan, a paid API key or a monthly bill. A feature with no free option is left out ([ADR 0021](adr/0021-free-services-only.md)) | The league is run by volunteers and the site must cost nothing to run. This rules out AI features, text messages, WhatsApp business alerts, Sign in with Apple and app-store listings. Stripe has no monthly fee; its per-payment fees come out of the league's own payments. Each free limit, and what the site does near it, is in [architecture.md](architecture.md), section 15 |
+
+### The game rules the app checks
+
+These are the league's game rules as the app applies them. Each number is a setting, with the league's own value as the default; the ref still has the final say at the field, and the app warns rather than blocks.
+
+| Rule | How the app applies it | Where it is set |
+|---|---|---|
+| Fielders | At most 11 on defense and at most 6 of one gender. A team can play short with 9 (5 and 4) or 7 (4 and 3); fewer than 7 fielders is a forfeit | Season fielding settings |
+| Own players | A game counts only if at least 6 of the team's own players are there. Pickups don't count toward the 6, so below it the RSVP check calls the game a forfeit (the teams can still play a pickup game) | Season fielding settings |
+| Pickups | A team short of fielders but with enough of its own players can pick up registered players with a signed waiver; the RSVP check says how many it needs. No pickups in playoff games. Pickups kick after the team's own players | Sub finder |
+| Kicking order | Everyone coming kicks, latecomers join at the end, and no more than 2 of one gender kick in a row, counting from the last kicker back to the first. When one gender outnumbers the other by more than two to one, the builder stops flagging runs and tells the captain the team may keep a separate order for each | Lineup builder |
+| Game length | 7 innings or 90 minutes, whichever comes first, unless the division's rule set says otherwise. No new inning starts in the last 10 minutes of the time limit (a rule-set setting); an inning under way is finished. The live scorer counts down from the scheduled start and says when the inning under way is the last, or when the game is over | Rule sets |
+| Called games | A game stopped after at least 4 complete innings counts, with the score at the end of the last complete inning. Fewer is a rain-out | Score entry |
+| Ties | Regular-season games can end tied; playoff games can't | Score entry |
+| Home and away | Decided at the field; the scorer records who kicks first | Live scorer |
 
 ## 8. Out of scope
 
