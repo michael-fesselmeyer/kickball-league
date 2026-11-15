@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { seasonCardSummary } from "@/db/queries/season-cards";
@@ -15,7 +17,7 @@ type Props = PageProps<"/app/admin/seasons/[season]/cards">;
 export default function SeasonCardsAdminPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <Cards {...props} />
       </Suspense>
     </main>
@@ -88,11 +90,11 @@ async function Cards({ params, searchParams }: Props) {
         )}
         {completed ? (
           <form action={buildSeasonCardsAction.bind(null, slug)}>
-            <button type="submit" className="btn btn-primary">
+            <SubmitButton className="btn btn-primary">
               {summary.cards > 0
                 ? "Refresh the cards"
                 : "Build the cards and tell players"}
-            </button>
+            </SubmitButton>
           </form>
         ) : (
           <p className="text-text-muted">
