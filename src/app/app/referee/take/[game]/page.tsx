@@ -28,6 +28,8 @@ const ERRORS: Record<string, string> = {
   gone: "This game was called off or moved.",
   not_a_ref:
     "Only the league's refs can take games. Ask an admin to add you to the ref pool.",
+  own_team:
+    "You play for one of these teams. Tick the box to ref it anyway, or leave it for another ref.",
   plays: "You're playing at that time, so you can't ref it.",
   busy: "You're already reffing another game at that time.",
 };
@@ -82,6 +84,22 @@ async function Take({
           className="flex flex-col gap-3"
         >
           <p>This game needs a ref. The first ref to take it gets it.</p>
+          {game.playsFor.length > 0 && (
+            <label className="flex items-start gap-2 rounded-lg border border-warning p-3 text-small">
+              <input
+                type="checkbox"
+                name="ownTeamOk"
+                className="mt-1 size-5"
+                required
+              />
+              <span>
+                You play for {game.playsFor.join(" and ")} in this game. If you
+                ref it, your score report counts as that team&rsquo;s, so only
+                the other team can confirm or dispute it. I understand, and I
+                want to ref it anyway.
+              </span>
+            </label>
+          )}
           <SubmitButton className="btn self-start btn-primary">
             Take it
           </SubmitButton>

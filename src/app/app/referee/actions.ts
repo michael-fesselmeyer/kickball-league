@@ -99,7 +99,10 @@ export async function dropGameAction(
 }
 
 /** "Take it": the first ref to tap gets the game. */
-export async function takeGameAction(rawGameId: string): Promise<void> {
+export async function takeGameAction(
+  rawGameId: string,
+  form: FormData,
+): Promise<void> {
   const gameId = parseId<GameId>(rawGameId);
   if (!gameId) notFound();
   const page = `${PAGE}/take/${gameId}`;
@@ -112,7 +115,13 @@ export async function takeGameAction(rawGameId: string): Promise<void> {
   const userId = parseId<UserId>(subject.userId);
   if (!userId) notFound();
   const result = await txDb.transaction((tx) =>
-    takeRefereeGame(tx, { gameId, userId, now: new Date() }),
+    takeRefereeGame(tx, {
+      gameId,
+      userId,
+      now: new Date(),
+      // A ref who plays for one of the teams says so before taking it (#296).
+      ownTeamOk: form.get("ownTeamOk") === "on",
+    }),
   );
   redirect(result.ok ? `${page}?took=1` : `${page}?error=${result.error}`);
 }

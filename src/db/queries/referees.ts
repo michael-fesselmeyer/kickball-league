@@ -72,12 +72,19 @@ export type AssignError = "unknown_game" | "no_account" | "own_team";
 /**
  * Makes the person with this email the game's referee, replacing anyone
  * assigned before. They need an account, so they can sign in and score,
- * and they can't play on either team: a ref's report lets either captain
- * make the score final (issue #296).
+ * and if they play for one of the teams the admin is warned ("own_team")
+ * and assigns them only by saying so (`ownTeamOk`): their report then
+ * counts as their team's, so only the other team can confirm it (#296).
  */
 export async function assignReferee(
   db: Db,
-  input: { seasonId: SeasonId; gameId: GameId; email: string; actorId: UserId },
+  input: {
+    seasonId: SeasonId;
+    gameId: GameId;
+    email: string;
+    actorId: UserId;
+    ownTeamOk?: boolean;
+  },
 ): Promise<Result<void, AssignError>> {
   const [found] = await db
     .select({ id: game.id, teamAId: game.teamAId, teamBId: game.teamBId })
@@ -104,7 +111,7 @@ export async function assignReferee(
       ),
     )
     .limit(1);
-  if (plays) return err("own_team");
+  if (plays && !input.ownTeamOk) return err("own_team");
   await db
     .update(refereeAssignment)
     .set({ status: "cancelled", respondedAt: new Date() })
@@ -126,7 +133,7 @@ export async function assignReferee(
     action: "referee.assign",
     entityType: "game",
     entityId: input.gameId,
-    after: { userId: person.id },
+    after: { userId: person.id, ...(plays ? { playsInGame: true } : {}) },
   });
   return ok(undefined);
 }

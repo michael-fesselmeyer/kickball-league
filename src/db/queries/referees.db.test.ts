@@ -16,6 +16,7 @@ import {
 } from "./referees";
 import { required } from "./rows";
 import { subjectIn } from "../test/leagues";
+import { messagingWorld } from "../test/messaging-world";
 
 afterAll(closePool);
 
@@ -175,6 +176,51 @@ describe("referees", () => {
           actorId: admin,
         }),
       ).toEqual({ ok: false, error: "unknown_game" });
+    });
+  });
+});
+
+describe("assigning a ref who plays in the game (#296)", () => {
+  it("warns first, and assigns only when the admin says so", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await messagingWorld(db);
+      const player = w.aces.players[0];
+      if (!player) throw new Error("missing player");
+      const { gameId } = await w.gameEnding(new Date("2026-09-14T00:00:00Z"));
+      const input = {
+        seasonId: w.season.id,
+        gameId,
+        email: player.email,
+        actorId: w.aces.captain.userId,
+      };
+      expect(await assignReferee(db, input)).toEqual({
+        ok: false,
+        error: "own_team",
+      });
+      expect((await subjectIn(db, player.userId)).isReferee).toBe(false);
+      expect(await assignReferee(db, { ...input, ownTeamOk: true })).toEqual({
+        ok: true,
+        value: undefined,
+      });
+      expect((await subjectIn(db, player.userId)).refereeGameIds).toEqual([
+        gameId,
+      ]);
+    });
+  });
+
+  it("assigns a ref from outside the game without a warning", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await messagingWorld(db);
+      const outsider = await w.person("outside-ref");
+      const { gameId } = await w.gameEnding(new Date("2026-09-14T00:00:00Z"));
+      expect(
+        await assignReferee(db, {
+          seasonId: w.season.id,
+          gameId,
+          email: outsider.email,
+          actorId: w.aces.captain.userId,
+        }),
+      ).toEqual({ ok: true, value: undefined });
     });
   });
 });

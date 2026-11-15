@@ -40,9 +40,12 @@ export async function assignRefereeAction(
       gameId,
       email: typeof email === "string" ? email : "",
       actorId: subject.userId,
+      ownTeamOk: form.get("ownTeamOk") === "on",
     }),
   );
-  if (!result.ok) redirect(`${page}?error=${result.error}#game-${gameId}`);
+  // Which game to warn about, so its form offers the override.
+  if (!result.ok)
+    redirect(`${page}?error=${result.error}&game=${gameId}#game-${gameId}`);
   redirect(`${page}?notice=assigned#game-${gameId}`);
 }
 

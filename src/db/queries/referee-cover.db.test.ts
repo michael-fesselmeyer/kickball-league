@@ -273,7 +273,7 @@ describe("covering a game", () => {
       const take = (userId: UserId, gameId: GameId = w.acesBees) =>
         takeRefereeGame(db, { gameId, userId, now });
       expect(await take(w.tess)).toEqual({ ok: false, error: "not_a_ref" });
-      expect(await take(w.pat)).toEqual({ ok: false, error: "plays" });
+      expect(await take(w.pat)).toEqual({ ok: false, error: "own_team" });
       // Pat isn't in Cats v Dogs, but plays at that time.
       expect(await take(w.pat, w.catsDogs)).toEqual({
         ok: false,
@@ -310,6 +310,57 @@ describe("covering a game", () => {
           now: new Date(w.soon.getTime() + 60_000),
         }),
       ).toEqual({ ok: false, error: "started" });
+    });
+  });
+
+  it("lets a ref take their own team's game only by saying so, and tells the take page which team (#296)", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const now = new Date();
+      await dropRefereeGame(db, {
+        gameId: w.acesBees,
+        userId: w.quinn,
+        reason: "Sick",
+        now,
+      });
+      expect(
+        (await gameToTake(db, { gameId: w.acesBees, userId: w.pat, now }))
+          ?.playsFor,
+      ).toEqual(["Aces"]);
+      expect(
+        (await gameToTake(db, { gameId: w.acesBees, userId: w.remy, now }))
+          ?.playsFor,
+      ).toEqual([]);
+      expect(
+        await takeRefereeGame(db, { gameId: w.acesBees, userId: w.pat, now }),
+      ).toEqual({ ok: false, error: "own_team" });
+      expect(
+        await takeRefereeGame(db, {
+          gameId: w.acesBees,
+          userId: w.pat,
+          now,
+          ownTeamOk: true,
+        }),
+      ).toEqual({ ok: true, value: undefined });
+      const [audit] = await db
+        .select({ after: auditLog.after })
+        .from(auditLog)
+        .where(
+          and(
+            eq(auditLog.action, "referee.take"),
+            eq(auditLog.entityId, w.acesBees),
+          ),
+        );
+      expect(audit?.after).toMatchObject({ playsInGame: true });
+      // The override waives the team rule only, not a clash in time.
+      expect(
+        await takeRefereeGame(db, {
+          gameId: w.catsDogs,
+          userId: w.pat,
+          now,
+          ownTeamOk: true,
+        }),
+      ).toEqual({ ok: false, error: "plays" });
     });
   });
 

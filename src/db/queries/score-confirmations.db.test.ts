@@ -269,7 +269,7 @@ describe("score confirmation requests", () => {
         throw new Error("no report");
       await respondToScore(db, {
         gameId,
-        reportId: open.reportId as ScoreReportId,
+        reportId: reported.value.reportId as ScoreReportId,
         teamSeasonId: w.bees.id,
         userId: w.bees.captain.userId,
         status: "confirmed",
