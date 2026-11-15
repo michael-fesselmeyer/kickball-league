@@ -155,6 +155,9 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | See a game's emergency contacts and first-aid notes, on game day only | — | — | own team's games | assigned | — | — | — |
 | Enter a score | — | — | own team's games | assigned | — | ✓ | ✓ |
 | Check in at the field on game day | — | — | — | assigned, on the game's day | — | ✓ (for the ref) | ✓ (for the ref) |
+| Check in as a player by scanning the game's code ([ADR 0063](adr/0063-field-check-in.md)) | — | ✓ (on either roster, or an approved sub, on game day) | ✓ | ✓ if also a player | — | ✓ if also a player | ✓ if also a player |
+| Show a game's check-in code; tick players in or out, with their waiver status | — | — | own team's games | assigned | — | ✓ | ✓ |
+| See a team's attendance and games played | — | — | own team | — | — | ✓ (every team) | ✓ (every team) |
 | Enter runs inning by inning during a game | — | — | own team's games without a ref | assigned | — | ✓ | ✓ |
 | Confirm or dispute a score | — | — | own team's games | — | — | ✓ | ✓ |
 | Override a final score, record a forfeit | — | — | — | — | — | ✓ | ✓ |

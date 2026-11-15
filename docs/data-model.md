@@ -113,6 +113,7 @@ erDiagram
     timestamptz registration_closes_at
     timestamptz payment_deadline_at
     smallint minimum_age "null uses the league's"
+    smallint playoff_min_games "1 to 30; null for no minimum"
     enum fee_model "per_team, per_player"
     int team_fee_cents
     int player_fee_cents
@@ -329,6 +330,7 @@ erDiagram
   game ||--o{ game_period : "scored by"
   game ||--o{ offline_receipt : "sent offline"
   game ||--o{ game_rsvp : collects
+  game ||--o{ game_attendance : "played in"
   game ||--o{ game_lineup : "kicks in"
   game_lineup ||--o{ game_lineup_spot : holds
   game ||--o{ sub_request : "may need"
@@ -508,6 +510,14 @@ erDiagram
     uuid team_season_id FK
     enum status "in, out, maybe"
   }
+  game_attendance {
+    uuid game_id PK
+    uuid user_id PK
+    uuid team_season_id FK "the team they played for"
+    enum method "scan, marked"
+    uuid recorded_by FK "null when that account is deleted"
+    timestamptz recorded_at
+  }
   sub_request {
     uuid id PK
     uuid game_id FK
@@ -592,6 +602,8 @@ Notes:
 - `team_season.seed` is written when the bracket is made, from the standings with the season's tiebreakers.
 - Sub requests ([ADR 0006](adr/0006-sub-claims-hold-spots.md)): a team has at most one live (`open` or `filled`) request per game, and none for playoff games. `women_needed` and `men_needed` reserve spots for the fielding rule; the rest of `needed` is open to anyone eligible. A `pending` or `approved` claim holds a spot, so a request never has more of those than `needed`; the request is `filled` once approved claims take every spot, and opens again if an approved sub withdraws. A request past `closes_at` (the game's start) is closed whatever its status, so no job sweeps it. Claims are written under a lock on the request row, which is what stops two players taking the last spot.
 - League history is computed on demand like the standings: a completed season's champion is its complete bracket's `champion_id`, or the top of its final standings when it had no bracket, and a team's all-time record adds up its seasons' regular-season standings. Nothing about history is stored.
+
+Field check-in, as built ([ADR 0063](adr/0063-field-check-in.md)): `game_attendance` records who played in a game and for which team. A player on either roster, or a sub approved for that game, checks in by scanning the game's rotating code on game day (`method` `scan`); the game's captains, its ref or an admin tick players in or out (`marked`) from game day until 7 days after it (admins at any time). Games played are counted from these rows for the season, for any team, and compared with `season.playoff_min_games`; nothing is stored. The code's key is derived from the server's auth secret and the game id, so no secret is stored per game.
 
 ### 2.3 Money
 
@@ -1911,6 +1923,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `score_report` | unique `(client_id)` | Retried offline submissions are ignored |
 | `score_confirmation` | unique `(game_id, team_season_id)` | One answer per team |
 | `game_rsvp` | unique `(game_id, user_id)` | One RSVP per game |
+| `game_attendance` | primary key `(game_id, user_id)` | One check-in per player per game, so a second scan changes nothing |
+| `season` | check `playoff_min_games` null or 1 to 30 | The playoff minimum the season form accepts |
 | `event` | unique `slug`; check `ends_at > starts_at`; check `capacity` is null or positive; check a theme week has no capacity and is public; check `audience_season_id` is set only for a teams audience; check `invite_url` starts with `https://` and is at most 500 characters | Stable links; an event has a length; theme weeks take no RSVPs and mark the public schedule; an invite link is never another scheme |
 | `event_audience_team` | primary key `(event_id, team_id)` | A team is listed once per event |
 | `event_rsvp` | unique `(event_id, user_id)` | One RSVP per person per event |
@@ -2007,6 +2021,7 @@ Indexes for the common reads:
 | `audit_log` | `(entity_type, entity_id, occurred_at desc)`, `(actor_id, occurred_at desc)` | History of a record, history of a person |
 | `checkin` | `(sponsor_id, on_date)` | Sponsor report |
 | `game_rsvp` | `(game_id, team_season_id)` | Captain's RSVP board |
+| `game_attendance` | `(team_season_id, game_id)`; `(user_id)`; `(recorded_by)` | A team's attendance; a player's games played; who recorded check-ins |
 | `sub_request` | `(team_season_id, status)`; `(closes_at)` where `status = 'open'` | A team's requests; open requests for the sub page |
 | `sub_claim` | `(user_id, status)` | A player's offers |
 | `team_formation_request` | `(season_id, status, created_at)`; `(requested_by)` | The admin's waiting list; a player's requests |
@@ -2049,6 +2064,7 @@ Indexes for the common reads:
 | Gender and lineup gender | `profile` | The person, their captain (for lineups), admins. A sub's lineup gender is copied to `sub_claim`, which the asking team's captains see. The kicking-order builder shows each player's lineup gender to their team's captains and admins only |
 | Away weeks | `away_week` | The person, their team's captains (who is away, for planning a lineup), admins. Teammates see only how many players are available each week |
 | Kicking order | `game_lineup`, `game_lineup_spot` | The team's captains and admins; from game day, the other team's captains and the game's ref, as names in order with no genders. Each player sees only their own spot |
+| Game attendance | `game_attendance` | The player (in their export), the game's captains and ref on its check-in screen, the team's captains (games played), admins. A captain's or ref's tick in or out writes an `attendance.mark` audit row with the ids added and removed. Deleted with the account; a merge keeps one row per game |
 | Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
 | New-team requests, with the player's note | `team_formation_request` | The player and admins |
 | Private league and tournament requests, with the organizer's note | `private_event` | The organizer and admins. The organizer's contact details stay on their account |
@@ -2084,6 +2100,7 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
 - **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), their away weeks (`away_week`, which would otherwise stay with the kept registration), their place in any ref pool and the game times they said they can ref (`referee_profile`, `referee_availability`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt`, `message` and `win_back_email` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Addresses that were merged into the account stop being aliases. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). Their `emergency_contact` is deleted. The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted. A captaincy offer waiting for or from them is cancelled. They stop bringing league gear to games still to come, and a gear handoff waiting from or to them is cancelled; a kit they hold stays shown with "Deleted account" until an admin says where it is.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their check-ins (`game_attendance`), their spots in saved kicking orders (`game_lineup_spot`), their away weeks (`away_week`, which would otherwise stay with the kept registration), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Addresses that were merged into the account stop being aliases. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). Their `emergency_contact` is deleted. The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted. A captaincy offer waiting for or from them is cancelled.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments and payouts, past sub claims, sub requests posted, new-team requests, entries and wins in drawn giveaways, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
