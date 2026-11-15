@@ -9,6 +9,7 @@ import { bracket, bracketMatch } from "../schema/playoffs";
 import { scheduleVersion } from "../schema/schedule";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
+import { permitEverySlot } from "../test/permits";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import {
   advanceBracket,
@@ -90,6 +91,8 @@ async function world(db: Db, n = 8) {
       ),
     ),
   );
+  // Held under permits with their documents (H12, issue #407).
+  await permitEverySlot(db, seasonId);
   const teams = await db
     .insert(team)
     .values(

@@ -8,6 +8,7 @@ import { field, game, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
+import { permitEverySlot } from "../test/permits";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import {
   addDivision,
@@ -109,6 +110,8 @@ async function world(db: Db) {
       ),
     ),
   );
+  // Held under permits with their documents (H12, issue #407).
+  await permitEverySlot(db, seasonId);
   const teams = await db
     .insert(team)
     .values(

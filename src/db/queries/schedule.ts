@@ -21,7 +21,8 @@ import {
   type TeamConstraint,
   type Weights,
 } from "@/domain/scheduler/types";
-import { validate } from "@/domain/scheduler/validate";
+import { type Violation, validate } from "@/domain/scheduler/validate";
+import { coverageGap, gapSentence } from "@/domain/permits/coverage";
 import type * as schema from "../schema";
 import { game, slot } from "../schema/game";
 import { league } from "../schema/league";
@@ -33,6 +34,7 @@ import {
 import { season } from "../schema/season";
 import { teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
+import { schedulerPermits } from "./permit-coverage";
 import { queueRainoutNotices } from "./rainout-notices";
 import { required } from "./rows";
 
@@ -199,7 +201,20 @@ export async function saveVersion(
       .from(scheduleVersion)
       .where(eq(scheduleVersion.seasonId, seasonId));
     const versionNo = (latest?.last ?? 0) + 1;
-    const violations = validate(rules, schedule);
+    // H12: games still to play must sit inside a usable permit (issue
+    // #407), judged against the permits as they are now. The league's own
+    // bracket advance is not held up by a gap elsewhere on the schedule;
+    // the permits screen and the owners' email cover that.
+    const automatic = origin === "playoffs" && createdBy === undefined;
+    const violations = validate(
+      automatic
+        ? rules
+        : {
+            ...rules,
+            permits: await schedulerPermits(tx, seasonId, new Date()),
+          },
+      schedule,
+    );
     const [version] = await tx
       .insert(scheduleVersion)
       .values({
@@ -395,6 +410,47 @@ export async function loadVersion(
 
 export type PublishError = "unknown_version" | "not_draft" | "has_violations";
 
+/**
+ * H12 for a stored version against today's permits: its regular games
+ * through the scheduler's own check, and its playoff games by the same
+ * coverage rule.
+ */
+async function permitGaps(
+  db: Db,
+  versionId: ScheduleVersionId,
+  seasonId: SeasonId,
+  now: Date,
+): Promise<Violation[]> {
+  const stored = await loadVersion(db, versionId);
+  if (!stored) return [];
+  const permits = await schedulerPermits(db, seasonId, now);
+  const gaps = validate({ ...stored.input, permits }, stored.schedule).filter(
+    (v) => v.rule === "H12",
+  );
+  const slots = new Map(stored.input.slots.map((s) => [s.id, s]));
+  for (const p of stored.playoffs) {
+    const at = p.slotId ? slots.get(p.slotId) : undefined;
+    if (!at || Date.parse(at.startsAt) < now.getTime()) continue;
+    const gap = coverageGap(at, permits.windows);
+    if (gap)
+      gaps.push({
+        rule: "H12",
+        message: gapSentence(
+          gap,
+          {
+            fieldName: permits.fieldNames[at.fieldId] ?? "This field",
+            startsAt: at.startsAt,
+            endsAt: at.endsAt,
+            noun: "playoff game",
+          },
+          permits.timeZone,
+        ),
+        gameKeys: [p.gameId],
+      });
+  }
+  return gaps;
+}
+
 /** What changed since the previous published version, and how many rain-out notices were queued. */
 export type Published = ScheduleDiff & { notified: number };
 
@@ -427,6 +483,18 @@ export async function publishVersion(
     if (version.status !== "draft") return err("not_draft");
     if ((version.violations as unknown[]).length > 0)
       return err("has_violations");
+    // A permit lost or a document missing since the draft was saved still
+    // blocks it: judged again now, and kept on the draft to explain why.
+    if (publishedBy !== null) {
+      const gaps = await permitGaps(tx, versionId, version.seasonId, now);
+      if (gaps.length > 0) {
+        await tx
+          .update(scheduleVersion)
+          .set({ violations: gaps })
+          .where(eq(scheduleVersion.id, versionId));
+        return err("has_violations");
+      }
+    }
 
     const [current] = await tx
       .select({ id: scheduleVersion.id })
