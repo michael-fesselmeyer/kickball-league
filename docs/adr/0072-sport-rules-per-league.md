@@ -33,7 +33,7 @@ Registration, payments, credit, waivers, rosters and captains, messaging and its
 
 - `league.sport` already defaults to `kickball`, and the existing names (`checkScore`, `MIN_CALLED_INNINGS`, `MAX_RUNS`, `RUN_DIFFERENCE_CAP`) are still exported from where they were, now backed by the kickball module. Every existing test passes as it was written.
 - A sport without its own module (flag football, softball, soccer, volleyball, other) keeps kickball's rules, as it does today. Its module is added when a league of that sport opens; the operator's sport list says which sports have their own rules.
-- The migration adds one nullable column (`rule_set.best_of`); no existing row changes.
+- The migration adds nullable columns only (`rule_set.best_of`, `interest_option.opened_league_id`); no existing row changes.
 
 ### Dodgeball, end to end
 
@@ -45,7 +45,7 @@ Dodgeball is the first sport after kickball, chosen because it differs the most 
 
 ### Opening a new league from interest sign-ups
 
-An interest option ([the interest sign-ups](../product-spec.md)) can name a sport. When an option has enough interest, one action opens it as a new league with a draft season, prefilled from the option (night, park, format and sport) and the league it came from (colors, time zone, minimum age, and a rule set with the sport's defaults), and links the option to it. Creating a league stays an operator action ([ADR 0048](0048-several-leagues-on-one-deployment.md)); the button is on the league's interest page for the operator. The season stays a draft until an admin opens registration, so nothing is public before the league is ready.
+When an option of the interest sign-ups has enough interest, one action opens it as a new league with a draft season: the league is named after the option ("Thursday Social Kickball at McCarren Park"), plays the sport picked when opening it (the asking league's by default, so a form can gauge a new sport too), copies the asking league's colors, time zone and minimum age, and gets a rule set with the sport's defaults. The draft season starts on the option's night at least six weeks out, runs eight weeks, takes the asking league's latest fees and roster sizes, and is capped at the form's target number of teams. The option keeps a link to the league (`interest_option.opened_league_id`), so it opens once. Creating a league stays an operator action ([ADR 0048](0048-several-leagues-on-one-deployment.md)); the button is on the league's interest page, for the operator only. Nothing is public until an admin opens registration. The rules for the draft are pure (`src/domain/league/draft-league.ts`).
 
 ## Alternatives considered
 
