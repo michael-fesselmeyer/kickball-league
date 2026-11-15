@@ -208,6 +208,12 @@ export const alertSetting = pgTable(
 /**
  * A message an admin sent to the league, or an admin or captain sent to one
  * team. Each recipient gets a message row pointing back here.
+ *
+ * An admin may schedule one instead (ADR 0052): it waits with `send_at` set
+ * and no `sent_at`, can be edited or cancelled until then, and the outbox
+ * sweep queues its messages, for the audience as it stands, once `send_at`
+ * has passed. `sent_at` is when its messages were queued; `recipient_count`
+ * is 0 until then.
  */
 export const announcement = pgTable(
   "announcement",
@@ -228,13 +234,26 @@ export const announcement = pgTable(
     body: text().notNull(),
     recipientCount: integer().notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    /** When a scheduled one goes out; null for one sent as it was written. */
+    sendAt: timestamp({ withTimezone: true }),
+    /** When its messages were queued; null while it waits or once cancelled. */
+    sentAt: timestamp({ withTimezone: true }),
+    cancelledAt: timestamp({ withTimezone: true }),
   },
   (t) => [
     index("announcement_season_idx").on(t.seasonId, t.createdAt.desc()),
     index("announcement_author_idx").on(t.authorId, t.createdAt.desc()),
+    // The sweep's look for scheduled ones that are due.
+    index("announcement_due_idx")
+      .on(t.sendAt)
+      .where(sql`${t.sentAt} is null and ${t.cancelledAt} is null`),
     check(
       "announcement_text_lengths",
       sql`char_length(${t.subject}) between 1 and 120 and char_length(${t.body}) between 1 and 5000`,
+    ),
+    check(
+      "announcement_sent_or_waiting",
+      sql`(${t.sentAt} is not null and ${t.cancelledAt} is null) or (${t.sentAt} is null and ${t.sendAt} is not null)`,
     ),
   ],
 );
