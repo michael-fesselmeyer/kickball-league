@@ -42,7 +42,7 @@ test.describe
       .getByLabel("What care they needed")
       .selectOption({ label: "First aid at the field" });
     await ref
-      .getByLabel("What happened")
+      .locator("#injury-details")
       .fill("Slid into second base and twisted the knee. Ice from the kit.");
     await ref.getByRole("button", { name: "Send the report" }).click();
     await expect(ref.getByRole("status")).toContainText("Report sent");
