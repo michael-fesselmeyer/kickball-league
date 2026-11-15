@@ -18,6 +18,7 @@ import { type GameId, parseId } from "@/domain/ids";
 import { lineFinal } from "@/domain/scores/live";
 import { scoreVersion } from "@/domain/scores/offline";
 import {
+  needsSettling,
   PLAYOFF_TIE,
   REASON_MAX,
   reportingTeam,
@@ -103,9 +104,10 @@ async function Score({
       liveGame(db, found.id),
     ]);
   // An undisputed score past its 24 hours is settled on the way in. Settling
-  // writes only a final score, so the game is read again only then.
+  // writes only a final score, so the game is read again only then; a game
+  // already marked final is not settled again on every visit.
   let g = found;
-  if (state.state === "final") {
+  if (needsSettling(found.status, state)) {
     await settleGame(db, found.id, now);
     g = (await gameForScoring(db, found.id)) ?? found;
   }
@@ -180,9 +182,6 @@ async function Score({
   const filled = live?.kicksFirst
     ? lineFinal(live.halves, live.kicksFirst)
     : null;
-  const pickups = can(subject, "sub_request.view_pickups", ctx)
-    ? (await pickupsFor(db, [g.id])).get(g.id)
-    : undefined;
   // Game-day discipline: a captain rates the other team once the score is
   // final; the ref, a captain or an admin can report an incident.
   const rates =
@@ -190,7 +189,13 @@ async function Score({
     myTeam !== undefined &&
     canRate(g) &&
     can(subject, "sportsmanship.rate", ctx);
-  const myRating = rates ? await teamRatingFor(db, g.id, myTeam) : null;
+  // The pickups and this captain's rating, read at once.
+  const [pickups, myRating] = await Promise.all([
+    can(subject, "sub_request.view_pickups", ctx)
+      ? pickupsFor(db, [g.id]).then((m) => m.get(g.id))
+      : undefined,
+    rates ? teamRatingFor(db, g.id, myTeam) : null,
+  ]);
   const reports =
     discipline && canFileFor(g, now).ok && can(subject, "incident.log", ctx);
   // From game day, who played (ADR 0063).

@@ -204,3 +204,12 @@ export function reportingTeam<T extends string>(
   const plays = teams.filter((t) => roster.some((m) => m.teamSeasonId === t));
   return plays.length === 1 ? (plays[0] ?? null) : null;
 }
+
+/**
+ * Whether a game's stored result has to catch up with its score: the score
+ * is final but the game is not marked final or forfeit yet. A game already
+ * marked is left as it is, as the scheduled finalizer leaves it, so opening
+ * its score page reads and writes nothing more.
+ */
+export const needsSettling = (status: string, state: ScoreState): boolean =>
+  state.state === "final" && status !== "final" && status !== "forfeit";

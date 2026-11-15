@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   checkScore,
+  needsSettling,
   PLAYOFF_TIE,
   type Report,
   reportingTeam,
@@ -282,5 +283,26 @@ describe("rulings", () => {
     );
     expect(rulingKind("normal", { status: "final" })).toBe("ruling");
     expect(rulingKind("forfeit_b", { status: "forfeit" })).toBe("forfeit");
+  });
+});
+
+describe("needsSettling", () => {
+  const final = { state: "final", reportId: "r1", reason: "time" } as const;
+  it("settles a final score on a game not marked final yet", () => {
+    expect(needsSettling("scheduled", final)).toBe(true);
+  });
+  it("leaves a game already marked final or forfeit as it is", () => {
+    expect(needsSettling("final", final)).toBe(false);
+    expect(needsSettling("forfeit", final)).toBe(false);
+  });
+  it("has nothing to settle before the score is final", () => {
+    expect(
+      needsSettling("scheduled", {
+        state: "awaiting",
+        reportId: "r1",
+        finalAt: new Date(0),
+      }),
+    ).toBe(false);
+    expect(needsSettling("scheduled", { state: "none" })).toBe(false);
   });
 });
