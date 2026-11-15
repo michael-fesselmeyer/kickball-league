@@ -143,6 +143,15 @@ export function refreshParkPages(): void {
 export const SEASONS_TAG = "seasons";
 
 /**
+ * From a Server Action: the league history's shirt archive after a team's
+ * shirt design changed. Only the history page reads it, so only it expires.
+ */
+export function refreshShirtArchive(seasonId: string): void {
+  updateTag(seasonTag(seasonId));
+  revalidatePath("/l/[league]/history", "page");
+}
+
+/**
  * From a Server Action: the next request for any public page of this season,
  * including its teams' pages, renders fresh data instead of the cached copy.
  *

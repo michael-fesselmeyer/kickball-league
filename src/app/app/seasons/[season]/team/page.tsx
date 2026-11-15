@@ -49,6 +49,8 @@ import {
 import { CaptaincyNotice, CaptaincyOffer, CaptaincyPanel } from "./captaincy";
 import { InviteLink } from "./invite-link";
 import { KeepOffSection } from "./keep-off";
+import { teamShirtInfo } from "@/db/queries/shirt-late";
+import { ShirtSection } from "./shirts";
 import { type GuaranteeView, TeamMoney } from "./team-money";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
@@ -214,6 +216,7 @@ async function Team({
     [balance, guarantee, credit],
     keepOff,
     myOffer,
+    shirtInfo,
   ] = await Promise.all([
     rosterBoard(db, teamSeasonId),
     teamGames(db, teamSeasonId),
@@ -235,6 +238,7 @@ async function Team({
       : ([undefined, null, 0] as const),
     keepsOff ? teamKeepOffList(db, teamSeasonId) : [],
     offerFor(db, teamSeasonId, subject.userId),
+    teamShirtInfo(db, teamSeasonId),
   ]);
   // Answers are for games still to come.
   const upcoming = games
@@ -514,6 +518,12 @@ async function Team({
             : ""}
           )
         </h2>
+        {shirtInfo?.ownShirts && (
+          <p className="text-text-muted">
+            <span className="sticker text-micro">Own shirts</span> This team
+            wears its own shirts or jerseys, not the league&apos;s.
+          </p>
+        )}
         {seesStatus && (
           <p className="text-text-muted">
             {signed} signed the waiver, {paid} paid.
@@ -621,6 +631,15 @@ async function Team({
             setTeamRoleAction.bind(null, slug, userId, role)
           }
           stepDown={coCaptain ? stepDownAction.bind(null, slug) : undefined}
+        />
+      )}
+
+      {manages && shirtInfo && league && (
+        <ShirtSection
+          slug={slug}
+          leagueId={league.id}
+          info={shirtInfo}
+          notice={typeof query.shirts === "string" ? query.shirts : undefined}
         />
       )}
 

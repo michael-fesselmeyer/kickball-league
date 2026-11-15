@@ -391,3 +391,15 @@ export async function setShirtDesign(
   });
   return ok(undefined);
 }
+
+/** A team's shirt choice and design line, for its page. */
+export async function teamShirtInfo(
+  db: Db,
+  teamSeasonId: TeamSeasonId,
+): Promise<{ ownShirts: boolean; design: string | null } | null> {
+  const [row] = await db
+    .select({ ownShirts: teamSeason.ownShirts, design: teamSeason.shirtDesign })
+    .from(teamSeason)
+    .where(eq(teamSeason.id, teamSeasonId));
+  return row ?? null;
+}
