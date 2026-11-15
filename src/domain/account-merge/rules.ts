@@ -405,6 +405,9 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
   "incident.reported_by": actor("incidents reported"),
   "incident.resolved_by": actor("incidents resolved"),
   "incident_note.author_id": actor("incident notes"),
+  "concern.sender_id": actor("concerns sent"),
+  "concern.closed_by": actor("concerns closed"),
+  "concern_message.author_id": actor("concern replies and notes"),
   "suspension.user_id": {
     kind: "dedupe",
     label: "suspensions",

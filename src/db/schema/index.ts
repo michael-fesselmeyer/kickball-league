@@ -7,6 +7,7 @@ export * from "./checklist";
 export * from "./awards";
 export * from "./books";
 export * from "./credit";
+export * from "./concern";
 export * from "./discipline";
 export * from "./division";
 export * from "./drive";
