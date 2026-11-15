@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  customType,
   date,
   index,
   integer,
@@ -23,6 +24,10 @@ import type { SectionChange } from "@/domain/rules/rules";
 import { user } from "./auth";
 import { league } from "./league";
 
+const tsvector = customType<{ data: string }>({
+  dataType: () => "tsvector",
+});
+
 /**
  * The league's rules as they stand, one row per section (ADR 0062). Admins
  * write the text in the app; none of it is in the repository. The public
@@ -41,6 +46,13 @@ export const ruleSection = pgTable(
     title: text().notNull(),
     body: text().notNull(),
     position: smallint().notNull(),
+    /**
+     * What the rulebook search matches: the title weighs more than the text
+     * (ADR 0065). Kept by Postgres, never written by the app.
+     */
+    search: tsvector().generatedAlwaysAs(
+      sql`setweight(to_tsvector('english', title), 'A') || setweight(to_tsvector('english', body), 'B')`,
+    ),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -49,6 +61,7 @@ export const ruleSection = pgTable(
   },
   (t) => [
     unique("rule_section_league_slug").on(t.leagueId, t.slug),
+    index("rule_section_search_idx").using("gin", t.search),
     check(
       "rule_section_title_length",
       sql`char_length(${t.title}) between 1 and 80`,
