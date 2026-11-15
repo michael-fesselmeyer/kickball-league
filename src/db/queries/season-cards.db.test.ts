@@ -3,11 +3,14 @@ import { afterAll, describe, expect, it } from "vitest";
 import type { GameId, TeamSeasonId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
 import { awardPoll, awardVote } from "../schema/awards";
+import { user } from "../schema/auth";
+import { sportsmanshipRating } from "../schema/discipline";
 import { game, gamePeriod, gameRsvp } from "../schema/game";
 import { gameLineup, gameLineupSpot } from "../schema/lineup";
 import { message } from "../schema/message";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
+import { rosterMembership } from "../schema/team";
 import { seasonCard } from "../schema/season-card";
 import { messagingWorld, type Player } from "../test/messaging-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
@@ -413,6 +416,159 @@ describe("the player's data", () => {
           .from(seasonCard)
           .where(eq(seasonCard.userId, w.casey.userId)),
       ).toEqual([]);
+    });
+  });
+});
+
+describe("the league's marks on a card", () => {
+  it("adds the sportsmanship shout-out and league superlatives", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await playedWorld(db);
+      await w.complete();
+      // Bees' captain rated Aces in all three games: 5, 5 and 4.
+      await db.insert(sportsmanshipRating).values(
+        [
+          [w.games.first, 5],
+          [w.games.second, 5],
+          [w.games.third, 4],
+        ].map(([gameId, score]) => ({
+          gameId: gameId as GameId,
+          teamSeasonId: w.bees.id,
+          ratedTeamSeasonId: w.aces.id,
+          score: score as number,
+        })),
+      );
+      await w.build();
+
+      const alex = await myCard(db, w.alex.userId, w.season.slug);
+      expect(alex?.stats.sportsmanship?.ratings).toBe(3);
+      expect(alex?.stats.sportsmanship?.average).toBeCloseTo(4.67, 1);
+      // Aces scored 9 runs to Bees' 8, and the 5-run inning was the league's best.
+      expect(alex?.stats.superlatives).toEqual([
+        "Highest-scoring team in the league",
+        "Biggest inning in the league: 5 runs",
+      ]);
+
+      // Bees were rated by nobody and earn none of it.
+      const bees = await myCard(db, w.bees.captain.userId, w.season.slug);
+      expect(bees?.stats.sportsmanship).toBeNull();
+      expect(bees?.stats.superlatives).toEqual([]);
+    });
+  });
+
+  it("builds a calm card for a player whose team played no games", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await playedWorld(db);
+      const idle = await w.entry("Idle");
+      const newbie = await w.person("newbie");
+      await w.join(idle, newbie);
+      await w.complete();
+      await w.build();
+
+      const card = await myCard(db, newbie.userId, w.season.slug);
+      expect(card?.stats).toMatchObject({
+        team: { name: "Idle" },
+        gamesPlayed: 0,
+        attended: null,
+        runs: 0,
+        liveGames: 0,
+        bestGame: null,
+        biggestInning: null,
+        record: { wins: 0, losses: 0, ties: 0 },
+        finish: null,
+        longestWinStreak: 0,
+        sportsmanship: null,
+        subGames: 0,
+        superlatives: [],
+      });
+    });
+  });
+
+  it("gives a player who switched teams the card of the team they finished on", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await playedWorld(db);
+      // A player started on Aces, answered "in" for the first game there,
+      // then moved to Bees, whose last game they kicked in.
+      const mover = await w.person("mover");
+      await w.join(w.aces.id, mover);
+      await db.insert(gameRsvp).values({
+        gameId: w.games.first,
+        userId: mover.userId,
+        teamSeasonId: w.aces.id,
+        status: "in",
+      });
+      await db
+        .update(rosterMembership)
+        .set({ status: "removed", endedAt: new Date("2026-09-20T00:00:00Z") })
+        .where(eq(rosterMembership.registrationId, mover.registrationId));
+      await w.join(w.bees.id, mover);
+      const [lineup] = await db
+        .insert(gameLineup)
+        .values({ gameId: w.games.third, teamSeasonId: w.bees.id })
+        .returning({ id: gameLineup.id });
+      await db.insert(gameLineupSpot).values({
+        lineupId: lineup!.id,
+        position: 1,
+        userId: mover.userId,
+      });
+      await w.complete();
+      await w.build();
+
+      const cards = await db
+        .select()
+        .from(seasonCard)
+        .where(eq(seasonCard.userId, mover.userId));
+      expect(cards).toHaveLength(1);
+      const card = await myCard(db, mover.userId, w.season.slug);
+      // The old team's game does not count; only the Bees game they kicked in.
+      expect(card?.stats).toMatchObject({
+        team: { name: "Bees" },
+        gamesPlayed: 3,
+        attended: 1,
+        runs: 5,
+        record: { wins: 1, losses: 2, ties: 0 },
+        longestWinStreak: 0,
+      });
+    });
+  });
+
+  it("counts a rostered player's sub games apart from their team's, and gives a sub with no team no card", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await playedWorld(db);
+      // Alex (Aces) subbed for Bees in the last game; a sub from outside
+      // the league's rosters filled in for Bees too.
+      const outsider = await db
+        .insert(user)
+        .values({ name: "sub", email: `sub-${w.tag}@example.test` })
+        .returning({ id: user.id });
+      const [lineup] = await db
+        .insert(gameLineup)
+        .values({ gameId: w.games.third, teamSeasonId: w.bees.id })
+        .returning({ id: gameLineup.id });
+      await db.insert(gameLineupSpot).values([
+        {
+          lineupId: lineup!.id,
+          position: 1,
+          userId: w.alex.userId,
+          pickup: true,
+        },
+        {
+          lineupId: lineup!.id,
+          position: 2,
+          userId: outsider[0]!.id,
+          pickup: true,
+        },
+      ]);
+      await w.complete();
+      await w.build();
+
+      const alex = await myCard(db, w.alex.userId, w.season.slug);
+      // Still only the one game kicked in for Aces; the fill-in is its own count.
+      expect(alex?.stats).toMatchObject({ attended: 1, subGames: 1 });
+      expect(alex?.stats.superlatives).toContain(
+        "Filled in for other teams 1 time",
+      );
+      expect(await myCard(db, outsider[0]!.id, w.season.slug)).toBeNull();
     });
   });
 });

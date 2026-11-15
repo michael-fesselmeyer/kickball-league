@@ -151,9 +151,7 @@ export function SeasonCardView({
             <p>{sportsmanshipShout(stats.sportsmanship)}.</p>
           )}
           {stats.subGames > 0 && (
-            <p>
-              Subbed for other teams in {plural(stats.subGames, "game")}.
-            </p>
+            <p>Subbed for other teams in {plural(stats.subGames, "game")}.</p>
           )}
         </section>
       )}

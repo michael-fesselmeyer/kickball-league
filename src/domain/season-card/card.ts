@@ -282,9 +282,7 @@ export function superlatives(input: {
     input.biggestInningRuns > 0 &&
     input.biggestInningRuns === input.league.biggestInning
   )
-    lines.push(
-      `Biggest inning in the league: ${input.biggestInningRuns} runs`,
-    );
+    lines.push(`Biggest inning in the league: ${input.biggestInningRuns} runs`);
   if (
     input.attended !== null &&
     input.games.length >= PERFECT_MIN_GAMES &&

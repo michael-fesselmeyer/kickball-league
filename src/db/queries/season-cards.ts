@@ -358,7 +358,7 @@ export async function seasonCardsFor(
   for (const p of data.periods)
     if (finishedIds.has(p.gameId))
       biggestInning = Math.max(biggestInning, p.runs);
-  const league = {
+  const marks = {
     teams: teamRuns.size,
     mostTeamRuns: Math.max(0, ...teamRuns.values()),
     biggestInning,
@@ -396,7 +396,7 @@ export async function seasonCardsFor(
         votesCast: data.votesCast.get(p.userId) ?? 0,
         sportsmanship: data.sportsmanship.get(p.teamSeasonId) ?? null,
         subGames: subbed.get(p.userId) ?? 0,
-        league,
+        league: marks,
       }),
     };
   });
