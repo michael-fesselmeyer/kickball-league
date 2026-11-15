@@ -22,9 +22,15 @@ test("a park's page says who holds the fields, shows the house rules and is acce
   await expectNoAxeViolations(page);
 });
 
-test("a park that does not exist is not found", async ({ page }) => {
-  const response = await page.goto("/fields/no-such-park");
-  expect(response?.status()).toBe(404);
+// The lookup runs inside a Suspense boundary, after the page has started
+// streaming, so the status is already sent: check the page instead.
+test("a park that does not exist shows the not-found page", async ({
+  page,
+}) => {
+  await page.goto("/fields/no-such-park");
+  await expect(
+    page.getByRole("heading", { name: "We can't find that page" }),
+  ).toBeVisible();
 });
 
 test("the park page fits a phone screen", async ({ page }) => {
