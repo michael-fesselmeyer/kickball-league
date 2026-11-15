@@ -513,7 +513,7 @@ describe("deleting", () => {
     inRolledBackDb(async (db) => {
       const w = await photoWorld(db);
       const id = await uploaded(db, w);
-      expect(await approvedPhotoIds(db)).not.toContain(id);
+      expect((await approvedPhotoIds(db)).map((r) => r.id)).not.toContain(id);
       await reviewMemberPhoto(db, {
         leagueId: w.leagueId,
         photoId: id,
@@ -523,7 +523,7 @@ describe("deleting", () => {
         now: NOW,
       });
       // A takedown purges what leaves this list (ADR 0069).
-      expect(await approvedPhotoIds(db)).toContain(id);
+      expect((await approvedPhotoIds(db)).map((r) => r.id)).toContain(id);
       expect(
         await deleteMemberPhoto(db, {
           leagueId: w.leagueId,
@@ -534,7 +534,7 @@ describe("deleting", () => {
       ).toEqual({ ok: true, value: { wasShown: true } });
       expect(await approvedPhotos(db, { teamId: w.acesTeam })).toEqual([]);
       expect(await memberPhotoFile(db, id)).toBe(null);
-      expect(await approvedPhotoIds(db)).not.toContain(id);
+      expect((await approvedPhotoIds(db)).map((r) => r.id)).not.toContain(id);
     }));
 
   it("deletes every photo a person uploaded with their account", () =>

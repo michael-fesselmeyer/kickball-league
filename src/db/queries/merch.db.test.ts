@@ -317,8 +317,10 @@ describe("the catalog", () => {
       const added = await add();
       if (!added.ok) throw new Error("no photo");
       // A takedown purges what leaves this list (ADR 0069).
-      expect(await shopImageIds(db)).toContain(added.value);
-      expect(await shopImageIds(db)).not.toContain(first.value);
+      expect((await shopImageIds(db)).map((r) => r.id)).toContain(added.value);
+      expect((await shopImageIds(db)).map((r) => r.id)).not.toContain(
+        first.value,
+      );
       await setItemHidden(db, {
         leagueId: w.leagueId,
         itemId: id,
@@ -326,7 +328,9 @@ describe("the catalog", () => {
         actorId: w.admin,
         now: NOW,
       });
-      expect(await shopImageIds(db)).not.toContain(added.value);
+      expect((await shopImageIds(db)).map((r) => r.id)).not.toContain(
+        added.value,
+      );
       const item = await catalogItem(db, w.leagueId, id, NOW, {
         hidden: true,
       });

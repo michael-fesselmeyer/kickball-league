@@ -1,22 +1,49 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Db } from "@/db/queries/schedule";
+import type { LeagueId } from "@/domain/ids";
 
 const ids = vi.hoisted(() => ({
   instagram: [] as string[],
   member: [] as string[],
   merch: [] as string[],
 }));
+const purges = vi.hoisted(() => ({
+  due: [] as { src: string; leagueId: string }[],
+  failed: [] as { src: string; leagueId: string }[][],
+  retried: [] as { src: string; leagueId: string }[][],
+  maxAge: 0,
+}));
+// Every photo in these tests belongs to the league "L".
+const inL = (id: string) => ({ id, leagueId: "L" });
 vi.mock("@/db/queries/social", () => ({
-  shownImageIds: async () => [...ids.instagram],
+  shownImageIds: async () => ids.instagram.map(inL),
 }));
 vi.mock("@/db/queries/member-photos", () => ({
-  approvedPhotoIds: async () => [...ids.member],
+  approvedPhotoIds: async () => ids.member.map(inL),
 }));
 vi.mock("@/db/queries/merch", () => ({
-  shopImageIds: async () => [...ids.merch],
+  shopImageIds: async () => ids.merch.map(inL),
 }));
-const { changedSrcs, publicPhotoSrcs, purgePhotoCopies, purgingPhotoChanges } =
-  await import("./optimizer-purge");
+vi.mock("@/db/queries/photo-purges", () => ({
+  duePurges: async (_db: unknown, _now: Date, maxAge: number) => {
+    purges.maxAge = maxAge;
+    return purges.due;
+  },
+  recordFailedPurges: async (_db: unknown, list: never[]) => {
+    purges.failed.push(list);
+  },
+  recordRetriedPurges: async (_db: unknown, list: never[]) => {
+    purges.retried.push(list);
+  },
+}));
+const {
+  changedSrcs,
+  publicPhotoSrcs,
+  purgePhotoCopies,
+  purgingPhotoChanges,
+  retryFailedPurges,
+} = await import("./optimizer-purge");
+const { LONG_PHOTO_LIFETIME } = await import("./optimizer-cache");
 
 const db = {} as Db;
 
@@ -35,10 +62,32 @@ function fakePurger() {
   };
 }
 
+/** A purger the host refuses for these addresses, as when over its limit. */
+function refusingPurger(refused: string[]) {
+  const { calls, purger } = fakePurger();
+  const check = (srcs: string[]) => {
+    if (srcs.some((s) => refused.includes(s)))
+      throw new Error("429 Too Many Requests");
+  };
+  return {
+    calls,
+    purger: {
+      byTag: async (tags: string[]) => {
+        check(tags);
+        await purger.byTag(tags);
+      },
+      bySrcImage: purger.bySrcImage,
+    },
+  };
+}
+
 beforeEach(() => {
   ids.instagram = [];
   ids.member = [];
   ids.merch = [];
+  purges.due = [];
+  purges.failed = [];
+  purges.retried = [];
   vi.clearAllMocks();
 });
 
@@ -86,7 +135,7 @@ describe("purgePhotoCopies", () => {
     expect(calls).toEqual(["tag /media/photos/a", "src /media/photos/a"]);
   });
 
-  it("logs a purge refused twice instead of failing the takedown", async () => {
+  it("logs and returns a purge refused twice instead of failing the takedown", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     await expect(
       purgePhotoCopies(
@@ -99,7 +148,7 @@ describe("purgePhotoCopies", () => {
         },
         0,
       ),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual(["/media/photos/a"]);
     expect(error).toHaveBeenCalledWith(
       "photo cache purge failed",
       "/media/photos/a",
@@ -115,22 +164,25 @@ describe("publicPhotoSrcs", () => {
     ids.member = ["m1", "m2"];
     ids.merch = ["s1"];
     expect(await publicPhotoSrcs(db)).toEqual(
-      new Set([
-        "/media/instagram/i1",
-        "/media/photos/m1",
-        "/media/photos/m2",
-        "/media/merch/s1",
+      new Map([
+        ["/media/instagram/i1", "L"],
+        ["/media/photos/m1", "L"],
+        ["/media/photos/m2", "L"],
+        ["/media/merch/s1", "L"],
       ]),
     );
   });
 });
 
 describe("changedSrcs", () => {
-  it("names photos taken down and photos shown again", () => {
-    expect(
-      changedSrcs(new Set(["a", "b", "c"]), new Set(["b", "c", "d"])),
-    ).toEqual(["a", "d"]);
-    expect(changedSrcs(new Set(["a"]), new Set(["a"]))).toEqual([]);
+  it("names photos taken down and photos shown again, with their league", () => {
+    const of = (...srcs: string[]) =>
+      new Map(srcs.map((s) => [s, `league ${s}` as LeagueId] as const));
+    expect(changedSrcs(of("a", "b", "c"), of("b", "c", "d"))).toEqual([
+      { src: "a", leagueId: "league a" },
+      { src: "d", leagueId: "league d" },
+    ]);
+    expect(changedSrcs(of("a"), of("a"))).toEqual([]);
   });
 });
 
@@ -163,6 +215,42 @@ describe("purgingPhotoChanges", () => {
     expect(change).toHaveBeenCalledOnce();
   });
 
+  it("records a purge refused twice for the daily retry, with its league", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    ids.member = ["m1"];
+    ids.merch = ["s1"];
+    const { calls, purger } = refusingPurger(["/media/photos/m1"]);
+    const result = await purgingPhotoChanges(
+      db,
+      async () => {
+        ids.member = [];
+        return "taken down";
+      },
+      purger,
+      0,
+    );
+    // The takedown goes through even though its purge didn't.
+    expect(result).toBe("taken down");
+    expect(purges.failed).toEqual([
+      [{ src: "/media/photos/m1", leagueId: "L" }],
+    ]);
+    expect(calls).toEqual([]);
+    error.mockRestore();
+  });
+
+  it("records nothing when every purge gets through", async () => {
+    ids.member = ["m1"];
+    const { purger } = fakePurger();
+    await purgingPhotoChanges(
+      db,
+      async () => {
+        ids.member = [];
+      },
+      purger,
+    );
+    expect(purges.failed).toEqual([]);
+  });
+
   it("purges nothing when the change fails", async () => {
     const { calls, purger } = fakePurger();
     await expect(
@@ -175,5 +263,50 @@ describe("purgingPhotoChanges", () => {
       ),
     ).rejects.toThrow("rolled back");
     expect(calls).toEqual([]);
+  });
+});
+
+describe("retryFailedPurges", () => {
+  const now = new Date("2026-11-15T05:45:00Z");
+
+  it("tries every due failure again and records the ones that get through", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    purges.due = [
+      { src: "/media/merch/s1", leagueId: "L" },
+      { src: "/media/photos/m1", leagueId: "L" },
+    ];
+    const { calls, purger } = refusingPurger(["/media/merch/s1"]);
+    // One batch: both are refused together, so neither is cleared.
+    expect(await retryFailedPurges(db, now, purger, 0)).toEqual({
+      purged: 0,
+      stillFailing: 2,
+    });
+    expect(calls).toEqual([]);
+
+    const ok = fakePurger();
+    expect(await retryFailedPurges(db, now, ok.purger, 0)).toEqual({
+      purged: 2,
+      stillFailing: 0,
+    });
+    expect(ok.calls).toEqual([
+      "tag /media/merch/s1 /media/photos/m1",
+      "src /media/merch/s1 /media/photos/m1",
+    ]);
+    expect(purges.retried).toEqual([[], purges.due]);
+    error.mockRestore();
+  });
+
+  it("looks back only as long as optimized copies are kept", async () => {
+    await retryFailedPurges(db, now, fakePurger().purger, 0);
+    expect(purges.maxAge).toBe(LONG_PHOTO_LIFETIME);
+  });
+
+  it("does nothing off Vercel", async () => {
+    purges.due = [{ src: "/media/photos/m1", leagueId: "L" }];
+    expect(await retryFailedPurges(db, now, null)).toEqual({
+      purged: 0,
+      stillFailing: 0,
+    });
+    expect(purges.retried).toEqual([]);
   });
 });
