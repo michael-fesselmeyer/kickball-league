@@ -5,6 +5,10 @@
  * Pickups, players borrowed from outside the roster, kick last (rulebook
  * 2.1.4).
  *
+ * The exception: when one side has more than twice as many players as the
+ * other, the league lets the team keep a separate order for each side, so
+ * runs are not a break (separateOrdersSide).
+ *
  * A player counts toward the side they chose in their profile (their lineup
  * gender). A player who has not chosen counts toward neither side: they
  * never make a run and they break one (ADR 0030). The site warns; it never
@@ -40,11 +44,39 @@ export type RunBreak = {
 export type PickupBreak = { position: number };
 
 /**
- * Every run of one side longer than `max`, counted around the wrap. A run is
- * reported once, however long. With `max` players or fewer there is no run
- * to break.
+ * The side that has more than `max` times as many players as the other, if
+ * one does. The league then lets the team keep two orders, one for each
+ * side, instead of keeping to the limit. Players who have not chosen a side
+ * count toward neither.
+ */
+export function separateOrdersSide(
+  order: readonly { side: Side }[],
+  max: number = MAX_IN_A_ROW,
+): "woman" | "man" | null {
+  const counts = countsOf(order);
+  if (counts.W > max * counts.M) return "woman";
+  if (counts.M > max * counts.W) return "man";
+  return null;
+}
+
+/**
+ * The runs that break the rule: every run of one side longer than `max`,
+ * except while the team may keep separate orders by side.
  */
 export function runBreaks(
+  order: readonly { side: Side }[],
+  max: number = MAX_IN_A_ROW,
+): RunBreak[] {
+  return separateOrdersSide(order, max) === null
+    ? runsOverLimit(order, max)
+    : [];
+}
+
+/**
+ * Every run of one side longer than `max`, counted around the wrap. A run is
+ * reported once, however long. With `max` players or fewer there is no run.
+ */
+export function runsOverLimit(
   order: readonly { side: Side }[],
   max: number = MAX_IN_A_ROW,
 ): RunBreak[] {
@@ -127,6 +159,15 @@ export function explainPickup(
 ): string {
   const name = order[found.position]?.name ?? "A pickup";
   return `${name} is a pickup, and pickups kick after the team's own players.`;
+}
+
+/** Why the run limit does not apply to this team's order. */
+export function explainSeparateOrders(
+  side: "woman" | "man",
+  max: number = MAX_IN_A_ROW,
+): string {
+  const other = side === "woman" ? "men" : "women";
+  return `With more than ${count(max)} times as many ${PLURAL[side]} as ${other}, the league lets the team keep two kicking orders, one for each side, instead of the ${count(max)}-in-a-row rule. Tell the ref and the other captain which way you're kicking.`;
 }
 
 /** Why no order can keep to the rule. */
@@ -265,11 +306,25 @@ function finisher(max: number) {
  * An order that keeps to the rule, with pickups last, changing as little as
  * it can: at each spot it takes the earliest remaining kicker from the
  * current order who still lets the rest be finished. An order that already
- * keeps to the rule comes back unchanged.
+ * keeps to the rule comes back unchanged. When no such order exists but the
+ * team may keep separate orders by side, the order comes back as it is,
+ * with only the pickups moved last.
  */
 export function autoArrange<K extends { side: Side; pickup: boolean }>(
   order: readonly K[],
   max: number = MAX_IN_A_ROW,
+): Result<K[], Impossible> {
+  const arranged = arrangeWithinLimit(order, max);
+  if (arranged.ok || separateOrdersSide(order, max) === null) return arranged;
+  return ok([
+    ...order.filter((k) => !k.pickup),
+    ...order.filter((k) => k.pickup),
+  ]);
+}
+
+function arrangeWithinLimit<K extends { side: Side; pickup: boolean }>(
+  order: readonly K[],
+  max: number,
 ): Result<K[], Impossible> {
   const crowded = tooMany(countsOf(order), max);
   if (crowded) return err(crowded);

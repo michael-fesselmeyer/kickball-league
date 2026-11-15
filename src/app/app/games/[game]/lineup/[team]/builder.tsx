@@ -6,12 +6,15 @@ import {
   explainImpossible,
   explainPickup,
   explainRun,
+  explainSeparateOrders,
   type Kicker,
   move,
   ordinal,
   pickupBreaks,
   reconcile,
   runBreaks,
+  runsOverLimit,
+  separateOrdersSide,
 } from "@/domain/lineup/order";
 
 type Props = {
@@ -58,6 +61,7 @@ export function LineupBuilder({
     return k ? [k] : [];
   });
   const runs = runBreaks(order);
+  const separate = separateOrdersSide(order);
   const pickups = pickupBreaks(order);
   const inRun = new Set(runs.flatMap((r) => r.positions));
   const changed = ids.join(",") !== initial.join(",");
@@ -162,9 +166,13 @@ export function LineupBuilder({
     const next = result.value.map((k) => k.id);
     const moved = next.join(",") !== ids.join(",");
     setIds(next);
-    const message = moved
-      ? "Arranged so no more than two of a side kick in a row, moving as few people as it could."
-      : "This order already keeps to the rule, so nothing moved.";
+    const within =
+      separate === null || runsOverLimit(result.value).length === 0;
+    const message = !within
+      ? `${moved ? "Moved the pickups to the end. " : ""}${explainSeparateOrders(separate)}`
+      : moved
+        ? "Arranged so no more than two of a side kick in a row, moving as few people as it could."
+        : "This order already keeps to the rule, so nothing moved.";
     setNotice(message);
     setAnnouncement(message);
   }
@@ -219,7 +227,11 @@ export function LineupBuilder({
       )}
 
       <div className="min-h-[3lh]">
-        {problems.length === 0 ? (
+        {problems.length === 0 && separate !== null ? (
+          <p className="text-small text-success">
+            {explainSeparateOrders(separate)}
+          </p>
+        ) : problems.length === 0 ? (
           <p className="text-small text-success">
             Keeps to the rule: no more than two of a side in a row, counting
             from the last kicker back to the first.
