@@ -11,7 +11,10 @@ import {
   describeScore,
   type ScoreConfirmationPayload,
 } from "@/emails/score-confirmation";
+import type { GameRulingPayload } from "@/emails/game-ruling";
+import type { RulingKind } from "@/domain/scores/scores";
 import type { ScoreDisputePayload } from "@/emails/score-dispute";
+import { refereeAssignment } from "../schema/game";
 import { league, leagueMember } from "../schema/league";
 import { season } from "../schema/season";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
@@ -199,4 +202,68 @@ export async function queueDisputeAlerts(
     sendAfter: dispute.respondedAt,
   }));
   return enqueueMessages(db, messages);
+}
+
+/**
+ * Tells both teams' captains and co-captains, and the game's ref, that an
+ * admin ruled on the game (a forfeit, a settled dispute, a correction or a
+ * reversal), with the result, the one it replaces and the written reason.
+ * Queued in the ruling's own transaction. The dedupe key names the report
+ * and the person, so a retried submit tells each once, and a second ruling
+ * on the same game is a new report, so it tells everyone again. Someone who
+ * is both a captain and the ref is told once. Topic `score`, urgent.
+ * Returns how many were new.
+ */
+export async function queueRulingNotices(
+  db: Db,
+  g: GameForMessages,
+  ruling: {
+    reportId: ScoreReportId;
+    kind: RulingKind;
+    reason: string;
+    reportedAt: Date;
+    score: {
+      outcome: "normal" | "called" | "forfeit_a" | "forfeit_b";
+      scoreA: number;
+      scoreB: number;
+      inningsPlayed: number | null;
+    };
+    previously: string | null;
+  },
+): Promise<number> {
+  const [captains, refs, place] = await Promise.all([
+    captainsOf(db, [g.teamAId, g.teamBId]),
+    db
+      .select({ userId: refereeAssignment.userId })
+      .from(refereeAssignment)
+      .where(
+        and(
+          eq(refereeAssignment.gameId, g.id),
+          eq(refereeAssignment.status, "accepted"),
+        ),
+      ),
+    seasonPlace(db, g),
+  ]);
+  const people = [...new Set([...captains, ...refs].map((p) => p.userId))];
+  if (people.length === 0) return 0;
+  const payload = {
+    gameId: g.id,
+    teams: `${g.teamAName} vs ${g.teamBName}`,
+    when: whenAndWhere(g, place?.timeZone),
+    kind: ruling.kind,
+    result: describeScore(ruling.score, g.teamAName, g.teamBName),
+    ...(ruling.previously ? { previously: ruling.previously } : {}),
+    reason: ruling.reason,
+  } satisfies GameRulingPayload;
+  return enqueueMessages(
+    db,
+    people.map((userId) => ({
+      userId,
+      topic: "score",
+      template: "game_ruling",
+      payload,
+      dedupeKey: `game-ruling/${ruling.reportId}/${userId}`,
+      sendAfter: ruling.reportedAt,
+    })),
+  );
 }

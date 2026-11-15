@@ -20,6 +20,42 @@ export const MAX_RUNS = 99;
 export const AUTO_FINAL_HOURS = 24;
 export const PLAYOFF_TIE = "Playoff games can't end in a tie. Play it out.";
 
+/** The longest written reason for a ruling. */
+export const REASON_MAX = 300;
+
+/**
+ * Whether an admin's score is a ruling that needs a written reason: any
+ * forfeit, and any score that follows an earlier report or a final result
+ * (settling a dispute, overriding a report, correcting or reversing a final
+ * game or a forfeit). The first score an admin enters for a game nobody has
+ * reported on is plain entry and needs none.
+ */
+export function rulingNeedsReason(input: {
+  outcome: Outcome;
+  /** Whether the game already has a score report. */
+  hasReports: boolean;
+  /** Whether the game already has a final result or a forfeit. */
+  closed: boolean;
+}): boolean {
+  return (
+    input.outcome === "forfeit_a" ||
+    input.outcome === "forfeit_b" ||
+    input.hasReports ||
+    input.closed
+  );
+}
+
+/** What an admin's ruling did, for the audit log and the messages. */
+export type RulingKind = "forfeit" | "forfeit_reversed" | "ruling";
+
+export function rulingKind(
+  outcome: Outcome,
+  before: { status: string },
+): RulingKind {
+  if (outcome === "forfeit_a" || outcome === "forfeit_b") return "forfeit";
+  return before.status === "forfeit" ? "forfeit_reversed" : "ruling";
+}
+
 export type ScoreInput = {
   outcome: Outcome;
   scoreA: number;

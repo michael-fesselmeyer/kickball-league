@@ -19,12 +19,16 @@ import type {
 import { err, ok, type Result } from "@/domain/result";
 import {
   checkScore,
+  REASON_MAX,
   type ReporterRole,
+  rulingKind,
+  rulingNeedsReason,
   type ScoreErrors,
   type ScoreInput,
   scoreState,
   type ScoreState,
 } from "@/domain/scores/scores";
+import { describeScore } from "@/emails/score-confirmation";
 import { user } from "../schema/auth";
 import { field, game, scoreReport, scoreResponse, slot } from "../schema/game";
 import { season } from "../schema/season";
@@ -34,6 +38,7 @@ import { advanceBracket } from "./playoffs";
 import { required } from "./rows";
 import {
   queueDisputeAlerts,
+  queueRulingNotices,
   queueScoreConfirmations,
 } from "./score-confirmations";
 import type { Db } from "./schedule";
@@ -66,6 +71,7 @@ export async function gameForScoring(db: Db, gameId: GameId) {
       scoreB: game.scoreB,
       inningsPlayed: game.inningsPlayed,
       forfeitBy: game.forfeitBy,
+      ruledAt: game.ruledAt,
       startsAt: slot.startsAt,
       fieldName: field.name,
     })
@@ -114,6 +120,7 @@ export async function scoreHistories(db: Db, gameIds: readonly GameId[]) {
             scoreB: scoreReport.scoreB,
             inningsPlayed: scoreReport.inningsPlayed,
             reportedAt: scoreReport.reportedAt,
+            reason: scoreReport.reason,
             reporterName: user.name,
           })
           .from(scoreReport)
@@ -211,6 +218,10 @@ export async function settleGame(
       : report.outcome === "forfeit_b"
         ? g.teamBId
         : null;
+  // A result an admin set with a written reason is a ruling; any later
+  // result that is not one (a report that settled another way) clears it.
+  const ruledAt =
+    report.role === "admin" && report.reason ? report.reportedAt : null;
   await db
     .update(game)
     .set(
@@ -222,6 +233,7 @@ export async function settleGame(
             scoreB: null,
             inningsPlayed: null,
             finalizedAt: now,
+            ruledAt,
           }
         : {
             status: "final",
@@ -230,6 +242,7 @@ export async function settleGame(
             scoreB: report.scoreB,
             inningsPlayed: report.inningsPlayed,
             finalizedAt: now,
+            ruledAt,
           },
     )
     .where(eq(game.id, gameId));
@@ -238,7 +251,54 @@ export async function settleGame(
   return state;
 }
 
-export type ReportError = "not_started" | "invalid" | "already_final";
+/**
+ * The result a ruling replaces, as players read it: the final score or
+ * forfeit, else the latest report that was still open; null when there was
+ * none.
+ */
+function previousResult(
+  g: Pick<
+    ScoringGame,
+    | "status"
+    | "teamAName"
+    | "teamBName"
+    | "teamAId"
+    | "scoreA"
+    | "scoreB"
+    | "forfeitBy"
+    | "inningsPlayed"
+  >,
+  latest:
+    | {
+        outcome: "normal" | "called" | "forfeit_a" | "forfeit_b";
+        scoreA: number;
+        scoreB: number;
+        inningsPlayed: number | null;
+      }
+    | undefined,
+): string | null {
+  if (g.status === "forfeit" && g.forfeitBy)
+    return `${g.forfeitBy === g.teamAId ? g.teamAName : g.teamBName} forfeited`;
+  if (g.status === "final" && g.scoreA !== null && g.scoreB !== null)
+    return describeScore(
+      {
+        outcome: g.inningsPlayed === null ? "normal" : "called",
+        scoreA: g.scoreA,
+        scoreB: g.scoreB,
+        inningsPlayed: g.inningsPlayed,
+      },
+      g.teamAName,
+      g.teamBName,
+    );
+  return latest ? describeScore(latest, g.teamAName, g.teamBName) : null;
+}
+
+export type ReportError =
+  | "not_started"
+  | "invalid"
+  | "already_final"
+  | "reason_needed"
+  | "reason_too_long";
 
 /**
  * Records a reported score. A retried submit with the same client id is a
@@ -253,6 +313,12 @@ export async function reportScore(
     role: ReporterRole;
     teamSeasonId: TeamSeasonId | null;
     score: ScoreInput;
+    /**
+     * An admin's written reason for a ruling. Required for a forfeit and
+     * for any score that follows an earlier report or a final result; kept
+     * only on an admin's report.
+     */
+    reason?: string | null;
     clientId: string;
     now: Date;
   },
@@ -279,6 +345,21 @@ export async function reportScore(
   if (Object.keys(errors).length > 0) return err(errors);
   const forfeit =
     input.score.outcome === "forfeit_a" || input.score.outcome === "forfeit_b";
+  const reason =
+    input.role === "admin" ? (input.reason?.trim() ?? "") || null : null;
+  if (reason && reason.length > REASON_MAX) return err("reason_too_long");
+  const closed = g.status === "final" || g.status === "forfeit";
+  const earlier = input.role === "admin" ? await scoreHistory(db, g.id) : null;
+  if (
+    input.role === "admin" &&
+    !reason &&
+    rulingNeedsReason({
+      outcome: input.score.outcome,
+      hasReports: (earlier?.reports.length ?? 0) > 0,
+      closed,
+    })
+  )
+    return err("reason_needed");
   const [created] = await db
     .insert(scoreReport)
     .values({
@@ -291,20 +372,40 @@ export async function reportScore(
       scoreB: forfeit ? 0 : input.score.scoreB,
       inningsPlayed:
         input.score.outcome === "called" ? input.score.inningsPlayed : null,
+      reason,
       clientId: input.clientId,
       reportedAt: input.now,
     })
     .onConflictDoNothing()
     .returning({ id: scoreReport.id });
+  const ruling = created && reason ? rulingKind(input.score.outcome, g) : null;
   if (created && input.role === "admin")
     await recordAudit(db, {
       actorId: input.userId,
-      action: "score.override",
+      action: ruling ? `game.${ruling}` : "score.override",
       entityType: "game",
       entityId: input.gameId,
-      after: { reportId: created.id, ...input.score },
+      before: ruling
+        ? {
+            status: g.status,
+            scoreA: g.scoreA,
+            scoreB: g.scoreB,
+            forfeitBy: g.forfeitBy,
+          }
+        : undefined,
+      after: { reportId: created.id, ...input.score, reason },
     });
   const state = await settleGame(db, input.gameId, input.now);
+  // Both captains and the ref are told about a ruling, and why.
+  if (created && ruling && reason)
+    await queueRulingNotices(db, g, {
+      reportId: created.id,
+      kind: ruling,
+      reason,
+      reportedAt: input.now,
+      score: input.score,
+      previously: previousResult(g, earlier?.reports[0]),
+    });
   // A new report that still needs an answer asks the captains who can give it.
   if (created && state.state === "awaiting" && state.reportId === created.id)
     await queueScoreConfirmations(db, g, {
