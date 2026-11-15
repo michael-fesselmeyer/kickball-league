@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import type { ExpenseId, LeagueId, SeasonId, UserId } from "@/domain/ids";
 import {
   DEFAULT_SEASON_SIZES,
@@ -16,7 +16,7 @@ import { message } from "../schema/message";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { seasonShirts } from "../schema/shirts";
-import { registration, teamSeason } from "../schema/team";
+import { registration, rosterMembership, teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
 import { addExpense } from "./books";
 import { enqueueMessages } from "./outbox";
@@ -183,10 +183,19 @@ export async function shirtOrderBoard(db: Db, seasonId: SeasonId) {
   ]);
   return {
     settings,
-    teams: board.teams.map((t) => ({
-      ...t,
-      players: t.players.filter(onOrder),
-    })),
+    // A team in its own shirts is not in the order, except players whose
+    // shirt was already ordered before it chose that.
+    teams: board.teams
+      .map((t) => ({
+        ...t,
+        players: t.players.filter(
+          (p) => onOrder(p) && !(t.ownShirts && p.status === "none"),
+        ),
+      }))
+      .filter((t) => !t.ownShirts || t.players.length > 0),
+    ownShirtTeams: board.teams
+      .filter((t) => t.ownShirts)
+      .map((t) => ({ teamSeasonId: t.teamSeasonId, name: t.name })),
     freeAgents: board.freeAgents.filter(onOrder),
     jerseys,
   };
@@ -236,6 +245,23 @@ export async function placeShirtOrder(
               eq(registration.seasonId, input.seasonId),
               eq(registration.shirtStatus, "none"),
               inArray(registration.status, [...ON_ORDER]),
+              // A team in its own shirts is left out of the order.
+              notInArray(
+                registration.id,
+                db
+                  .select({ id: rosterMembership.registrationId })
+                  .from(rosterMembership)
+                  .innerJoin(
+                    teamSeason,
+                    eq(teamSeason.id, rosterMembership.teamSeasonId),
+                  )
+                  .where(
+                    and(
+                      eq(rosterMembership.status, "active"),
+                      eq(teamSeason.ownShirts, true),
+                    ),
+                  ),
+              ),
               inArray(
                 registration.userId,
                 db

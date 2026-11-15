@@ -386,6 +386,23 @@ async function ShirtOrder({
         </div>
       </section>
 
+      {board.ownShirtTeams.length > 0 && (
+        <section aria-labelledby="own-shirts" className="flex flex-col gap-2">
+          <h2 id="own-shirts" className="text-h2">
+            Teams in their own shirts
+          </h2>
+          <p className="text-text-muted">
+            These teams are not in the order above:{" "}
+            {board.ownShirtTeams.map((t) => t.name).join(", ")}. Players who
+            joined after the order is placed wait on the{" "}
+            <Link href="/app/admin/shirt-waiting" className="underline">
+              late-joiner list
+            </Link>
+            .
+          </p>
+        </section>
+      )}
+
       <section aria-labelledby="jerseys" className="flex flex-col gap-3">
         <h2 id="jerseys" className="text-h2">
           Replacement jerseys to make
