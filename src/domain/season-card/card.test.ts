@@ -339,10 +339,7 @@ describe("a player with no games", () => {
       biggestInning: null,
       superlatives: [],
     });
-    expect(highlights(card)).toEqual([
-      "Pitch Please: 0-0",
-      "Played 0 games",
-    ]);
+    expect(highlights(card)).toEqual(["Pitch Please: 0-0", "Played 0 games"]);
   });
 
   it("never claims a perfect attendance for an empty season", () => {
@@ -385,9 +382,7 @@ describe("superlatives", () => {
       g("2026-06-08", 6, 5),
       g("2026-06-15", 4, 6),
     ];
-    expect(
-      superlatives({ ...base, games, player: everyGame }),
-    ).toEqual([
+    expect(superlatives({ ...base, games, player: everyGame })).toEqual([
       "Highest-scoring team in the league",
       "Cardiac kid: 2 wins by a single run",
     ]);
@@ -412,7 +407,12 @@ describe("superlatives", () => {
       g("2026-06-15", 1, 2),
     ];
     expect(
-      superlatives({ ...base, games: three, player: at(...three), attended: 3 }),
+      superlatives({
+        ...base,
+        games: three,
+        player: at(...three),
+        attended: 3,
+      }),
     ).toEqual(["Never missed a game"]);
     expect(
       superlatives({
