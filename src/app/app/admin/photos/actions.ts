@@ -10,6 +10,7 @@ import { type MemberPhotoId, parseId } from "@/domain/ids";
 import { NOTE_MAX } from "@/domain/member-photos/limits";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshMemberPhotoPages } from "@/lib/public-cache";
+import { purgingPhotoChanges } from "@/lib/media/optimizer-purge";
 import { sendQueuedSoon } from "@/services/outbox";
 import { activeLeague } from "@/lib/league/active";
 
@@ -38,15 +39,17 @@ async function photoToReview(form: FormData) {
 export async function reviewPhotoAction(form: FormData): Promise<void> {
   const { subject, league, id } = await photoToReview(form);
   const decision = text(form, "decision") === "approve" ? "approve" : "reject";
-  const result = await txDb.transaction((tx) =>
-    reviewMemberPhoto(tx, {
-      leagueId: league.id,
-      photoId: id,
-      decision,
-      note: text(form, "note").slice(0, NOTE_MAX),
-      actorId: subject.userId,
-      now: new Date(),
-    }),
+  const result = await purgingPhotoChanges(txDb, () =>
+    txDb.transaction((tx) =>
+      reviewMemberPhoto(tx, {
+        leagueId: league.id,
+        photoId: id,
+        decision,
+        note: text(form, "note").slice(0, NOTE_MAX),
+        actorId: subject.userId,
+        now: new Date(),
+      }),
+    ),
   );
   if (!result.ok) redirect(`${PAGE}?error=${result.error}`);
   if (decision === "approve") refreshMemberPhotoPages();
@@ -57,13 +60,15 @@ export async function reviewPhotoAction(form: FormData): Promise<void> {
 /** Takes any photo down for good, from every page. */
 export async function deletePhotoAction(form: FormData): Promise<void> {
   const { subject, league, id } = await photoToReview(form);
-  const result = await txDb.transaction((tx) =>
-    deleteMemberPhoto(tx, {
-      leagueId: league.id,
-      photoId: id,
-      actorId: subject.userId,
-      asAdmin: true,
-    }),
+  const result = await purgingPhotoChanges(txDb, () =>
+    txDb.transaction((tx) =>
+      deleteMemberPhoto(tx, {
+        leagueId: league.id,
+        photoId: id,
+        actorId: subject.userId,
+        asAdmin: true,
+      }),
+    ),
   );
   if (!result.ok) redirect(`${PAGE}?error=not_found`);
   if (result.value.wasShown) refreshMemberPhotoPages();

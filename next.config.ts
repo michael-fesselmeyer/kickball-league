@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 import { loadEnv } from "./src/lib/env";
+import {
+  optimizedPhotoLifetime,
+  PHOTO_DEVICE_SIZES,
+  PHOTO_IMAGE_SIZES,
+} from "./src/lib/media/optimizer-cache";
 import { securityHeaderRules } from "./src/lib/security-headers";
 
 // Fail fast on missing or malformed environment variables whenever Next loads
@@ -24,9 +29,19 @@ const nextConfig: NextConfig = {
       { pathname: "/media/merch/**", search: "" },
       { pathname: "/media/photos/**", search: "" },
     ],
-    // Optimized copies follow the photo's own five-minute lifetime, so a
-    // photo an admin hides stops being served soon after.
-    minimumCacheTTL: 300,
+    // Each optimized copy counts against the free plan's 5,000 image
+    // transformations a month when it is made, so on Vercel copies are kept
+    // for 31 days, and every takedown purges a photo's copies at once
+    // (ADR 0064, src/lib/media/optimizer-purge.ts). Elsewhere nothing can
+    // purge them, so they last the photo's own five minutes.
+    minimumCacheTTL: optimizedPhotoLifetime(process.env),
+    // Every width, format and quality is its own transformation, so only
+    // those the pages ask for are allowed: the photos' sizes reach no wider
+    // than a desktop cover, and stored photos are at most 1,440 px wide.
+    deviceSizes: [...PHOTO_DEVICE_SIZES],
+    imageSizes: [...PHOTO_IMAGE_SIZES],
+    formats: ["image/webp"],
+    qualities: [75],
   },
   partialPrefetching: true,
   experimental: {

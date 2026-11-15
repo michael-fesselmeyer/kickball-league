@@ -19,6 +19,7 @@ import {
 import { env } from "@/env";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshPhotoPages } from "@/lib/public-cache";
+import { purgingPhotoChanges } from "@/lib/media/optimizer-purge";
 import { completeConnection } from "@/lib/social/connect";
 import { instagramConfig, signInUrl } from "@/lib/social/instagram-app";
 import {
@@ -82,12 +83,14 @@ export async function connectInstagramAction() {
 export async function disconnectInstagramAction(form: FormData) {
   const { subject, league } = await adminOfLeague();
   const keepPhotos = text(form, "photos") !== "delete";
-  await txDb.transaction((tx) =>
-    disconnect(tx, {
-      leagueId: league.id,
-      keepPhotos,
-      actorId: subject.userId,
-    }),
+  await purgingPhotoChanges(txDb, () =>
+    txDb.transaction((tx) =>
+      disconnect(tx, {
+        leagueId: league.id,
+        keepPhotos,
+        actorId: subject.userId,
+      }),
+    ),
   );
   refreshPhotoPages();
   redirect(`${PAGE}?done=${keepPhotos ? "disconnected" : "removed"}`);
@@ -103,7 +106,9 @@ export async function syncNowAction() {
     await connectedAccounts(txDb, env.BETTER_AUTH_SECRET, now)
   ).find((a) => a.leagueId === league.id);
   if (!account) redirect(`${PAGE}?error=not_connected`);
-  const outcome = await syncAccount(txDb, config, account, now);
+  const outcome = await purgingPhotoChanges(txDb, () =>
+    syncAccount(txDb, config, account, now),
+  );
   refreshPhotoPages();
   if ("error" in outcome) {
     sendQueuedSoon();
@@ -115,8 +120,10 @@ export async function syncNowAction() {
 export async function showNewestAction(form: FormData) {
   const { subject, league } = await adminOfLeague();
   const on = text(form, "showNewest") === "on";
-  await txDb.transaction((tx) =>
-    setShowNewest(tx, { leagueId: league.id, on, actorId: subject.userId }),
+  await purgingPhotoChanges(txDb, () =>
+    txDb.transaction((tx) =>
+      setShowNewest(tx, { leagueId: league.id, on, actorId: subject.userId }),
+    ),
   );
   refreshPhotoPages();
   redirect(`${PAGE}?done=${on ? "newest_on" : "newest_off"}`);
@@ -132,13 +139,15 @@ export async function togglePostAction(
   const id = parseId<SocialPostId>(postId);
   if (!id) notFound();
   await requireInLeague(subject, { social_post: id });
-  const result = await txDb.transaction((tx) =>
-    curatePost(tx, {
-      leagueId: league.id,
-      postId: id,
-      change: { kind, on },
-      actorId: subject.userId,
-    }),
+  const result = await purgingPhotoChanges(txDb, () =>
+    txDb.transaction((tx) =>
+      curatePost(tx, {
+        leagueId: league.id,
+        postId: id,
+        change: { kind, on },
+        actorId: subject.userId,
+      }),
+    ),
   );
   if (!result.ok) redirect(`${PAGE}?error=${result.error}#post-${id}`);
   refreshPhotoPages();

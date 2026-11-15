@@ -21,6 +21,7 @@ import {
 } from "@/lib/auth/permission";
 import { processPhoto } from "@/lib/member-photos/process-photo";
 import { refreshMemberPhotoPages } from "@/lib/public-cache";
+import { purgingPhotoChanges } from "@/lib/media/optimizer-purge";
 import { activeLeague } from "@/lib/league/active";
 
 const PAGE = "/app/photos";
@@ -81,13 +82,15 @@ export async function deleteMyPhotoAction(form: FormData): Promise<void> {
   const league = await activeLeague();
   const id = parseId<MemberPhotoId>(text(form, "photo"));
   if (!league || !id) notFound();
-  const result = await txDb.transaction((tx) =>
-    deleteMemberPhoto(tx, {
-      leagueId: league.id,
-      photoId: id,
-      actorId: subject.userId,
-      asAdmin: false,
-    }),
+  const result = await purgingPhotoChanges(txDb, () =>
+    txDb.transaction((tx) =>
+      deleteMemberPhoto(tx, {
+        leagueId: league.id,
+        photoId: id,
+        actorId: subject.userId,
+        asAdmin: false,
+      }),
+    ),
   );
   if (result.ok && result.value.wasShown) refreshMemberPhotoPages();
   redirect(`${PAGE}?done=deleted`);
