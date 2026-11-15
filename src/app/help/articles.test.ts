@@ -23,7 +23,7 @@ describe("the help center's how-tos", () => {
       captain: ["invite", "lineup", "scores", "co-captains", "find-subs"],
       ref: ["game-day", "live-scoring", "incidents"],
       admin: ["season-setup", "schedule", "rain-outs", "command-center"],
-      owner: ["books", "permits", "dashboard"],
+      owner: ["books", "permits", "permit-renewal", "dashboard"],
     });
   });
 
