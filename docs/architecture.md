@@ -265,6 +265,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `away_short` | non-urgent | For captains: a week your team may be short because players will be away |
 | `books_nudge` | non-urgent | For owners: a monthly list of expected costs to confirm and receipts still missing |
 | `books_reminder` | non-urgent | For owners: a permit application window, renewal, fees due date or insurance expiry coming up |
+| `checklist_reminder` | non-urgent | For owners and admins: a season checklist task that is due soon or overdue |
 | `captain_handoff` | urgent | Your team's captaincy offered to you, waiting for your answer |
 | `email_budget` | urgent | For admins: urgent email waiting for tomorrow's email allowance |
 | `event_news` | non-urgent | Event announcements, and changes or cancellations more than a day ahead |
@@ -355,6 +356,7 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Permit and insurance reminders ✔ | Daily (`/api/jobs/books-reminders`) | Emails every owner 30 and 7 days before a permit application window opens, a permit renews, a season's permit fees are due, the newest insurance certificate expires or NYC Parks' renewal period opens for a season's permits a year on (finished seasons included; [ADR 0056](adr/0056-permit-renewal-and-application-packet.md)). A missed day still sends the closest reminder; each is queued once per deadline, milestone and owner ([ADR 0034](adr/0034-owners-books-and-permits-in-postgres.md)). The same run sends `permit_alert`s, once each: a season reaching 40 permitted hours or passing NYC Parks' 50-hour insurance line, and each permit window not yet started that a rain-out or blackout leaves unused ([ADR 0055](adr/0055-permit-fees-hours-and-give-back.md)) |
 | Ref cover ✔ | Daily, late morning (`/api/jobs/referee-cover`) | Asks the league's refs who are free about every game starting within a day that has no ref (`referee_needed`, urgent, topic `sub_request`); each is queued once per game, round and ref. A ref dropping a game within a day asks at once instead ([ADR 0054](adr/0054-first-ref-to-take-a-game-gets-it.md)) |
 | Volunteer reminders ✔ | Daily (`/api/jobs/volunteer-reminders`) | Reminds everyone on a volunteer shift that starts tomorrow in the league's time zone (`volunteer_reminder`, non-urgent, topic `events`); each is queued once per shift and person |
+| Checklist reminders ✔ | Daily (`/api/jobs/checklist-reminders`) | Reminds each open season checklist task's owner 3 days before it is due and once when it is overdue, or every owner while the task has none (`checklist_reminder`, non-urgent, topic `operations`); each is queued once per task, due date, kind and person ([ADR 0053](adr/0053-season-ops-checklist-from-a-template.md)) |
 | Waitlist offers ✔ | Daily (`/api/jobs/waitlist-offers`) | Marks offers whose 48 hours ran out as expired and offers each free team spot to the next captain in line. Offers stop holding their spot the moment they run out, whether or not this has run. Raising a season's team limit, or an admin's "Offer now", sends offers at once |
 | Sponsor stats rollup (P2) | Daily 3:00 | Aggregates impressions and clicks into `sponsor_stat_daily` |
 | Instagram sync (P2) ✔ | Every 3 hours (`/api/jobs/instagram-sync`; daily on Hobby) | Fetches the 25 newest posts from the connected account, copies new photos and removes posts deleted on Instagram |
@@ -592,6 +594,7 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | `/app/seasons/[season]/challenge` | `drive` (the leaderboard, the winner) |
 | `/app` (giveaway won), `/app/seasons/[season]/team` (challenge progress), `/app/admin` (sign-up rate) | `drive` |
 | `/app/volunteer`, `/app/admin/volunteer`, `/new`, `/[shift]` | `volunteer-survey` (post a one-spot shift, claim it, find it full, see who's on it, drop it and let the next person take it) |
+| `/app/admin/checklist-template`, `/app/admin/seasons/[season]/checklist`, `/app/admin` (next tasks) | `checklist` (add a template task, start the spring checklist from the template, edit a task, mark one done, start again and add nothing twice; the dashboard card) |
 | `/app/seasons/[season]/survey`, `/app/admin/seasons/[season]/survey`, `/app` (survey waiting) | `volunteer-survey` (open the survey, answer once from the home screen, results with no name) |
 | `/operator` | `admin-tools` (export, roles); `site-wide/operator` (read-only, paused, features); `screens` |
 

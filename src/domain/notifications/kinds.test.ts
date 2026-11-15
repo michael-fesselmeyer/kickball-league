@@ -30,6 +30,7 @@ describe("MESSAGE_KINDS", () => {
       "away_short",
       "books_nudge",
       "books_reminder",
+      "checklist_reminder",
       "event_news",
       "gear_reminder",
       "giveaway_win",
