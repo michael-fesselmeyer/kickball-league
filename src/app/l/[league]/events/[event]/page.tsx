@@ -218,6 +218,7 @@ async function EventDetails({
             </dt>
             <dd className="flex flex-col gap-1">
               {e.place}
+              {e.openPlay && <strong>Open play, no reserved field</strong>}
               <a
                 href={mapLink(e.place)}
                 className="inline-flex min-h-11 items-center text-brand underline"

@@ -16,6 +16,7 @@ import type {
   EventId,
   EventRsvpId,
   EventTicketId,
+  FieldId,
   LeagueId,
   PurchaseId,
   SeasonId,
@@ -23,6 +24,7 @@ import type {
   UserId,
 } from "@/domain/ids";
 import { user } from "./auth";
+import { field } from "./game";
 import { league } from "./league";
 import { purchase } from "./money";
 import { season } from "./season";
@@ -40,6 +42,8 @@ export const eventKind = pgEnum("event_kind", [
   "tournament",
   "theme_week",
   "party",
+  "pickup",
+  "practice",
 ]);
 
 /**
@@ -72,6 +76,16 @@ export const event = pgTable(
     /** Set once from the title, so links keep working after an edit. */
     slug: text().notNull().unique(),
     place: text(),
+    /**
+     * The field it is played on, for a pickup, a practice or anything else
+     * at a park (issue #407): posting it checks that a permit covers the
+     * field for its whole time, unless it is open play.
+     */
+    fieldId: uuid()
+      .$type<FieldId>()
+      .references(() => field.id, { onDelete: "restrict" }),
+    /** Open play, no reserved field: never described as reserved. */
+    openPlay: boolean().notNull().default(false),
     description: text().notNull().default(""),
     startsAt: timestamp({ withTimezone: true }).notNull(),
     endsAt: timestamp({ withTimezone: true }).notNull(),
@@ -150,6 +164,7 @@ export const event = pgTable(
       sql`${t.ticketPriceCents} is null or (${t.inAppRsvp} and ${t.kind} <> 'theme_week')`,
     ),
     index("event_league_starts_idx").on(t.leagueId, t.startsAt),
+    index("event_field_idx").on(t.fieldId),
   ],
 );
 

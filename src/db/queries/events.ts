@@ -13,7 +13,14 @@ import {
   whenLine,
 } from "@/domain/events/event";
 import { FREE, isTicketed, type TicketPrices } from "@/domain/events/tickets";
-import type { EventId, LeagueId, SeasonId, TeamId, UserId } from "@/domain/ids";
+import type {
+  EventId,
+  FieldId,
+  LeagueId,
+  SeasonId,
+  TeamId,
+  UserId,
+} from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { eventNoticeKind } from "@/domain/notifications/kinds";
 import type { EventNoticePayload } from "@/emails/event";
@@ -41,6 +48,10 @@ export type EventSummary = {
   kind: EventKind;
   title: string;
   place: string | null;
+  /** The league field it is on (issue #407), if any. */
+  fieldId: FieldId | null;
+  /** Open play, no reserved field. */
+  openPlay: boolean;
   description: string;
   startsAt: Date;
   endsAt: Date;
@@ -70,6 +81,8 @@ const summaryColumns = {
   kind: event.kind,
   title: event.title,
   place: event.place,
+  fieldId: event.fieldId,
+  openPlay: event.openPlay,
   description: event.description,
   startsAt: event.startsAt,
   endsAt: event.endsAt,

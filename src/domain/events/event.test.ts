@@ -52,6 +52,8 @@ describe("parseEventForm", () => {
         place: "The Example Tavern, 1 Example St",
         description: "Awards.\n\nSnacks.",
         capacity: 40,
+        fieldId: null,
+        openPlay: false,
         startsAt: new Date("2026-11-01T00:00:00Z"),
         endsAt: new Date("2026-11-01T03:00:00Z"),
       },
@@ -90,9 +92,75 @@ describe("parseEventForm", () => {
         place: null,
         description: "",
         capacity: null,
+        fieldId: null,
+        openPlay: false,
         startsAt: new Date("2026-10-26T04:00:00Z"),
         endsAt: new Date("2026-11-02T05:00:00Z"),
       },
+    });
+  });
+
+  describe("a field at a park (issue #407)", () => {
+    const FIELD = "00000000-0000-4000-8000-0000000000f1";
+    const pickup: EventForm = {
+      ...barNight,
+      kind: "pickup",
+      title: "Sunday pickup",
+      capacity: "",
+    };
+
+    it("needs a field for a pickup game or practice, unless it is open play", () => {
+      for (const kind of ["pickup", "practice"])
+        expect(parseEventForm({ ...pickup, kind }, NY)).toEqual({
+          ok: false,
+          error: "field",
+        });
+      const open = parseEventForm({ ...pickup, openPlay: "on" }, NY);
+      expect(open.ok && [open.value.fieldId, open.value.openPlay]).toEqual([
+        null,
+        true,
+      ]);
+      const onField = parseEventForm({ ...pickup, fieldId: FIELD }, NY);
+      expect(
+        onField.ok && [onField.value.fieldId, onField.value.openPlay],
+      ).toEqual([FIELD, false]);
+    });
+
+    it("refuses a field that isn't an id, and a theme week on a field", () => {
+      expect(parseEventForm({ ...pickup, fieldId: "field 3" }, NY)).toEqual({
+        ok: false,
+        error: "field",
+      });
+      expect(parseEventForm({ ...themeWeek, fieldId: FIELD }, NY)).toEqual({
+        ok: false,
+        error: "field",
+      });
+      // A theme week is never open play.
+      const week = parseEventForm({ ...themeWeek, openPlay: "on" }, NY);
+      expect(week.ok && week.value.openPlay).toBe(false);
+    });
+
+    it("lets any other event name a field or not", () => {
+      const party = parseEventForm({ ...barNight, fieldId: FIELD }, NY);
+      expect(party.ok && party.value.fieldId).toBe(FIELD);
+    });
+
+    it("brings the field and open play back for editing", () => {
+      const parsed = parseEventForm(
+        { ...pickup, fieldId: FIELD, openPlay: "on" },
+        NY,
+      );
+      if (!parsed.ok) throw new Error("not parsed");
+      expect(eventFormValues(parsed.value, NY)).toMatchObject({
+        fieldId: FIELD,
+        openPlay: "on",
+      });
+      expect(
+        eventFormValues(
+          { ...parsed.value, fieldId: null, openPlay: false },
+          NY,
+        ),
+      ).toMatchObject({ fieldId: "", openPlay: "" });
     });
   });
 
