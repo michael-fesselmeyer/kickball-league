@@ -17,6 +17,7 @@ describe("buildSitemap", () => {
       `${ORIGIN}/seasons`,
       `${ORIGIN}/faq`,
       `${ORIGIN}/rules`,
+      `${ORIGIN}/contact`,
       `${ORIGIN}/nyc-kickball-league`,
       `${ORIGIN}/free-agents`,
       `${ORIGIN}/news/how-to-play-kickball`,
