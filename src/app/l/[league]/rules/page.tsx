@@ -10,64 +10,71 @@ import {
   type LogEntry,
   type SectionRow,
 } from "@/db/queries/rules";
-import { currentLeague } from "@/db/queries/seasons";
 import { localDate } from "@/domain/books/ledger-csv";
+import type { LeagueId } from "@/domain/ids";
 import { blocksOf } from "@/domain/rules/rules";
 import { ruleSetSummary } from "@/domain/season/divisions";
 import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
+import { publicLeague, withCanonical } from "@/lib/league/public";
 import { PUBLIC_PAGE_LIFE, RULES_TAG, seasonTag } from "@/lib/public-cache";
 
-export const metadata: Metadata = {
+/**
+ * The page reads its league from the path outside any <Suspense> boundary,
+ * so it has no generic fallback shell: a league the build didn't list, or a
+ * page a published change just expired, is rendered in full before it is
+ * served, then kept, as the friends page does (ADR 0048).
+ */
+export const instant = false;
+
+const METADATA: Metadata = {
   title: "League rules",
   description:
     "How we play: the league's rules by section, each division's game settings, and a dated list of every change.",
-  alternates: { canonical: "/rules" },
 };
+
+export function generateMetadata({
+  params,
+}: PageProps<"/l/[league]/rules">): Promise<Metadata> {
+  return withCanonical(params, METADATA, "/rules");
+}
 
 /** How many changes the page lists. */
 const CHANGES_SHOWN = 20;
-
-/** A cache life Next.js leaves out of the prerender and reads per request. */
-const NOT_KEPT = { stale: 0, revalidate: 0, expire: 0 } as const;
-
-/** Until there is a league, as on a build with no database. */
-const DEFAULT_TIME_ZONE = "America/New_York";
 
 type RulesData = {
   sections: SectionRow[];
   changes: LogEntry[];
   settings: GameSettings | null;
   today: string;
-  timeZone: string;
 };
 
 /**
- * Static HTML (ADR 0056): read once inside `use cache` and kept until an
+ * Static HTML (ADR 0062): read once inside `use cache` and kept until an
  * admin publishes a change (refreshRulesPage), a division's rule set changes
  * (refreshSeasonPages) or PUBLIC_PAGE_LIFE runs out. No Suspense boundary,
  * so the rules are part of the first paint.
  */
-async function cachedRules(): Promise<RulesData> {
+async function cachedRules(
+  leagueId: LeagueId,
+  timeZone: string,
+): Promise<RulesData> {
   "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
   cacheTag(RULES_TAG);
-  const found = await readUnlessBuildHasNoDatabase(async () => {
-    const league = await currentLeague(db);
-    if (!league) return null;
-    const [sections, changes, settings] = await Promise.all([
-      currentRules(db, league.id),
-      changeLog(db, league.id, CHANGES_SHOWN),
-      gameSettings(db, league.id),
-    ]);
-    return { sections, changes, settings, timeZone: league.timeZone };
-  });
-  cacheLife(found ? PUBLIC_PAGE_LIFE : NOT_KEPT);
-  if (found?.settings) cacheTag(seasonTag(found.settings.seasonId));
+  const found = await readUnlessBuildHasNoDatabase(() =>
+    Promise.all([
+      currentRules(db, leagueId),
+      changeLog(db, leagueId, CHANGES_SHOWN),
+      gameSettings(db, leagueId),
+    ]),
+  );
+  const [sections, changes, settings] = found ?? [[], [], null];
+  if (settings) cacheTag(seasonTag(settings.seasonId));
   return {
-    sections: found?.sections ?? [],
-    changes: found?.changes ?? [],
-    settings: found?.settings ?? null,
-    today: localDate(new Date(), found?.timeZone ?? DEFAULT_TIME_ZONE),
-    timeZone: found?.timeZone ?? DEFAULT_TIME_ZONE,
+    sections,
+    changes,
+    settings,
+    today: localDate(new Date(), timeZone),
   };
 }
 
@@ -85,9 +92,15 @@ const KIND_WORDS = {
   removed: "removed",
 } as const;
 
-export default async function RulesPage() {
-  const { sections, changes, settings, today, timeZone } = await cachedRules();
-  const publishedOn = (at: Date) => localDate(at, timeZone);
+export default async function RulesPage({
+  params,
+}: PageProps<"/l/[league]/rules">) {
+  const league = await publicLeague((await params).league, "/rules");
+  const { sections, changes, settings, today } = await cachedRules(
+    league.id,
+    league.timeZone,
+  );
+  const publishedOn = (at: Date) => localDate(at, league.timeZone);
   // A section changed by a change that hasn't started yet says so.
   const upcoming = new Map<string, string>();
   for (const c of [...changes].reverse())
