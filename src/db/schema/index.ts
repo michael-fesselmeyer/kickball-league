@@ -54,6 +54,7 @@ export * from "./stat-awards";
 export * from "./subs";
 export * from "./survey";
 export * from "./team";
+export * from "./tournament";
 export * from "./volunteer";
 export * from "./waitlist";
 export * from "./waiver";
