@@ -257,7 +257,13 @@ export async function registerGuestTeam(
   input: { eventId: EventId; signup: GuestSignup; now: Date },
 ): Promise<Result<{ id: GuestTeamId; linkToken: string }, GuestSignupError>> {
   const locked = await lockTournament(db, input.eventId);
-  if (!locked || locked.deletedAt || locked.t.guestDataDeletedAt)
+  // An event an admin changed to another kind no longer takes guest teams.
+  if (
+    !locked ||
+    locked.deletedAt ||
+    locked.kind !== "tournament" ||
+    locked.t.guestDataDeletedAt
+  )
     return err("not_a_tournament");
   const [count] = await db
     .select({ n: sql<number>`count(*)::int` })
@@ -572,9 +578,9 @@ export async function updateBracketGame(
  * Deletes guest teams, captains' contact details and waiver signatures
  * `guest_data_days` after the event ends (at once for an event an admin
  * deleted). The bracket stays: it holds team names and scores, nothing about
- * people. Returns how many tournaments were cleared. Safe to run twice.
+ * people. Returns the slugs of the events cleared, so their pages can refresh. Safe to run twice.
  */
-export async function purgeGuestData(db: Db, now: Date): Promise<number> {
+export async function purgeGuestData(db: Db, now: Date): Promise<string[]> {
   const rows = await db
     .select({
       eventId: tournament.eventId,
@@ -582,6 +588,7 @@ export async function purgeGuestData(db: Db, now: Date): Promise<number> {
       guestDataDeletedAt: tournament.guestDataDeletedAt,
       endsAt: event.endsAt,
       deletedAt: event.deletedAt,
+      slug: event.slug,
     })
     .from(tournament)
     .innerJoin(event, eq(event.id, tournament.eventId))
@@ -595,12 +602,12 @@ export async function purgeGuestData(db: Db, now: Date): Promise<number> {
   const due = rows.filter(
     (r) => r.deletedAt !== null || guestDataDue(r, r, now),
   );
-  if (due.length === 0) return 0;
+  if (due.length === 0) return [];
   const ids = due.map((r) => r.eventId);
   await db.delete(guestTeam).where(inArray(guestTeam.eventId, ids));
   await db
     .update(tournament)
     .set({ guestDataDeletedAt: now })
     .where(inArray(tournament.eventId, ids));
-  return due.length;
+  return due.map((r) => r.slug);
 }

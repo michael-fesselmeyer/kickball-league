@@ -199,6 +199,26 @@ describe("guest sign-up", () => {
   });
 });
 
+describe("an event that stops being a tournament", () => {
+  it("takes no more guest teams, and a purged tournament takes none either", async () => {
+    await inRolledBackDb(async (db) => {
+      const { eventId } = await setUp(db);
+      await db.update(event).set({ kind: "social" }).where(eq(event.id, eventId));
+      expect(
+        await registerGuestTeam(db, { eventId, signup: guest(1), now: BEFORE }),
+      ).toEqual({ ok: false, error: "not_a_tournament" });
+      await db.update(event).set({ kind: "tournament" }).where(eq(event.id, eventId));
+      await db
+        .update(tournament)
+        .set({ guestDataDeletedAt: BEFORE })
+        .where(eq(tournament.eventId, eventId));
+      expect(
+        await registerGuestTeam(db, { eventId, signup: guest(2), now: BEFORE }),
+      ).toEqual({ ok: false, error: "not_a_tournament" });
+    });
+  });
+});
+
 describe("waiver by link", () => {
   it("records a signature, once per name, up to the roster size", async () => {
     await inRolledBackDb(async (db) => {
@@ -312,10 +332,10 @@ describe("deleting guest data", () => {
       await drawBracket(db, { leagueId: w.leagueId, eventId, order: (t) => t, actorId: w.admin });
 
       const day = 86_400_000;
-      expect(await purgeGuestData(db, new Date(ENDS.getTime() + 9 * day))).toBe(0);
+      expect(await purgeGuestData(db, new Date(ENDS.getTime() + 9 * day))).toEqual([]);
       expect(await adminGuestTeams(db, eventId)).toHaveLength(2);
 
-      expect(await purgeGuestData(db, new Date(ENDS.getTime() + 10 * day))).toBe(1);
+      expect(await purgeGuestData(db, new Date(ENDS.getTime() + 10 * day))).toHaveLength(1);
       expect(await adminGuestTeams(db, eventId)).toHaveLength(0);
       expect(await db.select().from(guestTeam).where(eq(guestTeam.eventId, eventId))).toEqual([]);
       const left = await db.select().from(guestWaiverSignature);
@@ -325,7 +345,7 @@ describe("deleting guest data", () => {
       expect(t?.bracket?.seeds).toHaveLength(2);
       // The waiver link no longer works, and a second sweep does nothing.
       expect(await guestTeamByToken(db, linkToken)).toBeNull();
-      expect(await purgeGuestData(db, new Date(ENDS.getTime() + 11 * day))).toBe(0);
+      expect(await purgeGuestData(db, new Date(ENDS.getTime() + 11 * day))).toEqual([]);
     });
   });
 
@@ -334,7 +354,7 @@ describe("deleting guest data", () => {
       const { eventId } = await setUp(db);
       await enter(db, eventId, 1);
       await db.update(event).set({ deletedAt: BEFORE }).where(eq(event.id, eventId));
-      expect(await purgeGuestData(db, BEFORE)).toBe(1);
+      expect(await purgeGuestData(db, BEFORE)).toHaveLength(1);
       expect(await adminGuestTeams(db, eventId)).toHaveLength(0);
     });
   });

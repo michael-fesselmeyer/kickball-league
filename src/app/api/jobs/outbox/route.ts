@@ -1,4 +1,6 @@
+import { revalidateTag } from "next/cache";
 import { db } from "@/db/client";
+import { eventTag } from "@/lib/public-cache";
 import { purgeConcernEmails } from "@/db/queries/concerns";
 import { purgeInterestEmails } from "@/db/queries/interest";
 import { pruneRateLimits } from "@/db/queries/rate-limit";
@@ -25,7 +27,10 @@ export async function GET(request: Request): Promise<Response> {
   const prunedRateLimits = await pruneRateLimits(db, new Date());
   const purgedConcernEmails = await purgeConcernEmails(db, new Date());
   const purgedInterestEmails = await purgeInterestEmails(db, new Date());
-  const purgedGuestData = await purgeGuestData(db, new Date());
+  const purgedSlugs = await purgeGuestData(db, new Date());
+  // The event pages list guest teams' names: refresh them in the background.
+  for (const slug of purgedSlugs) revalidateTag(eventTag(slug), "max");
+  const purgedGuestData = purgedSlugs.length;
   const result = await drainOutboxNow();
   if (!result)
     return Response.json(
