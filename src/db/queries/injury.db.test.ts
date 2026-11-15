@@ -19,7 +19,7 @@ import { profile } from "../schema/profile";
 import { grantRole, subjectIn } from "../test/leagues";
 import { messagingWorld } from "../test/messaging-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
-import { deleteAccount, personalData } from "./account";
+import { DELETED_NAME, deleteAccount, personalData } from "./account";
 import { addIncidentNote, fileIncident } from "./discipline";
 import {
   exportInjury,
@@ -423,9 +423,18 @@ describe("the retention period", () => {
   it("removes the details of reports older than three years, once, and no others", async () => {
     await inRolledBackDb(async (db) => {
       const w = await world(db);
-      const old = filed(await w.file({}, { at: yearsAgo(4) }));
-      const edge = filed(await w.file({}, { at: yearsAgo(3) }));
-      const recent = filed(await w.file({}, { at: yearsAgo(1) }));
+      // Filing opens at kickoff, so file now and move the report's date.
+      const filedAt = async (reportedAt: Date) => {
+        const id = filed(await w.file());
+        await db
+          .update(incident)
+          .set({ reportedAt })
+          .where(eq(incident.id, id));
+        return id;
+      };
+      const old = await filedAt(yearsAgo(4));
+      const edge = await filedAt(yearsAgo(3));
+      const recent = await filedAt(yearsAgo(1));
 
       expect(await removeExpiredInjuries(db, NOW)).toBe(2);
       expect(await injuryOf(db, old)).toBeNull();
@@ -448,7 +457,7 @@ describe("the retention period", () => {
 });
 
 describe("when a person's account goes", () => {
-  it("clears who was hurt and drops the witness, keeping the report", async () => {
+  it("keeps the report, now naming the anonymized account", async () => {
     await inRolledBackDb(async (db) => {
       const w = await world(db);
       const id = filed(await w.file());
@@ -458,9 +467,11 @@ describe("when a person's account goes", () => {
       expect(await deleteAccount(db, w.witnessA.userId, NOW)).toEqual(
         ok(undefined),
       );
+      // Deleting an account anonymizes it, so records stay whole.
       const view = await injuryOf(db, id);
-      expect(view?.hurtName).toBeNull();
-      expect(view?.witnesses).toHaveLength(1);
+      expect(view?.hurtName).toBe(DELETED_NAME);
+      expect(view?.witnesses).toContain(DELETED_NAME);
+      expect(view?.witnesses).toHaveLength(2);
       expect(view?.bodyArea).toBe("knee");
     });
   });
