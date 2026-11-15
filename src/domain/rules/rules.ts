@@ -2,7 +2,7 @@ import { err, ok, type Result } from "@/domain/result";
 import { addDays } from "@/domain/season/rollover";
 
 /**
- * The league's rules page (ADR 0056): sections admins write in the app, and
+ * The league's rules page (ADR 0062): sections admins write in the app, and
  * a dated log of every change. Pure: the query layer reads and writes, this
  * decides what a submitted form changes and whether it may be published.
  */
