@@ -59,7 +59,7 @@ test("an admin assigns a new ref, who checks the permit, reports the score and s
       .getByRole("listitem")
       .filter({ hasText: GAME });
     await expectNoAxeViolations(quinn);
-    await game.getByRole("link", { name: "Score" }).click();
+    await game.getByRole("link", { name: "Score", exact: true }).click();
     await expect(quinn.getByRole("heading", { level: 1 })).toHaveText(GAME);
     scorePage = quinn.url().replace(/\?.*$/, "");
 
