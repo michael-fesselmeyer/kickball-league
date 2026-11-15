@@ -298,19 +298,21 @@ export async function dropRefereeGame(
 }
 
 export type TakeError =
-  "gone" | "started" | "taken" | "not_a_ref" | "plays" | "busy";
+  "gone" | "started" | "taken" | "not_a_ref" | "own_team" | "plays" | "busy";
 
 /**
  * "Take it": the first ref to tap gets the game. The game row is locked
  * first, so two refs tapping at once are served one after the other and
  * the second finds it taken; the one-live-assignment index backs that up.
  * The ref must be one the league counts (in the pool, or has reffed this
- * season), and free: not playing in it or at that time, and not reffing
- * another game then.
+ * season), and free: not playing at that time, and not reffing another
+ * game then. A ref who plays for one of the game's teams is warned
+ * ("own_team") and takes it only by saying so (`ownTeamOk`): their report
+ * then counts as their team's, so only the other team can confirm it (#296).
  */
 export async function takeRefereeGame(
   db: Db,
-  input: { gameId: GameId; userId: UserId; now: Date },
+  input: { gameId: GameId; userId: UserId; now: Date; ownTeamOk?: boolean },
 ): Promise<Result<void, TakeError>> {
   await db
     .select({ id: game.id })
@@ -325,8 +327,13 @@ export async function takeRefereeGame(
   const { refs, commitments } = await refsFor(db, g);
   const me = refs.find((r) => r.id === input.userId);
   if (!me) return err("not_a_ref");
-  if (g.teamSeasonIds.some((t) => me.teamSeasonIds.has(t))) return err("plays");
-  if (whoToAsk({ game: assignGame(g), refs: [me], commitments }).length === 0)
+  const own = g.teamSeasonIds.some((t) => me.teamSeasonIds.has(t));
+  if (own && !input.ownTeamOk) return err("own_team");
+  // Having said so, they are checked only for a clash with another game.
+  const checked = own ? { ...me, teamSeasonIds: new Set<string>() } : me;
+  if (
+    whoToAsk({ game: assignGame(g), refs: [checked], commitments }).length === 0
+  )
     return err(
       commitments.some((c) => c.refId === me.id && !c.counts)
         ? "plays"
@@ -349,7 +356,7 @@ export async function takeRefereeGame(
     action: "referee.take",
     entityType: "game",
     entityId: g.id,
-    after: { userId: input.userId },
+    after: { userId: input.userId, ...(own ? { playsInGame: true } : {}) },
   });
   return ok(undefined);
 }
@@ -369,12 +376,32 @@ export async function gameToTake(
         : g.refereeId !== null
           ? ("taken" as const)
           : ("open" as const);
+  // The team of this game the viewer plays for, if any: refing it is
+  // allowed only after a warning (#296).
+  const mine = await db
+    .select({ teamSeasonId: rosterMembership.teamSeasonId })
+    .from(rosterMembership)
+    .innerJoin(
+      registration,
+      eq(rosterMembership.registrationId, registration.id),
+    )
+    .where(
+      and(
+        eq(registration.userId, input.userId),
+        eq(rosterMembership.status, "active"),
+        inArray(rosterMembership.teamSeasonId, [...g.teamSeasonIds]),
+      ),
+    );
+  const playsFor = g.teamSeasonIds.flatMap((t, i) =>
+    mine.some((m) => m.teamSeasonId === t) ? [g.teamNames[i] ?? ""] : [],
+  );
   return {
     id: g.id,
     teams: `${g.teamNames[0]} vs ${g.teamNames[1]}`,
     when: g.when,
     seasonName: g.seasonName,
     state,
+    playsFor,
   };
 }
 

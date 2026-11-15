@@ -146,12 +146,14 @@ describe("score confirmation requests", () => {
         reportedBy: "The ref, who plays for Aces",
       });
       // The ref's own captain cannot make it final; the other team can.
-      if (!reported.ok || reported.value.state !== "awaiting")
+      const state = reported.ok ? reported.value : null;
+      if (state?.state !== "awaiting")
         throw new Error("expected an open report");
+      const reportId = state.reportId as ScoreReportId;
       const answer = (team: typeof w.aces, userId: typeof ref.userId) =>
         respondToScore(db, {
           gameId,
-          reportId: reported.value.reportId as ScoreReportId,
+          reportId,
           teamSeasonId: team.id,
           userId,
           status: "confirmed",
@@ -267,7 +269,7 @@ describe("score confirmation requests", () => {
         throw new Error("no report");
       await respondToScore(db, {
         gameId,
-        reportId: reported.value.reportId as ScoreReportId,
+        reportId: open.reportId as ScoreReportId,
         teamSeasonId: w.bees.id,
         userId: w.bees.captain.userId,
         status: "confirmed",
