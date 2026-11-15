@@ -25,7 +25,9 @@ test("a ref ejects a player, who leaves the kicking order", async ({
     await expect(section).toBeVisible();
     await expectNoAxeViolations(ref);
 
-    await section.getByLabel("Player").selectOption({ label: out });
+    await section
+      .getByLabel("Player", { exact: true })
+      .selectOption({ label: out });
     await section
       .getByLabel("Reason (optional)")
       .fill("Argued after a warning");
