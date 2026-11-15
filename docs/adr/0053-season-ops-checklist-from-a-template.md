@@ -30,4 +30,5 @@ The jobs repeat, but their dates move with each season's first day, and the peop
 
 - If owners remove every template task, the starter tasks come back. The template page says so.
 - Reminders are emails only for now. The outbox would also send push for a topic that has it, but `operations` is email only.
-- A task's owner must be an owner or admin when it is set. If that person later loses the role, the task keeps them until someone changes it.
+- A task's owner must be an owner or admin when it is set. If that person later loses the role, the task still shows them, but its reminders go to the owners, as for a task with no owner.
+- When a season's first day changes in season setup, its open tasks from the template move by the same number of days, in the same transaction. Tasks added by hand and done tasks keep their dates. A template task whose date an admin changed by hand still moves; the alternative was tracking which dates were edited, for little gain.
