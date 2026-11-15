@@ -1,11 +1,13 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
+import { DEFAULT_MVP_WEIGHTS } from "@/domain/awards/stat-awards";
 import { can } from "@/domain/authz/permissions";
 import { parseAcceptance, parseRequest } from "@/domain/private-events/request";
 import { message } from "../schema/message";
 import { purchase, purchaseItem } from "../schema/money";
 import { privateEvent } from "../schema/private-event";
 import { season } from "../schema/season";
+import { statAwardSet } from "../schema/stat-awards";
 import { teamSeason } from "../schema/team";
 import { leagueWorld, NOW } from "../test/league-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
@@ -30,6 +32,8 @@ import {
 } from "./registration";
 import type { Db } from "./schedule";
 import { publicSeasons, publicTeams } from "./sitemap";
+import { awardsBoard, publishedAwardSeasons } from "./stat-awards";
+import { widgetSeasons } from "./widget";
 import { loadSubject } from "./subject";
 
 afterAll(closePool);
@@ -328,6 +332,54 @@ describe("a private season", () => {
         .where(eq(season.id, accepted.seasonId));
       const open = await openSeasons(db, w.leagueId, NOW);
       expect(open.map((s) => s.slug)).not.toContain(accepted.seasonSlug);
+    }));
+
+  it("stays off the schedule widget and the awards pages", () =>
+    inRolledBackDb(async (db) => {
+      const w = await requested(db);
+      const accepted = ok(
+        await acceptPrivateEvent(db, {
+          leagueId: w.leagueId,
+          eventId: w.eventId,
+          actorId: w.admin,
+          acceptance: terms("organization", "0"),
+          now: NOW,
+        }),
+      );
+      await db
+        .update(season)
+        .set({ status: "in_progress" })
+        .where(eq(season.id, accepted.seasonId));
+      await db.insert(statAwardSet).values({
+        seasonId: accepted.seasonId,
+        weights: DEFAULT_MVP_WEIGHTS,
+        computedAt: NOW,
+        publishedAt: NOW,
+      });
+
+      expect((await widgetSeasons(db)).map((s) => s.id)).not.toContain(
+        accepted.seasonId,
+      );
+      expect(
+        (await publishedAwardSeasons(db)).map((s) => s.slug),
+      ).not.toContain(accepted.seasonSlug);
+      expect(
+        await awardsBoard(
+          db,
+          { seasonSlug: accepted.seasonSlug },
+          { publishedOnly: true },
+        ),
+      ).toEqual({ found: false });
+      // Its admins still see its awards.
+      expect(
+        (
+          await awardsBoard(
+            db,
+            { seasonId: accepted.seasonId },
+            { publishedOnly: false },
+          )
+        ).found,
+      ).toBe(true);
     }));
 
   it("is shown to its organizer and admins, nobody else", () =>
