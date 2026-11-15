@@ -99,7 +99,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── seasons/[season]/team (roles)   Captain and co-captains: the captain makes or unmakes co-captains and offers the captaincy to a teammate (withdraw while it waits); a co-captain can step down; the teammate offered it accepts or declines at the top of the page
 ├── seasons/[season]/team (list)    Captains: the team's private "not on my team" list, folded away: add a league member by email with an optional reason, or take them off
 ├── seasons/[season]/survey         The end-of-season survey for a player who was on a roster: five questions (rating 1 to 5, play again, best part, one change, comment), answered once, anonymous; a prompt on the home screen while it waits
-├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps and an optional note) and a friend code to start, join, switch or leave
+├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps: kicking, fielding and running self-ratings, competitive or fun, and game nights; plus an optional note) and a friend code to start, join, switch or leave
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; with no signal, saved on the phone and sent later; once final, a captain rates the other team's sportsmanship; a link to report an incident
 ├── games/[game]/incident           Report an incident: kind, the people involved from either team, what happened (the game's ref, either captain, an admin; from kickoff on)
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref); works with no signal
