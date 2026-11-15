@@ -275,6 +275,10 @@ const RULES = {
   "referee.manage": isAdmin,
   "player.suspend": isAdmin,
   "incident.review": isAdmin,
+  // The concerns queue: private player concerns and public contact messages.
+  "concern.review": isAdmin,
+  // A signed-in player sends a private concern and reads their own.
+  "concern.send": signedIn,
   "sportsmanship.view": isAdmin,
   // Every team's list and reasons, to catch misuse.
   "keep_off.review": isAdmin,

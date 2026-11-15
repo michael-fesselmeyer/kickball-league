@@ -309,7 +309,7 @@ describe("publishing a rain-out", () => {
       );
       if (!published.ok) throw new Error(published.error);
       const rows = await noticesFor(db, everyone);
-      const muted = required(rows[0], "a notice").userId;
+      const muted = required(required(rows[0], "a notice").userId, "a user");
       await db.insert(notificationPreference).values({
         userId: muted,
         topic: "rainout",

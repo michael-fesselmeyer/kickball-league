@@ -62,7 +62,13 @@ import type { Db } from "./schedule";
 
 export type OutboxMessage = Pick<
   NewMessage,
-  "userId" | "topic" | "payload" | "dedupeKey" | "sendAfter" | "announcementId"
+  | "userId"
+  | "recipientEmail"
+  | "topic"
+  | "payload"
+  | "dedupeKey"
+  | "sendAfter"
+  | "announcementId"
 > & {
   /** Its kind says whether it is urgent (src/domain/notifications/kinds.ts). */
   template: MessageKind;
@@ -88,7 +94,7 @@ export async function enqueueMessages(
     .values([...messages])
     .onConflictDoNothing({ target: message.dedupeKey })
     .returning({ id: message.id });
-  const pushable = messages.filter((m) => isPushTopic(m.topic));
+  const pushable = messages.filter((m) => m.userId && isPushTopic(m.topic));
   if (pushable.length > 0) {
     const wanted = await pushWanted(db, pushable);
     const copies = pushable
@@ -132,7 +138,7 @@ async function pushWanted(
     .where(
       and(
         inArray(notificationPreference.userId, [
-          ...new Set(messages.map((m) => m.userId)),
+          ...new Set(messages.flatMap((m) => (m.userId ? [m.userId] : []))),
         ]),
         inArray(notificationPreference.topic, [
           ...new Set(messages.map((m) => m.topic)),
@@ -179,7 +185,9 @@ export type Channel = "email" | "push";
 
 export type ClaimedMessage = {
   id: MessageId;
-  userId: UserId;
+  /** Null for a message to an address with no account. */
+  userId: UserId | null;
+  recipientEmail: string | null;
   topic: Topic;
   channel: Channel | "sms";
   template: string;
@@ -241,6 +249,7 @@ export async function claimDueMessages(
     .returning({
       id: message.id,
       userId: message.userId,
+      recipientEmail: message.recipientEmail,
       topic: message.topic,
       channel: message.channel,
       template: message.template,
@@ -412,7 +421,9 @@ export async function drainOutbox(
     : [];
   const claimed = [...pushClaimed, ...emailClaimed];
   if (claimed.length === 0) return result;
-  const userIds = [...new Set(claimed.map((m) => m.userId))];
+  const userIds = [
+    ...new Set(claimed.flatMap((m) => (m.userId ? [m.userId] : []))),
+  ];
   const recipients = await db
     .select({ id: user.id, email: user.email })
     .from(user)
@@ -432,11 +443,13 @@ export async function drainOutbox(
         inArray(notificationPreference.channel, ["email", "push"]),
       ),
     );
-  const choicesOf = (userId: UserId, channel: Channel): Choice[] =>
+  const choicesOf = (userId: UserId | null, channel: Channel): Choice[] =>
     choices.filter((c) => c.userId === userId && c.channel === channel);
   const pushUsers = [
     ...new Set(
-      claimed.filter((m) => m.channel === "push").map((m) => m.userId),
+      claimed.flatMap((m) =>
+        m.channel === "push" && m.userId ? [m.userId] : [],
+      ),
     ),
   ];
   const devices =
@@ -483,7 +496,8 @@ export async function drainOutbox(
         ? nextDigestAt(
             now,
             timeZone,
-            (limits.get(m.userId) ?? DEFAULT_LIMITS).digest,
+            ((m.userId ? limits.get(m.userId) : undefined) ?? DEFAULT_LIMITS)
+              .digest,
           )
         : nextUtcDay(now),
       attempts: m.attempts - 1,
@@ -518,13 +532,13 @@ export async function drainOutbox(
       return;
     }
     const kind = deliveryClassOf(m.template);
-    const counted = `${m.userId}/${channel}`;
+    const counted = `${m.userId ?? m.id}/${channel}`;
     const decision = decide({
       class: kind,
       channel,
       now,
       timeZone,
-      limits: limits.get(m.userId) ?? DEFAULT_LIMITS,
+      limits: (m.userId ? limits.get(m.userId) : undefined) ?? DEFAULT_LIMITS,
       sentToday: sentToday.get(counted) ?? 0,
     });
     if (decision.action !== "send") {
@@ -565,7 +579,9 @@ export async function drainOutbox(
           ? await deliverEmail(db, m, {
               send,
               render,
-              to: emailOf.get(m.userId),
+              to: m.userId
+                ? emailOf.get(m.userId)
+                : (m.recipientEmail ?? undefined),
               now,
               result,
             })
@@ -716,10 +732,11 @@ async function deliverEmail(
     result: DrainResult;
   },
 ): Promise<"sent" | "quota" | "failed"> {
-  const rendered = render(m.template, m.payload, {
-    userId: m.userId,
-    topic: m.topic,
-  });
+  const rendered = render(
+    m.template,
+    m.payload,
+    m.userId ? { userId: m.userId, topic: m.topic } : undefined,
+  );
   if (!rendered.ok || !to) {
     // Retrying cannot fix a message that cannot be built.
     await settle(db, m, {

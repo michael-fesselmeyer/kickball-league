@@ -84,10 +84,12 @@ export const message = pgTable(
   "message",
   {
     id: uuid().primaryKey().defaultRandom().$type<MessageId>(),
+    /** Null for a message to an address with no account (a public concern's reply). */
     userId: uuid()
-      .notNull()
       .$type<UserId>()
       .references(() => user.id, { onDelete: "cascade" }),
+    /** Where a message with no user goes; cleared with the concern's address. */
+    recipientEmail: text(),
     topic: messageTopic().notNull(),
     channel: messageChannel().notNull().default("email"),
     /** Names the function in src/emails that renders `payload`. */
@@ -136,6 +138,10 @@ export const message = pgTable(
     index("message_sent_today_idx")
       .on(t.userId, t.sentAt)
       .where(sql`${t.status} = 'sent'`),
+    check(
+      "message_has_recipient",
+      sql`${t.userId} is not null or ${t.recipientEmail} is not null`,
+    ),
     check("message_attempts_non_negative", sql`${t.attempts} >= 0`),
     check(
       "message_sending_has_lock",

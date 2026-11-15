@@ -139,6 +139,9 @@ export default function McCarrenParkPage() {
           <Link href="/faq" className="btn btn-secondary">
             Read the FAQ
           </Link>
+          <Link href="/contact" className="btn btn-secondary">
+            Report a problem at the field
+          </Link>
         </div>
       </section>
     </main>

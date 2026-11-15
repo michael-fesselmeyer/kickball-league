@@ -7,6 +7,8 @@ import {
   incidentQueue,
   type QueueRow,
 } from "@/db/queries/discipline";
+import { concernQueue } from "@/db/queries/concerns";
+import { CATEGORY_LABELS } from "@/domain/concerns/concerns";
 import { INCIDENT_KINDS } from "@/domain/discipline/discipline";
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
@@ -45,10 +47,12 @@ async function Incidents() {
   await requireFeature("discipline");
   await requirePermission("incident.review", { next: "/app/admin/incidents" });
   const now = new Date();
-  const [queue, suspended, league] = await Promise.all([
+  const leagueNow = await activeLeague();
+  const [queue, suspended, league, concerns] = await Promise.all([
     incidentQueue(db),
     activeSuspensions(db, now),
-    activeLeague(),
+    Promise.resolve(leagueNow),
+    leagueNow ? concernQueue(db, leagueNow.id, now) : null,
   ]);
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
@@ -71,6 +75,45 @@ async function Incidents() {
           suspend a player if it calls for it, and resolve it.
         </p>
       </header>
+      {concerns && (
+        <section aria-labelledby="concerns" className="flex flex-col gap-1">
+          <h2 id="concerns" className="text-h2">
+            Concerns and messages ({concerns.open.length})
+          </h2>
+          <p className="text-small text-text-muted">
+            Private concerns from players and messages from the public contact
+            form. Answered within a day:{" "}
+            {concerns.answeredInDay.total === 0
+              ? "no data yet"
+              : `${Math.round((concerns.answeredInDay.quick / concerns.answeredInDay.total) * 100)}% of the last 90 days`}
+            .
+          </p>
+          {concerns.open.length === 0 ? (
+            <p className="text-text-muted">Nothing waiting.</p>
+          ) : (
+            <ul>
+              {concerns.open.map((c) => (
+                <li
+                  key={c.id}
+                  className="flex flex-col gap-1 border-t border-border py-3"
+                >
+                  <Link
+                    href={`/app/admin/concerns/${c.id}`}
+                    className="underline"
+                  >
+                    <strong>{CATEGORY_LABELS[c.category]}</strong>
+                    {c.source === "public" ? " (public)" : " (private)"}
+                  </Link>
+                  <span className="text-small text-text-muted">
+                    {when(c.createdAt)} ·{" "}
+                    {c.firstRepliedAt ? "Replied" : "No reply yet"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
       <section aria-labelledby="open" className="flex flex-col gap-1">
         <h2 id="open" className="text-h2">
           To review ({queue.open.length})

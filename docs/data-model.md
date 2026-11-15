@@ -1512,6 +1512,7 @@ erDiagram
 
 Notes:
 - `account_merge` records an admin merging a duplicate account into another ([ADR 0041](adr/0041-merging-duplicate-accounts.md)). Every column that references `user.id` moves by the rule `src/domain/account-merge/rules.ts` gives it, in one transaction with both user rows locked, and a test fails if a person column has no rule. Clashes on unique keys are settled by fixed answers: the kept account's RSVP, vote, setting and membership win; the earliest waiver signature stays; an empty registration gives way to one with a payment, team spot or referral (two that both hold something refuse the merge); self-votes and uncredited self-referrals are removed. The merged-away user row stays, named "Merged account" with an address at `deleted.invalid`, with no sessions, sign-in methods or passkeys, so it cannot sign in. `merged_email` is the old address: a sign-in link asked for it goes to the kept account's address, a new account cannot be created with it, and admin lookups by it find the kept account.
+- `concern` is something a person tells the league: a private concern from a signed-in player or a message from the public contact form ([ADR 0060](adr/0060-one-queue-for-concerns-and-public-contact.md)). Admins read both in one queue; no team or public page reads it. `reply_email` (public senders only) is cleared 12 months after `closed_at` by the daily outbox sweep, along with the messages queued to it. `first_replied_at` is the first reply (not a note) and gives the time to first reply. `concern_message` holds replies (emailed) and admin-only notes. `incident.park_rule` and `concern.park_rule` share one enum so a season's park issues count across both. `message.user_id` is now nullable, with `recipient_email`, for mail to an address with no account.
 - **Not planned:** an `ai_usage` table for AI provider spend and an answer cache. There are no AI features, because every AI provider bills per use ([ADR 0021](adr/0021-free-services-only.md)).
 
 ### 2.8 The owners' books and permits
@@ -1811,6 +1812,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `game` | check `kicks_first` is null or one of `team_a_id`, `team_b_id` | Only a team in the game kicks first |
 | `sub_claim` | unique `(sub_request_id, user_id)` | One claim per person |
 | `sportsmanship_rating` | unique `(game_id, team_season_id)`; check `score` between 1 and 5; check the rated team is the other one; check `note` at most 200 characters | One rating per team per game, on the scale |
+| `concern` | check `body` 1 to 2000 characters, `place` up to 80, `reply_email` 3 to 254, `outcome` up to 1000; `park_rule` only with category `park_rules`; check `closed_at` is set exactly when `status = 'closed'`; a public concern has no `sender_id` | A concern says something; a park rule belongs to the park category; closing is timestamped |
 | `incident` | check `details` 1 to 2000 characters; check `resolved_at` is set exactly when `status = 'resolved'` | Reports say something; resolution is timestamped |
 | `incident_person` | primary key `(incident_id, user_id)` | A person is named once per report |
 | `suspension` | unique `(incident_id, user_id)`; check `games` is set exactly for `scope = 'games'`, between 1 and 20 | One suspension per person per report; a games suspension says how many |
@@ -1904,6 +1906,8 @@ Indexes for the common reads:
 | `season_card` | `(user_id)` | A player's own cards, for home and the export |
 | `stat_award_place` | `(user_id)` | A player's awards, for their stats page and team-page badges |
 | `social_post` | `(account_id, taken_at desc)`, `(team_id)`, `(event_id)` | Newest photos for the home page and the admin screen; a team's or an event's photos |
+| `concern` | `(league_id, status, created_at)`; `(sender_id)`; `(game_id)`; `(closed_at)` where `reply_email` is set | The admin queue; a person's own concerns; a game's; the daily clearing of old addresses |
+| `concern_message` | `(concern_id, created_at)` | A concern's thread in order |
 | `member_photo` | `(league_id, status, created_at desc)`; `(uploader_id, created_at desc)`; `(team_id, created_at desc)`, `(event_id, …)` and `(game_id, …)` where approved | The review queue and the storage total; a person's photos and daily count; each public page's photos |
 | `sportsmanship_rating` | `(rated_team_season_id)`; `(rated_by)` | A team's ratings; a person's own ratings |
 | `incident` | `(status, reported_at)`; `(game_id)` | The review queue; a game's reports |

@@ -45,6 +45,7 @@ import { scoreReminderEmail } from "./score-reminder";
 import { seasonCardEmail } from "./season-card";
 import { subRequestEmail, subUpdateEmail } from "./sub-request";
 import { surveyInviteEmail } from "./survey-invite";
+import { concernUpdateEmail } from "./concern-update";
 import { suspensionEmail } from "./suspension";
 import { teamRoleEmail } from "./team-role";
 import { volunteerReminderEmail } from "./volunteer-reminder";
@@ -93,6 +94,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     season_card: seasonCardEmail,
     sub_request: subRequestEmail,
     sub_update: subUpdateEmail,
+    concern_update: concernUpdateEmail,
     suspension: suspensionEmail,
     survey_invite: surveyInviteEmail,
     team_role: teamRoleEmail,
