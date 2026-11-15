@@ -7,6 +7,7 @@ import {
   earlierAlcoholSuspensions,
   incidentDetail,
 } from "@/db/queries/discipline";
+import { injuryOf, recordInjuryView } from "@/db/queries/injury";
 import { can } from "@/domain/authz/permissions";
 import {
   describeLength,
@@ -16,11 +17,18 @@ import {
   suggestedLength,
   type SuspensionLength,
 } from "@/domain/discipline/discipline";
+import {
+  BODY_AREAS,
+  CARE_LEVELS,
+  injuryRemovalDate,
+} from "@/domain/discipline/injury";
 import { type IncidentId, parseId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
+import { requireInLeague } from "@/lib/league/guard";
 import { requireFeature } from "@/lib/platform/site";
 import {
   addNoteAction,
+  deleteInjuryAction,
   liftAction,
   setStatusAction,
   suspendAction,
@@ -64,6 +72,7 @@ const NOTICES: Record<string, string> = {
   open: "Reopened. It's back in the review queue.",
   suspended: "Suspended. They've been emailed the length and how to appeal.",
   lifted: "Suspension lifted.",
+  injury_deleted: "The injury details were deleted.",
 };
 
 const field = "rounded-md border border-border bg-surface px-2 py-2";
@@ -145,9 +154,21 @@ async function Incident({
     next: `/app/admin/incidents/${rawId}`,
   });
   const id = parseId<IncidentId>(rawId);
+  if (!id) notFound();
+  await requireInLeague(subject, { incident: id });
   const now = new Date();
-  const found = id ? await incidentDetail(db, id, now) : null;
+  const found = await incidentDetail(db, id, now);
   if (!found) notFound();
+  // An injury report holds health details: only owners and admins read it,
+  // and each time one is opened it is in the audit log.
+  const isInjury = found.kind === "injury";
+  const mayReadInjury = isInjury && can(subject, "injury.read");
+  const injury = mayReadInjury ? await injuryOf(db, found.id) : null;
+  if (injury)
+    await recordInjuryView(db, {
+      incidentId: found.id,
+      actorId: subject.userId,
+    });
   const mayCall = can(subject, "player.suspend");
   const league = await activeLeague();
   const when = (d: Date) =>
@@ -214,8 +235,49 @@ async function Incident({
           What happened
         </h2>
         <p className="whitespace-pre-line">{found.details}</p>
-        <h3 className="text-h3">People involved</h3>
-        {found.people.length === 0 ? (
+        {isInjury && (
+          <>
+            {injury ? (
+              <>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                  <dt className="text-text-muted">Person hurt</dt>
+                  <dd>{injury.hurtName ?? "Removed with their account"}</dd>
+                  <dt className="text-text-muted">Body area</dt>
+                  <dd>{BODY_AREAS[injury.bodyArea]}</dd>
+                  <dt className="text-text-muted">Care</dt>
+                  <dd>{CARE_LEVELS[injury.care]}</dd>
+                  <dt className="text-text-muted">Witnesses</dt>
+                  <dd>
+                    {injury.witnesses.length > 0
+                      ? injury.witnesses.join(", ")
+                      : "None named"}
+                  </dd>
+                </dl>
+                <p className="text-small text-text-muted">
+                  Only owners and admins can read this, and each time it is
+                  opened, exported or deleted it is in the audit log. The
+                  details are removed on{" "}
+                  {when(injuryRemovalDate(found.reportedAt))}.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href={`/app/admin/incidents/${found.id}/injury.csv`}
+                    className="btn btn-secondary"
+                  >
+                    Download for the insurance carrier
+                  </a>
+                  <form action={deleteInjuryAction.bind(null, found.id)}>
+                    <SubmitButton className="btn btn-secondary">
+                      Delete the injury details now
+                    </SubmitButton>
+                  </form>
+                </div>
+              </>
+            ) : null}
+          </>
+        )}
+        {!isInjury && <h3 className="text-h3">People involved</h3>}
+        {isInjury ? null : found.people.length === 0 ? (
           <p className="text-text-muted">Nobody was named.</p>
         ) : (
           <ul className="list-disc pl-5">
@@ -231,64 +293,66 @@ async function Incident({
         )}
       </section>
 
-      <section
-        id="suspensions"
-        aria-labelledby="suspensions-heading"
-        className="flex flex-col gap-3"
-      >
-        <h2 id="suspensions-heading" className="text-h2">
-          Suspensions
-        </h2>
-        {found.suspensions.length === 0 ? (
-          <p className="text-text-muted">
-            Nobody is suspended from this report.
-          </p>
-        ) : (
-          <ul className="flex flex-col">
-            {found.suspensions.map((s) => (
-              <li
-                key={s.id}
-                className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2"
-              >
-                <span>
-                  <strong>{s.name}</strong>
-                  <span className="text-small text-text-muted">
-                    {" "}
-                    · {suspensionLine(s)}
+      {!isInjury && (
+        <section
+          id="suspensions"
+          aria-labelledby="suspensions-heading"
+          className="flex flex-col gap-3"
+        >
+          <h2 id="suspensions-heading" className="text-h2">
+            Suspensions
+          </h2>
+          {found.suspensions.length === 0 ? (
+            <p className="text-text-muted">
+              Nobody is suspended from this report.
+            </p>
+          ) : (
+            <ul className="flex flex-col">
+              {found.suspensions.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2"
+                >
+                  <span>
+                    <strong>{s.name}</strong>
+                    <span className="text-small text-text-muted">
+                      {" "}
+                      · {suspensionLine(s)}
+                    </span>
                   </span>
-                </span>
-                {mayCall && s.state.state === "active" && (
-                  <form action={liftAction.bind(null, found.id, s.id)}>
-                    <SubmitButton className="btn btn-secondary">
-                      Lift {s.name}&apos;s suspension
-                    </SubmitButton>
-                  </form>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        {mayCall && toDecide.length > 0 && (
-          <div id="suspend" className="flex flex-col gap-6">
-            {toDecide.map((p, i) => (
-              <div
-                key={p.userId}
-                className="rounded-lg border border-border p-4"
-              >
-                <SuspendForm
-                  action={suspendAction.bind(null, found.id, p.userId)}
-                  name={p.name}
-                  suggested={suggestedLength(
-                    found.kind,
-                    history.get(p.userId) ?? 0,
+                  {mayCall && s.state.state === "active" && (
+                    <form action={liftAction.bind(null, found.id, s.id)}>
+                      <SubmitButton className="btn btn-secondary">
+                        Lift {s.name}&apos;s suspension
+                      </SubmitButton>
+                    </form>
                   )}
-                  idPrefix={`suspend-${i}`}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+                </li>
+              ))}
+            </ul>
+          )}
+          {mayCall && toDecide.length > 0 && (
+            <div id="suspend" className="flex flex-col gap-6">
+              {toDecide.map((p, i) => (
+                <div
+                  key={p.userId}
+                  className="rounded-lg border border-border p-4"
+                >
+                  <SuspendForm
+                    action={suspendAction.bind(null, found.id, p.userId)}
+                    name={p.name}
+                    suggested={suggestedLength(
+                      found.kind,
+                      history.get(p.userId) ?? 0,
+                    )}
+                    idPrefix={`suspend-${i}`}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section
         id="notes"
