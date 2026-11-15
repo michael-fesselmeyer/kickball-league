@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
+import { type LeagueId, parseId } from "@/domain/ids";
 import { searchTerms } from "@/domain/rules/rulebook";
 import { planImport, splitRulebook } from "@/domain/rules/rulebook-import";
 import { SAMPLE_RULEBOOK } from "@/domain/rules/sample-rulebook";
@@ -181,7 +182,8 @@ describe("searchSections", () => {
   it("is scoped to the league", async () => {
     await inRolledBackDb(async (db) => {
       await importSample(db);
-      const other = "00000000-0000-4000-8000-000000000000" as never;
+      const other = parseId<LeagueId>("00000000-0000-4000-8000-000000000000");
+      if (!other) throw new Error("id");
       expect(await searchSections(db, other, ["bunting"])).toEqual([]);
     });
   });
