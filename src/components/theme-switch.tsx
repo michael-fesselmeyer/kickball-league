@@ -3,6 +3,17 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { readSavedTheme, THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
 
+/** The switch's words, in the page's language (ADR 0065). */
+export type ThemeLabels = {
+  toLight: string;
+  toDark: string;
+};
+
+const ENGLISH: ThemeLabels = {
+  toLight: "Switch to light mode",
+  toDark: "Switch to dark mode",
+};
+
 const listeners = new Set<() => void>();
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
@@ -71,14 +82,14 @@ const iconProps = {
  * The visible box is a snug 36px around the 20px icon; an invisible ::after
  * keeps the tap target at 44 × 44 without widening it.
  */
-export function ThemeSwitch() {
+export function ThemeSwitch({ labels = ENGLISH }: { labels?: ThemeLabels }) {
   const theme = useSyncExternalStore(subscribe, read, () => "light");
   useEffect(keepSavedTheme, []);
   const dark = theme === "dark";
   return (
     <button
       type="button"
-      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={dark ? labels.toLight : labels.toDark}
       aria-pressed={dark}
       onClick={() => choose(dark ? "light" : "dark")}
       className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-input border border-border-strong p-0 leading-none text-text after:absolute after:-inset-1 after:content-['']"
