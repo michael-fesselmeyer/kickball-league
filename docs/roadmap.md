@@ -149,7 +149,7 @@ Goals added on 2026-11-12 are in [product-spec.md](product-spec.md), section 9. 
 
 In rough priority order: offline score entry; sponsor portal and reports; paid event tickets; lineup and kicking-order builder; incident reports and suspensions; photo galleries; merch and jerseys; divisions with crossover games; a second park; the affiliated football league on the same deployment; corporate leagues; charity tie-in; a "friends of the league" directory.
 
-**Pending owner approval**, designed but not scheduled: referee availability and accept or decline, compensation tracking and incentives, Stripe Connect payouts, sponsorship tiers and pricing.
+**Pending owner approval**, designed but not scheduled: refs accepting or declining offered games, ref incentives, Stripe Connect payouts, sponsorship tiers and pricing. (Ref availability, the ref assigner and the cash and Venmo pay sheet were approved and built: [ADR 0053](adr/0053-ref-assigner-and-pay-sheet.md).)
 
 ### Proposals for the pending items
 
