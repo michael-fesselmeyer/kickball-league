@@ -227,6 +227,7 @@ export async function partnerTournaments(db: Db, leagueId: LeagueId, now: Date) 
       slug: event.slug,
       title: event.title,
       startsAt: event.startsAt,
+      endsAt: event.endsAt,
     })
     .from(tournament)
     .innerJoin(event, eq(event.id, tournament.eventId))

@@ -1,5 +1,5 @@
 import type { BracketView } from "@/db/queries/playoffs";
-import type { BracketId, DivisionId, TeamSeasonId } from "@/domain/ids";
+import type { BracketId, TeamSeasonId } from "@/domain/ids";
 import { roundCount } from "@/domain/playoffs/playoffs";
 import type { TournamentBracket } from "@/domain/tournaments/bracket";
 
@@ -26,7 +26,7 @@ export function bracketViewOf(
   };
   return {
     id: "tournament" as BracketId,
-    division: null as { id: DivisionId; name: string; slug: string } | null,
+    division: null,
     status: b.champion ? "complete" : "published",
     size: b.seeds.length,
     rounds: roundCount(b.seeds.length),
@@ -50,5 +50,5 @@ export function bracketViewOf(
       startsAt: m.startsAt ? new Date(m.startsAt) : null,
       fieldName: m.place,
     })),
-  } as BracketView;
+  };
 }
