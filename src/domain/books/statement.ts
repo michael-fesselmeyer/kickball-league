@@ -4,7 +4,7 @@ import type { ExpenseCategory } from "./ledger";
 
 /**
  * Reads a Venmo statement or a bank's CSV export into money-out rows the
- * owners can import as expenses (ADR 0054). The owners download the file
+ * owners can import as expenses (ADR 0059). The owners download the file
  * themselves: Venmo and the banks have no free API, and the league uses no
  * aggregator. Pure, so every format is tested without a database.
  *

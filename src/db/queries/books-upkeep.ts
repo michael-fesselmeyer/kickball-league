@@ -55,7 +55,7 @@ import { enqueueMessages } from "./outbox";
 import type { Db } from "./schedule";
 
 /**
- * Keeping the owners' books up to date (ADR 0054): quick add, receipts
+ * Keeping the owners' books up to date (ADR 0059): quick add, receipts
  * added later, expected costs, out-of-pocket reimbursements, statement
  * imports and the monthly nudge. Pages check `books.manage` first, as for
  * the rest of the books (src/db/queries/books.ts); every change is audited

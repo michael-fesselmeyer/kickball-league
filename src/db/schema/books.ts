@@ -91,7 +91,7 @@ export const expenseCategory = pgEnum("expense_category", EXPENSE_CATEGORIES);
 export const recurringCadence = pgEnum("recurring_cadence", CADENCES);
 
 /**
- * A cost the owners set once (ADR 0054): a permit, insurance, ref pay, a
+ * A cost the owners set once (ADR 0059): a permit, insurance, ref pay, a
  * bar deposit. The books expect it each season or each game day from
  * `starts_on`, for an owner to confirm or skip; nothing is stored for an
  * occurrence until then. Removing one archives it, so the expenses it
