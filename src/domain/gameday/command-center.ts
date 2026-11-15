@@ -1,4 +1,5 @@
 import { type HalfInning, lineScore, type Side } from "../scores/live";
+import type { LayoutState } from "../fields/layout";
 import { type PermitEndRule, permitWatch, type Watch } from "./permit-end";
 
 /**
@@ -27,6 +28,9 @@ export type CommandRow = {
   startsAt: Date;
   endsAt: Date;
   fieldName: string;
+  fieldId: string;
+  /** What the field has on file for its layout (#403). */
+  layout: LayoutState;
   teamA: { id: string; name: string };
   teamB: { id: string; name: string };
   kicksFirst: Side | null;
@@ -61,6 +65,8 @@ export type CommandGame = {
   startsAt: string;
   endsAt: string;
   fieldName: string;
+  fieldId: string;
+  layout: LayoutState;
   teamA: string;
   teamB: string;
   score: ScoreState;
@@ -163,6 +169,8 @@ export function commandState(
         startsAt: row.startsAt.toISOString(),
         endsAt: row.endsAt.toISOString(),
         fieldName: row.fieldName,
+        fieldId: row.fieldId,
+        layout: row.layout,
         teamA: row.teamA.name,
         teamB: row.teamB.name,
         score,

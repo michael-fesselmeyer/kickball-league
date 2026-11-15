@@ -250,6 +250,17 @@ function GameRow({
             </SubmitButton>
           </form>
         )}
+        {game.layout !== "missing" ? (
+          <a
+            href={`/app/fields/${game.fieldId}/layout`}
+            className="inline-flex min-h-11 items-center underline"
+          >
+            Field layout
+            <span className="sr-only"> for {game.fieldName}</span>
+          </a>
+        ) : (
+          <span className="text-text-muted">No field layout yet</span>
+        )}
         <a
           href={`/app/games/${game.id}/score`}
           className="inline-flex min-h-11 items-center underline"

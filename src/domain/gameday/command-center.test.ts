@@ -18,6 +18,8 @@ const row = (over: Partial<CommandRow> = {}): CommandRow => ({
   startsAt: KICKOFF,
   endsAt: END,
   fieldName: "Field 1",
+  fieldId: "f1",
+  layout: "layout",
   teamA: { id: "a", name: "Sun Kickers" },
   teamB: { id: "b", name: "Foul Play" },
   kicksFirst: null,
