@@ -80,7 +80,7 @@ export async function openSeason(admin: Page, season: NewSeason) {
 }
 
 /**
- * Ticks "I'm 21 or older" (or the season's minimum) inside `scope`. By role,
+ * Ticks "I'm 18 or older" (or the season's minimum) inside `scope`. By role,
  * so a page Next keeps mounted but hidden behind this one never matches.
  */
 export async function confirmAge(scope: Page | Locator) {

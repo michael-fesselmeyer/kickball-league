@@ -19,8 +19,8 @@ function leagueDate(days: number): string {
 /**
  * A season sets its minimum age above Reese Ref's (born 1994, from the
  * profile helper): Reese sees why they can't register. The admin lowers
- * it; Reese confirms their age, joins as a free agent and signs the waiver
- * with the same confirmation.
+ * it; Reese confirms their age and joins as a free agent. With the season's
+ * own minimum cleared, the waiver asks for the league's default, 18.
  */
 test("a player under the season's minimum age can't register, and one of age confirms and signs", async ({
   browser,
@@ -78,10 +78,11 @@ test("a player under the season's minimum age can't register, and one of age con
     );
   });
 
-  await test.step("the waiver asks for the same confirmation", async () => {
+  await test.step("with no minimum of its own, the season asks for the league's 18", async () => {
+    await setMinimumAge("");
     await player.goto(`/app/seasons/${SLUG}/waiver`);
     await expect(
-      player.getByRole("checkbox", { name: "I'm 25 or older" }),
+      player.getByRole("checkbox", { name: "I'm 18 or older" }),
     ).toBeVisible();
     await expectNoAxeViolations(player);
     await signWaiver(player, SLUG, "Reese Ref");
