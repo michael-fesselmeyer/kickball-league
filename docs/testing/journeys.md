@@ -23,10 +23,12 @@ Per-feature specs live in `e2e/flows/`. A journey crosses features the way peopl
 | --- | --- |
 | A captain disputes a reported score, the admin settles it from the Disputed list, and the standings and both captains show the admin's score | `journey-dispute.spec.ts` |
 | A player says they are in for next week's game, the captain builds the kicking order, the player sees where they kick, then changes to out | `journey-rsvp.spec.ts` |
+| One game from the first player at the field to the confirmed score: the captain shows the check-in code, a player scans it, the assigned ref keeps score live and ends the game, the other captain confirms | `journey-game-day.spec.ts` |
+| An admin rolls a season over, finds the permit hours on the new dates, cuts slots, generates a schedule and publishes it | `journey-rollover.spec.ts` |
+| An admin seeds a four-team bracket from the standings, publishes it, sets each playoff score (a tie is refused), and the champion shows on the admin page and the public bracket | `site-wide/journey-playoffs.spec.ts` |
 
-## Still open
+## Notes
 
-- **Playoffs, end to end.** Seeding a bracket needs a season whose regular games are all final and free slots after them. The seeded fall season is shared by every flow and its status and standings can't change under them, so this journey needs a season of its own built through the screens, as `season-journey.spec.ts` does, with scores entered for every game.
-- **Rolled-over season to published schedule.** `rollover.spec.ts` stops at the draft season. Carrying on (teams re-register, slots added, schedule published) repeats most of `season-journey.spec.ts` and belongs in it once the season builder helpers are shared.
-- **Player to field, on game day.** Check-in, kicking order and live scoring each have a spec; one run through all three on the same game needs a game at today's date with a ref, which `addRefereedGameSoon` can place.
-- **A ref's pay after the season.** Covered up to the pay sheet in `ref-assigner.spec.ts`; the ref's own view of what they were paid is not.
+- A ref's pay is covered end to end by `ref-assigner.spec.ts`: availability, assignment, the pay sheet, the books entry and the ref's own page showing the payment.
+- The playoffs journey runs with the site-wide flows, alone and after the rest, because publishing a bracket moves the shared fall season into playoffs. It adds its own playoff-evening slots, since the seeded season has none after its last game.
+- Still open: a captain's team registration journey that ends in a kicking order is covered in two halves (`season-journey.spec.ts` for registration and split pay, `lineup.spec.ts` and `journey-rsvp.spec.ts` for the order), not as one run.
