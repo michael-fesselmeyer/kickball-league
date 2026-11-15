@@ -9,7 +9,6 @@ import {
   packRosters,
   packRows,
 } from "@/db/queries/game-day-pack";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   type FieldSheet,
   PACK_INNINGS,
@@ -21,6 +20,7 @@ import {
 import type { TeamSeasonId } from "@/domain/ids";
 import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 import { qrMatrix, qrSvgPath } from "@/lib/qr";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { parseDay } from "../load";
@@ -56,7 +56,7 @@ async function GameDayPack({
   });
   const query = await searchParams;
   const withRosters = query.rosters === "1";
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const now = new Date();
   const date = league
     ? (parseDay(query.date) ?? (await commandDate(db, league.id, now)))
