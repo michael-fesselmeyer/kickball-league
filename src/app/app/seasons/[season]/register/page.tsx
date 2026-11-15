@@ -20,6 +20,8 @@ import {
   registrationWindow,
 } from "@/domain/registration/pricing";
 import { localDate } from "@/domain/scheduler/slots";
+import { seasonSize } from "@/domain/shirts/order";
+import { shirtSettings } from "@/db/queries/shirt-order";
 import { requirePermission } from "@/lib/auth/permission";
 import { registerFreeAgentAction, registerTeamAction } from "./actions";
 import { FreeAgentForm, TeamForm } from "./register-forms";
@@ -134,7 +136,7 @@ async function Register({
     now,
   );
   const freeAgent = priceFor(season, { kind: "free_agent" }, now);
-  const [pastTeams, spots, waiting] = await Promise.all([
+  const [pastTeams, spots, waiting, shirts] = await Promise.all([
     teamsCaptainedBy(db, league.id, subject.userId),
     seasonSpots(
       db,
@@ -146,6 +148,7 @@ async function Register({
       now,
     ),
     myWaitlistEntry(db, season.id, subject.userId, now),
+    shirtSettings(db, season.id),
   ]);
   const holdsOffer = spots.myOffer !== null;
   const teamSpot = mayRegisterTeam(spots, holdsOffer);
@@ -243,6 +246,10 @@ async function Register({
             rosterMin={season.rosterMin}
             rosterMax={season.rosterMax}
             minimumAge={season.minimumAge}
+            shirtSizes={shirts.sizes}
+            shirtSize={
+              seasonSize(person?.shirtSize ?? null, shirts.sizes) ?? ""
+            }
           />
         )}
       </section>
@@ -257,6 +264,10 @@ async function Register({
               freeAgent.ok ? `It costs ${formatCents(freeAgent.cents)}.` : ""
             }
             minimumAge={season.minimumAge}
+            shirtSizes={shirts.sizes}
+            shirtSize={
+              seasonSize(person?.shirtSize ?? null, shirts.sizes) ?? ""
+            }
           />
         </section>
       )}

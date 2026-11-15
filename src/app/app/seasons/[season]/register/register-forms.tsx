@@ -2,7 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { AgeConfirmation } from "@/components/age-confirmation";
+import { ShirtSizeField } from "@/components/shirt-size-field";
 import { formatCents, splitShare } from "@/domain/registration/pricing";
+import type { ShirtSize } from "@/domain/shirts/summary";
 import type { RegisterState } from "./actions";
 
 type Action = (
@@ -20,6 +22,9 @@ type TeamProps = {
   rosterMin: number;
   rosterMax: number;
   minimumAge: number;
+  /** The season's shirt sizes, and the size on the player's profile. */
+  shirtSizes: readonly ShirtSize[];
+  shirtSize: string;
 };
 
 export function TeamForm({
@@ -29,6 +34,8 @@ export function TeamForm({
   rosterMin,
   rosterMax,
   minimumAge,
+  shirtSizes,
+  shirtSize,
 }: TeamProps) {
   const [state, formAction, pending] = useActionState(action, { values: {} });
   const v = state.values;
@@ -141,6 +148,12 @@ export function TeamForm({
           </label>
         </fieldset>
       )}
+      <ShirtSizeField
+        id="team-shirt-size"
+        sizes={shirtSizes}
+        defaultValue={v.shirtSize || shirtSize}
+        className={input}
+      />
       <AgeConfirmation minimumAge={minimumAge} />
       <button
         type="submit"
@@ -157,10 +170,14 @@ export function FreeAgentForm({
   action,
   priceLabel,
   minimumAge,
+  shirtSizes,
+  shirtSize,
 }: {
   action: Action;
   priceLabel: string;
   minimumAge: number;
+  shirtSizes: readonly ShirtSize[];
+  shirtSize: string;
 }) {
   const [state, formAction, pending] = useActionState(action, { values: {} });
   return (
@@ -177,6 +194,12 @@ export function FreeAgentForm({
         No team? Join the free-agent pool and the league places you on a team
         that needs players. {priceLabel}
       </p>
+      <ShirtSizeField
+        id="free-agent-shirt-size"
+        sizes={shirtSizes}
+        defaultValue={state.values.shirtSize || shirtSize}
+        className={input}
+      />
       <AgeConfirmation minimumAge={minimumAge} />
       <button
         type="submit"

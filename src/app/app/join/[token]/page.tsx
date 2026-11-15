@@ -3,6 +3,9 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { AgeConfirmation } from "@/components/age-confirmation";
+import { ShirtSizeField } from "@/components/shirt-size-field";
+import { shirtSettings } from "@/db/queries/shirt-order";
+import { seasonSize } from "@/domain/shirts/order";
 import { inviteByToken } from "@/db/queries/invites";
 import { profileOf } from "@/db/queries/profile";
 import {
@@ -42,6 +45,7 @@ const ERRORS: Record<string, string> = {
   already_member: "You are already on this team.",
   on_another_team:
     "You are already on another team this season. Ask the league to move you.",
+  shirt_size: "Pick your shirt size.",
 };
 
 const isAgeRefusal = (code: unknown): code is AgeRefusal =>
@@ -78,6 +82,7 @@ async function Join({ params, searchParams }: PageProps<"/app/join/[token]">) {
       </>
     );
 
+  const { sizes } = await shirtSettings(db, found.seasonId);
   const tooYoung = underAge(
     found.minimumAge,
     person?.birthDate ?? null,
@@ -113,6 +118,11 @@ async function Join({ params, searchParams }: PageProps<"/app/join/[token]">) {
           action={joinTeamAction.bind(null, token)}
           className="flex flex-col gap-3"
         >
+          <ShirtSizeField
+            id="shirt-size"
+            sizes={sizes}
+            defaultValue={seasonSize(person?.shirtSize ?? null, sizes) ?? ""}
+          />
           <AgeConfirmation minimumAge={found.minimumAge} />
           <SubmitButton className="btn self-start btn-primary">
             Join {found.teamName}

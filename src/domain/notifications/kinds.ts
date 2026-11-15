@@ -180,6 +180,10 @@ export const MESSAGE_KINDS = {
     urgency: "non_urgent",
     label: "Your season in kickball: your end-of-season card is ready",
   },
+  shirt_size_reminder: {
+    urgency: "non_urgent",
+    label: "A reminder to pick your shirt size before the league orders shirts",
+  },
   sub_request: {
     urgency: "urgent",
     label: "Teams that need a sub when you're free",
