@@ -158,6 +158,9 @@ const ERRORS: Record<Exclude<EndError, ScoreErrors>, string> = {
     "That half wasn't next: an earlier half is missing on the server.",
   too_many_runs: "A team can't have more than 99 runs in a game.",
   no_innings: "No innings were entered.",
+  reason_needed:
+    "An admin's ruling needs a written reason. Make it from the game page, with a signal.",
+  reason_too_long: "The reason is too long.",
   too_few_innings: `A game called before ${MIN_CALLED_INNINGS} complete innings doesn't count.`,
 };
 

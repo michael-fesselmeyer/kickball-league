@@ -4,7 +4,12 @@ import { useState } from "react";
 import { OutboxStatus, useOutbox } from "@/components/offline-outbox";
 import { describeScore } from "@/domain/scores/offline";
 import { isOneOf } from "@/domain/guards";
-import { OUTCOMES, type ScoreInput } from "@/domain/scores/scores";
+import {
+  OUTCOMES,
+  type Outcome,
+  REASON_MAX,
+  type ScoreInput,
+} from "@/domain/scores/scores";
 import { canSaveOffline, newKey, saveOffline } from "@/lib/pwa/score-outbox";
 import { submitScoreAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
@@ -58,6 +63,8 @@ export function ScoreForm({
   clientId,
   version,
   userId,
+  asAdmin = false,
+  reasonRequired = false,
   filled = null,
 }: {
   g: Game;
@@ -67,13 +74,27 @@ export function ScoreForm({
   /** The score's version as this screen shows it (`scoreVersion`). */
   version: string;
   userId: string;
+  /** An admin's score is a ruling when it forfeits or changes a result. */
+  asAdmin?: boolean;
+  /** Whether even a played game's score needs a reason (it changes one). */
+  reasonRequired?: boolean;
   /** The runs kept live, to start the form from; null when none were. */
   filled?: { scoreA: number; scoreB: number } | null;
 }) {
   const [key, setKey] = useState(clientId);
   const [problem, setProblem] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<Outcome>("normal");
+  const forfeiting = outcome === "forfeit_a" || outcome === "forfeit_b";
+  const needsReason = asAdmin && (forfeiting || reasonRequired);
 
   async function saveHere(form: FormData, usedKey: string) {
+    // A ruling carries a reason, which the offline outbox doesn't keep.
+    if (asAdmin && (needsReason || String(form.get("reason") ?? "").trim())) {
+      setProblem(
+        "No signal. An admin's ruling is saved with its reason when you're back in range.",
+      );
+      return;
+    }
     const score = scoreFrom(form);
     if (!score) {
       setProblem("Check the score: runs from 0 to 99.");
@@ -147,7 +168,8 @@ export function ScoreForm({
         Result
         <select
           name="outcome"
-          defaultValue="normal"
+          value={outcome}
+          onChange={(e) => setOutcome(e.target.value as Outcome)}
           className="rounded-md border border-border bg-surface px-2 py-2"
         >
           <option value="normal">Played to the end</option>
@@ -171,6 +193,22 @@ export function ScoreForm({
           last complete inning. For a forfeit, leave the runs at 0.
         </span>
       </label>
+      {asAdmin && (
+        <label className="flex flex-col gap-1">
+          {needsReason ? "Reason for the ruling" : "Reason (optional)"}
+          <textarea
+            name="reason"
+            rows={3}
+            maxLength={REASON_MAX}
+            required={needsReason}
+            className="rounded-md border border-border bg-surface px-2 py-1"
+          />
+          <span className="text-small text-text-muted">
+            Both captains and the ref are told, and see this reason. The public
+            game page shows only that it was a ruling.
+          </span>
+        </label>
+      )}
       {problem && (
         <p role="alert" className="rounded-lg border border-danger p-3">
           {problem}

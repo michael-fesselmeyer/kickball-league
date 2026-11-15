@@ -17,7 +17,12 @@ import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { lineFinal } from "@/domain/scores/live";
 import { scoreVersion } from "@/domain/scores/offline";
-import { PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
+import {
+  PLAYOFF_TIE,
+  REASON_MAX,
+  respondingTeams,
+  rulingNeedsReason,
+} from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
 import { teamRatingFor } from "@/db/queries/discipline";
 import { canFileFor, canRate } from "@/domain/discipline/discipline";
@@ -51,6 +56,9 @@ const ERRORS: Record<string, string> = {
   not_started: "This game has not started yet.",
   playoff_tie: PLAYOFF_TIE,
   already_final: "This score is final. Ask an admin to correct it.",
+  reason_needed:
+    "A forfeit, or a change to a score that was reported or is final, needs a written reason.",
+  reason_too_long: `Keep the reason under ${REASON_MAX} characters.`,
   too_many:
     "That's a lot of scores for one game. Ask an admin if it still needs fixing.",
   not_yours: "Only the other team's captain can answer this score.",
@@ -146,6 +154,8 @@ async function Score({
       : r.outcome === "forfeit_b"
         ? `${g.teamBName} forfeited`
         : `${g.teamAName} ${r.scoreA}, ${g.teamBName} ${r.scoreB}${r.outcome === "called" ? ` (called after ${r.inningsPlayed} innings)` : ""}`;
+  // An admin's written ruling stands as the final result.
+  const ruled = state.state === "final" && g.ruledAt !== null;
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const form = {
@@ -153,6 +163,12 @@ async function Score({
     clientId: randomUUID(),
     version: scoreVersion(history.reports, history.responses),
     userId: subject.userId,
+    asAdmin: isAdmin,
+    reasonRequired: rulingNeedsReason({
+      outcome: "normal",
+      hasReports: history.reports.length > 0,
+      closed: g.status === "final" || g.status === "forfeit",
+    }),
   };
   // Innings kept live fill in the final score, so saving it takes one tap.
   const filled = live?.kicksFirst
@@ -248,8 +264,23 @@ async function Score({
           aria-label="Final score"
           className="rounded-lg border border-border p-4"
         >
-          <p className="text-small text-text-muted">Final</p>
+          <p className="text-small text-text-muted">
+            {ruled
+              ? g.status === "forfeit"
+                ? "Forfeit ruling"
+                : "Ruling"
+              : "Final"}
+          </p>
           <p className="text-h3">{latest ? shown(latest) : "Final"}</p>
+          {ruled && latest?.reason && (
+            <>
+              <p>Reason: “{latest.reason}”</p>
+              <p className="text-small text-text-muted">
+                An admin ruled on {when(latest.reportedAt)}. Questions? Ask the
+                league.
+              </p>
+            </>
+          )}
         </section>
       )}
       {state.state === "awaiting" && latest && (
@@ -395,6 +426,7 @@ async function Score({
             {history.reports.map((r) => (
               <li key={r.id}>
                 {when(r.reportedAt)}: {r.reporterName} reported {shown(r)}
+                {r.reason && ` (ruling: “${r.reason}”)`}
               </li>
             ))}
           </ul>
