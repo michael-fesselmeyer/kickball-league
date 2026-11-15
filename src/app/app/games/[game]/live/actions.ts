@@ -14,6 +14,7 @@ import { recordStart, setHeldUpBy, undoStart } from "@/db/queries/game-start";
 import { gameForScoring } from "@/db/queries/scores";
 import { ejectionDetails } from "@/domain/discipline/discipline";
 import { requireFeature } from "@/lib/platform/site";
+import { sportRules } from "@/domain/sports/sports";
 import { can } from "@/domain/authz/permissions";
 import { isOneOf } from "@/domain/guards";
 import { type GameId, parseId, type UserId } from "@/domain/ids";
@@ -39,7 +40,8 @@ async function context(rawGameId: string) {
     next: page,
   });
   const g = gameId ? await gameForScoring(db, gameId) : null;
-  if (!g) notFound();
+  // Live scoring counts half-innings: only a sport that has it (ADR 0072).
+  if (!g || !sportRules(g.sport).score.liveScoring) notFound();
   const game = {
     id: g.id,
     teamSeasonIds: [g.teamAId, g.teamBId] as const,

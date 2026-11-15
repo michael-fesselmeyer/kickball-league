@@ -11,7 +11,8 @@ import {
   type StandingsTeam,
 } from "@/db/queries/standings";
 import { ruleSetSummary } from "@/domain/season/divisions";
-import type { StandingsRow, Tiebreaker } from "@/domain/standings/standings";
+import type { StandingsRow } from "@/domain/standings/standings";
+import { type SportRules, sportRules } from "@/domain/sports/sports";
 import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 import {
   NO_SEASON,
@@ -50,14 +51,6 @@ export default function StandingsPage(
   );
 }
 
-const SEPARATED: Record<Tiebreaker, string> = {
-  win_pct: "",
-  head_to_head: "head-to-head",
-  run_difference: "run difference",
-  runs_allowed: "runs allowed",
-  coin_flip: "coin flip",
-};
-
 /** ".750"; a perfect record reads "1.000". */
 const pct = (n: number) => (n === 1 ? "1.000" : n.toFixed(3).replace(/^0/, ""));
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
@@ -89,10 +82,12 @@ async function SeasonStandings({
   // Drafts are the league's work in progress, not public.
   if (!season || !isPublicSeason(season)) notFound();
   cacheTag(seasonTag(season.id));
-  const { tables, teams, crossoversCount } = await seasonDivisionStandings(
-    db,
-    season.id,
-  );
+  const { tables, teams, crossoversCount, sport } =
+    await seasonDivisionStandings(db, season.id);
+  // The sport names the units and tiebreakers (ADR 0072).
+  const rules = sportRules(sport);
+  const units = rules.score.unit.many;
+  const cap = rules.score.differenceCap;
   const divided = tables.some((t) => t.division !== null);
   // Rows a tiebreaker (not just win percentage) placed below the row above.
   const notes = tables.flatMap((t) =>
@@ -165,7 +160,8 @@ async function SeasonStandings({
                 league={league}
                 rows={t.rows}
                 teams={teams}
-                caption={`${season.name} ${name} standings: wins, losses, ties, win percentage, runs and recent form`}
+                rules={rules}
+                caption={`${season.name} ${name} standings: wins, losses, ties, win percentage, ${units} and recent form`}
               />
             </section>
           );
@@ -175,7 +171,8 @@ async function SeasonStandings({
           league={league}
           rows={tables[0]?.rows ?? []}
           teams={teams}
-          caption={`${season.name} standings: wins, losses, ties, win percentage, runs and recent form`}
+          rules={rules}
+          caption={`${season.name} standings: wins, losses, ties, win percentage, ${units} and recent form`}
         />
       )}
       {notes.length > 0 && (
@@ -187,7 +184,7 @@ async function SeasonStandings({
             {notes.map((r) => (
               <li key={r.teamId}>
                 {teams.get(r.teamId)?.name} placed below the team above on{" "}
-                {SEPARATED[r.by]}.
+                {rules.tiebreakers[r.by]}.
               </li>
             ))}
           </ul>
@@ -200,8 +197,9 @@ async function SeasonStandings({
       />
       <p className="text-small text-text-muted">
         A tie counts as half a win. Ties in the table are broken by
-        head-to-head, then run difference (capped at 10 a game), then runs
-        allowed, then a coin flip.{" "}
+        head-to-head, then {rules.tiebreakers.run_difference}
+        {cap !== null && ` (capped at ${cap} a game)`}, then{" "}
+        {rules.tiebreakers.runs_allowed}, then a coin flip.{" "}
         {divided &&
           (crossoversCount
             ? "Each team is ranked within its division, and games against the other division count toward its record. "
@@ -219,13 +217,18 @@ function StandingsTable({
   league,
   rows,
   teams,
+  rules,
   caption,
 }: {
   league: LeagueRef;
   rows: StandingsRow[];
   teams: Map<string, StandingsTeam>;
+  rules: SportRules;
   caption: string;
 }) {
+  const unit = rules.score.unit;
+  const units = `${unit.many[0]?.toUpperCase()}${unit.many.slice(1)}`;
+  const cap = rules.score.differenceCap;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left tabular-nums">
@@ -251,13 +254,17 @@ function StandingsTable({
               </abbr>
             </th>
             <th scope="col" className="hidden text-right sm:table-cell">
-              <abbr title="Runs scored">RF</abbr>
+              <abbr title={`${units} scored`}>{unit.letter}F</abbr>
             </th>
             <th scope="col" className="hidden text-right sm:table-cell">
-              <abbr title="Runs allowed">RA</abbr>
+              <abbr title={`${units} allowed`}>{unit.letter}A</abbr>
             </th>
             <th scope="col" className="text-right">
-              <abbr title="Run difference, capped at 10 a game">DIFF</abbr>
+              <abbr
+                title={`${unit.one[0]?.toUpperCase()}${unit.one.slice(1)} difference${cap === null ? "" : `, capped at ${cap} a game`}`}
+              >
+                DIFF
+              </abbr>
             </th>
             <th scope="col" className="hidden text-right md:table-cell">
               <abbr title="Current streak">STRK</abbr>

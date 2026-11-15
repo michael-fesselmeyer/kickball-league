@@ -45,6 +45,11 @@ import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeague } from "@/lib/league/active";
 import { LeagueLink } from "@/components/league-link";
+import {
+  calledNote,
+  scoreFormRules,
+  sportRules,
+} from "@/domain/sports/sports";
 
 export const metadata: Metadata = { title: "Score" };
 
@@ -129,7 +134,11 @@ async function Score({
     game: { id: g.id, teamSeasonIds: [g.teamAId, g.teamBId] as const },
   };
   const mayEnter = can(subject, "score.enter", ctx);
+  // The sport's rules (ADR 0072): words, limits, and whether it scores live.
+  const rules = sportRules(g.sport);
+  const formRules = scoreFormRules(rules, g.bestOf);
   const mayScoreLive =
+    rules.score.liveScoring &&
     g.status !== "final" &&
     g.status !== "forfeit" &&
     g.status !== "cancelled" &&
@@ -192,11 +201,15 @@ async function Score({
       ? `${g.teamAName} forfeited`
       : r.outcome === "forfeit_b"
         ? `${g.teamBName} forfeited`
-        : `${g.teamAName} ${r.scoreA}, ${g.teamBName} ${r.scoreB}${r.outcome === "called" ? ` (called after ${r.inningsPlayed} innings)` : ""}`;
+        : `${g.teamAName} ${r.scoreA}, ${g.teamBName} ${r.scoreB}${r.outcome === "called" ? calledNote(r.inningsPlayed) : ""}`;
   // An admin's written ruling stands as the final result.
   const ruled = state.state === "final" && g.ruledAt !== null;
   const error =
-    typeof query.error === "string" ? ERRORS[query.error] : undefined;
+    query.error === "invalid" && rules.key !== "kickball"
+      ? `Check the score: ${formRules.unit} from 0 to ${formRules.max}. ${formRules.calledRule}`
+      : typeof query.error === "string"
+        ? ERRORS[query.error]
+        : undefined;
   const form = {
     g: { id: g.id, teamAName: g.teamAName, teamBName: g.teamBName },
     clientId: randomUUID(),
@@ -208,6 +221,7 @@ async function Score({
       hasReports: history.reports.length > 0,
       closed: g.status === "final" || g.status === "forfeit",
     }),
+    rules: formRules,
   };
   // Innings kept live fill in the final score, so saving it takes one tap.
   const filled = live?.kicksFirst
