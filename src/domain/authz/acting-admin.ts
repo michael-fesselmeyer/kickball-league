@@ -114,7 +114,9 @@ export type ActingGrant = {
 
 /** Whether a grant gives its powers at `now`: started, not ended, not expired. */
 export const grantIsActive = (g: ActingGrant, now: Date): boolean =>
-  g.endedAt === null && g.startsAt <= now && now < g.endsAt;
+  g.startsAt <= now &&
+  now < g.endsAt &&
+  (g.endedAt === null || now < g.endedAt);
 
 /**
  * The powers a person has at `now` from all their grants. Overlapping
