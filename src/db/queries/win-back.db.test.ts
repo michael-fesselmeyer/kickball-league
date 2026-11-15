@@ -332,10 +332,13 @@ describe("the win-back list", () => {
           ),
         );
       // A send with nobody left to email changes nothing and isn't logged.
-      expect(audits.map((a) => a.after)).toEqual([
-        { emailed: 1 },
-        { emailed: 6 },
-      ]);
+      // Both rows share the test transaction's timestamp, so the database
+      // may return them in either order: compare the counts sorted.
+      expect(
+        audits
+          .map((a) => (a.after as { emailed: number }).emailed)
+          .sort((x, y) => x - y),
+      ).toEqual([1, 6]);
     });
   });
 
