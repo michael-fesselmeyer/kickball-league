@@ -140,6 +140,8 @@ const ACTIONS: Record<string, string> = {
   "referee.pool_add": "Added someone to the ref pool",
   "referee.pool_remove": "Took someone out of the ref pool",
   "referee.check_in": "Marked a ref as at the field",
+  "referee.drop": "Dropped a game they were down to ref",
+  "referee.take": "Took a game that needed a ref",
   "referee.unassign": "Removed a ref",
   "refund.issue": "Refunded a payment",
   "roster.export": "Downloaded a roster",

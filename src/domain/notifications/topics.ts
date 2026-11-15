@@ -77,7 +77,7 @@ export const SETTINGS_TOPICS: readonly {
   {
     topic: "sub_request",
     label: "Sub requests",
-    hint: "When a team needs a sub at a time you're free, and answers to your offers. For captains, when players' away weeks leave your team short.",
+    hint: "When a team needs a sub at a time you're free, and answers to your offers. For captains, when players' away weeks leave your team short. For refs, when a game starting within a day needs a ref at a time you're free.",
   },
   {
     topic: "score",
@@ -131,7 +131,7 @@ export const PUSH_TOPICS: readonly {
   {
     topic: "sub_request",
     label: "Sub requests",
-    hint: "When a team needs a sub, and answers to your offers.",
+    hint: "When a team needs a sub or a game needs a ref, and answers to your offers.",
   },
   {
     topic: "score",

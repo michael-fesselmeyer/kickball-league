@@ -130,6 +130,10 @@ export const MESSAGE_KINDS = {
     urgency: "non_urgent",
     label: "League credit for rained-out games",
   },
+  referee_needed: {
+    urgency: "urgent",
+    label: "A game starting within a day that needs a ref, for refs free then",
+  },
   referral_credit: {
     urgency: "non_urgent",
     label: "League credit for a friend you referred",
