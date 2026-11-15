@@ -87,6 +87,14 @@ async function Report({
           Only league admins read reports. They follow up, and decide on any
           suspension.
         </p>
+        <p>
+          <Link
+            href={`/app/games/${g.id}/incident/injury`}
+            className="inline-flex min-h-11 items-center underline"
+          >
+            Someone was hurt? Report an injury
+          </Link>
+        </p>
       </header>
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
@@ -116,7 +124,7 @@ async function Report({
               <option value="" disabled>
                 Choose one
               </option>
-              {INCIDENT_KIND_KEYS.map((k) => (
+              {INCIDENT_KIND_KEYS.filter((k) => k !== "injury").map((k) => (
                 <option key={k} value={k}>
                   {INCIDENT_KINDS[k]}
                 </option>

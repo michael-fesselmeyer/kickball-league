@@ -8,6 +8,7 @@ import {
   setIncidentStatus,
   suspendPlayer,
 } from "@/db/queries/discipline";
+import { removeInjuryDetails } from "@/db/queries/injury";
 import { parseLength, parseNote } from "@/domain/discipline/discipline";
 import {
   type IncidentId,
@@ -23,8 +24,8 @@ import { requireInLeague } from "@/lib/league/guard";
 
 const pageOf = (id: string) => `/app/admin/incidents/${id}`;
 
-/** The right each action needs: reviewing, or deciding a suspension. */
-type Right = "incident.review" | "player.suspend";
+/** The right each action needs: reviewing, deciding a suspension, or deleting an injury's details. */
+type Right = "incident.review" | "player.suspend" | "injury.delete";
 
 async function guard(right: Right, rawId: string) {
   await requireFeature("discipline");
@@ -112,4 +113,20 @@ export async function liftAction(
   });
   if (!done.ok) redirect(`${pageOf(rawId)}?error=${done.error}`);
   redirect(`${pageOf(rawId)}?notice=lifted#suspensions`);
+}
+
+/**
+ * Removes an injury report's health details now, ahead of the retention
+ * period (ADR 0064). The incident stays, without them; the audit log says
+ * who asked.
+ */
+export async function deleteInjuryAction(rawId: string): Promise<void> {
+  const { subject, incidentId } = await guard("injury.delete", rawId);
+  const removed = await removeInjuryDetails(txDb, {
+    incidentId,
+    actorId: subject.userId,
+    reason: "requested",
+  });
+  if (!removed) redirect(`${pageOf(rawId)}?error=not_found`);
+  redirect(`${pageOf(rawId)}?notice=injury_deleted`);
 }
