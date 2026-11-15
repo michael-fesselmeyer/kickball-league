@@ -11,7 +11,10 @@ import {
   pickupBreaks,
   reconcile,
   runBreaks,
+  runsOverLimit,
   type Side,
+  separateOrdersSide,
+  explainSeparateOrders,
 } from "./order";
 
 /** Kickers from a pattern such as "WWM-N", where letters after "-" are pickups. */
@@ -85,13 +88,21 @@ describe("runBreaks", () => {
   });
 
   it("reports a long run once", () => {
-    expect(runBreaks(kickers("MWWWWWM"))).toHaveLength(1);
+    expect(runBreaks(kickers("MWWWWMNM"))).toHaveLength(1);
   });
 
-  it("reports a team of one side as one run", () => {
-    expect(runBreaks(kickers("MMMM"))).toEqual([
-      { side: "man", positions: [0, 1, 2, 3], wraps: false },
-    ]);
+  it("flags no runs when one side has more than twice the other", () => {
+    // The league then allows a separate order for each side.
+    expect(runBreaks(kickers("MMMM"))).toEqual([]);
+    expect(runBreaks(kickers("WWWWWMM"))).toEqual([]);
+    expect(separateOrdersSide(kickers("WWWWWMM"))).toBe("woman");
+    expect(separateOrdersSide(kickers("MMMMMMWNN"))).toBe("man");
+    expect(runsOverLimit(kickers("MMMM"))).toHaveLength(1);
+  });
+
+  it("holds a team at exactly two to one to the rule", () => {
+    expect(separateOrdersSide(kickers("WWWWMM"))).toBeNull();
+    expect(runBreaks(kickers("WWWMWM"))).toHaveLength(1);
   });
 
   it("lets a player without a side break a run", () => {
@@ -114,7 +125,9 @@ describe("runBreaks", () => {
             (p) => order[p]?.side,
           );
           const same =
-            window[0] !== null && window.every((s) => s === window[0]);
+            separateOrdersSide(order) === null &&
+            window[0] !== null &&
+            window.every((s) => s === window[0]);
           if (same) expect(flagged.has(i)).toBe(true);
         }
       }),
@@ -131,6 +144,12 @@ describe("pickupBreaks", () => {
 });
 
 describe("explanations", () => {
+  it("explains the separate-orders exception", () => {
+    expect(explainSeparateOrders("man")).toBe(
+      "With more than two times as many men as women, the league lets the team keep two kicking orders, one for each side, instead of the two-in-a-row rule. Tell the ref and the other captain which way you're kicking.",
+    );
+  });
+
   it("names the kickers and the wrap", () => {
     const order = kickers("WMMWW");
     const [run] = runBreaks(order);
@@ -179,15 +198,21 @@ describe("autoArrange", () => {
     expect(result.ok && valid(result.value)).toBe(true);
   });
 
-  it("says when one side has too many to split up", () => {
-    expect(autoArrange(kickers("WWWWWMM"))).toEqual({
-      ok: false,
-      error: { reason: "too_many", side: "woman", short: 1 },
-    });
+  it("leaves the order as it is when a side too big to split may kick on its own", () => {
+    const order = kickers("WWWWWWWMM-M");
+    const result = autoArrange(move(order, 9, 0));
+    expect(result.ok && result.value.map((k) => k.id)).toEqual(
+      order.map((k) => k.id),
+    );
     expect(autoArrange(kickers("MMM"))).toEqual({
-      ok: false,
-      error: { reason: "too_many", side: "man", short: 2 },
+      ok: true,
+      value: kickers("MMM"),
     });
+  });
+
+  it("still keeps to the rule when it can, even with separate orders allowed", () => {
+    const result = autoArrange(kickers("WWWWNN"));
+    expect(result.ok && pattern(result.value)).toBe("WWNWWN");
   });
 
   it("counts players without a side as splitting a run", () => {

@@ -119,7 +119,7 @@ async function Lineups({ params }: PageProps<"/app/games/[game]/lineup">) {
             <>
               <p className="text-small text-text-muted">
                 {t.lineup.runBreaks === 0
-                  ? "Keeps to the two-in-a-row rule as saved."
+                  ? "Keeps to the kicking-order rule as saved."
                   : `Saved with ${t.lineup.runBreaks === 1 ? "one place" : `${t.lineup.runBreaks} places`} where more than two of a side kick in a row.`}
               </p>
               <ol className="flex flex-col">
