@@ -74,11 +74,15 @@ describe("addresses in each language", () => {
           "en",
         ),
       ).toBe("/seasons/fall-2026?team=a");
+      expect(languageSwitchTarget(`${ORIGIN}/faq`, ORIGIN, "es")).toBe(
+        "/es/faq",
+      );
     });
 
-    it("goes to the language's home, or English, for a page not translated", () => {
-      // No Spanish page yet, so not even the home page.
-      expect(languageSwitchTarget(`${ORIGIN}/faq`, ORIGIN, "es")).toBe("/");
+    it("goes to the language's home for a page not translated", () => {
+      expect(languageSwitchTarget(`${ORIGIN}/records`, ORIGIN, "es")).toBe(
+        "/es",
+      );
     });
 
     it("sends signed-in pages to the profile's language setting", () => {
@@ -100,8 +104,13 @@ describe("addresses in each language", () => {
     });
   });
 
-  it("lists no alternates while English is the only public language", () => {
-    expect(languageAlternates("/faq")).toEqual({});
+  it("lists alternates only for a page in more than one language", () => {
+    expect(languageAlternates("/faq")).toEqual({
+      en: "/faq",
+      es: "/es/faq",
+      "x-default": "/faq",
+    });
+    expect(languageAlternates("/about")).toEqual({});
   });
 });
 

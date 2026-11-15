@@ -27,6 +27,10 @@ import {
 import type { LeagueInfo } from "@/db/queries/leagues";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 import { isPublicSeason } from "@/domain/private-events/visibility";
+import { fill, plural } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
+import { linkIn } from "@/i18n/routing";
 
 function teamsOf(games: PublicGame[]): PublicTeam[] {
   const teams = new Map<string, PublicTeam>();
@@ -49,11 +53,14 @@ export async function SeasonSchedule({
   slug,
   teamSlug = null,
   divisionSlug = null,
+  locale = DEFAULT_LOCALE,
 }: {
   league: LeagueInfo;
   slug: string;
   teamSlug?: string | null;
   divisionSlug?: string | null;
+  /** The page's language: each one is cached on its own (ADR 0065). */
+  locale?: Locale;
 }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
@@ -89,6 +96,8 @@ export async function SeasonSchedule({
     ? inView.filter((g) => g.teamA.id === picked.id || g.teamB.id === picked.id)
     : inView;
   const days = groupByDay(games, season.timeZone);
+  const words = messagesFor(locale).schedule;
+  const href = (path: string) => linkIn(locale, leagueHref(league, path));
   const unplaced = games.filter((g) => g.startsAt === null);
   /**
    * A game that starts late or is off says so on its card; otherwise a game
@@ -98,17 +107,17 @@ export async function SeasonSchedule({
     const day = g.startsAt ? localDay(g.startsAt, season.timeZone) : null;
     const status = day ? gameStatus(statuses.get(day) ?? null, g.id) : null;
     if (status && (status.kind === "delayed" || status.kind === "off"))
-      return gameWords(status, season.timeZone) ?? undefined;
+      return gameWords(status, season.timeZone, locale) ?? undefined;
     const a = divisionOf.get(g.teamA.id);
     const b = divisionOf.get(g.teamB.id);
-    return a && b && a !== b ? "Crossover" : undefined;
+    return a && b && a !== b ? words.crossover : undefined;
   };
   /** The day lines at the top: today's and later days' statuses. */
   const banners = [...statuses.values()].flatMap((s) => {
     const dayCount = all.filter(
       (g) => g.startsAt && localDay(g.startsAt, season.timeZone) === s.date,
     ).length;
-    const line = dayLine(s, dayCount, season.timeZone);
+    const line = dayLine(s, dayCount, season.timeZone, locale);
     return line && dayCount > 0 ? [{ status: s, line }] : [];
   });
   const base = `/seasons/${season.slug}/schedule`;
@@ -118,57 +127,67 @@ export async function SeasonSchedule({
       <header className="flex flex-col gap-2">
         <p className="text-text-muted">{season.name}</p>
         <h1 className="text-h1">
-          {division ? `${division.name} schedule` : "Schedule"}
+          {division
+            ? fill(words.divisionTitle, { division: division.name })
+            : words.title}
         </h1>
-        {division?.ruleSet && ruleSetSummary(division.ruleSet) && (
+        {division?.ruleSet && ruleSetSummary(division.ruleSet, locale) && (
           <p className="text-text-muted">
-            {division.ruleSet.name}: {ruleSetSummary(division.ruleSet)}
+            {division.ruleSet.name}: {ruleSetSummary(division.ruleSet, locale)}
           </p>
         )}
-        <nav aria-label="Season" className="flex flex-wrap gap-x-4 gap-y-1">
+        <nav
+          aria-label={words.seasonNav}
+          className="flex flex-wrap gap-x-4 gap-y-1"
+        >
           <Link
-            href={leagueHref(league, `/seasons/${season.slug}/standings`)}
+            href={href(`/seasons/${season.slug}/standings`)}
             className="inline-flex min-h-11 items-center text-brand underline"
           >
-            Standings
+            {words.standings}
           </Link>
           <Link
-            href={leagueHref(league, `/seasons/${season.slug}/bracket`)}
+            href={href(`/seasons/${season.slug}/bracket`)}
             className="inline-flex min-h-11 items-center text-brand underline"
           >
-            Playoffs
+            {words.playoffs}
           </Link>
         </nav>
       </header>
 
       {banners.length > 0 && (
-        <section aria-label="Game-day status" className="flex flex-col gap-2">
+        <section aria-label={words.statusLabel} className="flex flex-col gap-2">
           {banners.map(({ status, line }) => (
             <GameDayNotice
               key={status.date}
-              label={shortDay(new Date(`${status.date}T12:00:00Z`), "UTC")}
+              label={shortDay(
+                new Date(`${status.date}T12:00:00Z`),
+                "UTC",
+                locale,
+              )}
               line={line}
               setAt={status.setAt}
               timeZone={season.timeZone}
               tone={toneOf(status.state)}
+              locale={locale}
             />
           ))}
         </section>
       )}
 
       {divisions.length > 0 && (
-        <nav aria-label="Divisions" className="flex flex-wrap gap-2">
+        <nav aria-label={words.divisionsNav} className="flex flex-wrap gap-2">
           <Link
-            href={base}
+            href={href(base)}
             aria-current={division ? undefined : "page"}
             className={`btn ${division ? "btn-secondary" : "btn-primary"}`}
           >
-            All divisions
+            {words.allDivisions}
           </Link>
           {divisions.map((d) => (
             <Link
               key={d.id}
-              href={`${base}/division/${d.slug}`}
+              href={href(`${base}/division/${d.slug}`)}
               aria-current={d.id === division?.id ? "page" : undefined}
               className={`btn ${d.id === division?.id ? "btn-primary" : "btn-secondary"}`}
             >
@@ -180,27 +199,24 @@ export async function SeasonSchedule({
 
       {all.length === 0 ? (
         <section className="flex flex-col items-start gap-3 rounded-card border border-border bg-surface p-6">
-          <p className="sticker">Coming soon</p>
-          <p className="max-w-prose text-body-lg">
-            The schedule comes out about a week before opening day. Register now
-            and we&apos;ll email you when it&apos;s up.
-          </p>
+          <p className="sticker">{words.comingSoon}</p>
+          <p className="max-w-prose text-body-lg">{words.comingSoonBody}</p>
         </section>
       ) : (
         <>
           <form
             method="get"
-            action={base}
+            action={href(base)}
             className="sticky top-0 z-10 -mx-4 flex flex-wrap items-end gap-3 border-b border-border bg-bg px-4 py-3 md:mx-0 md:rounded-card md:border md:px-4"
           >
             <label className="flex flex-col gap-1 text-small font-bold">
-              Team
+              {words.team}
               <select
                 name="team"
                 defaultValue={picked?.slug ?? ""}
                 className="min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body font-normal"
               >
-                <option value="">All teams</option>
+                <option value="">{words.allTeams}</option>
                 {teams.map((t) => (
                   <option key={t.id} value={t.slug}>
                     {t.name}
@@ -209,24 +225,24 @@ export async function SeasonSchedule({
               </select>
             </label>
             <button type="submit" className="btn btn-secondary">
-              Show
+              {words.show}
             </button>
             {picked && (
               <Link
-                href={leagueHref(league, `/teams/${picked.slug}`)}
+                href={href(`/teams/${picked.slug}`)}
                 className="inline-flex min-h-11 items-center text-brand underline"
               >
-                {picked.name} team page and calendar
+                {fill(words.teamPage, { team: picked.name })}
               </Link>
             )}
           </form>
 
           <p className="sr-only" role="status">
-            {picked
-              ? `Showing ${games.length} games for ${picked.name}.`
-              : division
-                ? `Showing ${games.length} games for ${division.name}.`
-                : `Showing all ${games.length} games.`}
+            {picked || division
+              ? plural(locale, words.showingTeam, games.length, {
+                  name: (picked ?? division)?.name ?? "",
+                })
+              : plural(locale, words.showingAll, games.length)}
           </p>
 
           {days.map(({ day, games: dayGames }) => {
@@ -239,14 +255,14 @@ export async function SeasonSchedule({
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <h2 id={`day-${day}`} className="text-h3">
-                    {dayHeading(day)}
+                    {dayHeading(day, locale)}
                   </h2>
                   {theme && (
                     <Link
-                      href={leagueHref(league, `/events/${theme.slug}`)}
+                      href={href(`/events/${theme.slug}`)}
                       className="sticker inline-flex min-h-11 items-center hover:underline"
                     >
-                      <span className="sr-only">Theme week: </span>
+                      <span className="sr-only">{words.themeWeek} </span>
                       {theme.title}
                     </Link>
                   )}
@@ -257,7 +273,8 @@ export async function SeasonSchedule({
                     games={dayGames}
                     timeZone={season.timeZone}
                     note={note}
-                    empty={division ? "–" : "Open"}
+                    empty={division ? "–" : words.open}
+                    locale={locale}
                   />
                 )}
                 <ul
@@ -271,6 +288,7 @@ export async function SeasonSchedule({
                         timeZone={season.timeZone}
                         highlight={picked?.id}
                         note={note(g)}
+                        locale={locale}
                       />
                     </li>
                   ))}
@@ -282,12 +300,9 @@ export async function SeasonSchedule({
           {unplaced.length > 0 && (
             <section aria-labelledby="unplaced" className="flex flex-col gap-3">
               <h2 id="unplaced" className="text-h3">
-                Makeups to be scheduled
+                {words.makeups}
               </h2>
-              <p className="text-text-muted">
-                These games need a new date. They show up here, on the team
-                pages and in calendar feeds as soon as the league sets one.
-              </p>
+              <p className="text-text-muted">{words.makeupsBody}</p>
               <ul className="grid gap-3 sm:grid-cols-2">
                 {unplaced.map((g) => (
                   <li key={g.id}>
@@ -297,6 +312,7 @@ export async function SeasonSchedule({
                       timeZone={season.timeZone}
                       highlight={picked?.id}
                       note={note(g)}
+                      locale={locale}
                     />
                   </li>
                 ))}
@@ -319,6 +335,7 @@ function DayGrid({
   timeZone,
   note,
   empty,
+  locale,
 }: {
   league: LeagueRef;
   games: PublicGame[];
@@ -326,9 +343,11 @@ function DayGrid({
   note: (g: PublicGame) => string | undefined;
   /** What an empty cell says: "Open", or a dash when other games may be there. */
   empty: string;
+  locale: Locale;
 }) {
-  const fields = [...new Set(games.map((g) => g.field ?? "Field TBA"))].sort(
-    (a, b) => a.localeCompare(b, "en", { numeric: true }),
+  const words = messagesFor(locale).schedule;
+  const fields = [...new Set(games.map((g) => g.field ?? words.fieldTba))].sort(
+    (a, b) => a.localeCompare(b, locale, { numeric: true }),
   );
   const times = [
     ...new Set(games.map((g) => (g.startsAt as Date).getTime())),
@@ -337,7 +356,7 @@ function DayGrid({
     games.find(
       (g) =>
         (g.startsAt as Date).getTime() === time &&
-        (g.field ?? "Field TBA") === f,
+        (g.field ?? words.fieldTba) === f,
     );
   return (
     <div className="hidden overflow-x-auto lg:block">
@@ -345,7 +364,7 @@ function DayGrid({
         <thead className="text-small text-text-muted">
           <tr>
             <th scope="col" className="w-24">
-              Kickoff
+              {words.kickoff}
             </th>
             {fields.map((f) => (
               <th key={f} scope="col">
@@ -358,7 +377,7 @@ function DayGrid({
           {times.map((time) => (
             <tr key={time}>
               <th scope="row" className="align-top font-bold tabular-nums">
-                {kickoff(new Date(time), timeZone)}
+                {kickoff(new Date(time), timeZone, locale)}
               </th>
               {fields.map((f) => {
                 const g = at(time, f);
@@ -372,6 +391,7 @@ function DayGrid({
                         compact
                         morph={false}
                         note={note(g)}
+                        locale={locale}
                       />
                     ) : (
                       <span className="text-small text-text-muted">

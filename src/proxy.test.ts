@@ -147,12 +147,30 @@ describe("proxy", () => {
     );
   });
 
-  it("sends a language not served yet to the English page", async () => {
-    const response = await proxy(request("/es/seasons/fall-2026/schedule"));
+  it("sends a page not yet translated to its English page", async () => {
+    const response = await proxy(request("/es/seasons/fall-2026/standings"));
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "http://localhost:3000/seasons/fall-2026/schedule",
+      "http://localhost:3000/seasons/fall-2026/standings",
     );
+  });
+
+  it("serves a translated page from the Spanish tree, keeping the address", async () => {
+    for (const [path, target] of [
+      ["/es", "/es/l/_default"],
+      ["/es/faq", "/es/faq"],
+      [
+        "/es/seasons/fall-2026/schedule?team=the-big-kicks",
+        "/es/l/_default/seasons/fall-2026/schedule/the-big-kicks",
+      ],
+      ["/es/l/flag-football", "/es/l/flag-football"],
+    ] as const) {
+      const response = await proxy(request(path));
+      expect(response.headers.get("location"), path).toBeNull();
+      expect(response.headers.get("x-middleware-rewrite"), path).toBe(
+        `http://localhost:3000${target}`,
+      );
+    }
   });
 
   it("shows public pages the paused notice while the site is paused", async () => {

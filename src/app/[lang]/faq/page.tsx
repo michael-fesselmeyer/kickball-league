@@ -2,41 +2,53 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { JsonLd } from "@/components/json-ld";
 import { env } from "@/env";
+import { localeOf, messagesFor } from "@/i18n/messages";
+import { languageAlternates, linkIn } from "@/i18n/routing";
 import { breadcrumbJsonLd, faqJsonLd } from "@/lib/seo/structured-data";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
-import { ALL_QUESTIONS, FAQ } from "./questions";
+import { faqFor } from "./questions";
 
-export const metadata: Metadata = {
-  title: "FAQ",
-  description:
-    "Do you need a team? Is it coed? What does it cost, what should you wear, and what happens when it rains? Quick answers about adult kickball in Brooklyn.",
-  alternates: { canonical: "/faq" },
-};
+export async function generateMetadata({
+  params,
+}: PageProps<"/[lang]/faq">): Promise<Metadata> {
+  const locale = localeOf((await params).lang);
+  const { faq } = messagesFor(locale);
+  return {
+    title: faq.title,
+    description: faq.description,
+    alternates: {
+      canonical: linkIn(locale, "/faq"),
+      languages: languageAlternates("/faq"),
+    },
+  };
+}
 
-export default function FaqPage() {
+export default async function FaqPage({ params }: PageProps<"/[lang]/faq">) {
+  const locale = localeOf((await params).lang);
+  const { faq: words } = messagesFor(locale);
+  const groups = faqFor(locale);
+  const href = (path: string) => linkIn(locale, path);
   const origin = siteOrigin(env.BETTER_AUTH_URL);
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 py-12 md:px-6">
       <JsonLd
         data={[
-          faqJsonLd(ALL_QUESTIONS),
+          faqJsonLd(groups.flatMap((g) => g.questions)),
           breadcrumbJsonLd([
-            { name: "Home", url: absoluteUrl(origin, "/") },
-            { name: "FAQ", url: absoluteUrl(origin, "/faq") },
+            { name: words.home, url: absoluteUrl(origin, href("/")) },
+            { name: words.title, url: absoluteUrl(origin, href("/faq")) },
           ]),
         ]}
       />
       <header className="flex flex-col gap-4">
         <h1 className="text-h1">
-          Questions, <span className="swipe">answered</span>
+          {words.headingStart}{" "}
+          <span className="swipe">{words.headingSwipe}</span>
         </h1>
-        <p className="text-body-lg text-text-muted">
-          The short version: it&apos;s coed, you can come solo, and nobody needs
-          to be good at kickball.
-        </p>
-        <nav aria-label="FAQ sections">
+        <p className="text-body-lg text-text-muted">{words.intro}</p>
+        <nav aria-label={words.sections}>
           <ul className="flex flex-wrap gap-2">
-            {FAQ.map((group) => (
+            {groups.map((group) => (
               <li key={group.id}>
                 <a
                   href={`#${group.id}`}
@@ -50,7 +62,7 @@ export default function FaqPage() {
         </nav>
       </header>
 
-      {FAQ.map((group) => (
+      {groups.map((group) => (
         <section
           key={group.id}
           id={group.id}
@@ -62,12 +74,12 @@ export default function FaqPage() {
           </h2>
           {group.questions.map((q) => (
             <div key={q.question} className="flex flex-col gap-2">
-              <h3 className="text-h3">{q.question}</h3>
+              <h3 className="text-h3 break-words">{q.question}</h3>
               <p>{q.answer}</p>
               {q.more && (
                 <p>
                   <Link
-                    href={q.more.href}
+                    href={href(q.more.href)}
                     className="font-bold text-brand underline underline-offset-4"
                   >
                     {q.more.label}
@@ -84,14 +96,12 @@ export default function FaqPage() {
         className="flex flex-col gap-4 rounded-card border-2 border-text bg-surface p-6"
       >
         <h2 id="still" className="text-h2">
-          Ready when you are
+          {words.readyTitle}
         </h2>
-        <p>
-          Sign in with your email to register a team, join one, or come solo.
-        </p>
+        <p>{words.readyBody}</p>
         <p>
           <Link href="/sign-in" className="btn btn-primary">
-            Sign up for a season
+            {words.signUp}
           </Link>
         </p>
       </section>

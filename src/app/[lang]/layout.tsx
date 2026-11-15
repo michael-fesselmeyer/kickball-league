@@ -140,7 +140,7 @@ export default async function RootLayout({
         <div className="bg-surface pt-safe print:pt-0">
           <DemoBanner />
           <header className="border-b-2 border-text bg-surface print:hidden">
-            <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-2 md:px-6">
+            <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 md:px-6">
               <Link
                 href={href("/")}
                 className="flex items-center gap-2 font-display text-h3 font-extrabold text-text"
