@@ -90,6 +90,34 @@ Open **Owner**: membership (new, returning, retention), money in and out, comple
 
 _Why it matters:_ the owners see how the league is doing at a glance, with the numbers to decide what to change.
 
+### More to show, in this order if there is time
+
+These use data the demo seeds for the newer features. The first two fit best right after step 5, the next two after step 8.
+
+### 11. Game-day checklist and check-in (1 minute): Captain, then Admin
+
+As Captain, open a played game from round 1: the **before play** checklist is ticked for both teams. As Admin, open that game's attendance: every player who played is listed, some checked in by scanning the game's rotating code and the rest ticked in by a captain. A team's page shows the games each player has played.
+
+_Why it matters:_ field set-up is shared fairly, and "who actually played" is a record, not an argument.
+
+### 12. Season cards (1 minute): Player, then Admin
+
+Open **Summer 2026**'s season card for the player's team: their season in kickball, with the sportsmanship shout-out and the league's superlatives. As Admin, the season's **Cards** screen builds and sends them.
+
+_Why it matters:_ players get something worth sharing at the end of a season, and each share brings in a friend.
+
+### 13. Concerns (1 minute): Admin, then Player
+
+As Admin, open **Concerns**: two are waiting, one from a player about a game and one from the public contact form about the park, with an admin-only note on the first. Reply, then close one with what was done. As Player, **My concerns** shows only their own.
+
+_Why it matters:_ hard conversations get a private, tracked place with a reply time, and park-rule problems are counted for the permit renewal.
+
+### 14. The shirt order (1 minute): Admin
+
+Open **Fall 2026 → Shirts**: the sizes players picked at sign-up, counted by team, with the order marked as placed with the vendor. Mark it received and add it to the **Books** as an expense.
+
+_Why it matters:_ ordering shirts stops being a spreadsheet chase, and the cost lands in the books on its own.
+
 ## What is real and what is pretend
 
 Everything on screen is the real app, running the same code as the league's site. Only these differ:
