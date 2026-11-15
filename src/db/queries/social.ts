@@ -892,7 +892,7 @@ export async function storedImage(db: Db, imageId: SocialImageId) {
 
 /**
  * Every stored photo a public page may show, in every league: a takedown
- * compares this before and after to purge the photos that went (ADR 0064).
+ * compares this before and after to purge the photos that went (ADR 0068).
  */
 export async function shownImageIds(db: Db): Promise<SocialImageId[]> {
   const rows = await db

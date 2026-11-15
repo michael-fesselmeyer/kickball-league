@@ -7,7 +7,7 @@ export const LONG_PHOTO_LIFETIME = 31 * 24 * 60 * 60;
 export const SHORT_PHOTO_LIFETIME = 5 * 60;
 
 /**
- * How long the image optimizer keeps a resized photo (ADR 0064). On Vercel a
+ * How long the image optimizer keeps a resized photo (ADR 0068). On Vercel a
  * takedown purges a photo's copies at once, so they can live the full 31
  * days and each photo costs a transformation per width about once a month.
  * Anywhere else nothing purges them, so they keep the photo's own five

@@ -32,7 +32,7 @@ const nextConfig: NextConfig = {
     // Each optimized copy counts against the free plan's 5,000 image
     // transformations a month when it is made, so on Vercel copies are kept
     // for 31 days, and every takedown purges a photo's copies at once
-    // (ADR 0064, src/lib/media/optimizer-purge.ts). Elsewhere nothing can
+    // (ADR 0068, src/lib/media/optimizer-purge.ts). Elsewhere nothing can
     // purge them, so they last the photo's own five minutes.
     minimumCacheTTL: optimizedPhotoLifetime(process.env),
     // Every width, format and quality is its own transformation, so only

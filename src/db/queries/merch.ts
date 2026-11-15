@@ -422,7 +422,7 @@ export async function merchPhoto(db: Db, imageId: MerchImageId) {
 
 /**
  * Every photo of an item in the shop, in every league: a takedown compares
- * this before and after to purge the photos that went (ADR 0064).
+ * this before and after to purge the photos that went (ADR 0068).
  */
 export async function shopImageIds(db: Db): Promise<MerchImageId[]> {
   const rows = await db
