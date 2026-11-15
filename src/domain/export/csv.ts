@@ -60,7 +60,7 @@ export function centsToAmount(cents: number): string {
  */
 export function exportFilename(
   parts: readonly string[],
-  extension: "csv" | "json",
+  extension: "csv" | "json" | "txt",
 ): string {
   const slug = parts
     .map((p) =>
