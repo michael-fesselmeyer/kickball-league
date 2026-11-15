@@ -15,6 +15,9 @@ import {
   registrationSummary,
 } from "@/db/queries/admin-dashboard";
 import { pendingNewTeamCount } from "@/db/queries/new-teams";
+import { nextTasks } from "@/db/queries/checklist";
+import { ChecklistCard } from "@/components/checklist-card";
+import { localDate } from "@/domain/books/ledger-csv";
 import { seasonSignups } from "@/db/queries/challenges";
 import { SignupBoard } from "@/components/signup-board";
 import { needsReconnect } from "@/db/queries/social";
@@ -123,16 +126,25 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
     );
   }
 
-  const [day, missing, registrations, others, newTeams, instagram, signups] =
-    await Promise.all([
-      nextGameDay(db, current, now),
-      missingScores(db, current, now),
-      registrationSummary(db, current.id),
-      otherSeasons(db, current.id),
-      pendingNewTeamCount(db, current.id),
-      needsReconnect(db, league.id),
-      seasonSignups(db, current.id),
-    ]);
+  const [
+    day,
+    missing,
+    registrations,
+    others,
+    newTeams,
+    instagram,
+    signups,
+    checklist,
+  ] = await Promise.all([
+    nextGameDay(db, current, now),
+    missingScores(db, current, now),
+    registrationSummary(db, current.id),
+    otherSeasons(db, current.id),
+    pendingNewTeamCount(db, current.id),
+    needsReconnect(db, league.id),
+    seasonSignups(db, current.id),
+    nextTasks(db, current.id),
+  ]);
   const base = `/app/admin/seasons/${current.slug}`;
   const dayLabel = (date: string) =>
     new Intl.DateTimeFormat("en-US", {
@@ -195,6 +207,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               ["/app/admin/waivers", "Waivers"],
               ["/app/admin/events", "Events"],
               ["/app/admin/volunteer", "Volunteer shifts"],
+              [`${base}/checklist`, "Season checklist"],
               [`${base}/survey`, "Season survey"],
               ["/app/admin/private-events", "Private leagues and tournaments"],
               [`${base}/referees`, "Referees"],
@@ -270,6 +283,12 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
       </header>
 
       <NextGameDay day={day} base={base} dayLabel={dayLabel} time={time} />
+
+      <ChecklistCard
+        tasks={checklist}
+        today={localDate(now, current.timeZone)}
+        href={`${base}/checklist`}
+      />
 
       <section aria-labelledby="missing" className="flex flex-col gap-3">
         <h2 id="missing" className="text-h2">
