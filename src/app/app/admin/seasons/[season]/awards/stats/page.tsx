@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { PageLoading } from "@/components/page-loading";
 import { AwardsBoardView } from "@/components/stat-awards";
+import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { awardsBoard } from "@/db/queries/stat-awards";
@@ -30,7 +32,7 @@ export default function StatAwardsAdminPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
         <StatAwards {...props} />
       </Suspense>
     </main>
@@ -144,13 +146,12 @@ async function StatAwards({
               </label>
             ))}
           </div>
-          <button
-            type="submit"
+          <SubmitButton
             className="btn self-start btn-primary"
             disabled={Boolean(board?.publishedAt)}
           >
             {board ? "Work them out again" : "Work out the awards"}
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -168,12 +169,11 @@ async function StatAwards({
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <form action={publishAction.bind(null, slug, !board.publishedAt)}>
-                <button
-                  type="submit"
+                <SubmitButton
                   className={`btn ${board.publishedAt ? "btn-secondary" : "btn-primary"}`}
                 >
                   {board.publishedAt ? "Take down" : "Publish"}
-                </button>
+                </SubmitButton>
               </form>
               {board.publishedAt && (
                 <Link href={`/seasons/${slug}/awards`} className="underline">
@@ -204,9 +204,9 @@ async function StatAwards({
                     defaultValue={board.notes[award] ?? ""}
                     className={`${field} min-w-0 flex-1`}
                   />
-                  <button type="submit" className="btn btn-secondary">
+                  <SubmitButton className="btn btn-secondary">
                     Save note
-                  </button>
+                  </SubmitButton>
                 </div>
               </form>
             ))}
