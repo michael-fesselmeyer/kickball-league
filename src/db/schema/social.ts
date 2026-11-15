@@ -2,7 +2,6 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
-  customType,
   index,
   integer,
   pgEnum,
@@ -23,24 +22,14 @@ import type {
   UserId,
 } from "@/domain/ids";
 import { user } from "./auth";
+import { bytea } from "./bytea";
 import { event } from "./event";
 import { league } from "./league";
 import { team } from "./team";
 
-/**
- * Raw bytes, for the stored copy of a synced photo (and the owners' books
- * files, ./books.ts). Sent as Postgres's hex
- * text form, which every driver passes through unchanged; read back as a
- * Buffer (node-postgres) or that same hex text (Neon's HTTP driver).
- */
-export const bytea = customType<{ data: Buffer; driverData: Buffer | string }>({
-  dataType: () => "bytea",
-  toDriver: (value) => `\\x${value.toString("hex")}`,
-  fromDriver: (value) =>
-    typeof value === "string"
-      ? Buffer.from(value.replace(/^\\x/, ""), "hex")
-      : Buffer.from(value),
-});
+// Kept in its own module so the books (./books.ts) can use it without
+// importing this file, which imports the events (an import cycle).
+export { bytea };
 
 export const socialProvider = pgEnum("social_provider", ["instagram"]);
 
