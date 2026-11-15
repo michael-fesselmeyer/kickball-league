@@ -16,6 +16,7 @@ describe("buildSitemap", () => {
       `${ORIGIN}/parks/mccarren-park`,
       `${ORIGIN}/seasons`,
       `${ORIGIN}/faq`,
+      `${ORIGIN}/contact`,
       `${ORIGIN}/nyc-kickball-league`,
       `${ORIGIN}/free-agents`,
       `${ORIGIN}/news/how-to-play-kickball`,
