@@ -147,6 +147,8 @@ export default defineConfig({
         CRON_SECRET: "e2e-cron-placeholder",
         // Instagram played back from its recorded fixture, never the network.
         INSTAGRAM_FIXTURE: "true",
+        // The National Weather Service played back too (ADR 0048).
+        WEATHER_FIXTURE: "true",
       },
     },
   ],
