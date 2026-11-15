@@ -1,4 +1,4 @@
-# ADR 0063: Playoff formats and tiers
+# ADR 0064: Playoff formats and tiers
 
 - Status: accepted
 - Date: 2026-11-15

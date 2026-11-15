@@ -85,7 +85,7 @@ export const bracket = pgTable(
       .references(() => division.id, { onDelete: "restrict" }),
     /**
      * Which slice of the final standings this bracket plays: 1 for the
-     * top teams, 2 for the next group, and so on (ADR 0063).
+     * top teams, 2 for the next group, and so on (ADR 0064).
      */
     tier: integer().notNull().default(1),
     format: bracketFormat().notNull().default("single_elimination"),
