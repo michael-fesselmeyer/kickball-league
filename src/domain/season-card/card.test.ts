@@ -6,6 +6,7 @@ import {
   biggestInning,
   buildCard,
   CARD_VERSION,
+  closeWins,
   finishText,
   gameLine,
   highlights,
@@ -14,6 +15,8 @@ import {
   playerGames,
   recordOf,
   recordText,
+  sportsmanshipShout,
+  superlatives,
   type TeamGame,
 } from "./card";
 
@@ -213,6 +216,9 @@ describe("buildCard", () => {
     finish: { rank: 2, of: 8, champion: false },
     awardsWon: [{ title: "Summer 2026 MVP", team: false }],
     votesCast: 3,
+    sportsmanship: { average: 4.8, ratings: 5 },
+    subGames: 0,
+    league: { teams: 8, mostTeamRuns: 25, biggestInning: 6 },
   };
 
   it("adds up the player's season", () => {
@@ -238,6 +244,9 @@ describe("buildCard", () => {
         runsAgainst: 1,
         outcome: "W",
       },
+      sportsmanship: { average: 4.8, ratings: 5 },
+      subGames: 0,
+      superlatives: ["Biggest inning in the league: 6 runs"],
     });
   });
 
@@ -263,6 +272,8 @@ describe("buildCard", () => {
       "2-game win streak",
       "Won Summer 2026 MVP",
       "Best game: W 11–1 vs Foul Play",
+      "Sportsmanship shout-out: other captains rated your team 4.8 out of 5",
+      "Biggest inning in the league: 6 runs",
     ]);
   });
 });
@@ -299,5 +310,139 @@ describe("text helpers", () => {
     expect(isCurrentCard({ version: CARD_VERSION })).toBe(true);
     expect(isCurrentCard({ version: 0 })).toBe(false);
     expect(isCurrentCard(null)).toBe(false);
+  });
+});
+
+describe("a player with no games", () => {
+  it("still gets a calm card with nothing earned", () => {
+    const card = buildCard({
+      playerName: "New P.",
+      seasonName: "Summer 2026",
+      team: { name: "Pitch Please", slug: "pitch-please", colorHex: null },
+      games: [],
+      player: { attended: new Set(), tracked: false },
+      innings: new Map(),
+      record: { wins: 0, losses: 0, ties: 0 },
+      finish: null,
+      awardsWon: [],
+      votesCast: 0,
+      sportsmanship: null,
+      subGames: 0,
+      league: { teams: 8, mostTeamRuns: 30, biggestInning: 7 },
+    });
+    expect(card).toMatchObject({
+      gamesPlayed: 0,
+      attended: null,
+      runs: 0,
+      longestWinStreak: 0,
+      bestGame: null,
+      biggestInning: null,
+      superlatives: [],
+    });
+    expect(highlights(card)).toEqual([
+      "Pitch Please: 0-0",
+      "Played 0 games",
+    ]);
+  });
+
+  it("never claims a perfect attendance for an empty season", () => {
+    expect(
+      superlatives({
+        games: [],
+        player: { attended: new Set(), tracked: true },
+        attended: 0,
+        biggestInningRuns: 0,
+        subGames: 0,
+        league: { teams: 2, mostTeamRuns: 0, biggestInning: 0 },
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("sportsmanshipShout", () => {
+  it("needs enough ratings and a high average", () => {
+    expect(sportsmanshipShout(null)).toBeNull();
+    expect(sportsmanshipShout({ average: 5, ratings: 2 })).toBeNull();
+    expect(sportsmanshipShout({ average: 4.4, ratings: 9 })).toBeNull();
+    expect(sportsmanshipShout({ average: 4.5, ratings: 3 })).toMatch(
+      /4\.5 out of 5/,
+    );
+  });
+});
+
+describe("superlatives", () => {
+  const league = { teams: 4, mostTeamRuns: 20, biggestInning: 6 };
+  const base = {
+    biggestInningRuns: 0,
+    subGames: 0,
+    attended: null,
+    league,
+  };
+
+  it("compares the team and games with the league, never naming anyone", () => {
+    const games = [
+      g("2026-06-01", 10, 9),
+      g("2026-06-08", 6, 5),
+      g("2026-06-15", 4, 6),
+    ];
+    expect(
+      superlatives({ ...base, games, player: everyGame }),
+    ).toEqual([
+      "Highest-scoring team in the league",
+      "Cardiac kid: 2 wins by a single run",
+    ]);
+  });
+
+  it("needs two teams to be the highest-scoring one", () => {
+    const games = [g("2026-06-01", 10, 0)];
+    expect(
+      superlatives({
+        ...base,
+        games,
+        player: everyGame,
+        league: { teams: 1, mostTeamRuns: 10, biggestInning: 0 },
+      }),
+    ).toEqual([]);
+  });
+
+  it("rewards a perfect record of showing up, but not for a short season", () => {
+    const three = [
+      g("2026-06-01", 1, 2),
+      g("2026-06-08", 1, 2),
+      g("2026-06-15", 1, 2),
+    ];
+    expect(
+      superlatives({ ...base, games: three, player: at(...three), attended: 3 }),
+    ).toEqual(["Never missed a game"]);
+    expect(
+      superlatives({
+        ...base,
+        games: three.slice(0, 2),
+        player: at(...three.slice(0, 2)),
+        attended: 2,
+      }),
+    ).toEqual([]);
+  });
+
+  it("counts a sub's fill-ins and keeps at most three marks", () => {
+    const games = [g("2026-06-01", 10, 9), g("2026-06-08", 6, 5)];
+    const lines = superlatives({
+      games,
+      player: at(...games),
+      attended: 2,
+      biggestInningRuns: 6,
+      subGames: 1,
+      league,
+    });
+    expect(lines).toHaveLength(3);
+    expect(
+      superlatives({ ...base, games: [], player: everyGame, subGames: 2 }),
+    ).toEqual(["Filled in for other teams 2 times"]);
+  });
+
+  it("counts one-run wins the player was at", () => {
+    const [a, b] = [g("2026-06-01", 2, 1), g("2026-06-08", 3, 2)];
+    expect(closeWins([a, b], at(a))).toBe(1);
+    expect(closeWins([a, b], everyGame)).toBe(2);
   });
 });

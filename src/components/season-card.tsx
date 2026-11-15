@@ -6,6 +6,7 @@ import {
   gameLine,
   recordText,
   type SeasonCardStats,
+  sportsmanshipShout,
 } from "@/domain/season-card/card";
 
 /**
@@ -128,6 +129,34 @@ export function SeasonCardView({
           )}
         </ul>
       </section>
+
+      {(stats.superlatives.length > 0 ||
+        sportsmanshipShout(stats.sportsmanship) ||
+        stats.subGames > 0) && (
+        <section
+          aria-labelledby="season-superlatives"
+          className="flex flex-col gap-3"
+        >
+          <h2 id="season-superlatives" className="text-h2">
+            League bragging rights
+          </h2>
+          <ul className="flex flex-wrap gap-2">
+            {stats.superlatives.map((line) => (
+              <li key={line} className="sticker">
+                {line}
+              </li>
+            ))}
+          </ul>
+          {sportsmanshipShout(stats.sportsmanship) && (
+            <p>{sportsmanshipShout(stats.sportsmanship)}.</p>
+          )}
+          {stats.subGames > 0 && (
+            <p>
+              Subbed for other teams in {plural(stats.subGames, "game")}.
+            </p>
+          )}
+        </section>
+      )}
 
       <section aria-labelledby="season-awards" className="flex flex-col gap-3">
         <h2 id="season-awards" className="text-h2">

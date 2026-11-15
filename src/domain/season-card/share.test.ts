@@ -24,6 +24,9 @@ const stats: SeasonCardStats = {
   awardsWon: [{ title: "Summer 2026 MVP", team: false }],
   votesCast: 2,
   longestWinStreak: 4,
+  sportsmanship: null,
+  subGames: 0,
+  superlatives: [],
   bestGame: {
     day: "2026-07-12",
     opponent: "Foul Play",

@@ -14,7 +14,7 @@ import { ordinal } from "../share/cards";
  */
 
 /** Bumped when the stored shape changes; older cards are rebuilt. */
-export const CARD_VERSION = 1;
+export const CARD_VERSION = 2;
 
 export type Outcome = "W" | "L" | "T";
 
@@ -62,6 +62,28 @@ export type CardGame = {
 
 export type CardAward = { title: string; team: boolean };
 
+/** What other captains rated the player's team, over the whole season. */
+export type Sportsmanship = { average: number; ratings: number };
+
+/** A team needs this many ratings and this average to earn the shout-out. */
+export const SHOUT_MIN_RATINGS = 3;
+export const SHOUT_MIN_AVERAGE = 4.5;
+
+/** League-wide marks the superlatives are measured against. */
+export type LeagueMarks = {
+  /** Teams that played a finished game. */
+  teams: number;
+  /** The most runs any team scored in the regular season and playoffs. */
+  mostTeamRuns: number;
+  /** The biggest half-inning any team scored in a live-scored game. */
+  biggestInning: number;
+};
+
+/** A season needs this many games for "never missed" to mean something. */
+export const PERFECT_MIN_GAMES = 3;
+/** One-run wins it takes to be "cardiac". */
+export const CLOSE_WINS = 2;
+
 /** The stored card: everything the pages and the share image show. */
 export type SeasonCardStats = {
   version: typeof CARD_VERSION;
@@ -85,6 +107,12 @@ export type SeasonCardStats = {
   /** The longest run of wins the player played in, skipping games missed. */
   longestWinStreak: number;
   bestGame: CardGame | null;
+  /** Other captains' sportsmanship ratings of the team; null when unrated. */
+  sportsmanship: Sportsmanship | null;
+  /** Games the player filled in for another team, as a sub. */
+  subGames: number;
+  /** Playful league-wide marks the player earned, at most three. */
+  superlatives: string[];
 };
 
 /** The games that count as the player's: the ones they were at. */
@@ -205,6 +233,74 @@ export function recordOf(games: readonly TeamGame[]) {
   return { wins: count("W"), losses: count("L"), ties: count("T") };
 }
 
+/** Wins by a single run in the player's games. */
+export function closeWins(
+  games: readonly TeamGame[],
+  player: PlayerInputs,
+): number {
+  return playerGames(games, player).filter(
+    (g) =>
+      g.outcome === "W" &&
+      g.runsFor !== null &&
+      g.runsAgainst !== null &&
+      g.runsFor - g.runsAgainst === 1,
+  ).length;
+}
+
+/**
+ * The shout-out for a team the league's captains rated well: enough ratings
+ * and a high average. Null otherwise, including with no ratings.
+ */
+export function sportsmanshipShout(s: Sportsmanship | null): string | null {
+  if (!s || s.ratings < SHOUT_MIN_RATINGS || s.average < SHOUT_MIN_AVERAGE)
+    return null;
+  return `Sportsmanship shout-out: other captains rated your team ${s.average.toFixed(1)} out of 5`;
+}
+
+/**
+ * Playful marks measured against the league, each earned or left out, most
+ * fun first, three at most. They compare the player's team and games with
+ * the rest of the league; no other team or player is named.
+ */
+export function superlatives(input: {
+  games: readonly TeamGame[];
+  player: PlayerInputs;
+  attended: number | null;
+  biggestInningRuns: number;
+  subGames: number;
+  league: LeagueMarks;
+}): string[] {
+  const lines: string[] = [];
+  const teamRuns = input.games.reduce((sum, g) => sum + (g.runsFor ?? 0), 0);
+  if (
+    input.league.teams >= 2 &&
+    teamRuns > 0 &&
+    teamRuns === input.league.mostTeamRuns
+  )
+    lines.push("Highest-scoring team in the league");
+  if (
+    input.biggestInningRuns > 0 &&
+    input.biggestInningRuns === input.league.biggestInning
+  )
+    lines.push(
+      `Biggest inning in the league: ${input.biggestInningRuns} runs`,
+    );
+  if (
+    input.attended !== null &&
+    input.games.length >= PERFECT_MIN_GAMES &&
+    input.attended === input.games.length
+  )
+    lines.push("Never missed a game");
+  const close = closeWins(input.games, input.player);
+  if (close >= CLOSE_WINS)
+    lines.push(`Cardiac kid: ${close} wins by a single run`);
+  if (input.subGames > 0)
+    lines.push(
+      `Filled in for other teams ${input.subGames} ${input.subGames === 1 ? "time" : "times"}`,
+    );
+  return lines.slice(0, 3);
+}
+
 export type CardInputs = {
   playerName: string;
   seasonName: string;
@@ -217,19 +313,23 @@ export type CardInputs = {
   finish: Finish | null;
   awardsWon: readonly CardAward[];
   votesCast: number;
+  sportsmanship: Sportsmanship | null;
+  subGames: number;
+  league: LeagueMarks;
 };
 
 /** The whole card for one player. */
 export function buildCard(input: CardInputs): SeasonCardStats {
   const mine = playerGames(input.games, input.player);
   const live = biggestInning(input.games, input.player, input.innings);
+  const attended = input.player.tracked ? mine.length : null;
   return {
     version: CARD_VERSION,
     playerName: input.playerName,
     seasonName: input.seasonName,
     team: input.team,
     gamesPlayed: input.games.length,
-    attended: input.player.tracked ? mine.length : null,
+    attended,
     runs: mine.reduce((sum, g) => sum + (g.runsFor ?? 0), 0),
     liveGames: live.live,
     biggestInning: live.best,
@@ -239,6 +339,16 @@ export function buildCard(input: CardInputs): SeasonCardStats {
     votesCast: input.votesCast,
     longestWinStreak: longestWinStreak(input.games, input.player),
     bestGame: bestGame(input.games, input.player),
+    sportsmanship: input.sportsmanship,
+    subGames: input.subGames,
+    superlatives: superlatives({
+      games: input.games,
+      player: input.player,
+      attended,
+      biggestInningRuns: live.best?.runs ?? 0,
+      subGames: input.subGames,
+      league: input.league,
+    }),
   };
 }
 
@@ -289,6 +399,9 @@ export function highlights(stats: SeasonCardStats): string[] {
   for (const a of stats.awardsWon)
     lines.push(a.team ? `Team award: ${a.title}` : `Won ${a.title}`);
   if (stats.bestGame) lines.push(`Best game: ${gameLine(stats.bestGame)}`);
+  const shout = sportsmanshipShout(stats.sportsmanship);
+  if (shout) lines.push(shout);
+  lines.push(...stats.superlatives);
   return lines;
 }
 
