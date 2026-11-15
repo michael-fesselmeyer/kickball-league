@@ -20,6 +20,7 @@ export * from "./free-agent";
 export * from "./friends";
 export * from "./game";
 export * from "./game-day";
+export * from "./game-day-checklist";
 export * from "./guarantee";
 export * from "./keep-off";
 export * from "./league";

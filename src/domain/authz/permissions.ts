@@ -70,6 +70,11 @@ export type Context = {
    * no owner is around (ADR 0057). Read from the league's setting.
    */
   adminsConfirmRainouts?: boolean;
+  /**
+   * The person leads set-up for the game day concerned: they claimed its
+   * set-up lead volunteer shift (issue #409). Read from their signups.
+   */
+  setupLead?: boolean;
 };
 
 type Rule = (s: Subject, c: Context) => boolean;
@@ -97,6 +102,8 @@ const captainsGame: Rule = (s, c) =>
   c.game !== undefined && c.game.teamSeasonIds.some((t) => captains(s, t));
 const refereesGame: Rule = (s, c) =>
   c.game !== undefined && s.refereeGameIds.includes(c.game.id);
+/** Leads set-up for the game day concerned (issue #409). */
+const leadsSetup: Rule = (s, c) => s.userId !== null && c.setupLead === true;
 const any =
   (...rules: Rule[]): Rule =>
   (s, c) =>
@@ -202,7 +209,21 @@ const RULES = {
   "score.enter": any(isAdmin, captainsGame, refereesGame),
   // The park permit for a game, at the field: its ref and both captains.
   // Admins manage permit windows but never see the permit's document.
-  "permit.view_at_field": any(isOwner, isOperator, captainsGame, refereesGame),
+  "permit.view_at_field": any(
+    isOwner,
+    isOperator,
+    captainsGame,
+    refereesGame,
+    leadsSetup,
+  ),
+  // The game-day checklist (issue #409). A captain ticks their own team's
+  // items; the set-up lead records park users asked to move and confirms
+  // set-up; the field's ref, a captain or the set-up lead confirms it was
+  // left clean after the last game.
+  "game_checklist.tick": (s, c) => captains(s, c.teamSeasonId),
+  "move_request.record": leadsSetup,
+  "field_check.setup": any(isAdmin, leadsSetup),
+  "field_check.close": any(isAdmin, captainsGame, refereesGame, leadsSetup),
   "score.confirm": any(isAdmin, captainsGame),
   // "I'm at the field": the game's ref on game day, or an admin for them.
   "referee.check_in": any(
@@ -263,6 +284,8 @@ const RULES = {
   // Open the rain-out screen, preview the makeups and send a rain-out to
   // the owners to confirm (ADR 0057).
   "rainout.prepare": isAdmin,
+  // Write a season's game-day checklist and move script (issue #409).
+  "game_checklist.manage": isAdmin,
   // Cancel the day and save the makeups as a draft: the owners and the
   // operator, and admins too when the owners allow it.
   "rainout.confirm": any(
