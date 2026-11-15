@@ -1,4 +1,5 @@
 import { db } from "@/db/client";
+import { leagueBySegment } from "@/db/queries/leagues";
 import { publicCard } from "@/db/queries/season-cards";
 import { parseId, type SeasonCardId } from "@/domain/ids";
 import { seasonShareCard } from "@/domain/season-card/share";
@@ -18,11 +19,12 @@ const notFound = () =>
 
 export async function GET(
   _request: Request,
-  ctx: RouteContext<"/seasons/[season]/card/[card]/share.png">,
+  ctx: RouteContext<"/l/[league]/seasons/[season]/card/[card]/share.png">,
 ) {
-  const { season, card: rawId } = await ctx.params;
+  const { league: segment, season, card: rawId } = await ctx.params;
   const id = parseId<SeasonCardId>(rawId);
-  const card = id ? await publicCard(db, id) : null;
+  const league = id ? await leagueBySegment(db, segment) : null;
+  const card = id && league ? await publicCard(db, id, league.id) : null;
   if (!card || card.seasonSlug !== season) return notFound();
   return renderShareImage(seasonShareCard(card.stats), {
     cacheControl: CARD_IMAGE_CACHE,

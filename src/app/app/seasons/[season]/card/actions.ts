@@ -3,6 +3,7 @@
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/db/client";
 import { setCardPublic } from "@/db/queries/season-cards";
+import { activeLeagueId } from "@/lib/league/active";
 import { requireSelfToChange } from "@/lib/auth/permission";
 import { refreshSeasonCards } from "@/lib/public-cache";
 
@@ -19,6 +20,7 @@ export async function setCardPublicAction(
 ): Promise<void> {
   const subject = await requireSelfToChange("profile.edit", pageOf(slug));
   const result = await setCardPublic(db, {
+    leagueId: await activeLeagueId(),
     userId: subject.userId,
     seasonSlug: slug,
     isPublic: makePublic,

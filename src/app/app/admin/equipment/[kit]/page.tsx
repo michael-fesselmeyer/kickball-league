@@ -9,7 +9,7 @@ import {
   kitDetail,
   upcomingGearGames,
 } from "@/db/queries/equipment";
-import { currentLeague } from "@/db/queries/seasons";
+import { activeLeague } from "@/lib/league/active";
 import { bringBy, whereabouts } from "@/domain/equipment/equipment";
 import { type EquipmentKitId, type GameId, parseId } from "@/domain/ids";
 import { kickoff, shortDay } from "@/domain/schedule/format";
@@ -62,7 +62,7 @@ async function Kit({
   const kitId = parseId<EquipmentKitId>(rawKit);
   if (!kitId) notFound();
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const now = new Date();
   const pickedGame = parseId<GameId>(query.game);

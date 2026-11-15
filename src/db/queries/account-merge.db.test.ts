@@ -532,6 +532,7 @@ describe("merging duplicate accounts", () => {
         now: NOW,
         secret: SECRET,
         operatorIds: new Set([d.dup.userId]),
+        leagueId: await newestLeague(db),
       });
       expect(attempt).toEqual({ ok: false, error: [{ kind: "operator" }] });
       const [still] = await db

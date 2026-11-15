@@ -6,7 +6,9 @@ import { SeasonCardView } from "@/components/season-card";
 import { ShareButtons } from "@/components/share";
 import { db } from "@/db/client";
 import { publicCard } from "@/db/queries/season-cards";
+import type { LeagueInfo } from "@/db/queries/leagues";
 import { parseId, type SeasonCardId } from "@/domain/ids";
+import { leagueHref } from "@/domain/league/paths";
 import {
   headline,
   publicCardPath,
@@ -22,16 +24,21 @@ import {
 } from "@/lib/public-cache";
 import { shareMetadata } from "@/lib/share/metadata";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
-import { NO_CARD, publicCardParams } from "@/lib/static-params";
+import { cachedLeague, publicLeague } from "@/lib/league/public";
+import {
+  type LeagueParams,
+  NO_CARD,
+  publicCardParams,
+} from "@/lib/static-params";
 
-type Props = PageProps<"/seasons/[season]/card/[card]">;
+type Props = PageProps<"/l/[league]/seasons/[season]/card/[card]">;
 
 /** Whole page static, as the standings are (ADR 0029). */
 export const ensureStatic = "navigation";
 
-/** Each public card is prerendered at build time; later ones on first visit. */
-export async function generateStaticParams() {
-  return publicCardParams();
+/** Each league's public cards are prerendered at build time; later ones on first visit. */
+export async function generateStaticParams(props: LeagueParams) {
+  return publicCardParams(props);
 }
 
 /**
@@ -40,24 +47,30 @@ export async function generateStaticParams() {
  * public or private expires, and the season's cards tag, which rebuilding
  * the cards expires.
  */
-async function cachedCard(season: string, rawId: string) {
+async function cachedCard(
+  league: LeagueInfo | null,
+  season: string,
+  rawId: string,
+) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   const id = rawId === NO_CARD ? null : parseId<SeasonCardId>(rawId);
-  if (!id) return null;
+  if (!id || !league) return null;
   cacheTag(seasonCardTag(id));
-  const card = await publicCard(db, id);
+  const card = await publicCard(db, id, league.id);
   if (card) cacheTag(seasonCardsTag(card.seasonId));
   return card && card.seasonSlug === season ? card : null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { season, card: rawId } = await params;
-  const card = await cachedCard(season, rawId);
+  const { league: segment, season, card: rawId } = await params;
+  const league = await cachedLeague(segment);
+  const card = await cachedCard(league, season, rawId);
   // A private card's page says nothing about whose it was.
-  if (!card) return { title: "Season card", robots: { index: false } };
+  if (!league || !card)
+    return { title: "Season card", robots: { index: false } };
   const image = seasonShareCard(card.stats);
-  const path = publicCardPath(card.seasonSlug, card.id);
+  const path = leagueHref(league, publicCardPath(card.seasonSlug, card.id));
   const title = `${headline(card.stats)} in kickball`;
   const description = `${card.stats.seasonName} with ${card.stats.team.name}: games, runs, streaks and awards.`;
   return {
@@ -86,25 +99,28 @@ export default function PublicSeasonCardPage(props: Props) {
 }
 
 async function Card({ params }: Props) {
-  const { season, card } = await params;
-  return <PublicCard season={season} rawId={card} />;
+  const { league: segment, season, card } = await params;
+  const league = await publicLeague(segment, `/seasons/${season}/card/${card}`);
+  return <PublicCard league={league} season={season} rawId={card} />;
 }
 
 /** The whole card, cached as static HTML under the card's tags. */
 async function PublicCard({
+  league,
   season,
   rawId,
 }: {
+  league: LeagueInfo;
   season: string;
   rawId: string;
 }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
-  const card = await cachedCard(season, rawId);
+  const card = await cachedCard(league, season, rawId);
   if (!card) notFound();
   const url = absoluteUrl(
     siteOrigin(env.BETTER_AUTH_URL),
-    publicCardPath(card.seasonSlug, card.id),
+    leagueHref(league, publicCardPath(card.seasonSlug, card.id)),
   );
   return (
     <>
@@ -120,7 +136,7 @@ async function PublicCard({
       </section>
       <p>
         Want a season like this?{" "}
-        <Link href="/seasons" className="underline">
+        <Link href={leagueHref(league, "/seasons")} className="underline">
           See the next season and sign up
         </Link>
         .

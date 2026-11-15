@@ -3,6 +3,7 @@
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { activeLeagueId } from "@/lib/league/active";
 import {
   computeStatAwards,
   saveStatAwardNote,
@@ -26,7 +27,7 @@ async function guard(slug: string) {
   const subject = await requirePermissionToChange("awards.manage", {
     next: pageOf(slug),
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   return { subject, season };
 }

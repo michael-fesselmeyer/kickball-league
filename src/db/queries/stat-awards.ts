@@ -24,7 +24,7 @@ import {
   STAT_AWARD_KEYS,
   SUGGESTS_FOR,
 } from "@/domain/awards/stat-awards";
-import type { SeasonId, TeamSeasonId, UserId } from "@/domain/ids";
+import type { LeagueId, SeasonId, TeamSeasonId, UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { awardPoll, awardVote } from "../schema/awards";
 import { sportsmanshipRating } from "../schema/discipline";
@@ -594,7 +594,7 @@ export type AwardsBoard = {
  */
 export async function awardsBoard(
   db: Db,
-  where: { seasonId: SeasonId } | { seasonSlug: string },
+  where: { seasonId: SeasonId } | { leagueId: LeagueId; seasonSlug: string },
   options: { publishedOnly: boolean },
 ): Promise<
   | { found: false }
@@ -614,7 +614,10 @@ export async function awardsBoard(
     .where(
       "seasonId" in where
         ? eq(season.id, where.seasonId)
-        : eq(season.slug, where.seasonSlug),
+        : and(
+            eq(season.leagueId, where.leagueId),
+            eq(season.slug, where.seasonSlug),
+          ),
     )
     .orderBy(desc(season.startsOn))
     .limit(1);
@@ -706,12 +709,15 @@ export const publishedStatAwards = (
 /** Slugs of seasons with published awards, for the sitemap and the build. */
 export async function publishedAwardSeasons(
   db: Db,
+  leagueId: LeagueId,
 ): Promise<{ slug: string; publishedAt: Date }[]> {
   const rows = await db
     .select({ slug: season.slug, publishedAt: statAwardSet.publishedAt })
     .from(statAwardSet)
     .innerJoin(season, eq(statAwardSet.seasonId, season.id))
-    .where(isNotNull(statAwardSet.publishedAt))
+    .where(
+      and(eq(season.leagueId, leagueId), isNotNull(statAwardSet.publishedAt)),
+    )
     .orderBy(desc(season.startsOn));
   return rows.flatMap((r) =>
     r.publishedAt ? [{ slug: r.slug, publishedAt: r.publishedAt }] : [],

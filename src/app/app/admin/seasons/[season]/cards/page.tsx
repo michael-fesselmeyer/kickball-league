@@ -6,6 +6,7 @@ import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { activeLeagueId } from "@/lib/league/active";
 import { seasonCardSummary } from "@/db/queries/season-cards";
 import { requirePermission } from "@/lib/auth/permission";
 import { buildSeasonCardsAction } from "./actions";
@@ -40,7 +41,7 @@ async function Cards({ params, searchParams }: Props) {
   await requirePermission("season.manage", {
     next: `/app/admin/seasons/${slug}/cards`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const summary = await seasonCardSummary(db, season.id);
   const error =

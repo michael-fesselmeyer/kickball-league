@@ -242,7 +242,7 @@ describe("computing and publishing", () => {
       expect(draft.found && draft.board?.places.length).toBeGreaterThan(0);
       const hidden = await awardsBoard(
         db,
-        { seasonSlug: w.season.slug },
+        { leagueId: w.leagueId, seasonSlug: w.season.slug },
         { publishedOnly: true },
       );
       expect(hidden).toEqual({
@@ -264,7 +264,7 @@ describe("computing and publishing", () => {
       ).toBe(true);
       const shown = await awardsBoard(
         db,
-        { seasonSlug: w.season.slug },
+        { leagueId: w.leagueId, seasonSlug: w.season.slug },
         { publishedOnly: true },
       );
       const board = shown.found ? shown.board : null;
@@ -279,9 +279,9 @@ describe("computing and publishing", () => {
       ).toEqual(
         expect.arrayContaining(["season_mvp", "golden_boot", "iron_kicker"]),
       );
-      expect((await publishedAwardSeasons(db)).map((s) => s.slug)).toContain(
-        w.season.slug,
-      );
+      expect(
+        (await publishedAwardSeasons(db, w.leagueId)).map((s) => s.slug),
+      ).toContain(w.season.slug);
 
       // The team page's roster carries the badges.
       const roster = await publicRoster(db, w.aces.id);
@@ -396,7 +396,7 @@ describe("leaderboard opt-out", () => {
       expect(seasons).toEqual([w.season.id]);
       const board = await awardsBoard(
         db,
-        { seasonSlug: w.season.slug },
+        { leagueId: w.leagueId, seasonSlug: w.season.slug },
         { publishedOnly: true },
       );
       expect(

@@ -86,7 +86,11 @@ const CURRENT_SEASON = [
  * payments. Cancelled and refunded registrations and removed roster spots
  * are left out. Soonest season first.
  */
-export async function myCurrentSeasons(db: Db, userId: UserId) {
+export async function myCurrentSeasons(
+  db: Db,
+  userId: UserId,
+  leagueId?: LeagueId | null,
+) {
   return db
     .select({
       seasonSlug: season.slug,
@@ -114,6 +118,7 @@ export async function myCurrentSeasons(db: Db, userId: UserId) {
           "active",
         ]),
         inArray(season.status, [...CURRENT_SEASON]),
+        leagueId ? eq(season.leagueId, leagueId) : undefined,
       ),
     )
     .orderBy(season.startsOn, team.name);

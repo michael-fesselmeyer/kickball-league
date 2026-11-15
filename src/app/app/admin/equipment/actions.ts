@@ -11,7 +11,7 @@ import {
   unassignKit,
   updateKit,
 } from "@/db/queries/equipment";
-import { currentLeague } from "@/db/queries/seasons";
+import { activeLeague } from "@/lib/league/active";
 import { parseKitForm } from "@/domain/equipment/equipment";
 import {
   type EquipmentAssignmentId,
@@ -32,7 +32,7 @@ async function guard(next: string) {
   const subject = await requirePermissionToChange("equipment.manage", {
     next,
   });
-  const league = await currentLeague(txDb);
+  const league = await activeLeague();
   if (!league) notFound();
   return { subject, league };
 }

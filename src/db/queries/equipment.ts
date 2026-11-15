@@ -47,7 +47,7 @@ import {
   equipmentReport,
 } from "../schema/equipment";
 import { field, game, refereeAssignment, slot, venue } from "../schema/game";
-import { league } from "../schema/league";
+import { league, leagueMember } from "../schema/league";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import {
@@ -543,11 +543,23 @@ export async function gearCandidates(
   gameId: GameId,
 ): Promise<Candidate[]> {
   const [g] = await db
-    .select({ teamAId: game.teamAId, teamBId: game.teamBId })
+    .select({
+      teamAId: game.teamAId,
+      teamBId: game.teamBId,
+      leagueId: season.leagueId,
+    })
     .from(game)
+    .innerJoin(season, eq(game.seasonId, season.id))
     .where(eq(game.id, gameId));
   if (!g) return [];
   const teams: TeamSeasonId[] = [g.teamAId, g.teamBId];
+  // The game's own league's admins and owners (ADR 0048).
+  const leagueAdmin = sql<boolean>`exists (
+    select 1 from ${leagueMember}
+    where ${leagueMember.leagueId} = ${g.leagueId}
+      and ${leagueMember.userId} = ${user.id}
+      and ${leagueMember.role} in ('admin', 'owner')
+  )`;
   const rows = await db
     .select({
       userId: user.id,
@@ -569,7 +581,7 @@ export async function gearCandidates(
             sql`, `,
           )})
       )`,
-      admin: sql<boolean>`coalesce(${profile.globalRole} in ('admin', 'owner'), false)`,
+      admin: leagueAdmin,
     })
     .from(user)
     .leftJoin(profile, eq(profile.userId, user.id))
@@ -592,7 +604,7 @@ export async function gearCandidates(
               sql`, `,
             )})
         )`,
-        inArray(profile.globalRole, ["admin", "owner"]),
+        leagueAdmin,
       ),
     )
     .orderBy(asc(shortName));

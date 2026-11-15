@@ -1,15 +1,15 @@
 import { and, asc, desc, eq, isNull, ne } from "drizzle-orm";
-import type { SeasonId } from "@/domain/ids";
+import type { LeagueId, SeasonId } from "@/domain/ids";
 import { league } from "../schema/league";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
 
 /**
- * Public seasons for the league's schedule widget, newest first, with the
+ * One league's public seasons for its schedule widget, newest first, with the
  * league's time zone. `widgetSeason` picks the one it follows.
  */
-export function widgetSeasons(db: Db) {
+export function widgetSeasons(db: Db, leagueId: LeagueId) {
   return db
     .select({
       id: season.id,
@@ -20,7 +20,7 @@ export function widgetSeasons(db: Db) {
     })
     .from(season)
     .innerJoin(league, eq(season.leagueId, league.id))
-    .where(ne(season.status, "draft"))
+    .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
     .orderBy(desc(season.startsOn));
 }
 

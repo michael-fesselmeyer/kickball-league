@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db/client";
+import { defaultLeague } from "@/db/queries/leagues";
 import { publishedSchedule, teamBySlug } from "@/db/queries/public-schedule";
 import { widgetSeasons, widgetTeams } from "@/db/queries/widget";
 import type { PublicGame } from "@/domain/schedule/public-game";
@@ -25,13 +26,22 @@ import { leagueWidgetHtml, teamWidgetHtml } from "./embed-html";
 
 const DEFAULT_ZONE = "America/New_York";
 
+/**
+ * The widgets follow the default league, whose pages are the site's own
+ * (ADR 0048).
+ */
+async function defaultLeagueSeasons() {
+  const league = await defaultLeague(db);
+  return league ? widgetSeasons(db, league.id) : [];
+}
+
 /** The league's widget page, as HTML. */
 export async function leagueWidgetPage(): Promise<string> {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   const origin = siteOrigin(env.BETTER_AUTH_URL);
   const read = await readUnlessBuildHasNoDatabase(async () => {
-    const season = widgetSeason(await widgetSeasons(db));
+    const season = widgetSeason(await defaultLeagueSeasons());
     if (!season) return null;
     cacheTag(seasonTag(season.id));
     return { season, games: await publishedSchedule(db, season.id) };
@@ -60,7 +70,8 @@ export async function teamWidgetPage(slug: string): Promise<string | null> {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   cacheTag(teamTag(slug));
-  const team = await teamBySlug(db, slug);
+  const league = await defaultLeague(db);
+  const team = league ? await teamBySlug(db, league.id, slug) : null;
   if (!team) return null;
   const entry = widgetSeason(
     team.entries.map((e) => ({ ...e, status: e.seasonStatus })),
@@ -88,7 +99,7 @@ export async function widgetDirectory() {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   return readUnlessBuildHasNoDatabase(async () => {
-    const season = widgetSeason(await widgetSeasons(db));
+    const season = widgetSeason(await defaultLeagueSeasons());
     if (!season) return { season: null, teams: [] };
     cacheTag(seasonTag(season.id));
     return { season, teams: await widgetTeams(db, season.id) };

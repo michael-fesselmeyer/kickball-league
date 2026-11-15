@@ -6,6 +6,7 @@ import { equipmentHandoff, equipmentKit } from "../schema/equipment";
 import { message } from "../schema/message";
 import { profile } from "../schema/profile";
 import { messagingWorld } from "../test/messaging-world";
+import { grantRole } from "../test/leagues";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import {
   answerHandoff,
@@ -51,9 +52,8 @@ const KIT = {
 async function world(db: Db) {
   const w = await messagingWorld(db);
   const admin = await w.person("gear-admin");
-  await db
-    .insert(profile)
-    .values({ userId: admin.userId, globalRole: "admin" });
+  await db.insert(profile).values({ userId: admin.userId });
+  await grantRole(db, admin.userId, "admin", w.leagueId);
   const ref = await w.person("gear-ref");
   const tuesday = await w.gameEnding(TUESDAY_GAME_ENDS, ref.userId);
   const thursday = await w.gameEnding(THURSDAY_GAME_ENDS);

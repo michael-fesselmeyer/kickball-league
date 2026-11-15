@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { leagueKits } from "@/db/queries/equipment";
-import { currentLeague } from "@/db/queries/seasons";
+import { activeLeague } from "@/lib/league/active";
 import { dayWords, whereabouts } from "@/domain/equipment/equipment";
 import { kickoff } from "@/domain/schedule/format";
 import { requirePermission } from "@/lib/auth/permission";
@@ -35,7 +35,7 @@ async function Equipment({ searchParams }: PageProps<"/app/admin/equipment">) {
     next: "/app/admin/equipment",
   });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const now = new Date();
   const kits = league ? await leagueKits(db, league.id, now) : [];
   const timeZone = league?.timeZone ?? "America/New_York";

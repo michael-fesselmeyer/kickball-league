@@ -8,6 +8,7 @@ import { message } from "../schema/message";
 import { profile } from "../schema/profile";
 import { rosterMembership } from "../schema/team";
 import { messagingWorld } from "../test/messaging-world";
+import { grantRole } from "../test/leagues";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { drainOutbox } from "./outbox";
 import type { Db } from "./schedule";
@@ -132,10 +133,11 @@ describe("score confirmation requests", () => {
       const w = await messagingWorld(db);
       const admin = await w.person("league-admin");
       const owner = await w.person("league-owner");
-      await db.insert(profile).values([
-        { userId: admin.userId, globalRole: "admin" },
-        { userId: owner.userId, globalRole: "owner" },
-      ]);
+      await db
+        .insert(profile)
+        .values([{ userId: admin.userId }, { userId: owner.userId }]);
+      await grantRole(db, admin.userId, "admin", w.leagueId);
+      await grantRole(db, owner.userId, "owner", w.leagueId);
       const { gameId } = await w.gameEnding(ENDS);
       const reported = await reportScore(db, {
         gameId,
