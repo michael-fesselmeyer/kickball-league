@@ -13,7 +13,8 @@ import { SEED_EMAIL_DOMAIN, type SeedData } from "./generate";
 /**
  * A free-agent pool for the seeded spring season, for the quiz and the
  * matcher: people who signed up alone or with friends, most of them with
- * quiz answers, two friend groups and two volunteer captains. Every name is
+ * quiz answers (their own kicking, fielding and running, vibe and game
+ * nights), and two friend groups. Every name is
  * invented. Fixed ids in their own range, so the generated league's ids stay
  * the same.
  */
@@ -28,21 +29,24 @@ type Agent = {
   group?: "a" | "b";
   /** Quiz answers, or null for someone who has not taken it yet. */
   quiz: {
-    experience: string;
-    positions: string[];
-    availability: string;
+    kicking: string;
+    fielding: string;
+    running: string;
     vibe: string;
-    captain: string;
+    availability: string;
   } | null;
 };
 
+/** Kicking, fielding and running as "learning", "solid" or "strong". */
 const q = (
-  experience: string,
+  [kicking, fielding, running]: [string, string, string],
   availability: string,
   vibe: string,
-  captain = "no",
-  positions: string[] = [],
-) => ({ experience, positions, availability, vibe, captain });
+) => ({ kicking, fielding, running, vibe, availability });
+
+const L = "learning";
+const S = "solid";
+const G = "strong";
 
 export const FREE_AGENTS: readonly Agent[] = [
   {
@@ -50,68 +54,65 @@ export const FREE_AGENTS: readonly Agent[] = [
     last: "Ashgrove",
     side: "woman",
     group: "a",
-    quiz: q("some", "every_week", "social", "yes", ["pitcher"]),
+    quiz: q([S, S, G], "every_week", "social"),
   },
   {
     first: "Tobin",
     last: "Ashgrove",
     side: "man",
     group: "a",
-    quiz: q("a_little", "most_weeks", "social"),
+    quiz: q([L, S, S], "most_weeks", "social"),
   },
   {
     first: "Marisol",
     last: "Quillfeather",
     side: "woman",
     group: "a",
-    quiz: q("new", "most_weeks", "social", "no", ["outfield"]),
+    quiz: q([L, L, S], "most_weeks", "social"),
   },
   {
     first: "Dashiell",
     last: "Brambleton",
     side: "man",
-    quiz: q("competitive", "every_week", "competitive", "help", ["catcher"]),
+    quiz: q([G, G, G], "every_week", "competitive"),
   },
   {
     first: "Wren",
     last: "Halloway",
     side: "woman",
-    quiz: q("regular", "every_week", "both", "no", ["infield"]),
+    quiz: q([G, S, G], "every_week", "both"),
   },
   {
     first: "Osric",
     last: "Pennyworth",
     side: "man",
     group: "b",
-    quiz: q("some", "some_weeks", "both"),
+    quiz: q([S, S, S], "some_weeks", "both"),
   },
   {
     first: "Calla",
     last: "Pennyworth",
     side: "woman",
     group: "b",
-    quiz: q("a_little", "some_weeks", "both", "no", ["outfield"]),
+    quiz: q([L, S, L], "some_weeks", "both"),
   },
   {
     first: "Ignatius",
     last: "Fairweather",
     side: "man",
-    quiz: q("regular", "most_weeks", "competitive", "yes", [
-      "infield",
-      "pitcher",
-    ]),
+    quiz: q([G, S, S], "most_weeks", "competitive"),
   },
   {
     first: "Saffron",
     last: "Mirefield",
     side: "woman",
-    quiz: q("new", "every_week", "social"),
+    quiz: q([L, L, L], "every_week", "social"),
   },
   {
     first: "Bartholomew",
     last: "Kettleby",
     side: "man",
-    quiz: q("some", "most_weeks", "social", "no", ["outfield"]),
+    quiz: q([S, L, S], "most_weeks", "social"),
   },
   { first: "Philippa", last: "Duskwood", side: "woman", quiz: null },
   { first: "Lazlo", last: "Thistlewood", side: "man", quiz: null },

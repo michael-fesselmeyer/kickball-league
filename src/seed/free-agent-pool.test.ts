@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { suggestPlacements } from "@/domain/matcher/matcher";
 import { normalizeFriendCode } from "@/domain/matcher/friend-code";
+import { matcherView } from "@/domain/matcher/quiz";
 import { generateSeed, SEED_EMAIL_DOMAIN } from "./generate";
 import { generateFreeAgentPool } from "./free-agent-pool";
 
@@ -27,10 +28,8 @@ describe("the seeded free-agent pool", () => {
         side: r.profile.lineupGender,
         skill: r.quiz?.skillScore ?? null,
         vibe: r.quiz?.vibeScore ?? null,
-        availability: r.quiz?.answers.availability ?? null,
-        positions: r.quiz?.answers.positions ?? [],
+        ...matcherView(r.quiz?.answers ?? null),
         groupId: r.registration.friendGroupId,
-        captain: r.quiz?.answers.captain ?? null,
         order,
       })),
       data.nextTeamSeasons.map((t, i) => ({
