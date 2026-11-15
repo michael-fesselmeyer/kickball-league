@@ -120,7 +120,8 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── games/[game]/attendance         Check-in (the game's captains, its ref, admins): who has checked in, anyone checked in without this season's waiver flagged at the top, and boxes to tick players in or out, from game day until 7 days after (admins any time); every change audited
 │   └── code                        The game's rotating check-in code as a QR code, on game day, refreshed as it turns over, for a phone held up at the field
 ├── games/[game]/check-in/[code]    Where the code lands: a player on either roster or approved to sub taps Check in (the code is checked again on the server); "You're checked in" after
-├── games/[game]/incident           Report an incident: kind, the people involved from either team, what happened (the game's ref, either captain, an admin; from kickoff on)
+├── games/[game]/incident           Report an incident: kind, the people involved from either team, what happened (the game's ref, either captain, an admin; from kickoff on); a link to report an injury
+├── games/[game]/incident/injury    Report an injury: who was hurt, where, what care, what happened, witnesses (same people, same rules; only owners and admins read it)
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref); works with no signal
 ├── games/[game]/lineup             Both teams' kicking orders: a team's captains any time, the other captain and the ref from game day (names only); each player sees their own spot
 │   └── [team]                      Captain: who is away that week and whether the team is short, then the kicking-order builder from the players who are in, with drag, keyboard and button moves, live two-in-a-row checks, auto-arrange and copy from the last game
@@ -193,7 +194,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   └── playoffs                Seed from standings, place on fields, publish the bracket
     ├── games                       Scores, forfeits, corrections
     ├── incidents/                  Concerns and public messages waiting (with the share answered within a day), then the review queue (open reports oldest first), everyone suspended now, recently resolved
-    │   └── [incident]              What happened and who; notes; suspend someone named (the outside-alcohol ladder suggested) or lift a suspension; resolve or reopen
+    │   └── [incident]              What happened and who; notes; suspend someone named (the outside-alcohol ladder suggested) or lift a suspension; resolve or reopen. An injury report shows who was hurt, where, the care and the witnesses (each opening audited), a download for the insurance carrier (`/injury.csv`, with the insurance certificate's dates) and a button that deletes the injury details now
     ├── concerns/
     │   └── [concern]               A private concern or public contact message: what was said, the sender (an address is shown to admins only and each view is audited), the thread of replies and notes; reply by email, add a note, close with what was done, reopen
     ├── concerns/ (player) Your concerns and the league's replies; /new raises a private concern (category, optional park rule and game link); /[concern] shows one of your own with replies and what was done, never admin notes

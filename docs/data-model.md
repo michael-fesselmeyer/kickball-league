@@ -1546,6 +1546,8 @@ erDiagram
   game ||--o{ incident : "may have"
   incident ||--o{ incident_person : names
   incident ||--o{ incident_note : "reviewed in"
+  incident ||--o| injury_report : "may carry"
+  incident ||--o{ injury_witness : "seen by"
   incident ||--o{ suspension : "leads to"
   game ||--o{ sportsmanship_rating : "rated in"
 
@@ -1593,8 +1595,8 @@ erDiagram
   incident {
     uuid id PK
     uuid game_id FK
-    enum kind "ejection, forfeit_related, unsportsmanlike, outside_alcohol, safety, other"
-    text details "1 to 2000 characters"
+    enum kind "ejection, forfeit_related, unsportsmanlike, outside_alcohol, safety, injury, other"
+    text details "1 to 2000 characters, 1000 for an injury"
     uuid reported_by FK
     enum reporter_role "referee, captain, admin"
     enum status "open, resolved"
@@ -1613,6 +1615,16 @@ erDiagram
     uuid author_id FK
     text body "1 to 1000 characters"
     timestamptz written_at
+  }
+  injury_report {
+    uuid incident_id PK, FK
+    uuid hurt_user_id FK "set null when the account goes"
+    enum body_area "a fixed list"
+    enum care "none, first_aid, ems"
+  }
+  injury_witness {
+    uuid incident_id PK, FK
+    uuid user_id PK, FK
   }
   suspension {
     uuid id PK
@@ -1640,6 +1652,7 @@ erDiagram
 Notes:
 - `account_merge` records an admin merging a duplicate account into another ([ADR 0041](adr/0041-merging-duplicate-accounts.md)). Every column that references `user.id` moves by the rule `src/domain/account-merge/rules.ts` gives it, in one transaction with both user rows locked, and a test fails if a person column has no rule. Clashes on unique keys are settled by fixed answers: the kept account's RSVP, vote, setting and membership win; the earliest waiver signature stays; an empty registration gives way to one with a payment, team spot or referral (two that both hold something refuse the merge); self-votes and uncredited self-referrals are removed. The merged-away user row stays, named "Merged account" with an address at `deleted.invalid`, with no sessions, sign-in methods or passkeys, so it cannot sign in. `merged_email` is the old address: a sign-in link asked for it goes to the kept account's address, a new account cannot be created with it, and admin lookups by it find the kept account.
 - `concern` is something a person tells the league: a private concern from a signed-in player or a message from the public contact form ([ADR 0060](adr/0060-one-queue-for-concerns-and-public-contact.md)). Admins read both in one queue; no team or public page reads it. `reply_email` (public senders only) is cleared 12 months after `closed_at` by the daily outbox sweep, along with the messages queued to it. `first_replied_at` is the first reply (not a note) and gives the time to first reply. `concern_message` holds replies (emailed) and admin-only notes. `incident.park_rule` and `concern.park_rule` share one enum so a season's park issues count across both. A player's concern is limited to 5 a day (`ACTION_LIMITS.concern`) and is shown only to them and admins; when the player deletes their account the concern stays with no sender, as a league record. `message.user_id` is now nullable, with `recipient_email`, for mail to an address with no account.
+- Injury reports ([ADR 0064](adr/0064-injury-reports.md)) are incidents whose `kind` is `injury`, filed by the same people (the game's ref, either captain, an admin) and listed in the same review queue. `injury_report` adds who was hurt, the body area and the care given; `injury_witness` adds the people who saw it; what happened is the incident's `details` (1,000 characters at most) and follow-up notes are `incident_note` rows. A report names no one in `incident_person`, so it can't lead to a suspension. Only owners and admins read it, and every view, export and deletion writes an audit row (`injury.view`, `injury.export`, `injury.delete`) that holds no health details. Three years after `reported_at` the daily job `/api/jobs/injury-retention` deletes the `injury_report`, its witnesses, the notes and the text (`details` becomes a fixed sentence), writing `injury.delete` with no actor; an admin can do the same at any time. The incident itself stays, with its game, date and status. A person's data export leaves injury reports out (owners and admins hold them for the league and the insurance carrier), and deleting an account clears `hurt_user_id` and drops the person as a witness.
 - **Not planned:** an `ai_usage` table for AI provider spend and an answer cache. There are no AI features, because every AI provider bills per use ([ADR 0021](adr/0021-free-services-only.md)).
 
 ### 2.8 The owners' books and permits
@@ -1943,7 +1956,9 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `sub_claim` | unique `(sub_request_id, user_id)` | One claim per person |
 | `sportsmanship_rating` | unique `(game_id, team_season_id)`; check `score` between 1 and 5; check the rated team is the other one; check `note` at most 200 characters | One rating per team per game, on the scale |
 | `concern` | check `body` 1 to 2000 characters, `place` up to 80, `reply_email` 3 to 254, `outcome` up to 1000; `park_rule` only with category `park_rules`; check `closed_at` is set exactly when `status = 'closed'`; a public concern has no `sender_id` | A concern says something; a park rule belongs to the park category; closing is timestamped |
-| `incident` | check `details` 1 to 2000 characters; check `resolved_at` is set exactly when `status = 'resolved'` | Reports say something; resolution is timestamped |
+| `incident` | check `details` 1 to 2000 characters; check `resolved_at` is set exactly when `status = 'resolved'`; check `details` is at most 1000 characters when `kind` is `injury` | Reports say something; resolution is timestamped |
+| `injury_report` | one row per incident (primary key `incident_id`); `body_area` and `care` are fixed lists | Minimum data: where and what care, never a diagnosis |
+| `injury_witness` | primary key `(incident_id, user_id)` | A witness is named once per report |
 | `incident_person` | primary key `(incident_id, user_id)` | A person is named once per report |
 | `suspension` | unique `(incident_id, user_id)`; check `games` is set exactly for `scope = 'games'`, between 1 and 20 | One suspension per person per report; a games suspension says how many |
 | `sub_request` | unique `(game_id, team_season_id)` where `status in ('open', 'filled')` | One live request per team per game |
