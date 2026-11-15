@@ -62,12 +62,18 @@ export default function ParkPage(props: Props) {
   );
 }
 
+/** The park for the page's metadata, read inside the cache like the page. */
 async function findPark(
   league: LeagueInfo,
   slug: string,
 ): Promise<PublicPark | null> {
+  "use cache";
+  cacheTag(PARKS_TAG, parkTag(slug));
+  cacheLife(PUBLIC_PAGE_LIFE);
   if (slug === NO_PARK) return null;
-  return publicParkBySlug(db, league.id, slug);
+  return readUnlessBuildHasNoDatabase(() =>
+    publicParkBySlug(db, league.id, slug),
+  );
 }
 
 async function Park({ params }: Props) {
