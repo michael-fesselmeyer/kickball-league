@@ -3,6 +3,8 @@ import { gameStatus, gameWords, updatedWords } from "@/domain/gameday/status";
 import type { SeasonId } from "@/domain/ids";
 import { cachedDayStatus } from "@/lib/game-cache";
 
+type DayStatus = NonNullable<Awaited<ReturnType<typeof cachedDayStatus>>>;
+
 /**
  * A game's day status on its public page, read per request from the data
  * cache, which setting a status expires at once (its season's tag). Kept
@@ -23,6 +25,19 @@ export async function GameStatusLine({
 }) {
   await connection();
   const day = await cachedDayStatus(seasonId, date);
+  return <GameStatusView day={day} gameId={gameId} timeZone={timeZone} />;
+}
+
+/** The status line for one game from its day's status, or nothing. */
+export function GameStatusView({
+  day,
+  gameId,
+  timeZone,
+}: {
+  day: DayStatus | null;
+  gameId: string;
+  timeZone: string;
+}) {
   if (!day) return null;
   const status = gameStatus({ ...day, games: new Map(day.games) }, gameId);
   const words = gameWords(status, timeZone);

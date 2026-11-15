@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import { JsonLd } from "@/components/json-ld";
 import { LogoBadge } from "@/components/logo-badge";
 import { gameMorph, Morph, teamMorph } from "@/components/motion";
-import { ForecastChip } from "@/components/forecast-chip";
+import { ForecastChip, ForecastSpace } from "@/components/forecast-chip";
 import { ShareButtons } from "@/components/share";
 import { LiveLine } from "@/components/line-score";
 import { LiveScore } from "@/components/live-score";
@@ -28,11 +28,15 @@ import {
   resultLine,
   statusLabel,
 } from "@/domain/schedule/public-game";
-import { GameStatusLine } from "@/components/game-day-notice";
+import { GameStatusLine, GameStatusView } from "@/components/game-day-notice";
 import { cardVersion, gameCard } from "@/domain/share/cards";
 import { gameShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
-import { cachedPageSnapshot, cachedPublishedGame } from "@/lib/game-cache";
+import {
+  cachedDayStatus,
+  cachedPageSnapshot,
+  cachedPublishedGame,
+} from "@/lib/game-cache";
 import { MEMBER_PHOTOS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 import { gamePageJsonLd } from "@/lib/seo/pages";
 import { shareMetadata } from "@/lib/share/metadata";
@@ -112,7 +116,8 @@ export async function generateMetadata({
  * and season pages, ADR 0029). Behind a boundary, React moves a finished
  * segment larger than its progressive chunk to the end of the document; a
  * browser that painted the fallback first then revealed the game up to
- * 300 ms later. Only the forecast and the photo prompt stream in.
+ * 300 ms later. Only the day's status, the forecast and the photo prompt
+ * stream in; the first two keep their space while they load (#495).
  */
 export default function GamePage(props: PageProps<"/l/[league]/games/[game]">) {
   return (
@@ -159,6 +164,16 @@ async function Game({ params }: PageProps<"/l/[league]/games/[game]">) {
   const calledOff = isCalledOff(game);
   const label = statusLabel(game);
   const result = resultLine(game);
+  // The game day's status (issue #383) is read again per request, so it is
+  // never stale; the copy kept with this page only holds its space until
+  // then, so the page doesn't move when it arrives (#495).
+  const statusDate =
+    game.startsAt && !done && !calledOff
+      ? localDay(game.startsAt, timeZone)
+      : null;
+  const statusWhenKept = statusDate
+    ? await cachedDayStatus(game.seasonId as SeasonId, statusDate)
+    : null;
 
   return (
     <>
@@ -256,13 +271,23 @@ async function Game({ params }: PageProps<"/l/[league]/games/[game]">) {
               This makeup is waiting for an open slot.
             </dd>
           )}
-          {game.startsAt && !done && !calledOff && (
+          {statusDate && (
             // The game day's status (issue #383): watching, late or off.
-            <Suspense fallback={null}>
+            <Suspense
+              fallback={
+                <dd aria-hidden="true" className="invisible">
+                  <GameStatusView
+                    day={statusWhenKept}
+                    gameId={game.id}
+                    timeZone={timeZone}
+                  />
+                </dd>
+              }
+            >
               <dd>
                 <GameStatusLine
                   seasonId={game.seasonId as SeasonId}
-                  date={localDay(game.startsAt, timeZone)}
+                  date={statusDate}
                   gameId={game.id}
                   timeZone={timeZone}
                 />
@@ -276,7 +301,7 @@ async function Game({ params }: PageProps<"/l/[league]/games/[game]">) {
             game.venue &&
             game.venue.lat !== null &&
             game.venue.lng !== null && (
-              <Suspense fallback={null}>
+              <Suspense fallback={<ForecastSpace />}>
                 <ForecastChip
                   lat={game.venue.lat}
                   lng={game.venue.lng}
