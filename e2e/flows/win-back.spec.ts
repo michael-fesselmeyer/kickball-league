@@ -12,8 +12,8 @@ import { pageAs } from "../support/personas";
 test.use({ viewport: { width: 390, height: 844 } });
 test.describe.configure({ mode: "serial" });
 
-const SEASON = "Autumn 2027";
-const SLUG = "autumn-2027";
+const SEASON = "Comeback Autumn 2027";
+const SLUG = "comeback-autumn-2027";
 
 test("an admin opens registration and emails a past player to come back", async ({
   browser,
