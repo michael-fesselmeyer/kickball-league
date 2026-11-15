@@ -49,6 +49,8 @@ export type PublicGame = {
   scoreB: number | null;
   /** The team_season that forfeited. */
   forfeitBy: string | null;
+  /** An admin's written ruling set this result. The reason is never public. */
+  ruled: boolean;
 };
 
 /** Called off, for whatever reason: shown struck through, never as a result. */
@@ -58,12 +60,12 @@ export function isCalledOff(g: PublicGame): boolean {
   );
 }
 
-/** "Cancelled", "Postponed", "Rained out", "Final", "Forfeit", "Live" or null. */
+/** "Cancelled", "Postponed", "Rained out", "Final", "Ruling", "Forfeit", "Live" or null. */
 export function statusLabel(g: PublicGame): string | null {
   if (g.status === "cancelled") return "Cancelled";
   if (g.status === "postponed") return "Postponed";
   if (g.slotCancelled) return "Rained out";
-  if (g.status === "final") return "Final";
+  if (g.status === "final") return g.ruled ? "Ruling" : "Final";
   if (g.status === "forfeit") return "Forfeit";
   if (g.status === "in_progress") return "Live";
   return null;

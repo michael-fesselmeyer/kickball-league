@@ -27,6 +27,7 @@ export function publicGame(overrides: Partial<PublicGame> = {}): PublicGame {
     scoreA: null,
     scoreB: null,
     forfeitBy: null,
+    ruled: false,
     ...overrides,
   };
 }
