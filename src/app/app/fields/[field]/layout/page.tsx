@@ -6,7 +6,7 @@ import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { fieldLayoutPage, onSetupShift } from "@/db/queries/field-layouts";
 import { can } from "@/domain/authz/permissions";
-import { type FieldId, parseId } from "@/domain/ids";
+import { type FieldId, parseId, type UserId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
 import { activeLeagueId } from "@/lib/league/active";
 
@@ -39,10 +39,11 @@ async function Layout({ params }: PageProps<"/app/fields/[field]/layout">) {
   const fieldId = parseId<FieldId>(rawId);
   if (!fieldId) notFound();
   const leagueId = await activeLeagueId();
+  if (!leagueId) notFound();
+  const userId = parseId<UserId>(subject.userId);
   const allowed =
     can(subject, "season.manage") ||
-    (subject.userId !== null &&
-      (await onSetupShift(db, subject.userId, leagueId, new Date())));
+    (userId !== null && (await onSetupShift(db, userId, leagueId, new Date())));
   if (!allowed) notFound();
   const layout = await fieldLayoutPage(db, leagueId, fieldId);
   if (!layout) notFound();

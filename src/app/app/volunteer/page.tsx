@@ -73,17 +73,18 @@ async function Shifts({ searchParams }: PageProps<"/app/volunteer">) {
   // The fields a crew on a set-up shift prepares, with their layouts (#403).
   const crewFields = new Map(
     await Promise.all(
-      shifts
-        .filter((s) => s.role === "setup" && s.seasonId && mine.has(s.id))
-        .map(async (s) => {
-          const fields = await setupFields(
-            db,
-            s.seasonId as SeasonId,
-            s.startsAt,
-            new Date(s.endsAt.getTime() + 12 * 3_600_000),
-          );
-          return [s.id, fields] as const;
-        }),
+      shifts.flatMap((s) =>
+        s.role === "setup" && s.occasion.kind === "season" && mine.has(s.id)
+          ? [
+              setupFields(
+                db,
+                s.occasion.seasonId as SeasonId,
+                s.startsAt,
+                new Date(s.endsAt.getTime() + 12 * 3_600_000),
+              ).then((fields) => [s.id, fields] as const),
+            ]
+          : [],
+      ),
     ),
   );
   const timeZone = league?.timeZone ?? "America/New_York";
