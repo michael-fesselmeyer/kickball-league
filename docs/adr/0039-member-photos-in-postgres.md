@@ -22,7 +22,7 @@ What we have:
 
 - The phone shrinks a photo over 1.5 MB to 2048 px on a canvas before sending it, so it goes up as a few hundred kilobytes. Without JavaScript the original goes, up to 4 MB.
 - The server never trusts the file name or type: the first bytes must be JPEG, PNG or WebP, and sharp must decode the file as that same format, with a 50-megapixel limit against decompression bombs. HEIC is refused with its own message; iPhone browsers convert to JPEG on upload when the page asks only for JPEG, PNG or WebP.
-- It is turned the way the camera held it, shrunk to at most 1440 px on its longest side (Instagram's largest size) and stored as one JPEG, the format Instagram and every phone accept, so admins repost the download as it is. Quality 82, then 72, then 62, whichever first fits 1 MB. Sharp writes no metadata, so the phone's location, model and serial number are never stored. Pages get WebP or AVIF copies at the size they need from the image optimizer, as for Instagram photos (`getImageProps`, no image component JavaScript).
+- It is turned the way the camera held it, shrunk to at most 1440 px on its longest side (Instagram's largest size) and stored as one JPEG, the format Instagram and every phone accept, so admins repost the download as it is. Quality 82, then 72, then 62, whichever first fits 1 MB. Sharp writes no metadata, so the phone's location, model and serial number are never stored. Pages get WebP copies at the size they need from the image optimizer, as for Instagram photos (`getImageProps`, no image component JavaScript).
 
 **Hard limits**, enforced when a photo is stored and checked by database constraints where they can be:
 
@@ -51,6 +51,6 @@ Uploads for a league take turns under a transaction lock, so two at once cannot 
 ## Consequences
 
 - Admins must clear older photos when the 100 MB fills up; the review queue shows storage used against the cap and says what to do.
-- A photo taken down leaves every page on its next request, and its address keeps answering from caches for up to five minutes, as for Instagram photos.
+- A photo taken down leaves every page on its next request, and its address keeps answering from caches for up to five minutes, as for Instagram photos. Changed by [ADR 0068](0068-optimized-photos-kept-a-month-and-purged-at-takedown.md): on Vercel the takedown purges the cached copies at once, and the optimizer keeps them 31 days otherwise.
 - Videos are not supported. The spec's "photos and videos" stays half done until there is a free way to store and serve them.
 - Tests cover the byte checks and limits as unit tests, processing with generated images (orientation, metadata removal, disguised files, a decompression bomb), the database rules (who may tag what, the daily and league limits, review, deletion and account deletion), and an end-to-end flow at phone width.
