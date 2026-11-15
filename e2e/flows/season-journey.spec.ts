@@ -141,6 +141,35 @@ test("a whole season, from setting it up to a rain-out", async ({
     await expectNoAxeViolations(admin);
   });
 
+  await test.step("the owner uploads the permit, so games can be published on it", async () => {
+    // A game is published only inside a permit with its document (issue
+    // #407). On the flows server the admin is the platform operator, who
+    // sees the owners' books.
+    await admin.goto(`/app/books/${SLUG}/permits`);
+    const permit = admin.getByRole("article", {
+      name: "Hollow Oak Green, Diamond 1 (no permit number yet)",
+    });
+    await permit.getByText("Edit", { exact: false }).first().click();
+    await permit.getByLabel("Permit document").setInputFiles({
+      name: "permit.pdf",
+      mimeType: "application/pdf",
+      buffer: Buffer.from(
+        "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n",
+      ),
+    });
+    await permit.getByRole("button", { name: "Save permit" }).click();
+    await expect(
+      admin.getByRole("status").filter({ hasText: "Permit saved." }),
+    ).toBeVisible();
+    await expect(
+      admin
+        .getByRole("article", {
+          name: "Hollow Oak Green, Diamond 1 (no permit number yet)",
+        })
+        .getByRole("link", { name: /Open the permit/ }),
+    ).toBeVisible();
+  });
+
   const captain = await pageAs(browser, "Captain");
   let inviteLink = "";
 
