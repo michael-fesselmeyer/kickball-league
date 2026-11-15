@@ -43,6 +43,7 @@ import {
   REGISTRATION_REFUSALS,
   relyingParty,
 } from "./passkey-policy";
+import { startWithNewsOff } from "@/db/queries/notifications";
 import { createProfileForUser } from "./profile";
 import { replacePreviousSession } from "./replace-session";
 
@@ -117,6 +118,8 @@ export const auth = betterAuth({
           const id = parseId<UserId>(user.id);
           if (!id) throw new Error("Expected a UUID account id");
           await createProfileForUser(db, id);
+          // League news is opt-in: new accounts start with it off.
+          await startWithNewsOff(db, id);
           // A "not on my team" entry added for this address before it had
           // an account applies from the first sign-in.
           await claimKeepOffsForNewAccount(db, id, user.email);

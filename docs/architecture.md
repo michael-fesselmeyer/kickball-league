@@ -739,7 +739,7 @@ Third-party material stays out of the public repository until the league agrees:
 | Topic | Design |
 |---|---|
 | Channels | Email and web push. Both are free; text messages are not used because every text is billed ([ADR 0021](adr/0021-free-services-only.md)) |
-| Opt-out | Every email has a one-click unsubscribe for its topic, in the body and in the `List-Unsubscribe` header, so leaving a topic is as quick as replying STOP to a text. Game-critical notices (rain-outs, schedule changes) stay on by default but can be switched to push or to the site only |
+| Opt-out | Every email has a one-click unsubscribe for its topic, in the body and in the `List-Unsubscribe` header, so leaving a topic is as quick as replying STOP to a text. League news (the `announcement` topic: announcements, recaps, rule changes, surveys, win-back and season cards) is opt-in: a new account starts with it off (`startWithNewsOff`, called when the account is created, writes an explicit choice, so existing accounts are unchanged), and the person turns it on in their email settings. Game-critical notices (rain-outs, schedule changes) stay on by default but can be switched to push or to the site only |
 | Quiet hours | Push waits until 9:00 Eastern, except same-day rain-out notices, which may go from 7:00 |
 | Group chats | "Copy for WhatsApp" puts a ready-made message on the clipboard for a captain or admin to paste into the team or league chat. It costs nothing and reaches everyone the chat reaches |
 | Push ✔ | `push_subscription` rows and the Web Push protocol with VAPID keys, sent by the outbox alongside email (section 14, "Push notifications") |

@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { auth as Auth } from "./index";
 import { claimKeepOffsForNewAccount } from "@/db/queries/keep-off";
+import { startWithNewsOff } from "@/db/queries/notifications";
 import { allowSignInLink } from "@/db/queries/rate-limit";
 import { createProfileForUser } from "./profile";
 
@@ -11,6 +12,11 @@ vi.mock("./profile", () => ({
 // Claiming list entries for a new address is a database write.
 vi.mock("@/db/queries/keep-off", () => ({
   claimKeepOffsForNewAccount: vi.fn(() => Promise.resolve(0)),
+}));
+
+// Starting a new account with league news off is a database write.
+vi.mock("@/db/queries/notifications", () => ({
+  startWithNewsOff: vi.fn(() => Promise.resolve()),
 }));
 
 // The per-inbox count lives in the database; here it always has room
@@ -76,6 +82,8 @@ describe("auth instance", () => {
       expect.anything(),
       user.id,
     );
+    // League news is opt-in: the new account starts with it off.
+    expect(startWithNewsOff).toHaveBeenCalledWith(expect.anything(), user.id);
     // Not-on-my-team entries added for the address before it had an account.
     expect(claimKeepOffsForNewAccount).toHaveBeenCalledWith(
       expect.anything(),
