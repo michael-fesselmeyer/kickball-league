@@ -11,7 +11,11 @@ import {
   formatFriendCode,
   friendsSentence,
 } from "@/domain/matcher/friend-code";
-import { NOTES_MAX, QUESTIONS, type QuizAnswers } from "@/domain/matcher/quiz";
+import {
+  NOTES_MAX,
+  QUESTIONS,
+  type StoredQuizAnswers,
+} from "@/domain/matcher/quiz";
 import { requireSelf } from "@/lib/auth/permission";
 import {
   joinGroupAction,
@@ -24,10 +28,11 @@ import { SubmitButton } from "@/components/submit-button";
 export const metadata: Metadata = { title: "Team-fit quiz" };
 
 const ERRORS: Record<string, string> = {
-  missing_experience: "Tell us how much kickball you've played.",
+  missing_kicking: "Rate your kicking.",
+  missing_fielding: "Rate your fielding.",
+  missing_running: "Rate your running.",
+  missing_vibe: "Tell us whether you're competitive or here for fun.",
   missing_availability: "Tell us how many game nights you can make.",
-  missing_vibe: "Tell us what you're here for.",
-  missing_captain: "Tell us whether you'd captain.",
   notes_too_long: `Keep the note to ${NOTES_MAX} characters.`,
   not_in_pool:
     "The quiz and friend codes are for free agents who haven't been placed on a team yet.",
@@ -77,33 +82,31 @@ function QuizSkeleton() {
 const choice =
   "flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border-2 border-border px-3 py-2 has-[:checked]:border-text has-[:checked]:bg-surface has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus";
 
+/**
+ * One one-tap question. Answers from the quiz's first version fill in the
+ * questions it shared with this one (vibe and game nights).
+ */
 function Question({
   name,
-  type,
   answers,
 }: {
-  name: "experience" | "positions" | "availability" | "vibe" | "captain";
-  type: "radio" | "checkbox";
-  answers: QuizAnswers | null;
+  name: keyof typeof QUESTIONS;
+  answers: StoredQuizAnswers | null;
 }) {
   const q = QUESTIONS[name];
-  const chosen = (value: string) =>
-    name === "positions"
-      ? (answers?.positions as readonly string[] | undefined)?.includes(value)
-      : answers?.[name] === value;
+  const previous = (answers as Record<string, unknown> | null)?.[name];
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-2 text-h3">{q.title}</legend>
-      {"hint" in q && <p className="text-text-muted">{q.hint}</p>}
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-3">
         {q.choices.map((c) => (
           <label key={c.value} className={choice}>
             <input
-              type={type}
+              type="radio"
               name={name}
               value={c.value}
-              defaultChecked={chosen(c.value)}
-              required={type === "radio"}
+              defaultChecked={previous === c.value}
+              required
               className="size-5 accent-[var(--text)]"
             />
             {c.label}
@@ -145,9 +148,9 @@ async function Quiz({
       </Link>
       <h1 className="text-h1">Find your team</h1>
       <p className="text-text-muted">
-        Five quick taps, about a minute. The league uses your answers to put you
-        on a team that fits, and keeps you with any friends who signed up with
-        you.
+        Five quick taps, about a minute: rate your own game and say how you like
+        to play. The league uses your answers to put you on a team that fits,
+        and keeps you with any friends who signed up with you.
       </p>
     </header>
   );
@@ -180,11 +183,9 @@ async function Quiz({
         action={saveQuizAction.bind(null, slug)}
         className="flex flex-col gap-8"
       >
-        <Question name="experience" type="radio" answers={mine.answers} />
-        <Question name="positions" type="checkbox" answers={mine.answers} />
-        <Question name="availability" type="radio" answers={mine.answers} />
-        <Question name="vibe" type="radio" answers={mine.answers} />
-        <Question name="captain" type="radio" answers={mine.answers} />
+        {(Object.keys(QUESTIONS) as (keyof typeof QUESTIONS)[]).map((name) => (
+          <Question key={name} name={name} answers={mine.answers} />
+        ))}
         <label className="flex flex-col gap-1">
           Anything else the league should know? (optional)
           <input

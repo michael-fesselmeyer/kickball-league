@@ -467,7 +467,7 @@ describe("suggestNewTeam", () => {
     expect(suggestNewTeam([free("Flo")], 10)).toMatchObject({
       captainId: null,
       reasons: [
-        "Nobody in the pool offered to captain yet.",
+        "Nobody has offered to captain: pick one of these players.",
         "1 player: 1 woman and 0 men.",
       ],
     });

@@ -34,11 +34,11 @@ const secureRandom = () => randomInt(0, 2 ** 32) / 2 ** 32;
 export async function saveQuizAction(slug: string, form: FormData) {
   const { userId, seasonId } = await context(slug);
   const parsed = parseQuiz({
-    experience: form.get("experience"),
-    positions: form.getAll("positions"),
-    availability: form.get("availability"),
+    kicking: form.get("kicking"),
+    fielding: form.get("fielding"),
+    running: form.get("running"),
     vibe: form.get("vibe"),
-    captain: form.get("captain"),
+    availability: form.get("availability"),
     notes: form.get("notes"),
   });
   if (!parsed.ok) redirect(`${pageFor(slug)}?error=${parsed.error}`);
