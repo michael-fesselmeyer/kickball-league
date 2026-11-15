@@ -27,7 +27,7 @@ import {
   removePollAction,
 } from "./actions";
 
-export const metadata: Metadata = { title: "Captains' polls" };
+export const metadata: Metadata = { title: "Manage captains' polls" };
 
 export default function CaptainPollsAdminPage(
   props: PageProps<"/app/admin/seasons/[season]/captain-polls">,
