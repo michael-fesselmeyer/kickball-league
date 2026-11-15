@@ -16,6 +16,7 @@ import { currentLeague } from "@/db/queries/seasons";
 import { hasSignedSeasonWaiver } from "@/db/queries/waivers";
 import { formatCents, registrationWindow } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
+import { demoStatus } from "@/lib/demo/guard";
 import { stripeClient } from "@/services/stripe";
 import { startCheckout } from "./actions";
 import { ConfirmingPayment } from "./confirming";
@@ -249,8 +250,9 @@ async function Season({
             </p>
           ) : !paymentsOn ? (
             <p className="text-text-muted">
-              Online payment is not set up yet. The league will let you know
-              when it opens.
+              {demoStatus(process.env).on
+                ? "Demo payment: card payments are off in this demo. On the league's site, this is where you pay by card."
+                : "Online payment is not set up yet. The league will let you know when it opens."}
             </p>
           ) : (
             <form
