@@ -2,15 +2,19 @@ import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GameCard } from "@/components/game-card";
+import { GameDayNotice, toneOf } from "@/components/game-day-notice";
 import { db } from "@/db/client";
 import { seasonDivisions, teamDivisions } from "@/db/queries/divisions";
 import { themeWeeks } from "@/db/queries/events";
+import { statusesFrom } from "@/db/queries/game-day-status";
 import { publishedSchedule } from "@/db/queries/public-schedule";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { themeFor } from "@/domain/events/event";
-import { dayHeading, kickoff } from "@/domain/schedule/format";
+import { dayLine, gameStatus, gameWords } from "@/domain/gameday/status";
+import { dayHeading, kickoff, shortDay } from "@/domain/schedule/format";
 import {
   groupByDay,
+  localDay,
   type PublicGame,
   type PublicTeam,
 } from "@/domain/schedule/public-game";
@@ -57,11 +61,14 @@ export async function SeasonSchedule({
   // Drafts are the league's work in progress, not public.
   if (!season || !isPublicSeason(season)) notFound();
   cacheTag(seasonTag(season.id), THEME_WEEKS_TAG);
-  const [all, themes, divisions, divisionOf] = await Promise.all([
+  // Setting a game day's status expires the season tag (issue #383).
+  const today = localDay(new Date(), season.timeZone);
+  const [all, themes, divisions, divisionOf, statuses] = await Promise.all([
     publishedSchedule(db, season.id),
     themeWeeks(db, season.leagueId, season.timeZone),
     seasonDivisions(db, season.id),
     teamDivisions(db, season.id),
+    statusesFrom(db, season.id, today),
   ]);
   const division = divisionSlug
     ? divisions.find((d) => d.slug === divisionSlug)
@@ -83,12 +90,27 @@ export async function SeasonSchedule({
     : inView;
   const days = groupByDay(games, season.timeZone);
   const unplaced = games.filter((g) => g.startsAt === null);
-  /** A game between two divisions, marked on its card. */
+  /**
+   * A game that starts late or is off says so on its card; otherwise a game
+   * between two divisions is marked.
+   */
   const note = (g: PublicGame) => {
+    const day = g.startsAt ? localDay(g.startsAt, season.timeZone) : null;
+    const status = day ? gameStatus(statuses.get(day) ?? null, g.id) : null;
+    if (status && (status.kind === "delayed" || status.kind === "off"))
+      return gameWords(status, season.timeZone) ?? undefined;
     const a = divisionOf.get(g.teamA.id);
     const b = divisionOf.get(g.teamB.id);
     return a && b && a !== b ? "Crossover" : undefined;
   };
+  /** The day lines at the top: today's and later days' statuses. */
+  const banners = [...statuses.values()].flatMap((s) => {
+    const dayCount = all.filter(
+      (g) => g.startsAt && localDay(g.startsAt, season.timeZone) === s.date,
+    ).length;
+    const line = dayLine(s, dayCount, season.timeZone);
+    return line && dayCount > 0 ? [{ status: s, line }] : [];
+  });
   const base = `/seasons/${season.slug}/schedule`;
 
   return (
@@ -118,6 +140,21 @@ export async function SeasonSchedule({
           </Link>
         </nav>
       </header>
+
+      {banners.length > 0 && (
+        <section aria-label="Game-day status" className="flex flex-col gap-2">
+          {banners.map(({ status, line }) => (
+            <GameDayNotice
+              key={status.date}
+              label={shortDay(new Date(`${status.date}T12:00:00Z`), "UTC")}
+              line={line}
+              setAt={status.setAt}
+              timeZone={season.timeZone}
+              tone={toneOf(status.state)}
+            />
+          ))}
+        </section>
+      )}
 
       {divisions.length > 0 && (
         <nav aria-label="Divisions" className="flex flex-wrap gap-2">

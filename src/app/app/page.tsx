@@ -17,14 +17,18 @@ import { AllOutboxStatus } from "@/components/offline-outbox";
 import { Pickups } from "@/components/pickups";
 import { can } from "@/domain/authz/permissions";
 import { isGameDay } from "@/domain/lineup/access";
-import { newestTeamSeason } from "@/domain/schedule/public-game";
+import { localDay, newestTeamSeason } from "@/domain/schedule/public-game";
 import {
   type GameId,
   type LeagueId,
   parseId,
+  type SeasonId,
   type TeamSeasonId,
   type UserId,
 } from "@/domain/ids";
+import { statusesFrom } from "@/db/queries/game-day-status";
+import { gameStatus, gameWords } from "@/domain/gameday/status";
+import { GameDayNotice, toneOf } from "@/components/game-day-notice";
 import {
   offeredInstall,
   offlineGame,
@@ -186,6 +190,19 @@ async function Account({ searchParams }: PageProps<"/app">) {
     refereeing.find(
       (g) => isGameDay(g.startsAt, now, timeZone) && !g.checkedInAt,
     )?.id ?? null;
+  // The next game's day status (issue #383): watching, late or off.
+  const nextDate = nextGame?.startsAt
+    ? localDay(nextGame.startsAt, timeZone)
+    : null;
+  const nextDay =
+    nextGame && nextDate
+      ? ((await statusesFrom(db, nextGame.seasonId as SeasonId, nextDate)).get(
+          nextDate,
+        ) ?? null)
+      : null;
+  const nextStatus =
+    nextGame && nextDay ? gameStatus(nextDay, nextGame.id) : null;
+  const nextWords = nextStatus ? gameWords(nextStatus, timeZone) : null;
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -235,6 +252,14 @@ async function Account({ searchParams }: PageProps<"/app">) {
               {nextGame.field ? ` · ${nextGame.field}` : ""}
               {nextGame.venue ? `, ${nextGame.venue.name}` : ""}
             </p>
+          )}
+          {nextDay && nextStatus && nextWords && (
+            <GameDayNotice
+              line={`${nextWords}.${nextDay.reason ? ` ${nextDay.reason}.` : ""}`}
+              setAt={nextDay.setAt}
+              timeZone={timeZone}
+              tone={toneOf(nextStatus.kind)}
+            />
           )}
         </section>
       )}

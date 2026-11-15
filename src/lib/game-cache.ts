@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { db } from "@/db/client";
+import { statusesFrom } from "@/db/queries/game-day-status";
 import { liveGame, snapshotOf } from "@/db/queries/live-scores";
 import {
   publishedGame,
@@ -63,6 +64,21 @@ export async function cachedPublishedGame(gameId: GameId) {
   const found = await publishedGame(db, gameId);
   if (found) cacheTag(seasonTag(found.game.seasonId));
   return found;
+}
+
+/**
+ * A game day's status for the game page (issue #383), tagged with its
+ * season, which setting a status expires. Its games come back as pairs so
+ * the cached value stays plain data.
+ */
+export async function cachedDayStatus(seasonId: SeasonId, date: string) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
+  cacheTag(seasonTag(seasonId));
+  const found = (await statusesFrom(db, seasonId, date)).get(date);
+  return found && found.date === date
+    ? { ...found, games: [...found.games] }
+    : null;
 }
 
 /** A season's published schedule, for the game page's stats. */
