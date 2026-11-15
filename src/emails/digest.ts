@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill, plural } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /** One held message, as the digest job read it from its own template. */
 const digestItem = z.object({
@@ -26,25 +27,24 @@ export const ALERT_LIMITS_PATH = "/app/profile#alert-limits";
  * together in one email, each linking to its page.
  */
 export const digestEmail = defineTemplate(digestPayload, (p, ctx) => {
+  const { locale, w: all } = emailWords(ctx);
+  const w = all.digest;
   const count = p.items.length;
-  const what = count === 1 ? "1 update" : `${count} updates`;
-  const when = p.frequency === "daily" ? "today" : "this week";
   return renderEmail(
     {
-      subject: `League news: ${what}`,
-      heading: `Your league news ${when}`,
-      paragraphs: [
-        `Here ${count === 1 ? "is the update" : `are the ${count} updates`} we held back so your inbox stays calm.`,
-      ],
+      subject: fill(w.subject, {
+        updates: plural(locale, w.updates, count),
+      }),
+      heading: p.frequency === "daily" ? w.headingDaily : w.headingWeekly,
+      paragraphs: [plural(locale, w.lead, count)],
       items: p.items,
       reason:
         p.dailyCap === 0
-          ? `you chose to get news that can wait in one ${p.frequency} email`
-          : `you get at most ${p.dailyCap} league ${p.dailyCap === 1 ? "email" : "emails"} a day that can wait, and these came after that`,
-      settings: {
-        label: "Change your daily limit, digest or quiet hours",
-        path: ALERT_LIMITS_PATH,
-      },
+          ? p.frequency === "daily"
+            ? w.reasonDaily
+            : w.reasonWeekly
+          : plural(locale, w.reasonCap, p.dailyCap),
+      settings: { label: w.settings, path: ALERT_LIMITS_PATH },
     },
     ctx,
   );

@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { inviteSite } from "@/domain/events/audience";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, publicPath, renderEmail } from "./layout";
 
 /** The event a notice is about, as the league writes it. */
 export const eventNoticePayload = z.object({
@@ -24,32 +25,30 @@ export type EventNoticePayload = z.infer<typeof eventNoticePayload>;
  * or an admin told an event's audience about it or about a change.
  */
 export const eventNoticeEmail = defineTemplate(eventNoticePayload, (p, ctx) => {
+  const { w: all } = emailWords(ctx);
+  const w = all.event;
   const where = p.place ? `${p.when}, ${p.place}` : p.when;
+  const vars = { title: p.title, where };
   if (p.kind === "announced" || p.kind === "updated") {
     const invite = p.inviteUrl
-      ? [`RSVP on ${inviteSite(p.inviteUrl)}: ${p.inviteUrl}`]
+      ? [fill(w.rsvpOn, { site: inviteSite(p.inviteUrl), url: p.inviteUrl })]
       : [];
+    const announced = p.kind === "announced";
     return renderEmail(
       {
-        subject:
-          p.kind === "announced"
-            ? `New event: ${p.title}`
-            : `Update: ${p.title}`,
-        heading:
-          p.kind === "announced"
-            ? `You're invited: ${p.title}`
-            : `${p.title} has changed`,
+        subject: fill(announced ? w.announcedSubject : w.updatedSubject, vars),
+        heading: fill(announced ? w.announcedHeading : w.updatedHeading, vars),
         paragraphs: [
-          p.kind === "announced"
-            ? `${p.title} is on: ${where}.`
-            : `The league changed the details of ${p.title}. It's now ${where}.`,
+          fill(announced ? w.announcedLead : w.updatedLead, vars),
           ...invite,
         ],
         action: {
-          label: "See the event",
-          path: p.publicPage ? `/events/${p.slug}` : `/app/events/${p.slug}`,
+          label: all.common.seeEvent,
+          path: p.publicPage
+            ? publicPath(ctx, `/events/${p.slug}`)
+            : `/app/events/${p.slug}`,
         },
-        reason: "the league posted an event for you",
+        reason: w.postedReason,
       },
       ctx,
     );
@@ -57,26 +56,21 @@ export const eventNoticeEmail = defineTemplate(eventNoticePayload, (p, ctx) => {
   return p.kind === "spot_opened"
     ? renderEmail(
         {
-          subject: `You're in: ${p.title}`,
-          heading: `A spot opened up for ${p.title}`,
-          paragraphs: [
-            `You were on the waitlist for ${p.title} (${where}), and now you have a spot.`,
-            "Plans changed? Drop your spot on the event page so the next person on the list gets it.",
-          ],
-          action: { label: "See the event", path: `/app/events/${p.slug}` },
-          reason: "you joined this event's waitlist",
+          subject: fill(w.spotSubject, vars),
+          heading: fill(w.spotHeading, vars),
+          paragraphs: [fill(w.spotLead, vars), w.spotDrop],
+          action: { label: all.common.seeEvent, path: `/app/events/${p.slug}` },
+          reason: w.waitlistReason,
         },
         ctx,
       )
     : renderEmail(
         {
-          subject: `Called off: ${p.title}`,
-          heading: `${p.title} is called off`,
-          paragraphs: [
-            `The league called off ${p.title} (${where}). Sorry about that. Your RSVP is cleared and there's nothing you need to do.`,
-          ],
-          action: { label: "See other events", path: "/events" },
-          reason: "you RSVP'd to this event",
+          subject: fill(w.offSubject, vars),
+          heading: fill(w.offHeading, vars),
+          paragraphs: [fill(w.offLead, vars)],
+          action: { label: w.otherEvents, path: publicPath(ctx, "/events") },
+          reason: w.rsvpReason,
         },
         ctx,
       );

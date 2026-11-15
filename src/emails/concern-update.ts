@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /**
  * What the league tells the sender of a concern: that it arrived, a reply,
@@ -18,36 +19,30 @@ export const concernUpdatePayload = z.object({
 export const concernUpdateEmail = defineTemplate(
   concernUpdatePayload,
   (p, ctx) => {
+    const { w: all } = emailWords(ctx);
+    const w = all.concern;
+    const league = { league: p.leagueName };
     const lines =
       p.step === "received"
-        ? [
-            `${p.leagueName} got your message. Only the league's admins read it, and one of them will answer.`,
-            p.inApp
-              ? "You can follow it in the app."
-              : "If you left an address, the answer comes to this email.",
-          ]
+        ? [fill(w.received, league), p.inApp ? w.followInApp : w.answerByEmail]
         : p.step === "reply"
-          ? [`${p.leagueName} replied:`, p.text]
-          : [`${p.leagueName} closed your message. What was done:`, p.text];
+          ? [fill(w.replied, league), p.text]
+          : [fill(w.closed, league), p.text];
+    const title =
+      p.step === "received"
+        ? w.receivedTitle
+        : p.step === "reply"
+          ? w.replyTitle
+          : w.closedTitle;
     return renderEmail(
       {
-        subject:
-          p.step === "received"
-            ? "We got your message"
-            : p.step === "reply"
-              ? "A reply from the league"
-              : "Your message is closed",
-        heading:
-          p.step === "received"
-            ? "We got your message"
-            : p.step === "reply"
-              ? "A reply from the league"
-              : "Your message is closed",
+        subject: title,
+        heading: title,
         paragraphs: lines,
         ...(p.inApp
-          ? { action: { label: "Open the app", path: "/app/concerns" } }
+          ? { action: { label: all.common.openApp, path: "/app/concerns" } }
           : {}),
-        reason: "you sent the league a message",
+        reason: w.reason,
       },
       ctx,
     );

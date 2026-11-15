@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 const about = {
   /** The organization the league or tournament is for. */
@@ -30,56 +31,57 @@ export const privateEventPayload = z.discriminatedUnion("step", [
 
 export type PrivateEventPayload = z.infer<typeof privateEventPayload>;
 
-const what = (kind: "tournament" | "league") =>
-  kind === "tournament" ? "tournament" : "private league";
-
 export const privateEventEmail = defineTemplate(
   privateEventPayload,
   (p, ctx) => {
-    const reason = `you asked the league for a ${what(p.kind)} for ${p.organization}`;
+    const { w: all } = emailWords(ctx);
+    const w = all.privateEvent;
+    const vars = {
+      what: p.kind === "tournament" ? w.tournament : w.league,
+      organization: p.organization,
+    };
+    const reason = fill(w.reason, vars);
     switch (p.step) {
       case "received":
         return renderEmail(
           {
-            subject: `We got your ${what(p.kind)} request`,
-            heading: "Thanks, we have your request",
-            paragraphs: [
-              `The league has your request for a ${what(p.kind)} for ${p.organization}. An admin will look at fields and dates and get back to you, usually within a week.`,
-              "You can see where it stands at any time.",
-            ],
-            action: { label: "See your request", path: "/app/private-events" },
+            subject: fill(w.receivedSubject, vars),
+            heading: w.receivedHeading,
+            paragraphs: [fill(w.receivedLead, vars), w.receivedMore],
+            action: { label: w.seeRequest, path: "/app/private-events" },
             reason,
           },
           ctx,
         );
-      case "accepted":
+      case "accepted": {
+        const accepted = { ...vars, season: p.seasonName };
         return renderEmail(
           {
-            subject: `${p.seasonName} is on`,
-            heading: `Your ${what(p.kind)} is set up`,
-            paragraphs: [
-              `The league set up ${p.seasonName} for ${p.organization}. It is private: only your teams can join, and nothing about it shows on the league's public pages.`,
-              "Share the invite link with each team's captain. Your page shows the teams as they join, the schedule once it is out, and the results.",
-            ],
+            subject: fill(w.acceptedSubject, accepted),
+            heading: fill(w.acceptedHeading, accepted),
+            paragraphs: [fill(w.acceptedLead, accepted), w.acceptedMore],
             action: {
-              label: "Open your organizer page",
+              label: w.organizerPage,
               path: `/app/private-events/${p.seasonSlug}`,
             },
             reason,
           },
           ctx,
         );
+      }
       case "declined":
         return renderEmail(
           {
-            subject: `About your ${what(p.kind)} request`,
-            heading: "Your request",
+            subject: fill(w.declinedSubject, vars),
+            heading: w.declinedHeading,
             paragraphs: [
-              `The league can't host a ${what(p.kind)} for ${p.organization} this time.`,
-              ...(p.reason ? [`From the league: ${p.reason}`] : []),
-              "You're welcome to ask again for other dates.",
+              fill(w.declinedLead, vars),
+              ...(p.reason
+                ? [fill(all.common.fromLeague, { text: p.reason })]
+                : []),
+              w.declinedMore,
             ],
-            action: { label: "Ask again", path: "/app/private-events/new" },
+            action: { label: w.askAgain, path: "/app/private-events/new" },
             reason,
           },
           ctx,

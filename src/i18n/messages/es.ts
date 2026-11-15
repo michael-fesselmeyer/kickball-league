@@ -1,5 +1,6 @@
 import type { Translation } from "../catalog";
 import type { EnglishMessages } from "./en";
+import { emailEs } from "./email.es";
 
 /**
  * Spanish (ADR 0094). Written without a paid translation service; a
@@ -286,4 +287,5 @@ export const es: Translation<EnglishMessages> = {
       records: "Récords",
     },
   },
+  email: emailEs,
 };

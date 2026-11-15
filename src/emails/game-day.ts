@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, publicPath, renderEmail } from "./layout";
 
 /**
  * Messages about a game day's status (issue #383): a player's game starts
@@ -30,32 +31,39 @@ export type GameDayChangePayload = z.infer<typeof gameDayChangePayload>;
 export const gameDayChangeEmail = defineTemplate(
   gameDayChangePayload,
   (p, ctx) => {
-    const why = p.reason ? ` ${p.reason}.` : "";
+    const { w: all } = emailWords(ctx);
+    const w = all.gameDay;
+    const vars = {
+      teams: p.teams,
+      day: p.day,
+      was: p.was,
+      time: p.newStart ?? w.laterTime,
+      why: p.reason ? ` ${p.reason}.` : "",
+    };
     const content =
       p.kind === "delayed"
         ? {
-            subject: `Starts late: ${p.teams}, ${p.day}`,
-            heading: `Your game now starts at ${p.newStart ?? "a later time"}`,
-            lead: `${p.teams} on ${p.day} was due at ${p.was} and now starts at ${p.newStart ?? "a later time"}.${why}`,
+            subject: w.delayedSubject,
+            heading: w.delayedHeading,
+            lead: w.delayedLead,
           }
         : p.kind === "off"
-          ? {
-              subject: `Off: ${p.teams}, ${p.day}`,
-              heading: "Your game is off",
-              lead: `${p.teams} on ${p.day} at ${p.was} is off.${why} You'll hear its makeup time once the league reschedules it.`,
-            }
+          ? { subject: w.offSubject, heading: w.offHeading, lead: w.offLead }
           : {
-              subject: `Back on: ${p.teams}, ${p.day}`,
-              heading: "Your game is back on",
-              lead: `${p.teams} on ${p.day} is back on at ${p.was}.${why}`,
+              subject: w.backSubject,
+              heading: w.backHeading,
+              lead: w.backLead,
             };
     return renderEmail(
       {
-        subject: content.subject,
-        heading: content.heading,
-        paragraphs: [content.lead],
-        action: { label: "See the game", path: `/games/${p.gameId}` },
-        reason: `you play in ${p.seasonName}`,
+        subject: fill(content.subject, vars),
+        heading: fill(content.heading, vars),
+        paragraphs: [fill(content.lead, vars)],
+        action: {
+          label: all.common.seeGame,
+          path: publicPath(ctx, `/games/${p.gameId}`),
+        },
+        reason: fill(w.playReason, { season: p.seasonName }),
       },
       ctx,
     );
@@ -74,20 +82,31 @@ export const gameDayWatchPayload = z.object({
 
 export type GameDayWatchPayload = z.infer<typeof gameDayWatchPayload>;
 
-export const gameDayWatchEmail = defineTemplate(gameDayWatchPayload, (p, ctx) =>
-  renderEmail(
-    {
-      subject: `Watching the weather: decision by ${p.decideBy}, ${p.day}`,
-      heading: `We'll decide by ${p.decideBy}`,
-      paragraphs: [
-        `The league is watching the weather for ${p.teams} on ${p.day} and will decide by ${p.decideBy} whether games are on.${p.reason ? ` ${p.reason}.` : ""}`,
-        "If your game starts late or is called off, you'll get another message.",
-      ],
-      action: { label: "See the game", path: `/games/${p.gameId}` },
-      reason: "you asked for weather watches before your games",
-    },
-    ctx,
-  ),
+export const gameDayWatchEmail = defineTemplate(
+  gameDayWatchPayload,
+  (p, ctx) => {
+    const { w: all } = emailWords(ctx);
+    const w = all.gameDay;
+    const vars = {
+      teams: p.teams,
+      day: p.day,
+      time: p.decideBy,
+      why: p.reason ? ` ${p.reason}.` : "",
+    };
+    return renderEmail(
+      {
+        subject: fill(w.watchSubject, vars),
+        heading: fill(w.watchHeading, vars),
+        paragraphs: [fill(w.watchLead, vars), w.watchMore],
+        action: {
+          label: all.common.seeGame,
+          path: publicPath(ctx, `/games/${p.gameId}`),
+        },
+        reason: w.watchReason,
+      },
+      ctx,
+    );
+  },
 );
 
 export const gameDayDecidePayload = z.object({

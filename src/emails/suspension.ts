@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /**
  * The one email a suspended player gets: how long, what it means, and how
@@ -15,31 +16,33 @@ export const suspensionPayload = z.object({
   leagueEmail: z.string().nullable(),
 });
 
-const LASTS: Record<z.infer<typeof suspensionPayload>["scope"], string> = {
-  games:
-    "It counts down as your team's games become final, and ends on its own once they are played.",
-  season: "It ends when the season ends.",
-  permanent: "It lasts until the league lifts it.",
-};
-
-export const suspensionEmail = defineTemplate(suspensionPayload, (p, ctx) =>
-  renderEmail(
+export const suspensionEmail = defineTemplate(suspensionPayload, (p, ctx) => {
+  const { w: all } = emailWords(ctx);
+  const w = all.suspension;
+  const vars = {
+    length: p.length,
+    league: p.leagueName,
+    season: p.seasonName,
+    email: p.leagueEmail ?? "",
+  };
+  const lasts = {
+    games: w.lastsGames,
+    season: w.lastsSeason,
+    permanent: w.lastsPermanent,
+  }[p.scope];
+  return renderEmail(
     {
-      subject: `You're suspended: ${p.length}`,
-      heading: "You're suspended",
+      subject: fill(w.subject, vars),
+      heading: w.heading,
       paragraphs: [
-        p.scope === "permanent"
-          ? `After an incident report, ${p.leagueName} has banned you from playing, permanently.`
-          : `After an incident report, ${p.leagueName} has suspended you for ${p.length} in ${p.seasonName}.`,
-        LASTS[p.scope],
-        "While you're suspended you can't RSVP that you're in for a game, claim a sub spot or be placed on a team from the free-agent pool. Your captain sees that you're suspended, not why.",
-        p.leagueEmail
-          ? `To appeal, reply to this email or write to ${p.leagueEmail}, and say what you'd like the league to know.`
-          : "To appeal, reply to this email and say what you'd like the league to know.",
+        fill(p.scope === "permanent" ? w.banned : w.suspended, vars),
+        lasts,
+        w.meaning,
+        p.leagueEmail ? fill(w.appealTo, vars) : w.appeal,
       ],
-      action: { label: "Open the app", path: "/app" },
-      reason: "the league suspended you after an incident report",
+      action: { label: all.common.openApp, path: "/app" },
+      reason: w.reason,
     },
     ctx,
-  ),
-);
+  );
+});

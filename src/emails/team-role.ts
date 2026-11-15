@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 const about = {
   seasonName: z.string().min(1),
@@ -39,74 +40,71 @@ export const teamRolePayload = z.discriminatedUnion("kind", [
 export type TeamRolePayload = z.infer<typeof teamRolePayload>;
 
 export const teamRoleEmail = defineTemplate(teamRolePayload, (p, ctx) => {
+  const { w: all } = emailWords(ctx);
+  const w = all.teamRole;
   const team = { path: `/app/seasons/${p.seasonSlug}/team` };
+  const seeTeam = { label: all.common.seeTeam, ...team };
+  const vars = {
+    team: p.team,
+    season: p.seasonName,
+    captain: p.kind === "offered" ? p.captain : "",
+    player: "player" in p ? p.player : "",
+  };
+  const playReason = fill(w.playReason, vars);
+  const offeredReason = fill(w.offeredReason, vars);
   switch (p.kind) {
     case "offered":
       return renderEmail(
         {
-          subject: `${p.captain} asked you to captain ${p.team}`,
-          heading: `Captain ${p.team}?`,
-          paragraphs: [
-            `${p.captain} would like you to take over as captain of ${p.team} for ${p.seasonName}.`,
-            "Nothing changes until you say yes. As captain you run the roster, invites, payments and co-captains; they stay on as a co-captain.",
-          ],
-          action: { label: "Answer on your team page", ...team },
-          reason: `you play for ${p.team}`,
+          subject: fill(w.offeredSubject, vars),
+          heading: fill(w.offeredHeading, vars),
+          paragraphs: [fill(w.offeredLead, vars), w.offeredMore],
+          action: { label: w.answer, ...team },
+          reason: playReason,
         },
         ctx,
       );
     case "accepted":
       return renderEmail(
         {
-          subject: `${p.player} is now captain of ${p.team}`,
-          heading: "Your team has a new captain",
-          paragraphs: [
-            `${p.player} accepted: they captain ${p.team} for ${p.seasonName} from now on.`,
-            "You stay on as a co-captain, with the team's lineups, sub requests and scores. The new captain can change that.",
-          ],
-          action: { label: "See your team", ...team },
-          reason: `you offered ${p.player} the captaincy`,
+          subject: fill(w.acceptedSubject, vars),
+          heading: w.acceptedHeading,
+          paragraphs: [fill(w.acceptedLead, vars), w.acceptedMore],
+          action: seeTeam,
+          reason: offeredReason,
         },
         ctx,
       );
     case "declined":
       return renderEmail(
         {
-          subject: `${p.player} won't take over ${p.team}`,
-          heading: "You're still the captain",
-          paragraphs: [
-            `${p.player} said no to captaining ${p.team}, so you stay captain for ${p.seasonName}.`,
-            "You can offer it to another teammate from your team page.",
-          ],
-          action: { label: "See your team", ...team },
-          reason: `you offered ${p.player} the captaincy`,
+          subject: fill(w.declinedSubject, vars),
+          heading: w.declinedHeading,
+          paragraphs: [fill(w.declinedLead, vars), w.declinedMore],
+          action: seeTeam,
+          reason: offeredReason,
         },
         ctx,
       );
     case "co_captain":
       return renderEmail(
         {
-          subject: `You're a co-captain of ${p.team}`,
-          heading: "You're a co-captain",
-          paragraphs: [
-            `You now help run ${p.team} for ${p.seasonName}: set kicking orders, ask for subs, enter and confirm scores, and see who has paid.`,
-            "You can step down from your team page whenever you like.",
-          ],
-          action: { label: "See your team", ...team },
-          reason: `you play for ${p.team}`,
+          subject: fill(w.coSubject, vars),
+          heading: w.coHeading,
+          paragraphs: [fill(w.coLead, vars), w.coMore],
+          action: seeTeam,
+          reason: playReason,
         },
         ctx,
       );
     case "player":
       return renderEmail(
         {
-          subject: `You're no longer a co-captain of ${p.team}`,
-          heading: "Back to playing",
-          paragraphs: [
-            `You're on ${p.team} for ${p.seasonName} as a player now, without the co-captain's tools.`,
-          ],
-          action: { label: "See your team", ...team },
-          reason: `you play for ${p.team}`,
+          subject: fill(w.playerSubject, vars),
+          heading: w.playerHeading,
+          paragraphs: [fill(w.playerLead, vars)],
+          action: seeTeam,
+          reason: playReason,
         },
         ctx,
       );

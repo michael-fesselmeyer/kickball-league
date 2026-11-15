@@ -1,3 +1,5 @@
+import { emailEn } from "./email.en";
+
 /**
  * The English messages: the source every other language translates
  * (ADR 0094). Add a message here first; `npm test` then lists it as
@@ -279,6 +281,7 @@ export const en = {
       records: "Records",
     },
   },
+  email: emailEn,
 } as const;
 
 export type EnglishMessages = typeof en;

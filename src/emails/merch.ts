@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /**
  * Merch order emails: the receipt (urgent, it is about money), and the
@@ -24,51 +25,53 @@ export type MerchPayload = z.infer<typeof merchPayload>;
 const PAGE = "/app/shop";
 
 export const merchEmail = defineTemplate(merchPayload, (p, ctx) => {
-  const what = p.team ? `${p.description}, ${p.team} colors` : p.description;
+  const { w: all } = emailWords(ctx);
+  const w = all.merch;
+  const what = p.team
+    ? fill(w.teamColors, { description: p.description, team: p.team })
+    : p.description;
+  const vars = { description: p.description, what };
+  const action = { label: all.common.seeOrders, path: PAGE };
   switch (p.kind) {
     case "receipt":
       return renderEmail(
         {
-          subject: `Your order: ${p.description}`,
-          heading: "Thanks for your order",
+          subject: fill(w.receiptSubject, vars),
+          heading: w.receiptHeading,
           paragraphs: [
-            `Your order for ${what} is in.`,
-            ...(p.paid ? [`You paid ${p.paid}.`] : []),
-            "We'll let you know when it's ready.",
+            fill(w.receiptLead, vars),
+            ...(p.paid ? [fill(all.common.youPaid, { paid: p.paid })] : []),
+            w.letYouKnow,
           ],
-          action: { label: "See your orders", path: PAGE },
-          reason: "you ordered from the league shop",
+          action,
+          reason: w.reason,
         },
         ctx,
       );
     case "fulfilled":
       return renderEmail(
         {
-          subject: `Ready: ${p.description}`,
-          heading: "Your order is ready",
-          paragraphs: [
-            `Your ${what} is ready. Look for it from the league at your next game.`,
-          ],
-          action: { label: "See your orders", path: PAGE },
-          reason: "you ordered from the league shop",
+          subject: fill(w.readySubject, vars),
+          heading: w.readyHeading,
+          paragraphs: [fill(w.readyLead, vars)],
+          action,
+          reason: w.reason,
         },
         ctx,
       );
     case "refunded":
       return renderEmail(
         {
-          subject: `Refunded: ${p.description}`,
-          heading: "Your order was refunded",
+          subject: fill(w.refundedSubject, vars),
+          heading: w.refundedHeading,
           paragraphs: [
-            `The league refunded your order for ${what}.`,
+            fill(w.refundedLead, vars),
             ...(p.returned
-              ? [
-                  `${p.returned}. A card refund usually shows up within 5 to 10 days.`,
-                ]
+              ? [fill(all.common.cardRefund, { returned: p.returned })]
               : []),
           ],
-          action: { label: "See your orders", path: PAGE },
-          reason: "you ordered from the league shop",
+          action,
+          reason: w.reason,
         },
         ctx,
       );

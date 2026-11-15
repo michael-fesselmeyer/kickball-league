@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 const about = {
   seasonName: z.string().min(1),
@@ -33,58 +34,59 @@ export const newTeamPayload = z.discriminatedUnion("kind", [
 export type NewTeamPayload = z.infer<typeof newTeamPayload>;
 
 export const newTeamEmail = defineTemplate(newTeamPayload, (p, ctx) => {
+  const { w: all } = emailWords(ctx);
+  const w = all.newTeam;
+  const vars = { team: p.team, season: p.seasonName };
   switch (p.kind) {
     case "approved":
       return renderEmail(
         {
-          subject: `${p.team} is in for ${p.seasonName}`,
-          heading: "Your team is approved",
-          paragraphs: [
-            `The league said yes: ${p.team} is set up for ${p.seasonName}, with you as captain.`,
-            "Next, share your team's invite link so your players can join, and sign the waiver. The team is confirmed once it has enough players and the fee is covered.",
-          ],
+          subject: fill(w.approvedSubject, vars),
+          heading: w.approvedHeading,
+          paragraphs: [fill(w.approvedLead, vars), w.approvedMore],
           action: {
-            label: "Invite your players",
+            label: w.invite,
             path: `/app/seasons/${p.seasonSlug}/team`,
           },
-          reason: `you asked to start ${p.team}`,
+          reason: fill(w.askedReason, vars),
         },
         ctx,
       );
     case "declined":
       return renderEmail(
         {
-          subject: `About your request to start ${p.team}`,
-          heading: "Your new-team request",
+          subject: fill(w.declinedSubject, vars),
+          heading: w.declinedHeading,
           paragraphs: [
-            `The league can't add ${p.team} to ${p.seasonName}.`,
-            ...(p.reason ? [`From the league: ${p.reason}`] : []),
-            "You can still join a team by invite or as a free agent.",
+            fill(w.declinedLead, vars),
+            ...(p.reason
+              ? [fill(all.common.fromLeague, { text: p.reason })]
+              : []),
+            w.declinedMore,
           ],
           action: {
-            label: "See your season",
+            label: w.seeSeason,
             path: `/app/seasons/${p.seasonSlug}`,
           },
-          reason: `you asked to start ${p.team}`,
+          reason: fill(w.askedReason, vars),
         },
         ctx,
       );
-    case "player_left":
+    case "player_left": {
+      const left = { ...vars, player: p.player, left: p.leftTeam };
       return renderEmail(
         {
-          subject: `${p.player} is starting a new team`,
-          heading: `${p.player} left ${p.leftTeam}`,
-          paragraphs: [
-            `The league approved ${p.player}'s request to start ${p.team} in ${p.seasonName}, so they are no longer on your roster.`,
-            "If you need another player, invite one or ask the league for a free agent.",
-          ],
+          subject: fill(w.leftSubject, left),
+          heading: fill(w.leftHeading, left),
+          paragraphs: [fill(w.leftLead, left), w.leftMore],
           action: {
-            label: "See your roster",
+            label: w.seeRoster,
             path: `/app/seasons/${p.seasonSlug}/team`,
           },
-          reason: `you captain ${p.leftTeam}`,
+          reason: fill(w.captainReason, { team: p.leftTeam }),
         },
         ctx,
       );
+    }
   }
 });

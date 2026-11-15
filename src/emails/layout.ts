@@ -1,4 +1,7 @@
-import type { Locale } from "@/i18n/locales";
+import { fill } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { type Messages, messagesFor } from "@/i18n/messages";
+import { linkIn } from "@/i18n/routing";
 
 /**
  * The frame every league email shares: a heading, the body, an optional
@@ -18,8 +21,8 @@ export type RenderContext = {
   /** The site's address, such as https://league.example.test, for links. */
   siteUrl: string;
   /**
-   * The recipient's language (ADR 0094). Templates write in it as they are
-   * translated; until then they stay in English.
+   * The recipient's language (ADR 0094), English unless given. Emails only
+   * league admins get are always in English (src/emails/templates.ts).
    */
   locale?: Locale;
   /**
@@ -63,6 +66,24 @@ export const EMAIL_SETTINGS = {
   path: "/app/profile#notifications",
 };
 
+/** The recipient's language, and the email words in it. */
+export function emailWords(context: Pick<RenderContext, "locale">): {
+  locale: Locale;
+  w: Messages["email"];
+} {
+  const locale = context.locale ?? DEFAULT_LOCALE;
+  return { locale, w: messagesFor(locale).email };
+}
+
+/**
+ * A public page's path for the recipient: its page in their language when
+ * that page is translated, else the English page. App paths stay as they
+ * are; the app's screens follow the person's own setting.
+ */
+export function publicPath(context: RenderContext, path: string): string {
+  return linkIn(context.locale ?? DEFAULT_LOCALE, path);
+}
+
 const muted = "font-size:14px;line-height:1.5;color:#5c5650";
 
 export function renderEmail(
@@ -73,10 +94,23 @@ export function renderEmail(
     action,
     items = [],
     reason,
-    settings = EMAIL_SETTINGS,
+    settings: ownSettings,
   }: EmailParts,
-  { siteUrl, unsubscribe }: RenderContext,
+  context: RenderContext,
 ) {
+  const { siteUrl, unsubscribe } = context;
+  const { locale, w } = emailWords(context);
+  const words = w.layout;
+  const settings = ownSettings ?? {
+    label: words.settings,
+    path: EMAIL_SETTINGS.path,
+  };
+  const because = fill(words.because, { reason });
+  const stop = unsubscribe
+    ? fill(words.stopAbout, {
+        topic: unsubscribe.topicLabel.toLowerCase(),
+      })
+    : "";
   const site = siteUrl.replace(/\/$/, "");
   const link = (path: string) => `${site}${path}`;
   const settingsUrl = link(settings.path);
@@ -98,14 +132,14 @@ export function renderEmail(
   const button = action
     ? `<p style="margin:24px 0"><a href="${escapeHtml(link(action.path))}" style="display:inline-block;padding:12px 20px;border-radius:999px;background-color:#1d1b18;color:#fdf6ec;font-weight:700;text-decoration:none">${escapeHtml(action.label)}</a></p>`
     : "";
-  const html = `<!doctype html><html lang="en"><body style="margin:0;padding:24px;background-color:#fdf6ec;font-family:Helvetica,Arial,sans-serif;color:#1d1b18">
+  const html = `<!doctype html><html lang="${locale}"><body style="margin:0;padding:24px;background-color:#fdf6ec;font-family:Helvetica,Arial,sans-serif;color:#1d1b18">
 <table role="presentation" width="100%" style="max-width:520px"><tbody><tr><td>
 <h1 style="font-size:24px;margin:0 0 16px">${escapeHtml(heading)}</h1>
 ${body}
 ${list}
 ${button}
-<p style="${muted};margin-top:32px">You got this email because ${escapeHtml(reason)}. <a href="${escapeHtml(settingsUrl)}" style="color:#5c5650">${escapeHtml(settings.label)}</a>.${unsubscribe ? ` <a href="${escapeHtml(unsubscribe.pageUrl)}" style="color:#5c5650">Stop emails about ${escapeHtml(unsubscribe.topicLabel.toLowerCase())}</a>.` : ""}</p>
-${unsubscribe ? `<p style="${muted}">Fewer emails instead? ${TURN_DOWN_LINKS.map((t) => `<a href="${escapeHtml(turnDownUrl(unsubscribe.pageUrl, t.choice))}" style="color:#5c5650">${t.label}</a>`).join(" · ")}</p>` : ""}
+<p style="${muted};margin-top:32px">${escapeHtml(because)} <a href="${escapeHtml(settingsUrl)}" style="color:#5c5650">${escapeHtml(settings.label)}</a>.${unsubscribe ? ` <a href="${escapeHtml(unsubscribe.pageUrl)}" style="color:#5c5650">${escapeHtml(stop)}</a>.` : ""}</p>
+${unsubscribe ? `<p style="${muted}">${escapeHtml(words.fewer)} ${TURN_DOWN_LINKS.map((t) => `<a href="${escapeHtml(turnDownUrl(unsubscribe.pageUrl, t.choice))}" style="color:#5c5650">${escapeHtml(words.turnDown[t.choice])}</a>`).join(" · ")}</p>` : ""}
 </td></tr></tbody></table>
 </body></html>`;
   const text = [
@@ -119,13 +153,14 @@ ${unsubscribe ? `<p style="${muted}">Fewer emails instead? ${TURN_DOWN_LINKS.map
       "",
     ]),
     ...(action ? [`${action.label}: ${link(action.path)}`, ""] : []),
-    `You got this email because ${reason}.`,
+    because,
     `${settings.label}: ${settingsUrl}`,
     ...(unsubscribe
       ? [
-          `Stop emails about ${unsubscribe.topicLabel.toLowerCase()}: ${unsubscribe.pageUrl}`,
+          `${stop}: ${unsubscribe.pageUrl}`,
           ...TURN_DOWN_LINKS.map(
-            (t) => `${t.label}: ${turnDownUrl(unsubscribe.pageUrl, t.choice)}`,
+            (t) =>
+              `${words.turnDown[t.choice]}: ${turnDownUrl(unsubscribe.pageUrl, t.choice)}`,
           ),
         ]
       : []),
@@ -139,6 +174,7 @@ ${unsubscribe ? `<p style="${muted}">Fewer emails instead? ${TURN_DOWN_LINKS.map
       action
         ? { heading, paragraphs, action, reason }
         : { heading, paragraphs, reason },
+      locale,
     ),
   };
 }
@@ -158,16 +194,22 @@ const PUSH_REASON_MAX = 100;
  * goes, and the email's reason as a "Because …" line under the text. The
  * service worker adds a button to the push settings (public/sw.js).
  */
-export function pushFrom({
-  heading,
-  paragraphs,
-  action,
-  reason,
-}: Pick<EmailParts, "heading" | "paragraphs" | "action" | "reason">) {
+export function pushFrom(
+  {
+    heading,
+    paragraphs,
+    action,
+    reason,
+  }: Pick<EmailParts, "heading" | "paragraphs" | "action" | "reason">,
+  locale: Locale = DEFAULT_LOCALE,
+) {
   return {
     title: clip(heading, PUSH_TITLE_MAX),
     body: clip((paragraphs[0] ?? "").replaceAll("\n", " "), PUSH_BODY_MAX),
     path: action?.path ?? "/app",
-    reason: clip(`Because ${reason}.`, PUSH_REASON_MAX),
+    reason: clip(
+      fill(messagesFor(locale).email.layout.pushBecause, { reason }),
+      PUSH_REASON_MAX,
+    ),
   };
 }

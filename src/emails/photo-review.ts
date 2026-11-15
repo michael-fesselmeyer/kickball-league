@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, publicPath, renderEmail } from "./layout";
 
 /**
  * Tells a member whether the league used a photo they uploaded (ADR 0039).
@@ -19,32 +20,30 @@ export const photoReviewPayload = z.discriminatedUnion("kind", [
 
 export type PhotoReviewPayload = z.infer<typeof photoReviewPayload>;
 
-export const photoReviewEmail = defineTemplate(photoReviewPayload, (p, ctx) =>
-  p.kind === "approved"
+export const photoReviewEmail = defineTemplate(photoReviewPayload, (p, ctx) => {
+  const w = emailWords(ctx).w.photo;
+  return p.kind === "approved"
     ? renderEmail(
         {
-          subject: "Your photo made the cut",
-          heading: "Your photo is up",
+          subject: w.approvedSubject,
+          heading: w.approvedHeading,
           paragraphs: [
-            `Thanks for sharing! The league approved your photo, and it now shows on ${p.where}. It may also turn up on the league's socials.`,
-            "You can delete it from your photos at any time.",
+            fill(w.approvedLead, { where: p.where }),
+            w.deleteAnytime,
           ],
-          action: { label: "See it on the site", path: p.path },
-          reason: "you uploaded a photo for the league",
+          action: { label: w.seeIt, path: publicPath(ctx, p.path) },
+          reason: w.reason,
         },
         ctx,
       )
     : renderEmail(
         {
-          subject: "About the photo you uploaded",
-          heading: "The league didn't use your photo",
-          paragraphs: [
-            "Thanks for sending it in. The league won't be posting this one, so it has been deleted from the site.",
-            "Keep them coming: clear, well-lit photos of game days and events have the best chance.",
-          ],
-          action: { label: "Your photos", path: "/app/photos" },
-          reason: "you uploaded a photo for the league",
+          subject: w.rejectedSubject,
+          heading: w.rejectedHeading,
+          paragraphs: [w.rejectedLead, w.keepThem],
+          action: { label: w.yourPhotos, path: "/app/photos" },
+          reason: w.reason,
         },
         ctx,
-      ),
-);
+      );
+});

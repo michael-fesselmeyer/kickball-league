@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /**
  * The reminder each volunteer gets the day before their shift: what the
@@ -22,19 +23,27 @@ export type VolunteerReminderPayload = z.infer<typeof volunteerReminderPayload>;
 
 export const volunteerReminderEmail = defineTemplate(
   volunteerReminderPayload,
-  (p, ctx) =>
-    renderEmail(
+  (p, ctx) => {
+    const w = emailWords(ctx).w.volunteer;
+    const vars = {
+      role: p.role.toLowerCase(),
+      occasion: p.occasion,
+      when: p.when,
+      place: p.place ?? "",
+    };
+    return renderEmail(
       {
-        subject: `Tomorrow: your ${p.role.toLowerCase()} shift`,
-        heading: "Thanks for volunteering!",
+        subject: fill(w.subject, vars),
+        heading: w.heading,
         paragraphs: [
-          `You're down for ${p.role.toLowerCase()} at ${p.occasion}: ${p.when}${p.place ? `, ${p.place}` : ""}.`,
+          fill(p.place ? w.leadAt : w.lead, vars),
           ...(p.notes ? [p.notes] : []),
-          "Can't make it after all? Drop the shift in the app so someone else can take it.",
+          w.drop,
         ],
-        action: { label: "See your shifts", path: "/app/volunteer" },
-        reason: "you signed up for a volunteer shift",
+        action: { label: w.action, path: "/app/volunteer" },
+        reason: w.reason,
       },
       ctx,
-    ),
+    );
+  },
 );

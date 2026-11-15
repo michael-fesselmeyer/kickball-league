@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /** What a rain-out notice carries in the outbox: one player's game and its makeup. */
 export const rainoutNoticePayload = z.object({
@@ -18,27 +19,26 @@ export type RainoutNoticePayload = z.infer<typeof rainoutNoticePayload>;
 
 export const rainoutNoticeEmail = defineTemplate(
   rainoutNoticePayload,
-  (p, ctx) =>
-    renderEmail(
+  (p, ctx) => {
+    const w = emailWords(ctx).w.rainout;
+    const vars = {
+      teams: p.teams,
+      was: p.was,
+      makeup: p.makeup ?? "",
+      season: p.seasonName,
+    };
+    return renderEmail(
       {
-        subject: p.makeup
-          ? `Rained out: ${p.teams} moves to ${p.makeup}`
-          : `Rained out: ${p.teams} is postponed`,
-        heading: p.makeup
-          ? "Your game has a new time"
-          : "Your game is postponed",
+        subject: fill(p.makeup ? w.movesSubject : w.postponedSubject, vars),
+        heading: p.makeup ? w.newTimeHeading : w.postponedHeading,
         paragraphs: [
-          `${p.teams} (${p.was}) is rained out.`,
-          p.makeup
-            ? `The makeup is ${p.makeup}. Tell your captain if you can't make it.`
-            : "It has no makeup time yet. The new time will be on the schedule as soon as the league sets it.",
+          fill(w.lead, vars),
+          p.makeup ? fill(w.makeup, vars) : w.noMakeup,
         ],
-        action: {
-          label: "See the schedule",
-          path: `/app/seasons/${p.seasonSlug}`,
-        },
-        reason: `you play in this game in ${p.seasonName}`,
+        action: { label: w.action, path: `/app/seasons/${p.seasonSlug}` },
+        reason: fill(w.reason, vars),
       },
       ctx,
-    ),
+    );
+  },
 );

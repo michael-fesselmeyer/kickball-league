@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /** The one invite each player gets when a season's survey opens. */
 export const surveyInvitePayload = z.object({
@@ -10,20 +11,23 @@ export const surveyInvitePayload = z.object({
 
 export type SurveyInvitePayload = z.infer<typeof surveyInvitePayload>;
 
-export const surveyInviteEmail = defineTemplate(surveyInvitePayload, (p, ctx) =>
-  renderEmail(
-    {
-      subject: `How was ${p.seasonName}?`,
-      heading: `How was ${p.seasonName}?`,
-      paragraphs: [
-        "Five quick questions about the season, about two minutes. Your answers are anonymous: the league sees totals and comments, never who wrote them.",
-      ],
-      action: {
-        label: "Answer the survey",
-        path: `/app/seasons/${p.seasonSlug}/survey`,
+export const surveyInviteEmail = defineTemplate(
+  surveyInvitePayload,
+  (p, ctx) => {
+    const w = emailWords(ctx).w.survey;
+    const vars = { season: p.seasonName };
+    return renderEmail(
+      {
+        subject: fill(w.subject, vars),
+        heading: fill(w.subject, vars),
+        paragraphs: [w.lead],
+        action: {
+          label: w.action,
+          path: `/app/seasons/${p.seasonSlug}/survey`,
+        },
+        reason: fill(w.reason, vars),
       },
-      reason: `you played in ${p.seasonName}`,
-    },
-    ctx,
-  ),
+      ctx,
+    );
+  },
 );
