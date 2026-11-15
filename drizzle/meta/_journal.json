@@ -449,6 +449,13 @@
       "when": 1794743974483,
       "tag": "0063_broad_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1794748541767,
+      "tag": "0064_scheduled_announcements",
+      "breakpoints": true
     }
   ]
 }
