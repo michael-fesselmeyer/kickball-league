@@ -112,10 +112,10 @@ test.describe.serial("field check-in", () => {
     browser,
   }) => {
     const page = await pageSignedInAs(browser, DANA);
-    await page.goto(`/app/games/${today.gameId}/attendance`);
-    await expect(page.getByText("This page could not be found.")).toBeVisible();
-    await page.goto(`/app/games/${today.gameId}/attendance/code`);
-    await expect(page.getByText("This page could not be found.")).toBeVisible();
+    for (const path of ["attendance", "attendance/code"]) {
+      const response = await page.goto(`/app/games/${today.gameId}/${path}`);
+      expect(response?.status()).toBe(404);
+    }
     await page.context().close();
   });
 });
