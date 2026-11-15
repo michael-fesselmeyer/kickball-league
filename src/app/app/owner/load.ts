@@ -7,6 +7,7 @@ import {
   ownerDashboard,
   summaryInputs,
 } from "@/db/queries/owner-dashboard";
+import { winBackResults } from "@/db/queries/win-back";
 import {
   EXPENSE_CATEGORIES,
   type ExpenseCategory,
@@ -55,6 +56,8 @@ export type CachedDashboard = {
   readAt: Date;
   /** When the season's money summary was published, if it is. */
   publishedAt: Date | null;
+  /** The season's win-back emails and how many of those players came back. */
+  winBack: { emailed: number; cameBack: number };
 };
 
 /**
@@ -69,12 +72,16 @@ export async function cachedDashboard(
   "use cache";
   cacheLife(OWNER_DASHBOARD_LIFE);
   cacheTag(OWNER_DASHBOARD_TAG);
-  const data = await ownerDashboard(db, leagueId, selected);
+  const [data, winBack] = await Promise.all([
+    ownerDashboard(db, leagueId, selected),
+    winBackResults(db, selected.id),
+  ]);
   for (const s of data.seasons) cacheTag(seasonTag(s.id));
   return {
     view: buildDashboardView(data, selected),
     readAt: new Date(),
     publishedAt: data.published?.publishedAt ?? null,
+    winBack,
   };
 }
 
