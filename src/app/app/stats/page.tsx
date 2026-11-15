@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
 import {
   awardsWonBy,
@@ -25,7 +27,7 @@ export const metadata: Metadata = { title: "Your stats" };
 export default function StatsPage(props: PageProps<"/app/stats">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading your stats…</p>}>
+      <Suspense fallback={<PageLoading>Loading your stats…</PageLoading>}>
         <Stats {...props} />
       </Suspense>
     </main>
@@ -207,9 +209,9 @@ async function Stats({ searchParams }: PageProps<"/app/stats">) {
             : "Season awards pages list the stat leaders by first name and last initial. You can stay off them; you then can't win a stat award."}
         </p>
         <form action={setOptOutAction.bind(null, !hidden)}>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             {hidden ? "Show me on leaderboards" : "Keep me off leaderboards"}
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>
