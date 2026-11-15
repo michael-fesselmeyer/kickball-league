@@ -41,3 +41,4 @@ export * from "./team";
 export * from "./volunteer";
 export * from "./waitlist";
 export * from "./waiver";
+export * from "./weather";

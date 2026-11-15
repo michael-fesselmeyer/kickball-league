@@ -78,6 +78,12 @@ export const league = pgTable(
      * An admin decides; allowed by default.
      */
     pickemOwnGames: boolean().notNull().default(true),
+    /**
+     * Whether admins may confirm a rain-out themselves, for game days no
+     * owner is around (ADR 0048). Off by default: admins send a rain-out
+     * to the owners to confirm. The owners decide.
+     */
+    adminsConfirmRainouts: boolean().notNull().default(false),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
