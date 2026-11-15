@@ -10,6 +10,7 @@ import { user } from "../schema/auth";
 import { league } from "../schema/league";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import type { Db } from "./schedule";
+import { seasonChecklist, startSeasonChecklist } from "./checklist";
 import { createSeason, seasonSettings, updateSeason } from "./seasons";
 import { assignWaiver, publishWaiver } from "./waivers";
 
@@ -246,6 +247,39 @@ describe("seasons", () => {
           w.actor,
         ),
       ).toEqual({ ok: false, error: "registration_open" });
+    });
+  });
+  it("moves the season checklist with the first day", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const created = await createSeason(
+        db,
+        { leagueId: w.leagueId, settings: settings() },
+        w.actor,
+      );
+      if (!created.ok) throw new Error();
+      await startSeasonChecklist(db, {
+        seasonId: created.value.id,
+        leagueId: w.leagueId,
+        startsOn: "2027-04-05",
+        actorId: w.actor,
+      });
+      const dueOf = async (title: string) =>
+        (await seasonChecklist(db, created.value.id)).find(
+          (t) => t.title === title,
+        )?.dueOn;
+      expect(await dueOf("Send the schedule")).toBe("2027-03-29");
+      await updateSeason(
+        db,
+        {
+          leagueId: w.leagueId,
+          seasonId: created.value.id,
+          settings: settings({ startsOn: "2027-04-12" }),
+          status: "draft",
+        },
+        w.actor,
+      );
+      expect(await dueOf("Send the schedule")).toBe("2027-04-05");
     });
   });
 });

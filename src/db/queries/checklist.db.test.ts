@@ -21,6 +21,7 @@ import {
   queueChecklistReminders,
   seasonChecklist,
   setTaskDone,
+  shiftChecklistForNewStart,
   startSeasonChecklist,
   templateTasks,
   updateTask,
@@ -228,6 +229,62 @@ describe("a season's checklist", () => {
       expect(staff).toContain(w.owner);
       expect(staff).toContain(w.admin);
       expect(staff).not.toContain(w.player);
+    });
+  });
+});
+
+describe("shiftChecklistForNewStart", () => {
+  it("moves open template tasks with the season's first day, nothing else", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      await startSeasonChecklist(db, {
+        seasonId: w.seasonId,
+        leagueId: w.leagueId,
+        startsOn: "2027-04-10",
+        actorId: w.admin,
+      });
+      const before = await seasonChecklist(db, w.seasonId);
+      const shirts = before.find((t) => t.title === "Order shirts");
+      const permits = before.find((t) => t.title === "Renew the field permits");
+      if (!shirts || !permits) throw new Error("starter tasks");
+      await setTaskDone(db, {
+        id: permits.id,
+        seasonId: w.seasonId,
+        actorId: w.admin,
+        done: true,
+        now: new Date(),
+      });
+      const own = await addTask(db, {
+        seasonId: w.seasonId,
+        actorId: w.admin,
+        task: {
+          title: "Rent the speaker",
+          notes: "",
+          dueOn: "2027-04-01",
+          ownerId: null,
+        },
+      });
+
+      // The season now starts a week later, across the clocks changing.
+      expect(
+        await shiftChecklistForNewStart(db, {
+          seasonId: w.seasonId,
+          from: "2027-04-10",
+          to: "2027-04-17",
+        }),
+      ).toBe(before.length - 1);
+      const after = await seasonChecklist(db, w.seasonId);
+      const due = (id: string) => after.find((t) => t.id === id)?.dueOn;
+      expect(due(shirts.id)).toBe("2027-03-27");
+      expect(due(permits.id)).toBe(permits.dueOn);
+      expect(due(own)).toBe("2027-04-01");
+      expect(
+        await shiftChecklistForNewStart(db, {
+          seasonId: w.seasonId,
+          from: "2027-04-17",
+          to: "2027-04-17",
+        }),
+      ).toBe(0);
     });
   });
 });
