@@ -111,6 +111,7 @@ export type EquipmentKitId = Brand<string, "EquipmentKitId">;
 export type EquipmentAssignmentId = Brand<string, "EquipmentAssignmentId">;
 export type EquipmentHandoffId = Brand<string, "EquipmentHandoffId">;
 export type EquipmentReportId = Brand<string, "EquipmentReportId">;
+export type GameDayStatusId = Brand<string, "GameDayStatusId">;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
