@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
-import { pageAs } from "../support/personas";
+import { ownerAccount } from "../support/accounts";
 import { pageSignedInAs } from "../support/sign-in";
 
 /**
@@ -50,8 +50,10 @@ test("an organizer books a private tournament and invites a team", async ({
   ).toContainText("Waiting for the league");
   await expectNoAxeViolations(organizer);
 
-  // An admin accepts it as a private season the organization pays for.
-  const admin = await pageAs(browser, "Admin");
+  // An owner, signed in on their own account so no other flow's persona
+  // switch can sign them out, accepts it as a private season the
+  // organization pays for.
+  const admin = await pageSignedInAs(browser, await ownerAccount("Robin"));
   await admin.goto("/app/admin/private-events");
   const request = admin.getByRole("article", { name: organization });
   await expect(request).toContainText("Tournament, 4 teams");
