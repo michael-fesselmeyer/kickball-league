@@ -69,6 +69,19 @@ export async function addGameInDays(
     gameId: ids.game,
     remove: () =>
       withDb(async (db) => {
+        // A flow that scores or refs the game leaves rows that restrict it.
+        await db.query(
+          `delete from score_response where score_report_id in
+             (select id from score_report where game_id = $1)`,
+          [ids.game],
+        );
+        for (const table of [
+          "score_report",
+          "game_period",
+          "offline_receipt",
+          "referee_assignment",
+        ])
+          await db.query(`delete from ${table} where game_id = $1`, [ids.game]);
         await db.query("delete from game where id = $1", [ids.game]);
         await db.query("delete from slot where id = $1", [ids.slot]);
       }),
