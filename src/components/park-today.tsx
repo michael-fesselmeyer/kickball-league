@@ -51,7 +51,10 @@ export function ParkToday({
     );
   const today = todayIn(timeZone, now);
   const live = days.filter((d) => new Date(d.endsAt) > now);
-  const mine = live.find((d) => d.date === today);
+  // A permit that began last evening and runs past midnight is still the
+  // league's now, though its day is yesterday's.
+  const underWay = live.find((d) => d.date < today);
+  const mine = underWay ?? live.find((d) => d.date === today);
   const next = live.find((d) => d.date > today);
   return (
     <div
@@ -60,7 +63,9 @@ export function ParkToday({
     >
       {mine ? (
         <>
-          <p className="text-h3">Today the league holds</p>
+          <p className="text-h3">
+            {underWay ? "Right now" : "Today"} the league holds
+          </p>
           <ul className="mt-1">
             {mine.lines.map((l) => (
               <li key={l}>{l}</li>
