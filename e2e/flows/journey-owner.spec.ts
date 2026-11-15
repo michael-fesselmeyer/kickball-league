@@ -78,7 +78,8 @@ test("the operator makes an owner and an admin, and only the owner sees the mone
     );
     const main = avery.getByRole("main");
     await main.getByLabel("Amount in dollars").fill("32.75");
-    await main.getByLabel("Category").selectOption({ label: "Equipment" });
+    await main.getByRole("radio", { name: "Equipment" }).check();
+    await main.getByText("Date, note, receipt and who paid").click();
     await main.getByLabel("Note").fill(note);
     await main.getByRole("button", { name: "Add expense" }).click();
     await expect(
