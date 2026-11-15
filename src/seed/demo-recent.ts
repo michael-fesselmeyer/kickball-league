@@ -121,15 +121,13 @@ export async function addDemoGameDay(db: Db, data: SeedData): Promise<void> {
     .filter((g) => g.status === "final")
     .flatMap((g) =>
       [g.teamAId, g.teamBId].flatMap((teamSeasonId) =>
-        (seats.get(teamSeasonId) ?? [])
-          .slice(0, 10)
-          .map((userId, i) => ({
-            gameId: g.id,
-            userId,
-            teamSeasonId,
-            method: i % 3 === 0 ? ("scan" as const) : ("marked" as const),
-            recordedAt: g.finalizedAt ?? undefined,
-          })),
+        (seats.get(teamSeasonId) ?? []).slice(0, 10).map((userId, i) => ({
+          gameId: g.id,
+          userId,
+          teamSeasonId,
+          method: i % 3 === 0 ? ("scan" as const) : ("marked" as const),
+          recordedAt: g.finalizedAt ?? undefined,
+        })),
       ),
     );
   for (let i = 0; i < attendance.length; i += 500)
