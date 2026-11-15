@@ -84,12 +84,12 @@ test("an admin schedules an announcement, edits it and cancels it", async ({
   await expect(item).toContainText(/sends \w{3}, \w{3} \d+, \d+:\d{2} [AP]M/);
   await expect(
     item.getByRole("button", {
-      name: "Copy for WhatsApp: Team photos next week",
+      name: /^Copy for WhatsApp\W+Team photos next week$/,
     }),
   ).toBeVisible();
   await expectNoAxeViolations(admin);
 
-  await item.getByText("Edit", { exact: true }).click();
+  await item.locator("summary").click();
   await item.getByLabel("Subject").fill("Team photos on Thursday");
   await item.getByRole("button", { name: "Save changes" }).click();
   await expect(admin.getByRole("status").first()).toHaveText(
@@ -99,7 +99,7 @@ test("an admin schedules an announcement, edits it and cancels it", async ({
     .getByRole("listitem")
     .filter({ hasText: "Team photos on Thursday" });
   await edited
-    .getByRole("button", { name: "Cancel it: Team photos on Thursday" })
+    .getByRole("button", { name: /^Cancel it\W+Team photos on Thursday$/ })
     .click();
   await expect(admin.getByRole("status").first()).toHaveText(
     "Cancelled. It won't be sent.",
