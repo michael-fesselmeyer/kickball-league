@@ -1,4 +1,41 @@
-import { updatedWords } from "@/domain/gameday/status";
+import { connection } from "next/server";
+import { gameStatus, gameWords, updatedWords } from "@/domain/gameday/status";
+import type { SeasonId } from "@/domain/ids";
+import { cachedDayStatus } from "@/lib/game-cache";
+
+/**
+ * A game's day status on its public page, read per request from the data
+ * cache, which setting a status expires at once (its season's tag). Kept
+ * out of the page's static shell, like the forecast, so the first visitor
+ * after a change never sees the status before it. Nothing when the day has
+ * no status for this game.
+ */
+export async function GameStatusLine({
+  seasonId,
+  date,
+  gameId,
+  timeZone,
+}: {
+  seasonId: SeasonId;
+  date: string;
+  gameId: string;
+  timeZone: string;
+}) {
+  await connection();
+  const day = await cachedDayStatus(seasonId, date);
+  if (!day) return null;
+  const status = gameStatus({ ...day, games: new Map(day.games) }, gameId);
+  const words = gameWords(status, timeZone);
+  if (!words) return null;
+  return (
+    <GameDayNotice
+      line={`${words}.${day.reason ? ` ${day.reason}.` : ""}`}
+      setAt={day.setAt}
+      timeZone={timeZone}
+      tone={toneOf(status.kind)}
+    />
+  );
+}
 
 /**
  * A game day's status where players look (issue #383): the line itself

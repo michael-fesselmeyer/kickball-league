@@ -28,16 +28,11 @@ import {
   resultLine,
   statusLabel,
 } from "@/domain/schedule/public-game";
-import { gameStatus, gameWords } from "@/domain/gameday/status";
-import { GameDayNotice, toneOf } from "@/components/game-day-notice";
+import { GameStatusLine } from "@/components/game-day-notice";
 import { cardVersion, gameCard } from "@/domain/share/cards";
 import { gameShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
-import {
-  cachedDayStatus,
-  cachedPageSnapshot,
-  cachedPublishedGame,
-} from "@/lib/game-cache";
+import { cachedPageSnapshot, cachedPublishedGame } from "@/lib/game-cache";
 import { MEMBER_PHOTOS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 import { gamePageJsonLd } from "@/lib/seo/pages";
 import { shareMetadata } from "@/lib/share/metadata";
@@ -164,18 +159,6 @@ async function Game({ params }: PageProps<"/l/[league]/games/[game]">) {
   const calledOff = isCalledOff(game);
   const label = statusLabel(game);
   const result = resultLine(game);
-  // The game day's status (issue #383), while the game is still to play.
-  const day =
-    game.startsAt && !done && !calledOff
-      ? await cachedDayStatus(
-          game.seasonId as SeasonId,
-          localDay(game.startsAt, timeZone),
-        )
-      : null;
-  const dayStatus = day
-    ? gameStatus({ ...day, games: new Map(day.games) }, game.id)
-    : null;
-  const dayWords = dayStatus ? gameWords(dayStatus, timeZone) : null;
 
   return (
     <>
@@ -205,14 +188,6 @@ async function Game({ params }: PageProps<"/l/[league]/games/[game]">) {
           {game.teamA.name} vs {game.teamB.name}
           {result ? `: ${result}` : ""}
         </h1>
-        {day && dayStatus && dayWords && (
-          <GameDayNotice
-            line={`${dayWords}.${day.reason ? ` ${day.reason}.` : ""}`}
-            setAt={day.setAt}
-            timeZone={timeZone}
-            tone={toneOf(dayStatus.kind)}
-          />
-        )}
         <Morph name={gameMorph(game.id)}>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-card border-2 border-text bg-surface p-4 shadow-sticker md:p-8">
             <Side
@@ -280,6 +255,19 @@ async function Game({ params }: PageProps<"/l/[league]/games/[game]">) {
             <dd className="text-small text-text-muted">
               This makeup is waiting for an open slot.
             </dd>
+          )}
+          {game.startsAt && !done && !calledOff && (
+            // The game day's status (issue #383): watching, late or off.
+            <Suspense fallback={null}>
+              <dd>
+                <GameStatusLine
+                  seasonId={game.seasonId as SeasonId}
+                  date={localDay(game.startsAt, timeZone)}
+                  gameId={game.id}
+                  timeZone={timeZone}
+                />
+              </dd>
+            </Suspense>
           )}
           {game.status === "scheduled" &&
             !calledOff &&
