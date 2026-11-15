@@ -47,7 +47,10 @@ export const fieldGroup = pgTable(
       .references(() => field.id, { onDelete: "cascade" }),
     name: text().notNull(),
     /** Usual days, 0 (Sunday) to 6, in the league's time zone. Empty when not known. */
-    weekdays: integer().array().notNull().default(sql`'{}'::integer[]`),
+    weekdays: integer()
+      .array()
+      .notNull()
+      .default(sql`'{}'::integer[]`),
     /** Usual hours, local wall clock. An end at or before the start runs past midnight. */
     startsAt: time({ precision: 0 }),
     endsAt: time({ precision: 0 }),
@@ -58,10 +61,7 @@ export const fieldGroup = pgTable(
   (t) => [
     index("field_group_field_idx").on(t.fieldId),
     check("field_group_name", sql`length(btrim(${t.name})) between 1 and 80`),
-    check(
-      "field_group_weekdays",
-      sql`${t.weekdays} <@ array[0,1,2,3,4,5,6]`,
-    ),
+    check("field_group_weekdays", sql`${t.weekdays} <@ array[0,1,2,3,4,5,6]`),
     check(
       "field_group_hours",
       sql`(cardinality(${t.weekdays}) = 0 and ${t.startsAt} is null and ${t.endsAt} is null)
