@@ -10,7 +10,7 @@ Rows are defined in [checklist.md](checklist.md). Each run records the commit te
 
 ### Counts
 
-119 pass, 5 fail, 2 not applicable here, 1 not run, of 127 rows.
+120 pass, 4 fail, 2 not applicable here, 1 not run, of 127 rows.
 
 ### Failures and their fixes
 
@@ -19,7 +19,7 @@ A failed row passes again only after its fix merges and the row is run again; th
 | Row | What | Issue | Fix | Re-run |
 |---|---|---|---|---|
 | M5-5, M6-8 | The signed-in home links to a season only while its registration is open, so a rostered player, captain or ref in a running season has no link to their team, next game or RSVPs ([before](screenshots/player-home-no-team.jpg), [after](screenshots/player-home-your-season.png)) | [#314](https://github.com/michael-fesselmeyer/kickball-league/issues/314) | [#340](https://github.com/michael-fesselmeyer/kickball-league/pull/340), open | Checked on the PR's build; re-run after merge |
-| M5-2 | A disputed score queues no message to admins, and the dashboard shows it only the next day | [#315](https://github.com/michael-fesselmeyer/kickball-league/issues/315) | [#338](https://github.com/michael-fesselmeyer/kickball-league/pull/338), open | After merge |
+| M5-2 | A disputed score queues no message to admins, and the dashboard shows it only the next day | [#315](https://github.com/michael-fesselmeyer/kickball-league/issues/315) | [#338](https://github.com/michael-fesselmeyer/kickball-league/pull/338), merged | Passed on a build of `main` at `4a134a1c` |
 | M6-7 | No JSON-LD on team and game pages; no team or schedule pages in the sitemap | [#316](https://github.com/michael-fesselmeyer/kickball-league/issues/316) | [#339](https://github.com/michael-fesselmeyer/kickball-league/pull/339), merged | Passed on a build of `main` at `2d7d6aa8` |
 | S9-3 | No one-click unsubscribe per topic and no `List-Unsubscribe` header; announcements on by default | [#331](https://github.com/michael-fesselmeyer/kickball-league/issues/331) | [#342](https://github.com/michael-fesselmeyer/kickball-league/pull/342), open (the unsubscribe; the announcement default waits for the owners) | After merge |
 | M3-2 | "Cut slots" after adding playoff hours cancelled slots holding final games | [#332](https://github.com/michael-fesselmeyer/kickball-league/issues/332) | [#341](https://github.com/michael-fesselmeyer/kickball-league/pull/341), open | After merge |
@@ -75,7 +75,7 @@ Also seen, not filed: the demo seed has no emergency contacts on file and no reg
 | M4-10 | Refund | pass | Partial refund asks for a sign-in from the last 15 minutes (clear message, nothing refunded); fresh: "Refund of $20 pending", then "Refunded $20 of $75" after charge.refunded |
 | M4-11 | Payment reminders | pass | Payment reminder job tests (src/emails/payment-reminder and domain notifications) pass in the unit run |
 | M5-1 | Score entry | pass | Ref score screen at 375 px: two numbers and Save, about 3 s to save; forfeit and "called early" with complete innings offered |
-| M5-2 | Confirm or dispute | fail | Captain confirms: "Confirmed. The score is final."; dispute button and note present · Dispute works ("Disputed. An admin will sort it out.") and shows on admin Scores, but no admin is messaged: no admin message is queued and the dashboard's game-day card doesn't flag it (#315) |
+| M5-2 | Confirm or dispute | pass | Captain confirms: "Confirmed. The score is final."; dispute button and note present · Dispute works ("Disputed. An admin will sort it out.") and shows on admin Scores, but no admin is messaged: no admin message is queued and the dashboard's game-day card doesn't flag it (#315) · Re-run after #338 merged: a captain's dispute queued an urgent `score_dispute` alert to the admin and the owner (teams, score, note, link to the Scores screen), and the dashboard lists the game as "Disputed" on its own game day |
 | M5-3 | Standings | pass | W/L/T/DIFF table, tiebreaker notes in words, power rankings with movement · Public standings and the static game page updated at once after the confirm (Big Kicks 3-1 to 4-1, +21 to +24) |
 | M5-4 | Missing scores | pass | Admin Scores lists disputed and missing games with the reminder schedule; dashboard shows "Missing scores" |
 | M5-5 | RSVP | fail | Team page In/Maybe/Out; counts update (10 in -> 9 in, 1 out); aria-pressed state · Not reachable from home: once registration closes, the signed-in home has no link to the team page where RSVPs live (#314) |
