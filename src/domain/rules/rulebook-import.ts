@@ -24,7 +24,7 @@ export type ImportSplit = {
 export const IMPORT_MAX = 300_000;
 
 const PAGE_NUMBER = /^\s*(?:page\s+)?\d{1,3}(?:\s*(?:of|\/)\s*\d{1,3})?\s*$/i;
-const RULE_START = /^\(?(?:\d+(?:\.\d+)+|\d+[.)])\s+\S/;
+const RULE_START = /^\(?(?:\d+(?:\.\d+)+[.)]?|\d+[.)])\s+\S/;
 const BULLET = /^(?:[-*•–]\s+|\(?[a-z][.)]\s+)\S/;
 
 const clean = (s: string) => s.replace(/\s+/g, " ").trim();
@@ -32,7 +32,10 @@ const clean = (s: string) => s.replace(/\s+/g, " ").trim();
 function titleCase(s: string): string {
   return s
     .toLowerCase()
-    .replace(/(^|[\s/-])([a-z])/g, (_, a: string, b: string) => a + b.toUpperCase());
+    .replace(
+      /(^|[\s/-])([a-z])/g,
+      (_, a: string, b: string) => a + b.toUpperCase(),
+    );
 }
 
 /** A heading the author clearly marked: markdown, "Section 3", or ALL CAPS. */
@@ -131,7 +134,10 @@ export function splitRulebook(input: string): ImportSplit {
     warnings.push(
       "No section headings found, so everything is one section. Rename it, or put each heading on its own line, such as “1. Pitching”.",
     );
-    return { sections: capped([{ title: "Rulebook", body }], warnings), warnings };
+    return {
+      sections: capped([{ title: "Rulebook", body }], warnings),
+      warnings,
+    };
   }
   const sections: ImportedSection[] = [];
   const introBody = bodyOf(intro);
@@ -190,7 +196,9 @@ export function planImport(
   current: readonly CurrentSection[],
   imported: readonly ImportedSection[],
 ): SubmittedSection[] {
-  const byTitle = new Map(current.map((c) => [c.title.trim().toLowerCase(), c]));
+  const byTitle = new Map(
+    current.map((c) => [c.title.trim().toLowerCase(), c]),
+  );
   const used = new Set<string>();
   const submitted: SubmittedSection[] = imported.map((s) => {
     const match = byTitle.get(s.title.trim().toLowerCase());

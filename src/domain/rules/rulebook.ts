@@ -57,7 +57,7 @@ export type NumberedBlock =
   | { kind: "list"; items: string[] };
 
 /** "3.", "3)" or a dotted "3.1": a bare number is not a rule number. */
-const RULE_NUMBER = /^(\d+(?:\.\d+)+|\d+[.)])\s+(\S[\s\S]*)$/;
+const RULE_NUMBER = /^(\d+(?:\.\d+)+[.)]?|\d+[.)])\s+(\S[\s\S]*)$/;
 
 /** The id of a rule's anchor: unique across the page and stable. */
 export function ruleAnchor(sectionSlug: string, number: string): string {
