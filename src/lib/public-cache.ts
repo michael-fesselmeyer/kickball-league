@@ -227,19 +227,22 @@ export function refreshSponsorPages(): void {
   revalidatePath("/l/[league]/sponsors", "layout");
 }
 
-/** The friends of the league directory. */
+/** The friends of the league directory, and its clubs on the events page. */
 export const FRIENDS_TAG = "friends";
 
 /**
- * From a Server Action: the friends directory shows an admin's change on
- * its next request. As with the other refreshes, the route is expired by
- * path too, so its prerendered page doesn't serve the entries it was built
- * with.
+ * From a Server Action: the friends directory, and the featured clubs on
+ * the events page, show an admin's change on their next request. As with
+ * the other refreshes, the routes are expired by path too, so their
+ * prerendered pages don't serve the entries they were built with.
  */
 export function refreshFriendPages(league: LeagueRef): void {
   updateTag(FRIENDS_TAG);
-  // The league's own page right away, as /friends was before leagues had
-  // their own paths (ADR 0048), and every league's on its next visit.
-  revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/friends`);
-  revalidatePath("/l/[league]/friends", "page");
+  // The league's own pages right away, as /friends and /events were before
+  // leagues had their own paths (ADR 0048), and every league's on its next
+  // visit.
+  for (const page of ["friends", "events"]) {
+    revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/${page}`);
+    revalidatePath(`/l/[league]/${page}`, "page");
+  }
 }

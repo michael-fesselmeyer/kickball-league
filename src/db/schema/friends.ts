@@ -2,9 +2,11 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   integer,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -43,8 +45,9 @@ export const friendActivity = pgEnum("friend_activity", [
  * Another local league in the "friends of the league" directory
  * (docs/data-model.md, section 2.5): softball, soccer, pool, tabletop games
  * and so on. url is the link the public page shows; links_back records that
- * their site links to ours. Removed entries are deleted; the audit log keeps
- * what they said.
+ * their site links to ours. run_by_player puts a club one of our players
+ * runs in its own group; featured also shows it on the events page.
+ * Removed entries are deleted; the audit log keeps what they said.
  */
 export const friendLeague = pgTable(
   "friend_league",
@@ -61,6 +64,8 @@ export const friendLeague = pgTable(
     description: text(),
     url: text().notNull(),
     linksBack: boolean().notNull().default(false),
+    runByPlayer: boolean().notNull().default(false),
+    featured: boolean().notNull().default(false),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -83,6 +88,11 @@ export const friendLeague = pgTable(
     check(
       "friend_league_description_length",
       sql`${t.description} is null or char_length(${t.description}) between 1 and 280`,
+    ),
+    // Only a club one of our players runs goes on the events page.
+    check(
+      "friend_league_featured_player_run",
+      sql`not ${t.featured} or ${t.runByPlayer}`,
     ),
     // The page links it, so only https, and never a very long address.
     check(
@@ -128,5 +138,27 @@ export const friendLogo = pgTable(
       "friend_logo_dimensions",
       sql`${t.width} between 1 and 192 and ${t.height} between 1 and 192`,
     ),
+  ],
+);
+
+/**
+ * How many times people followed an entry's link out, per day (UTC). Only
+ * the count is kept: never who clicked, their address or their device.
+ * The link's ping attribute sends it, so crawlers, which don't ping, aren't
+ * counted, and browsers with ping turned off aren't either.
+ */
+export const friendClick = pgTable(
+  "friend_click",
+  {
+    friendLeagueId: uuid()
+      .notNull()
+      .$type<FriendLeagueId>()
+      .references(() => friendLeague.id, { onDelete: "cascade" }),
+    day: date({ mode: "string" }).notNull(),
+    clicks: integer().notNull().default(0),
+  },
+  (t) => [
+    primaryKey({ columns: [t.friendLeagueId, t.day] }),
+    check("friend_click_clicks", sql`${t.clicks} >= 0`),
   ],
 );

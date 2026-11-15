@@ -12,6 +12,8 @@ describe("seeded friends directory", () => {
         description: entry.description,
         url: entry.url,
         linksBack: entry.linksBack,
+        runByPlayer: entry.runByPlayer,
+        featured: entry.featured,
       };
       const parsed = parseFriendForm({
         ...fields,
@@ -21,6 +23,10 @@ describe("seeded friends directory", () => {
       expect(parsed).toEqual({ ok: true, value: fields });
       expect(new URL(fields.url).hostname).toMatch(/\.example\.test$/);
     }
+  });
+
+  it("has a featured club one of our players runs, for the events page", () => {
+    expect(SEED_FRIENDS.some((f) => f.runByPlayer && f.featured)).toBe(true);
   });
 
   it("has more than one activity, so the page shows its grouping", () => {

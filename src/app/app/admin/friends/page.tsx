@@ -2,8 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { friendDirectory, storedLogoBytes } from "@/db/queries/friends";
-import { ACTIVITY_LABELS, displayHost } from "@/domain/friends/friend-form";
+import {
+  type ClickCounts,
+  friendClickCounts,
+  friendDirectory,
+  storedLogoBytes,
+} from "@/db/queries/friends";
+import { recentSince } from "@/domain/friends/clicks";
+import {
+  ACTIVITY_LABELS,
+  displayHost,
+  PLAYER_RUN_LABEL,
+} from "@/domain/friends/friend-form";
 import { MAX_TOTAL_LOGO_BYTES } from "@/domain/friends/logo";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
@@ -38,9 +48,10 @@ async function AdminFriends({ searchParams }: PageProps<"/app/admin/friends">) {
   await requirePermission("friends.manage", { next: PAGE });
   const query = await searchParams;
   const league = await activeLeague();
-  const [entries, logoBytes] = await Promise.all([
+  const [entries, logoBytes, clicks] = await Promise.all([
     league ? friendDirectory(db, league.id) : [],
     storedLogoBytes(db),
+    league ? friendClickCounts(db, league.id, recentSince(new Date())) : null,
   ]);
   const saved = typeof query.saved === "string" ? SAVED[query.saved] : null;
 
@@ -55,12 +66,20 @@ async function AdminFriends({ searchParams }: PageProps<"/app/admin/friends">) {
         </Link>
         <h1 className="text-h1">Friends of the league</h1>
         <p className="text-text-muted">
-          Other local leagues our players also play in. They&apos;re listed on
-          the public{" "}
+          Other local leagues our players also play in, and clubs our players
+          run. They&apos;re listed on the public{" "}
           <LeagueLink href="/friends" className="underline">
             friends page
           </LeagueLink>
           , which also has a snippet they can use to link back to us.
+        </p>
+        <p className="text-small text-text-muted">
+          Clicks out counts how many people followed each link to the
+          group&apos;s site in the last 30 days, and in all. It&apos;s a count
+          only, never who, and browsers that block link tracking (Firefox, by
+          default) aren&apos;t counted, so the real number is a little higher.
+          Any cross-promotion or fee is agreed outside the app; record income in
+          the books as usual.
         </p>
         <p>
           <Link href={`${PAGE}/new`} className="btn btn-primary">
@@ -87,8 +106,11 @@ async function AdminFriends({ searchParams }: PageProps<"/app/admin/friends">) {
                 <th scope="col" className="py-2 pr-3">
                   Website
                 </th>
-                <th scope="col" className="py-2">
+                <th scope="col" className="py-2 pr-3">
                   Links back
+                </th>
+                <th scope="col" className="py-2">
+                  Clicks out
                 </th>
               </tr>
             </thead>
@@ -104,6 +126,8 @@ async function AdminFriends({ searchParams }: PageProps<"/app/admin/friends">) {
                     </Link>
                     <span className="block text-small text-text-muted">
                       {[
+                        e.runByPlayer ? PLAYER_RUN_LABEL : null,
+                        e.featured ? "on the events page" : null,
                         ACTIVITY_LABELS[e.activity],
                         e.area,
                         e.logo ? "logo" : null,
@@ -115,8 +139,11 @@ async function AdminFriends({ searchParams }: PageProps<"/app/admin/friends">) {
                   <td className="py-2 pr-3 text-small break-all">
                     {displayHost(e.url)}
                   </td>
-                  <td className="py-2 text-small">
+                  <td className="py-2 pr-3 text-small">
                     {e.linksBack ? "Yes" : "Not yet"}
+                  </td>
+                  <td className="py-2 text-small">
+                    <ClickCount counts={clicks?.get(e.id)} />
                   </td>
                 </tr>
               ))}
@@ -127,6 +154,17 @@ async function AdminFriends({ searchParams }: PageProps<"/app/admin/friends">) {
       <p className="text-small text-text-muted">
         Logos use {kb(logoBytes)} of {kb(MAX_TOTAL_LOGO_BYTES)}.
       </p>
+    </>
+  );
+}
+
+/** "12 in 30 days · 40 in all", or "None yet". */
+function ClickCount({ counts }: { counts: ClickCounts | undefined }) {
+  if (!counts || counts.total === 0) return <>None yet</>;
+  return (
+    <>
+      {counts.recent} in 30 days
+      <span className="block text-text-muted">{counts.total} in all</span>
     </>
   );
 }

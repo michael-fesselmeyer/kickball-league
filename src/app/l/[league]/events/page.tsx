@@ -6,10 +6,13 @@ import { EventCard } from "@/components/event-card";
 import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { leagueEvents } from "@/db/queries/events";
+import { type FriendLeague, featuredFriends } from "@/db/queries/friends";
 import { type LeagueInfo, leagueById } from "@/db/queries/leagues";
+import { clickPingPath } from "@/domain/friends/clicks";
+import { displayHost, PLAYER_RUN_LABEL } from "@/domain/friends/friend-form";
 import { env } from "@/env";
 import { eventsCalendarLinks } from "@/lib/calendar-links";
-import { EVENTS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
+import { EVENTS_TAG, FRIENDS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 import { siteOrigin } from "@/lib/site";
 import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
 import { leagueHref } from "@/domain/league/paths";
@@ -69,16 +72,22 @@ async function LeagueEvents({
 
 async function Events({ league: page }: { league: LeagueInfo }) {
   "use cache";
-  cacheTag(EVENTS_TAG);
+  // Featured clubs come from the friends directory, so its changes refresh
+  // this list too.
+  cacheTag(EVENTS_TAG, FRIENDS_TAG);
   const found = await readUnlessBuildHasNoDatabase(async () => {
     const league = await leagueById(db, page.id);
-    return {
-      league,
-      events: league ? await leagueEvents(db, league.id, "public") : [],
-    };
+    const [events, clubs] = league
+      ? await Promise.all([
+          leagueEvents(db, league.id, "public"),
+          featuredFriends(db, league.id),
+        ])
+      : [[], []];
+    return { league, events, clubs };
   });
   cacheLife(found?.league ? PUBLIC_PAGE_LIFE : NOT_KEPT);
   const events = found?.events ?? [];
+  const clubs = found?.clubs ?? [];
   const timeZone = found?.league?.timeZone ?? "America/New_York";
   const now = new Date();
   const upcoming = events.filter((e) => e.endsAt > now);
@@ -123,6 +132,29 @@ async function Events({ league: page }: { league: LeagueInfo }) {
           you if a spot opens.
         </p>
       </section>
+
+      {clubs.length > 0 && (
+        <section aria-labelledby="clubs" className="flex flex-col gap-3">
+          <h2 id="clubs" className="text-h3">
+            {PLAYER_RUN_LABEL}
+          </h2>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {clubs.map((c) => (
+              <li key={c.id}>
+                <ClubCard club={c} />
+              </li>
+            ))}
+          </ul>
+          <p className="text-small">
+            <Link
+              href={leagueHref(league, "/friends")}
+              className="inline-flex min-h-11 items-center underline"
+            >
+              More friends of the league
+            </Link>
+          </p>
+        </section>
+      )}
 
       <section
         aria-labelledby="calendar"
@@ -178,5 +210,26 @@ async function Events({ league: page }: { league: LeagueInfo }) {
         </section>
       )}
     </>
+  );
+}
+
+/** A featured club one of our players runs, linked straight to its site. */
+function ClubCard({ club: c }: { club: FriendLeague }) {
+  return (
+    <article className="flex h-full flex-col gap-1 rounded-card border border-border bg-surface p-4 shadow-card">
+      <h3 className="font-display text-h3">{c.name}</h3>
+      {c.area && <p className="text-small text-text-muted">{c.area}</p>}
+      {c.description && <p className="text-small">{c.description}</p>}
+      <a
+        href={c.url}
+        ping={clickPingPath(c.id)}
+        rel="noopener"
+        className="inline-block self-start py-3 font-bold break-words underline"
+      >
+        {displayHost(c.url)}
+        <span aria-hidden="true"> ↗</span>
+        <span className="sr-only"> (another site)</span>
+      </a>
+    </article>
   );
 }
