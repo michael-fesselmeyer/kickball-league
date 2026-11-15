@@ -205,7 +205,12 @@ async function world(db: Db) {
     enabled: false,
   });
 
-  const open = required(await winBackSeason(db, `spring-2027-${tag}`), "open");
+  const open = required(
+    await winBackSeason(db, lg.id, `spring-2027-${tag}`),
+    "open",
+  );
+  // Slugs are unique within a league only: no league, no season.
+  expect(await winBackSeason(db, null, `spring-2027-${tag}`)).toBeNull();
   return { id, open, leagueId: lg.id, admin: required(id.Ana, "Ana") };
 }
 
