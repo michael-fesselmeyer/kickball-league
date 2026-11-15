@@ -148,9 +148,7 @@ async function main(): Promise<void> {
         await tx
           .select({ id: league.id })
           .from(league)
-          .where(
-            inArray(league.slug, [SEED_LEAGUE_SLUG, SECOND_LEAGUE_SLUG]),
-          )
+          .where(inArray(league.slug, [SEED_LEAGUE_SLUG, SECOND_LEAGUE_SLUG]))
       ).map((r) => r.id);
       await removeSeedPrivateEvents(tx, {
         leagueIds: demoLeagueIds,
