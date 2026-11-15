@@ -13,6 +13,7 @@ import { closePool, inRolledBackDb } from "../test/transaction";
 import { drainOutbox } from "./outbox";
 import type { Db } from "./schedule";
 import { reportScore, respondToScore } from "./scores";
+import { reportingTeam } from "@/domain/scores/scores";
 
 afterAll(closePool);
 
@@ -106,6 +107,64 @@ describe("score confirmation requests", () => {
       expect(row?.payload).toMatchObject({
         reportedBy: "The ref",
         result: "Bees forfeited",
+      });
+    });
+  });
+
+  it("asks only the other team about the report of a ref who plays for one (#296)", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await messagingWorld(db);
+      const ref = w.aces.players[0];
+      if (!ref) throw new Error("missing player");
+      const { gameId } = await w.gameEnding(ENDS, ref.userId);
+      const side = reportingTeam(
+        "referee",
+        [{ teamSeasonId: w.aces.id, role: "player" }],
+        [w.aces.id, w.bees.id],
+      );
+      expect(side).toBe(w.aces.id);
+      const reported = await reportScore(db, {
+        gameId,
+        userId: ref.userId,
+        role: "referee",
+        teamSeasonId: side,
+        score,
+        clientId: `own-ref-${w.tag}`,
+        now: after(5),
+      });
+      expect(reported).toMatchObject({
+        ok: true,
+        value: { state: "awaiting" },
+      });
+      // Only the other team's captain is asked.
+      expect(await asked(db)).toEqual([w.bees.captain.userId]);
+      const [row] = await db
+        .select({ payload: message.payload })
+        .from(message)
+        .where(like(message.dedupeKey, "score-confirm/%"));
+      expect(row?.payload).toMatchObject({
+        reportedBy: "The ref, who plays for Aces",
+      });
+      // The ref's own captain cannot make it final; the other team can.
+      if (!reported.ok || reported.value.state !== "awaiting")
+        throw new Error("expected an open report");
+      const answer = (team: typeof w.aces, userId: typeof ref.userId) =>
+        respondToScore(db, {
+          gameId,
+          reportId: reported.value.reportId as ScoreReportId,
+          teamSeasonId: team.id,
+          userId,
+          status: "confirmed",
+          note: "",
+          now: after(6),
+        });
+      expect(await answer(w.aces, w.aces.captain.userId)).toMatchObject({
+        ok: true,
+        value: { state: "awaiting" },
+      });
+      expect(await answer(w.bees, w.bees.captain.userId)).toMatchObject({
+        ok: true,
+        value: { state: "final" },
       });
     });
   });
