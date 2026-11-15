@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import type { TeamSeasonId } from "@/domain/ids";
@@ -11,6 +12,7 @@ import { team, teamSeason } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { required } from "./rows";
 import type { Db } from "./schedule";
+import { applyOfflineEntry, NO_LIVE_SCORE } from "./offline-scores";
 import { gameForScoring, reportScore } from "./scores";
 import { seasonDivisionStandings } from "./standings";
 
@@ -294,6 +296,36 @@ describe("scores by sport", () => {
         runDifference: 2,
       });
       expect(rows[1]?.separatedBy).toBe("run_difference");
+    });
+  });
+
+  it("refuses half-innings sent from a phone for a sport without innings", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const gameId = await w.newGame(w.a, w.b, 0);
+      const g = required(await gameForScoring(db, gameId), "game");
+      const applied = await applyOfflineEntry(db, {
+        entry: {
+          kind: "half",
+          key: randomUUID(),
+          gameId,
+          userId: w.admin,
+          enteredAt: after(1).toISOString(),
+          inning: 1,
+          half: "top",
+          runs: 2,
+          was: null,
+        },
+        g,
+        userId: w.admin,
+        role: "admin",
+        teamSeasonId: null,
+        now: after(2),
+      });
+      expect(applied).toEqual({
+        result: { status: "refused", message: NO_LIVE_SCORE },
+        changed: false,
+      });
     });
   });
 

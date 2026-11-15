@@ -26,6 +26,7 @@ import {
 } from "./live-scores";
 import type { Db } from "./schedule";
 import { currentScoreState, reportScore, type ScoringGame } from "./scores";
+import { sportRules } from "@/domain/sports/sports";
 
 /**
  * Score entries made with no signal and sent later (ADR 0025). Each runs in
@@ -111,10 +112,15 @@ export async function applyOfflineEntry(
     .from(game)
     .where(eq(game.id, input.g.id))
     .for("update");
+  // Halves and an ending from them are live scoring, which only a sport
+  // with innings has (ADR 0072).
+  const live = entry.kind === "half" || entry.kind === "end";
   const applied =
-    entry.kind === "half"
-      ? await applyHalf(db, entry, input)
-      : await applyReport(db, entry, input);
+    live && !sportRules(input.g.sport).score.liveScoring
+      ? { result: refused(NO_LIVE_SCORE), changed: false }
+      : entry.kind === "half"
+        ? await applyHalf(db, entry, input)
+        : await applyReport(db, entry, input);
   await db
     .update(offlineReceipt)
     .set({ result: applied.result })
@@ -147,6 +153,10 @@ async function applyHalf(
     return { result: refused(ERRORS[saved.error]), changed: false };
   return { result: halfResult(entry, "apply", current), changed: true };
 }
+
+/** For a half-inning sent for a game of a sport without innings. */
+export const NO_LIVE_SCORE =
+  "This game has no live score. Enter the final score.";
 
 const ERRORS: Record<Exclude<EndError, ScoreErrors>, string> = {
   not_found: "That game is gone.",
