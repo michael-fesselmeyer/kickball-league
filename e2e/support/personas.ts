@@ -25,14 +25,18 @@ export async function pageAs(browser: Browser, persona: Persona) {
 }
 
 /**
- * Personas start without a phone, birth date or emergency contact, which
- * registration needs. Fills them in with invented values (555-01xx numbers
+ * Personas start without a phone, birth date, shirt size or emergency
+ * contact, which registration needs. Fills them in with invented values (555-01xx numbers
  * are reserved for fiction).
  */
 export async function completeProfile(page: Page) {
   await page.goto("/app/profile");
   await page.getByLabel("Mobile phone").fill("(718) 555-0142");
   await page.getByLabel("Birth date").fill("1994-05-17");
+  // Every sign-up form asks for a size and starts at the profile's.
+  await page
+    .getByRole("combobox", { name: "Shirt size" })
+    .selectOption({ label: "M" });
   const emergency = page.getByRole("group", { name: "Emergency contact" });
   await emergency.getByLabel("Name").fill("Sam Example");
   await emergency.getByLabel("Phone").fill("(718) 555-0199");
