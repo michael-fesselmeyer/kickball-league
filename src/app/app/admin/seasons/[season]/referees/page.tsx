@@ -36,7 +36,7 @@ const ERRORS: Record<string, string> = {
     "Nobody has an account with that email yet. Ask them to sign in once, then assign them.",
   unknown_game: "That game is gone.",
   own_team:
-    "They play on one of those teams. A ref can't work their own team's game, so pick someone else.",
+    "They play for one of those teams. If they ref it, their report counts as their team's and only the other team can confirm it. Tick the box to assign them anyway, or pick someone else.",
   already_in_pool: "They're already in the ref pool.",
 };
 const NOTICES: Record<string, string> = {
@@ -203,7 +203,7 @@ async function Referees({
                 ) : (
                   <form
                     action={assignRefereeAction.bind(null, slug, g.id)}
-                    className="flex items-center gap-2"
+                    className="flex flex-wrap items-center gap-2"
                   >
                     <input
                       name="email"
@@ -213,6 +213,17 @@ async function Referees({
                       aria-label={`Referee's email for ${g.teamAName} vs ${g.teamBName}`}
                       className="w-48 rounded-md border border-border bg-surface px-2 py-1"
                     />
+                    {query.error === "own_team" && query.game === g.id && (
+                      <label className="flex items-center gap-2 text-small">
+                        <input
+                          type="checkbox"
+                          name="ownTeamOk"
+                          className="size-5"
+                        />
+                        They play in this game. Assign anyway: their report
+                        counts as their team&rsquo;s.
+                      </label>
+                    )}
                     <SubmitButton className="min-h-11 underline">
                       Assign
                     </SubmitButton>
