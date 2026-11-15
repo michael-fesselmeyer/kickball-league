@@ -125,6 +125,9 @@ const RULES = {
   "private_event.organize": any(isAdmin, self),
   "event.rsvp": signedIn,
   "sponsor.check_in": signedIn,
+  // Scan a game's field check-in code (ADR 0063); being on either roster or
+  // approved to sub in that game is checked with it.
+  "attendance.check_in": signedIn,
   // A free giveaway at an event; the event's audience narrows it further.
   "giveaway.enter": signedIn,
   // The sign-up challenge's leaderboard: team names and percentages only.
@@ -230,6 +233,11 @@ const RULES = {
   // Game-day discipline: the game's ref, a captain of either team or an
   // admin files a report; only admins review it and suspend.
   "incident.log": any(isAdmin, refereesGame, captainsGame),
+  // Field check-in (ADR 0063): show the game's code and tick players in or
+  // out, with each one's waiver status. The game's ref, its captains, admins.
+  "attendance.take": any(isAdmin, refereesGame, captainsGame),
+  // A team's attendance and games played: its captains, and admins.
+  "attendance.view": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   // A captain rates the other team once the game is final.
   "sportsmanship.rate": captainsGame,
   // A team's own average, for its captains.
