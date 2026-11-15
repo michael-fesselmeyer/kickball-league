@@ -13,6 +13,8 @@ const PAGES = [
   "/app",
   "/app/admin",
   "/app/books/fall-2026",
+  "/app/books/fall-2026/expected",
+  "/app/books/fall-2026/import",
   "/app/books/fall-2026/permits",
   "/app/books/fall-2026/permits/capacity",
 ] as const;
