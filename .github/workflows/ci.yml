@@ -4,7 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+    # ready_for_review: a draft marked ready runs the checks it skipped.
+    types: [opened, synchronize, reopened, ready_for_review]
 
+# One run per branch: a new push cancels the branch's run in progress, and
+# never another branch's.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -32,6 +36,11 @@ jobs:
       # "false" only for a pull request whose every file is documentation.
       # Anything else, including a failure here, runs every check in full.
       app: ${{ steps.diff.outputs.app }}
+      # "false" only for a draft pull request without the full-ci label: it
+      # runs lint, types, tests, the build, migrations and the secret scan,
+      # and leaves end-to-end and Lighthouse until it is marked ready (which
+      # runs everything on the same commit). Pushes to main always run it all.
+      full: ${{ steps.draft.outputs.full }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -73,6 +82,19 @@ jobs:
             echo "$files"
             echo '```'
           } >>"$GITHUB_STEP_SUMMARY"
+      - name: Is this a draft that waits for end-to-end and Lighthouse?
+        id: draft
+        env:
+          DRAFT: ${{ github.event_name == 'pull_request' && github.event.pull_request.draft }}
+          FULL_CI: ${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+        run: |
+          set -euo pipefail
+          if [ "$DRAFT" = true ] && [ "$FULL_CI" != true ]; then
+            echo "full=false" >>"$GITHUB_OUTPUT"
+            echo "Draft: end-to-end and Lighthouse run when it is marked ready, or on the next push after adding the full-ci label." >>"$GITHUB_STEP_SUMMARY"
+          else
+            echo "full=true" >>"$GITHUB_OUTPUT"
+          fi
 
   verify:
     name: Lint, types, tests, build
@@ -128,7 +150,7 @@ jobs:
     # and shared by all of that check's shards.
     name: Production build for ${{ matrix.check }}
     needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.app != 'false' }}
+    if: ${{ !cancelled() && needs.changes.outputs.app != 'false' && needs.changes.outputs.full != 'false' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -268,6 +290,7 @@ jobs:
         env:
           CHANGES: ${{ needs.changes.result }}
           APP: ${{ needs.changes.outputs.app }}
+          FULL: ${{ needs.changes.outputs.full }}
           BUILD: ${{ needs.build.result }}
           SHARDS: ${{ needs.e2e-shard.result }}
         run: |
@@ -275,11 +298,15 @@ jobs:
             echo "Only documentation changed; no end-to-end run needed."
             exit 0
           fi
+          if [ "$CHANGES" = success ] && [ "$FULL" = false ]; then
+            echo "Draft: end-to-end runs when it is marked ready (or with the full-ci label)."
+            exit 0
+          fi
           echo "Production build: $BUILD. End-to-end shards: $SHARDS."
           [ "$BUILD" = success ] && [ "$SHARDS" = success ]
 
   # Lighthouse is the workflow's longest path: 26 pages, five runs each.
-  # Seven shards, balanced by each page's measured time, finish together
+  # Eight shards, balanced by each page's measured time, finish together
   # in about the time the end-to-end shards take.
   lighthouse-shard:
     name: Lighthouse shard ${{ matrix.shard }} of ${{ strategy.job-total }}
@@ -290,7 +317,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     services:
       postgres:
         image: postgres:18
@@ -342,11 +369,16 @@ jobs:
         env:
           CHANGES: ${{ needs.changes.result }}
           APP: ${{ needs.changes.outputs.app }}
+          FULL: ${{ needs.changes.outputs.full }}
           BUILD: ${{ needs.build.result }}
           SHARDS: ${{ needs.lighthouse-shard.result }}
         run: |
           if [ "$CHANGES" = success ] && [ "$APP" = false ]; then
             echo "Only documentation changed; no Lighthouse run needed."
+            exit 0
+          fi
+          if [ "$CHANGES" = success ] && [ "$FULL" = false ]; then
+            echo "Draft: Lighthouse runs when it is marked ready (or with the full-ci label)."
             exit 0
           fi
           echo "Production build: $BUILD. Lighthouse shards: $SHARDS."
