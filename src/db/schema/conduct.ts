@@ -24,7 +24,7 @@ import { season } from "./season";
  * A version of the league's code of conduct. Written in the app and stored
  * here, never committed. Versions are never edited: changing the text makes
  * a new version, so every acceptance points at the exact text that was shown
- * (docs/data-model.md, section 2.1, and ADR 0063).
+ * (docs/data-model.md, section 2.1, and ADR 0074).
  */
 export const conductCode = pgTable(
   "conduct_code",
