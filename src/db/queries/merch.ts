@@ -424,13 +424,14 @@ export async function merchPhoto(db: Db, imageId: MerchImageId) {
  * Every photo of an item in the shop, in every league: a takedown compares
  * this before and after to purge the photos that went (ADR 0069).
  */
-export async function shopImageIds(db: Db): Promise<MerchImageId[]> {
-  const rows = await db
-    .select({ id: merchImage.id })
+export async function shopImageIds(
+  db: Db,
+): Promise<{ id: MerchImageId; leagueId: LeagueId }[]> {
+  return db
+    .select({ id: merchImage.id, leagueId: merchItem.leagueId })
     .from(merchImage)
     .innerJoin(merchItem, eq(merchItem.id, merchImage.itemId))
     .where(isNull(merchItem.hiddenAt));
-  return rows.map((r) => r.id);
 }
 
 /** How much of the merch photo cap is used, for the admin's page. */

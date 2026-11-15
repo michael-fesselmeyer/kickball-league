@@ -576,14 +576,15 @@ export async function memberPhotoFile(db: Db, photoId: MemberPhotoId) {
  * Every approved photo with its bytes, in every league: a takedown compares
  * this before and after to purge the photos that went (ADR 0069).
  */
-export async function approvedPhotoIds(db: Db): Promise<MemberPhotoId[]> {
-  const rows = await db
-    .select({ id: memberPhoto.id })
+export async function approvedPhotoIds(
+  db: Db,
+): Promise<{ id: MemberPhotoId; leagueId: LeagueId }[]> {
+  return db
+    .select({ id: memberPhoto.id, leagueId: memberPhoto.leagueId })
     .from(memberPhoto)
     .where(
       and(eq(memberPhoto.status, "approved"), isNotNull(memberPhoto.bytes)),
     );
-  return rows.map((r) => r.id);
 }
 
 export type ApprovedPhoto = {

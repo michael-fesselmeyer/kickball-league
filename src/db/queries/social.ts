@@ -894,14 +894,15 @@ export async function storedImage(db: Db, imageId: SocialImageId) {
  * Every stored photo a public page may show, in every league: a takedown
  * compares this before and after to purge the photos that went (ADR 0069).
  */
-export async function shownImageIds(db: Db): Promise<SocialImageId[]> {
-  const rows = await db
-    .select({ id: socialImage.id })
+export async function shownImageIds(
+  db: Db,
+): Promise<{ id: SocialImageId; leagueId: LeagueId }[]> {
+  return db
+    .select({ id: socialImage.id, leagueId: socialAccount.leagueId })
     .from(socialImage)
     .innerJoin(socialPost, eq(socialImage.postId, socialPost.id))
     .innerJoin(socialAccount, eq(socialPost.accountId, socialAccount.id))
     .where(shown);
-  return rows.map((r) => r.id);
 }
 
 /** Whether any account is waiting for an admin to reconnect, for the dashboard. */

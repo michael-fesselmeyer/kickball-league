@@ -397,14 +397,20 @@ describe("curatePost", () => {
         (p) => p.id === ids[0],
       )!;
       expect((await storedImage(db, post.imageId!))?.shown).toBe(false);
-      expect(await shownImageIds(db)).not.toContain(post.imageId);
+      expect((await shownImageIds(db)).map((r) => r.id)).not.toContain(
+        post.imageId,
+      );
       await curate(ids[0]!, { kind: "feature", on: true });
       expect((await storedImage(db, post.imageId!))?.shown).toBe(true);
       // A takedown purges what leaves this list (ADR 0069).
-      expect(await shownImageIds(db)).toContain(post.imageId);
+      expect((await shownImageIds(db)).map((r) => r.id)).toContain(
+        post.imageId,
+      );
       await curate(ids[0]!, { kind: "hide", on: true });
       expect((await storedImage(db, post.imageId!))?.shown).toBe(false);
-      expect(await shownImageIds(db)).not.toContain(post.imageId);
+      expect((await shownImageIds(db)).map((r) => r.id)).not.toContain(
+        post.imageId,
+      );
     });
   });
 
