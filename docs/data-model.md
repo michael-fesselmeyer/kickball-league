@@ -1618,7 +1618,7 @@ erDiagram
     text provider "stripe, resend"
     text event_id UK
     text type
-    jsonb payload "event id, type, object kind and id only"
+    jsonb payload "event id, type, object kind and id; a refund adds its PaymentIntent and refunded total"
     enum status "received, processed, failed"
     timestamptz processed_at
   }
