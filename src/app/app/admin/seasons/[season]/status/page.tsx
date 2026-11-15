@@ -18,6 +18,7 @@ import { kickoff, shortDay } from "@/domain/schedule/format";
 import { localDay } from "@/domain/schedule/public-game";
 import { localTime } from "@/domain/time/zoned";
 import { requirePermission } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
 import { setStatusAction } from "./actions";
 import { ERRORS, NOTICES } from "./words";
 
@@ -51,7 +52,7 @@ async function Status({
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/status`;
   await requirePermission("game_day.status", { next: page });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season || season.status === "draft") notFound();
   const now = new Date();
   const today = localDay(now, season.timeZone);
