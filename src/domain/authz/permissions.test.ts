@@ -431,6 +431,34 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     expect(allowed("emergency_contact.view", { game: g2 })).toEqual([]);
   });
 
+  it("lets a game's ref and captains take attendance, and captains see their team's", () => {
+    expect(allowed("attendance.take", { game: g1 })).toEqual([
+      "captain",
+      "coCaptain",
+      "referee",
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("attendance.take", { game: g2 })).toEqual([
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("attendance.view", { teamSeasonId: "A" })).toEqual([
+      "captain",
+      "coCaptain",
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("attendance.view", { teamSeasonId: "C" })).toEqual([
+      "admin",
+      "owner",
+    ]);
+    // Anyone signed in may scan; the roster check comes with it.
+    expect(allowed("attendance.check_in")).toEqual(
+      everyone.filter((who) => who !== "visitor"),
+    );
+  });
+
   it("lets sponsors manage their own page and report", () => {
     for (const action of ["sponsor.edit", "sponsor.report"] as const) {
       expect(allowed(action, { sponsorId: "bar" })).toEqual([

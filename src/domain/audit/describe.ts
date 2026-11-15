@@ -10,6 +10,7 @@ const ACTIONS: Record<string, string> = {
   "announcement.edit": "Changed a scheduled announcement",
   "announcement.schedule": "Scheduled an announcement",
   "announcement.send": "Sent an announcement",
+  "attendance.mark": "Changed who checked in for a game",
   "awards.close": "Closed an awards poll early",
   "awards.open": "Opened an awards poll",
   "awards.remove": "Removed an awards poll",
