@@ -6,6 +6,7 @@ const { revalidatePath, updateTag } = await import("next/cache");
 const {
   EVENTS_TAG,
   FRIENDS_TAG,
+  PARKS_TAG,
   SEASONS_TAG,
   SITE_TAG,
   SPONSORS_TAG,
@@ -15,6 +16,7 @@ const {
   refreshEventPages,
   refreshFriendPages,
   refreshGamePage,
+  refreshParkPages,
   refreshSeasonPages,
   refreshSeasonCards,
   refreshSiteNotice,
@@ -38,14 +40,28 @@ describe("refreshSeasonPages", () => {
     expect(vi.mocked(updateTag).mock.calls).toEqual([
       [seasonTag("season-1")],
       [SEASONS_TAG],
+      // A season turning public changes which permits the park pages show.
+      [PARKS_TAG],
     ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
+      ["/l/[league]/fields/[park]", "page"],
       ["/l/[league]/seasons", "page"],
       ["/l/[league]/seasons/[season]", "layout"],
       ["/l/[league]/teams/[team]", "layout"],
       ["/l/[league]/games/[game]", "layout"],
       ["/embed/schedule", "layout"],
       ["/l/[league]/rules", "layout"],
+    ]);
+  });
+});
+
+describe("refreshParkPages", () => {
+  it("expires the parks tag and the park route", () => {
+    refreshParkPages();
+
+    expect(vi.mocked(updateTag).mock.calls).toEqual([[PARKS_TAG]]);
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([
+      ["/l/[league]/fields/[park]", "page"],
     ]);
   });
 });
