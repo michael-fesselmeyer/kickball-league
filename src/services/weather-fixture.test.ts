@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { decide, rainFallen } from "@/domain/weather/decision";
 import { gameForecast, rainRisk } from "@/domain/weather/forecast";
 import {
+  FIXTURE_ALERTS,
   FIXTURE_RAIN_CHANCE,
+  FIXTURE_SHOWER_IN,
+  FIXTURE_STATION,
   fixtureForecast,
+  fixtureGrid,
+  fixtureObservations,
   usesWeatherFixture,
 } from "./weather-fixture";
 
@@ -56,5 +62,55 @@ describe("fixtureForecast", () => {
     expect(fixtureForecast(new Date("2026-11-14T15:55:00Z"), nextGame)).toEqual(
       hours,
     );
+  });
+});
+
+describe("the rain-out card's demo weather", () => {
+  const hours = fixtureForecast(now, nextGame);
+
+  it("rains lightly only in the showery hours, with no thunder", () => {
+    const grid = fixtureGrid(hours);
+    expect(grid).toHaveLength(hours.length);
+    for (const [i, g] of grid.entries()) {
+      expect(g.startsAt).toEqual(hours[i]?.startsAt);
+      expect(g.rainIn).toBe(
+        (hours[i]?.precipChance ?? 0) >= FIXTURE_RAIN_CHANCE
+          ? FIXTURE_SHOWER_IN
+          : 0,
+      );
+      expect(g.thunderChance).toBeNull();
+    }
+  });
+
+  it("reports a dry night at the nearest station, hourly at :51", () => {
+    const reports = fixtureObservations(now);
+    expect(reports).toHaveLength(48);
+    expect(reports[0]?.at).toEqual(new Date("2026-11-14T14:51:00Z"));
+    expect(reports.every((r) => r.at.getUTCMinutes() === 51)).toBe(true);
+    expect(rainFallen(reports, now, 24)).toEqual({
+      inches: 0,
+      hoursReported: 24,
+      hours: 24,
+    });
+  });
+
+  it("reads as worth watching on the game day, as the demo's rain alert does", () => {
+    const reports = fixtureObservations(now);
+    const d = decide({
+      hourly: hours,
+      grid: fixtureGrid(hours),
+      observed: {
+        stationId: FIXTURE_STATION.id,
+        stationName: FIXTURE_STATION.name,
+        last24: rainFallen(reports, now, 24),
+        last48: rainFallen(reports, now, 48),
+      },
+      alerts: [...FIXTURE_ALERTS],
+      games: [game(nextGame)],
+      now,
+      timeZone: "America/New_York",
+    });
+    expect(d.level).toBe("watch");
+    expect(d.summary).toMatch(/^Worth watching: 55% chance of rain/);
   });
 });
