@@ -91,6 +91,11 @@ export const season = pgTable(
     rosterMax: integer().notNull(),
     /** This season's minimum age; null uses the league's (ADR 0041). */
     minimumAge: smallint(),
+    /**
+     * Games a player must have played this season to play in the playoffs,
+     * counted from game attendance (ADR 0063); null sets no minimum.
+     */
+    playoffMinGames: smallint(),
     gamesPerTeamPerDay: integer().notNull().default(1),
     /** The waiver version players sign for this season. */
     waiverId: uuid()
@@ -135,6 +140,10 @@ export const season = pgTable(
     check(
       "season_minimum_age",
       sql`${t.minimumAge} is null or ${t.minimumAge} between 18 and 99`,
+    ),
+    check(
+      "season_playoff_min_games",
+      sql`${t.playoffMinGames} is null or ${t.playoffMinGames} between 1 and 30`,
     ),
     check(
       "season_crossover_games_range",

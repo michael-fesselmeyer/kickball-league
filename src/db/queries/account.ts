@@ -1,6 +1,7 @@
 import { and, asc, count, eq, gt, inArray, isNull, ne, sql } from "drizzle-orm";
 import type { UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
+import { gameAttendance } from "../schema/attendance";
 import { auditLog } from "../schema/audit";
 import { awardPoll, awardVote } from "../schema/awards";
 import { referralCode } from "../schema/credit";
@@ -297,6 +298,17 @@ export async function personalData(
     .from(gameRsvp)
     .where(eq(gameRsvp.userId, userId))
     .orderBy(asc(gameRsvp.updatedAt));
+  // The games they checked in for at the field (ADR 0063).
+  const gamesPlayed = await db
+    .select({
+      gameId: gameAttendance.gameId,
+      teamSeasonId: gameAttendance.teamSeasonId,
+      method: gameAttendance.method,
+      recordedAt: gameAttendance.recordedAt,
+    })
+    .from(gameAttendance)
+    .where(eq(gameAttendance.userId, userId))
+    .orderBy(asc(gameAttendance.recordedAt));
   // Where they kick in saved orders; their lineup gender is in the profile.
   // The weeks they said they'd miss, by season.
   const awayWeeks = await db
@@ -624,6 +636,7 @@ export async function personalData(
         .map((x) => without(x, "purchaseId")),
     })),
     rsvps,
+    gamesPlayed,
     kickingOrder,
     awayWeeks,
     eventRsvps,
@@ -834,6 +847,7 @@ export async function deleteAccount(
       sql`position(${`"email":${JSON.stringify(person.email)}`} in ${verification.value}) > 0`,
     );
   await db.delete(gameRsvp).where(eq(gameRsvp.userId, userId));
+  await db.delete(gameAttendance).where(eq(gameAttendance.userId, userId));
   await db.delete(gameLineupSpot).where(eq(gameLineupSpot.userId, userId));
   await db.delete(seasonCard).where(eq(seasonCard.userId, userId));
   await db
