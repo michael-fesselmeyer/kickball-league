@@ -1,4 +1,5 @@
 export * from "./account-merge";
+export * from "./attendance";
 export * from "./audit";
 export * from "./auth";
 export * from "./availability";

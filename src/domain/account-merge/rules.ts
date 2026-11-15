@@ -229,6 +229,14 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     resolve: "drop",
     clash: "Both answered for the same game; the kept account's answer stays",
   },
+  "game_attendance.user_id": {
+    kind: "dedupe",
+    label: "games checked in for",
+    by: ["game_id"],
+    resolve: "drop",
+    clash: "Both checked in for the same game; it counts once",
+  },
+  "game_attendance.recorded_by": actor("check-ins recorded"),
   "pickem_pick.user_id": {
     kind: "dedupe",
     label: "pick'em picks",

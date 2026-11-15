@@ -505,6 +505,13 @@
       "when": 1794759709452,
       "tag": "0071_curved_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1794760897436,
+      "tag": "0072_game_attendance",
+      "breakpoints": true
     }
   ]
 }

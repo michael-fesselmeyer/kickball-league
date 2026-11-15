@@ -7,6 +7,11 @@ import {
   LOWEST_MINIMUM_AGE,
   parseMinimumAge,
 } from "@/domain/registration/age";
+import {
+  HIGHEST_PLAYOFF_MIN,
+  LOWEST_PLAYOFF_MIN,
+  parsePlayoffMinGames,
+} from "@/domain/attendance/attendance";
 
 /**
  * The season setup form (product-spec.md: "Season setup: price per team or
@@ -40,6 +45,8 @@ export type SeasonSettings = {
   gamesPerTeamPerDay: 1 | 2;
   /** The season's own minimum age; null uses the league's (ADR 0041). */
   minimumAge: number | null;
+  /** Games played a player needs for the playoffs; null for none (ADR 0063). */
+  playoffMinGames: number | null;
 };
 
 /** The form's fields, all strings, as an admin types them. */
@@ -61,6 +68,7 @@ export const SEASON_FIELDS = [
   "rosterMax",
   "gamesPerTeamPerDay",
   "minimumAge",
+  "playoffMinGames",
 ] as const;
 export type SeasonField = (typeof SEASON_FIELDS)[number];
 export type SeasonForm = Record<SeasonField, string>;
@@ -185,6 +193,9 @@ export function parseSeasonForm(
   const minimumAge = parseMinimumAge(f.minimumAge);
   if (!minimumAge.ok)
     errors.minimumAge = `From ${LOWEST_MINIMUM_AGE} to ${HIGHEST_MINIMUM_AGE}, or leave it empty for the league's.`;
+  const playoffMinGames = parsePlayoffMinGames(f.playoffMinGames);
+  if (!playoffMinGames.ok)
+    errors.playoffMinGames = `From ${LOWEST_PLAYOFF_MIN} to ${HIGHEST_PLAYOFF_MIN} games, or leave it empty for no minimum.`;
 
   // Every null below has an error above; the checks narrow the types.
   if (
@@ -192,7 +203,8 @@ export function parseSeasonForm(
     !feeModel ||
     rosterMin === null ||
     rosterMax === null ||
-    !minimumAge.ok
+    !minimumAge.ok ||
+    !playoffMinGames.ok
   )
     return { ok: false, errors };
 
@@ -221,6 +233,7 @@ export function parseSeasonForm(
       rosterMax,
       gamesPerTeamPerDay: f.gamesPerTeamPerDay === "2" ? 2 : 1,
       minimumAge: minimumAge.value,
+      playoffMinGames: playoffMinGames.value,
     },
   };
 }
@@ -252,6 +265,8 @@ export function toSeasonForm(
     rosterMax: String(s.rosterMax),
     gamesPerTeamPerDay: String(s.gamesPerTeamPerDay),
     minimumAge: s.minimumAge === null ? "" : String(s.minimumAge),
+    playoffMinGames:
+      s.playoffMinGames === null ? "" : String(s.playoffMinGames),
   };
 }
 
@@ -274,4 +289,5 @@ export const EMPTY_SEASON_FORM: SeasonForm = {
   rosterMax: "20",
   gamesPerTeamPerDay: "1",
   minimumAge: "",
+  playoffMinGames: "",
 };
