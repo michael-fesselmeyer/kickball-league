@@ -268,7 +268,7 @@ Rules:
 - If a ref and a captain both submit, the ref's report wins and the captain's is kept as a note.
 - If only captains submit and their scores match, the game is final at once.
 - Score entry is one screen with large plus and minus controls; nothing smaller than 44 by 44 points.
-- Live scoring: the ref, or a captain when the game has no ref, says who kicks first, then taps the runs after each half-inning (0 to 7 in one tap, or a typed number). Any half can be corrected and the last one taken back. "Game over" reports every run; "Called after the Nth" reports the score at the last complete inning and needs at least 4. Either becomes an ordinary report that the captains confirm. The public game page shows the line score and updates within 15 seconds ([ADR 0011](adr/0011-live-scores-by-polling.md)).
+- Live scoring: the ref, or a captain when the game has no ref, says who kicks first, then taps a big "+1 run" for each run and "End half" after each half-inning (or types a number). The count is kept on the phone until End half saves it. Undo takes back the last run, or reopens the half just ended with its runs. Any half can be corrected. It is optional: the ref's home screen offers "Keep score live" once the slot starts, and the score screen's form is filled in from the innings. "Game over" reports every run; "Called after the Nth" reports the score at the last complete inning and needs at least 4. Either becomes an ordinary report that the captains confirm. The public game page shows the line score and updates within 15 seconds ([ADR 0011](adr/0011-live-scores-by-polling.md)).
 - P3: entries made offline are stored on the device with a unique ID and sent when the connection returns; the server ignores duplicates.
 
 ### 2.5 Rain-out
