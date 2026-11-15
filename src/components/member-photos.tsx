@@ -2,6 +2,9 @@ import { getImageProps } from "next/image";
 import Link from "next/link";
 import type { ApprovedPhoto } from "@/db/queries/member-photos";
 import { photoSrc } from "@/lib/media/photo-src";
+import { fill } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 
 /**
  * Photos players shared and the league approved (ADR 0039), as a grid of
@@ -16,6 +19,7 @@ export function MemberPhotos({
   about,
   photos,
   shareHref,
+  locale = DEFAULT_LOCALE,
 }: {
   id: string;
   /** What the photos are from, for their alt text: "Sun Kickers". */
@@ -23,11 +27,14 @@ export function MemberPhotos({
   photos: ApprovedPhoto[];
   /** The upload page, with this page's team, event or game chosen. */
   shareHref: string;
+  /** The page's language (ADR 0065); English unless given. */
+  locale?: Locale;
 }) {
+  const words = messagesFor(locale).photos;
   return (
     <section aria-labelledby={id} className="flex flex-col gap-3">
       <h2 id={id} className="text-h2">
-        Photos from players
+        {words.title}
       </h2>
       {photos.length > 0 && (
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -37,7 +44,10 @@ export function MemberPhotos({
                 <div className="relative aspect-square overflow-hidden rounded-card border-2 border-text bg-surface-2">
                   {/* A plain img with the optimizer's srcset: no client component. */}
                   {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
-                  <img {...imageProps(photo, about)} className="object-cover" />
+                  <img
+                    {...imageProps(photo, fill(words.alt, { about }))}
+                    className="object-cover"
+                  />
                 </div>
                 {photo.caption && (
                   <figcaption className="line-clamp-2 text-small text-text-muted">
@@ -50,25 +60,25 @@ export function MemberPhotos({
         </ul>
       )}
       <p className="text-small">
-        {photos.length === 0 ? "No photos yet. " : ""}
-        Got a good one?{" "}
+        {photos.length === 0 ? `${words.none} ` : ""}
+        {words.gotOne}{" "}
         <Link
           href={shareHref}
           prefetch={false}
           className="inline-flex min-h-11 items-center text-brand underline"
         >
-          Share a photo
+          {words.share}
         </Link>
       </p>
     </section>
   );
 }
 
-function imageProps(photo: ApprovedPhoto, about: string) {
+function imageProps(photo: ApprovedPhoto, alt: string) {
   const { props } = getImageProps({
     src: photoSrc.member(photo.id),
     // A caption is shown beside the photo, so it isn't read twice.
-    alt: photo.caption ? "" : `A player's photo from ${about}`,
+    alt: photo.caption ? "" : alt,
     fill: true,
     sizes: "(min-width: 1024px) 240px, (min-width: 768px) 25vw, 50vw",
   });

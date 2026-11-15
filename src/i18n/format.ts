@@ -81,3 +81,20 @@ export function formatList(locale: Locale, items: readonly string[]): string {
     type: "conjunction",
   }).format(items);
 }
+
+/**
+ * An ordinal: "3rd" in English; "3.º" in Spanish, or "3.ª" for a feminine
+ * noun such as "entrada" (inning). No catalog, so client components can
+ * use it.
+ */
+export function formatOrdinal(
+  locale: Locale,
+  n: number,
+  gender: "masculine" | "feminine" = "masculine",
+): string {
+  if (locale === "es") return `${n}.${gender === "feminine" ? "ª" : "º"}`;
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 13) return `${n}th`;
+  const suffix = ["th", "st", "nd", "rd"][n % 10] ?? "th";
+  return `${n}${suffix}`;
+}

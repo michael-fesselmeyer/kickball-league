@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, useState, useSyncExternalStore } from "react";
-import { whatsappHref } from "@/domain/share/share-text";
+import { whatsappHref } from "@/domain/share/whatsapp";
+import { shareEn, type ShareWords } from "@/i18n/messages/share.en";
 
 /**
  * Sharing into the league's WhatsApp chats (docs/product-spec.md): one tap
@@ -38,12 +39,20 @@ const hasShareSheet = () => typeof navigator.share === "function";
 type Copied = "idle" | "copied" | "failed";
 
 /** When copying fails, the message is shown so it can be selected by hand. */
-function ManualCopy({ text, state }: { text: string; state: Copied }) {
+function ManualCopy({
+  text,
+  state,
+  label = shareEn.manual,
+}: {
+  text: string;
+  state: Copied;
+  label?: string;
+}) {
   const id = useId();
   if (state !== "failed") return null;
   return (
     <label htmlFor={id} className="flex flex-col gap-1 text-small font-bold">
-      Copying didn&apos;t work here. Select the message and copy it:
+      {label}
       <textarea
         id={id}
         readOnly
@@ -75,10 +84,13 @@ function WhatsAppIcon() {
 export function ShareButtons({
   text,
   title,
+  words = shareEn,
 }: {
   /** The whole message, link included. */
   text: string;
   title: string;
+  /** The page's words (ADR 0065); English unless given. */
+  words?: ShareWords;
 }) {
   // False on the server and during hydration, so the markup matches.
   const shareSheet = useSyncExternalStore(
@@ -111,17 +123,17 @@ export function ShareButtons({
           className="btn btn-primary"
         >
           <WhatsAppIcon />
-          Share on WhatsApp
-          <span className="sr-only"> (opens WhatsApp)</span>
+          {words.whatsapp}
+          <span className="sr-only">{words.opensWhatsapp}</span>
         </a>
         <button type="button" onClick={more} className="btn btn-secondary">
-          {shareSheet ? "More ways to share" : "Copy the message"}
+          {shareSheet ? words.more : words.copy}
         </button>
       </div>
       <p role="status" className="text-small text-text-muted">
-        {copied === "copied" ? "Copied. Paste it into any chat." : ""}
+        {copied === "copied" ? words.copied : ""}
       </p>
-      <ManualCopy text={text} state={copied} />
+      <ManualCopy text={text} state={copied} label={words.manual} />
     </div>
   );
 }

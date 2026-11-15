@@ -1,0 +1,314 @@
+/**
+ * The words of the public pages beyond home, FAQ and schedule (ADR 0065),
+ * spread into the English catalog. Each top-level key is one page or a
+ * family of pages.
+ */
+export const pagesEn = {
+  about: {
+    title: "About the league",
+    description:
+      "A social, coed adult kickball league in McCarren Park, Brooklyn. How a season works, who it's for, and the few things we ask of everyone.",
+    home: "Home",
+    crumb: "About",
+    sticker: "Have fun, meet people",
+    headingStart: "A kickball league for",
+    headingSwipe: "meeting people",
+    intro:
+      "We're a coed adult kickball league in McCarren Park, Brooklyn. People come for the game, stay for each other, and keep coming back season after season. Competitive enough to care about the score, relaxed enough that nobody cares if you whiff.",
+    whoTitle: "Who plays",
+    whoBody:
+      "Adults 18 and over from all over the city: new in town, old friends, coworkers, roommates, people who just want a reason to be outside on a Sunday. Plenty haven't played kickball since school, and that's fine. You don't need a team to join; free agents get placed on one before the season starts.",
+    seasonTitle: "How a season works",
+    steps: {
+      signUp: {
+        title: "Sign up",
+        body: "Register a team, join one with your captain's invite link, or come solo as a free agent. Everyone signs the season waiver and pays online.",
+      },
+      schedule: {
+        title: "Get the schedule",
+        body: "The schedule comes out about a week before opening day. Every team gets a fair mix of early and late games.",
+      },
+      play: {
+        title: "Play every week",
+        body: "One ref per game, scores posted after every game, and standings that update themselves.",
+      },
+      playoffs: {
+        title: "Playoffs",
+        body: "The season ends with playoffs and a champion with bragging rights until next season.",
+      },
+    },
+    houseRulesTitle: "The house rules",
+    houseRulesIntro:
+      "The rulebook covers the game. These cover everything else:",
+    houseRules: {
+      friendly: "Keep it friendly. Cheer for good kicks, both teams' included.",
+      refs: "Be good to the refs. Most of them play in the league too.",
+      drink:
+        "Nobody has to drink. A seltzer after the game counts just the same.",
+      field:
+        "Leave the field better than you found it. It's a public park and we're guests.",
+    },
+    questionsTitle: "Questions?",
+    questionsBody:
+      "The FAQ covers fees, rain-outs, what to wear and more. Once you're on a team, your captain is the quickest way to reach the league. Neighbors, park staff and visitors can write to the league without an account.",
+    readFaq: "Read the FAQ",
+    findFields: "Find the fields",
+    contact: "Contact the league",
+  },
+  park: {
+    title: "Kickball in McCarren Park, Brooklyn",
+    description:
+      "Where the league plays in McCarren Park, on the Greenpoint and Williamsburg border: subway lines, bikes, what to bring, and finding your field.",
+    home: "Home",
+    sticker: "Our home field 🏟️",
+    headingStart: "Kickball in",
+    intro:
+      "Every league game is played in McCarren Park, the big green square where Greenpoint meets Williamsburg in north Brooklyn. Here's how to get there and what to bring.",
+    whereTitle: "Where we play",
+    fields:
+      "The park has several ball fields. Your game page names yours, so check it before you head out.",
+    fieldsToday: "See who has which field today",
+    map: "Open McCarren Park on a map",
+    gettingThere: "Getting there",
+    ways: {
+      g: {
+        how: "G train",
+        detail: "Nassau Av station, a block from the park's east side.",
+      },
+      l: {
+        how: "L train",
+        detail:
+          "Bedford Av station, about a ten-minute walk south of the park.",
+      },
+      bike: {
+        how: "Bike",
+        detail:
+          "Citi Bike docks sit around the edge of the park. Lock up off the field.",
+      },
+    },
+    bringTitle: "What to bring",
+    bring: {
+      shoes: "Sneakers or turf shoes",
+      color: "Something in your team's color",
+      water: "Water, and sunscreen in summer",
+      layer: "A layer for evening games",
+    },
+    drinks:
+      "Drinks wait until after the game: alcohol isn't allowed in city parks. Teams usually head somewhere nearby afterward for a drink (or a seltzer).",
+    playTitle: "Play here this season",
+    playBody:
+      "Bring a team or come solo. Days and times are on each season's page before registration opens.",
+    signUp: "Sign up for a season",
+    readFaq: "Read the FAQ",
+    report: "Report a problem at the field",
+  },
+  /** Results, streaks, rankings and rivalries, wherever they show. */
+  stats: {
+    /** One-letter results, as in a streak ("W3") or the last five ("WWLTW"). */
+    outcome: { W: "W", L: "L", T: "T" },
+    blurb: {
+      top_clash:
+        "Two of the top three in the power rankings. {a} and {b} settle who's really in charge.",
+      close_rematch:
+        "Their last meeting came down to the wire. {a} and {b} run it back.",
+      evenly_matched:
+        "{a} and {b} are neck and neck in the power rankings. Bring a lawn chair.",
+      best_available: "The closest matchup on the card: {a} against {b}.",
+    },
+    movementNew: "New",
+    movementNewWords: "New this week",
+    movementSame: "No change",
+    movementUp: { $plural: { one: "Up {n} place", other: "Up {n} places" } },
+    movementDown: {
+      $plural: { one: "Down {n} place", other: "Down {n} places" },
+    },
+    onFire: "{name} are on fire: {n} wins in a row.",
+    wonStraight: "{name} have won {n} straight.",
+    droppedRow: "{name} have dropped {n} in a row. The only way is up.",
+    lostStraight: "{name} have lost {n} straight and are due.",
+    tiedRow: "{name} have tied {n} in a row. Remarkably balanced.",
+    firstMeeting: "First meeting",
+    seriesTied: "Series tied {score}",
+    seriesLead: "{team} lead the series {score}",
+    gameOfTheWeek: "Game of the week",
+    vs: "{a} vs {b}",
+    powerTitle: "Power rankings",
+    powerEmpty: "The rankings start after the first game day.",
+    powerIntro:
+      "Who's playing best right now: record, the last three games, run difference and how tough their opponents are.",
+    records: "League records",
+    numbersTitle: "By the numbers",
+    powerRank: "Power rank",
+    streak: "Streak",
+    bestRun: "Best run",
+    rivalries: "Rivalries",
+    headToHead: "Head to head",
+    seasonStreaks: "This season's streaks: {list}.",
+    teamStreak: "{team} {streak}",
+    noneYet: "none yet",
+    tiedScore: "Tied {score}",
+    byForfeit: "{team} by forfeit",
+    wonScore: "{team} {score}",
+  },
+  standings: {
+    title: "Standings",
+    seasonNav: "Season",
+    schedule: "Schedule",
+    playoffs: "Playoffs",
+    noGames: "No games played yet. The table fills in as scores come in.",
+    noDivision: "No division",
+    divisionSchedule: "{division} schedule",
+    caption:
+      "{season} standings: wins, losses, ties, win percentage, {units} and recent form",
+    divisionCaption:
+      "{season} {division} standings: wins, losses, ties, win percentage, {units} and recent form",
+    tiebreakers: "Tiebreakers",
+    placedBelow: "{team} placed below the team above on {by}.",
+    /** The sport's own tiebreakers are in `sports`. */
+    by: {
+      head_to_head: "head-to-head",
+      coin_flip: "coin flip",
+    },
+    howRanked:
+      "A tie counts as half a win. Ties in the table are broken by head-to-head, then {difference}{capped}, then {allowed}, then a coin flip.",
+    capped: " (capped at {cap} a game)",
+    diffCapped: ", capped at {cap} a game",
+    crossovers:
+      "Each team is ranked within its division, and games against the other division count toward its record.",
+    divisionOnly:
+      "Each team is ranked within its division on its division games only.",
+    home: "Home",
+    team: "Team",
+    columns: {
+      rank: { short: "#", long: "Rank" },
+      wins: { short: "W", long: "Wins" },
+      losses: { short: "L", long: "Losses" },
+      ties: { short: "T", long: "Ties" },
+      pct: {
+        short: "PCT",
+        long: "Win percentage, a tie counting as half a win",
+      },
+      runsFor: { short: "{letter}F", long: "{Units} scored" },
+      runsAgainst: { short: "{letter}A", long: "{Units} allowed" },
+      diff: { short: "DIFF", long: "{Difference}" },
+      streak: { short: "STRK", long: "Current streak" },
+      lastFive: { short: "L5", long: "Last five games, oldest first" },
+    },
+  },
+  /** What a sport scores in, for the standings (ADR 0087). */
+  sports: {
+    kickball: {
+      one: "run",
+      many: "runs",
+      letter: "R",
+      difference: "run difference",
+      allowed: "runs allowed",
+    },
+    dodgeball: {
+      one: "set",
+      many: "sets",
+      letter: "S",
+      difference: "set difference",
+      allowed: "sets allowed",
+    },
+  },
+  team: {
+    title: "Team",
+    description: "{team}: schedule, results, roster and a calendar feed.",
+    standing: "{record}, {rank} place",
+    share: "Share this team",
+    shareText: "Schedule, results and a calendar feed:",
+    seasons: "Seasons",
+    next: "Next game",
+    noGames:
+      "No games on the schedule yet. It comes out about a week before opening day.",
+    wrap: "That's a wrap: no games left this season. Thanks for playing!",
+    coming: "Coming up",
+    results: "Results",
+    noResults: "No results yet. First pitch is the hardest.",
+    awaiting: "Scores still to come",
+    photos: "Photos",
+    calendarTitle: "Never miss a game",
+    calendarBody:
+      "Subscribe once and every game lands in your calendar, in the league's time zone. Moves and rain-outs update on their own.",
+    apple: "Apple or Outlook",
+    google: "Google Calendar",
+    newTab: " (opens in a new tab)",
+    paste: "Or paste this link into any calendar app",
+    roster: "Roster",
+    rosterEmpty: "The roster fills in as players join.",
+    captain: "Captain",
+    coCaptain: "Co-captain",
+    awards: "{season} awards",
+    fullSchedule: "{team} on the full schedule",
+    resultsCaption: "Results, oldest first",
+    date: "Date",
+    opponent: "Opponent",
+    result: "Result",
+    score: "Score",
+    forfeit: "Forfeit",
+    outcome: { W: "Win", L: "Loss", T: "Tie" },
+  },
+  game: {
+    title: "Game",
+    seasonWhen: "{season}: {when}",
+    seasonTba: "{season}: time to be announced",
+    breadcrumb: "Breadcrumb",
+    vs: "vs",
+    when: "When",
+    tba: "Time to be announced",
+    offNote:
+      "This game is off. The league posts a makeup date here and in the calendar feeds once it is set.",
+    makeupWaiting: "This makeup is waiting for an open slot.",
+    where: "Where",
+    openMaps: "Open in Maps",
+    newTab: " (opens in a new tab)",
+    fieldTba: "Field to be announced",
+    tellChat: "Tell the group chat",
+    share: "Share this game",
+    calendarTitle: "Add it to your calendar",
+    calendarBody:
+      "Each team page has a calendar feed with every game, kept up to date.",
+    teamGames: "{team} games",
+    winByForfeit: "{team} win by forfeit",
+    forecast: "{temperature}°F · {chance}% chance of rain",
+    forecastSource: "{summary}. Forecast from the National Weather Service.",
+    noForecast: "No forecast yet",
+    noForecastNote: "Forecasts reach a week ahead.",
+    shareResult: "{status}: {result}",
+    shareOff: "{status}: {matchup} is off.",
+    shareOffAt: "{status}: {matchup} ({time}) is off.",
+    shareMakeup:
+      "The makeup goes on the schedule as soon as the league sets it.",
+    shareLive: "Live now: {matchup}",
+    shareOn: "Game on: {matchup}",
+  },
+  photos: {
+    title: "Photos from players",
+    none: "No photos yet.",
+    gotOne: "Got a good one?",
+    share: "Share a photo",
+    alt: "A player's photo from {about}",
+  },
+  allTime: {
+    title: "All-time",
+    record: "Wins, losses, ties",
+    seasons: "Seasons",
+    pct: "Win pct",
+    diff: "Run diff",
+    titles: "Titles",
+    champions: {
+      $plural: { one: "Champions", other: "{n}-time champions" },
+    },
+    note: "Regular-season games in every season {team} played.",
+    history: "League history",
+  },
+  awardLabels: {
+    season_mvp: "Season MVP",
+    iron_kicker: "Iron Kicker",
+    golden_boot: "Golden Boot",
+    best_teammate: "Best Teammate",
+    rookie_of_the_year: "Rookie of the Year",
+    sub_of_the_year: "Sub of the Year",
+  },
+} as const;

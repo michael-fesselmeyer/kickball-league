@@ -2,41 +2,34 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { JsonLd } from "@/components/json-ld";
 import { env } from "@/env";
+import { localeOf, messagesFor } from "@/i18n/messages";
+import { languageAlternates, linkIn } from "@/i18n/routing";
 import { homeParkInfo } from "@/lib/seo/league";
 import { breadcrumbJsonLd, parkJsonLd } from "@/lib/seo/structured-data";
 import { absoluteUrl, HOME_PARK, homeParkMapUrl, siteOrigin } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "Kickball in McCarren Park, Brooklyn",
-  description:
-    "Where the league plays in McCarren Park, on the Greenpoint and Williamsburg border: subway lines, bikes, what to bring, and finding your field.",
-  alternates: { canonical: HOME_PARK.path },
-};
+type Props = PageProps<"/[lang]/parks/mccarren-park">;
 
-const GETTING_THERE = [
-  {
-    how: "G train",
-    detail: "Nassau Av station, a block from the park's east side.",
-  },
-  {
-    how: "L train",
-    detail: "Bedford Av station, about a ten-minute walk south of the park.",
-  },
-  {
-    how: "Bike",
-    detail:
-      "Citi Bike docks sit around the edge of the park. Lock up off the field.",
-  },
-] as const;
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const locale = localeOf((await params).lang);
+  const { park } = messagesFor(locale);
+  return {
+    title: park.title,
+    description: park.description,
+    alternates: {
+      canonical: linkIn(locale, HOME_PARK.path),
+      languages: languageAlternates(HOME_PARK.path),
+    },
+  };
+}
 
-const BRING = [
-  "Sneakers or turf shoes",
-  "Something in your team's color",
-  "Water, and sunscreen in summer",
-  "A layer for evening games",
-] as const;
+const WAYS = ["g", "l", "bike"] as const;
+const BRING = ["shoes", "color", "water", "layer"] as const;
 
-export default function McCarrenParkPage() {
+export default async function McCarrenParkPage({ params }: Props) {
+  const locale = localeOf((await params).lang);
+  const { park: words } = messagesFor(locale);
+  const href = (path: string) => linkIn(locale, path);
   const origin = siteOrigin(env.BETTER_AUTH_URL);
   const park = homeParkInfo(origin);
   return (
@@ -45,28 +38,27 @@ export default function McCarrenParkPage() {
         data={[
           parkJsonLd(park),
           breadcrumbJsonLd([
-            { name: "Home", url: absoluteUrl(origin, "/") },
-            { name: HOME_PARK.name, url: park.url },
+            { name: words.home, url: absoluteUrl(origin, href("/")) },
+            {
+              name: HOME_PARK.name,
+              url: absoluteUrl(origin, href(HOME_PARK.path)),
+            },
           ]),
         ]}
       />
       <header className="flex flex-col gap-4">
         <p>
-          <span className="sticker">Our home field 🏟️</span>
+          <span className="sticker">{words.sticker}</span>
         </p>
         <h1 className="text-h1">
-          Kickball in <span className="swipe">McCarren Park</span>
+          {words.headingStart} <span className="swipe">McCarren Park</span>
         </h1>
-        <p className="text-body-lg text-text-muted">
-          Every league game is played in McCarren Park, the big green square
-          where Greenpoint meets Williamsburg in north Brooklyn. Here&apos;s how
-          to get there and what to bring.
-        </p>
+        <p className="text-body-lg text-text-muted">{words.intro}</p>
       </header>
 
       <section aria-labelledby="where" className="flex flex-col gap-4">
         <h2 id="where" className="text-h2">
-          Where we play
+          {words.whereTitle}
         </h2>
         <address className="not-italic">
           {HOME_PARK.name}
@@ -75,10 +67,9 @@ export default function McCarrenParkPage() {
           , {HOME_PARK.address.addressRegion}
         </address>
         <p>
-          The park has several ball fields. Your game page names yours, so check
-          it before you head out.{" "}
-          <Link href="/fields/mccarren-park" className="underline">
-            See who has which field today
+          {words.fields}{" "}
+          <Link href={href("/fields/mccarren-park")} className="underline">
+            {words.fieldsToday}
           </Link>
           .
         </p>
@@ -87,23 +78,25 @@ export default function McCarrenParkPage() {
             href={homeParkMapUrl()}
             className="font-bold text-brand underline underline-offset-4"
           >
-            Open McCarren Park on a map
+            {words.map}
           </a>
         </p>
       </section>
 
       <section aria-labelledby="getting-there" className="flex flex-col gap-4">
         <h2 id="getting-there" className="text-h2">
-          Getting there
+          {words.gettingThere}
         </h2>
         <dl className="grid gap-4 sm:grid-cols-3">
-          {GETTING_THERE.map((way) => (
+          {WAYS.map((key) => (
             <div
-              key={way.how}
+              key={key}
               className="flex flex-col gap-1 rounded-card border-2 border-text bg-surface p-4"
             >
-              <dt className="font-display text-h3 font-extrabold">{way.how}</dt>
-              <dd>{way.detail}</dd>
+              <dt className="font-display text-h3 font-extrabold">
+                {words.ways[key].how}
+              </dt>
+              <dd>{words.ways[key].detail}</dd>
             </div>
           ))}
         </dl>
@@ -111,18 +104,14 @@ export default function McCarrenParkPage() {
 
       <section aria-labelledby="bring" className="flex flex-col gap-4">
         <h2 id="bring" className="text-h2">
-          What to bring
+          {words.bringTitle}
         </h2>
         <ul className="flex list-disc flex-col gap-2 pl-6">
-          {BRING.map((item) => (
-            <li key={item}>{item}</li>
+          {BRING.map((key) => (
+            <li key={key}>{words.bring[key]}</li>
           ))}
         </ul>
-        <p>
-          Drinks wait until after the game: alcohol isn&apos;t allowed in city
-          parks. Teams usually head somewhere nearby afterward for a drink (or a
-          seltzer).
-        </p>
+        <p>{words.drinks}</p>
       </section>
 
       <section
@@ -130,21 +119,18 @@ export default function McCarrenParkPage() {
         className="flex flex-col gap-4 rounded-card border-2 border-text bg-surface p-6"
       >
         <h2 id="play-here" className="text-h2">
-          Play here this season
+          {words.playTitle}
         </h2>
-        <p>
-          Bring a team or come solo. Days and times are on each season&apos;s
-          page before registration opens.
-        </p>
+        <p>{words.playBody}</p>
         <div className="flex flex-wrap gap-4">
           <Link href="/sign-in" className="btn btn-primary">
-            Sign up for a season
+            {words.signUp}
           </Link>
-          <Link href="/faq" className="btn btn-secondary">
-            Read the FAQ
+          <Link href={href("/faq")} className="btn btn-secondary">
+            {words.readFaq}
           </Link>
-          <Link href="/contact" className="btn btn-secondary">
-            Report a problem at the field
+          <Link href={href("/contact")} className="btn btn-secondary">
+            {words.report}
           </Link>
         </div>
       </section>

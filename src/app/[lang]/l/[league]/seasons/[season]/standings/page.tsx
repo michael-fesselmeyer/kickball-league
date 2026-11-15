@@ -11,7 +11,7 @@ import {
   type StandingsTeam,
 } from "@/db/queries/standings";
 import { ruleSetSummary } from "@/domain/season/divisions";
-import type { StandingsRow } from "@/domain/standings/standings";
+import type { StandingsRow, Tiebreaker } from "@/domain/standings/standings";
 import { type SportRules, sportRules } from "@/domain/sports/sports";
 import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 import {
@@ -21,10 +21,32 @@ import {
 } from "@/lib/static-params";
 import type { LeagueInfo } from "@/db/queries/leagues";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
-import { publicLeague } from "@/lib/league/public";
+import { cachedLeague, publicLeague } from "@/lib/league/public";
 import { isPublicSeason } from "@/domain/private-events/visibility";
+import { outcomeLetters } from "@/domain/stats/streaks";
+import { fill } from "@/i18n/catalog";
+import type { Locale } from "@/i18n/locales";
+import { localeOf, type Messages, messagesFor } from "@/i18n/messages";
+import { languageAlternates, linkIn } from "@/i18n/routing";
 
-export const metadata: Metadata = { title: "Standings" };
+type Props = PageProps<"/[lang]/l/[league]/seasons/[season]/standings">;
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { lang, league: segment, season: slug } = await params;
+  const locale = localeOf(lang);
+  const title = messagesFor(locale).standings.title;
+  if (slug === NO_SEASON) return { title };
+  const league = await cachedLeague(segment);
+  if (!league) return { title };
+  const path = leagueHref(league, `/seasons/${slug}/standings`);
+  return {
+    title,
+    alternates: {
+      canonical: linkIn(locale, path),
+      languages: languageAlternates(path),
+    },
+  };
+}
 
 /**
  * The whole page is static, and a view the build didn't list is rendered in
@@ -41,9 +63,7 @@ export async function generateStaticParams(props: LeagueParams) {
   return publicSeasonParams(props);
 }
 
-export default function StandingsPage(
-  props: PageProps<"/[lang]/l/[league]/seasons/[season]/standings">,
-) {
+export default function StandingsPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-10">
       <Standings {...props} />
@@ -55,14 +75,14 @@ export default function StandingsPage(
 const pct = (n: number) => (n === 1 ? "1.000" : n.toFixed(3).replace(/^0/, ""));
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
-async function Standings({
-  params,
-}: PageProps<"/[lang]/l/[league]/seasons/[season]/standings">) {
-  const { league: segment, season: slug } = await params;
+async function Standings({ params }: Props) {
+  const { league: segment, season: slug, lang } = await params;
   // The build's placeholder when it had no database to read.
   if (slug === NO_SEASON) notFound();
   const league = await publicLeague(segment, `/seasons/${slug}/standings`);
-  return <SeasonStandings league={league} slug={slug} />;
+  return (
+    <SeasonStandings league={league} slug={slug} locale={localeOf(lang)} />
+  );
 }
 
 /**
@@ -72,21 +92,29 @@ async function Standings({
 async function SeasonStandings({
   league,
   slug,
+  locale,
 }: {
   league: LeagueInfo;
   slug: string;
+  locale: Locale;
 }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
+  const words = messagesFor(locale).standings;
+  const href = (path: string) => linkIn(locale, leagueHref(league, path));
   const season = await seasonBySlug(db, league.id, slug);
   // Drafts are the league's work in progress, not public.
   if (!season || !isPublicSeason(season)) notFound();
   cacheTag(seasonTag(season.id));
-  const { tables, teams, crossoversCount, sport } =
-    await seasonDivisionStandings(db, season.id);
+  const {
+    tables,
+    teams,
+    crossoversCount,
+    sport: sportKey,
+  } = await seasonDivisionStandings(db, season.id);
   // The sport names the units and tiebreakers (ADR 0087).
-  const rules = sportRules(sport);
-  const units = rules.score.unit.many;
+  const rules = sportRules(sportKey);
+  const sport = messagesFor(locale).sports[rules.key];
   const cap = rules.score.differenceCap;
   const divided = tables.some((t) => t.division !== null);
   // Rows a tiebreaker (not just win percentage) placed below the row above.
@@ -103,31 +131,30 @@ async function SeasonStandings({
     <>
       <header className="flex flex-col gap-1">
         <p className="text-text-muted">{season.name}</p>
-        <h1 className="text-h1">Standings</h1>
-        <nav aria-label="Season" className="flex flex-wrap gap-x-4 gap-y-1">
+        <h1 className="text-h1">{words.title}</h1>
+        <nav
+          aria-label={words.seasonNav}
+          className="flex flex-wrap gap-x-4 gap-y-1"
+        >
           <Link
-            href={leagueHref(league, `/seasons/${season.slug}/schedule`)}
+            href={href(`/seasons/${season.slug}/schedule`)}
             className="inline-flex min-h-11 items-center text-brand underline"
           >
-            Schedule
+            {words.schedule}
           </Link>
           <Link
-            href={leagueHref(league, `/seasons/${season.slug}/bracket`)}
+            href={href(`/seasons/${season.slug}/bracket`)}
             className="inline-flex min-h-11 items-center text-brand underline"
           >
-            Playoffs
+            {words.playoffs}
           </Link>
         </nav>
       </header>
-      {!played && (
-        <p className="text-text-muted">
-          No games played yet. The table fills in as scores come in.
-        </p>
-      )}
+      {!played && <p className="text-text-muted">{words.noGames}</p>}
       {divided ? (
         tables.map((t, i) => {
           const id = `division-${t.division?.slug ?? `none-${i}`}`;
-          const name = t.division?.name ?? "No division";
+          const name = t.division?.name ?? words.noDivision;
           return (
             <section
               key={id}
@@ -140,28 +167,33 @@ async function SeasonStandings({
                 </h2>
                 {t.division && (
                   <Link
-                    href={leagueHref(
-                      league,
+                    href={href(
                       `/seasons/${season.slug}/schedule/division/${t.division.slug}`,
                     )}
                     className="inline-flex min-h-11 items-center text-brand underline"
                   >
-                    {name} schedule
+                    {fill(words.divisionSchedule, { division: name })}
                   </Link>
                 )}
               </div>
-              {t.division?.ruleSet && ruleSetSummary(t.division.ruleSet) && (
-                <p className="text-small text-text-muted">
-                  {t.division.ruleSet.name}:{" "}
-                  {ruleSetSummary(t.division.ruleSet)}
-                </p>
-              )}
+              {t.division?.ruleSet &&
+                ruleSetSummary(t.division.ruleSet, locale) && (
+                  <p className="text-small text-text-muted">
+                    {t.division.ruleSet.name}:{" "}
+                    {ruleSetSummary(t.division.ruleSet, locale)}
+                  </p>
+                )}
               <StandingsTable
                 league={league}
                 rows={t.rows}
                 teams={teams}
                 rules={rules}
-                caption={`${season.name} ${name} standings: wins, losses, ties, win percentage, ${units} and recent form`}
+                caption={fill(words.divisionCaption, {
+                  season: season.name,
+                  division: name,
+                  units: sport.many,
+                })}
+                locale={locale}
               />
             </section>
           );
@@ -172,19 +204,25 @@ async function SeasonStandings({
           rows={tables[0]?.rows ?? []}
           teams={teams}
           rules={rules}
-          caption={`${season.name} standings: wins, losses, ties, win percentage, ${units} and recent form`}
+          caption={fill(words.caption, {
+            season: season.name,
+            units: sport.many,
+          })}
+          locale={locale}
         />
       )}
       {notes.length > 0 && (
         <section aria-labelledby="tiebreakers" className="flex flex-col gap-1">
           <h2 id="tiebreakers" className="text-h3">
-            Tiebreakers
+            {words.tiebreakers}
           </h2>
           <ul className="text-small text-text-muted">
             {notes.map((r) => (
               <li key={r.teamId}>
-                {teams.get(r.teamId)?.name} placed below the team above on{" "}
-                {rules.tiebreakers[r.by]}.
+                {fill(words.placedBelow, {
+                  team: teams.get(r.teamId)?.name ?? words.team,
+                  by: tiebreakerWords(words, sport)[r.by],
+                })}
               </li>
             ))}
           </ul>
@@ -194,22 +232,39 @@ async function SeasonStandings({
         league={league}
         season={season}
         teams={[...teams.values()]}
+        locale={locale}
       />
       <p className="text-small text-text-muted">
-        A tie counts as half a win. Ties in the table are broken by
-        head-to-head, then {rules.tiebreakers.run_difference}
-        {cap !== null && ` (capped at ${cap} a game)`}, then{" "}
-        {rules.tiebreakers.runs_allowed}, then a coin flip.{" "}
+        {fill(words.howRanked, {
+          difference: sport.difference,
+          capped: cap === null ? "" : fill(words.capped, { cap }),
+          allowed: sport.allowed,
+        })}{" "}
         {divided &&
-          (crossoversCount
-            ? "Each team is ranked within its division, and games against the other division count toward its record. "
-            : "Each team is ranked within its division on its division games only. ")}
-        <Link href={leagueHref(league, "/")} className="underline">
-          Home
+          `${crossoversCount ? words.crossovers : words.divisionOnly} `}
+        <Link href={href("/")} className="underline">
+          {words.home}
         </Link>
       </p>
     </>
   );
+}
+
+/** "runs" → "Runs". */
+const upperFirst = (text: string) =>
+  `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+
+/** Each tiebreaker as the standings name it, in the sport's units. */
+function tiebreakerWords(
+  words: Messages["standings"],
+  sport: Messages["sports"][keyof Messages["sports"]],
+): Record<Exclude<Tiebreaker, "win_pct">, string> {
+  return {
+    head_to_head: words.by.head_to_head,
+    run_difference: sport.difference,
+    runs_allowed: sport.allowed,
+    coin_flip: words.by.coin_flip,
+  };
 }
 
 /** One standings table, in rank order. */
@@ -219,16 +274,24 @@ function StandingsTable({
   teams,
   rules,
   caption,
+  locale,
 }: {
   league: LeagueRef;
   rows: StandingsRow[];
   teams: Map<string, StandingsTeam>;
   rules: SportRules;
   caption: string;
+  locale: Locale;
 }) {
-  const unit = rules.score.unit;
-  const units = `${unit.many[0]?.toUpperCase()}${unit.many.slice(1)}`;
+  const words = messagesFor(locale).standings;
+  const sport = messagesFor(locale).sports[rules.key];
   const cap = rules.score.differenceCap;
+  const units = upperFirst(sport.many);
+  const col = (key: keyof Messages["standings"]["columns"], title?: string) => (
+    <abbr title={title ?? fill(words.columns[key].long, { Units: units })}>
+      {fill(words.columns[key].short, { letter: sport.letter })}
+    </abbr>
+  );
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left tabular-nums">
@@ -236,41 +299,40 @@ function StandingsTable({
         <thead className="text-small text-text-muted">
           <tr>
             <th scope="col" className="py-2 pr-2">
-              <abbr title="Rank">#</abbr>
+              {col("rank")}
             </th>
-            <th scope="col">Team</th>
+            <th scope="col">{words.team}</th>
             <th scope="col" className="text-right">
-              <abbr title="Wins">W</abbr>
-            </th>
-            <th scope="col" className="text-right">
-              <abbr title="Losses">L</abbr>
+              {col("wins")}
             </th>
             <th scope="col" className="text-right">
-              <abbr title="Ties">T</abbr>
+              {col("losses")}
+            </th>
+            <th scope="col" className="text-right">
+              {col("ties")}
             </th>
             <th scope="col" className="hidden text-right sm:table-cell">
-              <abbr title="Win percentage, a tie counting as half a win">
-                PCT
-              </abbr>
+              {col("pct")}
             </th>
             <th scope="col" className="hidden text-right sm:table-cell">
-              <abbr title={`${units} scored`}>{unit.letter}F</abbr>
+              {col("runsFor")}
             </th>
             <th scope="col" className="hidden text-right sm:table-cell">
-              <abbr title={`${units} allowed`}>{unit.letter}A</abbr>
+              {col("runsAgainst")}
             </th>
             <th scope="col" className="text-right">
-              <abbr
-                title={`${unit.one[0]?.toUpperCase()}${unit.one.slice(1)} difference${cap === null ? "" : `, capped at ${cap} a game`}`}
-              >
-                DIFF
-              </abbr>
+              {col(
+                "diff",
+                fill(words.columns.diff.long, {
+                  Difference: upperFirst(sport.difference),
+                }) + (cap === null ? "" : fill(words.diffCapped, { cap })),
+              )}
             </th>
             <th scope="col" className="hidden text-right md:table-cell">
-              <abbr title="Current streak">STRK</abbr>
+              {col("streak")}
             </th>
             <th scope="col" className="hidden text-right md:table-cell">
-              <abbr title="Last five games, oldest first">L5</abbr>
+              {col("lastFive")}
             </th>
           </tr>
         </thead>
@@ -291,13 +353,16 @@ function StandingsTable({
                     </Morph>
                     {t ? (
                       <Link
-                        href={leagueHref(league, `/teams/${t.slug}`)}
+                        href={linkIn(
+                          locale,
+                          leagueHref(league, `/teams/${t.slug}`),
+                        )}
                         className="inline-flex min-h-6 items-center underline"
                       >
                         {t.name}
                       </Link>
                     ) : (
-                      "Team"
+                      words.team
                     )}
                   </span>
                 </th>
@@ -313,10 +378,10 @@ function StandingsTable({
                 </td>
                 <td className="text-right">{signed(r.runDifference)}</td>
                 <td className="hidden text-right md:table-cell">
-                  {r.streak || "–"}
+                  {outcomeLetters(r.streak, locale) || "–"}
                 </td>
                 <td className="hidden text-right font-mono md:table-cell">
-                  {r.lastFive || "–"}
+                  {outcomeLetters(r.lastFive, locale) || "–"}
                 </td>
               </tr>
             );

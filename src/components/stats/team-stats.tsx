@@ -8,6 +8,9 @@ import { rivalriesOf, seriesLine } from "@/domain/stats/rivalry";
 import { seasonStats, statGamesFrom, teamsFrom } from "@/domain/stats/season";
 import { streakLabel, streakNote } from "@/domain/stats/streaks";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
+import { linkIn } from "@/i18n/routing";
 
 type Props = {
   /** The league whose public pages the links open (ADR 0048). */
@@ -16,12 +19,21 @@ type Props = {
   /** The shown season's published schedule, every team's games. */
   schedule: readonly PublicGame[];
   timeZone: string;
+  /** The page's language (ADR 0065); English unless given. */
+  locale?: Locale;
 };
 
 const RIVALS_SHOWN = 5;
 
 /** A team's power rank, streaks this season and its all-time rivalries. */
-export async function TeamStats({ league, team, schedule, timeZone }: Props) {
+export async function TeamStats({
+  league,
+  team,
+  schedule,
+  timeZone,
+  locale = DEFAULT_LOCALE,
+}: Props) {
+  const words = messagesFor(locale).stats;
   const everything = await publishedGamesForTeam(db, team.id);
   const stats = seasonStats(
     schedule,
@@ -37,39 +49,43 @@ export async function TeamStats({ league, team, schedule, timeZone }: Props) {
     0,
     RIVALS_SHOWN,
   );
-  const note = streakNote(team.name, streaks?.current ?? null);
+  const note = streakNote(team.name, streaks?.current ?? null, locale);
 
   if (!rank && rivals.length === 0) return null;
   return (
     <section aria-labelledby="by-the-numbers" className="flex flex-col gap-3">
       <h2 id="by-the-numbers" className="text-h2">
-        By the numbers
+        {words.numbersTitle}
       </h2>
       {rank && streaks && (
         <dl className="grid grid-cols-3 gap-2 text-center">
           <div className="flex flex-col-reverse gap-1 rounded-card border border-border bg-surface p-3">
             <dt className="text-micro font-bold tracking-wide text-text-muted uppercase">
-              Power rank
+              {words.powerRank}
             </dt>
             <dd className="font-display text-h2 tabular-nums">
               {rank.rank}
-              <span className="sr-only">, {movementWords(rank.movement)}</span>
+              <span className="sr-only">
+                , {movementWords(rank.movement, locale)}
+              </span>
             </dd>
           </div>
           <div className="flex flex-col-reverse gap-1 rounded-card border border-border bg-surface p-3">
             <dt className="text-micro font-bold tracking-wide text-text-muted uppercase">
-              Streak
+              {words.streak}
             </dt>
             <dd className="font-display text-h2 tabular-nums">
-              {streakLabel(streaks.current) || "–"}
+              {streakLabel(streaks.current, locale) || "–"}
             </dd>
           </div>
           <div className="flex flex-col-reverse gap-1 rounded-card border border-border bg-surface p-3">
             <dt className="text-micro font-bold tracking-wide text-text-muted uppercase">
-              Best run
+              {words.bestRun}
             </dt>
             <dd className="font-display text-h2 tabular-nums">
-              {streaks.longestWin > 0 ? `W${streaks.longestWin}` : "–"}
+              {streaks.longestWin > 0
+                ? `${words.outcome.W}${streaks.longestWin}`
+                : "–"}
             </dd>
           </div>
         </dl>
@@ -77,7 +93,7 @@ export async function TeamStats({ league, team, schedule, timeZone }: Props) {
       {note && <p className="text-text-muted">{note}</p>}
       {rivals.length > 0 && (
         <>
-          <h3 className="text-h3">Rivalries</h3>
+          <h3 className="text-h3">{words.rivalries}</h3>
           <ul className="flex flex-col">
             {rivals.map((r) => (
               <li
@@ -85,13 +101,13 @@ export async function TeamStats({ league, team, schedule, timeZone }: Props) {
                 className="flex flex-wrap items-center justify-between gap-x-3 border-t border-border py-2"
               >
                 <Link
-                  href={leagueHref(league, `/teams/${r.y}`)}
+                  href={linkIn(locale, leagueHref(league, `/teams/${r.y}`))}
                   className="inline-flex min-h-11 items-center underline"
                 >
                   {name(r.y)}
                 </Link>
                 <span className="text-small text-text-muted">
-                  {seriesLine(r, name)}
+                  {seriesLine(r, name, locale)}
                 </span>
               </li>
             ))}

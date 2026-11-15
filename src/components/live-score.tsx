@@ -2,6 +2,8 @@
 
 import { startTransition, useEffect, useState } from "react";
 import { type LiveSnapshot, nextPollIn, POLL_MS } from "@/domain/scores/live";
+import type { Locale } from "@/i18n/locales";
+import type { LiveWords } from "@/i18n/messages/live.en";
 import { LiveLine } from "./line-score";
 
 /**
@@ -27,6 +29,8 @@ export function LiveScore({
   initial,
   pollFrom,
   pollUntil,
+  words,
+  locale,
 }: {
   gameId: string;
   teamA: string;
@@ -35,6 +39,9 @@ export function LiveScore({
   /** ISO times: the game's window, from shortly before it starts. */
   pollFrom: string;
   pollUntil: string;
+  /** The page's words and language (ADR 0065); English unless given. */
+  words?: LiveWords;
+  locale?: Locale;
 }) {
   const [snapshot, setSnapshot] = useState(initial);
   const [celebrate, setCelebrate] = useState(false);
@@ -126,6 +133,8 @@ export function LiveScore({
       teamB={teamB}
       snapshot={snapshot}
       celebrate={celebrate}
+      words={words}
+      locale={locale}
     />
   );
 }
