@@ -181,12 +181,26 @@ async function Permits({
           current={season.slug}
           path={(s) => `/app/books/${s}/permits`}
         />
-        <Link
-          href={`/app/books/${slug}/permits/capacity`}
-          className="btn self-start btn-secondary"
-        >
-          Capacity planner: how many teams fit
-        </Link>
+        <nav aria-label="Permit tools" className="flex flex-wrap gap-3">
+          <Link
+            href={`/app/books/${slug}/permits/capacity`}
+            className="btn btn-secondary"
+          >
+            Capacity planner: how many teams fit
+          </Link>
+          <Link
+            href={`/app/books/${slug}/permits/renewal`}
+            className="btn btn-secondary"
+          >
+            Renew for next year
+          </Link>
+          <Link
+            href={`/app/books/${slug}/permits/packet`}
+            className="btn btn-secondary"
+          >
+            Application packet
+          </Link>
+        </nav>
       </header>
 
       {error && (
