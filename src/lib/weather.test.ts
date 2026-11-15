@@ -9,7 +9,7 @@ vi.mock("@/env", () => ({
 }));
 vi.mock("@/services/weather", async (original) => ({
   ...(await original<typeof Weather>()),
-  nwsHourlyUrl: vi.fn(),
+  nwsPointLinks: vi.fn(),
   nwsHourly: vi.fn(),
 }));
 
@@ -24,32 +24,52 @@ const HOUR: ForecastHour = {
   summary: "Showers And Thunderstorms Likely",
 };
 
+const LINKS = {
+  hourly: "https://api.weather.gov/gridpoints/OKX/34,36/forecast/hourly",
+  grid: "https://api.weather.gov/gridpoints/OKX/34,36",
+  stations: "https://api.weather.gov/gridpoints/OKX/34,36/stations",
+};
+
 beforeEach(() => {
-  vi.mocked(service.nwsHourlyUrl).mockReset();
+  vi.mocked(service.nwsPointLinks).mockReset();
   vi.mocked(service.nwsHourly).mockReset();
 });
 
 describe("cachedForecast", () => {
   it("looks up the place, then its hourly forecast, naming the site", async () => {
-    vi.mocked(service.nwsHourlyUrl).mockResolvedValue(
-      ok("https://api.weather.gov/gridpoints/OKX/34,36/forecast/hourly"),
-    );
+    vi.mocked(service.nwsPointLinks).mockResolvedValue(ok(LINKS));
     vi.mocked(service.nwsHourly).mockResolvedValue(ok([HOUR]));
     expect(await cachedForecast(40.72061, -73.95129)).toEqual([HOUR]);
-    expect(service.nwsHourlyUrl).toHaveBeenCalledWith(40.7206, -73.9513, {
-      userAgent: "kickball-league (https://league.example.test)",
-    });
+    expect(service.nwsPointLinks).toHaveBeenCalledWith(
+      40.7206,
+      -73.9513,
+      expect.objectContaining({
+        userAgent: "kickball-league (https://league.example.test)",
+      }),
+    );
+    expect(service.nwsHourly).toHaveBeenCalledWith(
+      LINKS.hourly,
+      expect.anything(),
+    );
   });
 
   it("is null, not an error, when either step fails", async () => {
-    vi.mocked(service.nwsHourlyUrl).mockResolvedValue(err("down"));
+    vi.mocked(service.nwsPointLinks).mockResolvedValue(err("down"));
     expect(await cachedForecast(40.7, -73.9)).toBeNull();
     expect(service.nwsHourly).not.toHaveBeenCalled();
 
-    vi.mocked(service.nwsHourlyUrl).mockResolvedValue(
-      ok("https://api.weather.gov/x"),
-    );
+    vi.mocked(service.nwsPointLinks).mockResolvedValue(ok(LINKS));
     vi.mocked(service.nwsHourly).mockResolvedValue(err("slow"));
     expect(await cachedForecast(40.7, -73.9)).toBeNull();
+  });
+
+  it("never plays the forecast back on the league's own site", async () => {
+    vi.mocked(service.nwsPointLinks).mockResolvedValue(ok(LINKS));
+    vi.mocked(service.nwsHourly).mockResolvedValue(ok([HOUR]));
+    await cachedForecast(40.72, -73.95);
+    // No injected fetch: the real NWS, unless WEATHER_FIXTURE says otherwise.
+    expect(
+      vi.mocked(service.nwsPointLinks).mock.calls[0]?.[2],
+    ).not.toHaveProperty("fetch");
   });
 });
