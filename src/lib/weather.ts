@@ -1,6 +1,9 @@
 import { cacheLife } from "next/cache";
+import { db } from "@/db/client";
+import { nextGameDayStart } from "@/db/queries/demo";
 import type { ForecastHour } from "@/domain/weather/forecast";
 import { env } from "@/env";
+import { demoStatus } from "@/lib/demo/guard";
 import { siteOrigin } from "@/lib/site";
 import {
   type NwsOptions,
@@ -8,6 +11,10 @@ import {
   nwsHourlyUrl,
   roundCoordinate,
 } from "@/services/weather";
+import {
+  fixtureForecast,
+  usesWeatherFixture,
+} from "@/services/weather-fixture";
 
 /**
  * The forecast as pages and jobs read it: through the data cache, so most
@@ -41,12 +48,25 @@ async function hourlyAt(url: string): Promise<ForecastHour[]> {
   return found.value;
 }
 
+/**
+ * The local demo's week of weather (docs/demo.md): showers over the next
+ * game day, the same for every place, kept for a few minutes.
+ */
+async function demoHourly(): Promise<ForecastHour[]> {
+  "use cache";
+  cacheLife("minutes");
+  const now = new Date();
+  return fixtureForecast(now, await nextGameDayStart(db, now));
+}
+
 /** The hourly forecast for a place, or null when it cannot be had right now. */
 export async function cachedForecast(
   lat: number,
   lng: number,
 ): Promise<ForecastHour[] | null> {
   try {
+    if (usesWeatherFixture(process.env, demoStatus(process.env).on))
+      return await demoHourly();
     const url = await hourlyUrlFor(roundCoordinate(lat), roundCoordinate(lng));
     return await hourlyAt(url);
   } catch {
