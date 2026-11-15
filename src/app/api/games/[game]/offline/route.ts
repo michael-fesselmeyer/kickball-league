@@ -5,6 +5,7 @@ import { gameForScoring } from "@/db/queries/scores";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import type { OfflineResult } from "@/domain/scores/offline";
+import { reportingTeam } from "@/domain/scores/scores";
 import { parseOfflineEntry } from "@/domain/scores/offline-entry";
 import { permissionToChange } from "@/lib/auth/permission";
 import { expireGameScore } from "@/lib/public-cache";
@@ -69,18 +70,11 @@ export async function POST(
   if (!may) return refused("You can't score this game.");
 
   // How a final score from this person counts, as on the score screens.
-  const team = game.teamSeasonIds.find((t) =>
-    subject.roster.some(
-      (m) =>
-        m.teamSeasonId === t &&
-        (m.role === "captain" || m.role === "co_captain"),
-    ),
-  );
   const role =
     entry.kind === "score"
       ? subject.globalRole === "admin" || subject.globalRole === "owner"
         ? "admin"
-        : team
+        : reportingTeam("captain", subject.roster, game.teamSeasonIds)
           ? "captain"
           : "referee"
       : can(subject, "score.override")
@@ -95,7 +89,7 @@ export async function POST(
       g,
       userId: subject.userId,
       role,
-      teamSeasonId: role === "captain" ? (team ?? null) : null,
+      teamSeasonId: reportingTeam(role, subject.roster, game.teamSeasonIds),
       now: new Date(),
     }),
   );

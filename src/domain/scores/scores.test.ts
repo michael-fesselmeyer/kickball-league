@@ -3,6 +3,7 @@ import {
   checkScore,
   PLAYOFF_TIE,
   type Report,
+  reportingTeam,
   respondingTeams,
   rulingKind,
   rulingNeedsReason,
@@ -176,6 +177,53 @@ describe("respondingTeams", () => {
     expect(
       respondingTeams(report({ role: "admin", teamSeasonId: null }), T),
     ).toEqual([]);
+  });
+});
+
+describe("a ref who plays for one of the teams (#296)", () => {
+  const roster = (...ids: string[]) =>
+    ids.map((teamSeasonId) => ({ teamSeasonId, role: "player" }));
+
+  it("reports for their own team, so only the other team may answer", () => {
+    expect(reportingTeam("referee", roster("home"), T)).toBe("home");
+    expect(
+      respondingTeams(report({ role: "referee", teamSeasonId: "home" }), T),
+    ).toEqual(["away"]);
+    // The home captain cannot make it final.
+    const r = report({ role: "referee", teamSeasonId: "home" });
+    const homeConfirms = [
+      { reportId: "r1", teamSeasonId: "home", status: "confirmed" as const },
+    ];
+    expect(scoreState([r], homeConfirms, T, at(2)).state).toBe("awaiting");
+    const awayConfirms = [
+      { reportId: "r1", teamSeasonId: "away", status: "confirmed" as const },
+    ];
+    expect(scoreState([r], awayConfirms, T, at(2)).state).toBe("final");
+  });
+
+  it("stays neutral when on neither roster, or on both", () => {
+    expect(reportingTeam("referee", roster("other"), T)).toBeNull();
+    expect(reportingTeam("referee", [], T)).toBeNull();
+    expect(reportingTeam("referee", roster("home", "away"), T)).toBeNull();
+  });
+
+  it("counts a captain who refs their own game as their team's", () => {
+    const captain = [{ teamSeasonId: "away", role: "co_captain" }];
+    expect(reportingTeam("captain", captain, T)).toBe("away");
+    expect(reportingTeam("referee", captain, T)).toBe("away");
+    expect(reportingTeam("captain", roster("away"), T)).toBeNull();
+  });
+
+  it("leaves an admin's report to no team, even an admin who plays", () => {
+    expect(reportingTeam("admin", roster("home"), T)).toBeNull();
+    expect(
+      respondingTeams(report({ role: "admin", teamSeasonId: null }), T),
+    ).toEqual([]);
+  });
+
+  it("also covers a forfeit reported by a ref on the winning team", () => {
+    const r = report({ role: "referee", teamSeasonId: "home" });
+    expect(respondingTeams(r, T)).toEqual(["away"]);
   });
 });
 

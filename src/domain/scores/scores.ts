@@ -2,7 +2,8 @@
  * Score rules (product-spec.md, "Game day"; rulebook 3.1.5).
  *
  * - A ref or a captain reports the final score; the other side confirms or
- *   disputes it. An admin's report is final at once.
+ *   disputes it. A ref who plays for one of the teams reports for that team,
+ *   so the other team answers. An admin's report is final at once.
  * - A report nobody disputes becomes final 24 hours after it was made.
  * - A game called after at least 4 complete innings counts with the score at
  *   the last complete inning. Fewer innings is not a result (it is a
@@ -162,14 +163,44 @@ export function scoreState(
 }
 
 /**
- * Which teams may confirm or dispute a report: the other team for a
- * captain's, either team for a ref's, nobody for an admin's.
+ * Which teams may confirm or dispute a report: the other team for one from
+ * a team's captain or from a ref who plays for a team in the game (the ref's
+ * report counts as their team's), either team for a neutral ref's, nobody
+ * for an admin's.
  */
 export function respondingTeams(
   report: Report,
   teams: readonly [string, string],
 ): string[] {
-  if (report.role === "captain")
+  if (report.role === "admin") return [];
+  if (report.teamSeasonId !== null && teams.includes(report.teamSeasonId))
     return teams.filter((t) => t !== report.teamSeasonId);
-  return report.role === "referee" ? [...teams] : [];
+  return [...teams];
+}
+
+type Membership = { teamSeasonId: string; role: string };
+
+const LEADS = ["captain", "co_captain"];
+
+/**
+ * The team a report counts for, stored with it. A captain's report is their
+ * team's. A ref who plays for exactly one of the game's teams reports for
+ * that team, so only the other team may answer it (issue #296). A ref on
+ * both rosters, or neither, is neutral: either team may answer. Admins'
+ * reports are final at once and count for no team.
+ */
+export function reportingTeam<T extends string>(
+  role: ReporterRole,
+  roster: readonly Membership[],
+  teams: readonly [T, T],
+): T | null {
+  if (role === "admin") return null;
+  if (role === "captain")
+    return (
+      teams.find((t) =>
+        roster.some((m) => m.teamSeasonId === t && LEADS.includes(m.role)),
+      ) ?? null
+    );
+  const plays = teams.filter((t) => roster.some((m) => m.teamSeasonId === t));
+  return plays.length === 1 ? (plays[0] ?? null) : null;
 }

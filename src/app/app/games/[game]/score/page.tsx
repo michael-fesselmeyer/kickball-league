@@ -20,6 +20,7 @@ import { scoreVersion } from "@/domain/scores/offline";
 import {
   PLAYOFF_TIE,
   REASON_MAX,
+  reportingTeam,
   respondingTeams,
   rulingNeedsReason,
 } from "@/domain/scores/scores";
@@ -148,6 +149,11 @@ async function Score({
     !history.responses.some(
       (r) => r.reportId === latest.id && r.teamSeasonId === myTeam,
     );
+  // A ref who plays for one of the teams reports for it (#296): say so.
+  const refSide =
+    mayEnter && !isAdmin && subject.refereeGameIds.includes(g.id)
+      ? reportingTeam("referee", subject.roster, [g.teamAId, g.teamBId])
+      : null;
   const shown = (r: NonNullable<typeof latest>) =>
     r.outcome === "forfeit_a"
       ? `${g.teamAName} forfeited`
@@ -294,7 +300,15 @@ async function Score({
           <p className="text-h3">{shown(latest)}</p>
           <p className="text-small text-text-muted">
             Final when{" "}
-            {latest.role === "referee"
+            {respondingTeams(
+              {
+                id: latest.id,
+                role: latest.role,
+                teamSeasonId: latest.teamSeasonId,
+                reportedAt: latest.reportedAt,
+              },
+              [g.teamAId, g.teamBId],
+            ).length === 2
               ? "either captain confirms"
               : "the other team confirms"}
             , or on {when(state.finalAt)} if nobody disputes it.
@@ -368,6 +382,15 @@ async function Score({
             </p>
           )}
         </section>
+      )}
+
+      {refSide && (
+        <p className="rounded-lg border border-warning p-3 text-small">
+          You play for {refSide === g.teamAId ? g.teamAName : g.teamBName}, so
+          your report counts as that team&rsquo;s. Only{" "}
+          {refSide === g.teamAId ? g.teamBName : g.teamAName} can confirm or
+          dispute it.
+        </p>
       )}
 
       {mayEnter &&
