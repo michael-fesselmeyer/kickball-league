@@ -130,7 +130,9 @@ describe("saving a contact", () => {
         .from(emergencyContact)
         .where(eq(emergencyContact.userId, me));
       expect(row?.sealed).toMatch(/^v1\./);
-      for (const plain of ["Sam", "555", "bee stings", "partner"])
+      // The sealed text is random, so a short needle (a first name, "555")
+      // turns up by chance now and then; these are long enough that it can't.
+      for (const plain of ["Example", "7185550199", "bee stings", "partner"])
         expect(row?.sealed).not.toContain(plain);
       expect(await emergencyCardOf(db, me, SECRET)).toEqual(
         card("Sam Example", "Allergic to bee stings"),
