@@ -191,6 +191,11 @@ export function NycParksPanel() {
             extra a new request. Permits issued after those periods can&rsquo;t
             be renewed, and one holder can renew at most 50 hours a week.
           </p>
+          <p>
+            &ldquo;Renew for next year&rdquo; drafts the renewal from this
+            season&rsquo;s permits and splits anything more off as a separate
+            new request. The application packet gathers what Parks may ask for.
+          </p>
           <p className="text-small">
             Source: <Source href={L.rule}>Parks rule 2-12</Source>.
           </p>

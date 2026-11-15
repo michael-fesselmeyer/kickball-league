@@ -126,6 +126,62 @@ test("an owner sees next season's permit fees estimated and expected in the book
   await page.context().close();
 });
 
+test("an owner drafts next year's renewal and gathers the application packet", async ({
+  browser,
+}) => {
+  const page = await pageAs(browser, "Admin");
+  await page.goto("/app/books/fall-2026/permits");
+  await page.getByRole("link", { name: "Renew for next year" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Renew for next year",
+  );
+  // The fall's permits renew into fall 2027, whose renewals open April 15.
+  await expect(page.getByRole("region", { name: "When to ask" })).toContainText(
+    "Apr 15, 2027",
+  );
+  await expect(
+    page.getByRole("region", { name: "Bookings to renew" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Before you renew" }),
+  ).toHaveCount(0);
+  await expectNoAxeViolations(page);
+
+  // Later hours on one field go in a separate new request, with a warning.
+  const changes = page.getByRole("region", {
+    name: "What the league wants next year",
+  });
+  await changes.getByRole("group").first().getByLabel("To").fill("23:30");
+  await changes.getByRole("button", { name: "Check the changes" }).click();
+  await expect(
+    page.getByRole("region", { name: "Before you renew" }),
+  ).toContainText("is more than last year's hours");
+  await expect(
+    page.getByRole("region", { name: "Bookings for a new request" }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  await page.getByRole("link", { name: "The application packet" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Permit application packet",
+  );
+  const packet = page.locator("pre");
+  await expect(packet).toContainText("PERMIT APPLICATION PACKET FOR FALL 2026");
+  await expect(packet).toContainText("Players on rosters:");
+  // No names until an owner asks for them.
+  await expect(packet).not.toContainText(/^ROSTERS$/m);
+  await expectNoAxeViolations(page);
+  await page.getByLabel("Include the rosters with player names").check();
+  await page.getByRole("button", { name: "Update the packet" }).click();
+  await expect(packet).toContainText(/^ROSTERS$/m);
+  const file = await download(
+    page.getByRole("link", { name: "Download the packet (text)" }),
+  );
+  expect(file.name).toMatch(/-permit-packet\.txt$/);
+  expect(file.text).toMatch(/^ROSTERS$/m);
+  await page.context().close();
+});
+
 test("someone without the books right finds nothing there", async ({
   browser,
 }) => {
