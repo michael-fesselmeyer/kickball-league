@@ -71,9 +71,13 @@ Per hour, from the [Priorities](https://www.nycgovparks.org/permits/field-and-co
 
 Fees are due 14 days before the season starts, or within 3 business days for permits granted later ([Rule 2-12](https://www.nycgovparks.org/rules/section-2-12), (c)(13)). Permits are free for people under 18 ([McCarren diamonds](https://www.nycgovparks.org/parks/mccarren-park/facilities/baseball)). No application or processing fee is listed on these pages.
 
+**What the app does with this** ([ADR 0055](../adr/0055-permit-fees-hours-and-give-back.md)): until an owner enters what Parks charged, the permits screen estimates each permit at these rates. It counts the permit's hours at the field's surface rate. The surface comes from NYC Open Data's field list: the field at the league's park with the same name, or the surface every kickball field there shares, or natural grass when nothing matches. It adds the lights fee for each hour after sunset, worked out in the app for the park's location. The books show the estimates as expected permit fees, apart from what has been spent, with the due date 14 days before the season starts. Owners are emailed 30 and 7 days before it.
+
 ## Insurance
 
 An applicant with more than 50 permitted hours in a season needs commercial general liability insurance for the whole permit, in the organization's and applicant's name, of at least $1,000,000 per occurrence and $2,000,000 in aggregate, naming the City of New York with its officers, directors and employees as additional insureds. It sends a certificate of insurance and a notarized [broker's certification form](https://www.nycgovparks.org/sub_about/parks_divisions/concessions/pdfs_and_docs/insurance_broker_certification.pdf); the portal blocks further applications until they are approved ([Priorities](https://www.nycgovparks.org/permits/field-and-court/request/priorities); [Rule 2-12](https://www.nycgovparks.org/rules/section-2-12), (c)(5)). Parks may also ask for a clean-up bond ([Rule 2-12](https://www.nycgovparks.org/rules/section-2-12), (c)(6)).
+
+The permits screen counts the season's permitted hours (requested and confirmed, not lost) against the 50-hour line. It warns from 40 hours, and the request sheet warns when the hours it asks for would cross the line. Owners are emailed once when a season reaches 40 hours and once when it passes 50.
 
 ## At the field
 
@@ -88,12 +92,22 @@ An applicant with more than 50 permitted hours in a season needs commercial gene
 ## Weather, closures and refunds
 
 - Parks can cancel permitted play for bad weather or conditions that could damage the field, and issues no credits or refunds ([Rule 2-12](https://www.nycgovparks.org/rules/section-2-12), (c)(3)). There are no refunds or credits for unused permit time, whatever the reason ([Guidelines](https://www.nycgovparks.org/permits/field-and-court/request/rules)).
-- If the league can't use a date, call the borough permit office ahead so the time can go to someone else ([Guidelines](https://www.nycgovparks.org/permits/field-and-court/request/rules)). There is an online cancellation request form, linked from the [Request](https://www.nycgovparks.org/permits/field-and-court/request) page.
+- If the league can't use a date, call the borough permit office ahead so the time can go to someone else ([Guidelines](https://www.nycgovparks.org/permits/field-and-court/request/rules)). There is an online [Athletic Permit Cancellation Request](https://forms.office.com/Pages/ResponsePage.aspx?id=x2_1MoFfIk6pWxXaZlE7710LKJS3C2ZGtGmBgW1cyQFUNzJJRkoxR0pNUk02MFJUSE00STlKSFpBRi4u) form, linked from the [Request](https://www.nycgovparks.org/permits/field-and-court/request) page. It asks for the 6-digit permit number, the permit holder's name, the date to cancel, the borough (BK, BX, MN, QS or SI), and the park, field number and reason.
+- When a rain-out cancels every slot in a permit window, or a blackout drops its date, the permits screen lists that window if it hasn't started yet. Each listing has the borough office's number and the form's answers ready to copy, and owners are emailed once for each window. A permit left unused can be cut back, which costs the league its returning status (see "Enforcement" above).
 - Field closures are posted on [NYC Parks notices](https://www.nycgovparks.org/news/notices). We found no NYC Parks page with a day-of rain-out line for ballfields; the league's own rain-out call (the app's weather alerts) stays the way players hear about it.
 
-## Brooklyn permit office
+## Borough permit offices
 
-Brooklyn borough sports permit office, Litchfield Villa, 95 Prospect Park West, Brooklyn, NY 11215, (718) 965-8975 (Prospect Park and the Parade Ground have their own line, (718) 965-8974) ([Contacts](https://www.nycgovparks.org/permits/field-and-court/contact)).
+Ballfield permit lines from the [Contacts](https://www.nycgovparks.org/permits/field-and-court/contact) page. The app picks one from the borough of the park nearest the league's venue in NYC Open Data's field list.
+
+| Borough | Phone | Office |
+| --- | --- | --- |
+| Brooklyn | (718) 965-8975 | Litchfield Villa, 95 Prospect Park West, Brooklyn, NY 11215 |
+| Prospect Park and the Parade Ground | (718) 965-8974 | Same address |
+| Bronx | (718) 430-1840 | Ranaqua, 1 Bronx River Parkway, Bronx, NY 10462 |
+| Manhattan | (212) 408-0234 | Arsenal West, 24 West 61st St., New York, NY 10023 |
+| Queens | (718) 393-7272 | Olmsted Center, Flushing Meadows Corona Park, Flushing, NY 11368 |
+| Staten Island | (718) 390-8010 | Stonehenge, 1150 Clove Road, Staten Island, NY 10301 |
 
 ## McCarren Park's fields
 
@@ -112,3 +126,7 @@ Owners open it from the permit screen (`/app/books/<season>/permits/capacity`). 
 5. **Nearby fields.** NYC Parks diamonds and large multi-use fields on natural grass, synthetic turf or clay within 5 km (about 3 miles) of the league's parks, nearest first, with surface, lights and whether NYC Parks permits kickball there. The data is a snapshot of NYC Open Data's Athletic Facilities dataset (with park names from [Parks Properties, enfh-gkve](https://data.cityofnewyork.us/dataset/Parks-Properties/enfh-gkve)), checked in at `src/domain/capacity/nyc-park-fields.json` with its source and fetch date. Refresh it with `npx tsx scripts/fetch-park-fields.ts`; the free API needs no key at this volume ([Socrata app tokens](https://dev.socrata.com/docs/app-tokens.html)). The app never calls the API at request time.
 
 Nothing is sent to NYC Parks; owners copy the sheet into the application themselves.
+
+## Watching for openings: not built
+
+NYC Parks publishes a spreadsheet of each park's issued permits for the current season ([McCarren permits](https://www.nycgovparks.org/permits/field-and-court/issued/B058), "download a spreadsheet"). A daily check of it during the first-come periods could tell owners when kickball-suitable time looks open. The site's [robots.txt](https://www.nycgovparks.org/robots.txt) doesn't disallow that path, and the [nyc.gov terms of use](https://www.nyc.gov/main/terms-of-use) say nothing against automated reading. But the site answers automated requests with 403 Forbidden, the spreadsheet included, even though it opens in a browser (checked 2026-11-14). Getting past that would mean posing as a browser to get around the site's own refusal, so the app doesn't do it ([ADR 0055](../adr/0055-permit-fees-hours-and-give-back.md)). Owners can open the park's map and spreadsheet from the permits screen themselves. NYC Open Data has no dataset of issued permits; its [Athletic Facilities](https://data.cityofnewyork.us/dataset/Athletic-Facilities/qnem-b8re) list says where fields are, not when they are free.
