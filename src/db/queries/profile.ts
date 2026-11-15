@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { UserId } from "@/domain/ids";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locales";
 import type { ProfileSettings } from "@/domain/profile/profile-form";
 import { user } from "../schema/auth";
 import { emergencyContact } from "../schema/emergency";
@@ -19,6 +20,7 @@ export async function profileOf(db: Db, userId: UserId) {
       lineupGender: profile.lineupGender,
       shirtSize: profile.shirtSize,
       birthDate: profile.birthDate,
+      language: profile.language,
       // The contact itself is sealed (emergency.ts); here only whether one is saved.
       emergencyContactSavedAt: emergencyContact.updatedAt,
     })
@@ -27,8 +29,30 @@ export async function profileOf(db: Db, userId: UserId) {
     .leftJoin(emergencyContact, eq(emergencyContact.userId, user.id))
     .where(eq(user.id, userId));
   if (!found) return null;
-  const { emergencyContactSavedAt, ...rest } = found;
-  return { ...rest, hasEmergencyContact: emergencyContactSavedAt !== null };
+  const { emergencyContactSavedAt, language, ...rest } = found;
+  return {
+    ...rest,
+    language: isLocale(language) ? language : DEFAULT_LOCALE,
+    hasEmergencyContact: emergencyContactSavedAt !== null,
+  };
+}
+
+/**
+ * Saves the language a person reads the league in (ADR 0065). Emails and
+ * push follow it from their next message, queued ones included.
+ */
+export async function saveLanguage(
+  db: Db,
+  userId: UserId,
+  locale: Locale,
+): Promise<void> {
+  await db
+    .insert(profile)
+    .values({ userId, language: locale })
+    .onConflictDoUpdate({
+      target: profile.userId,
+      set: { language: locale },
+    });
 }
 
 /**

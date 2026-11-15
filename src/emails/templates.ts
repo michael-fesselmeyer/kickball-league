@@ -159,18 +159,21 @@ export function rendererFor(
       unsubscribeSecret && recipient
         ? unsubscribeToken(unsubscribeSecret, recipient.userId, recipient.topic)
         : null;
+    const context = recipient?.locale
+      ? { ...base, locale: recipient.locale }
+      : base;
     return template(
       payload,
       token && recipient
         ? {
-            ...base,
+            ...context,
             unsubscribe: {
               pageUrl: `${site}${unsubscribePagePath(token)}`,
               oneClickUrl: `${site}${unsubscribePostPath(token)}`,
               topicLabel: topicLabel(recipient.topic),
             },
           }
-        : base,
+        : context,
     );
   };
 }

@@ -37,6 +37,7 @@ import {
 } from "@/domain/notifications/topics";
 import { afterFailure, CLAIM_MS } from "@/domain/outbox/retry";
 import type { Result } from "@/domain/result";
+import { DEFAULT_LOCALE, isLocale, type Locale } from "@/i18n/locales";
 import type { EmailSender } from "@/services/email";
 import type { PushSender } from "@/services/push";
 import { user } from "../schema/auth";
@@ -182,7 +183,7 @@ export type Rendered = {
 export type Renderer = (
   template: string,
   payload: Record<string, unknown>,
-  recipient?: { userId: UserId; topic: Topic },
+  recipient?: { userId: UserId; topic: Topic; locale?: Locale },
 ) => Result<Rendered, string>;
 
 export type Channel = "email" | "push";
@@ -201,6 +202,8 @@ export type ClaimedMessage = {
   sendAfter: Date;
   /** Set on a copy of an announcement, to tell team news from league news. */
   announcementId: AnnouncementId | null;
+  /** The recipient's language (ADR 0065); English with no account. */
+  locale: Locale;
 };
 
 /** Urgent first, then news that can wait and the digest. */
@@ -244,7 +247,7 @@ export async function claimDueMessages(
     )
     .limit(limit)
     .for("update", { skipLocked: true });
-  return db
+  const claimed = await db
     .update(message)
     .set({
       status: "sending",
@@ -264,7 +267,18 @@ export async function claimDueMessages(
       dedupeKey: message.dedupeKey,
       sendAfter: message.sendAfter,
       announcementId: message.announcementId,
+      // Read as it is sent, so a change of language applies to messages
+      // already waiting.
+      // Qualified by hand: inside RETURNING, Drizzle writes bare column
+      // names, and a bare "user_id" here would mean the profile's own.
+      language: sql<
+        string | null
+      >`(select p.language from profile p where p.user_id = "message"."user_id")`,
     });
+  return claimed.map(({ language, ...m }) => ({
+    ...m,
+    locale: isLocale(language) ? language : DEFAULT_LOCALE,
+  }));
 }
 
 /** Only the worker still holding this claim may record an outcome. */
@@ -819,7 +833,9 @@ async function deliverEmail(
   const rendered = render(
     m.template,
     m.payload,
-    m.userId ? { userId: m.userId, topic: m.topic } : undefined,
+    m.userId
+      ? { userId: m.userId, topic: m.topic, locale: m.locale }
+      : undefined,
   );
   if (!rendered.ok || !to) {
     // Retrying cannot fix a message that cannot be built.
@@ -909,7 +925,13 @@ async function deliverPush(
   };
   if (!push) return suppress("push_off");
   if (devices.length === 0) return suppress("no_device");
-  const rendered = render(m.template, m.payload);
+  const rendered = render(
+    m.template,
+    m.payload,
+    m.userId
+      ? { userId: m.userId, topic: m.topic, locale: m.locale }
+      : undefined,
+  );
   if (!rendered.ok) {
     await settle(db, m, { status: "failed", lastError: rendered.error });
     result.failed++;

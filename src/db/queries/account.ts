@@ -148,6 +148,7 @@ export async function personalData(
       lineupGender: profile.lineupGender,
       shirtSize: profile.shirtSize,
       birthDate: profile.birthDate,
+      language: profile.language,
       createdAt: profile.createdAt,
       updatedAt: profile.updatedAt,
     })

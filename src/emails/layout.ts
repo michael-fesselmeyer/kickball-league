@@ -1,3 +1,5 @@
+import type { Locale } from "@/i18n/locales";
+
 /**
  * The frame every league email shares: a heading, the body, an optional
  * button, and a footer that says why the person got it and where to change
@@ -15,6 +17,11 @@ export const escapeHtml = (value: string) =>
 export type RenderContext = {
   /** The site's address, such as https://league.example.test, for links. */
   siteUrl: string;
+  /**
+   * The recipient's language (ADR 0065). Templates write in it as they are
+   * translated; until then they stay in English.
+   */
+  locale?: Locale;
   /**
    * The recipient's one-click unsubscribe for this email's topic, when they
    * can turn it off (src/lib/unsubscribe.ts): absolute URLs.
