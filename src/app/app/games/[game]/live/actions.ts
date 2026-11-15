@@ -72,7 +72,7 @@ export async function saveHalfAction(
     typeof position === "string"
       ? position.split(":")
       : [form.get("inning"), form.get("half")];
-  // A quick-pick button sends its runs; "Save" sends the typed number.
+  // "End half" sends the runs counted; "Save" sends the typed number.
   const runs = form.has("runs")
     ? integer(form.get("runs"))
     : integer(form.get("typedRuns"));

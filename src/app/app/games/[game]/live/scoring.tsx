@@ -16,6 +16,12 @@ import {
 } from "@/domain/scores/live";
 import { withWaiting } from "@/domain/scores/offline";
 import { MIN_CALLED_INNINGS } from "@/domain/scores/scores";
+import {
+  addRun,
+  runsSoFar,
+  type UndoStep,
+  undoStep,
+} from "@/domain/scores/tally";
 import { canSaveOffline, newKey, saveOffline } from "@/lib/pwa/score-outbox";
 import {
   endGameAction,
@@ -24,9 +30,26 @@ import {
   undoAction,
 } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
+import { useTally } from "./use-tally";
 
-/** Runs most halves end with, one tap each. */
-const QUICK_RUNS = [0, 1, 2, 3, 4, 5, 6, 7];
+/** Takes back the last tap, and says which. */
+function UndoButton({
+  step,
+  onUndo,
+}: {
+  step: NonNullable<UndoStep>;
+  onUndo: () => Promise<void>;
+}) {
+  return (
+    <form action={onUndo}>
+      <SubmitButton className="btn w-full btn-secondary">
+        {step.kind === "run"
+          ? "Undo the last run"
+          : `Undo: reopen the ${positionLabel(step.tally).toLowerCase()}`}
+      </SubmitButton>
+    </form>
+  );
+}
 
 /** A whole number from a form field, or NaN. */
 const integer = (value: unknown) =>
@@ -64,6 +87,7 @@ export function Scoring({
   endKey: string;
 }) {
   const outbox = useOutbox(gameId);
+  const [stored, setTally] = useTally(gameId);
   const [notice, setNotice] = useState<string | null>(null);
   const [nextEndKey, setNextEndKey] = useState(endKey);
   const halves = withWaiting(snapshot.halves, outbox.entries);
@@ -125,6 +149,8 @@ export function Scoring({
     if (ending !== "normal" && ending !== "called") return;
     const key = nextEndKey;
     setNextEndKey(newKey());
+    // Nothing left to count on this phone.
+    setTally(null);
     if (onPhone()) {
       const result =
         ending === "called" && called
@@ -158,6 +184,24 @@ export function Scoring({
   const NEEDS_SIGNAL =
     "This needs a signal. To fix a half now, change its runs below instead.";
 
+  const kicking = next ? team(sideFor(next.half, kicksFirst)) : "";
+  const runs = runsSoFar(stored, next);
+  const lastHalf = last
+    ? (halves.find((h) => h.inning === last.inning && h.half === last.half) ??
+      null)
+    : null;
+  const step = undoStep(next, runs, lastHalf);
+
+  /** Takes back the last tap: a run on this phone, or the half just ended. */
+  async function undo() {
+    if (!step) return;
+    setNotice(null);
+    // A half's runs go back on the counter, ready once it reopens.
+    setTally(step.tally);
+    if (step.kind === "half")
+      await online(() => undoAction(gameId), NEEDS_SIGNAL);
+  }
+
   return (
     <>
       <OutboxStatus outbox={outbox} />
@@ -181,65 +225,75 @@ export function Scoring({
       {next && (
         <section
           aria-labelledby="next-half"
-          className="flex flex-col gap-3 rounded-lg border-2 border-text p-4 shadow-sticker"
+          className="flex flex-col gap-4 rounded-lg border-2 border-text p-4 shadow-sticker"
         >
-          <div>
-            <h2 id="next-half" className="text-h3">
-              {positionLabel(next)}
-            </h2>
-            <p className="text-text-muted">
-              {team(sideFor(next.half, kicksFirst))} kicking. How many runs?
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="min-w-0">
+              <h2 id="next-half" className="text-h3">
+                {positionLabel(next)}
+              </h2>
+              <p className="truncate text-text-muted">{kicking} kicking</p>
+            </div>
+            <p
+              aria-live="polite"
+              className="flex shrink-0 items-baseline gap-2 tabular-nums"
+            >
+              <span className="font-display text-h1">{runs}</span>
+              <span>{runs === 1 ? "run" : "runs"}</span>
             </p>
           </div>
+          {/* One thumb: the big button counts, the next one ends the half. */}
+          <button
+            type="button"
+            onClick={() => setTally(addRun(next, runs))}
+            className="btn min-h-28 flex-col gap-0 text-h1 btn-primary"
+          >
+            +1 run
+            <span className="text-body font-normal">
+              <span className="sr-only">for </span>
+              {kicking}
+            </span>
+          </button>
           <form action={saveHalf}>
             <input type="hidden" name="inning" value={next.inning} />
             <input type="hidden" name="half" value={next.half} />
-            <fieldset className="grid grid-cols-4 gap-2">
-              <legend className="sr-only">
-                Runs in the {positionLabel(next).toLowerCase()}
-              </legend>
-              {QUICK_RUNS.map((runs) => (
-                <SubmitButton
-                  key={runs}
-                  name="runs"
-                  value={runs}
-                  className="btn px-0 text-h3 btn-secondary tabular-nums"
-                >
-                  {runs}
-                </SubmitButton>
-              ))}
-            </fieldset>
+            <input type="hidden" name="runs" value={runs} />
+            <SubmitButton className="btn min-h-16 w-full text-h3 btn-secondary">
+              End half{runs === 0 ? ", no runs" : `, ${runsIn(runs)}`}
+            </SubmitButton>
           </form>
-          <form action={saveHalf} className="flex items-end gap-2">
-            <input type="hidden" name="inning" value={next.inning} />
-            <input type="hidden" name="half" value={next.half} />
-            <label className="flex flex-col gap-1">
-              More runs
-              <input
-                name="typedRuns"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={99}
-                required
-                className="min-h-11 w-24 rounded-input border border-border-strong bg-surface px-3 text-center tabular-nums"
-              />
-            </label>
-            <SubmitButton className="btn btn-primary">Save</SubmitButton>
-          </form>
+          {step && <UndoButton step={step} onUndo={undo} />}
+          <details className="rounded-lg border border-border p-3">
+            <summary className="min-h-11 content-center">
+              Type the runs instead
+            </summary>
+            <form action={saveHalf} className="mt-3 flex items-end gap-2">
+              <input type="hidden" name="inning" value={next.inning} />
+              <input type="hidden" name="half" value={next.half} />
+              <label className="flex flex-col gap-1">
+                Runs this half
+                <input
+                  name="typedRuns"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  max={99}
+                  required
+                  className="min-h-11 w-24 rounded-input border border-border-strong bg-surface px-3 text-center tabular-nums"
+                />
+              </label>
+              <SubmitButton className="btn btn-primary">Save</SubmitButton>
+            </form>
+          </details>
         </section>
       )}
+      {!next && step && <UndoButton step={step} onUndo={undo} />}
 
       {last && (
         <section aria-labelledby="fix" className="flex flex-col gap-3">
           <h2 id="fix" className="text-h3">
             Fix a mistake
           </h2>
-          <form action={() => online(() => undoAction(gameId), NEEDS_SIGNAL)}>
-            <SubmitButton className="btn btn-secondary">
-              Take back the {positionLabel(last).toLowerCase()}
-            </SubmitButton>
-          </form>
           <details className="rounded-lg border border-border p-3">
             <summary className="min-h-11 content-center">
               Change the runs in an earlier half
