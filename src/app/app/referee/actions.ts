@@ -8,8 +8,15 @@ import {
   seasonGameTimes,
   setAvailability,
 } from "@/db/queries/referee-pool";
-import { parseId, type SeasonId, type UserId } from "@/domain/ids";
+import {
+  dropRefereeGame,
+  leagueOfGame,
+  takeRefereeGame,
+} from "@/db/queries/referee-cover";
+import { type GameId, parseId, type SeasonId, type UserId } from "@/domain/ids";
+import { parseDropReason } from "@/domain/referees/cover";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { sendQueuedSoon } from "@/services/outbox";
 
 const PAGE = "/app/referee";
 
@@ -59,4 +66,53 @@ export async function saveAvailabilityAction(
     }),
   );
   redirect(`${PAGE}?saved=1#season-${seasonId}`);
+}
+
+/**
+ * A ref drops a game they can't make, with a reason, until it starts. If
+ * it starts within a day, the league's refs who are free then are asked
+ * at once.
+ */
+export async function dropGameAction(
+  rawGameId: string,
+  form: FormData,
+): Promise<void> {
+  const gameId = parseId<GameId>(rawGameId);
+  if (!gameId) notFound();
+  const leagueId = await leagueOfGame(db, gameId);
+  if (!leagueId) notFound();
+  // Another league's game is refused like a missing one.
+  const subject = await requirePermissionToChange("referee.availability", {
+    next: PAGE,
+    leagueId,
+  });
+  const userId = parseId<UserId>(subject.userId);
+  if (!userId) notFound();
+  const reason = parseDropReason(form.get("reason"));
+  if (reason === null) redirect(`${PAGE}?error=reason#game-${gameId}`);
+  const result = await txDb.transaction((tx) =>
+    dropRefereeGame(tx, { gameId, userId, reason, now: new Date() }),
+  );
+  if (!result.ok) redirect(`${PAGE}?error=${result.error}#game-${gameId}`);
+  if (result.value.asked > 0) sendQueuedSoon();
+  redirect(`${PAGE}?dropped=${result.value.asked}`);
+}
+
+/** "Take it": the first ref to tap gets the game. */
+export async function takeGameAction(rawGameId: string): Promise<void> {
+  const gameId = parseId<GameId>(rawGameId);
+  if (!gameId) notFound();
+  const page = `${PAGE}/take/${gameId}`;
+  const leagueId = await leagueOfGame(db, gameId);
+  if (!leagueId) notFound();
+  const subject = await requirePermissionToChange("referee.availability", {
+    next: page,
+    leagueId,
+  });
+  const userId = parseId<UserId>(subject.userId);
+  if (!userId) notFound();
+  const result = await txDb.transaction((tx) =>
+    takeRefereeGame(tx, { gameId, userId, now: new Date() }),
+  );
+  redirect(result.ok ? `${page}?took=1` : `${page}?error=${result.error}`);
 }
