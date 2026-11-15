@@ -1,5 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
+import type { CoverWindow } from "@/domain/permits/coverage";
 import { gameKey, type Schedule, type SchedulerInput } from "./types";
 import { validate, type Violation } from "./validate";
 import {
@@ -537,5 +538,81 @@ describe("validate edge cases", () => {
     expect(validate(input, full).find((v) => v.rule === "H10")?.message).toBe(
       "2027-04-04 keeps 0 empty slots for makeups; it should keep 2.",
     );
+  });
+});
+
+describe("H12: games inside a usable permit (issue #407)", () => {
+  /** A window per slot, each with its document, as the permits stand. */
+  const permitsFor = (
+    input: SchedulerInput,
+    from = "2000-01-01T00:00:00Z",
+  ) => ({
+    windows: input.slots.map((s): CoverWindow => ({
+      fieldId: s.fieldId,
+      startsAt: s.startsAt,
+      endsAt: s.endsAt,
+      status: "confirmed",
+      hasDocument: true,
+    })),
+    from,
+    fieldNames: Object.fromEntries(
+      input.slots.map((s) => [s.fieldId, `Field ${s.fieldId}`]),
+    ),
+    timeZone: "America/New_York",
+  });
+
+  it("passes when every game sits inside a permit", () => {
+    const [input, schedule] = workedExample();
+    expect(
+      validate({ ...input, permits: permitsFor(input) }, schedule),
+    ).toEqual([]);
+  });
+
+  it("reports a game whose permit was lost, with the field's name", () => {
+    const [input, schedule] = workedExample();
+    const placed = schedule.games.find((g) => g.slotId !== null);
+    const at = input.slots.find((s) => s.id === placed?.slotId);
+    if (!placed || !at) throw new Error("no placed game");
+    const permits = permitsFor(input);
+    permits.windows = permits.windows.map((w) =>
+      w.fieldId === at.fieldId && w.startsAt === at.startsAt
+        ? { ...w, status: "lost" }
+        : w,
+    );
+    // Every game at that time on that field loses its cover, this one too.
+    const found = validate({ ...input, permits }, schedule);
+    expect(found.length).toBeGreaterThan(0);
+    for (const v of found)
+      expect(v).toMatchObject({
+        rule: "H12",
+        message: `Field ${at.fieldId}'s permit for that time was marked lost.`,
+      });
+    expect(found.flatMap((v) => v.gameKeys)).toContain(placed.key);
+  });
+
+  it("names a field it doesn't know as this field", () => {
+    const [input, schedule] = workedExample();
+    const permits = { ...permitsFor(input), windows: [], fieldNames: {} };
+    const found = validate({ ...input, permits }, schedule).filter(
+      (v) => v.rule === "H12",
+    );
+    expect(found.length).toBe(
+      schedule.games.filter((g) => g.slotId !== null).length,
+    );
+    expect(found[0]?.message).toMatch(/^No permit covers This field on /);
+  });
+
+  it("leaves games already played alone", () => {
+    const [input, schedule] = workedExample();
+    const permits = {
+      ...permitsFor(input, "2100-01-01T00:00:00Z"),
+      windows: [],
+    };
+    expect(validate({ ...input, permits }, schedule)).toEqual([]);
+  });
+
+  it("is not judged without permits", () => {
+    const [input, schedule] = workedExample();
+    expect(rules(validate(input, schedule))).not.toContain("H12");
   });
 });

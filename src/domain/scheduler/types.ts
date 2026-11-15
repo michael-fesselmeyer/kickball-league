@@ -4,6 +4,7 @@
  * Instants are ISO-8601 strings in UTC; dates are YYYY-MM-DD in the
  * league's own time zone.
  */
+import type { CoverWindow } from "@/domain/permits/coverage";
 
 export type SlotKind = "regular" | "makeup_reserve" | "playoff";
 
@@ -89,6 +90,21 @@ export type SchedulerInput = {
   locked: { gameKey: string; slotId: string }[];
   weights: Weights;
   seed: number;
+  /**
+   * The league's permits on the season's fields, for H12 (issue #407):
+   * every game from `from` on must sit inside a permit with a document that
+   * was not lost. Left out, H12 is not checked (a fresh generation, tests).
+   */
+  permits?: SchedulerPermits;
+};
+
+export type SchedulerPermits = {
+  windows: CoverWindow[];
+  /** Games starting before this instant (already played) are not judged. */
+  from: string;
+  /** Field names by id, for the violation messages. */
+  fieldNames: Record<string, string>;
+  timeZone: string;
 };
 
 export type ScheduledGame = {
