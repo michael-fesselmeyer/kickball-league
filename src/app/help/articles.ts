@@ -175,7 +175,7 @@ export const HELP_ROLES: readonly HelpRole[] = [
         summary:
           "The league's code covers play, the park, alcohol and sound, and conduct online.",
         steps: [
-          "Read the code on the league's public rules page, under \"Code of conduct\".",
+          'Read the code on the league\'s public rules page, under "Code of conduct".',
           "When you sign your season waiver, the code is shown above the box and you tick it to agree.",
           "You accept each version once. If the league publishes a new one, you accept it at your next registration.",
         ],

@@ -8,9 +8,9 @@ import {
 
 describe("checkConductDraft", () => {
   it("accepts the default sections as a starting point", () => {
-    expect(checkConductDraft(DEFAULT_CONDUCT_TITLE, DEFAULT_CONDUCT_BODY)).toEqual(
-      {},
-    );
+    expect(
+      checkConductDraft(DEFAULT_CONDUCT_TITLE, DEFAULT_CONDUCT_BODY),
+    ).toEqual({});
   });
 
   it("covers the sections the league needs", () => {
