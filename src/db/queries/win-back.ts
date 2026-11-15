@@ -162,6 +162,7 @@ export async function winBackCandidates(
     .select({
       userId: registration.userId,
       kind: registration.kind,
+      seasonId: registration.seasonId,
       seasonStart: season.startsOn,
       seasonName: season.name,
       team: spotTeam,
@@ -206,8 +207,10 @@ export async function winBackCandidates(
       a.seasonStart < b.seasonStart ? 1 : -1,
     )[0];
     if (!last) return [];
+    // Only the captain is asked to register the team again: two co-captains
+    // doing it too would enter the same team twice.
     const role: LastRole =
-      last.role === "captain" || last.role === "co_captain"
+      last.role === "captain"
         ? "captain"
         : last.team === null && last.kind === "free_agent"
           ? "free_agent"
@@ -221,7 +224,7 @@ export async function winBackCandidates(
           last.firstName && last.lastName
             ? `${last.firstName} ${last.lastName}`
             : last.accountName,
-        seasonsPlayed: new Set(regs.map((r) => r.seasonStart)).size,
+        seasonsPlayed: new Set(regs.map((r) => r.seasonId)).size,
         lastSeasonStart: last.seasonStart,
         lastSeasonName: last.seasonName,
         lastTeam: last.team,
