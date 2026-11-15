@@ -413,6 +413,19 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
   "incident.reported_by": actor("incidents reported"),
   "incident.resolved_by": actor("incidents resolved"),
   "incident_note.author_id": actor("incident notes"),
+  // Injury reports (ADR 0064). Who was hurt moves with the person; seeing an
+  // injury twice is one witness.
+  "injury_report.hurt_user_id": {
+    kind: "move",
+    label: "injury reports about them",
+  },
+  "injury_witness.user_id": {
+    kind: "dedupe",
+    label: "injuries they witnessed",
+    by: ["incident_id"],
+    resolve: "drop",
+    clash: "Both witnessed the same injury once",
+  },
   "concern.sender_id": actor("concerns sent"),
   "concern.closed_by": actor("concerns closed"),
   "concern_message.author_id": actor("concern replies and notes"),

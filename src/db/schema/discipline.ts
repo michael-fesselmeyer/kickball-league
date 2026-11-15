@@ -81,6 +81,7 @@ export const incidentKind = pgEnum("incident_kind", [
   "unsportsmanlike",
   "outside_alcohol",
   "safety",
+  "injury",
   "other",
 ]);
 /** Whose account the report is: the game's ref, a captain, or an admin. */
@@ -124,6 +125,12 @@ export const incident = pgTable(
     check(
       "incident_details_length",
       sql`char_length(${t.details}) between 1 and 2000`,
+    ),
+    // An injury's text is kept shorter (ADR 0064). Compared as text, so the
+    // migration that adds the kind can also add this check.
+    check(
+      "incident_injury_details_length",
+      sql`${t.kind}::text <> 'injury' or char_length(${t.details}) <= 1000`,
     ),
     check(
       "incident_resolved_at",
@@ -225,6 +232,64 @@ export const suspension = pgTable(
       "suspension_games",
       sql`(${t.scope} = 'games') = (${t.games} is not null) and (${t.games} is null or ${t.games} between 1 and 20)`,
     ),
+  ],
+);
+
+export const injuryBodyArea = pgEnum("injury_body_area", [
+  "head",
+  "face",
+  "neck",
+  "shoulder",
+  "arm",
+  "hand",
+  "chest",
+  "back",
+  "hip",
+  "leg",
+  "knee",
+  "ankle_foot",
+  "other",
+]);
+export const injuryCare = pgEnum("injury_care", ["none", "first_aid", "ems"]);
+
+/**
+ * The injury part of an incident whose kind is "injury" (ADR 0064): who was
+ * hurt, where, and what care was needed. What happened is the incident's
+ * details. Only owners and admins read it. Removing it, when the period
+ * ends or an admin asks, leaves the incident without its health details.
+ */
+export const injuryReport = pgTable(
+  "injury_report",
+  {
+    incidentId: uuid()
+      .primaryKey()
+      .$type<IncidentId>()
+      .references(() => incident.id, { onDelete: "cascade" }),
+    hurtUserId: uuid()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "set null" }),
+    bodyArea: injuryBodyArea().notNull(),
+    care: injuryCare().notNull(),
+  },
+  (t) => [index("injury_report_hurt_idx").on(t.hurtUserId)],
+);
+
+/** The people from the game who saw an injury happen. */
+export const injuryWitness = pgTable(
+  "injury_witness",
+  {
+    incidentId: uuid()
+      .notNull()
+      .$type<IncidentId>()
+      .references(() => incident.id, { onDelete: "cascade" }),
+    userId: uuid()
+      .notNull()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.incidentId, t.userId] }),
+    index("injury_witness_user_idx").on(t.userId),
   ],
 );
 
