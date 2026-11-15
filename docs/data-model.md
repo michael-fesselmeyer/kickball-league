@@ -932,6 +932,10 @@ erDiagram
   event ||--o{ volunteer_shift : needs
   volunteer_shift ||--o{ volunteer_signup : fills
   user ||--o{ volunteer_signup : takes
+  league ||--o{ checklist_template_task : "starts seasons with"
+  season ||--o{ checklist_task : "runs on"
+  checklist_template_task ||--o{ checklist_task : "copied to"
+  user ||--o{ checklist_task : owns
   season ||--o| season_survey : asks
   season_survey ||--o{ survey_response : "answered by"
   user ||--o{ survey_response : answers
@@ -1277,6 +1281,25 @@ erDiagram
     uuid user_id FK
     timestamptz created_at
   }
+  checklist_template_task {
+    uuid id PK
+    uuid league_id FK
+    text title "1 to 120"
+    text notes "up to 1000"
+    smallint offset_days "days from the season's first day, -365 to 365"
+    uuid owner_id FK "an owner or admin; null for nobody"
+  }
+  checklist_task {
+    uuid id PK
+    uuid season_id FK
+    uuid template_task_id FK "unique with season_id; null when added by hand"
+    text title "1 to 120"
+    text notes "up to 1000"
+    date due_on
+    uuid owner_id FK "an owner or admin; null for nobody"
+    timestamptz done_at
+    uuid done_by FK
+  }
   season_survey {
     uuid id PK
     uuid season_id FK "unique: one per season"
@@ -1331,6 +1354,13 @@ Volunteer shifts, as built (`src/db/schema/volunteer.ts`, `src/db/queries/volunt
 - An admin can change a shift but not cut its spots below the people signed up, and can remove it with everyone's spot. Each change writes a `volunteer.*` audit row.
 - A daily job queues one `volunteer_reminder` (non-urgent, topic `events`, dedupe key `volunteer_reminder/<shift>/<user>`) for each person on a shift that starts the next day in the league's time zone.
 - Deleting an account gives back its spots on shifts that haven't started; spots on past shifts stay, under the anonymized user. The data export lists the person's shifts.
+
+The season ops checklist, as built (`src/db/schema/checklist.ts`, `src/db/queries/checklist.ts`, `src/domain/checklist/tasks.ts`, [ADR 0053](adr/0053-season-ops-checklist-from-a-template.md)):
+
+- A `checklist_template_task` is one of the league's recurring jobs: a title, notes, `offset_days` from a season's first day (negative is before it) and an optional usual owner. A league whose template is empty gets the starter tasks the first time the template or a season's checklist needs it; an advisory lock on the league keeps two first visits from adding them twice. Owners (and the platform operator) edit it.
+- A `checklist_task` is one job on one season's checklist, seen by owners and admins only: a title, notes, `due_on`, an optional `owner_id` (an owner or admin), and `done_at`/`done_by` once it is ticked off. Starting a season's checklist copies each template task with `due_on` = the season's `starts_on` + `offset_days`. The unique `(season_id, template_task_id)` makes starting it again add only the template's new tasks. Tasks added by hand have no template task, and removing a template task leaves seasons' copies alone (`set null`). Removing a season removes its tasks.
+- Every change writes a `checklist.*` or `checklist_template.*` audit row.
+- A daily job queues `checklist_reminder` (non-urgent, topic `operations`) for each open task due within 3 days, and once for a task that is overdue (up to 30 days). It goes to the task's owner, or to every owner while nobody has the task. The dedupe key `checklist_reminder/<task>/<due_on>/<soon|overdue>/<user>` sends each once, and a new due date or owner sends afresh.
 
 The end-of-season survey, as built (`src/db/schema/survey.ts`, `src/db/queries/surveys.ts`, `src/domain/survey/questions.ts`):
 
