@@ -6,7 +6,7 @@ Status: draft v1, 2026-11-11. Phase tags match [product-spec.md](product-spec.md
 
 Public pages are indexable and need no sign-in. App pages sit behind sign-in and are not indexed.
 
-One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-one-deployment.md)). The tree below is the default league's, at the site's own URLs. Every other league's pages are the same tree under `/l/<league>`: `/l/<league>` is its home (name, sport, a sign-up button and its seasons), then `/l/<league>/seasons/...`, `/teams/...`, `/games/...`, `/events/...`, `/sponsors/...`, `/history`, `/records` and `/friends`. The default league's own content pages (about, FAQ, the park, the search landing pages) have no copy under `/l/`. `/l/<default league>/...` redirects to the plain address.
+One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-one-deployment.md)). The tree below is the default league's, at the site's own URLs. Every other league's pages are the same tree under `/l/<league>`: `/l/<league>` is its home (name, sport, a sign-up button and its seasons), then `/l/<league>/seasons/...`, `/teams/...`, `/games/...`, `/events/...`, `/sponsors/...`, `/history`, `/records`, `/friends` and `/fields/<park>`. The default league's own content pages (about, FAQ, the park, the search landing pages) have no copy under `/l/`. `/l/<default league>/...` redirects to the plain address.
 
 ```
 /                                   Home: what, where, when, price, join; featured Instagram photos and the home cover
@@ -38,6 +38,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 │   └── [sponsor]                   Sponsor page: deals with when they were confirmed, the team of the week, how to check in
 ├── friends                         Friends of the league: clubs run by our players first, then other local leagues grouped by activity, each linking to its own site (clicks counted, never who), and a "Link to us" snippet
 ├── rules                           The league's rules by section (anchors such as #lineups), each division's game settings from its rule set, and "What changed": every change newest first with its publish date, start date and the sections it touched; a section changing soon says "New wording from" its date. Static HTML
+├── fields/[park]                   Who has this field: the fields the league holds at a park under a confirmed permit, by day, with permit number, "Permitted by NYC Parks", today's line worked out in the browser, and short house rules
 ├── help/                           Help center: short how-tos by role and a search box that filters them as you type (every how-to is listed without JavaScript too)
 │   └── [role]                      One role's how-tos (player, captain, ref, admin, owner), each under its own anchor; the matching screens link here with "Help"
 ├── widget                          Get the schedule widget: the iframe snippet for the league and for each team, with a live preview
