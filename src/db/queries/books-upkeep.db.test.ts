@@ -6,8 +6,9 @@ import type { PreparedFile } from "@/lib/books/store-file";
 import { expense } from "../schema/books";
 import { field, game, slot, venue } from "../schema/game";
 import { message } from "../schema/message";
-import { profile } from "../schema/profile";
+import { refereePayout, refereePayRate } from "../schema/referees";
 import { season } from "../schema/season";
+import { grantRole } from "../test/leagues";
 import { leagueWorld } from "../test/league-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { addExpense } from "./books";
@@ -23,6 +24,7 @@ import {
   owedList,
   previewStatement,
   queueBooksNudge,
+  refPaySummary,
   reimburse,
   seasonExpected,
   skipExpected,
@@ -48,10 +50,7 @@ const fakeFile = (): PreparedFile => {
  */
 async function booksWorld(db: Db) {
   const w = await leagueWorld(db);
-  await db
-    .update(profile)
-    .set({ globalRole: "owner" })
-    .where(eq(profile.userId, w.admin));
+  await grantRole(db, w.admin, "owner", w.leagueId);
   const [v] = await db
     .insert(venue)
     .values({ leagueId: w.leagueId, name: "Example Park", slug: "ex-park" })
@@ -530,6 +529,92 @@ describe("statement import", () => {
         "transfer",
         "outside_season",
       ]);
+    });
+  });
+});
+
+describe("ref pay and the pay sheet", () => {
+  it("leaves game-day ref pay to the pay sheet, whose payouts never wait on a receipt", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await booksWorld(db);
+      const ref = await addRecurringCost(
+        db,
+        {
+          leagueId: w.leagueId,
+          label: "Ref pay",
+          category: "refs",
+          amountCents: 12000,
+          cadence: "game_day",
+          startsOn: "2027-01-01",
+        },
+        w.owner,
+      );
+      const at = {
+        leagueId: w.leagueId,
+        season: w.season,
+        timeZone: TZ,
+        today: "2027-04-30",
+      };
+      const sheet = { leagueId: w.leagueId, seasonId: w.season.id };
+      expect((await seasonExpected(db, at)).due).toHaveLength(2);
+      expect(await refPaySummary(db, sheet)).toBeNull();
+
+      // The admins set a per-game fee on the pay sheet.
+      await db
+        .insert(refereePayRate)
+        .values({ seasonId: w.season.id, feeCents: 4000 });
+      expect((await seasonExpected(db, at)).due).toEqual([]);
+      expect(
+        await confirmExpected(
+          db,
+          {
+            ...at,
+            costId: ref,
+            dueOn: "2027-04-10",
+            amountCents: 12000,
+            paidBy: null,
+          },
+          w.owner,
+        ),
+      ).toEqual({ ok: false, error: "not_expected" });
+      expect(await refPaySummary(db, sheet)).toMatchObject({
+        feeCents: 4000,
+        gamesWorked: 0,
+        balanceCents: 0,
+      });
+
+      // A payout marked on the sheet writes a Refs expense; it isn't
+      // waiting on a receipt, and a typed expense still is.
+      const payout = await w.add(4000, { category: "refs" });
+      if (!payout.ok) throw new Error(payout.error);
+      await db.insert(refereePayout).values({
+        seasonId: w.season.id,
+        userId: w.teammate,
+        amountCents: 4000,
+        method: "venmo",
+        paidOn: "2027-04-12",
+        expenseId: payout.value,
+      });
+      await w.add(2500, { category: "shirts" });
+      expect(await lastCategory(db, w.leagueId)).toBe("shirts");
+      expect(
+        await queueBooksNudge(db, {
+          leagueId: w.leagueId,
+          timeZone: TZ,
+          today: "2027-05-01",
+          now: new Date("2027-05-01T14:00:00Z"),
+        }),
+      ).toBe(1);
+      const [sent] = await db
+        .select({ payload: message.payload })
+        .from(message)
+        .where(
+          and(eq(message.userId, w.owner), eq(message.template, "books_nudge")),
+        );
+      expect(sent?.payload).toMatchObject({
+        receiptsCount: 1,
+        receipts: [{ amountCents: 2500 }],
+      });
     });
   });
 });

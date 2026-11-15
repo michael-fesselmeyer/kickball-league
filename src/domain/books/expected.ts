@@ -55,7 +55,18 @@ export type ExpectedInput = {
   settled: ReadonlySet<string>;
   /** YYYY-MM-DD in the league's time zone. */
   today: string;
+  /**
+   * The season pays its refs from the ref pay sheet (a per-game fee is
+   * set, ADR 0053). Each payout there adds a Refs expense to the books, so
+   * a game-day Refs cost isn't expected too: ref pay would count twice.
+   */
+  refsFromPaySheet?: boolean;
 };
+
+/** True when the pay sheet, not this cost, puts ref pay in the books. */
+export const paidFromPaySheet = (
+  cost: Pick<RecurringCost, "cadence" | "category">,
+) => cost.cadence === "game_day" && cost.category === "refs";
 
 export type Expected = {
   /** Due on or before today and not yet settled, oldest first. */
@@ -77,6 +88,7 @@ export function expectedCosts(input: ExpectedInput): Expected {
   const due: Occurrence[] = [];
   const next: Occurrence[] = [];
   for (const cost of input.costs) {
+    if (input.refsFromPaySheet && paidFromPaySheet(cost)) continue;
     const dates =
       cost.cadence === "season"
         ? input.season.endsOn >= cost.startsOn && !settledCosts.has(cost.id)

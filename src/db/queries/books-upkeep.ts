@@ -9,6 +9,7 @@ import {
   isNotNull,
   isNull,
   ne,
+  not,
   notInArray,
   sql,
 } from "drizzle-orm";
@@ -28,6 +29,7 @@ import {
   type StatementRow,
 } from "@/domain/books/statement";
 import { nudgeKey, nudgeMonth, owedByPerson } from "@/domain/books/upkeep";
+import { paySheet, payTotals } from "@/domain/referees/pay";
 import type {
   BooksFileId,
   ExpenseId,
@@ -50,8 +52,9 @@ import { game, slot } from "../schema/game";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { recordAudit } from "./audit";
-import { addExpense, ownerIds, storeFile } from "./books";
+import { addExpense, fromPaySheet, ownerIds, storeFile } from "./books";
 import { enqueueMessages } from "./outbox";
+import { payInputs, payRate } from "./referee-pool";
 import type { Db } from "./schedule";
 
 /**
@@ -88,9 +91,11 @@ export async function lastCategory(
     .where(
       and(
         eq(season.leagueId, leagueId),
-        // Typed by an owner: not an imported row or a confirmed expected cost.
+        // Typed by an owner: not an imported row, a confirmed expected cost
+        // or a ref payout.
         isNull(expense.importKey),
         isNull(expense.recurringCostId),
+        not(fromPaySheet),
       ),
     )
     .orderBy(desc(expense.createdAt), desc(expense.id))
@@ -150,6 +155,7 @@ export async function attachReceipt(
     .set({ receiptFileId: stored.value, noReceipt: false })
     .where(eq(expense.id, input.expenseId));
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId,
     action: "books.receipt_add",
     entityType: "expense",
@@ -173,6 +179,7 @@ export async function markNoReceipt(
     .set({ noReceipt: true })
     .where(eq(expense.id, input.expenseId));
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId,
     action: "books.no_receipt",
     entityType: "expense",
@@ -225,6 +232,7 @@ export async function addRecurringCost(
     .returning({ id: recurringCost.id });
   if (!created) throw new Error("recurring cost not created");
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId,
     action: "books.recurring_add",
     entityType: "recurring_cost",
@@ -260,6 +268,7 @@ export async function archiveRecurringCost(
     .returning({ label: recurringCost.label });
   if (!archived) return err("unknown_cost");
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId,
     action: "books.recurring_remove",
     entityType: "recurring_cost",
@@ -301,7 +310,7 @@ export async function seasonExpected(
     today: string;
   },
 ): Promise<Expected> {
-  const [costs, gameDays, confirmed, skipped] = await Promise.all([
+  const [costs, gameDays, confirmed, skipped, feeCents] = await Promise.all([
     recurringCosts(db, input.leagueId),
     gameDaysOf(db, input.season.id, input.timeZone),
     db
@@ -320,6 +329,7 @@ export async function seasonExpected(
       })
       .from(recurringCostSkip)
       .where(eq(recurringCostSkip.seasonId, input.season.id)),
+    payRate(db, input.season.id),
   ]);
   const settled = new Set(
     [...confirmed, ...skipped].flatMap((s) =>
@@ -334,7 +344,28 @@ export async function seasonExpected(
     gameDays,
     settled,
     today: input.today,
+    refsFromPaySheet: feeCents !== null,
   });
+}
+
+/**
+ * What the ref pay sheet says for the season (ADR 0053): the per-game fee,
+ * games worked and what is still owed. Null when the season has no fee
+ * set, so its refs aren't paid through the sheet.
+ */
+export async function refPaySummary(
+  db: Db,
+  input: { leagueId: LeagueId; seasonId: SeasonId },
+) {
+  const feeCents = await payRate(db, input.seasonId);
+  if (feeCents === null) return null;
+  const totals = payTotals(paySheet(await payInputs(db, input), feeCents));
+  return {
+    feeCents,
+    gamesWorked: totals.gamesWorked,
+    paidCents: totals.paidCents,
+    balanceCents: totals.balanceCents,
+  };
 }
 
 type OccurrenceInput = {
@@ -412,6 +443,7 @@ export async function skipExpected(
     .returning({ dueOn: recurringCostSkip.dueOn });
   if (skipped.length === 0) return err("not_expected");
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId,
     action: "books.expected_skip",
     entityType: "recurring_cost",
@@ -494,6 +526,7 @@ export async function reimburse(
   if (cleared.length === 0) return err("nothing_owed");
   const cents = cleared.reduce((t, r) => t + r.amountCents, 0);
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId,
     action: "books.reimburse",
     entityType: "user",
@@ -532,6 +565,7 @@ export async function saveMerchantRule(
       set: { category: input.category },
     });
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId,
     action: "books.rule_save",
     entityType: "merchant_rule",
@@ -556,6 +590,7 @@ export async function removeMerchantRule(
     .returning({ category: merchantRule.category });
   if (removed.length === 0) return err("unknown_rule");
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId,
     action: "books.rule_remove",
     entityType: "merchant_rule",
@@ -740,6 +775,7 @@ export async function importStatementRows(
           .returning({ id: expense.id });
   const cents = fresh.reduce((t, r) => t + r.amountCents, 0);
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId,
     action: "books.import",
     entityType: "season",
@@ -816,6 +852,7 @@ export async function queueBooksNudge(
           eq(expense.noReceipt, false),
           isNull(expense.importKey),
           isNull(expense.recurringCostId),
+          not(fromPaySheet),
         ),
       )
       .orderBy(asc(expense.spentOn)),

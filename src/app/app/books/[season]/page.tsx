@@ -11,6 +11,7 @@ import {
   lastCategory,
   owedList,
   ownersByName,
+  refPaySummary,
   seasonExpected,
 } from "@/db/queries/books-upkeep";
 import {
@@ -93,7 +94,7 @@ async function Books({
   const { league, season, seasons } = await booksSeason(slug);
   const now = new Date();
   const today = localDate(now, league.timeZone);
-  const [books, used, plan, recent, owners, expected, owed] =
+  const [books, used, plan, recent, owners, expected, owed, refPay] =
     await Promise.all([
       seasonBooks(db, season),
       storedBytes(db, league.id),
@@ -107,6 +108,7 @@ async function Books({
         today,
       }),
       owedList(db, league.id),
+      refPaySummary(db, { leagueId: league.id, seasonId: season.id }),
     ]);
   const { ledger } = books;
   const error =
@@ -128,7 +130,12 @@ async function Books({
     }).format(new Date(`${on}T12:00:00Z`));
   const preselected = recent ?? "other";
   const missing = books.expenses.filter(
-    (e) => !e.receiptFileId && !e.noReceipt && !e.imported && !e.expected,
+    (e) =>
+      !e.receiptFileId &&
+      !e.noReceipt &&
+      !e.imported &&
+      !e.expected &&
+      !e.fromPaySheet,
   ).length;
 
   const payerSelect = (id: string) => (
@@ -298,11 +305,32 @@ async function Books({
         </form>
       </section>
 
-      {(expected.due.length > 0 || expected.next.length > 0) && (
+      {(expected.due.length > 0 ||
+        expected.next.length > 0 ||
+        refPay !== null) && (
         <section aria-labelledby="expected" className="flex flex-col gap-3">
           <h2 id="expected" className="text-h2">
             Expected costs
           </h2>
+          {refPay && (
+            <p className="rounded-lg border border-border p-3">
+              <strong>Ref pay comes from the pay sheet</strong>:{" "}
+              {refPay.gamesWorked === 1
+                ? "1 game worked"
+                : `${refPay.gamesWorked} games worked`}{" "}
+              at {money(refPay.feeCents)} a game,{" "}
+              {refPay.balanceCents > 0
+                ? `${money(refPay.balanceCents)} still to pay`
+                : "all paid"}
+              . Each payout marked there is added to the books under Refs.{" "}
+              <Link
+                href={`/app/admin/seasons/${slug}/referees/pay`}
+                className="underline"
+              >
+                Open the pay sheet
+              </Link>
+            </p>
+          )}
           {expected.due.length === 0 ? (
             <p className="text-text-muted">Nothing waiting to confirm.</p>
           ) : (
@@ -524,7 +552,11 @@ async function Books({
             {books.expenses.map((e) => {
               const name = `${CATEGORY_LABELS[e.category]}, ${day(e.spentOn)}`;
               const waiting =
-                !e.receiptFileId && !e.noReceipt && !e.imported && !e.expected;
+                !e.receiptFileId &&
+                !e.noReceipt &&
+                !e.imported &&
+                !e.expected &&
+                !e.fromPaySheet;
               const tags = [
                 e.paidByName &&
                   (e.reimbursedAt
@@ -532,6 +564,7 @@ async function Books({
                     : `${e.paidByName} paid, owed`),
                 e.imported && "From a statement",
                 e.expected && "Expected cost",
+                e.fromPaySheet && "From the ref pay sheet",
                 e.noReceipt && "No receipt",
                 waiting && "Receipt to add",
               ].filter(Boolean);
@@ -570,7 +603,7 @@ async function Books({
                       </form>
                     </span>
                   </div>
-                  {!e.receiptFileId && !e.noReceipt && (
+                  {!e.receiptFileId && !e.noReceipt && !e.fromPaySheet && (
                     <details>
                       <summary className="inline-flex min-h-11 cursor-pointer items-center">
                         Add a receipt
