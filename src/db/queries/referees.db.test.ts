@@ -197,14 +197,18 @@ describe("assigning a ref who plays in the game (#296)", () => {
         ok: false,
         error: "own_team",
       });
-      expect((await subjectIn(db, player.userId)).isReferee).toBe(false);
+      expect(
+        (await refereeBoard(db, w.season.id)).find((g) => g.id === gameId)
+          ?.referee,
+      ).toBeNull();
       expect(await assignReferee(db, { ...input, ownTeamOk: true })).toEqual({
         ok: true,
         value: undefined,
       });
-      expect((await subjectIn(db, player.userId)).refereeGameIds).toEqual([
-        gameId,
-      ]);
+      const board = await refereeBoard(db, w.season.id);
+      expect(board.find((g) => g.id === gameId)?.referee?.email).toBe(
+        player.email,
+      );
     });
   });
 

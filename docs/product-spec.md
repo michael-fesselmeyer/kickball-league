@@ -277,6 +277,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 |---|---|
 | Public schedule, team pages and standings with tiebreakers | MVP |
 | Final score entry by ref or captain; the other captain confirms, or it auto-confirms after 24 hours | MVP |
+| A ref who plays for one of the game's teams reports for that team, so only the other team can confirm or dispute the score. Assigning such a ref, by email or with "Take it", warns first and needs an explicit override; the assigner never proposes one. A ref on both rosters, or neither, is neutral (either team answers), and an admin's report stays final at once. The assign and score screens say which rule applies | MVP |
 | Forfeits, and games called after 4 innings | MVP |
 | Missing-score reminders to the ref, then captains, then an admin list | MVP |
 | Game-day RSVPs with a fielding-rule warning for captains | MVP |

@@ -242,7 +242,7 @@ export const scoreReport = pgTable(
       .$type<UserId>()
       .references(() => user.id, { onDelete: "restrict" }),
     reporterRole: scoreReporterRole().notNull(),
-    /** The reporting captain's team; null for refs and admins. */
+    /** The team a report counts for: a captain's, or a ref who plays for one of the teams; null for a neutral ref or an admin. */
     teamSeasonId: uuid()
       .$type<TeamSeasonId>()
       .references(() => teamSeason.id, { onDelete: "restrict" }),
