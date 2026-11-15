@@ -22,6 +22,7 @@ async function checkout(
         .insert(purchase)
         .values({
           userId,
+          leagueId: w.leagueId,
           seasonId: w.season.id,
           status,
           subtotalCents: 8000,

@@ -12,6 +12,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "../src/db/schema";
 import { canResetDemo } from "../src/lib/demo/guard";
+import { defaultLeague } from "../src/db/queries/leagues";
 import { liveDemo } from "../src/seed/demo-live";
 
 if (!process.env.DATABASE_URL && existsSync(".env.local"))
@@ -30,7 +31,15 @@ async function main(): Promise<void> {
   });
   const db = drizzle({ client: pool, schema, casing: "snake_case" });
   try {
-    const done = await db.transaction((tx) => liveDemo(tx, new Date()));
+    // The demo league is the default one, at the site's own URLs.
+    const league = await defaultLeague(db);
+    if (!league) {
+      console.info("No league to start a game night in.");
+      return;
+    }
+    const done = await db.transaction((tx) =>
+      liveDemo(tx, league.id, new Date()),
+    );
     console.info(
       [
         done.liveGameId
