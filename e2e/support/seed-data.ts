@@ -11,8 +11,11 @@ export async function seededPlayerEmail(): Promise<string> {
   await client.connect();
   try {
     const { rows } = await client.query<{ email: string }>(
+      // A player: no role in any league (ADR 0048).
       `select u.email from "user" u join profile p on p.user_id = u.id
-        where p.global_role = 'player'
+        where not exists (
+                select 1 from league_member m where m.user_id = u.id
+              )
           and u.id::text not like 'd3e30000-%'
         order by u.email limit 1`,
     );
