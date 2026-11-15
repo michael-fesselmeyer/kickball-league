@@ -30,11 +30,9 @@ test("an admin asks the captains a question and a captain answers for their team
     .getByRole("link", { name: /^Captains' poll waiting for your vote/ })
     .click();
   await expect(captain).toHaveURL(/\/app\/polls$/);
-  const card = captain
-    .getByRole("listitem")
-    .filter({
-      has: captain.getByRole("heading", { name: "Playoff innings?" }),
-    });
+  const card = captain.getByRole("listitem").filter({
+    has: captain.getByRole("heading", { name: "Playoff innings?" }),
+  });
   await expect(card).toContainText("Results show once your team has voted.");
   await expectNoAxeViolations(captain);
 
