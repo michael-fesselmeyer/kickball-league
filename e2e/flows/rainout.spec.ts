@@ -4,7 +4,7 @@ import { type Member, memberPage } from "../support/people";
 import { pageAs } from "../support/personas";
 
 /**
- * Owner-confirmed rain-outs (ADR 0048), on a phone. Fall 2026 has a
+ * Owner-confirmed rain-outs (ADR 0057), on a phone. Fall 2026 has a
  * published schedule; its last game day is the one rained out. Jules, an
  * admin, previews it with the decision card and sends it to the owners.
  * Rowan, an owner, sees who sent it, lets admins confirm too and takes

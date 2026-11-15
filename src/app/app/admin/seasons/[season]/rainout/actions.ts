@@ -45,7 +45,7 @@ async function confirmContext() {
  * Confirms a rain-out for a whole date: cancels its slots and saves a draft
  * version with the postponed games placed as makeups, in one transaction.
  * The owners and the operator confirm, and admins when the owners allow it
- * (ADR 0048). The draft is reviewed and published on the schedule screen.
+ * (ADR 0057). The draft is reviewed and published on the schedule screen.
  */
 export async function declareRainout(
   slug: string,
@@ -110,7 +110,7 @@ export async function declareRainout(
 }
 
 /**
- * An admin sends a date's rain-out to the owners to confirm (ADR 0048):
+ * An admin sends a date's rain-out to the owners to confirm (ADR 0057):
  * each owner gets an urgent message with the decision card's summary and a
  * link back to this screen. Nothing is cancelled.
  */

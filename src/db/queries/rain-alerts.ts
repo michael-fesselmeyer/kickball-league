@@ -42,7 +42,7 @@ export type GameDay = {
  * Game days whose first game still to play starts within the alert's reach
  * of `now`, from each season's published schedule. Games at a venue with no
  * map pin cannot have a forecast and are left out. The decision-time alert
- * passes its own reach and rule (ADR 0048).
+ * passes its own reach and rule (ADR 0057).
  */
 export async function gameDaysDue(
   db: Db,

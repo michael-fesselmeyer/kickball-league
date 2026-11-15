@@ -17,7 +17,7 @@ import {
 type Stamp = Pick<Reading<unknown>, "fetchedAt" | "live">;
 
 /**
- * The rain-out decision card (ADR 0048): for each park a game day uses,
+ * The rain-out decision card (ADR 0057): for each park a game day uses,
  * what its own NWS grid point and nearest station say, read into one
  * sentence, with when each number was fetched. While NWS is down it says
  * so and shows the last data saved. Server-rendered; the rain-out screen

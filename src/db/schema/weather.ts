@@ -7,7 +7,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
-/** The parts of a park's weather the rain-out decision reads (ADR 0048). */
+/** The parts of a park's weather the rain-out decision reads (ADR 0057). */
 export const weatherPart = pgEnum("weather_part", [
   "forecast",
   "observed",
