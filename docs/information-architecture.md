@@ -37,6 +37,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── sponsors/                       Sponsors, home bar first, with the team of the week
 │   └── [sponsor]                   Sponsor page: deals with when they were confirmed, the team of the week, how to check in
 ├── friends                         Friends of the league: clubs run by our players first, then other local leagues grouped by activity, each linking to its own site (clicks counted, never who), and a "Link to us" snippet
+├── rules                           The league's rules by section (anchors such as #lineups), each division's game settings from its rule set, and "What changed": every change newest first with its publish date, start date and the sections it touched; a section changing soon says "New wording from" its date. Static HTML
 ├── help/                           Help center: short how-tos by role and a search box that filters them as you type (every how-to is listed without JavaScript too)
 │   └── [role]                      One role's how-tos (player, captain, ref, admin, owner), each under its own anchor; the matching screens link here with "Help"
 ├── widget                          Get the schedule widget: the iframe snippet for the league and for each team, with a live preview
@@ -188,6 +189,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     ├── refs                        Referee pool (add by email, remove) and assignments by email
     │   ├── assign                  Assign refs: the proposal for a game day or the whole season, with why a game has nobody; accept all, accept one, or pick another ref; games each ref would have
     │   └── pay                     Ref pay sheet: the season's per-game fee, each ref's games worked, owed, paid and balance, and "Mark paid" (cash or Venmo) into the books
+    ├── rules                       Edit the rules: every section's title and text, remove a section, add one (with suggested titles), then publish with a one-line summary, a start date and an optional email notice to every player in the active seasons; recent changes. Refused with everything kept if someone else published first
     ├── events/                     Every event with who it's for, going and waitlist counts
     ├── private-events              Requests for private leagues and tournaments: accept one as an invite-only private season (name, dates, games per day, who pays, amount) or decline it with a reason
     │   ├── new                     Create an event or theme week: who it's for (everyone, all members, or teams from a season or any), an invite link, RSVPs in the app or not, and an optional email to everyone it's for

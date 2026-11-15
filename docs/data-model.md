@@ -1168,6 +1168,25 @@ erDiagram
     int byte_size
     text sha256
   }
+  rule_section {
+    uuid id PK
+    uuid league_id FK
+    text slug "unique per league; kept when the title changes"
+    text title "1 to 80"
+    text body "plain text, up to 20000"
+    smallint position
+  }
+  rule_change {
+    uuid id PK
+    uuid league_id FK
+    text summary "1 to 200"
+    jsonb changes "each section added, edited or removed, with text before and after"
+    date effective_on "today or later; 3 days or more with a notice"
+    boolean notice
+    int notice_recipients
+    uuid created_by FK
+    timestamptz created_at "clock_timestamp()"
+  }
   friend_league {
     uuid id PK
     uuid league_id FK
@@ -1387,6 +1406,14 @@ Stat awards, as built (`src/db/schema/stat-awards.ts`, `src/db/queries/stat-awar
 - Nothing is stored for player stats: games played, attendance, wins and runs while playing, sub appearances and awards are worked out when read, from final games, saved kicking orders, RSVPs, bar check-ins on game days, live `game_period` runs, `sportsmanship_rating`, approved `sub_claim` rows and closed polls (`gatherSeasons`, nine queries however many players).
 - An admin works a season's awards out: one `stat_award_set` row per season holds the MVP `weights` used, which parts had no data, whether the MVP vote counted, and admins' `notes`; `stat_award_place` holds each award's top three places, ties included, with the number behind each and the games it was based on. Working them out again replaces the places and keeps the notes; a published set has to be taken down first. The public page reads only a set with `published_at`.
 - A `leaderboard_opt_out` row keeps a player out of the computation and off every awards page and team-page badge, including sets published before they opted out. Deleting the account (which anonymizes it) deletes the opt-out and the person's places.
+
+The rules page, as built (`src/db/schema/rules.ts`, `src/db/queries/rules.ts`, `src/domain/rules/rules.ts`, [ADR 0056](adr/0056-rules-page-with-a-dated-change-log.md)):
+
+- `rule_section` holds the rules as they stand, one row per section in `position` order. Admins type all the text in the app; none of it is in the repository. A section keeps the `slug` it was created with, so `/rules#lineups` survives a new title. A new section's slug comes from its title, with a number added if another section has it.
+- `rule_change` is the history. Rows are only added: each publish records a summary, the start date, and every section it added, edited or removed, with the text before and after. Admins change the rules only by publishing (`rules.manage`), and each publish writes a `rules.publish` audit row. `created_at` uses `clock_timestamp()`, so changes made one after another in a transaction still sort in order.
+- A publish takes an advisory lock on the league and compares the newest change's id with the version the editor was opened at. One made over someone else's newer change is refused as stale, so two admins never overwrite each other. A form that leaves out a current section, or names one that no longer exists, is stale too.
+- With `notice`, the start date must be at least 3 days after today in the league's time zone. One `rule_change` message (non-urgent, topic `announcement`) is queued for each person registered in a season that is open or under way, with dedupe key `rule_change/<change>/<user>`. A completed season's players and cancelled registrations aren't included.
+- The page also lists the division rule sets (innings, time limit, bunting, stealing) of the season under way, or the latest season that isn't a draft. Changing a division refreshes the page through `refreshSeasonPages`.
 
 Friends of the league, as built (`src/db/schema/friends.ts`, `src/db/queries/friends.ts`):
 
