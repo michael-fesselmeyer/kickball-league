@@ -3,7 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ForecastHour } from "@/domain/weather/forecast";
 import { cachedForecast } from "@/lib/weather";
-import { ForecastChip, ForecastChipView } from "./forecast-chip";
+import { ForecastChip, ForecastChipView, ForecastSpace } from "./forecast-chip";
 
 // The real lookup reads the environment and the data cache.
 vi.mock("@/lib/weather", () => ({ cachedForecast: vi.fn() }));
@@ -72,26 +72,52 @@ describe("ForecastChip", () => {
     expect(cachedForecast).toHaveBeenCalledWith(40.7206, -73.9513);
   });
 
-  it("renders nothing without a forecast for the game", async () => {
-    vi.mocked(cachedForecast).mockResolvedValue(null);
-    expect(await ForecastChip(GAME)).toBeNull();
-    vi.mocked(cachedForecast).mockResolvedValue([]);
-    expect(await ForecastChip(GAME)).toBeNull();
+  it("says there is no forecast yet, in the forecast's own two lines", async () => {
+    for (const hours of [null, []]) {
+      vi.mocked(cachedForecast).mockResolvedValue(hours);
+      const { container } = render(<dl>{await ForecastChip(GAME)}</dl>);
+      expect(screen.getByText("No forecast yet")).toBeTruthy();
+      expect(container.querySelectorAll("dd")).toHaveLength(2);
+      cleanup();
+    }
+  });
+});
+
+describe("ForecastSpace", () => {
+  it("holds the same two lines as the forecast, hidden from sight and screen readers", () => {
+    const { container } = render(
+      <dl>
+        <ForecastSpace />
+      </dl>,
+    );
+    const lines = [...container.querySelectorAll("dd")];
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+      expect(line.className).toContain("invisible");
+      expect(line.getAttribute("aria-hidden")).toBe("true");
+    }
   });
 });
 
 describe("ForecastChip with weather switched off", () => {
-  it("renders nothing", async () => {
+  it("keeps the forecast's space empty, so nothing below it moves", async () => {
     weatherOn.value = false;
     const { container } = render(
-      await ForecastChip({
-        lat: 40.72,
-        lng: -73.95,
-        startsAt: new Date("2026-09-13T23:00:00Z"),
-        endsAt: new Date("2026-09-14T00:00:00Z"),
-      }),
+      <dl>
+        {await ForecastChip({
+          lat: 40.72,
+          lng: -73.95,
+          startsAt: new Date("2026-09-13T23:00:00Z"),
+          endsAt: new Date("2026-09-14T00:00:00Z"),
+        })}
+      </dl>,
     );
-    expect(container.innerHTML).toBe("");
+    const lines = [...container.querySelectorAll("dd")];
+    expect(lines).toHaveLength(2);
+    expect(lines.every((l) => l.getAttribute("aria-hidden") === "true")).toBe(
+      true,
+    );
+    expect(cachedForecast).not.toHaveBeenCalledWith(40.72, -73.95);
     weatherOn.value = true;
   });
 });
