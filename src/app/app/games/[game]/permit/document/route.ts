@@ -3,6 +3,7 @@ import { fieldPermitForGame, permitDocumentForGame } from "@/db/queries/books";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { currentSubject } from "@/lib/auth/permission";
+import { leadsSetupOn } from "@/lib/gameday/setup-lead";
 import { privateFileResponse } from "@/lib/books/store-file";
 
 const notFound = () =>
@@ -29,6 +30,11 @@ export async function GET(
     !permit ||
     !can(subject, "permit.view_at_field", {
       game: { id: gameId, teamSeasonIds: [permit.teamAId, permit.teamBId] },
+      setupLead: await leadsSetupOn(subject, {
+        seasonId: permit.seasonId,
+        startsAt: permit.gameStartsAt,
+        timeZone: permit.timeZone,
+      }),
     })
   )
     return notFound();

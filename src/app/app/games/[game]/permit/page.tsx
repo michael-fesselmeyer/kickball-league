@@ -8,6 +8,7 @@ import { fullWhen, kickoff } from "@/domain/schedule/format";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
+import { leadsSetupOn } from "@/lib/gameday/setup-lead";
 import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = {
@@ -47,6 +48,11 @@ async function Permit({ params }: PageProps<"/app/games/[game]/permit">) {
         id: permit.gameId,
         teamSeasonIds: [permit.teamAId, permit.teamBId],
       },
+      setupLead: await leadsSetupOn(subject, {
+        seasonId: permit.seasonId,
+        startsAt: permit.gameStartsAt,
+        timeZone: permit.timeZone,
+      }),
     })
   )
     notFound();
