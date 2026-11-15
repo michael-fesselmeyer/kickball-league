@@ -13,7 +13,9 @@ export const SHORT_PHOTO_LIFETIME = 5 * 60;
  * Anywhere else nothing purges them, so they keep the photo's own five
  * minutes and a takedown still reaches them in time.
  */
-export function optimizedPhotoLifetime(env: { VERCEL?: string }): number {
+export function optimizedPhotoLifetime(
+  env: Readonly<Record<string, string | undefined>>,
+): number {
   return env.VERCEL === "1" ? LONG_PHOTO_LIFETIME : SHORT_PHOTO_LIFETIME;
 }
 
