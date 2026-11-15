@@ -285,6 +285,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `incident_filed` | urgent | For owners and admins: a report was filed for a game |
 | `instagram_reconnect` | non-urgent | For admins: the Instagram connection needs reconnecting |
 | `instagram_storage_full` | non-urgent | For admins: Instagram photo storage is full |
+| `interest_go_ahead` | non-urgent | News that a new night, park or format you showed interest in is going ahead |
 | `merch_receipt` | urgent | Your receipt for an order from the league shop |
 | `merch_update` | non-urgent | Your league shop order is ready, or was refunded |
 | `new_team` | non-urgent | Answers to new-team requests |

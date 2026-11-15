@@ -321,6 +321,8 @@ const RULES = {
   "giveaway.manage": isAdmin,
   "challenge.manage": isAdmin,
   "volunteer.manage": isAdmin,
+  // Interest forms for a new night, park or format, their totals and the go-ahead.
+  "interest.manage": isAdmin,
   "survey.manage": isAdmin,
   // A survey's totals and anonymous comments; never who said what.
   "survey.results": isAdmin,
