@@ -7,6 +7,7 @@ import { openDemoCheckout } from "@/db/queries/demo";
 import { formatCents } from "@/domain/registration/pricing";
 import { requireSelf } from "@/lib/auth/permission";
 import { demoCheckoutOn, returnPath } from "@/lib/demo/checkout";
+import { SubmitButton } from "@/components/submit-button";
 import { payDemoCheckout } from "../actions";
 
 export const metadata: Metadata = { title: "Demo checkout" };
@@ -103,9 +104,9 @@ async function Checkout({
       </p>
       <div className="flex flex-wrap gap-3">
         <form action={pay}>
-          <button type="submit" className="btn btn-primary">
+          <SubmitButton className="btn btn-primary">
             Pay {formatCents(found.totalCents)} (demo)
-          </button>
+          </SubmitButton>
         </form>
         <Link href={back} className="btn btn-secondary">
           Cancel
