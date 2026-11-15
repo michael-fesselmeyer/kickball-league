@@ -76,6 +76,15 @@ test("sign-ups collect shirt sizes, and an admin orders the shirts from them", a
     await expect(admin.getByRole("status")).toHaveText(
       "Sizes saved. Sign-up forms offer these now.",
     );
+    // The notice takes focus, so a screen reader reads it out, and the
+    // totals row marks only its first cell as a header.
+    await expect(admin.getByRole("status")).toBeFocused();
+    await expect(
+      admin
+        .getByRole("table", { name: /Shirt sizes by team/ })
+        .locator("tfoot th"),
+    ).toHaveCount(1);
+    await expectNoAxeViolations(admin);
   });
 
   let inviteLink = "";

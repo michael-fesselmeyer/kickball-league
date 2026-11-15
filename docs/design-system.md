@@ -141,6 +141,7 @@ Accessibility requirements that shape components (WCAG 2.2 AA):
 - Dragging always has a non-drag alternative. On the schedule board, a game can be moved with "Move to…" and a slot picker.
 - Dialogs and sheets trap focus, close on Escape and return focus to the control that opened them.
 - Form errors are text, tied to their field, and announced. Nothing the user already entered is asked for again in the same flow.
+- A notice or error that arrives through the address (`?saved=`, `?error=`) is shown with `FlashMessage`, which takes focus once so a screen reader reads it and the keyboard continues from it; a plain `role` on a message already in the page is not announced on load.
 - A form can't be sent twice: its submit button (`SubmitButton`) is marked busy and ignores presses, Enter included, until the action finishes, and keeps focus.
 - A skip link is the first stop for the keyboard on every page, and jumps past the banner and header to the content.
 - Fields and selects are at least 44px tall from the base styles, whatever padding a page gives them.
