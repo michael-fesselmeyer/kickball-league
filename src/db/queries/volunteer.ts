@@ -366,6 +366,8 @@ export async function deleteShift(
     action: "volunteer.delete",
     entityType: "volunteer_shift",
     entityId: input.id,
+    // The shift is gone, so its league can't be read from it.
+    leagueId: input.leagueId,
     before: {
       role: before.role,
       startsAt: before.startsAt.toISOString(),

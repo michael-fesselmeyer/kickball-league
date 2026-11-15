@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { activeLeagueId } from "@/lib/league/active";
 import { surveyForSeason, surveyResults } from "@/db/queries/surveys";
 import { can } from "@/domain/authz/permissions";
 import { formatMoment } from "@/domain/money/credit";
@@ -53,7 +54,7 @@ async function SurveyAdmin({ params, searchParams }: Props) {
   const page = `/app/admin/seasons/${slug}/survey`;
   const subject = await requirePermission("survey.results", { next: page });
   await connection();
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const survey = await surveyForSeason(db, season.id);
   const results = survey ? await surveyResults(db, survey) : null;

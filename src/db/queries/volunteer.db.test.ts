@@ -13,6 +13,7 @@ import { message } from "../schema/message";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { volunteerShift, volunteerSignup } from "../schema/volunteer";
+import { grantRole } from "../test/leagues";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { deleteAccount, personalData } from "./account";
 import type { Db } from "./schedule";
@@ -87,13 +88,14 @@ async function world(db: Db, members = 4) {
   const [admin, ...rest] = people.map((p) => p.id);
   if (!admin) throw new Error("no admin");
   await db.insert(profile).values([
-    { userId: admin, globalRole: "admin" as const },
+    { userId: admin },
     ...rest.map((userId, i) => ({
       userId,
       firstName: "Member",
       lastName: `Number${i + 1}`,
     })),
   ]);
+  await grantRole(db, admin, "admin", lg.id);
   return {
     leagueId: lg.id,
     seasonId: fall.id,

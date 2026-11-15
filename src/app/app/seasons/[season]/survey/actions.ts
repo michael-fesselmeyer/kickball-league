@@ -3,6 +3,7 @@
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { activeLeagueId } from "@/lib/league/active";
 import { answerSurvey, surveyForSeason } from "@/db/queries/surveys";
 import { parseAnswerForm } from "@/domain/survey/questions";
 import { requirePermissionToChange } from "@/lib/auth/permission";
@@ -29,7 +30,7 @@ export async function answerSurveyAction(
   const subject = await requirePermissionToChange("survey.answer", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   const survey = season ? await surveyForSeason(db, season.id) : null;
   if (!survey) notFound();
   const parsed = parseAnswerForm(formStrings(form, FIELDS));

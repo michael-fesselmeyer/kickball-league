@@ -17,6 +17,7 @@ import {
   team,
   teamSeason,
 } from "../schema/team";
+import { grantRole } from "../test/leagues";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { deleteAccount, personalData } from "./account";
 import type { Db } from "./schedule";
@@ -97,11 +98,11 @@ async function world(
   ];
   await db
     .insert(profile)
-    .values([
-      { userId: admin, globalRole: "admin" as const },
-      { userId: owner, globalRole: "owner" as const },
-      ...[a, b, c, removed, agent].map((userId) => ({ userId })),
-    ]);
+    .values(
+      [admin, owner, a, b, c, removed, agent].map((userId) => ({ userId })),
+    );
+  await grantRole(db, admin, "admin", lg.id);
+  await grantRole(db, owner, "owner", lg.id);
   const teams = await db
     .insert(team)
     .values([
@@ -142,6 +143,7 @@ async function world(
     },
   ]);
   return {
+    leagueId: lg.id,
     seasonId: fall.id,
     admin,
     owner,
@@ -383,11 +385,13 @@ describe("results", () => {
     inRolledBackDb(async (db) => {
       const w = await opened(db);
       const allowed = async (userId: UserId) =>
-        can(await loadSubject(db, userId), "survey.results");
+        can(await loadSubject(db, userId, w.leagueId), "survey.results");
       expect(await allowed(w.admin)).toBe(true);
       expect(await allowed(w.owner)).toBe(true);
       expect(await allowed(w.players[0])).toBe(false);
-      expect(can(await loadSubject(db, null), "survey.results")).toBe(false);
+      expect(
+        can(await loadSubject(db, null, w.leagueId), "survey.results"),
+      ).toBe(false);
     }));
 });
 

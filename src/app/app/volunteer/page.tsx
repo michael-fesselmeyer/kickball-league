@@ -3,7 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
+import { activeLeague } from "@/lib/league/active";
 import { myShiftIds, upcomingShifts } from "@/db/queries/volunteer";
 import { whenLine } from "@/domain/events/event";
 import {
@@ -60,7 +60,7 @@ async function Shifts({ searchParams }: PageProps<"/app/volunteer">) {
   });
   const query = await searchParams;
   await connection();
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const now = new Date();
   const shifts = league ? await upcomingShifts(db, league.id, now) : [];
   const mine = await myShiftIds(

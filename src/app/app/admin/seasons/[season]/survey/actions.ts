@@ -3,6 +3,7 @@
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { activeLeagueId } from "@/lib/league/active";
 import { closeSurvey, openSurvey, surveyForSeason } from "@/db/queries/surveys";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { sendQueuedSoon } from "@/services/outbox";
@@ -15,7 +16,7 @@ export async function openSurveyAction(slug: string): Promise<void> {
   const subject = await requirePermissionToChange("survey.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const opened = await txDb.transaction((tx) =>
     openSurvey(tx, {
@@ -39,7 +40,7 @@ export async function closeSurveyAction(
     next: page,
   });
   if (form.get("confirm") !== "yes") redirect(`${page}?error=confirm`);
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   const survey = season ? await surveyForSeason(db, season.id) : null;
   if (!survey) notFound();
   const closed = await txDb.transaction((tx) =>
