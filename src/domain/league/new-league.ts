@@ -26,6 +26,10 @@ export const sportLabel = (sport: string): string =>
 /** Paths under the site that a league slug must not shadow. */
 const RESERVED_SLUGS = new Set([DEFAULT_LEAGUE_SEGMENT, "app", "api", "l"]);
 
+/** Whether the site itself uses this address, so no league may. */
+export const isReservedLeagueSlug = (slug: string): boolean =>
+  RESERVED_SLUGS.has(slug);
+
 const COLOR = /^#[0-9A-Fa-f]{6}$/;
 
 const isTimeZone = (value: string): boolean => {
