@@ -6,7 +6,7 @@
 export const SAMPLE_RULEBOOK = `Sample Park Kickball: house rules
 These sample rules are made up for tests and demos.
 
-1. Teams and lineups
+1. Lineups
 1.1 A team fields ten players and may start with eight.
 1.2 Every team kicks the whole lineup, so a late arrival joins at the bottom of the order.
 1.3 Substitutes may join any inning if both captains agree.

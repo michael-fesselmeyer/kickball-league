@@ -79,7 +79,7 @@ describe("importing the sample rulebook", () => {
       const rules = await currentRules(db, w.leagueId);
       expect(rules.map((r) => r.slug)).toEqual([
         "introduction",
-        "teams-and-lineups",
+        "lineups",
         "pitching",
         "kicking-and-running",
         "fielding",

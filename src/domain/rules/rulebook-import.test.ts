@@ -8,7 +8,7 @@ describe("splitRulebook", () => {
     const { sections, warnings } = splitRulebook(SAMPLE_RULEBOOK);
     expect(sections.map((s) => s.title)).toEqual([
       "Introduction",
-      "Teams and lineups",
+      "Lineups",
       "Pitching",
       "Kicking and running",
       "Fielding",
