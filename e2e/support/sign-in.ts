@@ -76,6 +76,32 @@ export async function captainEmail(
   return captain.email;
 }
 
+/** The address of a team's first active player who is not a captain. */
+export async function playerEmail(
+  teamName: string,
+  seasonSlug: string,
+): Promise<string> {
+  const { rows } = await withDb((db) =>
+    db.query<{ email: string }>(
+      `select u.email
+         from roster_membership m
+         join registration r on r.id = m.registration_id
+         join "user" u on u.id = r.user_id
+         join team_season ts on ts.id = m.team_season_id
+         join team t on t.id = ts.team_id
+         join season s on s.id = ts.season_id
+        where t.name = $1 and s.slug = $2
+          and m.role = 'player' and m.status = 'active'
+        order by u.email
+        limit 1`,
+      [teamName, seasonSlug],
+    ),
+  );
+  const [player] = rows;
+  if (!player) throw new Error(`${teamName} has no player in ${seasonSlug}`);
+  return player.email;
+}
+
 /**
  * The address of a seeded player whose season card is still private and
  * shows an award (src/seed/season-cards.ts).
