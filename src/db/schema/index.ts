@@ -18,6 +18,7 @@ export * from "./equipment";
 export * from "./event";
 export * from "./formation";
 export * from "./field-layout";
+export * from "./field-groups";
 export * from "./free-agent";
 export * from "./friends";
 export * from "./game";
