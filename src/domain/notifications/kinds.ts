@@ -200,6 +200,11 @@ export const MESSAGE_KINDS = {
     urgency: "urgent",
     label: "A team spot held for you from the waitlist",
   },
+  win_back: {
+    urgency: "non_urgent",
+    label:
+      "An invitation back when a new season's registration opens, if you played before",
+  },
 } as const satisfies Record<string, { urgency: Urgency; label: string }>;
 
 export type MessageKind = keyof typeof MESSAGE_KINDS;

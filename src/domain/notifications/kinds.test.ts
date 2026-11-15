@@ -46,6 +46,7 @@ describe("MESSAGE_KINDS", () => {
       "survey_invite",
       "team_role",
       "volunteer_reminder",
+      "win_back",
     ]);
     expect(URGENT_LABELS).toContain("Rain-outs and makeup times");
   });

@@ -288,6 +288,8 @@ const RULES = {
   // (docs/adr/0052-local-demo-runs-offline.md).
   "demo.manage": isAdmin,
   "shirts.manage": isAdmin,
+  // The win-back list: email past players while registration is open.
+  "win_back.manage": isAdmin,
   "awards.manage": isAdmin,
   "pickem.manage": isAdmin,
   "photos.manage": isAdmin,
