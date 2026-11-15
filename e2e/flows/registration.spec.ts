@@ -279,13 +279,17 @@ test("the free agent takes the quiz and starts a friend group", async ({
   ).toBeVisible();
   await expectNoAxeViolations(page);
 
-  await page.getByRole("radio", { name: "A season or two" }).check();
-  await page.getByRole("checkbox", { name: "Outfield" }).check();
-  await page.getByRole("radio", { name: "Most weeks" }).check();
-  await page
-    .getByRole("radio", { name: "Fun first, but I'd like to win some" })
-    .check();
-  await page.getByRole("radio", { name: "I'd help a captain" }).check();
+  // Five taps: three self-ratings, the vibe and the game nights.
+  const rate = (question: string, rating: string) =>
+    page
+      .getByRole("group", { name: question })
+      .getByRole("radio", { name: rating })
+      .check();
+  await rate("How's your kicking?", "A strength");
+  await rate("How's your fielding?", "Solid");
+  await rate("How's your running?", "Still learning");
+  await rate("Competitive, or here for fun?", "Fun, but I like to win");
+  await rate("How many game nights can you make?", "Most weeks");
   await page.getByRole("button", { name: "Save my answers" }).click();
   await expect(page).toHaveURL(/\?quiz=saved/);
   await expect(page.getByText("Take the team-fit quiz")).toBeVisible();
