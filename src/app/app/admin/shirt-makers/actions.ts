@@ -2,7 +2,11 @@
 
 import { notFound, redirect } from "next/navigation";
 import { txDb } from "@/db/client";
-import { createMaker, removeMaker, updateMaker } from "@/db/queries/shirt-makers";
+import {
+  createMaker,
+  removeMaker,
+  updateMaker,
+} from "@/db/queries/shirt-makers";
 import { parseId, type ShirtMakerId } from "@/domain/ids";
 import { type MakerForm, parseMakerForm } from "@/domain/shirts/makers";
 import { requirePermissionToChange } from "@/lib/auth/permission";

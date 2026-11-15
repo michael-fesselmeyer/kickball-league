@@ -28,8 +28,7 @@ const PAGE = "/app/admin/shirt-waiting";
 const NOTICES: Record<string, (n: number) => string> = {
   spare_logged: () => "Spares logged.",
   handed_out: () => "Spare handed out. The player's shirt is marked received.",
-  batch_ordered: (n) =>
-    `${n} ${n === 1 ? "shirt" : "shirts"} marked ordered.`,
+  batch_ordered: (n) => `${n} ${n === 1 ? "shirt" : "shirts"} marked ordered.`,
   batch_received: (n) =>
     `${n} ${n === 1 ? "shirt" : "shirts"} marked received.`,
 };
@@ -90,9 +89,9 @@ async function ShirtWaiting({
         <p className="text-text-muted">
           Players who joined a team after their season&apos;s shirt order was
           placed, across every team. A small reorder costs too much per shirt,
-          so wait until enough have built up, and hand out spares first.
-          Teams in their own shirts, free agents without a team and players
-          with no size aren&apos;t on this list.
+          so wait until enough have built up, and hand out spares first. Teams
+          in their own shirts, free agents without a team and players with no
+          size aren&apos;t on this list.
         </p>
       </header>
       {notice && (
@@ -175,25 +174,29 @@ async function ShirtWaiting({
         <div className="flex flex-wrap gap-3">
           {summary.total > 0 && (
             <form action={batchOrderedAction}>
-              <SubmitButton className="btn btn-primary min-h-11">
+              <SubmitButton className="btn min-h-11 btn-primary">
                 I placed the reorder: mark {summary.total} ordered
               </SubmitButton>
             </form>
           )}
           <form action={batchReceivedAction}>
-            <SubmitButton className="btn btn-secondary min-h-11">
+            <SubmitButton className="btn min-h-11 btn-secondary">
               The reorder arrived: mark received
             </SubmitButton>
           </form>
         </div>
         <p className="text-small text-text-muted">
-          Marking ordered covers everyone on the list, so hand out spares
-          first. Marking received only touches shirts in a season whose own
-          order has already arrived; the rest arrive with that order.
+          Marking ordered covers everyone on the list, so hand out spares first.
+          Marking received only touches shirts in a season whose own order has
+          already arrived; the rest arrive with that order.
         </p>
       </section>
 
-      <section id="spares" aria-labelledby="spares-h" className="flex flex-col gap-3">
+      <section
+        id="spares"
+        aria-labelledby="spares-h"
+        className="flex flex-col gap-3"
+      >
         <h2 id="spares-h" className="text-h2">
           Spare shirts
         </h2>
@@ -243,13 +246,17 @@ async function ShirtWaiting({
               className={control}
             />
           </div>
-          <SubmitButton className="btn btn-secondary min-h-11">
+          <SubmitButton className="btn min-h-11 btn-secondary">
             Log spares
           </SubmitButton>
         </form>
       </section>
 
-      <section id="waiting" aria-labelledby="waiting-h" className="flex flex-col gap-3">
+      <section
+        id="waiting"
+        aria-labelledby="waiting-h"
+        className="flex flex-col gap-3"
+      >
         <h2 id="waiting-h" className="text-h2">
           Waiting ({rows.length})
         </h2>
@@ -271,7 +278,9 @@ async function ShirtWaiting({
                     </span>
                   </span>
                   {inStock && (
-                    <form action={handOutSpareAction.bind(null, r.registrationId)}>
+                    <form
+                      action={handOutSpareAction.bind(null, r.registrationId)}
+                    >
                       <SubmitButton className="min-h-11 underline">
                         Hand out a spare {sizeLabel(r.size)}
                         <span className="sr-only"> to {r.name}</span>

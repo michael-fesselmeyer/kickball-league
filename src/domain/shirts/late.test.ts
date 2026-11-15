@@ -12,7 +12,11 @@ const players = (n: number, teamName: string, size: "m" | "l" | "xl") =>
 describe("summarizeWaiting", () => {
   it("counts the waiting list across teams by size and by team", () => {
     const s = summarizeWaiting(
-      [...players(3, "Zebras", "m"), ...players(2, "Aces", "m"), ...players(1, "Aces", "l")],
+      [
+        ...players(3, "Zebras", "m"),
+        ...players(2, "Aces", "m"),
+        ...players(1, "Aces", "l"),
+      ],
       {},
     );
     expect(s.total).toBe(6);
@@ -58,7 +62,10 @@ describe("parseSpare", () => {
   it("reads a size, a count and a note", () => {
     expect(
       parseSpare({ size: "m", quantity: " 4 ", note: " from fall " }),
-    ).toEqual({ ok: true, value: { size: "m", quantity: 4, note: "from fall" } });
+    ).toEqual({
+      ok: true,
+      value: { size: "m", quantity: 4, note: "from fall" },
+    });
   });
   it("refuses a bad size, count or long note", () => {
     expect(parseSpare({ size: "mm", quantity: "1", note: "" })).toEqual({

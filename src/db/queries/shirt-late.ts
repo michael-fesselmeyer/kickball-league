@@ -197,10 +197,7 @@ export async function logSpare(
 }
 
 export type HandOutError =
-  | "not_found"
-  | "has_shirt"
-  | "no_size"
-  | "none_in_stock";
+  "not_found" | "has_shirt" | "no_size" | "none_in_stock";
 
 /**
  * Hands a spare shirt to a player: one fewer in stock, and the player's
@@ -209,7 +206,11 @@ export type HandOutError =
  */
 export async function handOutSpare(
   db: Db,
-  input: { leagueId: LeagueId; registrationId: RegistrationId; actorId: UserId },
+  input: {
+    leagueId: LeagueId;
+    registrationId: RegistrationId;
+    actorId: UserId;
+  },
 ): Promise<Result<{ size: ShirtSize }, HandOutError>> {
   await lockStock(db, input.leagueId);
   const [row] = await db

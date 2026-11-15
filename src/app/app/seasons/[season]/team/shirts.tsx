@@ -71,7 +71,7 @@ export async function ShirtSection({
       </p>
       <form action={setOwnShirtsAction.bind(null, slug)}>
         <input type="hidden" name="own" value={info.ownShirts ? "no" : "yes"} />
-        <SubmitButton className="btn btn-secondary min-h-11">
+        <SubmitButton className="btn min-h-11 btn-secondary">
           {info.ownShirts
             ? "Use the league's shirts instead"
             : "Our own shirts or jerseys"}
@@ -95,10 +95,10 @@ export async function ShirtSection({
           className={field}
         />
         <p id="shirt-design-hint" className="text-small text-text-muted">
-          Shown with your team on the league history page, for example &ldquo;Red
-          jersey, white sleeves, number on the back&rdquo;.
+          Shown with your team on the league history page, for example
+          &ldquo;Red jersey, white sleeves, number on the back&rdquo;.
         </p>
-        <SubmitButton className="btn btn-secondary min-h-11 self-start">
+        <SubmitButton className="btn min-h-11 self-start btn-secondary">
           Save description
         </SubmitButton>
       </form>

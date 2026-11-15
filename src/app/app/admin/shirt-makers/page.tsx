@@ -166,7 +166,7 @@ async function ShirtMakers({
             prefix="new"
             values={{ name: "", url: "", makes: "", minimumOrder: "" }}
           />
-          <SubmitButton className="btn btn-primary min-h-11 self-start">
+          <SubmitButton className="btn min-h-11 self-start btn-primary">
             Add maker
           </SubmitButton>
         </form>
@@ -199,7 +199,7 @@ async function ShirtMakers({
                   minimumOrder: m.minimumOrder?.toString() ?? "",
                 }}
               />
-              <SubmitButton className="btn btn-secondary min-h-11 self-start">
+              <SubmitButton className="btn min-h-11 self-start btn-secondary">
                 Save changes
               </SubmitButton>
             </form>
