@@ -12,6 +12,8 @@ import { ShareButtons } from "@/components/share";
 import { db } from "@/db/client";
 import { eventBySlug, seasonOn } from "@/db/queries/events";
 import { approvedPhotos } from "@/db/queries/member-photos";
+import { publicTournament } from "@/db/queries/tournaments";
+import { TournamentSection } from "./tournament-section";
 import { eventPhotos } from "@/db/queries/social";
 import {
   KIND_LABELS,
@@ -121,11 +123,12 @@ async function EventDetails({
   cacheTag(eventTag(slug), PHOTOS_TAG, MEMBER_PHOTOS_TAG);
   const e = await eventBySlug(db, league.id, slug, "public");
   if (!e) notFound();
-  const [photos, playerPhotos] = await Promise.all([
+  const now = new Date();
+  const [photos, playerPhotos, tourney] = await Promise.all([
     eventPhotos(db, e.id),
     approvedPhotos(db, { eventId: e.id }),
+    e.kind === "tournament" ? publicTournament(db, e, now) : null,
   ]);
-  const now = new Date();
   const origin = siteOrigin(env.BETTER_AUTH_URL);
   const url = absoluteUrl(origin, `/events/${e.slug}`);
   const themeWeek = e.kind === "theme_week";
@@ -263,6 +266,14 @@ async function EventDetails({
             </p>
           ))}
         </section>
+      )}
+
+      {tourney && (
+        <TournamentSection
+          slug={e.slug}
+          t={tourney}
+          timeZone={e.timeZone}
+        />
       )}
 
       {themeWeek && (

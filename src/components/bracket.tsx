@@ -47,7 +47,8 @@ const styles = {
 type Side = BracketViewMatch["teamA"];
 
 function when(m: BracketViewMatch, timeZone: string): string {
-  if (!m.startsAt) return "Time to be set";
+  if (!m.startsAt)
+    return m.fieldName ? `${m.fieldName}, time to be set` : "Time to be set";
   const at = `${shortDay(m.startsAt, timeZone)}, ${kickoff(m.startsAt, timeZone)}`;
   return m.fieldName ? `${at}, ${m.fieldName}` : at;
 }
