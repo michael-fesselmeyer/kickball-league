@@ -5,7 +5,6 @@ import {
   queueDecisionAlerts,
   worstPark,
 } from "@/db/queries/rainout-decision";
-import { currentLeague } from "@/db/queries/seasons";
 import { env } from "@/env";
 import { refuseUnlessCron } from "@/lib/jobs";
 import { parkDecision, parkWeather } from "@/lib/park-weather";
@@ -13,7 +12,7 @@ import { featureEnabled, refuseJobsWhileFrozen } from "@/lib/platform/site";
 import { drainOutboxNow } from "@/services/outbox";
 
 /**
- * The decision-time alert (ADR 0048), twice a day at fixed hours
+ * The decision-time alert (ADR 0057), twice a day at fixed hours
  * (vercel.json): for each game day whose first pitch is 2 to 8 hours away,
  * reads each park's weather (the forecast, the rain already fallen at the
  * nearest station, active alerts) and, on "watch" or "likely", alerts
@@ -30,8 +29,7 @@ export async function GET(request: Request): Promise<Response> {
   if (frozen) return frozen;
   if (!(await featureEnabled("weather")))
     return Response.json({ skipped: "Weather is switched off" });
-  const league = await currentLeague(txDb);
-  if (!league) return Response.json({ skipped: "No league yet" });
+  // Every league's game days; each alert goes to that league's people.
   const now = new Date();
 
   const checks: DecisionCheck[] = [];
@@ -57,7 +55,7 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   const queued = await txDb.transaction((tx) =>
-    queueDecisionAlerts(tx, league.id, checks, now),
+    queueDecisionAlerts(tx, checks, now),
   );
   const delivery = await drainOutboxNow(now);
   return Response.json({

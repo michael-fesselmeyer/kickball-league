@@ -1,4 +1,15 @@
-import { and, asc, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  lt,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import type { LeagueId, SeasonId, SlotId, UserId } from "@/domain/ids";
 import { kickoff, shortDay } from "@/domain/schedule/format";
 import { localDay } from "@/domain/schedule/public-game";
@@ -13,16 +24,16 @@ import type { RainoutRequestPayload } from "@/emails/rainout-request";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
 import { field, game, slot, venue } from "../schema/game";
-import { league } from "../schema/league";
-import { profile } from "../schema/profile";
+import { league, leagueMember } from "../schema/league";
 import { gamePlacement, scheduleVersion } from "../schema/schedule";
+import { season } from "../schema/season";
 import { recordAudit } from "./audit";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
 import { type GameDay, gameDaysDue } from "./rain-alerts";
 import type { Db } from "./schedule";
 
 /**
- * Owner-confirmed rain-outs (ADR 0048). Admins prepare a rain-out and send
+ * Owner-confirmed rain-outs (ADR 0057). Admins prepare a rain-out and send
  * it to the owners; an owner (or the operator, or an admin when the owners
  * allow it) confirms it. A few hours before each game day, whoever can
  * confirm hears what the park's weather says. Nothing here cancels a game.
@@ -171,20 +182,41 @@ export async function anySlotOpen(
   return row !== undefined;
 }
 
-/** Everyone who confirms rain-outs: the owners, and admins when allowed. */
-async function confirmers(db: Db, leagueId: LeagueId): Promise<UserId[]> {
-  const roles: ("owner" | "admin")[] = (await adminsConfirmRainouts(
-    db,
-    leagueId,
-  ))
-    ? ["owner", "admin"]
-    : ["owner"];
+/**
+ * Everyone who confirms a season's rain-outs: its league's owners, and its
+ * admins when those owners allow it. Roles are per league (ADR 0048).
+ */
+async function confirmers(db: Db, seasonId: SeasonId): Promise<UserId[]> {
   const rows = await db
-    .select({ id: user.id })
-    .from(profile)
-    .innerJoin(user, eq(profile.userId, user.id))
-    .where(inArray(profile.globalRole, roles))
-    .orderBy(asc(user.id));
+    .select({ id: leagueMember.userId })
+    .from(season)
+    .innerJoin(league, eq(league.id, season.leagueId))
+    .innerJoin(leagueMember, eq(leagueMember.leagueId, season.leagueId))
+    .where(
+      and(
+        eq(season.id, seasonId),
+        or(
+          eq(leagueMember.role, "owner"),
+          and(
+            eq(leagueMember.role, "admin"),
+            eq(league.adminsConfirmRainouts, true),
+          ),
+        ),
+      ),
+    )
+    .orderBy(asc(leagueMember.userId));
+  return rows.map((r) => r.id);
+}
+
+/** A league's owners. */
+async function ownersOf(db: Db, leagueId: LeagueId): Promise<UserId[]> {
+  const rows = await db
+    .select({ id: leagueMember.userId })
+    .from(leagueMember)
+    .where(
+      and(eq(leagueMember.leagueId, leagueId), eq(leagueMember.role, "owner")),
+    )
+    .orderBy(asc(leagueMember.userId));
   return rows.map((r) => r.id);
 }
 
@@ -216,11 +248,7 @@ export async function sendRainoutToOwners(
     entityId: input.season.id,
     after: { date: input.date, summary: input.summary },
   });
-  const owners = await db
-    .select({ id: user.id })
-    .from(profile)
-    .innerJoin(user, eq(profile.userId, user.id))
-    .where(eq(profile.globalRole, "owner"));
+  const owners = (await ownersOf(db, input.leagueId)).map((id) => ({ id }));
   const payload = {
     seasonName: input.season.name,
     seasonSlug: input.season.slug,
@@ -296,13 +324,12 @@ export function worstPark(
 
 /**
  * Queues the decision-time alert for each game day on watch or likely, to
- * everyone who confirms rain-outs, once per game day: the dedupe key names
- * the day and the person, so a second run that day, or a later level, sends
- * nothing more. Returns how many were new.
+ * everyone who confirms rain-outs in that day's league, once per game day:
+ * the dedupe key names the day and the person, so a second run that day, or
+ * a later level, sends nothing more. Returns how many were new.
  */
 export async function queueDecisionAlerts(
   db: Db,
-  leagueId: LeagueId,
   checks: readonly DecisionCheck[],
   now: Date,
 ): Promise<number> {
@@ -310,9 +337,9 @@ export async function queueDecisionAlerts(
     (c) => c.decision.level !== "low" && !c.decision.blind,
   );
   if (alerting.length === 0) return 0;
-  const recipients = await confirmers(db, leagueId);
   const messages: OutboxMessage[] = [];
   for (const { day, decision, park, parks } of alerting) {
+    const recipients = await confirmers(db, day.seasonId);
     const payload = {
       seasonName: day.seasonName,
       seasonSlug: day.seasonSlug,
