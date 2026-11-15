@@ -297,6 +297,7 @@ describe("scores", () => {
           role: "admin",
           teamSeasonId: null,
           score: score({ scoreB: 5 }),
+          reason: "The ref's card shows 7 to 5.",
           clientId: `d2-${w.tag}`,
           now: after(49),
         }),
@@ -306,7 +307,7 @@ describe("scores", () => {
         .select({ action: auditLog.action })
         .from(auditLog)
         .where(eq(auditLog.actorId, w.admin));
-      expect(audit.map((a) => a.action)).toEqual(["score.override"]);
+      expect(audit.map((a) => a.action)).toEqual(["game.ruling"]);
     });
   });
 
@@ -335,6 +336,7 @@ describe("scores", () => {
         role: "admin",
         teamSeasonId: null,
         score: score({ outcome: "forfeit_b" }),
+        reason: "Bees did not field nine players.",
         clientId: `e2-${w2.tag}`,
         now: after(2),
       });
