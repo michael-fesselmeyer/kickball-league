@@ -11,7 +11,7 @@ import { gamePlacement, scheduleVersion } from "@/db/schema/schedule";
 import { season } from "@/db/schema/season";
 import { messagingWorld } from "@/db/test/messaging-world";
 import { closePool, inRolledBackDb } from "@/db/test/transaction";
-import type { FieldId } from "@/domain/ids";
+import type { FieldId, SlotId } from "@/domain/ids";
 import type { SchedulerInput } from "@/domain/scheduler/types";
 import { liveDemo } from "./demo-live";
 import { PERSONA_IDS } from "./demo-personas";
@@ -56,7 +56,7 @@ async function nightWorld(db: Db) {
       email: "reese.ref@example.test",
     })
     .onConflictDoNothing();
-  const otherField = (await w.addField("Back field")).id;
+  const otherField = await w.addField("Back field");
 
   const at = async (round: number, endsAt: Date, onField?: FieldId) => {
     const g = await w.gameBetween(w.aces.id, w.bees.id, endsAt, {
@@ -104,7 +104,7 @@ async function nightWorld(db: Db) {
   return { ...w, admin, played, nextFirst, nextSecond, later };
 }
 
-const startOf = async (db: Db, slotId: string) =>
+const startOf = async (db: Db, slotId: SlotId) =>
   required(
     (
       await db
