@@ -101,6 +101,11 @@ const addDay = (date: string, days: number) =>
     .toISOString()
     .slice(0, 10);
 
+/** Whether `date` is a real calendar day written YYYY-MM-DD (no 30 February). */
+export const isRealDate = (date: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(date) &&
+  new Date(`${date}T12:00:00Z`).toISOString().slice(0, 10) === date;
+
 /** 0 (Sunday) to 6 for a YYYY-MM-DD date. */
 export const weekdayOf = (date: string) =>
   new Date(`${date}T12:00:00Z`).getUTCDay();

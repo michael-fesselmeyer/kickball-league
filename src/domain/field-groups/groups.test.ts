@@ -3,6 +3,7 @@ import { zonedInstant } from "../time/zoned";
 import {
   COUNTDOWN_MINUTES,
   countdown,
+  isRealDate,
   nextHandovers,
   overlapWarnings,
   parseGroup,
@@ -334,5 +335,15 @@ describe("overlapWarnings", () => {
       ],
     });
     expect(out.map((o) => o.id)).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("isRealDate", () => {
+  it("accepts real days and rejects ones that roll over", () => {
+    expect(isRealDate("2028-02-29")).toBe(true);
+    expect(isRealDate("2027-02-29")).toBe(false);
+    expect(isRealDate("2027-02-30")).toBe(false);
+    expect(isRealDate("2027-4-6")).toBe(false);
+    expect(isRealDate("")).toBe(false);
   });
 });
