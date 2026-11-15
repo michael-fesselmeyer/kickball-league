@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { cacheLife, cacheTag } from "next/cache";
 import { CopySnippet } from "@/components/copy-snippet";
 import { JsonLd } from "@/components/json-ld";
 import { db } from "@/db/client";
 import { type FriendLeague, friendDirectory } from "@/db/queries/friends";
+import { partnerTournaments } from "@/db/queries/tournaments";
+import { whenLine } from "@/domain/events/event";
 import { clickPingPath } from "@/domain/friends/clicks";
-import type { LeagueId } from "@/domain/ids";
+import type { FriendLeagueId, LeagueId } from "@/domain/ids";
 import { leagueHref } from "@/domain/league/paths";
 import { publicLeague, withCanonical } from "@/lib/league/public";
 import {
@@ -15,7 +18,7 @@ import {
 } from "@/domain/friends/friend-form";
 import { env } from "@/env";
 import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
-import { FRIENDS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
+import { EVENTS_TAG, FRIENDS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 import { friendsJsonLd } from "@/lib/seo/structured-data";
 import { absoluteUrl, SITE, siteOrigin } from "@/lib/site";
 
@@ -52,7 +55,10 @@ export default async function FriendsPage({
   params,
 }: PageProps<"/l/[league]/friends">) {
   const league = await publicLeague((await params).league, "/friends");
-  const entries = await cachedFriendDirectory(league.id);
+  const [entries, partners] = await Promise.all([
+    cachedFriendDirectory(league.id),
+    cachedPartnerTournaments(league.id, league.timeZone),
+  ]);
   const origin = siteOrigin(env.BETTER_AUTH_URL);
   const home = absoluteUrl(origin, leagueHref(league, "/"));
   const groups = groupDirectory(entries);
@@ -92,6 +98,34 @@ export default async function FriendsPage({
           kickball crowd sent you.
         </p>
       </header>
+
+      {partners.length > 0 && (
+        <section aria-labelledby="partner-events" className="flex flex-col gap-3">
+          <h2 id="partner-events" className="text-h2">
+            Playing together
+          </h2>
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {partners.map((p) => (
+              <li
+                key={p.slug}
+                className="flex flex-col gap-1 rounded-card border-2 border-text bg-surface p-4 shadow-sticker"
+              >
+                <p className="text-small font-bold text-text-muted">
+                  With {entries.find((f) => f.id === p.friendLeagueId)?.name}
+                </p>
+                <h3 className="font-display text-h3">{p.title}</h3>
+                <p className="text-small">{p.when}</p>
+                <Link
+                  href={leagueHref(league, `/events/${p.slug}`)}
+                  className="inline-flex min-h-11 items-center self-start font-bold underline"
+                >
+                  See the tournament
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {groups.length === 0 ? (
         <p className="rounded-card border border-border bg-surface p-4 text-text-muted">
@@ -216,4 +250,37 @@ async function cachedFriendDirectory(
     friendDirectory(db, leagueId),
   );
   return found ?? [];
+}
+
+/**
+ * Upcoming tournaments with a partner league, for the cards above the
+ * directory. Tagged with the events too, so calling one off or deleting it
+ * takes its card down.
+ */
+async function cachedPartnerTournaments(
+  leagueId: LeagueId,
+  timeZone: string,
+): Promise<
+  {
+    friendLeagueId: FriendLeagueId;
+    slug: string;
+    title: string;
+    when: string;
+  }[]
+> {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
+  cacheTag(FRIENDS_TAG, EVENTS_TAG);
+  const found = await readUnlessBuildHasNoDatabase(() =>
+    partnerTournaments(db, leagueId, new Date()),
+  );
+  return (found ?? []).map((p) => ({
+    friendLeagueId: p.friendLeagueId,
+    slug: p.slug,
+    title: p.title,
+    when: whenLine(
+      { kind: "tournament", startsAt: p.startsAt, endsAt: p.endsAt },
+      timeZone,
+    ),
+  }));
 }

@@ -27,6 +27,7 @@ import {
 } from "../actions";
 import { EventFormFields } from "../event-form";
 import { EventTickets } from "./tickets";
+import { TournamentAdmin } from "./tournament-admin";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeagueId, activeLeaguePath } from "@/lib/league/active";
@@ -218,6 +219,23 @@ async function AdminEvent({
             </>
           )}
         </section>
+      )}
+
+      {e.kind === "tournament" && (
+        <TournamentAdmin
+          e={e}
+          origin={origin}
+          saved={
+            typeof query.tournamentSaved === "string"
+              ? query.tournamentSaved
+              : undefined
+          }
+          error={
+            typeof query.tournamentError === "string"
+              ? query.tournamentError
+              : undefined
+          }
+        />
       )}
 
       {ticketed && (
