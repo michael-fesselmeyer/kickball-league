@@ -19,6 +19,9 @@ const MESSAGES: Record<string, string> = {
   profile_incomplete: "Add your first and last name to your profile first.",
   name_mismatch: "Type your full name as it appears on your profile.",
   already_signed: "You have already signed this waiver.",
+  conduct_not_accepted: "Tick the box to agree to the code of conduct.",
+  conduct_changed:
+    "The code of conduct was updated while you were reading. Read the new version and sign again.",
 };
 
 /** The client's address as the platform reports it, if it is a real IP. */
@@ -54,6 +57,10 @@ export async function signWaiverAction(
       shownSha256: String(form.get("shownSha256") ?? ""),
       agreed: form.get("agree") === "yes",
       ageConfirmed: form.get("ageConfirmed") === "yes",
+      conduct: {
+        accepted: form.get("conduct") === "yes",
+        shownSha256: String(form.get("conductSha256") ?? ""),
+      },
       signedName,
       ip: await clientIp(),
       userAgent: (await headers()).get("user-agent"),

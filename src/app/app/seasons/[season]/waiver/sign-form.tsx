@@ -10,6 +10,8 @@ type Props = {
   shownSha256: string;
   fullName: string | null;
   minimumAge: number;
+  /** The code of conduct shown above, when the person still has to accept it. */
+  conductSha256: string | null;
 };
 
 export function SignWaiverForm({
@@ -17,6 +19,7 @@ export function SignWaiverForm({
   shownSha256,
   fullName,
   minimumAge,
+  conductSha256,
 }: Props) {
   const [state, formAction, pending] = useActionState(action, {
     signedName: "",
@@ -53,6 +56,23 @@ export function SignWaiverForm({
         />
         <span>I have read the whole waiver and I agree to it.</span>
       </label>
+      {conductSha256 && (
+        <>
+          <input type="hidden" name="conductSha256" value={conductSha256} />
+          <label className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              name="conduct"
+              value="yes"
+              required
+              className="mt-1"
+            />
+            <span>
+              I have read the code of conduct above and I agree to follow it.
+            </span>
+          </label>
+        </>
+      )}
       <label className="flex flex-col gap-1">
         Type your full name to sign
         <input

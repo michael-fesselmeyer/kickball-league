@@ -7,6 +7,7 @@ import { db } from "@/db/client";
 import { profileOf } from "@/db/queries/profile";
 import { ageMessage, underAge } from "@/domain/registration/age";
 import { localDay } from "@/domain/schedule/public-game";
+import { conductForPerson } from "@/db/queries/conduct";
 import { waiverForSeason } from "@/db/queries/waivers";
 import { requireSelf } from "@/lib/auth/permission";
 import { signWaiverAction } from "./actions";
@@ -47,7 +48,12 @@ async function Waiver({
       })
     : null;
   if (!view) notFound();
-  const person = await profileOf(db, subject.userId);
+  const [person, conduct] = await Promise.all([
+    profileOf(db, subject.userId),
+    league ? conductForPerson(db, league.id, subject.userId) : null,
+  ]);
+  // Asked once per version: someone who accepted this one is not asked again.
+  const askConduct = conduct && !conduct.acceptedAt ? conduct.code : null;
   const fullName =
     person?.firstName && person.lastName
       ? `${person.firstName} ${person.lastName}`
@@ -98,6 +104,20 @@ async function Waiver({
             </h2>
             <WaiverText body={view.bodyMd} />
           </article>
+          {!view.signature && askConduct && (
+            <article
+              aria-labelledby="conduct-title"
+              className="flex flex-col gap-3 rounded-lg border border-border p-4"
+            >
+              <h2 id="conduct-title" className="text-h2">
+                {askConduct.title}{" "}
+                <span className="text-small text-text-muted">
+                  version {askConduct.version}
+                </span>
+              </h2>
+              <WaiverText body={askConduct.bodyMd} />
+            </article>
+          )}
           {!view.signature &&
             (underAge(
               view.minimumAge,
@@ -113,6 +133,7 @@ async function Waiver({
                 shownSha256={view.bodySha256}
                 fullName={fullName}
                 minimumAge={view.minimumAge}
+                conductSha256={askConduct?.bodySha256 ?? null}
               />
             ))}
           <Link href="/app" className="underline">
