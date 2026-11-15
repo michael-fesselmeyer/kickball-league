@@ -18,6 +18,8 @@ export const ACTION_LIMITS = {
   score_report: { windowSeconds: 24 * 60 * 60, max: 10 },
   /** Joining or leaving a season's waitlist, by one person, in an hour. */
   waitlist: { windowSeconds: 60 * 60, max: 5 },
+  /** Private concerns sent to the league, by one person, in a day. */
+  concern: { windowSeconds: 24 * 60 * 60, max: 5 },
 } as const;
 
 export type LimitedAction = keyof typeof ACTION_LIMITS;

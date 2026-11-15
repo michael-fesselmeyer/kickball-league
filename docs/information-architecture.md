@@ -196,6 +196,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   └── [incident]              What happened and who; notes; suspend someone named (the outside-alcohol ladder suggested) or lift a suspension; resolve or reopen
     ├── concerns/
     │   └── [concern]               A private concern or public contact message: what was said, the sender (an address is shown to admins only and each view is audited), the thread of replies and notes; reply by email, add a note, close with what was done, reopen
+    ├── concerns/ (player) Your concerns and the league's replies; /new raises a private concern (category, optional park rule and game link); /[concern] shows one of your own with replies and what was done, never admin notes
     ├── pickem                      Pick'em settings: whether players may pick their own team's games
     ├── team-lists                  Every team's "not on my team" list with reasons and who added each entry; teams listing 5 or more people and anyone on several lists; add or remove an entry; owners choose whether a person's own export lists entries about them
     ├── people                      Players, roles
