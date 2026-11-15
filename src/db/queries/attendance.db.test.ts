@@ -1,8 +1,10 @@
 import { eq } from "drizzle-orm";
+import { scanOpen } from "@/domain/attendance/attendance";
 import { afterAll, describe, expect, it } from "vitest";
 import type { UserId } from "@/domain/ids";
 import { gameAttendance } from "../schema/attendance";
 import { auditLog } from "../schema/audit";
+import { game, slot } from "../schema/game";
 import { season } from "../schema/season";
 import { subClaim, subRequest } from "../schema/subs";
 import { waiver, waiverSignature } from "../schema/waiver";
@@ -140,6 +142,27 @@ describe("checking in by scan", () => {
           await checkInByScan(db, { game: w.g, userId, now: DURING }),
         ).toEqual({ ok: false, error: "not_playing" });
       expect(await db.select().from(gameAttendance)).toHaveLength(0);
+    });
+  });
+});
+
+describe("a rained-out game", () => {
+  it("reads as called off once a rain-out cancels its slot, so nobody checks in", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      expect(w.g.slotCancelled).toBe(false);
+      expect(scanOpen(w.g, DURING).ok).toBe(true);
+      const { slotId } = (await db
+        .select({ slotId: game.slotId })
+        .from(game)
+        .where(eq(game.id, w.gameId)))[0]!;
+      await db
+        .update(slot)
+        .set({ status: "cancelled" })
+        .where(eq(slot.id, slotId!));
+      const g = await attendanceGame(db, w.gameId);
+      expect(g?.slotCancelled).toBe(true);
+      expect(scanOpen(g!, DURING)).toEqual({ ok: false, error: "called_off" });
     });
   });
 });

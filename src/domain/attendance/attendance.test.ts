@@ -86,6 +86,13 @@ describe("when players can scan in", () => {
       error: "called_off",
     });
   });
+
+  it("is closed for a game whose slot a rain-out cancelled, before its makeup is placed", () => {
+    expect(scanOpen({ ...game, slotCancelled: true }, KICKOFF)).toEqual({
+      ok: false,
+      error: "called_off",
+    });
+  });
 });
 
 describe("when attendance can be ticked", () => {
@@ -110,6 +117,11 @@ describe("when attendance can be ticked", () => {
 
   it("never opens for a game called off", () => {
     expect(markOpen({ ...game, status: "cancelled" }, KICKOFF, true)).toEqual({
+      ok: false,
+      error: "called_off",
+    });
+    // Rained out: the slot is cancelled while the game waits for a makeup.
+    expect(markOpen({ ...game, slotCancelled: true }, KICKOFF, true)).toEqual({
       ok: false,
       error: "called_off",
     });
