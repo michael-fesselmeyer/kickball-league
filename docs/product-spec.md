@@ -43,7 +43,7 @@ It replaces brooklynkickballclub.com, which today offers account registration, a
 | Kicking order: no more than 2 players of the same gender in a row. A team with more than twice as many of one gender as the other may keep a separate order for each | Rulebook 2.2.4 |
 | Short teams may pick up other registered players, who kick last. Not allowed in playoffs. A team needs at least 6 of its own players for the game to count | Rulebook 2.1.4, 2.1.6.1, 2.7 |
 | Home and away are decided by rock-paper-scissors at the field | Rulebook 3.1.6.2.2 |
-| Outside alcohol at the sponsor bar: 1-game suspension, then a season ban, then a permanent ban | Rulebook 4.0 |
+| Outside alcohol at the sponsor bar: 1-game suspension, then out for one full season, then a permanent ban. The app suggests these lengths; the admin decides | Rulebook 4.0 |
 | Umpires report final scores to the commissioners; refs are paid about $20 a game | Owner of this project |
 | The league talks in one WhatsApp group; each team has its own | Owner of this project |
 | The old site advertised $85 per player | Current site |
@@ -104,7 +104,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - Set which game days and time slots I can work.
 - Accept or decline assignments and see where I need to be.
 - Enter the final score, or score inning by inning, including with poor signal at the field.
-- Flag forfeits, ejections and incidents.
+- Flag forfeits, ejections and incidents. Eject a player from the live game screen, which takes them out of the kicking order for the rest of the game.
 - See what I have earned and what has been paid.
 
 ### League admin
@@ -199,6 +199,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Pick up, hand on, confirm, return or report missing items from a kit of league gear they have, are handed or bring to a game | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |
 | Add and retire kits, assign them to games, correct where one is, sort missing-items reports | — | — | — | — | — | ✓ | ✓ |
 | Log an incident | — | — | own team's games | assigned | — | ✓ | ✓ |
+| Eject a player during a game (from the live game screen) | — | — | — | assigned | — | ✓ | ✓ |
 | Review incidents, suspend a player or lift a suspension | — | — | — | — | — | ✓ | ✓ |
 | Read, export or delete an injury report (filing one is "Log an incident") | — | — | — | — | — | ✓ | ✓ |
 | Keep a person off the team with a private "not on my team" list ([ADR 0036](adr/0036-not-on-my-team-list.md)) | — | — | own team | — | — | ✓ (any team) | ✓ (any team) |
@@ -291,6 +292,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Lineup and kicking-order builder that enforces the two-in-a-row rule | P3 |
 | Game clock on the live scorer: time left, and no new inning near the time limit | P3 |
 | Sportsmanship ratings, incident reports and suspensions | P3 |
+| Ref ejections from the live game screen; earlier ejections shown to admins on a report | P3 |
 
 ### Free agents and teams
 | Feature | Tag |
