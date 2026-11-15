@@ -120,6 +120,7 @@ src/
   app/                 routes, layouts, server actions, route handlers
   components/          UI components (design system)
   domain/              pure TypeScript, no imports from app/, db/ or next/*
+  i18n/                message catalogs, formatting and language routing (ADR 0065); pure, like domain/, which may import it
     scheduler/  standings/  pricing/  authz/  matching/  weather/  fielding/
     sports/            each sport's rules: kickball (the default), dodgeball (ADR 0087)
   db/                  Drizzle schema, migrations, query functions
