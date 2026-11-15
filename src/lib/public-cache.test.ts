@@ -7,6 +7,7 @@ const {
   EVENTS_TAG,
   FRIENDS_TAG,
   PARKS_TAG,
+  INTEREST_TAG,
   SEASONS_TAG,
   SITE_TAG,
   SPONSORS_TAG,
@@ -17,6 +18,7 @@ const {
   refreshFriendPages,
   refreshGamePage,
   refreshParkPages,
+  refreshInterestPage,
   refreshSeasonPages,
   refreshSeasonCards,
   refreshSiteNotice,
@@ -161,6 +163,24 @@ describe("refreshFriendPages", () => {
       ["/l/[league]/friends", "page"],
       ["/l/_default/events"],
       ["/l/[league]/events", "page"],
+    ]);
+  });
+});
+
+describe("refreshInterestPage", () => {
+  it("expires the league's own interest form at once, and every league's", () => {
+    refreshInterestPage({ slug: "flag-football", isDefault: false });
+    refreshInterestPage({ slug: "kickball", isDefault: true });
+
+    expect(vi.mocked(updateTag).mock.calls).toEqual([
+      [INTEREST_TAG],
+      [INTEREST_TAG],
+    ]);
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([
+      ["/l/flag-football/interest"],
+      ["/l/[league]/interest", "page"],
+      ["/l/_default/interest"],
+      ["/l/[league]/interest", "page"],
     ]);
   });
 });

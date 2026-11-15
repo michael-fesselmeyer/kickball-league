@@ -282,3 +282,17 @@ export function refreshRulesPage(league: LeagueRef): void {
   revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/rules`);
   revalidatePath("/l/[league]/rules", "page");
 }
+
+/** Every league's open interest form (docs/data-model.md, section 2.8). */
+export const INTEREST_TAG = "interest";
+
+/**
+ * From a Server Action: an admin opened, changed or closed an interest form,
+ * or an option went ahead. The league's page shows it at once, and every
+ * league's page on its next visit, as the rules pages do (ADR 0048).
+ */
+export function refreshInterestPage(league: LeagueRef): void {
+  updateTag(INTEREST_TAG);
+  revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/interest`);
+  revalidatePath("/l/[league]/interest", "page");
+}
