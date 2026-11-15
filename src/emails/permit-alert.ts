@@ -3,7 +3,7 @@ import { defineTemplate } from "./define";
 import { renderEmail } from "./layout";
 
 /**
- * Tells the owners about a season's NYC Parks permits (ADR 0051): the
+ * Tells the owners about a season's NYC Parks permits (ADR 0055): the
  * season's permitted hours nearing or passing the 50-hour insurance line,
  * or field time coming up that the league won't use and should give back.
  * Nothing is sent to NYC Parks; the email says who to call and links to
