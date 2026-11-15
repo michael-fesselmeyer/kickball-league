@@ -64,6 +64,7 @@ import {
   hasEmergencyContact,
   removeEmergencyContact,
 } from "./emergency";
+import { myConductAcceptances } from "./conduct";
 import { myDisciplineRecords, removeDisciplineNotes } from "./discipline";
 import { resetFeed } from "./event-audience";
 import { leaveEvent } from "./events";
@@ -667,6 +668,8 @@ export async function personalData(
     seasonSurveysAnswered: await mySurveysAnswered(db, userId),
     dealsUsed,
     sponsorsManaged,
+    // The versions of the code of conduct the person accepted (ADR 0063).
+    conductAcceptances: await myConductAcceptances(db, userId),
     discipline: await myDisciplineRecords(db, userId, now),
     // Pick'em picks and whether they hid from the leaderboards (ADR 0044).
     pickem: await myPickemData(db, userId),

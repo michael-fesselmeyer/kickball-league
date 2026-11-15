@@ -21,6 +21,8 @@ The tables Better Auth owns (`user`, `session`, `account`, `verification`, `rate
 - `rate_limit` holds the sign-in rate-limit counters, so every server instance counts against one limit: `key` (unique) is the client's IP address and the auth path, `count` the requests in the current window, and `last_request` the time of the latest one in milliseconds since the epoch, as Better Auth writes it (indexed, for the sweep). It is not linked to an account. Better Auth deletes rows older than its longest window when a counter restarts, and the daily outbox job deletes any untouched for a day (`pruneRateLimits`).
 - `passkey` holds a person's passkeys: the public key, the WebAuthn credential id (indexed, for sign-in), a signature counter, `device_type` (`singleDevice` or `multiDevice`), `backed_up`, `transports`, the authenticator model (`aaguid`) and a `name` the person can change. Deleting the user cascades to it.
 
+The league's code of conduct is `conduct_code` (versioned like `waiver`, written in the app, never committed) and `conduct_acceptance` (one row per person and version, with the season whose registration asked and a hash of the text shown); see [ADR 0063](adr/0063-code-of-conduct-accepted-with-the-waiver.md). Acceptances are asked at the waiver step and reused across seasons until a new version is published. They are in the person's export, and an account merge keeps one per version.
+
 A change history is kept two ways: `audit_log` records who changed what for admin-visible actions, and append-only tables (`waiver_signature`, `credit_entry`, `score_report`, `schedule_version`) are their own history.
 
 ## 2. Entity diagrams
@@ -2024,6 +2026,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `friend_group` | unique `(code)`; check `code` is 6 of `A-Z` and `2-9` | Codes are unambiguous |
 | `audit_log` | check `action` matches `area.verb` | Actions stay searchable, such as every `schedule.*` |
 | `waiver_signature` | unique `(waiver_id, user_id, season_id)` | One signature per waiver per season |
+| `conduct_code` | unique `(league_id, version)`; `version` above 0; `body_sha256` is 64 hex characters | A league's versions are numbered and fingerprinted |
+| `conduct_acceptance` | unique `(code_id, user_id)`; `(user_id)`; `body_sha256` is 64 hex characters | A person accepts a version once |
 | `score_report` | unique `(client_id)` | Retried offline submissions are ignored |
 | `score_report` | check `reason` is null, or an admin's and 1 to 300 characters | Only an admin's ruling carries a reason |
 | `score_confirmation` | unique `(game_id, team_season_id)` | One answer per team |

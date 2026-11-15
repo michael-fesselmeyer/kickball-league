@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { db } from "@/db/client";
+import { currentConductCode } from "@/db/queries/conduct";
 import {
   changeLog,
   currentRules,
@@ -12,6 +13,7 @@ import {
 } from "@/db/queries/rules";
 import { localDate } from "@/domain/books/ledger-csv";
 import type { LeagueId } from "@/domain/ids";
+import { WaiverText } from "@/components/waiver-text";
 import { blocksOf } from "@/domain/rules/rules";
 import { ruleSetSummary } from "@/domain/season/divisions";
 import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
@@ -45,6 +47,7 @@ type RulesData = {
   sections: SectionRow[];
   changes: LogEntry[];
   settings: GameSettings | null;
+  conduct: { title: string; bodyMd: string } | null;
   today: string;
 };
 
@@ -66,14 +69,16 @@ async function cachedRules(
       currentRules(db, leagueId),
       changeLog(db, leagueId, CHANGES_SHOWN),
       gameSettings(db, leagueId),
+      currentConductCode(db, leagueId),
     ]),
   );
-  const [sections, changes, settings] = found ?? [[], [], null];
+  const [sections, changes, settings, code] = found ?? [[], [], null, null];
   if (settings) cacheTag(seasonTag(settings.seasonId));
   return {
     sections,
     changes,
     settings,
+    conduct: code ? { title: code.title, bodyMd: code.bodyMd } : null,
     today: localDate(new Date(), timeZone),
   };
 }
@@ -96,7 +101,7 @@ export default async function RulesPage({
   params,
 }: PageProps<"/l/[league]/rules">) {
   const league = await publicLeague((await params).league, "/rules");
-  const { sections, changes, settings, today } = await cachedRules(
+  const { sections, changes, settings, conduct, today } = await cachedRules(
     league.id,
     league.timeZone,
   );
@@ -174,6 +179,22 @@ export default async function RulesPage({
             )}
           </section>
         ))
+      )}
+
+      {conduct && (
+        <section
+          id="code-of-conduct"
+          aria-labelledby="code-of-conduct-title"
+          className="flex scroll-mt-20 flex-col gap-3"
+        >
+          <h2 id="code-of-conduct-title" className="text-h2">
+            {conduct.title}
+          </h2>
+          <p className="text-text-muted">
+            Every player accepts this when they register.
+          </p>
+          <WaiverText body={conduct.bodyMd} />
+        </section>
       )}
 
       {settings && (

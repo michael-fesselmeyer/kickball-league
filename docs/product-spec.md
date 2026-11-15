@@ -136,7 +136,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 |---|---|---|---|---|---|---|---|
 | View schedule, standings, teams, rules, events, sponsors | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Create account, edit own profile and notification settings | ✓ | own | own | own | own | own | own |
-| Sign the season waiver | — | own | own | own | — | own | own |
+| Sign the season waiver, and accept the code of conduct with it | — | own | own | own | — | own | own |
 | Register as a free agent or join a team by invite | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |
 | Register a team | — | ✓ (becomes captain) | ✓ | ✓ | — | ✓ | ✓ |
 | Pay own share or fee | — | own | own | own | — | own | own |
