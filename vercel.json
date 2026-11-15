@@ -10,6 +10,7 @@
     { "path": "/api/jobs/waitlist-offers", "schedule": "0 16 * * *" },
     { "path": "/api/jobs/books-reminders", "schedule": "0 15 * * *" },
     { "path": "/api/jobs/volunteer-reminders", "schedule": "0 17 * * *" },
+    { "path": "/api/jobs/referee-cover", "schedule": "0 15 * * *" },
     { "path": "/api/jobs/missing-scores", "schedule": "0 4 * * *" },
     { "path": "/api/jobs/rain-alerts", "schedule": "0 22 * * *" },
     { "path": "/api/jobs/gear-reminders", "schedule": "30 22 * * *" },
