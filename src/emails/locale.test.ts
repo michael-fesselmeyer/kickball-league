@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Rendered } from "@/db/queries/outbox";
+import type { UserId } from "@/domain/ids";
 import { ENGLISH_ONLY_TEMPLATES, rendererFor } from "./templates";
 
 /**
@@ -12,7 +13,7 @@ const render = rendererFor({
   siteUrl: "https://league.example.test",
   unsubscribeSecret: "test-secret-for-unsubscribe-links-0000",
 });
-const userId = "00000000-0000-4000-8000-000000000001" as never;
+const userId = "00000000-0000-4000-8000-000000000001" as UserId;
 
 function sent(
   template: string,
