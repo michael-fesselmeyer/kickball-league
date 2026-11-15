@@ -1,3 +1,5 @@
+import { SubmitButton } from "@/components/submit-button";
+
 /** Styles for the gear screens' text fields: a 44px touch target. */
 export const FIELD =
   "min-h-11 rounded-md border border-border bg-surface px-2 py-2";
@@ -53,9 +55,9 @@ export function KitFields({
           className={FIELD}
         />
       </label>
-      <button type="submit" className="btn self-start btn-primary">
+      <SubmitButton className="btn self-start btn-primary">
         {submit}
-      </button>
+      </SubmitButton>
     </form>
   );
 }

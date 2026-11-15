@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
@@ -128,9 +129,9 @@ async function Kit({
                   {r.reporterName ?? "Someone"}, {when(r.createdAt)}
                 </p>
                 <form action={resolveReportAction.bind(null, kit.id, r.id)}>
-                  <button type="submit" className="btn btn-secondary">
+                  <SubmitButton className="btn btn-secondary">
                     Mark sorted
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -160,13 +161,13 @@ async function Kit({
                     </span>
                   </span>
                   <form action={unassignKitAction.bind(null, kit.id, a.id)}>
-                    <button type="submit" className="btn btn-secondary">
+                    <SubmitButton className="btn btn-secondary">
                       Take off
                       <span className="sr-only">
                         {" "}
                         {a.teamAName} vs {a.teamBName}
                       </span>
-                    </button>
+                    </SubmitButton>
                   </form>
                 </li>
               ))}
@@ -198,9 +199,9 @@ async function Kit({
                   ))}
                 </select>
               </label>
-              <button type="submit" className="btn self-start btn-secondary">
+              <SubmitButton className="btn self-start btn-secondary">
                 Choose who brings it
-              </button>
+              </SubmitButton>
             </form>
           )}
           {game && (
@@ -236,9 +237,9 @@ async function Kit({
                   </label>
                 ))}
               </fieldset>
-              <button type="submit" className="btn self-start btn-primary">
+              <SubmitButton className="btn self-start btn-primary">
                 Assign {kit.name}
-              </button>
+              </SubmitButton>
             </form>
           )}
         </section>
@@ -255,16 +256,16 @@ async function Kit({
           <div className="flex flex-wrap gap-2">
             {kit.holderId !== null && (
               <form action={setHolderAction.bind(null, kit.id, "")}>
-                <button type="submit" className="btn btn-secondary">
+                <SubmitButton className="btn btn-secondary">
                   It&apos;s back home
-                </button>
+                </SubmitButton>
               </form>
             )}
             {people.map(([id, name]) => (
               <form key={id} action={setHolderAction.bind(null, kit.id, id)}>
-                <button type="submit" className="btn btn-secondary">
+                <SubmitButton className="btn btn-secondary">
                   It&apos;s with {name}
-                </button>
+                </SubmitButton>
               </form>
             ))}
           </div>
@@ -283,9 +284,9 @@ async function Kit({
           />
           {kit.holderId === null && !kit.pending && (
             <form action={retireKitAction.bind(null, kit.id)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 Retire {kit.name}
-              </button>
+              </SubmitButton>
             </form>
           )}
         </section>
