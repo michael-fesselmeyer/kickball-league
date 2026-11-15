@@ -3,7 +3,13 @@
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { announceEvent, audienceChoices } from "@/db/queries/event-audience";
+import { recordAudit } from "@/db/queries/audit";
 import { checkCoverage } from "@/db/queries/permit-coverage";
+import {
+  OVERRIDABLE,
+  OVERRIDE_REASON_MIN,
+  parseOverrideReason,
+} from "@/domain/permits/coverage";
 import {
   cancelEvent,
   createEvent,
@@ -103,6 +109,7 @@ async function readForm(form: FormData, leagueId: LeagueId, timeZone: string) {
   // Something on a league field is posted only while a permit covers it
   // for its whole time, unless it is open play (issue #407).
   const fieldId = parsed.value.fieldId;
+  let overrideReason: string | null = null;
   if (fieldId) {
     const cover = await checkCoverage(db, {
       leagueId,
@@ -114,10 +121,20 @@ async function readForm(form: FormData, leagueId: LeagueId, timeZone: string) {
     });
     if (!cover.ok && cover.reason === "unknown_field")
       return fail(EVENT_FORM_ERRORS.field);
-    if (!cover.ok && cover.reason === "gap" && !parsed.value.openPlay)
-      return fail(
-        `${cover.sentence} Pick a time a permit covers, or mark it open play with no reserved field.`,
-      );
+    if (!cover.ok && cover.reason === "gap" && !parsed.value.openPlay) {
+      // The league holds the permit but its document isn't uploaded yet:
+      // posted anyway only with a reason, kept in the audit log (ADR 0063).
+      if (cover.gap.kind !== OVERRIDABLE)
+        return fail(
+          `${cover.sentence} Pick a time a permit covers, or mark it open play with no reserved field.`,
+        );
+      const reason = parseOverrideReason(form.get("permitOverride"));
+      if (!reason.ok)
+        return fail(
+          `${cover.sentence} If the league holds this permit, say why in "Permit document still to come" to post it anyway, in at least ${OVERRIDE_REASON_MIN} characters.`,
+        );
+      overrideReason = reason.value;
+    }
   }
   const reach = parseReach(
     reachValues,
@@ -133,6 +150,7 @@ async function readForm(form: FormData, leagueId: LeagueId, timeZone: string) {
     );
   return {
     ok: true as const,
+    overrideReason,
     event: parsed.value,
     reach: reach.value,
     prices: prices.value,
@@ -162,6 +180,14 @@ export async function createEventAction(
       prices: read.prices,
       actorId: subject.userId,
     });
+    if (read.overrideReason)
+      await recordAudit(tx, {
+        actorId: subject.userId,
+        action: "event.permit_override",
+        entityType: "event",
+        entityId: created.id,
+        after: { reason: read.overrideReason, fieldId: read.event.fieldId },
+      });
     const told = read.announce
       ? await announceEvent(tx, {
           eventId: created.id,
@@ -204,6 +230,14 @@ export async function updateEventAction(
       actorId: subject.userId,
       now: new Date(),
     });
+    if (updated.ok && read.overrideReason)
+      await recordAudit(tx, {
+        actorId: subject.userId,
+        action: "event.permit_override",
+        entityType: "event",
+        entityId: e.id,
+        after: { reason: read.overrideReason, fieldId: read.event.fieldId },
+      });
     const told =
       updated.ok && read.announce
         ? await announceEvent(tx, {

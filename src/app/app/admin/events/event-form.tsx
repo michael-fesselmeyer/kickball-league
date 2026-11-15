@@ -18,6 +18,7 @@ import {
   MAX_TITLE_LENGTH,
 } from "@/domain/events/event";
 import type { TicketPriceForm } from "@/domain/events/tickets";
+import { OVERRIDE_REASON_MAX } from "@/domain/permits/coverage";
 import type { EventFormState } from "./actions";
 
 const control =
@@ -329,6 +330,27 @@ export function EventFormFields({
           </span>
         </span>
       </label>
+      {fields.length > 0 && (
+        <details hidden={themeWeek} className="flex flex-col gap-1">
+          <summary className="cursor-pointer font-bold">
+            Permit document still to come
+          </summary>
+          <Field
+            label="Why post it before the permit's document is uploaded?"
+            hint="Only when the league holds the permit and an owner will upload it. The reason goes in the audit log."
+          >
+            {(props) => (
+              <textarea
+                {...props}
+                name="permitOverride"
+                rows={2}
+                maxLength={OVERRIDE_REASON_MAX}
+                className={`${control} py-2`}
+              />
+            )}
+          </Field>
+        </details>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={themeWeek ? "First day" : "Date"}>
           {(props) => (
