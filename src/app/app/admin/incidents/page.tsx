@@ -8,7 +8,9 @@ import {
   type QueueRow,
 } from "@/db/queries/discipline";
 import { concernQueue } from "@/db/queries/concerns";
+import { moveIssues } from "@/db/queries/game-day-checklist";
 import { CATEGORY_LABELS } from "@/domain/concerns/concerns";
+import { OUTCOME_LABELS } from "@/domain/gameday/checklist";
 import { INCIDENT_KINDS } from "@/domain/discipline/discipline";
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
@@ -48,11 +50,16 @@ async function Incidents() {
   await requirePermission("incident.review", { next: "/app/admin/incidents" });
   const now = new Date();
   const leagueNow = await activeLeague();
-  const [queue, suspended, league, concerns] = await Promise.all([
+  const [queue, suspended, league, concerns, moves] = await Promise.all([
     incidentQueue(db),
     activeSuspensions(db, now),
     Promise.resolve(leagueNow),
     leagueNow ? concernQueue(db, leagueNow.id, now) : null,
+    // Park users the set-up lead asked to move who refused or complained,
+    // over the last 30 days (issue #409).
+    leagueNow
+      ? moveIssues(db, leagueNow.id, new Date(now.getTime() - 30 * 86_400_000))
+      : [],
   ]);
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
@@ -112,6 +119,33 @@ async function Incidents() {
               ))}
             </ul>
           )}
+        </section>
+      )}
+      {moves.length > 0 && (
+        <section aria-labelledby="moves" className="flex flex-col gap-1">
+          <h2 id="moves" className="text-h2">
+            Asked to move ({moves.length})
+          </h2>
+          <p className="text-small text-text-muted">
+            Groups the set-up lead asked to make room on a permitted field, who
+            refused or complained, in the last 30 days.
+          </p>
+          <ul>
+            {moves.map((m) => (
+              <li
+                key={m.id}
+                className="flex flex-col gap-1 border-t border-border py-3"
+              >
+                <strong>{OUTCOME_LABELS[m.outcome]}</strong>
+                <span className="text-small text-text-muted">
+                  {when(m.askedAt)} · {m.venueName}, {m.fieldName} ·{" "}
+                  {m.seasonName}
+                  {m.askedBy ? ` · ${m.askedBy}` : ""}
+                </span>
+                {m.note && <p>{m.note}</p>}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
       <section aria-labelledby="open" className="flex flex-col gap-1">

@@ -16,6 +16,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
 import { cachedForecast } from "@/lib/weather";
 import { CommandBoard } from "./board";
+import { DayFields } from "./fields";
 import { DayGear } from "./gear";
 import { loadCommand, parseDay } from "./load";
 import { activeLeague } from "@/lib/league/active";
@@ -124,6 +125,12 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
           >
             Call a rain-out
           </Link>
+          <Link
+            href={`${base}/game-day-checklist`}
+            className="btn btn-secondary"
+          >
+            Game-day checklist
+          </Link>
           <Link href={`${base}/announcements`} className="btn btn-secondary">
             Send an announcement
           </Link>
@@ -190,6 +197,14 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
         </Suspense>
       )}
       <CommandBoard initial={state} timeZone={league.timeZone} />
+      <Suspense fallback={<p className="min-h-24">Checking the fields…</p>}>
+        <DayFields
+          leagueId={league.id}
+          seasonSlug={seasonSlug}
+          date={state.date}
+          timeZone={league.timeZone}
+        />
+      </Suspense>
       <Suspense fallback={<p className="min-h-24">Checking the gear…</p>}>
         <DayGear
           leagueId={league.id}
