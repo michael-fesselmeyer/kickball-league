@@ -97,6 +97,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── check-in/[sponsor]/[code]       Where the bar's QR code lands: one tap to check in (an expired code says so)
 ├── check-in/[sponsor]              Today's visit: checked in or not, today's deals and "Use this deal"
 ├── seasons/[season]/team/subs      Captain: ask for subs for a game, approve or decline claims
+├── seasons/[season]/team/attendance Captain: each player's games played this season against the playoff minimum, subs and pickups who played for the team, and each game's check-in count with a link to it
 ├── seasons/[season]/team/requests  Captain: dates the team can't play and times it would rather have or avoid, until registration closes
 ├── seasons/[season]/new-team       Ask the league to start a new team; see the answer or withdraw while it waits
 ├── seasons/[season]/card           Your season in kickball: my end-of-season card, private until I make its link public; then the link, share buttons and "Make my card private"; "Copy for WhatsApp" either way. Linked from home
@@ -113,6 +114,11 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── seasons/[season]/survey         The end-of-season survey for a player who was on a roster: five questions (rating 1 to 5, play again, best part, one change, comment), answered once, anonymous; a prompt on the home screen while it waits
 ├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps: kicking, fielding and running self-ratings, competitive or fun, and game nights; plus an optional note) and a friend code to start, join, switch or leave
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; with no signal, saved on the phone and sent later; once final, a captain rates the other team's sportsmanship; a link to report an incident
+├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps and an optional note) and a friend code to start, join, switch or leave
+├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; with no signal, saved on the phone and sent later; once final, a captain rates the other team's sportsmanship; a link to report an incident; from game day, a link to check-in
+├── games/[game]/attendance         Check-in (the game's captains, its ref, admins): who has checked in, anyone checked in without this season's waiver flagged at the top, and boxes to tick players in or out, from game day until 7 days after (admins any time); every change audited
+│   └── code                        The game's rotating check-in code as a QR code, on game day, refreshed as it turns over, for a phone held up at the field
+├── games/[game]/check-in/[code]    Where the code lands: a player on either roster or approved to sub taps Check in (the code is checked again on the server); "You're checked in" after
 ├── games/[game]/incident           Report an incident: kind, the people involved from either team, what happened (the game's ref, either captain, an admin; from kickoff on)
 ├── games/[game]/live               Live scoring: runs per half-inning, corrections, then end or call the game (the ref, or a captain when there is no ref); works with no signal
 ├── games/[game]/lineup             Both teams' kicking orders: a team's captains any time, the other captain and the ref from game day (names only); each player sees their own spot
@@ -165,6 +171,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   ├── awards                  Open a game-day or season poll, close one early, remove one; results after close
     │   │   └── stats               Stat awards: set the Season MVP weights, work the awards out (a draft only admins see), review the leaders, add a note to any award, publish or take down
     │   ├── cards                   Season cards: once the season is completed, build every rostered player's card (and tell each once), or refresh them; how many are shared
+    │   ├── attendance              Every team's players with their games played and who is short of the season's playoff minimum
     │   ├── sportsmanship           Each team's average sportsmanship rating and the notes left for admins, lowest first, never saying who rated
     │   ├── free-agents             Matcher: suggested placements with reasons (apply one or all), the pool with quiz answers and friend groups, and building a new team from the pool
     │   ├── rollover                Start the next season from this one: name, first day and teams to bring, a preview of what the new draft gets and what starts fresh, then create it (and, ticked by default, start its season checklist)
