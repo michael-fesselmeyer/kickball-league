@@ -522,7 +522,7 @@ describe("deleting", () => {
         actorId: w.admin.userId,
         now: NOW,
       });
-      // A takedown purges what leaves this list (ADR 0068).
+      // A takedown purges what leaves this list (ADR 0069).
       expect(await approvedPhotoIds(db)).toContain(id);
       expect(
         await deleteMemberPhoto(db, {

@@ -23,7 +23,7 @@ export function imageResponse(
 
 /**
  * A missing or hidden photo. With its address as `tag`, the CDN's copy of
- * the 404 is purged too when the photo is shown again (ADR 0068).
+ * the 404 is purged too when the photo is shown again (ADR 0069).
  */
 export const notFound = (tag?: string) =>
   new Response("Not found", {
