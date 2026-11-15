@@ -12,9 +12,10 @@ import {
 } from "@/db/queries/checklist";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { parseTaskForm } from "@/domain/checklist/tasks";
-import { type ChecklistTaskId, parseId } from "@/domain/ids";
+import { type ChecklistTaskId, type LeagueId, parseId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
+import { activeLeagueId } from "@/lib/league/active";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/checklist`;
 
@@ -23,12 +24,12 @@ async function context(slug: string) {
   const subject = await requirePermissionToChange("checklist.manage", {
     next: pageFor(slug),
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   return { userId: subject.userId, season };
 }
 
-async function taskFrom(form: FormData) {
+async function taskFrom(form: FormData, leagueId: LeagueId) {
   const values = formStrings(form, [
     "title",
     "notes",
@@ -36,7 +37,7 @@ async function taskFrom(form: FormData) {
     "owner",
   ] as const);
   const staff = new Set<string>(
-    (await checklistStaff(db)).map((s) => s.userId),
+    (await checklistStaff(db, leagueId)).map((s) => s.userId),
   );
   return parseTaskForm(values, staff);
 }
@@ -66,7 +67,7 @@ export async function addTaskAction(
   form: FormData,
 ): Promise<void> {
   const { userId, season } = await context(slug);
-  const task = await taskFrom(form);
+  const task = await taskFrom(form, season.leagueId);
   if (!task.ok) redirect(`${pageFor(slug)}?error=${task.error}#add`);
   await txDb.transaction((tx) =>
     addTask(tx, { seasonId: season.id, actorId: userId, task: task.value }),
@@ -81,7 +82,7 @@ export async function updateTaskAction(
 ): Promise<void> {
   const { userId, season } = await context(slug);
   const id = taskId(slug, rawId);
-  const task = await taskFrom(form);
+  const task = await taskFrom(form, season.leagueId);
   if (!task.ok) redirect(`${pageFor(slug)}?error=${task.error}`);
   const result = await txDb.transaction((tx) =>
     updateTask(tx, {

@@ -30,6 +30,7 @@ import { err, ok, type Result } from "@/domain/result";
 import { addDays, daysBetween } from "@/domain/season/rollover";
 import { user } from "../schema/auth";
 import { checklistTask, checklistTemplateTask } from "../schema/checklist";
+import { leagueMember } from "../schema/league";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { recordAudit } from "./audit";
@@ -47,12 +48,21 @@ const personName = sql<string>`coalesce(nullif(trim(concat_ws(' ', ${profile.fir
 export type StaffMember = { userId: UserId; name: string };
 
 /** The league's owners and admins: who can own a task. */
-export async function checklistStaff(db: Db): Promise<StaffMember[]> {
+export async function checklistStaff(
+  db: Db,
+  leagueId: LeagueId,
+): Promise<StaffMember[]> {
   return db
-    .select({ userId: profile.userId, name: personName })
-    .from(profile)
-    .innerJoin(user, eq(user.id, profile.userId))
-    .where(inArray(profile.globalRole, ["admin", "owner"]))
+    .select({ userId: leagueMember.userId, name: personName })
+    .from(leagueMember)
+    .innerJoin(user, eq(user.id, leagueMember.userId))
+    .leftJoin(profile, eq(profile.userId, leagueMember.userId))
+    .where(
+      and(
+        eq(leagueMember.leagueId, leagueId),
+        inArray(leagueMember.role, ["admin", "owner"]),
+      ),
+    )
     .orderBy(asc(personName));
 }
 
@@ -128,6 +138,7 @@ export async function addTemplateTask(
     actorId: input.actorId,
     action: "checklist_template.add",
     entityType: "checklist_template_task",
+    leagueId: input.leagueId,
     entityId: row.id,
     after: input.task,
   });
@@ -158,6 +169,7 @@ export async function updateTemplateTask(
     actorId: input.actorId,
     action: "checklist_template.update",
     entityType: "checklist_template_task",
+    leagueId: input.leagueId,
     entityId: row.id,
     after: input.task,
   });
@@ -186,6 +198,7 @@ export async function deleteTemplateTask(
     actorId: input.actorId,
     action: "checklist_template.delete",
     entityType: "checklist_template_task",
+    leagueId: input.leagueId,
     entityId: row.id,
     before: { title: row.title },
   });
@@ -337,6 +350,7 @@ export async function addTask(
     actorId: input.actorId,
     action: "checklist.add",
     entityType: "checklist_task",
+    leagueFrom: { kind: "season", id: input.seasonId },
     entityId: row.id,
     after: input.task,
   });
@@ -365,6 +379,7 @@ export async function updateTask(
     actorId: input.actorId,
     action: "checklist.update",
     entityType: "checklist_task",
+    leagueFrom: { kind: "season", id: input.seasonId },
     entityId: row.id,
     after: input.task,
   });
@@ -396,6 +411,7 @@ export async function setTaskDone(
     actorId: input.actorId,
     action: input.done ? "checklist.done" : "checklist.reopen",
     entityType: "checklist_task",
+    leagueFrom: { kind: "season", id: input.seasonId },
     entityId: row.id,
   });
   return ok(undefined);
@@ -414,6 +430,7 @@ export async function deleteTask(
     actorId: input.actorId,
     action: "checklist.delete",
     entityType: "checklist_task",
+    leagueFrom: { kind: "season", id: input.seasonId },
     entityId: row.id,
     before: { title: row.title },
   });
@@ -468,9 +485,14 @@ export async function queueChecklistReminders(
   // A task's owner who is no longer an owner or admin counts as nobody,
   // so the reminder goes to the owners instead of someone who left.
   const staff = await db
-    .select({ id: profile.userId, role: profile.globalRole })
-    .from(profile)
-    .where(inArray(profile.globalRole, ["admin", "owner"]));
+    .select({ id: leagueMember.userId, role: leagueMember.role })
+    .from(leagueMember)
+    .where(
+      and(
+        eq(leagueMember.leagueId, input.leagueId),
+        inArray(leagueMember.role, ["admin", "owner"]),
+      ),
+    );
   const staffIds = new Set<string>(staff.map((s) => s.id));
   const owners = staff.filter((s) => s.role === "owner").map((s) => s.id);
   const messages: OutboxMessage[] = tasks.flatMap((t) => {

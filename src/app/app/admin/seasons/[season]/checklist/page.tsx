@@ -26,6 +26,7 @@ import {
   dueLabel,
 } from "@/domain/checklist/tasks";
 import { requirePermission } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
 import {
   addTaskAction,
   deleteTaskAction,
@@ -78,11 +79,11 @@ async function Checklist({
   const subject = await requirePermission("checklist.manage", {
     next: `/app/admin/seasons/${slug}/checklist`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const [tasks, staff] = await Promise.all([
     seasonChecklist(db, season.id),
-    checklistStaff(db),
+    checklistStaff(db, season.leagueId),
   ]);
   const today = localDate(new Date(), season.timeZone);
   const open = tasks.filter((t) => !t.doneAt);
