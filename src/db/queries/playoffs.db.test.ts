@@ -185,6 +185,7 @@ async function play(
     role: "admin",
     teamSeasonId: null,
     score: { outcome: "normal", scoreA, scoreB, inningsPlayed: null },
+    reason: "Corrected after the field check.",
     clientId: `${gameId}-${scoreA}-${scoreB}-${Math.random()}`,
     now: new Date(AFTER.getTime() + ++reported * 60_000),
   });
