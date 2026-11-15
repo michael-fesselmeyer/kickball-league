@@ -3,6 +3,7 @@ export * from "./audit";
 export * from "./auth";
 export * from "./availability";
 export * from "./captaincy";
+export * from "./checklist";
 export * from "./awards";
 export * from "./books";
 export * from "./credit";
