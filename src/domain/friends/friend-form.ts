@@ -3,8 +3,9 @@ import { err, ok, type Result } from "@/domain/result";
 
 /**
  * The "friends of the league" directory (docs/product-spec.md, section 6):
- * other local leagues our players also play in, linked from a public page,
- * with a link back to us from theirs. This reads the admin's form.
+ * other local leagues our players also play in, and clubs our players run
+ * themselves, linked from a public page, with a link back to us from
+ * theirs. This reads the admin's form.
  */
 
 /** What a friend league plays, in the order the public page groups them. */
@@ -76,6 +77,10 @@ export type FriendFields = {
   description: string | null;
   url: string;
   linksBack: boolean;
+  /** One of our players runs it: listed under "Run by our players". */
+  runByPlayer: boolean;
+  /** A player-run club also shown on the events page. */
+  featured: boolean;
 };
 
 /** The form as typed, so a refused form comes back filled in. */
@@ -86,6 +91,8 @@ export type FriendForm = {
   description: string;
   url: string;
   linksBack: boolean;
+  runByPlayer: boolean;
+  featured: boolean;
 };
 
 export const BLANK_FRIEND_FORM: FriendForm = {
@@ -95,6 +102,8 @@ export const BLANK_FRIEND_FORM: FriendForm = {
   description: "",
   url: "",
   linksBack: false,
+  runByPlayer: false,
+  featured: false,
 };
 
 export type LinkError =
@@ -172,6 +181,9 @@ export function parseFriendForm(
     description: description || null,
     url: url.value,
     linksBack: form.linksBack,
+    runByPlayer: form.runByPlayer,
+    // Only a club one of our players runs goes on the events page.
+    featured: form.runByPlayer && form.featured,
   });
 }
 
@@ -194,16 +206,40 @@ export function displayHost(url: string): string {
   return new URL(url).hostname.replace(/^www\./, "");
 }
 
-/** Groups entries by activity, in ACTIVITIES order, each group by name. */
-export function groupByActivity<T extends { activity: Activity; name: string }>(
+/** The directory's groups: player-run clubs, then each activity. */
+export type DirectoryGroupKey = "players" | Activity;
+
+export const PLAYER_RUN_LABEL = "Run by our players";
+
+/**
+ * Groups entries for the public page: clubs our players run first, under
+ * "Run by our players", then the other leagues by activity in ACTIVITIES
+ * order. Each group is sorted by name.
+ */
+export function groupDirectory<
+  T extends { activity: Activity; name: string; runByPlayer: boolean },
+>(
   entries: readonly T[],
-): { activity: Activity; label: string; entries: T[] }[] {
-  return ACTIVITIES.flatMap((activity) => {
-    const inGroup = entries
-      .filter((e) => e.activity === activity)
-      .sort((a, b) => a.name.localeCompare(b.name));
-    return inGroup.length
-      ? [{ activity, label: ACTIVITY_LABELS[activity], entries: inGroup }]
-      : [];
-  });
+): { key: DirectoryGroupKey; label: string; entries: T[] }[] {
+  const byName = (list: T[]) =>
+    list.sort((a, b) => a.name.localeCompare(b.name));
+  const players = byName(entries.filter((e) => e.runByPlayer));
+  const leagues = entries.filter((e) => !e.runByPlayer);
+  return [
+    ...(players.length
+      ? [{ key: "players" as const, label: PLAYER_RUN_LABEL, entries: players }]
+      : []),
+    ...ACTIVITIES.flatMap((activity) => {
+      const inGroup = byName(leagues.filter((e) => e.activity === activity));
+      return inGroup.length
+        ? [
+            {
+              key: activity,
+              label: ACTIVITY_LABELS[activity],
+              entries: inGroup,
+            },
+          ]
+        : [];
+    }),
+  ];
 }

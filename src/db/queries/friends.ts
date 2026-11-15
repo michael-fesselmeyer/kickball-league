@@ -8,7 +8,7 @@ import type {
   UserId,
 } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
-import { friendLeague, friendLogo } from "../schema/friends";
+import { friendClick, friendLeague, friendLogo } from "../schema/friends";
 import { recordAudit } from "./audit";
 import { required } from "./rows";
 import type { Db } from "./schedule";
@@ -34,6 +34,8 @@ const COLUMNS = {
   description: friendLeague.description,
   url: friendLeague.url,
   linksBack: friendLeague.linksBack,
+  runByPlayer: friendLeague.runByPlayer,
+  featured: friendLeague.featured,
   updatedAt: friendLeague.updatedAt,
   logoId: friendLogo.id,
   logoWidth: friendLogo.width,
@@ -48,6 +50,8 @@ function toFriend(row: {
   description: string | null;
   url: string;
   linksBack: boolean;
+  runByPlayer: boolean;
+  featured: boolean;
   updatedAt: Date;
   logoId: FriendLogoId | null;
   logoWidth: number | null;
@@ -75,6 +79,69 @@ export async function friendDirectory(
     .where(eq(friendLeague.leagueId, leagueId))
     .orderBy(asc(friendLeague.name));
   return rows.map(toFriend);
+}
+
+/** The player-run clubs the events page shows, by name, in one query. */
+export async function featuredFriends(
+  db: Db,
+  leagueId: LeagueId,
+): Promise<FriendLeague[]> {
+  const rows = await db
+    .select(COLUMNS)
+    .from(friendLeague)
+    .leftJoin(friendLogo, eq(friendLogo.friendLeagueId, friendLeague.id))
+    .where(
+      and(eq(friendLeague.leagueId, leagueId), eq(friendLeague.featured, true)),
+    )
+    .orderBy(asc(friendLeague.name));
+  return rows.map(toFriend);
+}
+
+/**
+ * Counts one click out to an entry's site on `day` (YYYY-MM-DD, UTC), in
+ * one statement. An id that isn't in the directory counts nothing.
+ */
+export async function countFriendClick(
+  db: Db,
+  id: FriendLeagueId,
+  day: string,
+): Promise<void> {
+  await db.execute(sql`
+    insert into ${friendClick} (friend_league_id, day, clicks)
+    select ${friendLeague.id}, ${day}::date, 1
+    from ${friendLeague}
+    where ${friendLeague.id} = ${id}
+    on conflict (friend_league_id, day)
+    do update set clicks = ${friendClick.clicks} + 1`);
+}
+
+export type ClickCounts = { recent: number; total: number };
+
+/**
+ * Clicks out to each of the league's entries: since `since` (YYYY-MM-DD)
+ * and in all, by entry id, in one query. Entries never clicked are left out.
+ */
+export async function friendClickCounts(
+  db: Db,
+  leagueId: LeagueId,
+  since: string,
+): Promise<Map<FriendLeagueId, ClickCounts>> {
+  const rows = await db
+    .select({
+      id: friendClick.friendLeagueId,
+      recent:
+        sql<number>`coalesce(sum(${friendClick.clicks}) filter (where ${friendClick.day} >= ${since}::date), 0)`.mapWith(
+          Number,
+        ),
+      total: sum(friendClick.clicks).mapWith(Number),
+    })
+    .from(friendClick)
+    .innerJoin(friendLeague, eq(friendLeague.id, friendClick.friendLeagueId))
+    .where(eq(friendLeague.leagueId, leagueId))
+    .groupBy(friendClick.friendLeagueId);
+  return new Map(
+    rows.map((r) => [r.id, { recent: r.recent, total: r.total ?? 0 }]),
+  );
 }
 
 /** One entry of the league's directory, or null. */
@@ -149,6 +216,8 @@ const fieldsOf = (f: FriendLeague): FriendFields => ({
   description: f.description,
   url: f.url,
   linksBack: f.linksBack,
+  runByPlayer: f.runByPlayer,
+  featured: f.featured,
 });
 
 /** Changes an entry's details. */

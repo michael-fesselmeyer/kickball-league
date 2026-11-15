@@ -6,10 +6,11 @@ import {
   BLANK_FRIEND_FORM,
   displayHost,
   type FriendForm,
-  groupByActivity,
+  groupDirectory,
   MAX_URL_LENGTH,
   parseFriendForm,
   parseWebsite,
+  PLAYER_RUN_LABEL,
 } from "./friend-form";
 
 describe("parseWebsite", () => {
@@ -88,6 +89,8 @@ describe("parseFriendForm", () => {
     description: "",
     url: "northside-soccer.example.test",
     linksBack: true,
+    runByPlayer: false,
+    featured: false,
     ...over,
   });
 
@@ -101,8 +104,20 @@ describe("parseFriendForm", () => {
         description: null,
         url: "https://northside-soccer.example.test/",
         linksBack: true,
+        runByPlayer: false,
+        featured: false,
       },
     });
+  });
+
+  it("features only a club one of our players runs", () => {
+    const featured = (over: Partial<FriendForm>) => {
+      const parsed = parseFriendForm(form({ featured: true, ...over }));
+      if (!parsed.ok) throw new Error(parsed.error);
+      return parsed.value.featured;
+    };
+    expect(featured({ runByPlayer: true })).toBe(true);
+    expect(featured({ runByPlayer: false })).toBe(false);
   });
 
   it.each([
@@ -122,20 +137,46 @@ describe("parseFriendForm", () => {
   });
 });
 
-describe("activities", () => {
-  it("group entries in activity order, by name within a group", () => {
+describe("groupDirectory", () => {
+  const league = { runByPlayer: false };
+
+  it("groups leagues in activity order, by name within a group", () => {
     const entries = [
-      { name: "Rack 'Em Wednesdays", activity: "pool" as const },
-      { name: "Zed's Softball", activity: "softball" as const },
-      { name: "Apple Softball", activity: "softball" as const },
+      { name: "Rack 'Em Wednesdays", activity: "pool" as const, ...league },
+      { name: "Zed's Softball", activity: "softball" as const, ...league },
+      { name: "Apple Softball", activity: "softball" as const, ...league },
     ];
-    expect(groupByActivity(entries)).toEqual([
+    expect(groupDirectory(entries)).toEqual([
       {
-        activity: "softball",
+        key: "softball",
         label: ACTIVITY_LABELS.softball,
         entries: [entries[2], entries[1]],
       },
-      { activity: "pool", label: "Pool", entries: [entries[0]] },
+      { key: "pool", label: "Pool", entries: [entries[0]] },
+    ]);
+  });
+
+  it("puts clubs our players run first, in their own group", () => {
+    const entries = [
+      { name: "Zed's Softball", activity: "softball" as const, ...league },
+      { name: "Sketch Club", activity: "other" as const, runByPlayer: true },
+      {
+        name: "Board Game Brunch",
+        activity: "tabletop" as const,
+        runByPlayer: true,
+      },
+    ];
+    expect(groupDirectory(entries)).toEqual([
+      {
+        key: "players",
+        label: PLAYER_RUN_LABEL,
+        entries: [entries[2], entries[1]],
+      },
+      {
+        key: "softball",
+        label: ACTIVITY_LABELS.softball,
+        entries: [entries[0]],
+      },
     ]);
   });
 });

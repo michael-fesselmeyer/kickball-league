@@ -46,6 +46,8 @@ function formValues(form: FormData): FriendForm {
     description: text(form, "description"),
     url: text(form, "url"),
     linksBack: form.get("linksBack") === "yes",
+    runByPlayer: form.get("runByPlayer") === "yes",
+    featured: form.get("featured") === "yes",
   };
 }
 

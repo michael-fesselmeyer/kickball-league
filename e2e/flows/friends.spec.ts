@@ -106,3 +106,51 @@ test("an admin adds a friend league and a visitor sees it", async ({
   await expectNoAxeViolations(visitor);
   await visitor.context().close();
 });
+
+/**
+ * A club one of our players runs: the seed features Sunday Sketch Club, so
+ * it heads the directory under "Run by our players" and has a card on the
+ * events page. Following its link pings the click counter (the link still
+ * goes straight to the club's site), and the admin sees the count.
+ */
+test("a featured player-run club is promoted and its clicks are counted", async ({
+  browser,
+}) => {
+  const CLUB = "Sunday Sketch Club";
+  const CLUB_SITE = "https://sunday-sketch-club.example.test/";
+  const visitor = await (await browser.newContext()).newPage();
+  // The club's site is invented; answer for it so the visit can finish.
+  await visitor.route(`${CLUB_SITE}**`, (route) =>
+    route.fulfill({ contentType: "text/html", body: "<title>Club</title>" }),
+  );
+
+  await visitor.goto("/friends");
+  const players = visitor.getByRole("region", { name: "Run by our players" });
+  await expect(players).toContainText(CLUB);
+  await expectNoAxeViolations(visitor);
+
+  await visitor.goto("/events");
+  const clubs = visitor.getByRole("region", { name: "Run by our players" });
+  const link = clubs.getByRole("link", { name: /sunday-sketch-club/ });
+  await expect(link).toHaveAttribute("href", CLUB_SITE);
+  await expect(link).toHaveAttribute(
+    "ping",
+    /^\/api\/friends\/[0-9a-f-]{36}\/click$/,
+  );
+  await expectNoAxeViolations(visitor);
+  const ping = visitor.waitForRequest(
+    (r) => r.method() === "POST" && /\/api\/friends\/.+\/click$/.test(r.url()),
+  );
+  await link.click();
+  const sent = await ping;
+  expect((await sent.response())?.status()).toBe(204);
+  await visitor.context().close();
+
+  const admin = await pageAs(browser, "Admin");
+  await admin.goto("/app/admin/friends");
+  const row = admin.getByRole("row").filter({ hasText: CLUB });
+  await expect(row).toContainText("Run by our players");
+  await expect(row).toContainText(/[1-9]\d* in 30 days/);
+  await expectNoAxeViolations(admin);
+  await admin.context().close();
+});

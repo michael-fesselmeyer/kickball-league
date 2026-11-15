@@ -7,13 +7,16 @@ import {
   MAX_STORED_LOGO_BYTES,
   MAX_TOTAL_LOGO_BYTES,
 } from "@/domain/friends/logo";
-import type { FriendLeagueId } from "@/domain/ids";
+import { type FriendLeagueId, parseId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
-import { friendLeague, friendLogo } from "../schema/friends";
+import { friendClick, friendLeague, friendLogo } from "../schema/friends";
 import { leagueWorld } from "../test/league-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import {
+  countFriendClick,
   createFriendLeague,
+  featuredFriends,
+  friendClickCounts,
   friendDirectory,
   friendLeagueById,
   removeFriendLeague,
@@ -36,6 +39,19 @@ const softball: FriendFields = {
   description: "Saturday morning softball.",
   url: "https://slow-pitch.example.test/",
   linksBack: true,
+  runByPlayer: false,
+  featured: false,
+};
+
+const sketchClub: FriendFields = {
+  name: "Test Sketch Club",
+  activity: "other",
+  area: null,
+  description: null,
+  url: "https://sketch-club.example.test/",
+  linksBack: false,
+  runByPlayer: true,
+  featured: true,
 };
 
 const logoOf = (size: number): StoredLogo => ({
@@ -305,6 +321,72 @@ describe("friends directory", () => {
           }),
         ),
       ).toBe("friend_logo_type");
+      expect(
+        await violated(db, (sp) =>
+          sp.insert(friendLeague).values({ ...row, featured: true }),
+        ),
+      ).toBe("friend_league_featured_player_run");
+    });
+  });
+});
+
+describe("player-run clubs and clicks out", () => {
+  it("shows only featured clubs on the events page", async () => {
+    await inRolledBackDb(async (db) => {
+      const { w } = await setUp(db);
+      const club = await createFriendLeague(db, {
+        leagueId: w.leagueId,
+        fields: sketchClub,
+        actorId: w.admin,
+      });
+      if (!club.ok) throw new Error(club.error);
+      const featured = await featuredFriends(db, w.leagueId);
+      expect(featured.map((f) => f.name)).toEqual([sketchClub.name]);
+      expect(featured[0]).toMatchObject({ runByPlayer: true, featured: true });
+    });
+  });
+
+  it("counts clicks per day, recent and in all, and nothing else", async () => {
+    await inRolledBackDb(async (db) => {
+      const { w, id } = await setUp(db);
+      await countFriendClick(db, id, "2026-10-01");
+      await countFriendClick(db, id, "2026-11-10");
+      await countFriendClick(db, id, "2026-11-10");
+      // An id that isn't in the directory counts nothing.
+      const stranger = parseId<FriendLeagueId>(
+        "00000000-0000-4000-8000-000000000000",
+      );
+      if (!stranger) throw new Error("bad test id");
+      await countFriendClick(db, stranger, "2026-11-10");
+      const counts = await friendClickCounts(db, w.leagueId, "2026-11-01");
+      expect(counts.get(id)).toEqual({ recent: 2, total: 3 });
+      expect(counts.size).toBe(1);
+      const rows = await db
+        .select()
+        .from(friendClick)
+        .where(eq(friendClick.friendLeagueId, id));
+      // Only the entry, the day and the count: nothing about who clicked.
+      expect(Object.keys(rows[0] ?? {}).sort()).toEqual([
+        "clicks",
+        "day",
+        "friendLeagueId",
+      ]);
+    });
+  });
+
+  it("drops an entry's counts when it leaves the directory", async () => {
+    await inRolledBackDb(async (db) => {
+      const { w, id } = await setUp(db);
+      await countFriendClick(db, id, "2026-11-10");
+      const removed = await removeFriendLeague(db, {
+        leagueId: w.leagueId,
+        id,
+        actorId: w.admin,
+      });
+      expect(removed.ok).toBe(true);
+      expect((await friendClickCounts(db, w.leagueId, "2026-11-01")).size).toBe(
+        0,
+      );
     });
   });
 });

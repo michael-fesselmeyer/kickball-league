@@ -70,6 +70,8 @@ async function EditFriend({ params, searchParams }: Props) {
           description: entry.description ?? "",
           url: entry.url,
           linksBack: entry.linksBack,
+          runByPlayer: entry.runByPlayer,
+          featured: entry.featured,
         }}
         submitLabel="Save changes"
         hasLogo={entry.logo !== null}

@@ -5,12 +5,28 @@ import type { FriendFields } from "@/domain/friends/friend-form";
 import { fixturePhoto } from "@/services/instagram-fixture";
 import type { SeedData } from "./generate";
 
+/** An entry that isn't run by one of our players. */
+const LEAGUE = { runByPlayer: false, featured: false } as const;
+
 /**
  * The demo league's friends directory: invented local leagues on
  * example.test sites, two with a drawn logo (stripes, like the seeded
- * Instagram photos). Entries go with the league when it is deleted.
+ * Instagram photos), and a club one of our players runs, featured on the
+ * events page. Entries go with the league when it is deleted.
  */
 export const SEED_FRIENDS: readonly (FriendFields & { logo: boolean })[] = [
+  {
+    name: "Sunday Sketch Club",
+    activity: "other",
+    area: "Greenpoint",
+    description:
+      "A drawing meetup every other Sunday afternoon, run by one of our players. Any sketchbook, any level.",
+    url: "https://sunday-sketch-club.example.test/",
+    linksBack: true,
+    runByPlayer: true,
+    featured: true,
+    logo: false,
+  },
   {
     name: "Greenpoint Slow-Pitch Social",
     activity: "softball",
@@ -19,6 +35,7 @@ export const SEED_FRIENDS: readonly (FriendFields & { logo: boolean })[] = [
       "Coed slow-pitch on Saturday mornings. Gloves to borrow, and a team for anyone who signs up alone.",
     url: "https://slow-pitch-social.example.test/",
     linksBack: true,
+    ...LEAGUE,
     logo: true,
   },
   {
@@ -28,6 +45,7 @@ export const SEED_FRIENDS: readonly (FriendFields & { logo: boolean })[] = [
     description: "Seven-a-side, all levels, with a pickup night in the summer.",
     url: "https://northside-soccer.example.test/",
     linksBack: false,
+    ...LEAGUE,
     logo: true,
   },
   {
@@ -37,6 +55,7 @@ export const SEED_FRIENDS: readonly (FriendFields & { logo: boolean })[] = [
     description: "A bar pool league with handicaps, so beginners win too.",
     url: "https://rack-em-wednesdays.example.test/",
     linksBack: true,
+    ...LEAGUE,
     logo: false,
   },
   {
@@ -47,6 +66,7 @@ export const SEED_FRIENDS: readonly (FriendFields & { logo: boolean })[] = [
       "Board game nights twice a month. Bring a game or learn one at the table.",
     url: "https://meeple-night.example.test/",
     linksBack: false,
+    ...LEAGUE,
     logo: false,
   },
 ];

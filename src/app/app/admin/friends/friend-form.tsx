@@ -73,6 +73,8 @@ export function FriendFormFields({
   const [fileError, setFileError] = useState<string | null>(null);
   const v = state.values;
   const error = fileError ?? state.error;
+  const [runByPlayer, setRunByPlayer] = useState(v.runByPlayer);
+  const featuredHintId = useId();
 
   return (
     <form
@@ -181,6 +183,37 @@ export function FriendFormFields({
         />
         They link back to us
       </label>
+      <fieldset className="flex flex-col gap-1 rounded-card border border-border p-4">
+        <legend className="px-1 font-bold">Run by one of our players</legend>
+        <label className="flex min-h-11 items-center gap-3">
+          <input
+            type="checkbox"
+            name="runByPlayer"
+            value="yes"
+            checked={runByPlayer}
+            onChange={(e) => setRunByPlayer(e.target.checked)}
+            className="size-5"
+          />
+          List it under &ldquo;Run by our players&rdquo;
+        </label>
+        <label className="flex min-h-11 items-center gap-3">
+          <input
+            type="checkbox"
+            name="featured"
+            value="yes"
+            defaultChecked={v.featured}
+            disabled={!runByPlayer}
+            aria-describedby={featuredHintId}
+            className="size-5"
+          />
+          Feature it on the events page
+        </label>
+        <p id={featuredHintId} className="text-small text-text-muted">
+          A small card on the public events page, for a club one of our players
+          runs. Clicks out to its site are counted (counts only, never who), so
+          you can show the club what the promotion is worth.
+        </p>
+      </fieldset>
       <Field
         label={hasLogo ? "Replace the logo" : "Logo"}
         hint="Optional. PNG, JPEG or WebP under 800 KB. It's shrunk to a small square copy."

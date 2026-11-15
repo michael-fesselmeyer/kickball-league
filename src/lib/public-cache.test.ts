@@ -127,7 +127,7 @@ describe("refreshSeasonCards", () => {
 });
 
 describe("refreshFriendPages", () => {
-  it("expires the league's own friends page at once, and every league's", () => {
+  it("expires the league's own friends and events pages at once, and every league's", () => {
     refreshFriendPages({ slug: "flag-football", isDefault: false });
     refreshFriendPages({ slug: "kickball", isDefault: true });
 
@@ -138,8 +138,12 @@ describe("refreshFriendPages", () => {
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
       ["/l/flag-football/friends"],
       ["/l/[league]/friends", "page"],
+      ["/l/flag-football/events"],
+      ["/l/[league]/events", "page"],
       ["/l/_default/friends"],
       ["/l/[league]/friends", "page"],
+      ["/l/_default/events"],
+      ["/l/[league]/events", "page"],
     ]);
   });
 });

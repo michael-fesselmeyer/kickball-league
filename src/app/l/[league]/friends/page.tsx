@@ -4,13 +4,14 @@ import { CopySnippet } from "@/components/copy-snippet";
 import { JsonLd } from "@/components/json-ld";
 import { db } from "@/db/client";
 import { type FriendLeague, friendDirectory } from "@/db/queries/friends";
+import { clickPingPath } from "@/domain/friends/clicks";
 import type { LeagueId } from "@/domain/ids";
 import { leagueHref } from "@/domain/league/paths";
 import { publicLeague, withCanonical } from "@/lib/league/public";
 import {
   ACTIVITY_SPORT,
   displayHost,
-  groupByActivity,
+  groupDirectory,
 } from "@/domain/friends/friend-form";
 import { env } from "@/env";
 import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
@@ -32,7 +33,7 @@ const TITLE = "Friends of the league";
 const METADATA: Metadata = {
   title: TITLE,
   description:
-    "Softball, soccer, pool, tabletop games and more: other local leagues our players love, and how to link to us from yours.",
+    "Clubs our players run, plus softball, soccer, pool, tabletop games and more: other local leagues our players love, and how to link to us from yours.",
 };
 
 export function generateMetadata({
@@ -54,7 +55,7 @@ export default async function FriendsPage({
   const entries = await cachedFriendDirectory(league.id);
   const origin = siteOrigin(env.BETTER_AUTH_URL);
   const home = absoluteUrl(origin, leagueHref(league, "/"));
-  const groups = groupByActivity(entries);
+  const groups = groupDirectory(entries);
   // The JSON-LD lists entries in the same order the page shows them.
   const ordered = groups.flatMap((g) => g.entries);
 
@@ -86,8 +87,9 @@ export default async function FriendsPage({
         </h1>
         <p className="max-w-prose text-body-lg text-text-muted">
           Lots of our players also play softball, soccer, pool or board games
-          around town. These are the local leagues they love. Give one a try in
-          the off-season, and tell them the kickball crowd sent you.
+          around town, and some run clubs of their own. These are the groups
+          they love. Give one a try in the off-season, and tell them the
+          kickball crowd sent you.
         </p>
       </header>
 
@@ -99,18 +101,24 @@ export default async function FriendsPage({
       ) : (
         <div className="flex flex-col gap-8">
           <p className="text-small text-text-muted">
-            Each link goes to that league&apos;s own site, which we don&apos;t
-            run.
+            Each link goes to that group&apos;s own site, which we don&apos;t
+            run. We count how many people follow each link, and nothing about
+            who they are.
           </p>
           {groups.map((group) => (
             <section
-              key={group.activity}
-              aria-labelledby={`group-${group.activity}`}
+              key={group.key}
+              aria-labelledby={`group-${group.key}`}
               className="flex flex-col gap-3"
             >
-              <h2 id={`group-${group.activity}`} className="text-h2">
+              <h2 id={`group-${group.key}`} className="text-h2">
                 {group.label}
               </h2>
+              {group.key === "players" && (
+                <p className="max-w-prose text-text-muted">
+                  Hobby clubs and meetups run by people who play in the league.
+                </p>
+              )}
               <ul className="grid gap-4 sm:grid-cols-2">
                 {group.entries.map((f) => (
                   <li key={f.id}>
@@ -181,6 +189,7 @@ function FriendCard({ friend: f }: { friend: FriendLeague }) {
         {f.description && <p className="text-small">{f.description}</p>}
         <a
           href={f.url}
+          ping={clickPingPath(f.id)}
           rel="noopener"
           className="inline-block self-start py-3 font-bold break-words underline"
         >
