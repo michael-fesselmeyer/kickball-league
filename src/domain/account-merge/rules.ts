@@ -122,6 +122,15 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     label: "waiver signatures",
     handler: "waiver_signatures",
   },
+  "conduct_acceptance.user_id": {
+    kind: "dedupe",
+    label: "code of conduct acceptances",
+    by: ["code_id"],
+    resolve: "drop",
+    clash:
+      "Both accepted the same version of the code of conduct; the kept account's acceptance stands",
+  },
+  "conduct_code.created_by": actor("codes of conduct published"),
   "waitlist_entry.user_id": {
     kind: "dedupe",
     label: "waitlist places",
