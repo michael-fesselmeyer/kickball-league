@@ -1,6 +1,7 @@
 import { cacheLife } from "next/cache";
 import { db } from "@/db/client";
 import { nextGameDayStart } from "@/db/queries/demo";
+import { defaultLeague } from "@/db/queries/leagues";
 import type { ForecastHour } from "@/domain/weather/forecast";
 import { env } from "@/env";
 import { demoStatus } from "@/lib/demo/guard";
@@ -56,7 +57,12 @@ async function demoHourly(): Promise<ForecastHour[]> {
   "use cache";
   cacheLife("minutes");
   const now = new Date();
-  return fixtureForecast(now, await nextGameDayStart(db, now));
+  // Showers over the default league's next game day (ADR 0048).
+  const league = await defaultLeague(db);
+  return fixtureForecast(
+    now,
+    league ? await nextGameDayStart(db, league.id, now) : null,
+  );
 }
 
 /** The hourly forecast for a place, or null when it cannot be had right now. */

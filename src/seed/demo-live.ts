@@ -12,7 +12,7 @@ import { queueScoreReminders } from "@/db/queries/score-reminders";
 import { game, gamePeriod, slot } from "@/db/schema/game";
 import { league } from "@/db/schema/league";
 import { season } from "@/db/schema/season";
-import type { GameId } from "@/domain/ids";
+import type { GameId, LeagueId } from "@/domain/ids";
 import { fixtureForecast } from "@/services/weather-fixture";
 import { PERSONA_IDS } from "./demo-personas";
 
@@ -55,7 +55,8 @@ export type LiveDemo = {
 };
 
 /**
- * Makes the freshly seeded demo league look like a game night in progress
+ * Makes the freshly seeded demo league (the default league; one league
+ * only, ADR 0048) look like a game night in progress
  * (docs/demo.md), after `demo:reset` has seeded it:
  *
  * 1. The next round still to play moves to today, so its first games
@@ -70,9 +71,13 @@ export type LiveDemo = {
  *
  * Only ever run on the demo database (scripts/demo-live.ts checks).
  */
-export async function liveDemo(db: Db, now: Date): Promise<LiveDemo> {
-  const liveGameId = await startLiveRound(db, now);
-  const rainWatchFrom = await nextGameDayStart(db, now);
+export async function liveDemo(
+  db: Db,
+  leagueId: LeagueId,
+  now: Date,
+): Promise<LiveDemo> {
+  const liveGameId = await startLiveRound(db, leagueId, now);
+  const rainWatchFrom = await nextGameDayStart(db, leagueId, now);
   let queued = 0;
   if (rainWatchFrom) {
     const alertAt = new Date(rainWatchFrom.getTime() - ALERT_LEAD);
@@ -90,14 +95,22 @@ export async function liveDemo(db: Db, now: Date): Promise<LiveDemo> {
  * Moves the next round to today and starts its first games. A game night
  * already under way is left as it is, so running this twice is harmless.
  */
-async function startLiveRound(db: Db, now: Date): Promise<GameId | null> {
+async function startLiveRound(
+  db: Db,
+  leagueId: LeagueId,
+  now: Date,
+): Promise<GameId | null> {
   const [live] = await db
     .select({ id: game.id })
     .from(game)
     .innerJoin(season, eq(game.seasonId, season.id))
     .innerJoin(slot, eq(game.slotId, slot.id))
     .where(
-      and(eq(season.status, "in_progress"), eq(game.status, "in_progress")),
+      and(
+        eq(season.leagueId, leagueId),
+        eq(season.status, "in_progress"),
+        eq(game.status, "in_progress"),
+      ),
     )
     .orderBy(asc(slot.startsAt), asc(game.id))
     .limit(1);
@@ -109,6 +122,7 @@ async function startLiveRound(db: Db, now: Date): Promise<GameId | null> {
     .innerJoin(season, eq(game.seasonId, season.id))
     .where(
       and(
+        eq(season.leagueId, leagueId),
         eq(season.status, "in_progress"),
         eq(game.status, "scheduled"),
         isNotNull(game.slotId),

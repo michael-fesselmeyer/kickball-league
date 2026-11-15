@@ -14,7 +14,9 @@ import {
 import { message } from "@/db/schema/message";
 import { profile } from "@/db/schema/profile";
 import { gamePlacement, scheduleVersion } from "@/db/schema/schedule";
+import { league } from "@/db/schema/league";
 import { season } from "@/db/schema/season";
+import { grantRole } from "@/db/test/leagues";
 import { messagingWorld } from "@/db/test/messaging-world";
 import { closePool, inRolledBackDb } from "@/db/test/transaction";
 import type { FieldId, GameId, SlotId } from "@/domain/ids";
@@ -49,11 +51,10 @@ async function nightWorld(db: Db) {
   const admin = await w.person("admin");
   await db
     .insert(profile)
-    .values({ userId: admin.userId, globalRole: "admin" })
-    .onConflictDoUpdate({
-      target: profile.userId,
-      set: { globalRole: "admin" },
-    });
+    .values({ userId: admin.userId })
+    .onConflictDoNothing();
+  // An admin of this league (ADR 0048): the rain alert goes to them.
+  await grantRole(db, admin.userId, "admin", w.leagueId);
   await db
     .insert(user)
     .values({
@@ -142,7 +143,7 @@ describe("liveDemo", () => {
   it("moves the next round to tonight and starts its first games a few innings in", () =>
     inRolledBackDb(async (db) => {
       const w = await nightWorld(db);
-      const done = await liveDemo(db, NOW);
+      const done = await liveDemo(db, w.leagueId, NOW);
       const first = [w.nextFirst.gameId, w.nextBeside.gameId];
       expect(first).toContain(done.liveGameId);
 
@@ -216,7 +217,7 @@ describe("liveDemo", () => {
     inRolledBackDb(async (db) => {
       const w = await nightWorld(db);
       // 12:10 am in New York: 40 minutes ago was yesterday.
-      await liveDemo(db, new Date("2027-05-11T04:10:00Z"));
+      await liveDemo(db, w.leagueId, new Date("2027-05-11T04:10:00Z"));
       expect(await startOf(db, w.nextFirst.slotId)).toEqual(
         new Date("2027-05-11T04:00:00Z"),
       );
@@ -228,9 +229,9 @@ describe("liveDemo", () => {
   it("leaves a game night already under way as it is", () =>
     inRolledBackDb(async (db) => {
       const w = await nightWorld(db);
-      const once = await liveDemo(db, NOW);
+      const once = await liveDemo(db, w.leagueId, NOW);
       const later = new Date(NOW.getTime() + 2 * HOUR);
-      const twice = await liveDemo(db, later);
+      const twice = await liveDemo(db, w.leagueId, later);
       expect(twice.liveGameId).toBe(once.liveGameId);
       expect(await startOf(db, w.nextFirst.slotId)).toEqual(
         new Date("2027-05-10T17:20:00Z"),
@@ -252,17 +253,34 @@ describe("liveDemo", () => {
         .update(season)
         .set({ status: "completed" })
         .where(eq(season.status, "in_progress"));
-      const done = await liveDemo(db, NOW);
+      const done = await liveDemo(db, w.leagueId, NOW);
       expect(done.liveGameId).toBeNull();
       expect(await startOf(db, w.nextFirst.slotId)).toEqual(edt(11, 20));
+    }));
+
+  it("leaves another league's games alone (ADR 0048)", () =>
+    inRolledBackDb(async (db) => {
+      const w = await nightWorld(db);
+      const [other] = await db
+        .insert(league)
+        .values({ name: "Other league", slug: `other-${w.tag}` })
+        .returning({ id: league.id });
+      const done = await liveDemo(db, other!.id, NOW);
+      expect(done).toEqual({
+        liveGameId: null,
+        rainWatchFrom: null,
+        queued: 0,
+      });
+      expect(await startOf(db, w.nextFirst.slotId)).toEqual(edt(11, 20));
+      expect((await linescore(db, w.nextFirst.gameId)).halves).toBe(0);
     }));
 
   it("puts a rain watch on the next game day and the admins' alert in the mail", () =>
     inRolledBackDb(async (db) => {
       const w = await nightWorld(db);
-      const done = await liveDemo(db, NOW);
+      const done = await liveDemo(db, w.leagueId, NOW);
       expect(done.rainWatchFrom).toEqual(edt(18, 20));
-      expect(await nextGameDayStart(db, NOW)).toEqual(edt(18, 20));
+      expect(await nextGameDayStart(db, w.leagueId, NOW)).toEqual(edt(18, 20));
       const alerts = await db
         .select({ userId: message.userId, template: message.template })
         .from(message)
