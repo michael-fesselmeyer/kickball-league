@@ -12,6 +12,8 @@ import {
 } from "@/domain/concerns/concerns";
 import { formStrings } from "@/lib/form";
 import { allowPublicConcern } from "@/lib/contact-limits";
+import { canWrite } from "@/domain/platform/operator";
+import { currentSite } from "@/lib/platform/site";
 import { sendQueuedSoon } from "@/services/outbox";
 
 export type ContactState =
@@ -44,6 +46,14 @@ export async function sendContact(
   _previous: ContactState,
   form: FormData,
 ): Promise<ContactState> {
+  // No account, so the same stop the signed-in actions have while the site is
+  // read-only or paused.
+  const site = await currentSite();
+  if (site && !canWrite(site.status, false))
+    return {
+      status: "error",
+      message: "The league is paused. Try again later.",
+    };
   const raw = formStrings(form, FIELDS);
   if (raw.website.trim() !== "") return { status: "sent" };
   const now = new Date();

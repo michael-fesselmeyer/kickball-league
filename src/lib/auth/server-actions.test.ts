@@ -17,6 +17,8 @@ const ALLOWED_WITHOUT_GUARD = new Set([
   "app/sign-in/actions.ts",
   "app/app/actions.ts",
   "app/demo/actions.ts",
+  // The public contact form has no account; it stops while frozen itself.
+  "app/contact/actions.ts",
   "app/operator/actions.ts",
   // Emails a fresh sign-in link; the operator needs it while frozen.
   "lib/auth/confirm-actions.ts",
