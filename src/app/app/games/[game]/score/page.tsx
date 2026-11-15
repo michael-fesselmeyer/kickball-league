@@ -21,6 +21,7 @@ import { PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
 import { teamRatingFor } from "@/db/queries/discipline";
 import { canFileFor, canRate } from "@/domain/discipline/discipline";
+import { markOpen } from "@/domain/attendance/attendance";
 import { cardsVisible } from "@/domain/emergency/emergency";
 import { featureEnabled } from "@/lib/platform/site";
 import { respondAction } from "./actions";
@@ -170,6 +171,14 @@ async function Score({
   const myRating = rates ? await teamRatingFor(db, g.id, myTeam) : null;
   const reports =
     discipline && canFileFor(g, now).ok && can(subject, "incident.log", ctx);
+  // From game day, who played (ADR 0063).
+  const takesAttendance =
+    can(subject, "attendance.take", ctx) &&
+    markOpen(
+      { status: g.status, startsAt: g.startsAt, timeZone: tz },
+      now,
+      can(subject, "score.override"),
+    ).ok;
   // On game day, the players' emergency contacts (ADR 0043).
   const emergencyShown = cardsVisible(
     { status: g.status, startsAt: g.startsAt, timeZone: tz },
@@ -360,6 +369,11 @@ async function Score({
           opponent={myTeam === g.teamAId ? g.teamBName : g.teamAName}
           current={myRating}
         />
+      )}
+      {takesAttendance && (
+        <Link href={`/app/games/${g.id}/attendance`} className="underline">
+          Check-in
+        </Link>
       )}
       {emergencyShown && (
         <Link href={`/app/games/${g.id}/emergency`} className="underline">
