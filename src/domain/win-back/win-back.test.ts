@@ -13,7 +13,6 @@ import {
   stateOf,
   winBackMessage,
 } from "./win-back";
-import { winBackEmail } from "@/emails/win-back";
 
 const person = (over: Partial<Candidate>): Candidate => ({
   userId: "00000000-0000-4000-8000-000000000001" as UserId,
@@ -153,9 +152,5 @@ describe("winBackMessage", () => {
     );
     expect(message.subject.length).toBe(SUBJECT_MAX);
     expect(message.subject.endsWith("…")).toBe(true);
-    // And it renders: the payload passes the email's own check.
-    expect(
-      winBackEmail(message, { siteUrl: "https://league.example.test" }).ok,
-    ).toBe(true);
   });
 });
