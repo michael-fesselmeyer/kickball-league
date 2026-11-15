@@ -163,6 +163,24 @@ describe("rendererFor", () => {
     expect(remind(3, true).text).toContain("Sign the season waiver first");
   });
 
+  it("tells the teams and the ref about a ruling, with its reason", () => {
+    const result = render("game_ruling", {
+      gameId: "game-1",
+      teams: "Aces vs Bees",
+      when: "Sun, Sep 13, 7:00 PM, Field 2",
+      kind: "forfeit_reversed",
+      result: "Aces 7, Bees 4",
+      previously: "Bees forfeited",
+      reason: "Bees were stuck in traffic.",
+    });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe("Ruling: Aces vs Bees");
+    expect(result.value.text).toContain("A forfeit was reversed");
+    expect(result.value.text).toContain("It replaces: Bees forfeited.");
+    expect(result.value.text).toContain("Bees were stuck in traffic.");
+    expect(result.value.text).toContain("/app/games/game-1/score");
+  });
+
   it("asks the ref, then the captains, for a missing score", () => {
     const remind = (role: "referee" | "captain") => {
       const result = render("score_reminder", {

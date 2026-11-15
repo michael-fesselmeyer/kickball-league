@@ -46,6 +46,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 **Admins**
 
 - Generate a season schedule, see why any game could not be placed, edit on a drag-and-drop board, publish versions with a diff and run playoffs.
+- Written rulings: recording or reversing a forfeit, settling a disputed score or correcting a final one asks for a short reason. Both captains and the ref see the ruling and reason and are messaged, the public game page says only "Forfeit" or "Ruling", and each one is in the audit log.
 - Call a rain-out with a weather decision card, a preview of makeups and notices to only the players affected.
 - A game-day command center, a ref assigner and pay sheet, rule changes with a dated change log, sub, concern and incident queues, and an audit log.
 - Divisions with crossover games, season rollover, events with tickets and giveaways, sponsors, and photo review.

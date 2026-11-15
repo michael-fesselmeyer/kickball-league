@@ -23,6 +23,9 @@ describe("status and results", () => {
     expect(statusLabel(publicGame())).toBeNull();
     expect(statusLabel(publicGame({ status: "in_progress" }))).toBe("Live");
     expect(statusLabel(final(1, 0))).toBe("Final");
+    expect(statusLabel(publicGame({ status: "final", ruled: true }))).toBe(
+      "Ruling",
+    );
     expect(statusLabel(publicGame({ status: "cancelled" }))).toBe("Cancelled");
     expect(statusLabel(publicGame({ status: "postponed" }))).toBe("Postponed");
     expect(statusLabel(publicGame({ slotCancelled: true }))).toBe("Rained out");

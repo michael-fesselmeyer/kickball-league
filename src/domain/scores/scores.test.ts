@@ -4,6 +4,8 @@ import {
   PLAYOFF_TIE,
   type Report,
   respondingTeams,
+  rulingKind,
+  rulingNeedsReason,
   scoreState,
 } from "./scores";
 
@@ -203,5 +205,34 @@ describe("checkScore in the playoffs", () => {
     expect(checkScore({ ...tie, scoreB: 5 }, { tiesAllowed: false })).toEqual(
       {},
     );
+  });
+});
+
+describe("rulings", () => {
+  const open = { hasReports: false, closed: false };
+  it("needs no reason for an admin's first plain score", () => {
+    expect(rulingNeedsReason({ outcome: "normal", ...open })).toBe(false);
+    expect(rulingNeedsReason({ outcome: "called", ...open })).toBe(false);
+  });
+  it("needs a reason for a forfeit, a score after a report, and a change to a final result", () => {
+    expect(rulingNeedsReason({ outcome: "forfeit_a", ...open })).toBe(true);
+    expect(rulingNeedsReason({ outcome: "forfeit_b", ...open })).toBe(true);
+    expect(
+      rulingNeedsReason({ outcome: "normal", hasReports: true, closed: false }),
+    ).toBe(true);
+    expect(
+      rulingNeedsReason({ outcome: "normal", hasReports: false, closed: true }),
+    ).toBe(true);
+  });
+  it("names what the ruling did", () => {
+    expect(rulingKind("forfeit_a", { status: "scheduled" })).toBe("forfeit");
+    expect(rulingKind("normal", { status: "forfeit" })).toBe(
+      "forfeit_reversed",
+    );
+    expect(rulingKind("called", { status: "forfeit" })).toBe(
+      "forfeit_reversed",
+    );
+    expect(rulingKind("normal", { status: "final" })).toBe("ruling");
+    expect(rulingKind("forfeit_b", { status: "forfeit" })).toBe("forfeit");
   });
 });

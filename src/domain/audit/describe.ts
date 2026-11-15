@@ -188,6 +188,9 @@ const ACTIONS: Record<string, string> = {
   "schedule.publish_override":
     "Published the schedule before its permit documents were uploaded",
   "schedule.save_version": "Saved a schedule draft",
+  "game.forfeit": "Recorded a forfeit, with a reason",
+  "game.forfeit_reversed": "Reversed a forfeit, with a reason",
+  "game.ruling": "Ruled on a score, with a reason",
   "score.override": "Corrected a score",
   "season.assign_waiver": "Chose the season's waiver",
   "season.cards": "Built the season's end-of-season player cards",
