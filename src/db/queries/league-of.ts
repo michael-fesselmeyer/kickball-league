@@ -30,6 +30,8 @@ export const LEAGUE_OF = {
     sql`select s.league_id from division d join season s on s.id = d.season_id where d.id = ${id}`,
   bracket: (id) =>
     sql`select s.league_id from bracket b join season s on s.id = b.season_id where b.id = ${id}`,
+  checklist_task: (id) =>
+    sql`select s.league_id from checklist_task t join season s on s.id = t.season_id where t.id = ${id}`,
   award_poll: (id) =>
     sql`select s.league_id from award_poll p join season s on s.id = p.season_id where p.id = ${id}`,
   suspension: (id) =>

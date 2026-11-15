@@ -16,13 +16,13 @@ import {
   ensureTemplate,
   templateTasks,
 } from "@/db/queries/checklist";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   CHECKLIST_FORM_ERRORS,
   type ChecklistFormError,
   offsetLabel,
 } from "@/domain/checklist/tasks";
 import { requirePermission } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 import {
   addTemplateTaskAction,
   deleteTemplateTaskAction,
@@ -64,13 +64,13 @@ async function Template({
   await requirePermission("checklist.template", {
     next: "/app/admin/checklist-template",
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   // A league with no template gets the starter tasks (ADR 0061).
   await txDb.transaction((tx) => ensureTemplate(tx, league.id));
   const [tasks, staff] = await Promise.all([
     templateTasks(db, league.id),
-    checklistStaff(db),
+    checklistStaff(db, league.id),
   ]);
   const error = pick(ERRORS, query.error);
   const notice = pick(NOTICES, query.notice);

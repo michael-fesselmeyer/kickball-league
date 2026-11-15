@@ -5,7 +5,7 @@ import type { UserId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
 import { checklistTask } from "../schema/checklist";
-import { league } from "../schema/league";
+import { league, leagueMember } from "../schema/league";
 import { message } from "../schema/message";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
@@ -37,6 +37,7 @@ async function world(db: Db) {
     .values({ name: "Checklist League", slug: `ops-${tag}` })
     .returning({ id: league.id });
   if (!lg) throw new Error("league");
+  const leagueId = lg.id;
   const [sn] = await db
     .insert(season)
     .values({
@@ -54,16 +55,16 @@ async function world(db: Db) {
   if (!sn) throw new Error("season");
   async function person(
     name: string,
-    globalRole: "player" | "admin" | "owner",
+    role: "player" | "admin" | "owner",
   ): Promise<UserId> {
     const [u] = await db
       .insert(user)
       .values({ name, email: `ops-${name}-${tag}@example.test` })
       .returning({ id: user.id });
     if (!u) throw new Error("user");
-    await db
-      .insert(profile)
-      .values({ userId: u.id, firstName: name, globalRole });
+    await db.insert(profile).values({ userId: u.id, firstName: name });
+    // Roles are per league (ADR 0048).
+    await db.insert(leagueMember).values({ leagueId, userId: u.id, role });
     return u.id;
   }
   return {
@@ -225,7 +226,7 @@ describe("a season's checklist", () => {
   it("lists owners and admins, never players, as task owners", async () => {
     await inRolledBackDb(async (db) => {
       const w = await world(db);
-      const staff = (await checklistStaff(db)).map((s) => s.userId);
+      const staff = (await checklistStaff(db, w.leagueId)).map((s) => s.userId);
       expect(staff).toContain(w.owner);
       expect(staff).toContain(w.admin);
       expect(staff).not.toContain(w.player);
