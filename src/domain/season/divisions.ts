@@ -1,5 +1,6 @@
 import { err, ok, type Result } from "../result";
 import { slugify } from "../slug";
+import { type PermitEndRule, permitEndRule } from "../gameday/permit-end";
 
 /**
  * Divisions and rule sets as an admin enters them (ADR 0040). Pure: the
@@ -25,6 +26,8 @@ export type RuleSetInput = {
   timeLimitMinutes: number | null;
   bunting: boolean;
   stealing: boolean;
+  /** What happens when a game reaches the end of its permit; the default when left out. */
+  permitEndRule?: PermitEndRule;
 };
 
 /** A whole number in range, or null when the field was left empty. */
@@ -45,6 +48,8 @@ export function parseRuleSet(raw: {
   timeLimitMinutes: string;
   bunting: boolean;
   stealing: boolean;
+  /** "last_inning_to_start" or "call_at_last_complete"; anything else is the default. */
+  permitEndRule?: string;
 }): Result<RuleSetInput, "invalid_name" | "invalid_limits"> {
   const name = raw.name.trim().replace(/\s+/g, " ");
   if (!slugify(name) || name.length > MAX_DIVISION_NAME)
@@ -59,6 +64,7 @@ export function parseRuleSet(raw: {
     timeLimitMinutes,
     bunting: raw.bunting,
     stealing: raw.stealing,
+    permitEndRule: permitEndRule({ permitEndRule: raw.permitEndRule }),
   });
 }
 

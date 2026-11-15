@@ -376,7 +376,11 @@ export async function addRuleSet(
       name: input.name,
       innings: input.innings,
       timeLimitMinutes: input.timeLimitMinutes,
-      options: { bunting: input.bunting, stealing: input.stealing },
+      options: {
+        bunting: input.bunting,
+        stealing: input.stealing,
+        ...(input.permitEndRule ? { permitEndRule: input.permitEndRule } : {}),
+      },
       createdBy: actorId,
     })
     .returning({ id: ruleSet.id });
