@@ -50,6 +50,7 @@ import { scoreConfirmationEmail } from "./score-confirmation";
 import { scoreDisputeEmail } from "./score-dispute";
 import { scoreReminderEmail } from "./score-reminder";
 import { seasonCardEmail } from "./season-card";
+import { shirtSizeEmail } from "./shirt-size";
 import { subRequestEmail, subUpdateEmail } from "./sub-request";
 import { surveyInviteEmail } from "./survey-invite";
 import { winBackEmail } from "./win-back";
@@ -104,6 +105,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     score_dispute: scoreDisputeEmail,
     score_reminder: scoreReminderEmail,
     season_card: seasonCardEmail,
+    shirt_size_reminder: shirtSizeEmail,
     sub_request: subRequestEmail,
     sub_update: subUpdateEmail,
     suspension: suspensionEmail,

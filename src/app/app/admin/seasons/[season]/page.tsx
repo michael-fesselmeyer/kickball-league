@@ -134,6 +134,12 @@ async function Season({
             Shirts
           </Link>
           <Link
+            href={`/app/admin/seasons/${slug}/shirt-order`}
+            className="underline"
+          >
+            Shirt order
+          </Link>
+          <Link
             href={`/app/admin/seasons/${slug}/survey`}
             className="underline"
           >

@@ -25,9 +25,12 @@ import type { Db } from "./schedule";
 
 export type ShirtPlayer = {
   registrationId: RegistrationId;
+  userId: UserId;
   name: string;
   size: ShirtSize | null;
   status: ShirtStatus;
+  /** Where the sign-up stands: the shirt order counts held spots only. */
+  registrationStatus: (typeof registration.$inferSelect)["status"];
 };
 
 export type ShirtTeam = {
@@ -44,7 +47,9 @@ export async function shirtBoard(
   const people = await db
     .select({
       registrationId: registration.id,
+      userId: registration.userId,
       status: registration.shirtStatus,
+      registrationStatus: registration.status,
       size: profile.shirtSize,
       firstName: profile.firstName,
       lastName: profile.lastName,
@@ -81,12 +86,14 @@ export async function shirtBoard(
   for (const p of people) {
     const player: ShirtPlayer = {
       registrationId: p.registrationId,
+      userId: p.userId,
       name:
         p.firstName && p.lastName
           ? `${p.firstName} ${p.lastName}`
           : p.accountName || "New player",
       size: p.size,
       status: p.status,
+      registrationStatus: p.registrationStatus,
     };
     const spot = teamOf.get(p.registrationId);
     if (!spot) {

@@ -180,6 +180,14 @@ async function Shirts({
             Download the roster with shirt sizes (CSV)
           </a>
         </p>
+        <p>
+          <Link
+            href={`/app/admin/seasons/${slug}/shirt-order`}
+            className="underline"
+          >
+            Shirt order: counts for the vendor, sizes offered, reminders
+          </Link>
+        </p>
       </header>
       {query.error && (
         <p role="alert" className="rounded-lg border border-danger p-3">

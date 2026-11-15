@@ -124,6 +124,7 @@ export async function inviteByToken(
       shareCents: teamSeason.shareCents,
       paymentMode: teamSeason.paymentMode,
       leagueId: season.leagueId,
+      seasonId: season.id,
       seasonSlug: season.slug,
       seasonName: season.name,
       rosterMax: season.rosterMax,

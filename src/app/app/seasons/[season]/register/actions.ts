@@ -10,6 +10,7 @@ import {
   registerTeam,
   seasonForRegistration,
 } from "@/db/queries/registration";
+import { saveShirtSize, shirtSettings } from "@/db/queries/shirt-order";
 import { recordOf } from "@/domain/guards";
 import {
   parseId,
@@ -25,6 +26,7 @@ import {
 import { readyToRegister } from "@/domain/profile/profile-form";
 import { ageMessage } from "@/domain/registration/age";
 import { localDate } from "@/domain/scheduler/slots";
+import { pickSize } from "@/domain/shirts/order";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";
 import { mayRegister } from "@/lib/private-events/invite";
@@ -46,6 +48,7 @@ const MESSAGES: Record<string, string> = {
   bad_roster_size: "Pick a roster size within the season's limits.",
   bad_color: "Pick a team color.",
   profile_incomplete: "Finish your profile before registering.",
+  shirt_size: "Pick your shirt size.",
 };
 
 /** The message for an error code, with the season's minimum age. */
@@ -69,7 +72,8 @@ async function context(slug: string) {
   const person = await profileOf(db, subject.userId);
   const today = localDate(new Date(), league.timeZone);
   const complete = person !== null && readyToRegister(person, today);
-  return { subject, league, season, complete };
+  const { sizes } = await shirtSettings(db, season.id);
+  return { subject, league, season, complete, sizes };
 }
 
 /** The referral link this person arrived through, if any. */
@@ -97,6 +101,7 @@ async function creditReferral(
 }
 
 const TEAM_FIELDS = [
+  "shirtSize",
   "teamId",
   "name",
   "colorHex",
@@ -114,9 +119,11 @@ export async function registerTeamAction(
   _previous: RegisterState,
   form: FormData,
 ): Promise<RegisterState> {
-  const { subject, league, season, complete } = await context(slug);
+  const { subject, league, season, complete, sizes } = await context(slug);
   const values = recordOf(TEAM_FIELDS, (k) => text(form, k));
   if (!complete) return { values, error: MESSAGES.profile_incomplete };
+  const shirtSize = pickSize(values.shirtSize, sizes);
+  if (!shirtSize) return { values, error: MESSAGES.shirt_size };
   const teamId = values.teamId ? parseId<TeamId>(values.teamId) : null;
   if (values.teamId && !teamId) return { values, error: MESSAGES.bad_name };
   const code = await referralCode();
@@ -136,12 +143,14 @@ export async function registerTeamAction(
       ageConfirmed: form.get("ageConfirmed") === "yes",
       now: new Date(),
     });
-    if (registered.ok)
+    if (registered.ok) {
+      await saveShirtSize(tx, { userId, size: shirtSize });
       await creditReferral(tx, code, {
         userId,
         seasonId: season.id,
         registrationId: registered.value.registrationId,
       });
+    }
     return registered;
   });
   // A second tap, or a resend, finds the first one's registration: show it.
@@ -158,10 +167,16 @@ export async function registerFreeAgentAction(
   previous: RegisterState,
   form: FormData,
 ): Promise<RegisterState> {
-  const { subject, season, complete } = await context(slug);
+  const { subject, season, complete, sizes } = await context(slug);
   // A private event takes whole teams, not free agents.
   if (season.visibility === "private") notFound();
   if (!complete) return { ...previous, error: MESSAGES.profile_incomplete };
+  const shirtSize = pickSize(text(form, "shirtSize"), sizes);
+  if (!shirtSize)
+    return {
+      values: { shirtSize: text(form, "shirtSize") },
+      error: MESSAGES.shirt_size,
+    };
   const code = await referralCode();
   const userId = subject.userId;
   const result = await txDb.transaction(async (tx) => {
@@ -171,12 +186,14 @@ export async function registerFreeAgentAction(
       ageConfirmed: form.get("ageConfirmed") === "yes",
       now: new Date(),
     });
-    if (registered.ok)
+    if (registered.ok) {
+      await saveShirtSize(tx, { userId, size: shirtSize });
       await creditReferral(tx, code, {
         userId,
         seasonId: season.id,
         registrationId: registered.value,
       });
+    }
     return registered;
   });
   if (!result.ok && result.error === "already_registered")
