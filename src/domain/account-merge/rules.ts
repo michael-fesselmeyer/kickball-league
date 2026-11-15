@@ -235,6 +235,8 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
   "merch_item.created_by": actor("merch items created"),
   "field_layout.updated_by": actor("field layouts changed"),
   "season_shirts.updated_by": actor("shirt orders changed"),
+  "shirt_spare.actor_id": actor("spare shirts logged or handed out"),
+  "shirt_maker.created_by": actor("shirt makers added"),
 
   // Games
   "game_rsvp.user_id": {
