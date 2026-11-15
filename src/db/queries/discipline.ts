@@ -299,6 +299,7 @@ export async function fileIncident(
       .values({
         gameId: g.id,
         kind: input.incident.kind,
+        parkRule: input.incident.parkRule ?? null,
         details: input.incident.details,
         reportedBy: input.reportedBy,
         reporterRole: input.role,
@@ -321,6 +322,7 @@ export async function fileIncident(
       entityId: created.id,
       after: {
         kind: input.incident.kind,
+        parkRule: input.incident.parkRule ?? null,
         people: people.length,
       },
     });

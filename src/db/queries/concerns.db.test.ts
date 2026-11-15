@@ -200,9 +200,9 @@ describe("working a concern", () => {
       expect(queue.closed).toHaveLength(1);
       expect(queue.answeredInDay).toEqual({ total: 1, quick: 1 });
 
-      expect(await reopenConcern(db, { concernId: id, actorId: admin })).toEqual(
-        ok(undefined),
-      );
+      expect(
+        await reopenConcern(db, { concernId: id, actorId: admin }),
+      ).toEqual(ok(undefined));
     });
   });
 
