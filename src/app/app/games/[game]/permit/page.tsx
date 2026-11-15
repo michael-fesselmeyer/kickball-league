@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { fieldPermitForGame } from "@/db/queries/books";
+import { layoutForGame } from "@/db/queries/field-layouts";
 import { fullWhen, kickoff } from "@/domain/schedule/format";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
@@ -40,7 +41,12 @@ async function Permit({ params }: PageProps<"/app/games/[game]/permit">) {
     next: `/app/games/${rawId}/permit`,
   });
   const gameId = parseId<GameId>(rawId);
-  const permit = gameId ? await fieldPermitForGame(db, gameId) : null;
+  const [permit, layout] = gameId
+    ? await Promise.all([
+        fieldPermitForGame(db, gameId),
+        layoutForGame(db, gameId),
+      ])
+    : [null, null];
   if (!permit) notFound();
   if (
     !can(subject, "permit.view_at_field", {
@@ -108,6 +114,33 @@ async function Permit({ params }: PageProps<"/app/games/[game]/permit">) {
             Show this to a park officer if asked.
           </figcaption>
         </figure>
+      )}
+      {layout && (layout.fileId !== null || layout.note) && (
+        <section aria-labelledby="layout" className="flex flex-col gap-2">
+          <h2 id="layout" className="text-h2">
+            Field layout
+          </h2>
+          {layout.fileId !== null &&
+            (layout.contentType === "application/pdf" ? (
+              <a
+                href={`/app/games/${permit.gameId}/permit/layout`}
+                className="btn self-start btn-secondary"
+              >
+                Open the layout (PDF)
+              </a>
+            ) : (
+              <figure className="flex flex-col gap-2">
+                {/* A private, uncached file: next/image would cache it. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/app/games/${permit.gameId}/permit/layout`}
+                  alt={`Layout of ${permit.fieldName}: where the permitted area ends and where each diamond and spectator area goes`}
+                  className="w-full rounded-lg border border-border"
+                />
+              </figure>
+            ))}
+          {layout.note && <p>{layout.note}</p>}
+        </section>
       )}
       <Link href="/app" className="underline">
         Back to your home screen

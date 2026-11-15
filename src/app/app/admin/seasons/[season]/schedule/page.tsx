@@ -54,6 +54,8 @@ const ERRORS: Record<string, string> = {
   unknown_game: "That game is not in this version.",
   unknown_slot: "That slot does not exist.",
   has_violations: "This version breaks a hard rule, so it cannot be published.",
+  missing_layout:
+    "A field this schedule uses has no layout yet. Add one, or confirm none is needed, on the Fields and permits screen.",
   not_draft: "Only a draft can be published.",
   unknown_version: "That version no longer exists.",
   missing_documents:

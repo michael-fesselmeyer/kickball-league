@@ -5,6 +5,9 @@ import { Suspense } from "react";
 import { db } from "@/db/client";
 import { gamesOnLostPermits } from "@/db/queries/books";
 import { fieldsScreen } from "@/db/queries/fields";
+import { fieldsWithLayouts } from "@/db/queries/field-layouts";
+import { FILE_MESSAGES } from "@/domain/books/files";
+import { MAX_LAYOUT_NOTE } from "@/domain/fields/layout";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { localDate } from "@/domain/scheduler/slots";
 import { localTime } from "@/domain/time/zoned";
@@ -15,6 +18,7 @@ import {
   createField,
   createPermits,
   createVenue,
+  saveLayout,
   cutSlots,
   deleteBlackout,
   deletePermit,
@@ -56,12 +60,20 @@ const ERRORS: Record<string, string> = {
   blackout_unknown_field: "Pick one of the league's fields, or all fields.",
   blackout_duplicate: "That blackout is already there.",
   blackout_unknown_blackout: "That blackout is gone.",
+  layout_note: `Keep the note to ${MAX_LAYOUT_NOTE} characters.`,
+  layout_no_layout:
+    "Upload a layout, or tick that the field needs none, before adding a note.",
+  layout_too_large: FILE_MESSAGES.too_large,
+  layout_not_supported: FILE_MESSAGES.not_supported,
+  layout_storage_full: FILE_MESSAGES.storage_full,
+  layout_unreadable: FILE_MESSAGES.unreadable,
   slots_bad_length: "A slot is 15 to 480 minutes long.",
 };
 
 const NOTICES: Record<string, (q: Record<string, string>) => string> = {
   venue_added: () => "Venue added.",
   field_added: () => "Field added.",
+  layout_saved: () => "Layout saved.",
   permits_added: (q) =>
     `${plural(Number(q.count), "permit window")} added. Cut slots to use them.`,
   permit_updated: () => "Permit updated. Cut slots again to apply it.",
@@ -118,9 +130,10 @@ async function Fields({
   const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
 
-  const [screen, lostGames] = await Promise.all([
+  const [screen, lostGames, layouts] = await Promise.all([
     fieldsScreen(db, season.leagueId, season.id),
     gamesOnLostPermits(db, season.id),
+    fieldsWithLayouts(db, season.leagueId),
   ]);
   const tz = season.timeZone;
   const fieldName = new Map(
@@ -277,6 +290,87 @@ async function Fields({
             </label>
             <SubmitButton className="btn btn-secondary">Add field</SubmitButton>
           </form>
+        )}
+      </section>
+
+      <section aria-labelledby="layouts" className="flex flex-col gap-4">
+        <h2 id="layouts" className="text-h2">
+          Field layouts
+        </h2>
+        <p className="text-text-muted">
+          Show where the permitted area ends and where each diamond and
+          spectator area goes. Set-up crews, refs and captains see it at the
+          field, and it is saved on their phones. A schedule can&apos;t be
+          published while a field it uses has neither a layout nor your word
+          that it needs none.
+        </p>
+        {layouts.length === 0 ? (
+          <p>Add a venue and a field first.</p>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {layouts.map((f) => (
+              <li
+                key={f.id}
+                className="flex flex-col gap-2 rounded-xl border border-border p-3"
+              >
+                <h3 className="text-h3">
+                  {f.venueName}, {f.name}
+                </h3>
+                <p
+                  className={
+                    f.state === "missing" ? "font-bold text-danger" : ""
+                  }
+                >
+                  {f.state === "layout"
+                    ? "A layout is on file."
+                    : f.state === "none_needed"
+                      ? "No layout needed."
+                      : "No layout yet."}
+                </p>
+                <form
+                  action={saveLayout.bind(null, slug, f.id)}
+                  className="flex flex-col gap-3"
+                >
+                  <label className="flex flex-col gap-1">
+                    {f.layout?.fileId ? "Replace the layout" : "Layout"} (photo
+                    or PDF)
+                    <input
+                      name="layout"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,application/pdf"
+                      className={input}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    Note
+                    <input
+                      name="note"
+                      defaultValue={f.layout?.note ?? ""}
+                      maxLength={MAX_LAYOUT_NOTE}
+                      placeholder="Cones at the four corners"
+                      className={input}
+                    />
+                  </label>
+                  <label className="flex min-h-11 items-center gap-2">
+                    <input
+                      name="noLayoutNeeded"
+                      type="checkbox"
+                      defaultChecked={f.state === "none_needed"}
+                      className="size-5"
+                    />
+                    This field needs no layout
+                  </label>
+                  <SubmitButton className="btn self-start btn-secondary">
+                    Save layout
+                    <span className="sr-only">
+                      {" "}
+                      for {f.venueName}, {f.name}
+                    </span>
+                  </SubmitButton>
+                </form>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

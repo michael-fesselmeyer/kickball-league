@@ -13,12 +13,15 @@ import {
   setPermitStatus,
   syncSlots,
 } from "@/db/queries/fields";
+import { fieldInLeague, setFieldLayout } from "@/db/queries/field-layouts";
 import {
   tellOwnersOfNewGaps,
   uncoveredKeys,
 } from "@/db/queries/permit-coverage";
 import type { Db } from "@/db/queries/schedule";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { parseLayoutNote } from "@/domain/fields/layout";
+import { prepareUpload } from "@/lib/books/store-file";
 import type {
   BlackoutId,
   FieldId,
@@ -260,4 +263,45 @@ export async function cutSlots(slug: string, form: FormData) {
   );
   if (!result.ok) back(page, "slots", { error: `slots_${result.error}` });
   back(page, "slots", { notice: "slots_synced", ...result.value });
+}
+
+/**
+ * Saves a field's layout: a new image or PDF, an admin's word that the field
+ * needs none, and the short note. Leaving the file empty keeps the one on
+ * file and changes only the note.
+ */
+export async function saveLayout(
+  slug: string,
+  rawFieldId: string,
+  form: FormData,
+) {
+  const fieldId = parseId<FieldId>(rawFieldId);
+  if (!fieldId) notFound();
+  const { page, actor, season } = await context(slug);
+  if (!(await fieldInLeague(db, season.leagueId, fieldId))) notFound();
+  const note = parseLayoutNote(text(form, "note"));
+  if (note === "too_long") back(page, "layouts", { error: "layout_note" });
+  const picked = form.get("layout");
+  let file = null;
+  if (picked instanceof Blob && picked.size > 0) {
+    const prepared = await prepareUpload(picked);
+    if (!prepared.ok)
+      back(page, "layouts", { error: `layout_${prepared.error}` });
+    file = prepared.value;
+  }
+  const result = await txDb.transaction((tx) =>
+    setFieldLayout(
+      tx,
+      {
+        leagueId: season.leagueId,
+        fieldId,
+        file,
+        noLayoutNeeded: form.get("noLayoutNeeded") === "on",
+        note,
+      },
+      actor,
+    ),
+  );
+  if (!result.ok) back(page, "layouts", { error: `layout_${result.error}` });
+  back(page, "layouts", { notice: "layout_saved" });
 }
