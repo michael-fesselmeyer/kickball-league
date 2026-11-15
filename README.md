@@ -1,375 +1,156 @@
 # Kickball League
 
-> Software to run a recreational adult kickball league: registration and payment, waivers, a fair season schedule, game-day scores and rain-outs, built first for a Brooklyn league of 8 to 12 teams.
+> One site to run a recreational adult kickball league: registration and payment, waivers, a fair season schedule, game-day scores and rain-outs, and the owners' books, all usable from a phone at the field.
 
-**Live:** [kickball-league.vercel.app](https://kickball-league.vercel.app) (an earlier build: automatic deployments are paused until launch) · **Status:** season core in progress. Scheduling, registration, game day and the admin tools work; card payments and email are built but stay off until their accounts are configured (free-tier hosting, see [ADR 0003](docs/adr/0003-free-hosting-and-secrets.md))
+**Live:** [kickball-league.vercel.app](https://kickball-league.vercel.app) (an earlier build: automatic deployments are paused until launch) · **Status:** feature complete. Card payments, email and push stay off until their accounts are configured (free-tier hosting, see [ADR 0003](docs/adr/0003-free-hosting-and-secrets.md)). Read the [case study](docs/case-study.md) for how it is built and why.
 
-## Why this exists
+## The problem
 
-Adult rec leagues run on a patchwork: a registration form, a payment link, a PDF rulebook, a spreadsheet schedule and a group chat. Captains chase teammates for money, admins rebuild the schedule by hand every time it rains, and nobody can find the standings. This project replaces that patchwork with one site a player can use from their phone at the field.
+Adult rec leagues run on a patchwork: a registration form, a payment link, a PDF rulebook, a spreadsheet schedule and a group chat. Captains chase teammates for money, admins rebuild the schedule by hand every time it rains, refs text scores from the sideline, and nobody can find the standings. The league's owners also have to hold park permits, insurance and the books together.
 
-The first deployment targets a real Brooklyn league that plays in McCarren Park: weeknight evenings in spring and fall, Sunday afternoons in summer. The design decisions, tests and history are written to be read.
+This project replaces the patchwork with one site. Players register, sign the waiver and pay in a few taps. The schedule is generated fairly and re-planned when it rains. Refs enter scores with no signal. Everyone is told only what concerns them. The first deployment targets a Brooklyn league that plays at McCarren Park, and one deployment can host several leagues.
+
+## Screenshots
+
+> Screenshots are added once the launch build is live. Until then, `npm run demo` runs the whole app on one laptop ([walkthrough](docs/demo.md)).
+
+| Player home   | Public schedule | Game day command center | Schedule board |
+| ------------- | --------------- | ----------------------- | -------------- |
+| _placeholder_ | _placeholder_   | _placeholder_           | _placeholder_  |
 
 ## Features
 
-What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next.
+Highlights by audience. The complete list, with every rule and edge case, is in [docs/features.md](docs/features.md).
 
-**Scheduling**
+**Players**
 
-- A season scheduler that turns permit windows into game slots, builds round-robin rounds, places games with a min-cost assignment and improves them with local search. It checks eleven hard constraints and reports fairness metrics, and property tests cover it ([how it works](docs/scheduling-algorithm.md)).
-- Divisions with crossover games: an admin can split a season into divisions, such as Competitive and Social, each with an optional rule set (innings, time limit, bunting, stealing). Each division plays its own round robin, plus a set number of crossover games a team against the other division, spread through the season with every fairness guarantee kept. Standings are ranked within each division, with crossover results counted unless the season says otherwise, and playoffs seed per division, meeting in a combined final or crowning a champion each. A season with no divisions plays as one pool ([ADR 0040](docs/adr/0040-divisions-and-crossover-games.md)).
-- Before the schedule is made, captains send the dates their team can't play and the game times it would rather have or avoid. Conflicts are never broken; preferences are weighed, and the schedule screen shows the share honored.
-- Admins generate a draft, see why any game could not be placed, move or swap games by form, and publish. Each publish saves a version with a diff.
-- Permit coverage: nothing is posted on a field the league doesn't hold. Publishing a schedule (including a moved game or a rain-out makeup) and saving a pickup game, practice or other event on a league field each check that a permit with its uploaded document, not marked lost, covers the field for the whole time, and explain any gap ("Field 3 is permitted until 8:00 PM; this game ends at 8:20 PM"). When the league holds the permit but its document isn't uploaded yet, an owner or admin can go ahead by typing a reason, which goes in the audit log; a lost permit or missing hours can't be overridden. An event can be marked "open play, no reserved field" instead, and its page says so. The owners' permits screen lists every upcoming game or event that isn't covered, and owners get one email when a permit is marked lost or a window removed and something loses its cover ([ADR 0065](docs/adr/0065-publish-only-inside-a-documented-permit.md)).
-- Schedule board (desktop): drag a game to an open slot, or onto another game to swap them. While a game is held, the board shows the hard-rule problems and the change in each fairness metric that dropping it there would cause, from the scheduler's own checks. Arrow keys, Enter and Escape do the same without a mouse, and several changes save together as one new draft.
-- Rain-outs: pick a scope, preview the affected games and proposed makeups, and confirm. Each affected player is emailed their own game's new time, and nobody else hears about it. An owner makes the call: admins see everything and send the day to the owners to confirm, unless the owners let admins confirm too, for days no owner is around. Nothing is ever cancelled automatically, and every send, confirm and setting change is in the audit log ([ADR 0057](docs/adr/0057-owner-confirmed-rainouts.md)).
-- Rain-out decision card: on the rain-out screen and the game-day command center, each park's own National Weather Service data: the chance of rain, expected rainfall and thunder for every game hour, the rain the nearest station measured in the last 24 and 48 hours (a soaked field can be unplayable when it's dry at game time), active alerts, and one sentence such as "Likely unplayable: 0.6 in fell in the last 24 hours and 70% chance of storms 6 to 8 pm." It shows when each number was fetched, and while NWS is down it says so and shows the last data saved.
-- Weather: upcoming game pages show the temperature at kickoff and the chance of rain from the National Weather Service, cached so pages never wait on it. About a day before each game day, admins get a "watch" or "likely" rain alert linking to the rain-out screen with that day chosen, once per level. On game days, about 4 to 5 hours before first pitch, whoever confirms rain-outs gets the decision card's sentence when rain is worth watching or likely, once per game day.
-- Game-day status: on a doubtful day an admin sets On, Watching the weather with a decision time ("we'll decide by 3 pm"), Delayed with a new start for chosen games, or Off for chosen games or the whole day, with a short reason. It shows at the top of the public schedule, on each affected game page and on players' home screens, and on the installed app with no signal as the last known status with its time. Delayed, Off and Back on send one urgent message to the players in the affected games only; a watch reaches only players who asked for weather watches. Admins are reminded when a decision time passes with no change, and games that are off go through the rain-out flow for makeups.
-- Game-day checklist: a game day can have a "Set-up lead" volunteer shift, and whoever claims it gets a checklist for the day: each field with its permit, the admins' short script for asking people to move, a one-tap note that a group was asked to move and how it went (fine, refused or a complaint, with an optional note; anything but fine shows on the incidents screen), and a set-up check. On game day each captain's checklist (before and after play, written by the admins each season, with sensible defaults) is ticked per team per game and works with no signal. After the last game at a field, its ref, a captain or the set-up lead confirms "Field left clean" or notes a problem, with an optional photo, and the command center shows each field's set-up and end-of-day checks.
-- Playoffs: an admin seeds the bracket from the final standings with the configured tiebreakers, and the scheduler places every round on fields and times, top seeds getting byes when the field is uneven. It publishes as a schedule version like the regular season. Winners move on as soon as a playoff score is final, and the next game appears on the schedule in its reserved slot.
+- Sign up with an email link, Google or a passkey; sign the waiver, confirm the age check and pay by full or split pay through Stripe, with promo codes and league credit applied.
+- Join a team by invite link or as a free agent; a matcher finds the best-fit team and keeps friends together.
+- RSVP, see the kicking order, find and take sub spots, and check in at the field by scanning a rotating QR code.
+- Live scores, standings, power rankings, pick'em for bragging rights, awards votes and an end-of-season card to share.
+- An installable phone app: the next game opens with no signal, and push messages cover rain-outs and sub requests.
+- Download everything the league holds, or delete the account.
 
-**Registration and payment**
+**Captains**
 
-- Player profiles with an 18+ check, and versioned waivers signed before payment.
-- An age check ([ADRs 0041](docs/adr/0041-age-check-at-registration.md) and [0050](docs/adr/0050-minimum-age-defaults-to-18.md)): the league's minimum age is 18 by default, the same as the profile's, and a season can set a higher one. Registering a team, joining as a free agent, joining by a captain's invite and signing the waiver each ask the player to confirm they meet it ("I'm 18 or older"), checked against the birth date on their profile. A player it shows as too young sees a friendly message instead of the form. Only the age confirmed and when are stored with the registration or signature, never a new birth date.
-- Team registration with full or split pay, invite links, and a roster board showing who has joined, signed and paid. Free agents register solo, take a one-minute team-fit quiz (rate your own kicking, fielding and running, say whether you're competitive or here for fun, and how many game nights you can make) and can share a friend code so up to four friends stay together.
-- A free-agent matcher for admins: it suggests a team for everyone in the pool with plain-language reasons ("Helps Thunder field a full lineup: it has 3 women and 7 men"), keeps friend groups together, stays within roster sizes and fills each team's need for women and men under the fielding rule first. Admins apply one suggestion or all of them, or build a new team from the pool with a volunteer captain. Its promises are checked by property tests.
-- Start-a-new-team requests: a player already in the season (on a team or as a free agent) asks to start a team with a name, expected size and a note. Admins approve or decline from one screen, and the requester hears back by email. Approval creates the team in "forming" status with them as captain, moves them off their old team and tells that captain, and the invite flow takes over. A player who already paid keeps that payment as their share.
-- Captain handoff and co-captains: a captain offers the captaincy to a teammate, who accepts or declines on their team page; nothing changes until they accept, and then the old captain stays on as a co-captain. The captain also makes teammates co-captains, who get the team's tools (kicking orders, sub requests, scores, who has paid, the private list) but can't hand the team over or change the captain's role, and a co-captain can step down. Admins can do the same from the registrations screen; every change is audited and the people involved are emailed ([ADR 0042](docs/adr/0042-captain-handoff-and-co-captains.md)).
-- A private "not on my team" list for each team: a captain adds a league member by email address, with an optional reason only the team's captains and the league's admins read. The team's invite link shows that person exactly what an expired link shows, the matcher never suggests the team for them (an admin placing them by hand sees a warning naming the team, and an override is audited), and they never hear of or see the team's sub requests. Nothing else changes for them, and nobody tells them. Admins see every list with its reasons, long lists and anyone listed by several teams; a person's own export leaves out entries about them unless the owners choose otherwise, and deleting either account removes the entries ([ADR 0036](docs/adr/0036-not-on-my-team-list.md)).
-- Stripe Checkout with an idempotent webhook (test mode, on once keys are set), plus cash or Venmo payments recorded by admins and captains.
-- Promo codes per season: a percentage or an amount off, with an optional limit on uses and a last day. Players type one when they pay, and Stripe charges the lower price ([ADR 0010](docs/adr/0010-promo-codes-applied-in-app.md)). Admins see how often each code was used and can turn one off.
-- League credit: an append-only ledger per player, filled by rain-out rebates, referrals and goodwill from admins, and taken off the next fee at checkout (players can untick it). Credit held by an unfinished checkout comes back on its own. Players see their balance and history on their account page.
-- Captain guarantee for split-pay teams: the team page shows the fee, what is paid and what is left, with a button to pay the rest. A captain can save a card through Stripe; 72 hours before the payment deadline they get an email, then the card is charged off-session for whatever is still unpaid, and the webhook confirms the team ([ADR 0022](docs/adr/0022-captain-guarantee-and-league-credit.md)).
-- A team waitlist for full seasons. Captains join the line and see their place; when a spot opens (an admin raises the team limit), the next one is emailed and the spot is held for 48 hours. Nobody can take a held spot or jump the line.
-- Rain-out rebates: an admin screen shows each team's regular games lost and money paid, and issues the pro-rata rebate as league credit to everyone who paid toward a team that lost more than the season's threshold (25% by default).
-- Referral links (`/r/<code>`): when someone new registers through a player's link and pays, the player gets $10 of league credit.
-- Full or partial refunds from the registrations screen. Stripe payments go back through Stripe and show as refunded once Stripe's `charge.refunded` webhook confirms; cash and Venmo handed back are marked refunded with a note. A refund needs a sign-in from the last 15 minutes, and every refund is in the audit log and in the payments download.
-- Shirt tracking: sizes by team from players' profiles, what is still to order for late joiners, and a received flag per player.
-- The shirt order: every sign-up (registering a team, joining as a free agent or by invite link) asks for a shirt size from the sizes the admin offers that season, and keeps it on the player's profile. The admin's shirt order screen counts sizes for the whole league and for each team with its color, lists who has no size yet and reminds them by email once, and shows the paid replacement jerseys to make with it. The vendor's CSV has sizes and counts only; player names are added only when the admin ticks "include names for team packing". The admin marks the order placed and received, which updates each player's shirt, and an owner adds its cost to the books as a shirts expense in one tap.
-- CSV downloads of rosters (with shirt sizes) and payments: the whole season for admins, one team for its captains. Cells that a spreadsheet would run as a formula are written as text, and every download is logged.
-- A league shop: admins list league gear and replacement team jerseys with photos, sizes, a price and member price, stock or made to order, and an order deadline. Players order through Stripe Checkout with league credit applied; a replacement jersey starts in their team's color and their profile's size. Stock never oversells, admins mark orders fulfilled or refund them, and download a CSV for the printer.
-- Emergency contacts on game day: each player keeps one emergency contact (name, relationship, phone) and can add a short first-aid note, after a plain note on who sees it and when. The league stores it encrypted. Only the two captains and the ref of a game the player is in can read it, and only on that game's day, on a page that the home screen also saves on their phone until midnight for a field with no signal. Admins don't see it, every read is in the audit log, and it is in the player's data export and deleted with their account ([ADR 0043](docs/adr/0043-emergency-contacts-sealed-and-shown-on-game-day.md)).
-- Players download everything the league holds about them as JSON, and can delete their account. Deleting anonymizes the person so past rosters, scores and payments stay correct, and needs a sign-in from the last 15 minutes plus their email address typed again.
-- Merging duplicate accounts: an admin picks the account a player uses and the extra one, previews what moves and how each clash is settled (one RSVP per game, one vote per poll, the earliest waiver signature), and merges. Registrations, payments, league credit, waivers, RSVPs, lineups, votes, tickets, merch orders, photos, incidents, passkeys and everything else move in one transaction; the old address keeps working as another name for the kept account and can no longer sign in on its own ([ADR 0041](docs/adr/0041-merging-duplicate-accounts.md)).
-- Passkeys: after signing in once, a player adds a passkey and signs in with Face ID, Touch ID or their device PIN, from a button or the email field's autofill. The account page lists every signed-in device and signs one, or all the others, out. Sensitive actions (adding or removing a passkey, deleting the account, the operator's changes) ask for a confirmation from the last 15 minutes, which a passkey gives in one tap.
+- Register a team, share the invite link and see who has joined, signed and paid; a card on file guarantees a split-pay team's balance.
+- Send blackout dates and time preferences before the schedule is made; build kicking orders that check the league's gender-run rule.
+- Ask for subs, answer score confirmations, see availability by week and hand the team to a co-captain.
+- Keep a private "not on my team" list and download the team's roster and payments.
 
-**Game day**
+**Refs**
 
-- Refs see their assigned games and enter scores from their phone. The captains who need to answer are asked by email (and push, if they turned it on) to confirm or dispute, and undisputed scores become final.
-- Covering a game with no ref: a ref who can't make it drops the game with a short reason (admins see it) until it starts. When a game starting within a day has no ref, the league's refs who aren't playing or reffing then get one urgent message, by email and push, with a "Take it" button, at once when a ref drops out and each morning otherwise. The first to tap it gets the game; anyone after sees it's taken. The game-day screen lists every game starting within a day that still has no ref ([ADR 0054](docs/adr/0054-first-ref-to-take-a-game-gets-it.md)).
-- Live scoring, always optional: once a game's slot starts, the ref's home screen offers "Keep score live". The ref, or a captain when there is no ref, taps a big "+1 run" for each run and "End half" after each half-inning (no runs is just End half), one-handed, with undo for the last tap, and the count survives a locked screen or a reload. The public game page shows the line score, marked unofficial until final, and updates within 15 seconds without a reload; a final game thanks whoever kept score. One tap at the end reports the final score, or fills in the score form, and it is confirmed or disputed like any other, so live innings never settle a game on their own. A called game goes back to the score at the last complete inning. A game clock counts down the time limit from the scheduled start (7 innings or 90 minutes unless the division's rule set says otherwise) and tells the ref when the inning under way is the last, since no new inning starts in the last 10 minutes (a rule-set setting).
-- Players answer in, out or maybe, and captains see a warning when the fielding rule is at risk: how many pickups a short team needs (none in playoff games), and a forfeit when fewer than 6 of the team's own players are in, since pickups don't count toward that minimum.
-- Field check-in ([ADR 0063](docs/adr/0063-field-check-in.md)): on game day the ref or a captain holds up a rotating QR code for the game; players scan it and tap Check in, which records that they played and for which team. Approved subs and pickups count too. The check-in screen flags anyone checked in who hasn't signed the season's waiver, and captains, the ref or an admin can tick players in or out by hand, at the field or up to a week later. Captains see their team's attendance and each player's games played; a season can set a minimum number of games to play in the playoffs.
-- Away weeks: players tick the weeks of a season they'll miss on their profile. Captains see how many players are available for each game week, who is away, and when the players left can't field a full lineup under the fielding rule, with a one-tap link to ask for a sub. The captains also get one email the first time a player's change leaves a week short.
-- A kicking-order builder: the captain orders the players who are in (and any approved pickups, who kick last) by dragging, by keyboard or with up and down buttons. It checks the league's rule of no more than two of the same gender in a row as the order changes, counting from the last kicker back to the first, explains each break in plain words, and auto-arranges a valid order, moving as few people as it can, or says why none exists. When one gender outnumbers the other by more than two to one, the league lets the team keep a separate order for each, and the builder says so instead of flagging runs. An order can be copied from the team's last game. Each player sees their spot; on game day the ref and the other captain see the order, names only ([ADR 0030](docs/adr/0030-kicking-order-sides.md)).
-- A sub finder: a short-handed captain asks for subs for a game, with spots reserved for women or men when the fielding rule needs them. Registered players with a signed waiver who are free at that time hear about it by email (free agents first, and only if sub alerts are on). A player's "I'm in" holds a spot until the captain approves or declines, so two players can never take the last spot at once. Both captains and the ref see who is playing as a pickup. Not offered for playoff games.
-- Awards voting: admins open a poll for one game day or the whole season (MVP, best play, best sport, best newcomer, or team spirit and best dressed for teams) with a closing time. Players on a roster that season vote once, never for themselves or their own team, and a weekly ballot lists only the teams that played that day. Nobody, admins included, sees a count while voting is open; after it closes a results page ranks everyone, with ties sharing a place. The database keeps it to one vote per player per poll, even when two arrive at once.
-- Pick'em, for bragging rights only (no money, no entry fee, no prizes): signed-in players pick the winner of each game on the coming game day and can change a pick until that game starts. Picks count once a score is confirmed; forfeits, ties, rain-outs and games moved to another slot void them. A game day and a season leaderboard rank players by right picks, ties sharing a place, and anyone can hide from them. An admin decides whether players may pick their own team's games.
-- Your season in kickball: once a season is completed, an admin builds every rostered player's end-of-season card, and each player gets one message that can wait for the morning. The card shows the games they made (from RSVPs and kicking orders), their team's runs, the biggest inning where a game was scored live, the record and finish, the awards they won and how many polls they voted in, their longest win streak and best game. Playful league-wide marks are added when earned (highest-scoring team, the league's biggest inning, never missing a game, wins by a single run, filling in as a sub), plus a sportsmanship shout-out when other captains rated the team well. It is private until the player makes its link public; the public page has a share image and "Share on WhatsApp", and making the card private again takes the page and image down. No other player appears on a card.
-- Stat awards and a Season MVP: at season end an admin works out six awards from what the app records (kicking orders, RSVPs, bar check-ins, live scores, sportsmanship ratings, sub spots and closed polls): Season MVP (a weighted score of runs, wins while playing, attendance and the MVP vote, with the weights an admin setting), Iron Kicker, Golden Boot, Best Teammate, Rookie of the Year and Sub of the Year. Ties share. Admins review the draft, add notes and publish a static awards page that prints every formula and says how many games each number is based on; winners get a badge on their team page, and season polls list the stat leaders as suggestions. Each player has a stats page for every season and their career, and can stay off public leaderboards ([ADR 0046](docs/adr/0046-stat-awards-and-the-season-mvp-formula.md)).
-- Sportsmanship, incidents and suspensions: after a final score each captain rates the other team from 1 to 5, with an optional note only admins read. Admins see every team's average for the season, and a captain sees their own team's averaged over whole blocks of three ratings, so nobody can tell who gave which rating. The game's ref, either captain or an admin can report an incident (an ejection, outside alcohol at the sponsor bar, a safety issue and so on) naming the people involved; admins review reports, add notes and resolve them. From a report an admin suspends a player for a number of games, the rest of the season or permanently, with the rulebook's outside-alcohol ladder (1 game, then the season, then for good) suggested from the player's history. A suspended player can't say they're in for a game, claim a sub spot or be placed from the free-agent pool; their captain sees that they're suspended, not why, and they get one email with the length and how to appeal. Games served count down on their own as the team's games go final ([ADR 0026](docs/adr/0026-discipline-counted-not-stored.md)).
-- Who has this field: each park the league plays in has a public, static page (`/fields/<park>`) listing the fields the league holds under a confirmed NYC Parks permit for the next permitted days, with each permit's number, hours and issuer, a line for today worked out in the browser (including days with no permit), and the league's short house rules. It reads only public seasons' confirmed permit windows; costs, documents and renewal dates never appear.
-- Injury reports: the game's ref, either captain or an admin files one from the incident screen with who was hurt, where, what care was needed, what happened and who saw it, from fixed lists and a short text. Only owners and admins read it, and every opening, export and deletion is in the audit log. Owners and admins are emailed that a report was filed, with a link and no details. A report downloads for the insurance carrier with the dates of the league's current insurance certificate. The details are deleted three years after the report, or sooner by an admin ([ADR 0064](docs/adr/0064-injury-reports.md)).
-- Public standings with the configured tiebreakers, a table per division when the season has divisions. Each division has its own static schedule page, and crossover games are marked.
-- An installable app: a web app manifest with the league's icons and light and dark theme colors, and a service worker that keeps the app shell and each signed-in person's next game on the phone, so the game page opens with no signal (marked as a saved copy) and anything else shows an offline page. Signed-in screens, payments, waivers, admin and API responses are never cached. Captains, refs and admins are offered the install from their second visit on; "Not now" is remembered.
-- Offline score entry: with no signal, a ref or captain can still enter the final score, or the runs of each half-inning when scoring live, on an open score screen. Each entry is saved on the phone ("Saved on this phone, will send when you're back online") and sent when the signal returns: in the background on Android, and the next time the app is opened on an iPhone. The server takes each entry once, and if the score changed in the meantime (the other captain reported or confirmed one, or someone saved that half first), it keeps the server's score and tells the person what stands.
-- League gear: admins list the league's kits (ball bags, bases, pumps, cones, the first-aid kit) with what's in each and where it lives, and assign a kit to a game's ref, a captain or an admin for a game day. That person sees "You have Kit A: bring it to McCarren Park, Field 2 by 6:30 PM" on their home screen next to the game, and gets a reminder the evening before saying where to pick it up. A handoff is one tap ("I handed Kit A to Sam") and the kit is Sam's only once Sam confirms; missing items are reported with a note. Admins see where every kit is right now, each kit's history and the day's gear on the command center, and every change is in the audit log.
-- Share a photo: players and captains upload photos from their phones, tagged to a recent game day, a public event or their team, with an optional caption and a required "The league may repost this on its socials". The phone shrinks the photo before sending it; the server checks it is really a photo by its bytes, stores one JPEG at most 1440 px and 1 MB with its location and other metadata removed, and allows 10 a day per person and 100 MB for the league, saying clearly when either is reached. Photos only, no videos. Each player sees what the league decided and can delete their photo at any time; deleting an account deletes them all ([ADR 0039](docs/adr/0039-member-photos-in-postgres.md)).
+- See assigned games, take an uncovered game with one tap, enter the final score or keep score live inning by inning, with offline entry that syncs when the signal returns.
+- Report incidents and see the permit for the field they are at.
 
-**Score stats**
+**Admins**
 
-- Power rankings from record, recent form, run difference and strength of schedule, with each team's movement since the last game day.
-- Win and loss streaks, the all-time series between any two teams, a game of the week for the next game day, and a league records page. All of it is computed on demand by pure, property-tested functions in `src/domain/stats`.
-- A weekly recap drafted from templates (results, rankings, streaks, new records, next week's big game) that an admin edits and sends as an announcement through the outbox.
-- A league history page: every completed season with its champion and final standings, and an all-time table. Team pages show the team's all-time record (wins, losses, ties, run difference) and the titles it won, added up from each season's standings in `src/domain/history`.
-
-**Home bar and sponsors**
-
-- A sponsors page with the home bar first, and a page for each sponsor with its deals (days, hours, fine print) and the date the sponsor last confirmed them. Both are static HTML and carry structured data for the business.
-- QR check-in with a rotating code ([ADR 0016](docs/adr/0016-rotating-check-in-code.md)): the bar shows a code that changes every 5 minutes, drawn as a QR code on the server. A signed-in player scans it, taps Check in (once a day counts) and can use each of the day's deals once. An old or copied code soon stops working.
-- A sponsor portal for the sponsor's own people and admins: add, change or turn off deals, confirm in one tap that they are still current, show the check-in code on a screen at the bar, and edit the page's details. Admins add sponsors, choose the home bar and give people access.
-- Weekly numbers for each sponsor: check-ins, different players, teams and deals used by week, with the most used deals and the teams that came by most. Counts only, never names.
-- Team of the week: admins see each game day's best wins (an upset of a higher-ranked team counts most) and name a team, with an optional tab at a sponsor. It shows on the sponsors page and the sponsor's page.
-
-**Friends of the league**
-
-- A public, static directory of the other local leagues players also play in (softball, soccer, pool, tabletop games and more), grouped by activity, with each league's area, a short description, its logo and a link to its own site. The page carries `ItemList` structured data.
-- Clubs run by our players: a hobby club or meetup one of the league's players runs is listed first, under "Run by our players". An admin can feature one, which also shows a small card for it on the public events page.
-- Click counts: each entry counts how many people followed its link out, per day, with nothing about who they were (the link's `ping` attribute, so no script and no redirect). Admins see the last 30 days and the total, to show a club what the league's promotion is worth when they agree a cross-promotion or a fee. Any agreement and payment happen outside the app; owners record the income in the books as usual.
-- A "Link to us" section with the league's address and a copyable HTML snippet, so partner leagues can link back; entries that do show "Links to us".
-- Admins add, edit and remove entries. Website links must be https on a public host name, and are checked on the server. An optional logo is shrunk on the server to one small WebP and kept in Postgres, within a per-logo and total cap. Every change is audited.
-
-**Help center and schedule widget**
-
-- Contact the league: a public form at `/contact`, linked from the About and park pages, takes a question or a problem at the field (with an optional date, field and email for a reply) with no account. It is protected by a honeypot, a link cap and rate limits per address, per network and overall, and shows nothing from earlier submissions. Messages join a queue on the incidents screen where admins reply by email, add notes and close each with what was done; a park-rules category (hours, alcohol or glass, sound, litter, field damage, sharing the space) lets them see these issues across a season. The share answered within a day is shown, a sender's address is visible only to admins and every read is audited, and it is deleted 12 months after the message closes ([ADR 0060](docs/adr/0060-one-queue-for-concerns-and-public-contact.md)).
-- Raise a concern privately: any signed-in player can send the league a concern about a game, a team or how they were treated, with an optional game link and park rule, from "Raise a concern" on their home screen. Only admins read it (it is never shown to a captain, the other team or the public); they reply in the app and by email and close it with a note. The player gets an acknowledgement, each reply and a note when it closes, and follows them under "Your concerns"; admin notes are never shown to them. It uses the same queue as the public contact form ([ADR 0060](docs/adr/0060-one-queue-for-concerns-and-public-contact.md)).
-- A static help center at `/help`: short how-tos for players (sign up, pay your share, RSVP, subs, installing the app, alerts), captains (invites, kicking orders, scores, co-captains, subs), refs (game day, live scoring, incidents), admins (season setup, the schedule, rain-outs, the game-day command center) and owners (books, permits, the dashboard). A search box filters them as you type; every how-to is still listed without JavaScript. The screens they describe link to them with a "Help" link.
-- An embeddable schedule widget: a sponsor bar or a team pastes one iframe snippet from `/widget` to show the league's next game day or one team's next three games. The widget is a single static HTML page with inline styles and no JavaScript, follows the visitor's light or dark setting, and updates when the schedule changes. Only `/embed/*` may be framed by other sites; every other page sends `frame-ancestors 'none'` and `X-Frame-Options: DENY`.
-
-**Messaging**
-
-- A transactional outbox: messages are written with the change that caused them, failed sends retry, and nothing sends twice.
-- League and team announcements, with per-person email settings. An admin can send one now or schedule it for a day: it goes out with the outbox's morning send that day (scheduled jobs run once a day on the free hosting plan, and the form says so), reaches whoever is registered when it sends, and can be edited or cancelled until then ([ADR 0058](docs/adr/0058-scheduled-announcements-ride-the-daily-sweep.md)).
-- "Copy for WhatsApp" on each announcement and on each upcoming game day's schedule: plain text with times, matchups, fields and the schedule link, ready to paste in the league's group chat.
-- Rule changes: an admin edits the rules in sections and publishes each change with a one-line summary and a start date. A change marked for notice emails every player in the active seasons through the outbox. Its start date must be at least 3 days after publishing, and the email says when it takes effect.
-- Alerts without too many: rain-outs, sub spots, payment deadlines and other urgent messages always go at once, while news and reminders that can wait count toward a daily limit (3 by default, lower if a member likes). Anything over it comes in one digest email, every evening or on Sundays. During quiet hours (10 pm to 8 am by default) only urgent news is sent, and it reaches phones silently. Every email and push says why the person got it and links to the setting that changes it, every email has a one-click unsubscribe for its topic, and league news emails are opt-in: a new account starts with announcements off and turns them on in its email settings, while game messages (rain-outs, schedule changes, sub requests, payments) keep coming, in its footer and as the `List-Unsubscribe` header mail apps show as their own button. Email stays inside the provider's free quota (100 a day, 3,000 a month by default): pushes go first, urgent email goes to people without push first, news over the quota joins the digest, and urgent email that cannot go today goes after midnight UTC, with admins told ([ADR 0019](docs/adr/0019-urgent-and-non-urgent-messages.md)).
-- Payment reminders 7, 3 and 1 days before the deadline, and missing-score reminders to the ref and then the captains.
-- Web push for rain-outs, sub requests and scores: each player opts in per topic on their profile, and the outbox sends a push to each of their phones alongside the email. Push is off until VAPID keys are set, devices a push service reports gone are removed, and the protocol is written against the standards with Node's crypto ([ADR 0014](docs/adr/0014-web-push-without-a-library.md)).
-
-**Events**
-
-- An events calendar for parties and prom, bar nights, BBQs, tournaments and theme weeks. Admins create an event with a place, time, capacity and description, edit it, call it off (everyone who RSVP'd is emailed) or delete it.
-- Each event is for everyone, all members, or chosen teams from the active season, another season or every season. Members-only and team events never reach public pages, the public feed or the sitemap; the people they're for see them in the app, and admins see everything.
-- Partiful first: when an event has a Partiful (or any https) invite link, its guest list is the one that counts. Adding the link switches the app's own RSVPs, waitlist and RSVP emails off by default, and the event shows one "RSVP on Partiful" button on its page, card, shared message and emails. An admin can turn RSVPs in the app back on, and an event that sells tickets or already has RSVPs keeps them. The app still does what the invite doesn't: the calendar and `.ics` feeds, the public page and sitemap, theme weeks, giveaways, volunteer shifts and telling the right members about the event. The link is only shown and shared, never fetched ([ADR 0051](docs/adr/0051-partiful-takes-the-rsvps.md)).
-- When posting or changing an event, an admin can email everyone it's for through the outbox (event emails can be turned off), and copy a ready-made message for the WhatsApp group.
-- Players RSVP from the app. When an event is full they join a waitlist, see their place in line, and move up in order when someone drops out or the admin adds spots, with an email when they do. A spot is never taken from anyone when capacity shrinks.
-- Paid tickets: an admin can give an event a ticket price and a lower member price. Anyone who can see the event buys one ticket through Stripe Checkout, with their league credit applied unless they untick it, and the spot is held while they pay so the capacity is never oversold. The ticket shows a check-in code on the event page and the events list, and comes with an emailed receipt. Admins see ticket holders and what they paid, check people in by code at the door, and refund a ticket in full: the card part goes back through Stripe, the credit part back to the balance, and the spot is offered to the next person on the waitlist for a day.
-- A public events page and a page for every public event (static HTML with `SocialEvent` structured data), all in the sitemap, with share buttons. Theme weeks mark their game days on the public schedule.
-- Free giveaways ([ADR 0035](docs/adr/0035-free-giveaways-and-the-sign-up-challenge.md)): an admin adds a giveaway to an event with a prize (often a sponsor's), the number of winners, when entry opens and closes, and official rules that must say no purchase is necessary. Players enter by scanning the giveaway's rotating QR code at the event, once each, with only a free account: never a ticket, payment or fee, and an event that sells tickets can't hold one. The event's audience decides who can enter. After entry closes the admin draws winners in the app with `crypto.randomInt`; the draw goes into the audit log with the entry count, the method and the result, and replacing a winner needs a reason and is audited too. Winners see it on the app's home screen and get one message.
-- Volunteer sign-ups: admins post shifts for a season's game days or an event (setup, teardown, check-in table, ref fill-in) with when, where and how many spots. Members claim a spot and drop it again until the shift starts, a shift never takes more people than it has spots (even when several people grab the last one at once), and everyone on a shift gets a reminder the day before. Admins see who signed up for each shift.
-- End-of-season survey: once a season is completed an admin opens a short survey (an overall rating from 1 to 5, would you play again, the best part, one thing to change, and a free comment) and every player who was on a roster gets one invite. Each player answers once. Owners and admins see totals and the written answers as anonymous lists: the answer is stored with no link to the person, so no screen or query can say who wrote what.
-- Calendar export: a subscribed `.ics` feed of every public event (theme weeks as all-day entries), a private feed per member with every event they can see (its link can be reset), plus "save the date" links for one event to Apple Calendar, Outlook or Google Calendar.
-
-**Admin**
-
-- Season setup, fields, permits and blackout dates. Registration opens only once a season has a waiver, since players sign it before they pay; the settings page says so until one is chosen. A season can also set a minimum number of games played for the playoffs.
-- Private leagues and tournaments: companies, clubs and groups ask for a one-day tournament or a private league from a public booking page (signing in, with a confirmation email), and admins accept a request as an invite-only private season or decline it. The season uses the league's scheduler or playoffs bracket, its waiver and its refs. The organization pays once for every team through Stripe Checkout, or each player pays as in any season. The organizer's page shows the invite link, teams, schedule and results. Private seasons never appear on public pages, in the main standings, history, records, pick'em or the sitemap ([ADR 0049](docs/adr/0049-private-events-are-private-seasons.md)).
-- Season rollover: start the next season from the last one in one step. A preview shows what the new draft gets (every date moved by the same number of days at the same local time, prices, early bird, roster limits, its waiver, divisions and their rule sets, the teams that played with their captains and co-captains, and the permit hours on the new dates) and what starts fresh (payments, waiver signatures, other players, games, scores, RSVPs, kicking orders, suspensions, promo codes, photos and permit numbers). The admin can rename it, change the first day and leave teams out. Captains still sign the waiver and pay, and someone suspended for good doesn't come back as captain.
-- Attendance: every team's players with their games played this season, and who is short of the playoff minimum. Every tick in or out on a game's check-in screen is in the audit log.
-- A dashboard for the next game day: games, refs, RSVP warnings, missing scores, and registrations, payments and waivers by team.
-- A ref pool, a ref assigner and a ref pay sheet. Admins add refs to the league's pool, and each ref ticks the game times they can work on their own page. "Assign refs" proposes a ref for every game still without one, for a game day or the whole season: only at times the ref ticked, never for a game their own team plays or while they play or ref another, keeping a ref on one field for back-to-back games, and spreading games evenly. It says why a game has nobody. Admins accept all, accept one, or pick someone else by hand. The pay sheet sets the season's per-game fee and shows each ref's games worked (checked in for, or scored as its ref), what they're owed, what's been paid and the balance; "Mark paid" records cash or Venmo and adds a Refs expense to the books. A ref sees only their own games and pay ([ADR 0053](docs/adr/0053-ref-assigner-and-pay-sheet.md)).
-- A season ops checklist for owners and admins: the jobs that keep a season running, each with an owner, a due date, notes and done or not. It starts from a league template with typical tasks (renew permits, the insurance certificate, open registration, book the bar for the season party, order shirts, line up refs, send the schedule, the end-of-season survey), dated from the season's first day. Owners edit the template, season rollover offers to start the new season's checklist, the dashboard shows the next three tasks, and each task's owner gets a non-urgent email 3 days before it is due and once if it is overdue ([ADR 0061](docs/adr/0061-season-ops-checklist-from-a-template.md)).
-- A team sign-up challenge for a season: a prize and a deadline for the first team whose whole roster has an account and has signed the waiver. Each team sees "9 of 12 signed up" on its team page, signed-in players see a leaderboard of teams by percentage (team names and counts only), the first team to 100% wins (a tie goes to the team whose last player finished first), and an admin confirms the winner in the audit log. The dashboard shows every team's sign-up rate, lowest first, so admins know who needs a nudge.
-- Instagram photos: an admin connects the league's professional account on Instagram's own sign-in, and recent posts sync daily with each photo copied to the site. Admins feature or hide posts, tag them to a team or event, set a cover for the home or a team page and describe each photo for screen readers; nothing shows until it is featured, unless the league turns on "show new posts". To stay on the free database tier it keeps only the 30 newest posts plus featured ones and covers, and at most 25 MB of photos, telling admins when that fills up. A post deleted on Instagram leaves the site at the next sync, a weekly job keeps the sign-in alive and emails admins if Instagram stops accepting it, and disconnecting deletes the token. Off until the Instagram app's ID and secret are set; development and the demo can use a recorded copy of the API instead ([ADR 0023](docs/adr/0023-instagram-photos-stored-in-postgres.md)).
-- Member photos: a review queue to approve a photo, download its stored copy for Instagram, or reject it with a note only admins see. The player gets a non-urgent message either way. Approved photos can be taken down at any time, and every approve, reject and delete is in the audit log.
-- An audit log of admin actions that admins and owners can read in plain words, newest first, with a filter for the platform operator's actions; and a permissions matrix enforced by one tested function.
+- Generate a season schedule, see why any game could not be placed, edit on a drag-and-drop board, publish versions with a diff and run playoffs.
+- Call a rain-out with a weather decision card, a preview of makeups and notices to only the players affected.
+- A game-day command center, a ref assigner and pay sheet, rule changes with a dated change log, sub, concern and incident queues, and an audit log.
+- Divisions with crossover games, season rollover, events with tickets and giveaways, sponsors, and photo review.
 
 **Owners**
 
-- The books: for each season, money in from the payments the app already records (paid in the app, cash and Venmo, less refunds; league credit is shown beside it but not counted), money out by category (fields and permits, equipment, shirts, refs, events, sponsor costs, other) and the net. Owners add expenses from their phone with a photo of the receipt, which is shrunk on the server to one small copy without its location data and shown only to owners. A CSV for taxes lists every transaction with no player's name, and formula-looking text stays text. Only owners and the platform operator see the books, and their audit rows are hidden from admins ([ADR 0034](docs/adr/0034-owners-books-and-permits-in-postgres.md)).
-- Keeping the books up to date takes little effort ([ADR 0059](docs/adr/0059-expected-costs-and-statement-imports.md)):
-  - **Quick add** takes three taps: amount, category (the newest one used starts picked), done. The receipt can come later, or "there isn't one" settles it.
-  - **Expected costs:** owners set a recurring cost once (a permit, insurance, ref pay, the bar deposit), each season or each game day. Each one then waits on the books for a one-tap confirm, at the usual amount or another, or a skip for a rained-out day. In a season paid through the ref pay sheet, ref pay comes from the sheet instead, so it isn't counted twice.
-  - **Out of pocket:** an owner who paid out of pocket is marked as the payer. The books show who is owed what across seasons until "Reimbursed" clears it.
-  - **Statement import:** a Venmo statement or a bank's CSV export, which the owner downloads, is previewed with categories guessed by merchant rules the owners can edit. Rows already in the books are skipped or flagged. The file isn't kept, and account and card numbers are dropped or masked.
-  - **Monthly nudge:** in the first week of each month, owners get one non-urgent message listing expected costs to confirm and expenses still waiting on a receipt.
-- Field layouts: for each field an admin uploads a photo or PDF showing where the permitted area ends and where the diamonds and spectator areas go, with a short note (or confirms the field needs none). The schedule can't be published until every field it uses has one. The layout opens from the game-day command center, from a set-up volunteer shift (for the crew on it) and from the ref's and captains' permit page, which is saved on the phone with the next game so it opens with no signal. It uses the same file storage and limits as permit documents.
-- Permit-end warning: the live-scoring screen shows the minutes left in the field's permit window and warns the ref and captains when the rule set's time limit, or the game's pace so far, would carry the game past the permit's end, naming the league's rule for that case (called at the score of the last complete inning, or no new inning after the permit ends; the rule is set per rule set, and called games is the default). Back-to-back windows on a field count as one, and the countdown runs on the phone from the window saved with the screen, so it keeps working with no signal. The command center shows the same line on each game being played and lists any game still going after its permit ended.
-- Game-day command center: one phone screen for the admins at the park with every game of the day, its field, the ref and whether they have checked in, and where each score stands (live with runs and inning, reported, final, called off or missing), the weather, and one tap to call a rain-out or send an announcement. It refreshes itself every 10 seconds by polling a small JSON route, with no realtime service. Refs check in with one tap on game day ("I'm at the field"), and an admin can mark a ref with no phone as there.
-- Season report card: a running or finished season beside the one before it, measure by measure, with both numbers and the change in plain words ("Up 12 from Fall 2026"): players registered, returning and new, how many came back, teams, money in, out and net from the books, games played and game times rained out, sportsmanship and season-survey averages, event sign-ups and check-ins, and sponsor bar check-ins. Server-drawn charts sit beside their numbers, and a CSV lists every line. Owners and the platform operator only; a shareable version for sponsors leaves out the money and anything about any one person, ready to print or save as a PDF.
-- A printable game-day pack: for any game day, one US Letter sheet per field, readable in black and white, with the games in order (time, teams, ref), a blank line score per game (innings 1 to 7, an extra column and runs, a row per team), lines for the final score and both captains' initials, the field's permit number and whether the permit is on file, and a QR code to each game's score page so the paper score can be entered later. An optional check-in sheet per team lists its players by first name and last initial. It is plain HTML and print styles with one Print button; the QR codes are drawn on the server, with no outside service.
-- Owner dashboard: membership by season (new, returning, and how many of the season before came back), money in and out by season from the books (registrations, tickets, payments made outside the app, refunds and league credit; expenses by category), each team's roster against its target with waiver and payment completion, event turnout (going against tickets checked in) and sponsor check-ins by week. Charts are drawn on the server with the numbers in tables beside them, and a CSV lists every number. Owners and the platform operator only; the numbers are at most five minutes old, with a button to refresh them.
-- Win-back list: while a season's registration is open, owners and admins see the players from the last three seasons who haven't signed up yet, most loyal first, with their last team and how many seasons they've played. Each can get one friendly email per season, in the league's own words (editable, with the player's first name, the season and their last team filled in), sent through the outbox as non-urgent news. Past captains get a button to register their team, free agents one to the free-agent page. Anyone who turned off league news isn't emailed and shows as opted out. The owner dashboard shows how many were emailed and how many came back.
-- Where the money goes: owners can choose to publish a season's money summary, off until they do. It shows category totals and how each fee divides across them, never any one person's payment, name or contact details. Owners preview exactly what goes public, can fold a category into "Other" when its total would point at one person, and need at least ten members in the season before it can be published. The page is static and in the sitemap ([ADR 0038](docs/adr/0038-season-money-summary.md)).
-- Park permits: each permit's cost (split across its dates, so it shows in the books), document, application window and renewal date, and the league's insurance certificate with its expiry. NYC Parks has no public permit API, so nothing is sent to it: "What to request" works out the fields, dates and hours the league needs from the number of teams, the game day and the slot length, as a sheet to copy into the application or download. Owners are emailed 30 and 7 days before an application window opens, a permit renews, the fees are due or the insurance runs out. When a permit is marked lost, its games are listed with a link to the schedule board.
-- Permit fees and good standing: until a permit's cost is entered, it is estimated at NYC Parks' adult rates from the field's surface (from NYC Open Data's field list), its hours and its hours after sunset, and the books show it as an expected cost due 14 days before the season starts. The permits screen counts the season's hours against Parks' 50-hour insurance line, warning from 40 hours and on a request sheet that would cross it. Time a rain-out or blackout leaves unused is listed with the borough office's number and the answers for Parks' cancellation form, ready to copy. Owners are emailed once as the hours near and pass 50, and once for each window to give back ([ADR 0055](docs/adr/0055-permit-fees-hours-and-give-back.md)).
-- Permit renewal and the application packet: from a season's permits, "Renew for next year" drafts the renewal for the same NYC Parks period a year on, with the same parks, fields, days and hours and the renewal and new-request dates. Owners can change the draft; anything more (longer hours, another field or day) is split off as a separate new request, with a warning that folding it into the renewal would cost the league its returning status, and dropped or shortened time is flagged. Owners are emailed 30 and 7 days before the renewal period opens. The application packet puts what Parks may ask for on one owners-only screen to copy or download: the league's website, the schedule and roster counts (player names only when an owner chooses), the request sheet split into one application per borough, and the insurance certificate on file ([ADR 0056](docs/adr/0056-permit-renewal-and-application-packet.md)).
-- Capacity planner: from a season's permit windows, the game length and the games each team plays, how many teams the field time fits and the gap to the teams that want in (teams entered plus the waitlist). It shows what each option would add (shorter games, doubleheaders, an extra weeknight, weekend daytime, one more field, two divisions on different nights, a shorter season), fills the request sheet with exactly the extra games to ask for, and lists NYC Parks diamonds and large fields nearby from a checked-in NYC Open Data snapshot. The permit screen also explains how NYC Parks permits work, with links and the date they were last checked ([research](docs/permits/nyc-parks.md)).
-- The permit at the field: a game's ref and both captains see its permit number and document from their home screen and the score page, and the installable app keeps it on their phone with the next game, for a park officer who asks without signal.
-- Receipts, permit documents and certificates live in Postgres, up to 1 MB each and 50 MB in all, with a clear message at the cap.
+- The books: money in from recorded payments, expenses with receipts, expected costs, statement import and a CSV for taxes.
+- Park permits, fees, renewals and a capacity planner; the schedule cannot be published outside a documented permit.
+- A dashboard, a season report card, win-back list and a public "where the money goes" page.
+- Several leagues on one deployment, and a platform operator role above the owners.
 
-**Public site**
+**Everyone, signed in or not**
 
-- Public schedule, team and game pages. Anyone can see the season schedule (filter by team), each team's record, next game, results and roster (first name and last initial), and each game's time, field and score. Pages read only the published schedule version, never a draft.
-- A playoff bracket page that draws winners' lines as it loads (still under reduced motion), with a plain list view of the same bracket.
-- Motion that explains what changed: a game card grows into the game page's scoreboard and folds back into the schedule, a team's badge moves into its page header, run totals roll like a scoreboard during a live game, the winning total gets a burst of gold when the result comes in, and home sections rise into place as they scroll in. All of it is CSS and the browser's View Transitions API, and all of it is off under reduced motion.
-- Team calendar feeds: every team has an `.ics` feed that Apple Calendar, Google Calendar and Outlook can subscribe to. Moved or rained-out games update in place.
-- Featured photos from the league's Instagram on the home page and tagged ones on team and event pages, each linking back to its post.
-- Players' approved photos on the team, event and game pages they were tagged to, with a link to share one.
-- A seasons page (`/seasons`) listing every season with its status, dates, schedule and standings, linked from the home page and the footer (with League history).
-- A rules page at `/rules`. It shows the league's rules by section, as admins write them in the app (the rulebook text never goes in the repository), and each division's game settings from its rule set. A "What changed" list shows every change, newest first, with the day it was published and the day it starts. The help center links to it, and so does the kicking-order builder, to the Lineups section. The page is static HTML, refreshed when an admin publishes a change ([ADR 0062](docs/adr/0062-rules-page-with-a-dated-change-log.md)).
-- Home, About, FAQ and a park page, with a generated sitemap, robots file and structured data for the league, teams and games.
-- Search landing pages: a city-wide page with subway routes and rough travel times from every borough, a free-agent page that explains joining without a team, and a "how to play kickball" guide. Each carries its own metadata and structured data (league, FAQ and article) and is linked from the home page and the sitemap.
-- Built for phones and keyboards alike: a skip link on every page, fields and buttons at least 44px tall, loading states that hold their space, a friendly page-not-found and error page with a way on, and forms that can't be sent twice by a double tap. A signed-in player's home shows their next game and links to their team and its schedule.
-- Sharing to WhatsApp: every game and team has a generated share image (1200 × 630, in the league's colors) for link previews, with the score on a final. One tap on a game or team page opens WhatsApp with a ready-made message and the link; a second button opens the phone's share sheet or copies the message. Admins can copy a rain-out notice, with every makeup, and any sent announcement as one message for the group chat.
-
-**Demo mode**
-
-- Turned on only by a server environment flag and refused in production: a banner on every page and one-tap "view as" a player, captain, ref or admin, plus a reset script that reseeds the demo database and then moves the seeded league forward by whole weeks (same weekdays and local times, in the league's time zone), so the season being played always has its next game day coming up. `npm run seed`, and so the end-to-end tests, keep the fixed calendar.
-- `npm run demo` shows the league the whole app from one laptop, offline and with no accounts: a game in progress, a rain watch on the next game day, payments through a local demo checkout, a "Demo mail" page with every email the league would have sent, and a "Reset demo" button for admins. The 10-minute walkthrough is [docs/demo.md](docs/demo.md).
-
-**Several leagues**
-
-- One deployment runs several leagues, for example a flag football league beside the kickball league ([ADR 0048](docs/adr/0048-several-leagues-on-one-deployment.md)). Each league has its own owners and admins, seasons, teams, sponsors, events, books, league credit and audit log; an admin of one league has no rights in another, which the permission tests and a database test show.
-- The default league keeps the site's own URLs; every other league's public pages live at `/l/<league>/...`, with its own home page. Pages take their league from the path alone, so they stay static HTML.
-- One account plays in any number of leagues. The app shows a league switcher to anyone in more than one, and a league's public pages hand visitors into the app in that league.
-- A schema test fails when a new table with season or team data isn't scoped to a league.
-
-**Platform operator**
-
-- A role above the league's owners for whoever runs the platform, set only in the server's environment ([ADR 0009](docs/adr/0009-platform-operator.md)). From a hidden console it starts leagues (name, sport, address, colors, time zone, minimum age and a first rule set), sets owners and admins per league, makes the site read-only or pauses it (enforced on the server), switches features off, and downloads the whole league as JSON. Owners see every operator action in the audit log and can always download the same data.
-
-**Sign-in**
-
-- Email links and, when configured, Google.
-
-## Design documents
-
-| Document                                                     | What it covers                                                                   |
-| ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| [Product spec](docs/product-spec.md)                         | Roles, permissions matrix, features by phase                                     |
-| [Information architecture](docs/information-architecture.md) | Routes, user flows, key screens                                                  |
-| [Data model](docs/data-model.md)                             | Tables, constraints, indexes                                                     |
-| [Scheduling algorithm](docs/scheduling-algorithm.md)         | The season scheduler and its property tests                                      |
-| [Architecture](docs/architecture.md)                         | Stack, rendering, auth, jobs, security, CI                                       |
-| [Design system](docs/design-system.md)                       | Tokens, type, components, motion, budgets                                        |
-| [SEO plan](docs/seo-plan.md)                                 | Metadata, structured data, content                                               |
-| [Roadmap](docs/roadmap.md)                                   | Phases and acceptance criteria                                                   |
-| [Launch kit](docs/launch/README.md)                          | Hosting brief, environment checklist, runbook, backups, acceptance tests, alerts |
-| [Security review](docs/security-review.md)                   | Findings before launch, fixes and follow-ups                                     |
-| [Decisions](docs/adr/)                                       | Architecture decision records                                                    |
+- Public schedule, standings, team, game, event, sponsor and field pages as static HTML that paints fast on a phone, with share images and a calendar feed per team.
 
 ## Tech stack
 
-Next.js 16 (App Router, Cache Components) · React 19 · TypeScript (strict) · Tailwind CSS v4 · Drizzle on Neon Postgres · Better Auth · Stripe · Resend · Vercel (with cron jobs)
+Next.js 16 (App Router, Cache Components) · React 19 · TypeScript (strict) · Tailwind CSS v4 · Drizzle on Neon Postgres · Better Auth · Stripe · Resend · Vercel
 
-Every service runs on its free tier, and no feature needs a paid plan, a paid API key or a monthly bill ([ADR 0021](docs/adr/0021-free-services-only.md)). Stripe has no monthly fee; its per-payment fees come out of the league's own payments. Each free limit and what the site does near it is in the [free-tier budget](docs/architecture.md#15-free-tier-budget).
+Quality: Vitest (unit, property and database tests) · fast-check · Playwright with axe · Lighthouse CI · gitleaks secret scanning · GitHub Actions
 
-Quality: Vitest (unit, property and database tests) · Playwright with axe · Lighthouse CI · gitleaks secret scanning · GitHub Actions
+Every service runs on its free tier, and no feature needs a paid plan, a paid API key or a monthly bill ([ADR 0021](docs/adr/0021-free-services-only.md)). Each free limit and what the site does near it is in the [free-tier budget](docs/architecture.md#15-free-tier-budget).
 
 ## Getting started
 
 Requires Node 24 (`nvm use` reads `.nvmrc`).
 
-To show the league the app, with nothing to set up but Docker or a local Postgres:
+To see the app with nothing to set up but Docker or a local Postgres:
 
 ```bash
 npm run demo
 ```
 
-It builds and starts the whole app in demo mode on this computer and opens the browser; [docs/demo.md](docs/demo.md) is the walkthrough. To work on the code:
+It builds and starts the whole app in demo mode on this computer, offline, and opens the browser. To work on the code:
 
 ```bash
 npm install
 cp .env.example .env.local   # fill in values; DATABASE_URL is your own Neon branch
 npm run db:migrate           # apply migrations to that branch
-npm run seed                 # a demo league: 8 teams, invented players, a season half played, three past seasons; plus a small second league at /l/flag-football
+npm run seed                 # a demo league: 8 teams, invented players, a season half played, three past seasons; plus a small second league
 npm run dev
 ```
 
-Environment variables are validated with Zod in [`src/lib/env.ts`](src/lib/env.ts) whenever Next loads its config, so `npm run dev`, `npm run build` and `npm start` stop immediately and name any variable that is missing or malformed. Server code reads them through `env` from `src/env.ts`, never `process.env` directly, apart from a few optional switches that are checked where they are used. The [environment checklist](docs/launch/environment.md) lists every variable, validated or not.
-
-### Launch
-
-Automatic deployments are paused until launch. Everything needed to go live is in the [launch kit](docs/launch/README.md):
-
-- [Hosting decision brief](docs/launch/hosting.md): which free host may serve a site that takes payments, and the recommendation.
-- [Environment checklist](docs/launch/environment.md): every variable, whether it's required, and where its value comes from.
-- [Launch runbook](docs/launch/runbook.md): database, migrations, season data, email domain, push keys, Stripe live, Google sign-in, turning deployments on and the domain cut-over, each with a smoke test.
-- [Backup and restore drill](docs/launch/backup-and-restore.md): `scripts/backup-drill.sh` dumps the database, restores it into a scratch database and compares every table.
-- [Acceptance testing](docs/launch/acceptance-testing.md): checklists per role for volunteers on the demo.
-- [Uptime and error alerts](docs/launch/monitoring.md): free monitoring and its limits.
-
-### Turning on Google sign-in
-
-Sign-in works by email link out of the box. Google is added when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set (one without the other is rejected at startup):
-
-1. In Google Cloud Console, create an OAuth client ID of type **Web application**.
-2. Add the authorized redirect URIs `http://localhost:3000/api/auth/callback/google` and `https://kickball-league.vercel.app/api/auth/callback/google`.
-3. Put both values in `.env.local`, and in Vercel with `npx vercel env add GOOGLE_CLIENT_ID --environment production` (and the same for the secret). Values go straight from your terminal to Vercel and are never committed.
-
-### Turning on web push
-
-Push is off until the league has a VAPID key pair. Generate one into `.env.local` (it prints only the public key):
-
-```bash
-npm run push:keys
-```
-
-For hosting, copy `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` from `.env.local` into the provider's encrypted settings. `VAPID_SUBJECT` (a `mailto:` address or `https://` URL push services can contact) is optional and defaults to the site's address. Keep the same pair once players have opted in: a new pair means every device has to opt in again. Push needs the service worker, which only production builds register, so try it with `npm run build && npm start`.
-
-### Turning on the Instagram connection
-
-The photo sync is off until both `INSTAGRAM_APP_ID` and `INSTAGRAM_APP_SECRET` are set. Like `DEMO_MODE`, they are read straight from the server's environment and checked where they are used, not in `src/lib/env.ts` or `.env.example`: one without the other, or a malformed value, leaves the connection off, and the server log and the Instagram admin screen name the variable to fix.
-
-1. In Meta's developer dashboard, create an app with the **Instagram API with Instagram Login** product, and add the league's Instagram professional (Business or Creator) account to the app's roles. An app used only by its own account needs no App Review.
-2. Add the redirect URI `<site address>/app/admin/instagram/callback`, for example `http://localhost:3000/app/admin/instagram/callback`.
-3. Put the Instagram app ID and secret in `.env.local`, and in Vercel's encrypted settings for production. Then an admin chooses **Connect Instagram** on the Instagram admin screen.
-
-To try the whole flow without an account, start the development server with `INSTAGRAM_FIXTURE=true` and no app ID: connecting and syncing then play back a recorded copy of the API (`src/services/fixtures/instagram`) with generated pictures. A production build ignores it unless demo mode is on.
-
-### Email quota
-
-The outbox keeps email inside the provider's free plan. It assumes Resend's free limits, 100 emails a UTC day and 3,000 a month, and keeps 10 of each back for sign-in links. Different limits can be set with the optional `EMAIL_DAILY_LIMIT`, `EMAIL_MONTHLY_LIMIT` and `EMAIL_RESERVE` (whole numbers), read straight from the environment like `DEMO_MODE`. What happens when the quota runs out is in [docs/architecture.md](docs/architecture.md), section 5, "The email budget".
-
-### Run the database tests against a local Postgres
-
-`npm run test:db` needs a real database, but not a Neon branch. With PostgreSQL installed locally (CI uses 18, the same major version as Neon; 16 passes too), one script creates a throwaway database matching CI's and applies every migration:
-
-```bash
-scripts/setup-local-postgres.sh
-export DATABASE_URL=postgresql://ci:ci@localhost:5432/ci
-npm run test:db
-```
-
-It starts the server if it is stopped, creates the `ci` role and `ci` database only when they are missing, and runs `npm run db:migrate`, so it is safe to run again after pulling new migrations. It connects as the `postgres` superuser (through `sudo` when you are not root); set `PG_SUPERUSER_URL` to connect another way, for example to a Postgres in Docker. Nothing here is a secret: the database is local and holds only test data.
-
-### Demo mode
-
-The demo deployment lets anyone view the league as a player, captain, ref or admin in one tap, with a banner on every page. It is off unless `DEMO_MODE=true` **and** the database's name contains `demo` **and**, on a Vercel production deployment, the project's address contains `demo`; see [ADR 0004](docs/adr/0004-demo-mode.md). To try it locally against a throwaway database:
-
-```bash
-PGDATABASE_NAME=kb_demo scripts/setup-local-postgres.sh
-export DATABASE_URL=postgresql://ci:ci@localhost:5432/kb_demo DEMO_MODE=true
-npm run demo:reset
-npm run dev
-```
-
-The app talks to Neon through its HTTP and WebSocket drivers, and to a Postgres on `localhost` through node-postgres, so a local database works for `npm run dev` too.
-
-### End-to-end and Lighthouse tests
-
-`npm run test:e2e` builds the app and starts it twice: once as the league's site for the smoke tests, and once in demo mode for the flows, which reach every signed-in screen (the list is in [architecture](docs/architecture.md#end-to-end-coverage)). One of them walks a whole season: an admin sets up a season and its fields, a captain registers a team with split pay and pays through a signed Stripe webhook, a player joins by invite and pays their share, a free agent is placed on a new team, the schedule is published, a sub picks up a spot, a score is confirmed and counted in the standings, and a rain-out notice goes out. One journey per role (player, captain, ref, admin, owner and operator) walks that role's work across features, with people made up for it. Every key screen is checked with axe, and screens no flow visits are also checked in the dark theme and at a phone width. `npm run test:e2e:site-wide` then runs the operator's read-only, paused and feature switches on their own, since they change the site for every other test. `npm run test:e2e` seeds the database before building, so the public season and team pages are prerendered as in production and the flows check that their actions refresh them. Both reseed the database before the tests and send Stripe calls to [stripe-mock](https://github.com/stripe/stripe-mock), so they need both running locally:
-
-```bash
-PGDATABASE_NAME=kb_e2e_demo scripts/setup-local-postgres.sh
-docker run -d --rm -p 12111:12111 stripe/stripe-mock:v0.197.0
-export DATABASE_URL=postgresql://ci:ci@localhost:5432/kb_e2e_demo
-npm run test:e2e
-# Reuses the build the first command made.
-E2E_PREBUILT=true npm run test:e2e:site-wide
-```
-
-The database's name must contain `demo`, because the flows sign in with one-tap "view as". To run beside another checkout's tests on the same machine, set `E2E_SMOKE_PORT` and `E2E_FLOWS_PORT` (3100 and 3110 by default). `npm run lighthouse` measures a production build (`npm run build` first) against the same seeded database, with the budgets in [design-system.md](docs/design-system.md#performance-budgets). It starts the server on port 3200 and warms every page before the first measurement.
-
-In CI, the end-to-end and Lighthouse checks each build the app once and share that build across their shards: Playwright runs on four shards, the smoke tests on one and the flows split across three (`E2E_PREBUILT=true` starts the existing build instead of building again), and Lighthouse's pages are split across eight runners, balanced by how long each page takes to measure (`node scripts/lighthouse-shard.mjs <shard> 8` writes one shard's config, with the same five runs and budgets). A pull request that changes only Markdown or `docs/` skips that work and still reports every required check as passed. The layout is in [architecture](docs/architecture.md#11-continuous-integration).
+Environment variables are validated with Zod in [`src/lib/env.ts`](src/lib/env.ts), so the app stops at startup and names any variable that is missing or malformed. Optional integrations (Google sign-in, web push, Instagram, the email quota), a local Postgres for the database tests and demo mode on a deployment are covered in the [development guide](docs/development.md). Going live is in the [launch kit](docs/launch/README.md).
 
 ## Scripts
 
 | Command                      | What it does                                                                                                    |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `npm run dev`                | Start the development server                                                                                    |
-| `npm test`                   | Run unit tests once                                                                                             |
+| `npm test`                   | Run unit and property tests once                                                                                |
 | `npm run test:coverage`      | Run unit tests with coverage of `src/domain` and `src/lib`                                                      |
+| `npm run test:db`            | Database constraint tests against a real Postgres (each rolls back)                                             |
+| `npm run test:e2e`           | Seed, build, then smoke tests and core flows with axe                                                           |
+| `npm run test:e2e:site-wide` | Reseed, then the operator's site-wide switches on their own                                                     |
+| `npm run lighthouse`         | Lighthouse budgets on the public pages of the last build                                                        |
+| `npm run check:route-js`     | Every route's first-load JavaScript against its budget                                                          |
+| `npm run lint`               | ESLint, failing on any warning                                                                                  |
+| `npm run typecheck`          | Generate route types and run `tsc`                                                                              |
+| `npm run format:check`       | Check Prettier formatting                                                                                       |
+| `npm run build`              | Production build                                                                                                |
 | `npm run db:generate`        | Generate a SQL migration from `src/db/schema`                                                                   |
 | `npm run db:migrate`         | Apply pending migrations to `DATABASE_URL`                                                                      |
 | `npm run db:check`           | Check migration files are consistent                                                                            |
 | `npm run db:studio`          | Browse the database in Drizzle Studio                                                                           |
-| `npm run test:db`            | Database constraint tests (each rolls back)                                                                     |
 | `npm run seed`               | Replace the demo league and the small second league with fresh seed data; refuses production                    |
 | `npm run demo`               | Run the whole app locally in demo mode, offline, for showing the league ([walkthrough](docs/demo.md))           |
 | `npm run demo:reset`         | Reseed the demo deployment, bring its season up to today and start a game night; refuses unless demo mode is on |
 | `npm run push:keys`          | Add a new VAPID key pair for web push to `.env.local`                                                           |
 | `scripts/backup-drill.sh`    | Back up a database, restore it to a scratch database and compare ([steps](docs/launch/backup-and-restore.md))   |
-| `npm run lint`               | ESLint, failing on any warning                                                                                  |
-| `npm run typecheck`          | Generate route types and run `tsc`                                                                              |
-| `npm run format:check`       | Check Prettier formatting                                                                                       |
-| `npm run build`              | Production build                                                                                                |
-| `npm run test:e2e`           | Seed, build, then smoke tests and core flows with axe                                                           |
-| `npm run test:e2e:site-wide` | Reseed, then the operator's site-wide switches on their own                                                     |
-| `npm run lighthouse`         | Lighthouse budgets on the public pages of the last build                                                        |
-| `npm run check:route-js`     | Every route's first-load JavaScript against its budget                                                          |
 
-## How changes land
+## Testing and CI
 
-Every change starts as an issue sized to 30–60 minutes, gets its own branch (`<issue>-<slug>`) and reaches `main` through a pull request that is rebase-merged, so each small commit stays in the history. Several changes are often built at once, each in its own worktree; the rules that keep them from colliding are in [`AGENTS.md`](AGENTS.md#working-in-parallel). `main` is protected by the ruleset in [`.github/rulesets/main.json`](.github/rulesets/main.json): pull request required, CI must pass on an up-to-date branch, linear history, no force-pushes or deletion. To apply a change to it:
+- **Unit and property tests** (Vitest, fast-check): the scheduler, standings, permissions, pricing, the matcher and the other rules live in `src/domain` as pure functions, with property tests for the scheduler's and matcher's promises.
+- **Database tests** run against a real Postgres, each in a transaction that rolls back, to prove the constraints, locks and idempotency the app relies on.
+- **End-to-end tests** (Playwright with axe) walk a whole season and one journey per role, check every key screen for accessibility, and send Stripe calls to stripe-mock.
+- **Lighthouse CI** holds each public page to its performance and accessibility budgets on a throttled phone profile, and a route-by-route first-load JavaScript check runs on every pull request.
+- **Hygiene and security:** secret scanning over the whole history, a migrations check (consistent, idempotent, no schema change without a migration) and a pull request check for text that must not reach GitHub.
 
-```bash
-gh api -X PUT repos/michael-fesselmeyer/kickball-league/rulesets/<id> --input .github/rulesets/main.json
-```
+A pull request that changes only Markdown or `docs/` skips the heavy jobs and still reports every required check. The layout and sharding are in [architecture](docs/architecture.md#11-continuous-integration); running the checks locally is in the [development guide](docs/development.md).
+
+## Documentation
+
+| Document                                                     | What it covers                                                                   |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [Case study](docs/case-study.md)                             | The problem, constraints, architecture, deep dives, trade-offs and numbers       |
+| [Features](docs/features.md)                                 | Every feature by area, in full                                                   |
+| [Development guide](docs/development.md)                     | Optional integrations, local databases, end-to-end tests, how changes land       |
+| [Product spec](docs/product-spec.md)                         | Roles, permissions matrix, features by phase                                     |
+| [Information architecture](docs/information-architecture.md) | Routes, user flows, key screens                                                  |
+| [Data model](docs/data-model.md)                             | Tables, constraints, indexes                                                     |
+| [Scheduling algorithm](docs/scheduling-algorithm.md)         | The season scheduler and its property tests                                      |
+| [Architecture](docs/architecture.md)                         | Stack, rendering, auth, jobs, webhooks, security, CI, free-tier budget           |
+| [Design system](docs/design-system.md)                       | Tokens, type, components, motion, performance budgets                            |
+| [SEO plan](docs/seo-plan.md)                                 | Metadata, structured data, content                                               |
+| [Roadmap](docs/roadmap.md)                                   | Phases and acceptance criteria                                                   |
+| [Launch kit](docs/launch/README.md)                          | Hosting brief, environment checklist, runbook, backups, acceptance tests, alerts |
+| [Security review](docs/security-review.md)                   | Findings, fixes and follow-ups                                                   |
+| [Demo walkthrough](docs/demo.md)                             | A 10-minute tour from one laptop                                                 |
+| [Decisions](docs/adr/)                                       | Architecture decision records, one per real trade-off                            |
+
+Decisions worth reading first: [stack and tooling](docs/adr/0001-stack-and-tooling.md), [static public pages](docs/adr/0008-static-public-pages.md), [free services only](docs/adr/0021-free-services-only.md), [captain guarantee and league credit](docs/adr/0022-captain-guarantee-and-league-credit.md), [offline scores](docs/adr/0025-offline-scores-keep-the-servers-version.md) and [several leagues on one deployment](docs/adr/0048-several-leagues-on-one-deployment.md).
 
 ## Project layout
 
-`src/domain/` holds pure TypeScript (the scheduler, standings, permissions, pricing) with no framework or database imports, enforced by a lint rule. That is where the interesting logic and most of the tests live. See [architecture](docs/architecture.md#code-layout).
+`src/domain/` holds pure TypeScript (the scheduler, standings, permissions, pricing) with no framework or database imports, enforced by a lint rule. That is where the interesting logic and most of the tests live. `src/app` holds the routes, `src/db` the schema and queries, and `src/services` the integrations. See [architecture](docs/architecture.md#code-layout).
+
+Contributions follow [`AGENTS.md`](AGENTS.md): small Conventional Commits, one pull request per issue, rebase merges onto a protected `main`.
