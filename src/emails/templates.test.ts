@@ -586,3 +586,46 @@ describe("the digest", () => {
     expect(result.value.text).toContain("because you played in Summer 2026");
   });
 });
+
+describe("lost and found notices", () => {
+  it("tells the poster someone answered, by first name, with no contact details", () => {
+    const result = render("lost_found_reply", {
+      kind: "claim",
+      postKind: "found",
+      from: "Sam",
+      item: "Black cleats",
+      path: "/app/lost-and-found/abc",
+    });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe("Sam says it's theirs: Black cleats");
+    expect(result.value.text).toContain(
+      "https://league.example.test/app/lost-and-found/abc",
+    );
+    expect(result.value.text).not.toContain("@");
+  });
+
+  it("says why a post closed", () => {
+    for (const kind of [
+      "expired",
+      "removed",
+      "answer_closed",
+      "handed_over",
+    ] as const) {
+      const result = render("lost_found_update", {
+        kind,
+        postKind: "lost",
+        item: "Keys",
+        path: "/app/lost-and-found",
+      });
+      expect(result.ok).toBe(true);
+    }
+    expect(
+      render("lost_found_update", {
+        kind: "nope",
+        postKind: "lost",
+        item: "Keys",
+        path: "/x",
+      }).ok,
+    ).toBe(false);
+  });
+});

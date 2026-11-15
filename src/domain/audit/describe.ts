@@ -128,6 +128,7 @@ const ACTIONS: Record<string, string> = {
   "league.export": "Downloaded the league's data",
   "pickem.own_games":
     "Changed whether players may pick their own team's games in pick'em",
+  "lost_found.remove": "Took a post down from the lost and found board",
   "member_photo.approve": "Approved a member's photo",
   "member_photo.delete": "Deleted a member's photo",
   "member_photo.reject": "Rejected a member's photo",

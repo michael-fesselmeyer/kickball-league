@@ -104,6 +104,12 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     );
   });
 
+  it("lets any signed-in member use the lost and found board", () => {
+    expect(allowed("lost_found.use")).toEqual(
+      everyone.filter((w) => w !== "visitor"),
+    );
+  });
+
   it("lets team members and admins upload photos, and only the uploader delete theirs", () => {
     expect(allowed("photos.upload")).toEqual([
       "player",
@@ -510,6 +516,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "awards.manage",
       "pickem.manage",
       "photos.manage",
+      "lost_found.manage",
       "merch.manage",
       "friends.manage",
       "checklist.manage",

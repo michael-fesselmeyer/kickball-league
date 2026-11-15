@@ -154,6 +154,9 @@ const RULES = {
   "photos.upload": any(isAdmin, (s) => s.roster.length > 0),
   // The uploader deletes their own photo at any time.
   "photos.delete_own": self,
+  // The lost and found board: post, answer and write in a conversation
+  // (issue #385). Whose conversation it is is checked with the data.
+  "lost_found.use": signedIn,
   // Players on a team
   "rsvp.set": (s, c) => self(s, c) && onTeam(s, c.teamSeasonId),
   "rsvp.view_team": any(isAdmin, (s, c) => onTeam(s, c.teamSeasonId)),
@@ -334,6 +337,8 @@ const RULES = {
   "awards.manage": isAdmin,
   "pickem.manage": isAdmin,
   "photos.manage": isAdmin,
+  // Take any post off the lost and found board.
+  "lost_found.manage": isAdmin,
   // The shop's catalog, its orders, the printer's CSV and fulfillment.
   "merch.manage": isAdmin,
   "friends.manage": isAdmin,
