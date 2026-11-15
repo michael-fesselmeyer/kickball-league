@@ -1,6 +1,6 @@
 # ADR 0041: An age check at registration and on the waiver, stored as a confirmation
 
-- Status: accepted
+- Status: accepted; the 21 default is replaced by 18 in [ADR 0050](0050-minimum-age-defaults-to-18.md)
 - Date: 2026-11-14
 
 ## Context
