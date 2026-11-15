@@ -18,7 +18,7 @@ const control =
 const INITIAL: RulesFormState = { draft: null, error: null, stale: false };
 
 /**
- * The rules editor (ADR 0056): every section with its title and text, a
+ * The rules editor (ADR 0062): every section with its title and text, a
  * box to remove it, a blank section to add, and the change's summary, start
  * date and notice. A refusal brings back everything typed.
  */

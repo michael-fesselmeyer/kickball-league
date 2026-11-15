@@ -54,6 +54,8 @@ export async function lineupGame(db: Db, gameId: GameId) {
       startsAt: slot.startsAt,
       fieldName: field.name,
       timeZone: league.timezone,
+      /** For links to the league's public pages, such as its rules. */
+      league: { slug: league.slug, isDefault: league.isDefault },
     })
     .from(game)
     .innerJoin(season, eq(game.seasonId, season.id))

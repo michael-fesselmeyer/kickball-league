@@ -4,7 +4,7 @@ import { renderEmail } from "./layout";
 
 /**
  * Tells every player in the active seasons that the league's rules are
- * changing, at least a few days before the change takes effect (ADR 0056).
+ * changing, at least a few days before the change takes effect (ADR 0062).
  * The rules page has the new text; the email names what changed and when.
  */
 export const ruleChangePayload = z.object({
@@ -14,6 +14,8 @@ export const ruleChangePayload = z.object({
   sections: z.array(z.string().min(1)).min(1),
   /** Such as "Saturday, March 20, 2027". */
   effectiveOn: z.string().min(1),
+  /** The league's rules page: `/rules`, or `/l/<slug>/rules` (ADR 0048). */
+  rulesPath: z.string().startsWith("/").default("/rules"),
   /** The first changed section still on the page, to link to. */
   anchor: z.string().nullable(),
 });
@@ -33,7 +35,7 @@ export const ruleChangeEmail = defineTemplate(ruleChangePayload, (p, ctx) =>
       ],
       action: {
         label: "Read the rules",
-        path: p.anchor ? `/rules#${p.anchor}` : "/rules",
+        path: p.anchor ? `${p.rulesPath}#${p.anchor}` : p.rulesPath,
       },
       reason: "you play in a season with the league",
     },

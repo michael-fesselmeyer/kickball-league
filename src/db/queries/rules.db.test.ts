@@ -44,6 +44,7 @@ async function start(db: Db) {
     effectiveOn: "",
     notice: false,
     today: TODAY,
+    rulesPath: "/rules",
   });
   if (!first.ok) throw new Error(first.error);
   return { w, first: first.value };
@@ -80,6 +81,7 @@ describe("publishRuleChange", () => {
         effectiveOn: "2026-09-20",
         notice: false,
         today: TODAY,
+        rulesPath: "/rules",
       });
       if (!second.ok) throw new Error(second.error);
       const after = await currentRules(db, w.leagueId);
@@ -146,6 +148,7 @@ describe("publishRuleChange", () => {
         effectiveOn: "",
         notice: false,
         today: TODAY,
+        rulesPath: "/rules",
       });
       expect(stale).toEqual({ ok: false, error: "stale" });
       expect((await currentRules(db, w.leagueId))[0]?.body).toBe(
@@ -171,6 +174,7 @@ describe("publishRuleChange", () => {
         summary: "A new lineup rule",
         notice: true,
         today: TODAY,
+        rulesPath: "/rules",
       };
       expect(
         await publishRuleChange(db, { ...base, effectiveOn: "2026-09-16" }),
@@ -229,6 +233,7 @@ describe("publishRuleChange", () => {
           effectiveOn: "",
           notice: false,
           today: TODAY,
+          rulesPath: "/rules",
         }),
       ).toEqual({ ok: false, error: "no_changes" });
       expect(await ruleChanges(db, w.leagueId)).toHaveLength(1);

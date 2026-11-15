@@ -7,7 +7,7 @@ import { PERSONAS } from "@/lib/demo/personas";
 import type { SeedData } from "./generate";
 
 /**
- * Demo rules for the rules page (ADR 0056). Invented sample wording for the
+ * Demo rules for the rules page (ADR 0062). Invented sample wording for the
  * demo league only; a real league writes its own rules in the app, and its
  * rulebook never goes in the repository.
  */
@@ -45,6 +45,7 @@ export async function addSeedRules(
     effectiveOn: "",
     notice: false,
     today: localDate(now, data.league.timezone),
+    rulesPath: "/rules",
   });
   if (!result.ok) throw new Error(`Seeding the rules failed: ${result.error}`);
 }
