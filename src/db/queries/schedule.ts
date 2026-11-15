@@ -85,9 +85,9 @@ export async function loadSchedulerInput(
       ),
     )
     .orderBy(teamSeason.id);
-  // A slot held by a game no version has placed (an exhibition or another
-  // game an admin added by hand) is taken: the schedule works around it,
-  // as publishing leaves that game in place (issue #426).
+  // A slot held by a hand-added game (an exhibition or another game an
+  // admin added) is taken: the schedule works around it, as publishing
+  // leaves that game in place (issue #426).
   const slots = await db
     .select()
     .from(slot)
@@ -98,9 +98,8 @@ export async function loadSchedulerInput(
         sql`not exists (
           select 1 from ${game} as held
           where held.slot_id = ${slot.id}
-            and not exists (
-              select 1 from game_placement placed
-              where placed.game_id = held.id))`,
+            and held.round_no is null
+            and held.kind <> 'playoff')`,
       ),
     )
     .orderBy(slot.startsAt, slot.fieldId);
@@ -458,19 +457,17 @@ export async function publishVersion(
       from ${gamePlacement}
       where ${gamePlacement.scheduleVersionId} = ${versionId}
         and ${gamePlacement.gameId} = ${game.id}`);
-    // A game the schedule placed before and this version leaves out loses
-    // its slot. A game no version has ever placed (an exhibition or another
-    // game an admin added by hand) isn't the schedule's, and keeps its own
-    // (issue #426).
+    // A game of the schedule's own that this version leaves out loses its
+    // slot. Those are the generator's games, which have a round, and the
+    // bracket's playoff games. A hand-added game (an exhibition, or another
+    // game an admin added, with no round) keeps its own (issue #426).
     await tx.execute(sql`
       update ${game} set slot_id = null
       where ${game.seasonId} = ${version.seasonId}
         and ${game.id} not in (
           select ${gamePlacement.gameId} from ${gamePlacement}
           where ${gamePlacement.scheduleVersionId} = ${versionId})
-        and exists (
-          select 1 from ${gamePlacement} as placed
-          where placed.game_id = ${game.id})`);
+        and (${game.roundNo} is not null or ${game.kind} = 'playoff')`);
 
     const after = required(
       await loadVersion(tx, versionId),
