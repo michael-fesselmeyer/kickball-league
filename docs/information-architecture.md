@@ -175,6 +175,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   ├── recap                   Weekly recap drafted from the scores; edit, then send as an announcement
     │   ├── team-of-the-week        The game day's best wins; name a team with an optional tab at a sponsor
     │   ├── survey                  End-of-season survey: open it once the season is completed (one invite per rostered player), close it, and the results for owners and admins: turnout, rating counts and average, play-again counts, and each question's written answers as a sorted, anonymous list
+    │   ├── win-back                While registration is open: players from the last three seasons who haven't signed up, most loyal first, with their last team, seasons played and whether they were emailed or opted out of league news; one-click "Email" per player, "Email all not emailed yet", the league's editable wording, and emailed and came-back counts
     │   ├── challenge               Team sign-up challenge: start it (prize, deadline) or change it, every team's progress with who needs a nudge, and confirm the winner (pick between teams in a dead heat)
     │   └── playoffs                Seed from standings, place on fields, publish the bracket
     ├── games                       Scores, forfeits, corrections
