@@ -13,6 +13,8 @@ test.use({ viewport: { width: 390, height: 844 } });
 test("an admin adds a layout, and the ref sees it with the permit", async ({
   browser,
 }) => {
+  // One upload per seeded field.
+  test.slow();
   const admin = await pageAs(browser, "Admin");
   await admin.goto("/app/admin/seasons/fall-2026/fields");
   const layouts = admin.getByRole("region", { name: "Field layouts" });
