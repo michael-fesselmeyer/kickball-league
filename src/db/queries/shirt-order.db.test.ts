@@ -147,6 +147,7 @@ describe("the order board and the vendor's CSV", () => {
       });
       await db.insert(creditEntry).values({
         userId: w.teammate,
+        leagueId: w.leagueId,
         deltaCents: 5000,
         reason: "goodwill",
         note: "Test",

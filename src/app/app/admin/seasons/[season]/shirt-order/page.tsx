@@ -30,6 +30,7 @@ import {
   remindSizesAction,
   setSizesAction,
 } from "./actions";
+import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Shirt order" };
 
@@ -128,7 +129,7 @@ async function ShirtOrder({
   const page = `/app/admin/seasons/${slug}/shirt-order`;
   const subject = await requirePermission("shirts.manage", { next: page });
   const query = await searchParams;
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const [board, reminded] = await Promise.all([
     shirtOrderBoard(db, season.id),

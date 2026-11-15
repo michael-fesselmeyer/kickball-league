@@ -6,6 +6,7 @@ import { exportFilename, toCsv } from "@/domain/export/csv";
 import { parseId, type UserId } from "@/domain/ids";
 import { vendorColumns, vendorRows } from "@/domain/shirts/order";
 import { currentSubject } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
 
 const text = (body: string, status: number) =>
   new Response(body, {
@@ -31,7 +32,11 @@ export async function GET(
   const userId = parseId<UserId>(subject.userId);
   if (userId === null) return text("Sign in to download this file.", 401);
   if (!can(subject, "shirts.manage")) return text("Not found.", 404);
-  const season = await seasonBySlug(db, (await ctx.params).season);
+  const season = await seasonBySlug(
+    db,
+    await activeLeagueId(),
+    (await ctx.params).season,
+  );
   if (!season) return text("Not found.", 404);
   const names = new URL(request.url).searchParams.get("names") === "1";
   const board = await shirtOrderBoard(db, season.id);
