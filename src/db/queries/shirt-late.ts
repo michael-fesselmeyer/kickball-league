@@ -1,4 +1,15 @@
-import { and, asc, eq, gte, inArray, ne, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import type {
   LeagueId,
   RegistrationId,
@@ -25,6 +36,7 @@ import {
   teamSeason,
 } from "../schema/team";
 import { recordAudit } from "./audit";
+import { publicSeasons } from "./season-scope";
 import type { Db } from "./schedule";
 import { ON_ORDER } from "./shirt-order";
 
@@ -402,4 +414,69 @@ export async function teamShirtInfo(
     .from(teamSeason)
     .where(eq(teamSeason.id, teamSeasonId));
   return row ?? null;
+}
+
+export type ArchiveSeason = {
+  seasonId: SeasonId;
+  name: string;
+  slug: string;
+  teams: {
+    name: string;
+    slug: string;
+    colorHex: string | null;
+    design: string | null;
+    ownShirts: boolean;
+  }[];
+};
+
+/**
+ * Each public season's team shirts, newest season first: the design line a
+ * captain wrote, or that the team wore its own. Teams with neither are left
+ * out, and so are seasons with no team shown. One query.
+ */
+export async function shirtArchive(
+  db: Db,
+  leagueId: LeagueId,
+): Promise<ArchiveSeason[]> {
+  const rows = await db
+    .select({
+      seasonId: season.id,
+      seasonName: season.name,
+      seasonSlug: season.slug,
+      teamName: team.name,
+      teamSlug: team.slug,
+      colorHex: team.colorHex,
+      design: teamSeason.shirtDesign,
+      ownShirts: teamSeason.ownShirts,
+    })
+    .from(teamSeason)
+    .innerJoin(season, eq(season.id, teamSeason.seasonId))
+    .innerJoin(team, eq(team.id, teamSeason.teamId))
+    .where(
+      and(
+        eq(season.leagueId, leagueId),
+        publicSeasons,
+        ne(teamSeason.status, "withdrawn"),
+        or(isNotNull(teamSeason.shirtDesign), eq(teamSeason.ownShirts, true)),
+      ),
+    )
+    .orderBy(desc(season.startsOn), asc(team.name));
+  const seasons = new Map<SeasonId, ArchiveSeason>();
+  for (const r of rows) {
+    const entry = seasons.get(r.seasonId) ?? {
+      seasonId: r.seasonId,
+      name: r.seasonName,
+      slug: r.seasonSlug,
+      teams: [],
+    };
+    entry.teams.push({
+      name: r.teamName,
+      slug: r.teamSlug,
+      colorHex: r.colorHex,
+      design: r.design,
+      ownShirts: r.ownShirts,
+    });
+    seasons.set(r.seasonId, entry);
+  }
+  return [...seasons.values()];
 }

@@ -4,7 +4,9 @@ import Link from "next/link";
 import { LogoBadge } from "@/components/logo-badge";
 import { db } from "@/db/client";
 import { type AllTimeRow, leagueHistory } from "@/db/queries/history";
+import { shirtArchive } from "@/db/queries/shirt-late";
 import type { LeagueInfo } from "@/db/queries/leagues";
+import type { ArchiveSeason as ShirtArchiveSeason } from "@/db/queries/shirt-late";
 import type { StandingsTeam } from "@/db/queries/standings";
 import type { Hex } from "@/domain/color/contrast";
 import {
@@ -66,13 +68,20 @@ export default async function HistoryPage({
 async function History({ league }: { league: LeagueInfo }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
-  const { pastSeasons, allTime, seasonIds } =
-    (await readUnlessBuildHasNoDatabase(() =>
-      leagueHistory(db, league.id),
-    )) ?? { pastSeasons: [], allTime: [], seasonIds: [] };
-  if (seasonIds.length > 0) cacheTag(...seasonIds.map(seasonTag));
+  const [history, shirts] = await Promise.all([
+    readUnlessBuildHasNoDatabase(() => leagueHistory(db, league.id)),
+    readUnlessBuildHasNoDatabase(() => shirtArchive(db, league.id)),
+  ]);
+  const { pastSeasons, allTime, seasonIds } = history ?? {
+    pastSeasons: [],
+    allTime: [],
+    seasonIds: [],
+  };
+  const archive = shirts ?? [];
+  const tagged = [...new Set([...seasonIds, ...archive.map((a) => a.seasonId)])];
+  if (tagged.length > 0) cacheTag(...tagged.map(seasonTag));
 
-  if (pastSeasons.length === 0)
+  if (pastSeasons.length === 0 && archive.length === 0)
     return (
       <p className="text-text-muted">
         No season has finished yet. The first champion goes up here as soon as
@@ -129,6 +138,8 @@ async function History({ league }: { league: LeagueInfo }) {
       </section>
 
       <AllTimeTable league={league} rows={allTime} />
+
+      <ShirtArchive league={league} archive={archive} />
 
       <section aria-labelledby="seasons" className="flex flex-col gap-8">
         <h2 id="seasons" className="text-h2">
@@ -240,6 +251,57 @@ async function History({ league }: { league: LeagueInfo }) {
         .
       </p>
     </>
+  );
+}
+
+/** Each season's team shirts: the design a captain described, or own shirts. */
+function ShirtArchive({
+  league,
+  archive,
+}: {
+  league: LeagueRef;
+  archive: ShirtArchiveSeason[];
+}) {
+  if (archive.length === 0) return null;
+  return (
+    <section aria-labelledby="shirt-archive" className="flex flex-col gap-4">
+      <h2 id="shirt-archive" className="text-h2">
+        Shirt archive
+      </h2>
+      {archive.map((s) => (
+        <section
+          key={s.seasonId}
+          aria-labelledby={`shirts-${s.slug}`}
+          className="flex flex-col gap-2"
+        >
+          <h3 id={`shirts-${s.slug}`} className="text-h3">
+            {s.name}
+          </h3>
+          <ul className="flex flex-col gap-2">
+            {s.teams.map((t) => (
+              <li key={t.slug} className="flex items-start gap-2">
+                <span className="mt-1.5">
+                  <Swatch color={t.colorHex} />
+                </span>
+                <span>
+                  <Link
+                    href={leagueHref(league, `/teams/${t.slug}`)}
+                    className="inline-flex min-h-6 items-center font-bold underline"
+                  >
+                    {t.name}
+                  </Link>
+                  <span className="block text-small text-text-muted">
+                    {t.design ??
+                      "Wore its own shirts or jerseys that season."}
+                    {t.design && t.ownShirts && " Own shirts."}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </section>
   );
 }
 
