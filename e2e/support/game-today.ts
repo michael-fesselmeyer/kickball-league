@@ -74,6 +74,112 @@ export async function addGameInDays(
   };
 }
 
+/**
+ * Two games at noon a week from today, league time, at the same time on the
+ * first two fields, for flows that staff games still to come. They sit in
+ * a small draft season of their own (four fall teams), not in Fall 2026:
+ * publishing a season's schedule takes the slot off any of its games the
+ * schedule doesn't place, and other flows publish Fall 2026's (a rain-out's
+ * makeups). Players see nothing of a draft season. `remove` deletes it all.
+ */
+export async function addGamesNextWeek(
+  pairs: readonly [readonly [string, string], readonly [string, string]],
+): Promise<{
+  day: string;
+  slug: string;
+  name: string;
+  remove: () => Promise<void>;
+}> {
+  const tag = Math.random().toString(36).slice(2, 8);
+  const slug = `next-week-${tag}`;
+  const name = `Next week ${tag}`;
+  const made = await withDb(async (db) => {
+    const { rows: seasons } = await db.query<{
+      id: string;
+      league_id: string;
+      day: string;
+    }>(
+      `insert into season (league_id, name, slug, starts_on, ends_on,
+                           fee_model, player_fee_cents, roster_min, roster_max)
+       select s.league_id, $1, $2, current_date, current_date + 14,
+              s.fee_model, s.player_fee_cents, s.roster_min, s.roster_max
+         from season s where s.slug = 'fall-2026'
+          and s.league_id = (select id from league where is_default)
+       returning id, league_id,
+         to_char((now() at time zone (select timezone from league
+                    where id = league_id))::date + 7, 'YYYY-MM-DD') as day`,
+      [name, slug],
+    );
+    const [created] = seasons;
+    if (!created) throw new Error("Could not add next week's season");
+    const games: string[] = [];
+    const slots: string[] = [];
+    for (const [i, [teamA, teamB]] of pairs.entries()) {
+      const { rows } = await db.query<{ game: string; slot: string }>(
+        `with entries as (
+           insert into team_season (team_id, season_id)
+           select t.id, $1 from team t
+            where t.league_id = $2 and t.name in ($3, $4)
+           on conflict do nothing
+           returning id, team_id
+         ), teams as (
+           select ts.id, t.name from team_season ts
+             join team t on t.id = ts.team_id
+            where ts.season_id = $1 and t.name in ($3, $4)
+           union all
+           select e.id, t.name from entries e join team t on t.id = e.team_id
+         ), noon as (
+           select ((($6::date)::timestamp + interval '12 hours')
+                    at time zone l.timezone) as starts_at
+             from league l where l.id = $2
+         ), place as (
+           select f.id as field_id from field f
+             join venue v on v.id = f.venue_id
+            where v.league_id = $2
+            order by f.name offset $5 limit 1
+         ), new_slot as (
+           insert into slot (season_id, field_id, starts_at, ends_at, time_index)
+           select $1, (select field_id from place), starts_at,
+                  starts_at + interval '1 hour', $5
+             from noon
+           returning id
+         )
+         insert into game (season_id, team_a_id, team_b_id, kind, slot_id)
+         select $1,
+                (select id from teams where name = $3 limit 1),
+                (select id from teams where name = $4 limit 1),
+                'exhibition', new_slot.id
+           from new_slot
+         returning id as game, slot_id as slot`,
+        [created.id, created.league_id, teamA, teamB, i, created.day],
+      );
+      const [row] = rows;
+      if (!row) throw new Error(`Could not add ${teamA} vs ${teamB} next week`);
+      games.push(row.game);
+      slots.push(row.slot);
+    }
+    return { seasonId: created.id, day: created.day, games, slots };
+  });
+  return {
+    day: made.day,
+    slug,
+    name,
+    remove: () =>
+      withDb(async (db) => {
+        await db.query("delete from game where season_id = $1", [
+          made.seasonId,
+        ]);
+        await db.query("delete from slot where season_id = $1", [
+          made.seasonId,
+        ]);
+        await db.query("delete from team_season where season_id = $1", [
+          made.seasonId,
+        ]);
+        await db.query("delete from season where id = $1", [made.seasonId]);
+      }),
+  };
+}
+
 async function withDb<T>(body: (db: Client) => Promise<T>): Promise<T> {
   const db = new Client({ connectionString: process.env.DATABASE_URL });
   await db.connect();
