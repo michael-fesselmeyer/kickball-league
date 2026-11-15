@@ -3,15 +3,16 @@ name: Outbox sweep
 # Sends messages timed for later, such as a game day's decision-time
 # reminder, close to their time. Vercel Hobby runs the outbox job once a
 # day; this calls the same route every 15 minutes through the league's
-# day (12:00 to 04:45 UTC: 8 am to past midnight in New York), which is
-# free in a public repository (docs/architecture.md, section 5). It does
-# nothing until the site's address (the SITE_URL variable) and the
-# CRON_SECRET secret are set.
+# day (12:07 to 04:52 UTC: 8 am to past midnight in New York), which is
+# free in a public repository (docs/architecture.md, sections 5 and 15).
+# It runs off the hour, where GitHub's best-effort schedules are least
+# often late. It does nothing until the site's address (the SITE_URL
+# variable) and the CRON_SECRET secret are set.
 
 on:
   schedule:
-    - cron: "*/15 12-23 * * *"
-    - cron: "*/15 0-4 * * *"
+    - cron: "7-59/15 12-23 * * *"
+    - cron: "7-59/15 0-4 * * *"
   workflow_dispatch:
 
 concurrency:
