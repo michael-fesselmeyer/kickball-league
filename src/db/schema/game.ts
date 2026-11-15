@@ -174,6 +174,12 @@ export const game = pgTable(
       .references(() => teamSeason.id, { onDelete: "restrict" }),
     finalizedAt: timestamp({ withTimezone: true }),
     /**
+     * When an admin's written ruling last set this result (a forfeit, a
+     * settled dispute or a correction); null when no ruling stands. The
+     * public game page shows "Ruling" from it, never the reason.
+     */
+    ruledAt: timestamp({ withTimezone: true }),
+    /**
      * The team that kicks in the top of each inning, decided at the field and
      * set when live scoring starts. Null until then.
      */
@@ -244,11 +250,21 @@ export const scoreReport = pgTable(
     scoreB: integer().notNull(),
     inningsPlayed: integer(),
     outcome: scoreOutcome().notNull().default("normal"),
+    /**
+     * The admin's written reason for a ruling: a forfeit, a settled
+     * dispute, or a correction or reversal of a final result. Null for
+     * everything else. Only the game's captains, ref and admins see it.
+     */
+    reason: text(),
     clientId: text().notNull(),
     reportedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     unique("score_report_client_id_unique").on(t.clientId),
+    check(
+      "score_report_reason_by_admin",
+      sql`${t.reason} is null or (${t.reporterRole} = 'admin' and char_length(${t.reason}) between 1 and 300)`,
+    ),
     index("score_report_game_idx").on(t.gameId, t.reportedAt),
     check(
       "score_report_scores_non_negative",
