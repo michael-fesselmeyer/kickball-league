@@ -10,7 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type { RegistrationId } from "@/domain/ids";
-import type { QuizAnswers } from "@/domain/matcher/quiz";
+import type { StoredQuizAnswers } from "@/domain/matcher/quiz";
 import { registration } from "./team";
 
 /**
@@ -26,7 +26,7 @@ export const freeAgentProfile = pgTable(
       .primaryKey()
       .$type<RegistrationId>()
       .references(() => registration.id, { onDelete: "cascade" }),
-    answers: jsonb().$type<QuizAnswers>().notNull(),
+    answers: jsonb().$type<StoredQuizAnswers>().notNull(),
     skillScore: integer().notNull(),
     vibeScore: integer().notNull(),
     wouldCaptain: boolean().notNull().default(false),

@@ -11,9 +11,10 @@ import type {
 import { FRIEND_GROUP_MAX, newFriendCode } from "@/domain/matcher/friend-code";
 import type { MatchTeam, PoolPlayer } from "@/domain/matcher/matcher";
 import {
+  matcherView,
   readAnswers,
   type ParsedQuiz,
-  type QuizAnswers,
+  type StoredQuizAnswers,
 } from "@/domain/matcher/quiz";
 import { err, ok, type Result } from "@/domain/result";
 import { teamSlug } from "@/domain/slug";
@@ -261,7 +262,7 @@ export type PoolEntry = PoolPlayer & {
   registrationId: RegistrationId;
   signed: boolean;
   paid: boolean;
-  answers: QuizAnswers | null;
+  answers: StoredQuizAnswers | null;
   notes: string | null;
   code: string | null;
 };
@@ -359,6 +360,7 @@ export async function matcherInput(db: Db, seasonId: SeasonId) {
 
   const players = people.map((p, order) => {
     const answers = readAnswers(p.answers);
+    const view = matcherView(answers);
     return {
       teamSeasonId: p.teamSeasonId,
       userId: p.userId,
@@ -371,10 +373,10 @@ export async function matcherInput(db: Db, seasonId: SeasonId) {
         side: p.lineupGender,
         skill: p.skill,
         vibe: p.vibe,
-        availability: answers?.availability ?? null,
-        positions: answers?.positions ?? [],
+        availability: view.availability,
+        positions: view.positions,
         groupId: p.groupId,
-        captain: answers?.captain ?? null,
+        captain: view.captain,
         order,
         signed: p.waiverSignatureId !== null || p.status !== "pending_waiver",
         paid: p.status === "active",
