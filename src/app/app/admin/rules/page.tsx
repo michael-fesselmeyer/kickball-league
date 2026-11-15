@@ -4,10 +4,16 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
-import { currentRules, ruleChanges, rulesVersion } from "@/db/queries/rules";
+import {
+  currentRules,
+  ruleChanges,
+  rulebookVisibility,
+  rulesVersion,
+} from "@/db/queries/rules";
 import { localDate } from "@/domain/books/ledger-csv";
 import { earliestWithNotice } from "@/domain/rules/rules";
 import { can } from "@/domain/authz/permissions";
+import { canReadRulebook } from "@/domain/rules/rulebook";
 import { requirePermission } from "@/lib/auth/permission";
 import { leagueHref } from "@/domain/league/paths";
 import { activeLeague } from "@/lib/league/active";
@@ -41,6 +47,22 @@ async function Rules({ searchParams }: PageProps<"/app/admin/rules">) {
   const isOwner = can(subject, "rulebook.manage", {});
   const league = await activeLeague();
   if (!league) notFound();
+  // The editor shows the full text, so it follows the visibility switch: an
+  // admin who is not an owner sees it only once the owners share the rulebook.
+  const visibility = await rulebookVisibility(db, league.id);
+  if (!canReadRulebook(visibility, subject.globalRole))
+    return (
+      <header className="flex flex-col gap-1">
+        <Link href="/app/admin" className="underline">
+          ← League admin
+        </Link>
+        <h1 className="text-h1">League rules</h1>
+        <p className="text-text-muted">
+          The league&apos;s owners haven&apos;t shared the rulebook with admins
+          yet. Ask an owner to change who can read it.
+        </p>
+      </header>
+    );
   const [sections, changes, version] = await Promise.all([
     currentRules(db, league.id),
     ruleChanges(db, league.id, 10),
