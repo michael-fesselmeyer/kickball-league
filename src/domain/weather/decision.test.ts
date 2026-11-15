@@ -3,6 +3,7 @@ import {
   alertWeight,
   decide,
   type DecisionInput,
+  dueForDecision,
   type GridHour,
   hourWords,
   inches,
@@ -278,5 +279,39 @@ describe("the words the card uses", () => {
     expect(alertWeight(alert("Severe Thunderstorm Watch"))).toBe("watch");
     expect(alertWeight(alert("Wind Advisory"))).toBe("watch");
     expect(alertWeight(alert("Air Quality Alert"))).toBe("low");
+  });
+});
+
+describe("when the decision-time alert goes out", () => {
+  // The job's two daily runs (vercel.json), which Hobby may start anywhere
+  // in their hour.
+  const runs = (y: number, m: number, d: number) =>
+    [13, 18].flatMap((h) => [
+      new Date(Date.UTC(y, m, d, h, 0)),
+      new Date(Date.UTC(y, m, d, h, 59)),
+    ]);
+  const caught = (firstPitch: Date, day: Date[]) =>
+    day.filter((run) => dueForDecision(firstPitch, run)).length;
+
+  it("catches a summer Sunday's 2 pm start and a weeknight's evening, in daylight time", () => {
+    const sunday = runs(2026, 6, 12); // Sun, Jul 12, EDT
+    expect(caught(new Date("2026-07-12T18:00:00Z"), sunday)).toBe(2); // 2 pm
+    const monday = runs(2026, 3, 20); // Mon, Apr 20, EDT
+    expect(caught(new Date("2026-04-21T00:00:00Z"), monday)).toBe(2); // 8 pm
+    expect(caught(new Date("2026-04-20T22:30:00Z"), monday)).toBe(2); // 6:30 pm
+  });
+
+  it("still catches them after the clocks go back", () => {
+    const sunday = runs(2026, 10, 1); // Sun, Nov 1, the day EST starts
+    expect(caught(new Date("2026-11-01T19:00:00Z"), sunday)).toBe(2); // 2 pm
+    const tuesday = runs(2026, 10, 3); // Tue, Nov 3, EST
+    expect(caught(new Date("2026-11-04T00:00:00Z"), tuesday)).toBe(2); // 7 pm
+  });
+
+  it("never alerts for a game already started or less than 2 hours off", () => {
+    const at = new Date("2026-07-12T18:00:00Z");
+    expect(dueForDecision(at, new Date("2026-07-12T16:30:00Z"))).toBe(false);
+    expect(dueForDecision(at, new Date("2026-07-12T18:30:00Z"))).toBe(false);
+    expect(dueForDecision(at, new Date("2026-07-12T09:00:00Z"))).toBe(false);
   });
 });

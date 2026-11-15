@@ -11,6 +11,7 @@ import { CopyForWhatsApp } from "@/components/share";
 import { db } from "@/db/client";
 import {
   adminsConfirmRainouts,
+  anySlotOpen,
   gameDayParks,
   rainoutRequests,
 } from "@/db/queries/rainout-decision";
@@ -21,7 +22,7 @@ import {
   versionsOf,
 } from "@/db/queries/schedule-screen";
 import { can } from "@/domain/authz/permissions";
-import type { SeasonId } from "@/domain/ids";
+import type { SeasonId, SlotId } from "@/domain/ids";
 import { kickoff, shortDay } from "@/domain/schedule/format";
 import { measure } from "@/domain/scheduler/measure";
 import { reschedule } from "@/domain/scheduler/reschedule";
@@ -128,7 +129,11 @@ async function Rainout({
     const result = reschedule(version.input, version.schedule, cancelled);
     const before = measure(version.input, version.schedule);
     const games = new Map(version.schedule.games.map((g) => [g.key, g]));
-    const requests = await rainoutRequests(db, season.id, date);
+    const [requests, stillOn] = await Promise.all([
+      rainoutRequests(db, season.id, date),
+      anySlotOpen(db, cancelled as SlotId[]),
+    ]);
+    const lastRequest = requests[0];
     preview = (
       <section aria-labelledby="preview" className="flex flex-col gap-4">
         <h2 id="preview" className="text-h2">
@@ -209,18 +214,22 @@ async function Rainout({
               {d}
             </p>
           ))}
-        {requests.length > 0 && (
+        {!stillOn ? (
+          <p role="status" className="rounded-lg border border-border p-3">
+            {ERRORS.already}
+          </p>
+        ) : null}
+        {stillOn && lastRequest && (
           <p role="status" className="rounded-lg border border-warning p-3">
-            {requests[0]?.by ?? "An admin"} sent this rain-out to the owners to
-            confirm on{" "}
-            {shortDay(requests[0]?.at ?? new Date(), season.timeZone)} at{" "}
-            {kickoff(requests[0]?.at ?? new Date(), season.timeZone)}.
+            {lastRequest.by ?? "An admin"} sent this rain-out to the owners to
+            confirm on {shortDay(lastRequest.at, season.timeZone)} at{" "}
+            {kickoff(lastRequest.at, season.timeZone)}.
             {canConfirm
               ? " Confirm it below if the field can't be played."
               : " Waiting for an owner to confirm."}
           </p>
         )}
-        {canConfirm ? (
+        {!stillOn ? null : canConfirm ? (
           <>
             <form action={declareRainout.bind(null, slug, date)}>
               <SubmitButton className="btn btn-primary">

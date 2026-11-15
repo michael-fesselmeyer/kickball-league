@@ -36,7 +36,8 @@ export async function RainDecisionCard({
   if (parks.length === 0)
     return (
       <p className="text-text-muted">
-        No park on this day has a map pin, so there is no weather to show.
+        No games are still on at a park with a map pin, so there is no weather
+        to show.
       </p>
     );
   const read = await Promise.all(
