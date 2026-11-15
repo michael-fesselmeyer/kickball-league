@@ -4,6 +4,7 @@ import {
   announcementShareText,
   bold,
   eventShareText,
+  gameDayShareText,
   gameShareText,
   rainoutShareText,
   teamShareText,
@@ -218,5 +219,50 @@ describe("eventShareText", () => {
     expect(eventShareText({ ...event, cancelled: true })).toBe(
       "Called off: *Spring prom* (Sat, Mar 6, 8:00 – 11:00 PM)\nhttps://league.example.test/app/events/spring-prom-2027-03-06",
     );
+  });
+});
+
+describe("gameDayShareText", () => {
+  const scheduleUrl = "https://league.example.test/seasons/fall-2026/schedule";
+
+  it("lists a game day for the group chat: times, matchups, fields and the link", () => {
+    const late: PublicGame = {
+      ...base,
+      id: "g2",
+      startsAt: new Date("2026-11-15T19:00:00Z"),
+      teamA: { ...base.teamA, name: "Red Rockets" },
+      field: null,
+      venue: null,
+    };
+    const rained: PublicGame = { ...base, id: "g3", slotCancelled: true };
+    expect(
+      gameDayShareText({
+        seasonName: "Fall 2026",
+        day: "2026-11-15",
+        games: [base, late, rained],
+        timeZone: tz,
+        url: scheduleUrl,
+      }),
+    ).toBe(
+      [
+        "*Fall 2026: Sunday, November 15*",
+        "1:00 PM  Sluggers vs Kickers, Field 2, Riverside Park",
+        "2:00 PM  Red Rockets vs Kickers",
+        "1:00 PM  Sluggers vs Kickers, Field 2, Riverside Park (rained out)",
+        "",
+        `Full schedule: ${scheduleUrl}`,
+      ].join("\n"),
+    );
+  });
+
+  it("uses no emoji", () => {
+    const text = gameDayShareText({
+      seasonName: "Fall 2026",
+      day: "2026-11-15",
+      games: [base],
+      timeZone: tz,
+      url: scheduleUrl,
+    });
+    expect(text).not.toMatch(/\p{Extended_Pictographic}/u);
   });
 });
