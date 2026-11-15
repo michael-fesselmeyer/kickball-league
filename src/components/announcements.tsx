@@ -14,7 +14,64 @@ export const ANNOUNCE_ERRORS: Record<string, string> = {
     "You have reached today's limit for announcements. Try again tomorrow.",
   no_recipients: "Nobody is on that list yet, so there is nobody to email.",
   unknown_team: "That team is not in this season.",
+  bad_send_time: "Pick when to send it: now, the next morning send, or a day.",
+  send_day_passed:
+    "That day's send has already gone out. Pick a later day, or send it now.",
+  send_day_far: "Schedule it within the next four months.",
+  already_sent:
+    "That announcement has already gone out or was cancelled, so it can't change.",
 };
+
+/**
+ * The "when" choice for an admin's announcement (ADR 0052). Scheduled jobs
+ * run once a day, so a scheduled announcement goes with the outbox's
+ * morning send on the chosen day; the labels say when that is in the
+ * league's time zone.
+ */
+export type ScheduleChoice = {
+  /** "Tue, Nov 17, 8:30 AM": when the next morning send is. */
+  next: string;
+  /** The sweep's time of day in the league's zone, such as "8:30 AM ET". */
+  sweepTime: string;
+  /** YYYY-MM-DD bounds for the day picker. */
+  minDay: string;
+  maxDay: string;
+};
+
+function WhenToSend({ schedule }: { schedule: ScheduleChoice }) {
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="font-bold">When</legend>
+      <label className="flex min-h-11 items-center gap-2">
+        <input type="radio" name="when" value="now" defaultChecked />
+        Send now
+      </label>
+      <label className="flex min-h-11 items-center gap-2">
+        <input type="radio" name="when" value="next" />
+        At the next morning send ({schedule.next})
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex min-h-11 items-center gap-2">
+          <input type="radio" name="when" value="day" />
+          On a day:
+        </label>
+        <input
+          type="date"
+          name="day"
+          min={schedule.minDay}
+          max={schedule.maxDay}
+          aria-label="Day to send"
+          className={field}
+        />
+      </div>
+      <p className="text-small text-text-muted">
+        Scheduled messages go out once a day, with the morning send at about{" "}
+        {schedule.sweepTime}. You can edit or cancel one until then. Quiet hours
+        and the daily email limit still apply.
+      </p>
+    </fieldset>
+  );
+}
 
 export function announceNotice(count: unknown): string | undefined {
   const n = typeof count === "string" ? Number.parseInt(count, 10) : NaN;
@@ -28,12 +85,15 @@ export function AnnouncementForm({
   audience,
   limitNote,
   defaults,
+  schedule,
 }: {
   action: (form: FormData) => Promise<void>;
   audience?: { value: string; label: string }[];
   limitNote: string;
   /** Starting text to edit, such as a drafted recap. */
   defaults?: { subject: string; body: string };
+  /** Lets an admin schedule it instead of sending now. */
+  schedule?: ScheduleChoice;
 }) {
   return (
     <form action={action} className="flex flex-col gap-4">
@@ -74,6 +134,7 @@ export function AnnouncementForm({
           Sent by email. {limitNote}
         </span>
       </label>
+      {schedule && <WhenToSend schedule={schedule} />}
       <SubmitButton className="min-h-11 self-start rounded-full bg-text px-4 py-2 font-bold text-surface">
         Send announcement
       </SubmitButton>
