@@ -598,6 +598,8 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | `…/team-of-the-week` | `sponsors` |
 | `…/waitlist` | `registration` (a full season's waitlist) |
 | `/app/admin/merch`, `/new`, `/[item]` | `merch` (create, fulfill) |
+| `/app/admin/shirt-makers` | `shirts-late` (add a maker after a refused http link, remove one) |
+| `/app/admin/shirt-waiting` | `shirts-late` (log spare shirts) |
 | `/app/admin/merch/orders.csv` | `merch` (the printer's CSV) |
 | `/app/admin/merch/photos/[image]` | Not reached: the flow adds no photo; `merch.db.test.ts` covers the caps |
 | `/app/admin/instagram`, `/photos/[image]` | `instagram` (connect, feature a post, disconnect) |

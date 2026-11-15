@@ -38,6 +38,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 - Send blackout dates and time preferences before the schedule is made; build kicking orders that check the league's gender-run rule.
 - Ask for subs, answer score confirmations, see availability by week and hand the team to a co-captain.
 - Keep a private "not on my team" list and download the team's roster and payments.
+- Choose your team's own shirts or jerseys instead of the league's, and see local shirt makers.
 - Vote in the league's quick captains' polls: one vote for the team (co-captains too, when a poll says so), changeable until it closes, with the totals once the team has voted or at close, as the admin chose; a reminder comes once a day while the team hasn't voted.
 
 **Refs**

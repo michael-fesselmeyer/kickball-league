@@ -46,7 +46,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 │   └── [team]                      One team's next three games
 ├── free-agents                     How solo signup works, with FAQ structured data (P2: quiz)
 ├── private-events                  Book a private league or tournament: the formats, what's included, how it works and a "Request a booking" button (static; private seasons themselves never appear on public pages)
-├── history                         Past seasons: champions, final standings and the all-time table; each season links to its standings and schedule
+├── history                         Past seasons: champions, final standings and the all-time table, and the shirt archive (each season's teams with the shirt they described or "own shirts"); each season links to its standings and schedule
 ├── news/
 │   ├── how-to-play-kickball        Evergreen guide to the basics, with Article structured data
 │   └── [post]                      Season recaps and announcements (P2)
@@ -231,6 +231,8 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   └── [shift]                 Edit a shift (never below the people signed up) or remove it
     ├── news
     ├── messages                    Announcements and delivery log
+    ├── shirt-waiting               Late-joiner shirts: players who joined after their season's order, across teams, by size; the batch-reorder readiness; spare stock to log and hand out; mark the batch ordered and received
+    ├── shirt-makers                Shirt makers directory: add, change or remove local custom jersey and t-shirt makers (https links, free to list)
     ├── merch/                      The shop's items: price, in the shop or hidden, orders still to make; a new item; the printer's CSV; how much photo storage is used
     │   ├── new                     Add an item: league item or replacement team jersey, name, description, price and member price, made to order or stock per size, order deadline
     │   ├── [item]                  Orders to make by size, each with the buyer, team and color and what they paid on card and in credit; mark one or all fulfilled; a full refund per order; photos (add up to four, remove); edit the details; hide from the shop or put back
