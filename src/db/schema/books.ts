@@ -29,7 +29,7 @@ import { EXPENSE_CATEGORIES } from "@/domain/books/ledger";
 import { user } from "./auth";
 import { league } from "./league";
 import { season } from "./season";
-import { bytea } from "./social";
+import { bytea } from "./bytea";
 
 /**
  * The owners' books (docs/data-model.md, section 2.9; ADR 0034): expenses
