@@ -389,6 +389,7 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
   "signup_challenge.created_by": actor("sign-up challenges created"),
   "signup_challenge.confirmed_by": actor("sign-up challenges confirmed"),
   "friend_league.created_by": actor("friend leagues added"),
+  "rule_change.created_by": actor("rule changes published"),
   "social_account.connected_by": actor("social accounts connected"),
   "announcement.author_id": actor("announcements written"),
 
