@@ -25,13 +25,15 @@ export async function duplicateAccounts(): Promise<{
     const dup = rows.find((r) => r.email === merge);
     if (!kept || !dup) throw new Error("Could not make the accounts");
     await client.query(
-      `insert into profile (user_id, first_name, last_name, global_role)
-       values ($1, 'Robin', 'Example', 'player'), ($2, 'Robin', null, 'player')`,
+      `insert into profile (user_id, first_name, last_name)
+       values ($1, 'Robin', 'Example'), ($2, 'Robin', null)`,
       [kept.id, dup.id],
     );
     await client.query(
-      `insert into credit_entry (user_id, delta_cents, reason, note)
-       values ($1, 1000, 'goodwill', 'Thanks for helping out')`,
+      // Credit is the default league's (ADR 0048).
+      `insert into credit_entry (user_id, league_id, delta_cents, reason, note)
+       select $1, id, 1000, 'goodwill', 'Thanks for helping out'
+         from league where is_default`,
       [dup.id],
     );
     await client.query(
@@ -66,9 +68,15 @@ export async function ownerAccount(first: string): Promise<string> {
     const id = rows[0]?.id;
     if (!id) throw new Error("Could not make the owner");
     await client.query(
-      `insert into profile (user_id, first_name, last_name, global_role)
-       values ($1, $2, 'Owner', 'owner')`,
+      `insert into profile (user_id, first_name, last_name)
+       values ($1, $2, 'Owner')`,
       [id, first],
+    );
+    // An owner of the default league (ADR 0048).
+    await client.query(
+      `insert into league_member (league_id, user_id, role)
+       select id, $1, 'owner' from league where is_default`,
+      [id],
     );
     return email;
   } finally {

@@ -13,6 +13,8 @@ import { pageAs } from "../support/personas";
  */
 const FOOTBALL = "/l/flag-football";
 const FOOTBALL_NAME = "Sunday Flag Football (demo)";
+/** The site's not-found page (src/app/not-found.tsx). */
+const NOT_FOUND = "We can't find that page";
 
 test("each league's public pages show that league's data only, at its own address", async ({
   page,
@@ -26,17 +28,24 @@ test("each league's public pages show that league's data only, at its own addres
 
   // The same season slug: football's schedule names football teams only.
   await page.goto(`${FOOTBALL}/seasons/fall-2026/schedule`);
-  await expect(page.getByText("Hail Marys").first()).toBeVisible();
+  await expect(
+    page.getByText("Hail Marys").filter({ visible: true }).first(),
+  ).toBeVisible();
   await expect(page.getByText("Sun Kickers")).toHaveCount(0);
   await expectNoAxeViolations(page);
   await page.goto("/seasons/fall-2026/schedule");
-  await expect(page.getByText("Sun Kickers").first()).toBeVisible();
+  await expect(
+    page.getByText("Sun Kickers").filter({ visible: true }).first(),
+  ).toBeVisible();
   await expect(page.getByText("Hail Marys")).toHaveCount(0);
 
   // The same team slug: each league's page is its own team's.
   await page.goto(`${FOOTBALL}/teams/the-big-kicks`);
   await expect(
-    page.getByText(/Red Zone Regulars|Hail Marys|Sunday Scramblers/).first(),
+    page
+      .getByText(/Red Zone Regulars|Hail Marys|Sunday Scramblers/)
+      .filter({ visible: true })
+      .first(),
   ).toBeVisible();
   await expectNoAxeViolations(page);
   // Links on football's pages stay in football's address space.
@@ -49,7 +58,9 @@ test("each league's public pages show that league's data only, at its own addres
   // Standings, for both leagues.
   await page.goto(`${FOOTBALL}/seasons/fall-2026/standings`);
   await expect(page.getByRole("heading", { name: "Standings" })).toBeVisible();
-  await expect(page.getByText("Hail Marys").first()).toBeVisible();
+  await expect(
+    page.getByText("Hail Marys").filter({ visible: true }).first(),
+  ).toBeVisible();
   await expectNoAxeViolations(page);
 });
 
@@ -60,9 +71,7 @@ test("the default league keeps one address", async ({ page }) => {
   await page.goto("/l/_default/history");
   await expect(page).toHaveURL(/\/history$/);
   await page.goto("/l/no-such-league");
-  await expect(
-    page.getByRole("heading", { name: "This page could not be found." }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: NOT_FOUND })).toBeVisible();
 });
 
 test("a player in two leagues switches between them in the app", async ({
@@ -104,16 +113,12 @@ test("an admin of one league has no admin pages in the other", async ({
   await page.goto(
     `/app/league/flag-football?next=${encodeURIComponent("/app/admin/seasons")}`,
   );
-  await expect(
-    page.getByRole("heading", { name: "This page could not be found." }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: NOT_FOUND })).toBeVisible();
   // Back home, the kickball admin pages are there again.
   await page.goto(
     `/app/league/demo-league?next=${encodeURIComponent("/app/admin/seasons")}`,
   );
-  await expect(
-    page.getByRole("heading", { name: "This page could not be found." }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: NOT_FOUND })).toHaveCount(0);
   await page.context().close();
 });
 
@@ -125,7 +130,7 @@ test("the operator starts a league and its home page is there at once", async ({
   const slug = `volleyball-${Date.now().toString(36)}`;
   await page.goto("/operator");
   const form = page.getByRole("group", { name: "Start a league" });
-  await form.getByLabel("Name").fill("Tuesday Volleyball");
+  await form.getByLabel("Name", { exact: true }).fill("Tuesday Volleyball");
   await form.getByLabel("Address").fill(slug);
   await form.getByLabel("Sport").selectOption("volleyball");
   await form.getByRole("button", { name: "Create league" }).click();
