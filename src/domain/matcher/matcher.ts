@@ -517,7 +517,8 @@ export function suggestNewTeam(
         ? `${captain.name} offered to captain.`
         : `${captain.name} offered to help captain; nobody else volunteered.`,
     );
-  else reasons.push("Nobody in the pool offered to captain yet.");
+  else
+    reasons.push("Nobody has offered to captain: pick one of these players.");
   reasons.push(
     `${plural(team.players, "player", "players")}: ${plural(team.women, "woman", "women")} and ${plural(team.men, "man", "men")}.`,
   );

@@ -7,7 +7,7 @@ import { matcherInput, type PoolEntry } from "@/db/queries/free-agents";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { formatFriendCode } from "@/domain/matcher/friend-code";
 import { suggestNewTeam, suggestPlacements } from "@/domain/matcher/matcher";
-import { labelOf } from "@/domain/matcher/quiz";
+import { labelOf, selfRating } from "@/domain/matcher/quiz";
 import { requirePermission } from "@/lib/auth/permission";
 import {
   applyAllAction,
@@ -74,20 +74,14 @@ function quizCells(p: PoolEntry) {
   const a = p.answers;
   return (
     <>
-      <td>{a ? labelOf("experience", a.experience) : "No quiz yet"}</td>
-      <td>
-        {a
-          ? a.positions.length === 0
-            ? "Anywhere"
-            : a.positions.map((x) => labelOf("positions", x)).join(", ")
-          : ""}
-      </td>
+      <td>{a ? selfRating(a) : "No quiz yet"}</td>
       <td>{a ? labelOf("availability", a.availability) : ""}</td>
       <td>{a ? labelOf("vibe", a.vibe) : ""}</td>
       <td>
-        {a?.captain === "yes"
+        {/* Only the quiz's first version asked about captaining. */}
+        {p.captain === "yes"
           ? "Will captain"
-          : a?.captain === "help"
+          : p.captain === "help"
             ? "Will help"
             : ""}
       </td>
@@ -152,9 +146,9 @@ async function FreeAgents({
         <p className="max-w-prose">
           Suggestions keep friend groups together, stay within each team&apos;s
           roster size, and fill each team&apos;s need for women and men under
-          the fielding rule first. Then they fill teams evenly and look at vibe,
-          experience and positions. Nothing changes until you apply a
-          suggestion.
+          the fielding rule first. Then they fill teams evenly and look at vibe
+          and how players rate their own kicking, fielding and running. Nothing
+          changes until you apply a suggestion.
         </p>
         <Link
           href={`/app/admin/seasons/${slug}/registrations`}
@@ -306,8 +300,7 @@ async function FreeAgents({
                   <th scope="col">
                     <abbr title="Fielding group">Field</abbr>
                   </th>
-                  <th scope="col">Played</th>
-                  <th scope="col">Positions</th>
+                  <th scope="col">Rates themselves</th>
                   <th scope="col">Nights</th>
                   <th scope="col">Here for</th>
                   <th scope="col">Captain</th>
