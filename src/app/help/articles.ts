@@ -422,8 +422,6 @@ export const HELP_ROLES: readonly HelpRole[] = [
           '"What to request" builds the request from the season\'s teams, game day and slot length. Copy the sheet or download it as a CSV.',
           "\"Fees and hours\" estimates each permit's fee until you enter its real cost, shows when the fees are due, and counts the season's hours against NYC Parks' 50-hour insurance line.",
           "When a rain-out or blackout leaves permitted time unused, \"Give back field time\" lists it with the borough office's number and the answers for Parks' cancellation form.",
-          "\"Renew for next year\" drafts next year's renewal from the season's permits. Anything more goes in a separate new request, so the league keeps its returning status.",
-          '"Application packet" gathers what NYC Parks may ask for: the website, the schedule and roster counts, one application per borough and the insurance certificate. Player names go in only if you choose.',
         ],
         notes: [
           "Refs and captains see the permit for their game at the field, even with no signal.",
@@ -439,6 +437,24 @@ export const HELP_ROLES: readonly HelpRole[] = [
           "fees",
           "cancel",
         ],
+      },
+      {
+        id: "permit-renewal",
+        title: "Renewing permits and the application packet",
+        summary:
+          "Draft next year's NYC Parks renewal from this season's permits, and gather what Parks may ask for.",
+        steps: [
+          "Open Books, then Permits for the season you want to renew.",
+          '"Renew for next year" drafts the renewal: the same fields, days and hours, a year on, with the renewal and new-request dates.',
+          "Change the hours, drop a field or add one. Anything more than last year goes in a separate new request, so the league keeps its returning status.",
+          '"Application packet" gathers the website, schedule and roster counts, one application per borough and the insurance certificate. Player names go in only if you choose.',
+        ],
+        notes: [
+          "Owners get an email 30 and 7 days before renewals open.",
+          "Nothing is sent to NYC Parks: copy the sheets into the application yourself.",
+        ],
+        screen: { href: "/app/books/permits", label: "Permits" },
+        keywords: ["permit", "renewal", "renew", "parks", "packet", "roster"],
       },
       {
         id: "dashboard",
