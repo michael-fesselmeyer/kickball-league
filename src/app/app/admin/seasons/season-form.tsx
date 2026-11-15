@@ -193,6 +193,12 @@ export function SeasonSettingsForm({
           { inputMode: "numeric" },
           "Players confirm they're at least this old to register and sign the waiver. Leave empty for the league's (18 unless the league changed it).",
         )}
+        {field(
+          "playoffMinGames",
+          "Games played for the playoffs",
+          { inputMode: "numeric" },
+          "A player needs this many games checked in this season to play in the playoffs. Leave empty for no minimum.",
+        )}
         <label className="flex flex-col gap-1">
           Games per team on a game day
           <select
