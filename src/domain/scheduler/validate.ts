@@ -1,7 +1,19 @@
+import { coverageGap, gapSentence } from "@/domain/permits/coverage";
 import type { Schedule, ScheduledGame, SchedulerInput, Slot } from "./types";
 
 export type HardRule =
-  "H1" | "H2" | "H3" | "H4" | "H5" | "H6" | "H7" | "H8" | "H9" | "H10" | "H11";
+  | "H1"
+  | "H2"
+  | "H3"
+  | "H4"
+  | "H5"
+  | "H6"
+  | "H7"
+  | "H8"
+  | "H9"
+  | "H10"
+  | "H11"
+  | "H12";
 
 export type Violation = {
   rule: HardRule;
@@ -25,6 +37,7 @@ const RULE_ORDER: HardRule[] = [
   "H9",
   "H10",
   "H11",
+  "H12",
 ];
 
 /**
@@ -152,6 +165,7 @@ export function validate(
   }
 
   checkReserve(input, placed, report);
+  checkPermits(input, placed, report);
 
   return violations.sort(
     (a, b) => RULE_ORDER.indexOf(a.rule) - RULE_ORDER.indexOf(b.rule),
@@ -159,6 +173,40 @@ export function validate(
 }
 
 type Report = (rule: HardRule, message: string, keys: string[]) => void;
+
+/**
+ * H12 (issue #407): a game still to play sits inside a permit with a
+ * document that was not lost, for its slot's whole time. Judged by the same
+ * check the posting forms and the permits screen use.
+ */
+function checkPermits(
+  input: SchedulerInput,
+  placed: readonly Placed[],
+  report: Report,
+) {
+  const permits = input.permits;
+  if (!permits) return;
+  const from = Date.parse(permits.from);
+  for (const { game, slot } of placed) {
+    if (Date.parse(slot.startsAt) < from) continue;
+    const gap = coverageGap(slot, permits.windows);
+    if (gap)
+      report(
+        "H12",
+        gapSentence(
+          gap,
+          {
+            fieldName: permits.fieldNames[slot.fieldId] ?? "This field",
+            startsAt: slot.startsAt,
+            endsAt: slot.endsAt,
+            noun: "game",
+          },
+          permits.timeZone,
+        ),
+        [game.key],
+      );
+  }
+}
 
 /** H5 (round-robin order) and H7 (every team plays once or has the bye). */
 function checkRounds(
