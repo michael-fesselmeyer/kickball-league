@@ -8,6 +8,7 @@ import {
   leagueBySegment,
 } from "@/db/queries/leagues";
 import { DEFAULT_LEAGUE_SEGMENT, leagueHref } from "@/domain/league/paths";
+import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
 import { PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 
 /** Every league's public pages; expired when the operator adds or changes a league. */
@@ -15,7 +16,9 @@ export const LEAGUES_TAG = "leagues";
 
 /**
  * The league of a public page's `[league]` segment, cached like the page's
- * own data (ADR 0048). Null when there is no such league.
+ * own data (ADR 0048). Null when there is no such league, and in a build
+ * with no database to read (the CI build check), so that build still
+ * passes; at request time a failed read throws as usual.
  */
 export async function cachedLeague(
   segment: string,
@@ -23,7 +26,7 @@ export async function cachedLeague(
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   cacheTag(LEAGUES_TAG);
-  return leagueBySegment(db, segment);
+  return readUnlessBuildHasNoDatabase(() => leagueBySegment(db, segment));
 }
 
 /**
