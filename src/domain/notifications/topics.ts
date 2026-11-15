@@ -1,8 +1,10 @@
 /**
  * The topics a league message can be about, and what each person receives
  * by default. "Useful features without overloading people"
- * (docs/product-spec.md): everything is on by default except marketing, and
- * every topic can be turned off.
+ * (docs/product-spec.md): game messages are on by default, marketing and game
+ * day watch are off, and every topic can be turned off. League news
+ * ("announcement") is on only for accounts that existed before it became
+ * opt-in; a new account starts with it off (`startWithNewsOff`).
  */
 export const TOPICS = [
   "rainout",
@@ -66,7 +68,7 @@ export const SETTINGS_TOPICS: readonly {
   {
     topic: "announcement",
     label: "Announcements",
-    hint: "News from league admins and your captain.",
+    hint: "News from league admins and your captain. Off until you turn it on.",
   },
   {
     topic: "rainout",

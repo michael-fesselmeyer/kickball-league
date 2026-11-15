@@ -80,6 +80,26 @@ export async function turnOffEmailTopic(
     });
 }
 
+/**
+ * League news is opt-in (#331): a new account starts with announcement
+ * email switched off, and the person turns it on in their email settings.
+ * It writes an explicit choice rather than changing the default, so
+ * everyone who already has an account keeps what they have. Urgent game
+ * messages are other topics and are untouched; a choice already saved is
+ * never overwritten.
+ */
+export async function startWithNewsOff(db: Db, userId: UserId): Promise<void> {
+  await db
+    .insert(notificationPreference)
+    .values({
+      userId,
+      topic: "announcement",
+      channel: "email",
+      enabled: false,
+    })
+    .onConflictDoNothing();
+}
+
 /** A person's alert limits for the settings page: theirs, or the defaults. */
 export async function alertLimitsFor(
   db: Db,
