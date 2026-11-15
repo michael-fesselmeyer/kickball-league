@@ -1,13 +1,16 @@
+import type { SchedulerInput } from "@/domain/scheduler/types";
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { user } from "../schema/auth";
 import { booksFile } from "../schema/books";
 import { field, game, slot, venue } from "../schema/game";
+import { gamePlacement, scheduleVersion } from "../schema/schedule";
 import { league } from "../schema/league";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import {
+  fieldsMissingLayout,
   fieldsWithLayouts,
   layoutFileForGame,
   layoutForGame,
@@ -302,5 +305,101 @@ describe("reading layouts", () => {
           new Date("2026-11-16T00:00:00Z"),
         ),
       ).toEqual([]);
+    }));
+});
+
+describe("the publish check", () => {
+  it("names the fields a version uses that have neither a layout nor an answer", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const teams = await db
+        .insert(team)
+        .values(
+          ["Aces", "Bees", "Cats", "Dogs"].map((name) => ({
+            leagueId: w.lg,
+            name,
+            slug: `${name.toLowerCase()}-${w.lg.slice(0, 4)}`,
+          })),
+        )
+        .returning({ id: team.id });
+      const entries = (
+        await db
+          .insert(teamSeason)
+          .values(teams.map((t) => ({ teamId: t.id, seasonId: w.sn })))
+          .returning({ id: teamSeason.id })
+      ).map((t) => t.id);
+      const version = one(
+        await db
+          .insert(scheduleVersion)
+          .values({
+            seasonId: w.sn,
+            versionNo: 1,
+            origin: "generated",
+            inputSnapshot: {} as SchedulerInput,
+          })
+          .returning({ id: scheduleVersion.id }),
+        "version",
+      ).id;
+      const place = async (fieldId: typeof w.f1, i: number) => {
+        const s = one(
+          await db
+            .insert(slot)
+            .values({
+              seasonId: w.sn,
+              fieldId,
+              startsAt: new Date(`2026-11-1${4 + i}T18:00:00Z`),
+              endsAt: new Date(`2026-11-1${4 + i}T19:00:00Z`),
+              timeIndex: 0,
+            })
+            .returning({ id: slot.id }),
+          "slot",
+        );
+        const g = one(
+          await db
+            .insert(game)
+            .values({
+              seasonId: w.sn,
+              teamAId: entries[i * 2]!,
+              teamBId: entries[i * 2 + 1]!,
+            })
+            .returning({ id: game.id }),
+          "game",
+        );
+        await db
+          .insert(gamePlacement)
+          .values({ scheduleVersionId: version, gameId: g.id, slotId: s.id });
+      };
+      await place(w.f1, 0);
+      await place(w.f2, 1);
+      expect(await fieldsMissingLayout(db, version)).toEqual([
+        "Example Park, Field 1",
+        "Example Park, Field 2",
+      ]);
+      await setFieldLayout(
+        db,
+        {
+          leagueId: w.lg,
+          fieldId: w.f1,
+          file: file(1),
+          noLayoutNeeded: false,
+          note: null,
+        },
+        w.admin,
+      );
+      expect(await fieldsMissingLayout(db, version)).toEqual([
+        "Example Park, Field 2",
+      ]);
+      await setFieldLayout(
+        db,
+        {
+          leagueId: w.lg,
+          fieldId: w.f2,
+          file: null,
+          noLayoutNeeded: true,
+          note: null,
+        },
+        w.admin,
+      );
+      expect(await fieldsMissingLayout(db, version)).toEqual([]);
     }));
 });
