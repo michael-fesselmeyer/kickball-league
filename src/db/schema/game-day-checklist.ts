@@ -57,11 +57,7 @@ export const gameChecklistItem = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index("game_checklist_item_season_idx").on(
-      t.seasonId,
-      t.phase,
-      t.position,
-    ),
+    index("game_checklist_item_season_idx").on(t.seasonId, t.phase, t.position),
     // Two first reads writing the defaults at once keep one copy.
     unique("game_checklist_item_once").on(t.seasonId, t.phase, t.text),
     check(

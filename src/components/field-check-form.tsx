@@ -31,7 +31,8 @@ export function FieldCheckForm({
   timeZone: string;
   idPrefix: string;
 }) {
-  const okLabel = kind === "setup" ? "Set up inside the permit" : "Field left clean";
+  const okLabel =
+    kind === "setup" ? "Set up inside the permit" : "Field left clean";
   return (
     <form action={action} className="flex flex-col gap-3">
       {saved && (

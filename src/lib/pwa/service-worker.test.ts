@@ -836,9 +836,7 @@ describe("service worker: a game's checklist (issue #409)", () => {
   it("refuses another game's checklist", async () => {
     await worker.install();
     await save(later(), `/app/games/${OTHER_GAME.split("/")[2]}/checklist`);
-    expect(games()?.paths()).toEqual(
-      [EMERGENCY, GAME, NEXT_GAME_INFO].sort(),
-    );
+    expect(games()?.paths()).toEqual([EMERGENCY, GAME, NEXT_GAME_INFO].sort());
     expect(network.fetched(CHECKLIST)).toEqual([]);
   });
 });

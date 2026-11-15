@@ -207,7 +207,10 @@ describe("a game's checklist", () => {
       );
       expect(await tick(true, foreign.id)).toBe("not_item");
       expect(
-        await tick(true, "00000000-0000-4000-8000-000000000000" as GameChecklistItemId),
+        await tick(
+          true,
+          "00000000-0000-4000-8000-000000000000" as GameChecklistItemId,
+        ),
       ).toBe("not_item");
       expect((await ticksFor(db, g.id, [])).size).toBe(0);
     }));
@@ -245,7 +248,10 @@ describe("the set-up lead", () => {
         await recordMove(db, {
           seasonId: w.season.id,
           fieldId,
-          form: { outcome, note: outcome === "fine" ? null : `It was ${outcome}` },
+          form: {
+            outcome,
+            note: outcome === "fine" ? null : `It was ${outcome}`,
+          },
           actorId: w.lead.userId,
           now: edt(17, minute),
         });

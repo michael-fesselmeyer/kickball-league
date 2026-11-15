@@ -9,11 +9,8 @@ import {
   setupLeadShifts,
 } from "@/db/queries/game-day-checklist";
 import { type Action, can } from "@/domain/authz/permissions";
-import {
-  parseFieldCheckForm,
-  parseMoveForm,
-} from "@/domain/gameday/checklist";
-import { type FieldId, parseId, type SeasonId, type UserId } from "@/domain/ids";
+import { parseFieldCheckForm, parseMoveForm } from "@/domain/gameday/checklist";
+import { type FieldId, parseId, type SeasonId } from "@/domain/ids";
 import { localDay } from "@/domain/schedule/public-game";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { prepareUpload } from "@/lib/books/store-file";
@@ -38,7 +35,7 @@ async function leadAt(action: Action, rawSeason: string, rawField: string) {
   const now = new Date();
   const today = localDay(now, league.timeZone);
   const shift = (
-    await setupLeadShifts(db, subject.userId as UserId, league.timeZone)
+    await setupLeadShifts(db, subject.userId, league.timeZone)
   ).find((s) => s.seasonId === seasonId && s.date === today);
   if (
     !shift ||
@@ -50,7 +47,7 @@ async function leadAt(action: Action, rawSeason: string, rawField: string) {
   );
   if (!field) redirect(`${PAGE}?error=not_field`);
   return {
-    userId: subject.userId as UserId,
+    userId: subject.userId,
     leagueId: shift.leagueId,
     seasonId,
     field,

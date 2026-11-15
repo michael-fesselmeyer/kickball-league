@@ -136,9 +136,7 @@ self.addEventListener("message", (event) => {
       data.emergencyUntil,
       CHECKLIST_PAGE,
     );
-    event.waitUntil(
-      saveForOffline(path, label, permit, emergency, checklist),
-    );
+    event.waitUntil(saveForOffline(path, label, permit, emergency, checklist));
   } else if (data.type === "forget") {
     // Signing out also drops entries not sent yet: they are that person's.
     event.waitUntil(

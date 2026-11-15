@@ -87,7 +87,10 @@ describe("notes and the move form", () => {
   it("reads an optional note", () => {
     expect(parseNote(null)).toEqual({ ok: true, value: null });
     expect(parseNote("  ")).toEqual({ ok: true, value: null });
-    expect(parseNote(" Loud group ")).toEqual({ ok: true, value: "Loud group" });
+    expect(parseNote(" Loud group ")).toEqual({
+      ok: true,
+      value: "Loud group",
+    });
     expect(parseNote("x".repeat(NOTE_MAX + 1))).toEqual({
       ok: false,
       error: "note_too_long",
@@ -203,9 +206,11 @@ describe("fieldDayWords", () => {
 
 describe("parseTick", () => {
   it("reads a sound tick", () => {
-    expect(parseTick({ teamSeasonId: ID_A, itemId: ID_B, on: false })).toEqual(
-      { teamSeasonId: ID_A, itemId: ID_B, on: false },
-    );
+    expect(parseTick({ teamSeasonId: ID_A, itemId: ID_B, on: false })).toEqual({
+      teamSeasonId: ID_A,
+      itemId: ID_B,
+      on: false,
+    });
   });
 
   it("refuses anything else", () => {
