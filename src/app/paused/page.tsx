@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { db } from "@/db/client";
 import { siteSettings } from "@/db/queries/platform";
+import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
 import { PUBLIC_PAGE_LIFE, SITE_TAG } from "@/lib/public-cache";
 
 export const metadata: Metadata = {
@@ -17,12 +18,16 @@ export const metadata: Metadata = {
  */
 export const ensureStatic = "navigation";
 
-/** The site's name and status, kept until the operator changes the status. */
+/**
+ * The site's name and status, kept until the operator changes the status.
+ * A build without a database to read prerenders the plain notice; the
+ * operator's next change, or the cache's life running out, replaces it.
+ */
 async function cachedSite() {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   cacheTag(SITE_TAG);
-  const site = await siteSettings(db);
+  const site = await readUnlessBuildHasNoDatabase(() => siteSettings(db));
   return site ? { name: site.name, status: site.status } : null;
 }
 
