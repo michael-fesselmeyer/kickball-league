@@ -300,6 +300,8 @@ const RULES = {
   "equipment.manage": isAdmin,
   // The season ops checklist: see it, assign, date and tick off tasks.
   "checklist.manage": isAdmin,
+  // The league's rules and their change log (ADR 0056).
+  "rules.manage": isAdmin,
   // The owner alone
   "billing.manage": isOwner,
   // The books (expenses, receipts, permit costs and documents, insurance).

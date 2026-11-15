@@ -294,6 +294,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `rebate_credit` | non-urgent | League credit for rained-out games |
 | `referee_needed` | urgent | A game starting within a day that needs a ref, for refs free then |
 | `referral_credit` | non-urgent | League credit for a friend you referred |
+| `rule_change` | non-urgent | A change to the league's rules, a few days before it takes effect |
 | `score_confirmation` | urgent | Scores waiting for your confirmation |
 | `score_dispute` | urgent | For admins: a captain disputed a reported score |
 | `score_reminder` | non-urgent | Reminders about games with no score yet |
@@ -595,6 +596,7 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | `/app` (giveaway won), `/app/seasons/[season]/team` (challenge progress), `/app/admin` (sign-up rate) | `drive` |
 | `/app/volunteer`, `/app/admin/volunteer`, `/new`, `/[shift]` | `volunteer-survey` (post a one-spot shift, claim it, find it full, see who's on it, drop it and let the next person take it) |
 | `/app/admin/checklist-template`, `/app/admin/seasons/[season]/checklist`, `/app/admin` (next tasks) | `checklist` (add a template task, start the spring checklist from the template, edit a task, mark one done, start again and add nothing twice; the dashboard card) |
+| `/rules`, `/app/admin/rules`, `/help` | `rules` (a notice refused as too soon with the text kept, then published; the new wording, its start date and the change log on the public page; the help center's link) |
 | `/app/seasons/[season]/survey`, `/app/admin/seasons/[season]/survey`, `/app` (survey waiting) | `volunteer-survey` (open the survey, answer once from the home screen, results with no name) |
 | `/operator` | `admin-tools` (export, roles); `site-wide/operator` (read-only, paused, features); `screens` |
 

@@ -42,6 +42,7 @@ describe("MESSAGE_KINDS", () => {
       "photo_review",
       "rebate_credit",
       "referral_credit",
+      "rule_change",
       "score_reminder",
       "season_card",
       "survey_invite",
