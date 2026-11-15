@@ -51,10 +51,7 @@ const match = (bestOf: number) => {
 const season = fc
   .constantFrom(1, 3, 5, 7, 9)
   .chain((bestOf) =>
-    fc.tuple(
-      fc.constant(bestOf),
-      fc.array(match(bestOf), { maxLength: 30 }),
-    ),
+    fc.tuple(fc.constant(bestOf), fc.array(match(bestOf), { maxLength: 30 })),
   );
 
 const table = (games: ResultGame[]) =>
@@ -139,7 +136,9 @@ describe("set standings properties", () => {
     fc.assert(
       fc.property(season, ([, games]) => {
         // Sets never differ by more than 5, so the cap can't change a thing.
-        expect(table(games)).toEqual(standings(teamIds, games, { seed: "winter-2027" }));
+        expect(table(games)).toEqual(
+          standings(teamIds, games, { seed: "winter-2027" }),
+        );
       }),
     );
   });

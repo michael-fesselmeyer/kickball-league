@@ -74,6 +74,10 @@ import {
   addSecondLeague,
   removeSecondLeague,
 } from "../src/seed/second-league";
+import {
+  addDodgeballLeague,
+  removeDodgeballLeague,
+} from "../src/seed/dodgeball-league";
 
 if (!process.env.DATABASE_URL && existsSync(".env.local"))
   process.loadEnvFile(".env.local");
@@ -165,6 +169,7 @@ async function main(): Promise<void> {
       });
       // The second league first: the demo player plays in it too.
       await removeSecondLeague(tx);
+      await removeDodgeballLeague(tx);
       // Remove the previous demo league, children first.
       const old = await tx
         .select({ id: league.id })
@@ -346,6 +351,7 @@ async function main(): Promise<void> {
       await tx.insert(teamConstraint).values(data.teamConstraints);
       await addDemoPersonas(tx, data);
       await addSecondLeague(tx);
+      await addDodgeballLeague(tx);
       await addDisciplinePlayer(tx, data);
       await addKeepOffPerson(tx, data);
       await addSeedLineups(tx, data);

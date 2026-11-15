@@ -83,8 +83,8 @@ describe("checkDodgeballScore", () => {
         fc.nat(9),
         (bestOf, a, b) => {
           const ok =
-            Object.keys(checkDodgeballScore(score(a, b), { bestOf }))
-              .length === 0;
+            Object.keys(checkDodgeballScore(score(a, b), { bestOf })).length ===
+            0;
           const need = setsToWin(bestOf);
           expect(ok).toBe(
             Math.max(a, b) === need && Math.min(a, b) < need && a !== b,

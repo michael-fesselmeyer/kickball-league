@@ -96,7 +96,8 @@ export const newLeagueSchema = z.object({
     .optional()
     .transform((v) => (v === undefined || v === "" ? null : Number(v)))
     .refine((n) => n === null || isBestOf(n), {
-      error: "Sets in a match are an odd number from 1 to 9, or leave it empty.",
+      error:
+        "Sets in a match are an odd number from 1 to 9, or leave it empty.",
     }),
   timeLimitMinutes: optionalNumber(
     10,

@@ -255,8 +255,8 @@ async function Console({ searchParams }: PageProps<"/operator">) {
               </select>
             </label>
             <p id="sport-rules" className="text-small text-text-muted">
-              Kickball and dodgeball have their own scoring and standings.
-              Other sports use kickball&apos;s until theirs are added.
+              Kickball and dodgeball have their own scoring and standings. Other
+              sports use kickball&apos;s until theirs are added.
             </p>
             <Field
               label="Time zone"
