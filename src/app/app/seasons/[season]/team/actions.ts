@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { createTeamInvite } from "@/db/queries/invites";
+import { targetOf } from "@/db/queries/subject";
 import {
   myRegistration,
   seasonForRegistration,
@@ -216,6 +217,13 @@ export async function offerCaptaincyAction(
   if (!can(subject, "captaincy.manage", { teamSeasonId })) notFound();
   const toUserId = parseId<UserId>(form.get("toUserId"));
   if (!toUserId) redirect(captaincyPage(slug, "not_on_team"));
+  if (
+    !can(subject, "captaincy.manage", {
+      teamSeasonId,
+      ...(await targetOf(db, toUserId, subject.leagueId)),
+    })
+  )
+    notFound();
   const result = await txDb.transaction((tx) =>
     offerCaptaincy(tx, {
       teamSeasonId,
@@ -259,6 +267,13 @@ export async function setTeamRoleAction(
   if (!can(subject, "captaincy.manage", { teamSeasonId })) notFound();
   const userId = parseId<UserId>(rawUserId);
   if (!userId) notFound();
+  if (
+    !can(subject, "captaincy.manage", {
+      teamSeasonId,
+      ...(await targetOf(db, userId, subject.leagueId)),
+    })
+  )
+    notFound();
   const result = await txDb.transaction((tx) =>
     setTeamRole(tx, {
       teamSeasonId,

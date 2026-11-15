@@ -9,6 +9,8 @@ import {
 } from "@/db/queries/refunds";
 import { placeFreeAgent } from "@/db/queries/registrations-admin";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { targetOf } from "@/db/queries/subject";
+import { can } from "@/domain/authz/permissions";
 import {
   type PaymentId,
   parseId,
@@ -179,6 +181,13 @@ export async function adminOfferCaptaincyAction(
   );
   const toUserId = parseId<UserId>(form.get("toUserId"));
   if (!toUserId) redirect(back("not_on_team"));
+  if (
+    !can(subject, "captaincy.manage", {
+      teamSeasonId,
+      ...(await targetOf(db, toUserId, subject.leagueId)),
+    })
+  )
+    notFound();
   const result = await txDb.transaction((tx) =>
     offerCaptaincy(tx, {
       teamSeasonId,

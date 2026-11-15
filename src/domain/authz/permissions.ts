@@ -58,6 +58,11 @@ export type Context = {
   teamSeasonId?: string;
   /** The roster role of the member acted on. */
   targetRole?: RosterRole;
+  /**
+   * The league role of the person acted on. An acting admin may not act on
+   * an admin or an owner (issue #468).
+   */
+  targetGlobalRole?: GlobalRole;
   game?: {
     id: string;
     teamSeasonIds: readonly [string, string];
@@ -407,6 +412,14 @@ export type Action = keyof typeof RULES;
 export const ACTIONS = Object.keys(RULES) as Action[];
 
 /** Whether `subject` may do `action` in `context`. */
+/** Actions that change a game's score; an acting admin may not use them on their own game. */
+const SCORE_ACTIONS: ReadonlySet<Action> = new Set([
+  "score.enter",
+  "score.confirm",
+  "score.override",
+  "score.live",
+]);
+
 export function can(
   subject: Subject,
   action: Action,
@@ -426,8 +439,21 @@ export function can(
     subject.globalRole === "player" &&
     subject.userId !== null &&
     actingPowersOpen(subject.acting, action)
-  )
+  ) {
+    // Never on themselves, on staff, or on a game they play in.
+    if (context.targetUserId === subject.userId) return false;
+    if (
+      context.targetGlobalRole === "admin" ||
+      context.targetGlobalRole === "owner"
+    )
+      return false;
+    if (
+      SCORE_ACTIONS.has(action) &&
+      context.game?.teamSeasonIds.some((t) => onTeam(subject, t))
+    )
+      return false;
     return rule({ ...subject, globalRole: "admin" }, context);
+  }
   return false;
 }
 

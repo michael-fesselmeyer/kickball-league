@@ -1,14 +1,17 @@
 "use server";
 
 import { notFound, redirect } from "next/navigation";
-import { txDb } from "@/db/client";
+import { db, txDb } from "@/db/client";
 import {
   addIncidentNote,
   liftSuspension,
   setIncidentStatus,
+  suspendedUser,
   suspendPlayer,
 } from "@/db/queries/discipline";
 import { removeInjuryDetails } from "@/db/queries/injury";
+import { targetOf } from "@/db/queries/subject";
+import { can } from "@/domain/authz/permissions";
 import { parseLength, parseNote } from "@/domain/discipline/discipline";
 import {
   type IncidentId,
@@ -83,6 +86,15 @@ export async function suspendAction(
   const { subject, incidentId } = await guard("player.suspend", rawId);
   const userId = parseId<UserId>(rawUserId);
   if (!userId) notFound();
+  // An acting admin may not suspend themselves, an admin or an owner.
+  if (
+    !can(
+      subject,
+      "player.suspend",
+      await targetOf(db, userId, subject.leagueId),
+    )
+  )
+    notFound();
   const length = parseLength(formStrings(form, ["scope", "games"] as const));
   if (!length.ok) redirect(`${pageOf(rawId)}?error=${length.error}#suspend`);
   const done = await suspendPlayer(txDb, {
@@ -106,6 +118,13 @@ export async function liftAction(
   const suspensionId = parseId<SuspensionId>(rawSuspensionId);
   if (!suspensionId) notFound();
   await requireInLeague(subject, { suspension: suspensionId });
+  // Nor lift their own suspension.
+  const who = await suspendedUser(db, suspensionId);
+  if (!who) notFound();
+  if (
+    !can(subject, "player.suspend", await targetOf(db, who, subject.leagueId))
+  )
+    notFound();
   const done = await liftSuspension(txDb, {
     suspensionId,
     actorId: subject.userId,

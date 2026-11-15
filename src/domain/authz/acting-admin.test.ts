@@ -137,6 +137,65 @@ describe("acting admin powers in the permissions matrix", () => {
   });
 });
 
+describe("an acting admin's targets", () => {
+  const all = player(ACTING_POWERS);
+
+  it("cannot act on themselves", () => {
+    for (const action of [
+      "player.suspend",
+      "captaincy.manage",
+      "roster.manage",
+    ] as const)
+      expect(can(all, action, { ...context, targetUserId: "p" }), action).toBe(
+        false,
+      );
+    expect(
+      can(all, "player.suspend", { ...context, targetUserId: "other" }),
+    ).toBe(true);
+  });
+
+  it("cannot suspend or change an admin or an owner", () => {
+    for (const targetGlobalRole of ["admin", "owner"] as const)
+      for (const action of ["player.suspend", "captaincy.manage"] as const)
+        expect(can(all, action, { ...context, targetGlobalRole }), action).toBe(
+          false,
+        );
+    expect(
+      can(all, "player.suspend", { ...context, targetGlobalRole: "player" }),
+    ).toBe(true);
+  });
+
+  it("cannot change the score of a game their own team plays", () => {
+    const mine = {
+      ...player(ACTING_POWERS),
+      roster: [{ teamSeasonId: "A", role: "player" as const }],
+    };
+    const elsewhere = {
+      ...context,
+      game: { id: "g2", teamSeasonIds: ["C", "D"] as const, hasReferee: false },
+    };
+    for (const action of [
+      "score.enter",
+      "score.confirm",
+      "score.override",
+      "score.live",
+    ] as const) {
+      expect(can(mine, action, context), action).toBe(false);
+      expect(can(mine, action, elsewhere), action).toBe(true);
+    }
+  });
+
+  it("does not hold back a real admin or owner", () => {
+    const owner = { ...admin, globalRole: "owner" as const };
+    expect(
+      can(owner, "player.suspend", { ...context, targetUserId: "p" }),
+    ).toBe(true);
+    expect(
+      can(admin, "player.suspend", { ...context, targetGlobalRole: "admin" }),
+    ).toBe(true);
+  });
+});
+
 describe("powersAt", () => {
   const day = (n: number) => new Date(Date.UTC(2026, 10, n));
   const grant = (
