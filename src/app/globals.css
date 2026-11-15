@@ -301,6 +301,30 @@ button[data-pending] {
   }
 }
 
+/*
+ * Printing (the game-day pack, issue #377): US Letter, black on white in
+ * either theme, so a sheet reads the same on a black-and-white printer.
+ * The site's header and footer carry `print:hidden`.
+ */
+@page {
+  size: letter;
+  margin: 0.5in;
+}
+@media print {
+  :root,
+  :root[data-theme],
+  :root:not([data-theme="light"]) {
+    --bg: white;
+    --surface: white;
+    --surface-2: white;
+    --text: black;
+    --text-muted: black;
+    --border: black;
+    --border-strong: black;
+    color-scheme: light;
+  }
+}
+
 /* With reduced motion, nothing moves: state changes are instant. */
 @media (prefers-reduced-motion: reduce) {
   *,

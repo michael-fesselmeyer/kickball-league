@@ -19,7 +19,7 @@ export function DemoBanner() {
   return (
     <aside
       aria-label="Demo"
-      className="border-b-2 border-text bg-highlight text-on-highlight"
+      className="border-b-2 border-text bg-highlight text-on-highlight print:hidden"
     >
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-2 md:flex-row md:items-center md:justify-between md:gap-4 md:px-6">
         <p id="demo-view-as" className="text-small">
