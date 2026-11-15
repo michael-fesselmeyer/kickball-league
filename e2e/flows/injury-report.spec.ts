@@ -104,8 +104,11 @@ test.describe
   test("the ref can't open the report or its download", async ({ browser }) => {
     expect(reportUrl).not.toBe("");
     const ref = await pageAs(browser, "Ref");
-    const page = await ref.goto(reportUrl);
-    expect(page?.status()).toBe(404);
+    // The page streams, so it is the 404 page's heading that shows.
+    await ref.goto(reportUrl);
+    await expect(
+      ref.getByRole("heading", { name: "We can't find that page" }),
+    ).toBeVisible();
     const download = await ref.request.get(`${reportUrl}/injury.csv`);
     expect(download.status()).toBe(404);
     await ref.context().close();
