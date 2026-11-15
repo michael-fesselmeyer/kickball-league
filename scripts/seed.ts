@@ -47,6 +47,10 @@ import {
   removeInstagramPhotos,
 } from "../src/seed/instagram-photos";
 import { addMemberPhotos } from "../src/seed/member-photos";
+import {
+  addSeedRefereePool,
+  removeSeedRefereePayouts,
+} from "../src/seed/referee-pool";
 import { canSeed } from "../src/seed/guard";
 import { addPastSeasons } from "../src/seed/past-seasons";
 import { addSeasonCards } from "../src/seed/season-cards";
@@ -162,6 +166,7 @@ async function main(): Promise<void> {
         if (seasonIds.length) {
           // Credit, guarantees and the waitlist point at purchases and teams.
           await removeMoneyRecords(tx, { seasonIds });
+          await removeSeedRefereePayouts(tx, seasonIds);
           // Money first: purchases point at registrations and teams.
           const purchaseIds = (
             await tx
@@ -327,6 +332,7 @@ async function main(): Promise<void> {
       await addSeedFeePayments(tx, data);
       await addMemberPhotos(tx, data);
       await addSeedStatAwards(tx, data, new Date());
+      await addSeedRefereePool(tx, data);
     });
     // After the commit, on the pool: the summary reads its totals in parallel.
     await addSeedMoneySummary(db, data);
