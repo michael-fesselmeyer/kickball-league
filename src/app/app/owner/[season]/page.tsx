@@ -5,7 +5,7 @@ import { HelpLink } from "@/components/help-link";
 import { PageLoading } from "@/components/page-loading";
 import { money } from "@/domain/books/ledger";
 import { localDate } from "@/domain/books/ledger-csv";
-import { percent } from "@/domain/dashboard/metrics";
+import { percent, rate } from "@/domain/dashboard/metrics";
 import { REPORT_STATUSES } from "@/domain/dashboard/report-card";
 import { spentCategories } from "@/domain/dashboard/view";
 import { requirePermission } from "@/lib/auth/permission";
@@ -72,7 +72,7 @@ async function Dashboard({
   await requirePermission("dashboard.view", { next: page });
   const query = await searchParams;
   const { league, season, seasons } = await ownerSeason(slug);
-  const { view, readAt, publishedAt } = await cachedDashboard(
+  const { view, readAt, publishedAt, winBack } = await cachedDashboard(
     league.id,
     season,
   );
@@ -219,6 +219,36 @@ async function Dashboard({
           Retention is the share of the season before&apos;s members who signed
           up again. Members have a registration that isn&apos;t cancelled,
           waitlisted or refunded.
+        </p>
+      </section>
+
+      <section aria-labelledby="win-back" className="flex flex-col gap-3">
+        <h2 id="win-back" className="text-h2">
+          Win-back emails
+        </h2>
+        {winBack.emailed === 0 ? (
+          <p className="text-text-muted">
+            No win-back emails for {season.name} yet.
+          </p>
+        ) : (
+          <dl className="grid grid-cols-3 gap-3">
+            <Stat label="Emailed" value={String(winBack.emailed)} />
+            <Stat label="Came back" value={String(winBack.cameBack)} />
+            <Stat
+              label="Came back rate"
+              value={percent(rate(winBack.cameBack, winBack.emailed))}
+            />
+          </dl>
+        )}
+        <p className="text-small text-text-muted">
+          Past players emailed from{" "}
+          <Link
+            href={`/app/admin/seasons/${season.slug}/win-back`}
+            className="underline"
+          >
+            the win-back list
+          </Link>{" "}
+          while registration was open, and how many of them signed up after.
         </p>
       </section>
 
