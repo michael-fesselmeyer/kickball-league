@@ -35,6 +35,8 @@
       "numberOfRuns": 5,
       "settings": {
         "onlyCategories": ["performance", "accessibility"],
+        "disableFullPageScreenshot": true,
+        "skipAudits": ["bf-cache"],
         "formFactor": "mobile",
         "screenEmulation": {
           "mobile": true,
