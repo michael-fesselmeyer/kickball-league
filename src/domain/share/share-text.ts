@@ -1,4 +1,4 @@
-import { kickoff, shortDay } from "../schedule/format";
+import { dayHeading, kickoff, shortDay } from "../schedule/format";
 import {
   isCalledOff,
   placeLine,
@@ -108,6 +108,41 @@ export function rainoutShareText({
           ),
         ]
       : []),
+    "",
+    `Full schedule: ${url}`,
+  ].join("\n");
+}
+
+/**
+ * One game day's schedule for the group chat: the day in bold, then each
+ * game's kickoff, matchup and field in kickoff order, then the link to the
+ * full schedule. Plain text, no emoji. Called-off games say so.
+ */
+export function gameDayShareText({
+  seasonName,
+  day,
+  games,
+  timeZone,
+  url,
+}: {
+  seasonName: string;
+  /** YYYY-MM-DD in the league's time zone. */
+  day: string;
+  games: readonly PublicGame[];
+  timeZone: string;
+  url: string;
+}): string {
+  const lines = games.map((g) => {
+    const time = g.startsAt ? kickoff(g.startsAt, timeZone) : "Time TBA";
+    const place = placeLine(g);
+    const off = isCalledOff(g)
+      ? ` (${(statusLabel(g) ?? "Off").toLowerCase()})`
+      : "";
+    return `${time}  ${g.teamA.name} vs ${g.teamB.name}${place ? `, ${place}` : ""}${off}`;
+  });
+  return [
+    bold(`${seasonName}: ${dayHeading(day)}`),
+    ...lines,
     "",
     `Full schedule: ${url}`,
   ].join("\n");
