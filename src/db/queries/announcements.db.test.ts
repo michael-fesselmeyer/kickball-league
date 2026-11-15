@@ -5,7 +5,7 @@ import { ok } from "@/domain/result";
 import type { Email, EmailSender } from "@/services/email";
 import { rendererFor } from "@/emails/templates";
 import { auditLog } from "../schema/audit";
-import { message } from "../schema/message";
+import { announcement, message } from "../schema/message";
 import { messagingWorld } from "../test/messaging-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import {
@@ -14,6 +14,7 @@ import {
   cancelScheduledAnnouncement,
   DAILY_LIMIT,
   editScheduledAnnouncement,
+  RELEASE_BATCH,
   releaseDueAnnouncements,
   scheduledAnnouncements,
   sendAnnouncement,
@@ -302,6 +303,54 @@ describe("scheduled announcements", () => {
         "announcement.edit",
         "announcement.schedule",
       ]);
+    });
+  });
+
+  it("reaches someone who registered after it was written", async () => {
+    await inRolledBackDb(async (db) => {
+      const { w, id } = await schedule(db);
+      const late = await w.person("late-joiner");
+      await releaseDueAnnouncements(db, SWEEP);
+      const queued = await queuedFor(db, id);
+      expect(queued.map((m) => m.userId)).toContain(late.userId);
+      expect(queued).toHaveLength(8);
+    });
+  });
+
+  it("releases a busy day in batches, each announcement once", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await messagingWorld(db);
+      const count = RELEASE_BATCH + 3;
+      await db.insert(announcement).values(
+        Array.from({ length: count }, (_, i) => ({
+          authorId: w.aces.captain.userId,
+          seasonId: w.season.id,
+          teamSeasonId: w.aces.id,
+          subject: `Note ${i}`,
+          body: "Hello",
+          recipientCount: 0,
+          sendAt: SWEEP,
+        })),
+      );
+      expect(await releaseDueAnnouncements(db, SWEEP)).toMatchObject({
+        announcements: RELEASE_BATCH,
+      });
+      expect(await releaseDueAnnouncements(db, SWEEP)).toMatchObject({
+        announcements: 3,
+      });
+      expect(await releaseDueAnnouncements(db, SWEEP)).toEqual({
+        announcements: 0,
+        messages: 0,
+      });
+      expect(await scheduledAnnouncements(db, w.season.id)).toEqual([]);
+      const rows = await db
+        .select({ sentAt: announcement.sentAt })
+        .from(announcement)
+        .where(eq(announcement.seasonId, w.season.id));
+      expect(rows).toHaveLength(count);
+      expect(rows.every((r) => r.sentAt?.getTime() === SWEEP.getTime())).toBe(
+        true,
+      );
     });
   });
 
