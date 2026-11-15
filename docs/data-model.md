@@ -858,6 +858,33 @@ Notes:
 - An `announcement` is sent as written (`sent_at` = when it was written) or, for an admin, scheduled ([ADR 0058](adr/0058-scheduled-announcements-ride-the-daily-sweep.md)): `send_at` is the outbox sweep on the chosen day, and `sent_at` stays null until the sweep queues its messages, for the audience as it stands then, and sets `recipient_count`. Until then it can be edited, or cancelled (`cancelled_at`). A check constraint keeps a row either sent, or waiting or cancelled with a `send_at`; `announcement_due_idx` is the sweep's look for waiting rows.
 - `push_subscription` is one browser or installed app. A browser has one endpoint, so the endpoint is unique and moves to whoever subscribed it last. The outbox deletes a row when its push service answers 404 or 410.
 
+**Win-back emails** (issue #370). While a season's registration is open, admins can invite back players from the three seasons before it who haven't signed up.
+
+```mermaid
+erDiagram
+  league ||--o| win_back_template : "words with"
+  season ||--o{ win_back_email : "invites back for"
+  user ||--o{ win_back_email : receives
+
+  win_back_template {
+    uuid league_id PK,FK
+    text subject "up to 120 characters"
+    text body "up to 2,000; {first_name}, {season}, {team}"
+    timestamptz updated_at
+    uuid updated_by FK
+  }
+  win_back_email {
+    uuid id PK
+    uuid season_id FK
+    uuid user_id FK
+    uuid sent_by FK
+    timestamptz sent_at
+  }
+```
+
+- `win_back_email` is unique on `(season_id, user_id)`: one email per player per season. Each row's `win_back` message (non-urgent, topic `announcement`) carries the wording already filled in, with dedupe key `win_back/<season>/<user>`. Someone who turned announcements off by email is shown as opted out and not emailed. Whether they came back is read from their registration in that season created after `sent_at`, never stored.
+- With no `win_back_template` row the default wording in `src/domain/win-back/win-back.ts` is used.
+
 ### 2.5 Sponsors, events, community
 
 ```mermaid
@@ -1954,6 +1981,7 @@ Indexes for the common reads:
 | Incident reports | `incident`, `incident_person`, `incident_note` | Admins. The person filing sees what they filed in their export; a person named sees the reports about them in their export, without the other people named or the admins' notes |
 | Suspensions | `suspension` | The player and admins see the length and why; the player's captains see only that they are suspended and for how long still |
 | Giveaway entries and wins | `giveaway_entry`, `giveaway_winner` | The player and admins. Admins see winners' names to hand over the prize; the giveaway page shows only counts. The audit log holds entry and account ids, no names |
+| Win-back emails | `win_back_email` | Admins and owners see who was emailed this season, while registration is open. Deleting an account deletes the person's rows |
 | Award votes | `award_vote` | The voter alone sees whom they picked; everyone sees only the totals after a poll closes. Deleting an account withdraws votes in polls still open |
 | Pick'em picks | `pickem_pick`, `pickem_hidden` | The player sees their picks. Signed-in players see each player's count of right picks on the leaderboards (first name and last initial), never the picks themselves, unless the player hid from them. The export lists every pick; deleting an account deletes them |
 | Season cards | `season_card` | The player. Anyone with the link while the player keeps it public, as first name and last initial, their team and their own numbers; never another player's name, and votes only as a count. Admins see how many cards exist and how many are shared. The card is in the player's export and is deleted with their account |
@@ -1978,7 +2006,7 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), their away weeks (`away_week`, which would otherwise stay with the kept registration), their place in any ref pool and the game times they said they can ref (`referee_profile`, `referee_availability`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Addresses that were merged into the account stop being aliases. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). Their `emergency_contact` is deleted. The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted. A captaincy offer waiting for or from them is cancelled. They stop bringing league gear to games still to come, and a gear handoff waiting from or to them is cancelled; a kit they hold stays shown with "Deleted account" until an admin says where it is.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), their away weeks (`away_week`, which would otherwise stay with the kept registration), their place in any ref pool and the game times they said they can ref (`referee_profile`, `referee_availability`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt`, `message` and `win_back_email` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Addresses that were merged into the account stop being aliases. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). Their `emergency_contact` is deleted. The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted. A captaincy offer waiting for or from them is cancelled. They stop bringing league gear to games still to come, and a gear handoff waiting from or to them is cancelled; a kit they hold stays shown with "Deleted account" until an admin says where it is.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
 - **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments and payouts, past sub claims, sub requests posted, new-team requests, entries and wins in drawn giveaways, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
