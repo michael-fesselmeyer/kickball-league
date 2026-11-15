@@ -326,6 +326,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Share images for game results and teams | P2 |
 | Past seasons: champions, final standings, records | P2 |
 | Season recaps and news posts | P2 |
+| Your season in kickball: a shareable end-of-season card for each rostered player. It has the games they made, their team's record and finish, awards and votes, best streak and game, playful league-wide marks (highest-scoring team, the league's biggest inning, never missed a game, wins by a single run, filling in as a sub) and a sportsmanship shout-out when other captains rated the team well. A player with no games gets a calm card with nothing claimed; a player who switched teams gets the card of the team they finished on; a sub with no roster spot gets no card. Private until the player makes its link public; a share image and "Copy for WhatsApp" either way. Computed once per season from one parallel read and stored | P2 |
 | Instagram connection: an admin connects the league's Instagram once; new posts sync in, and admins pick which appear on the home page, team pages and event pages, or use one as a page's cover photo | P2 |
 | Paid event tickets | P3 |
 | Photo galleries uploaded by players and captains | P3 |
