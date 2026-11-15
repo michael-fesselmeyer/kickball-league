@@ -32,6 +32,7 @@ export * from "./playoffs";
 export * from "./private-event";
 export * from "./profile";
 export * from "./referees";
+export * from "./rules";
 export * from "./schedule";
 export * from "./season";
 export * from "./season-card";
