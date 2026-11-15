@@ -9,9 +9,11 @@ import {
   paragraphsOf,
   parseTemplate,
   rankCandidates,
+  SUBJECT_MAX,
   stateOf,
   winBackMessage,
 } from "./win-back";
+import { winBackEmail } from "@/emails/win-back";
 
 const person = (over: Partial<Candidate>): Candidate => ({
   userId: "00000000-0000-4000-8000-000000000001" as UserId,
@@ -140,5 +142,20 @@ describe("winBackMessage", () => {
     );
     expect(message.paragraphs).toEqual(["With the league"]);
     expect(message.actionPath).toBe("/free-agents");
+  });
+
+  it("keeps a subject swollen by long names inside what the email takes", () => {
+    const longest = "x".repeat(120);
+    const message = winBackMessage(
+      { subject: `{first_name} {team} {season}`.padEnd(120, "!"), body: "Hi" },
+      person({ firstName: longest, lastTeam: longest }),
+      { name: longest, slug: "spring-2027" },
+    );
+    expect(message.subject.length).toBe(SUBJECT_MAX);
+    expect(message.subject.endsWith("…")).toBe(true);
+    // And it renders: the payload passes the email's own check.
+    expect(
+      winBackEmail(message, { siteUrl: "https://league.example.test" }).ok,
+    ).toBe(true);
   });
 });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SUBJECT_MAX } from "@/domain/win-back/win-back";
 import { defineTemplate } from "./define";
 import { renderEmail } from "./layout";
 
@@ -7,7 +8,7 @@ import { renderEmail } from "./layout";
  * filled in for the player when it was queued, and a button to sign up.
  */
 export const winBackPayload = z.object({
-  subject: z.string().min(1).max(200),
+  subject: z.string().min(1).max(SUBJECT_MAX),
   paragraphs: z.array(z.string().min(1)).min(1),
   actionLabel: z.string().min(1),
   actionPath: z.string().startsWith("/"),

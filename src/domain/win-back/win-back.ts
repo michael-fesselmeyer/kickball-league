@@ -118,6 +118,9 @@ export function rankCandidates(rows: readonly Candidate[]): Candidate[] {
   );
 }
 
+/** The longest subject the win-back email takes (src/emails/win-back.ts). */
+export const SUBJECT_MAX = 200;
+
 /** The email for one player, from the league's template. */
 export function winBackMessage(
   template: { subject: string; body: string },
@@ -130,8 +133,13 @@ export function winBackMessage(
     team: c.lastTeam ?? "the league",
   };
   const action = invitePath(c.lastRole, season.slug);
+  const subject = fill(template.subject, values);
   return {
-    subject: fill(template.subject, values),
+    // Long names can push a filled-in subject past what the email allows.
+    subject:
+      subject.length > SUBJECT_MAX
+        ? `${subject.slice(0, SUBJECT_MAX - 1).trimEnd()}…`
+        : subject,
     paragraphs: paragraphsOf(fill(template.body, values)),
     actionLabel: action.label,
     actionPath: action.path,

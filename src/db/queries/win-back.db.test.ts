@@ -39,7 +39,19 @@ const NOW = new Date("2027-03-01T15:00:00Z");
  */
 async function world(db: Db) {
   const tag = Math.random().toString(36).slice(2, 8);
-  const names = ["Ana", "Ben", "Cy", "Dee", "Eve", "Fay", "Old", "Opt", "Gone"];
+  const names = [
+    "Ana",
+    "Ben",
+    "Cy",
+    "Dee",
+    "Eve",
+    "Fay",
+    "Old",
+    "Opt",
+    "Gone",
+    "Kai",
+    "Lee",
+  ];
   const people = await db
     .insert(user)
     .values(
@@ -78,6 +90,8 @@ async function world(db: Db) {
     ["fall-2025", "Fall 2025", "2025-09-01", "completed"],
     ["winter-2026", "Winter 2026", "2026-01-10", "completed"],
     ["spring-2026", "Spring 2026", "2026-04-01", "completed"],
+    // A second night that started the same day.
+    ["spring-2026-b", "Spring 2026 Tuesdays", "2026-04-01", "completed"],
     ["fall-2026", "Fall 2026", "2026-09-01", "completed"],
     ["spring-2027", "Spring 2027", "2027-04-01", "registration_open"],
     ["summer-2027", "Summer 2027", "2027-06-01", "draft"],
@@ -139,7 +153,7 @@ async function world(db: Db) {
     slug: string,
     opts: {
       team?: string;
-      role?: "captain" | "player";
+      role?: "captain" | "co_captain" | "player";
       status?: "active" | "cancelled";
       kind?: "team_member" | "free_agent";
     } = {},
@@ -179,6 +193,9 @@ async function world(db: Db) {
   await register("Old", "fall-2025");
   await register("Opt", "fall-2026", { team: acesFall });
   await register("Gone", "fall-2026", { team: acesFall });
+  await register("Kai", "fall-2026", { team: beesFall, role: "co_captain" });
+  await register("Lee", "spring-2026");
+  await register("Lee", "spring-2026-b");
   // A draft season's sign-up neither counts nor takes anyone off the list.
   await register("Ben", "summer-2027");
   await db.insert(notificationPreference).values({
@@ -210,9 +227,11 @@ describe("the win-back list", () => {
       const list = await winBackCandidates(db, w.open);
       expect(list.map((c) => c.firstName)).toEqual([
         "Ana",
+        "Lee",
         "Ben",
         "Cy",
         "Eve",
+        "Kai",
         "Opt",
         "Fay",
       ]);
@@ -233,6 +252,13 @@ describe("the win-back list", () => {
         lastRole: "player",
       });
       expect(by.get("Opt")?.optedOut).toBe(true);
+      // A co-captain isn't asked to register the team: the captain is.
+      expect(by.get("Kai")).toMatchObject({
+        lastTeam: "Bees",
+        lastRole: "player",
+      });
+      // Two seasons that started the same day are two seasons.
+      expect(by.get("Lee")?.seasonsPlayed).toBe(2);
     });
   });
 
@@ -265,7 +291,7 @@ describe("the win-back list", () => {
           actorId: w.admin,
           now: NOW,
         }),
-      ).toEqual({ ok: true, value: 4 });
+      ).toEqual({ ok: true, value: 6 });
       expect(
         await sendWinBack(db, {
           season: w.open,
@@ -276,7 +302,7 @@ describe("the win-back list", () => {
       ).toEqual({ ok: true, value: 0 });
 
       const sent = await messagesOf(db, w.open);
-      expect(sent).toHaveLength(5);
+      expect(sent).toHaveLength(7);
       expect(sent.every((m) => m.template === "win_back")).toBe(true);
       expect(sent.every((m) => m.topic === "announcement")).toBe(true);
       expect(sent.map((m) => m.userId)).not.toContain(w.id.Opt);
@@ -303,7 +329,7 @@ describe("the win-back list", () => {
       // A send with nobody left to email changes nothing and isn't logged.
       expect(audits.map((a) => a.after)).toEqual([
         { emailed: 1 },
-        { emailed: 4 },
+        { emailed: 6 },
       ]);
     });
   });
@@ -318,7 +344,7 @@ describe("the win-back list", () => {
         now: NOW,
       });
       expect(await winBackResults(db, w.open.id)).toEqual({
-        emailed: 5,
+        emailed: 7,
         cameBack: 0,
       });
       await db.insert(registration).values({
@@ -329,7 +355,7 @@ describe("the win-back list", () => {
         createdAt: new Date("2027-03-02T12:00:00Z"),
       });
       expect(await winBackResults(db, w.open.id)).toEqual({
-        emailed: 5,
+        emailed: 7,
         cameBack: 1,
       });
       // Signed up now, so off the list.
