@@ -4,6 +4,8 @@
  * a new one never breaks the page.
  */
 const ACTIONS: Record<string, string> = {
+  "acting_admin.end": "Ended an acting admin's access",
+  "acting_admin.grant": "Named a player acting admin for set dates",
   "account.delete": "Deleted their account",
   "account.merge": "Merged a duplicate account into this one",
   "announcement.cancel": "Cancelled a scheduled announcement",

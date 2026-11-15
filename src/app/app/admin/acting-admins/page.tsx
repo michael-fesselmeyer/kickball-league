@@ -4,7 +4,10 @@ import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
-import { handoverCandidates, listActingAdmins } from "@/db/queries/acting-admin";
+import {
+  handoverCandidates,
+  listActingAdmins,
+} from "@/db/queries/acting-admin";
 import {
   ACTING_POWER_LABELS,
   ACTING_POWERS,
@@ -46,7 +49,9 @@ export default function ActingAdminsPage(
 async function ActingAdmins({
   searchParams,
 }: PageProps<"/app/admin/acting-admins">) {
-  await requirePermission("admins.manage", { next: "/app/admin/acting-admins" });
+  await requirePermission("admins.manage", {
+    next: "/app/admin/acting-admins",
+  });
   const league = await activeLeague();
   if (!league) notFound();
   const query = await searchParams;
@@ -74,11 +79,11 @@ async function ActingAdmins({
         <h1 className="text-h1 font-bold">Acting admins</h1>
         <p className="text-text-muted">
           Hand some admin powers to a trusted player for set dates, so
-          schedules, scores and rain calls don&apos;t stall while the
-          organizers are away. Access starts and ends by itself, and you can end
-          it early. Money, roles, exports and the audit log are never part of a
-          handover. Everything they do is in the audit log under their name, and
-          they and every owner are told when it starts and ends.
+          schedules, scores and rain calls don&apos;t stall while the organizers
+          are away. Access starts and ends by itself, and you can end it early.
+          Money, roles, exports and the audit log are never part of a handover.
+          Everything they do is in the audit log under their name, and they and
+          every owner are told when it starts and ends.
         </p>
       </header>
       {notice && <p role="status">{notice}</p>}
@@ -165,25 +170,30 @@ async function ActingAdmins({
           <fieldset className="flex flex-col gap-2">
             <legend className="font-semibold">Powers</legend>
             {ACTING_POWERS.map((p) => (
-              <label key={p} className="flex min-h-11 items-start gap-3">
+              <div key={p} className="flex min-h-11 items-start gap-3">
                 <input
                   type="checkbox"
+                  id={`power-${p}`}
                   name="powers"
                   value={p}
+                  aria-describedby={`power-${p}-hint`}
                   className="mt-1 size-5"
                 />
-                <span>
-                  <span className="font-semibold">
+                <div>
+                  <label htmlFor={`power-${p}`} className="font-semibold">
                     {ACTING_POWER_LABELS[p].label}
-                  </span>
-                  <span className="block text-small text-text-muted">
+                  </label>
+                  <p
+                    id={`power-${p}-hint`}
+                    className="text-small text-text-muted"
+                  >
                     {ACTING_POWER_LABELS[p].hint}
-                  </span>
-                </span>
-              </label>
+                  </p>
+                </div>
+              </div>
             ))}
           </fieldset>
-          <SubmitButton className="btn btn-primary self-start">
+          <SubmitButton className="btn self-start btn-primary">
             Hand over
           </SubmitButton>
         </form>

@@ -81,9 +81,10 @@ describe("acting admin powers in the permissions matrix", () => {
         const holder = player(ACTING_POWERS.filter((p) => p !== power));
         for (const action of ACTING_POWER_ACTIONS[power]) {
           if (listed(action).some((p) => p !== power)) continue;
-          expect(can(holder, action, context), `${action} without ${power}`).toBe(
-            can(player(), action, context),
-          );
+          expect(
+            can(holder, action, context),
+            `${action} without ${power}`,
+          ).toBe(can(player(), action, context));
         }
       });
     });
@@ -122,14 +123,11 @@ describe("acting admin powers in the permissions matrix", () => {
 
   it("gives nothing to a visitor or in another league", () => {
     expect(
-      can({ ...VISITOR, acting: ACTING_POWERS }, "score.override", {
-        ...context,
-        leagueId: undefined,
-      }),
+      can({ ...VISITOR, acting: ACTING_POWERS }, "score.override", context),
     ).toBe(false);
-    expect(
-      can(player(ACTING_POWERS, "other"), "score.override", context),
-    ).toBe(false);
+    expect(can(player(ACTING_POWERS, "other"), "score.override", context)).toBe(
+      false,
+    );
     expect(
       can(player(ACTING_POWERS), "score.override", {
         ...context,
@@ -157,10 +155,7 @@ describe("powersAt", () => {
   });
 
   it("adds up overlapping handovers and drops each at its own end", () => {
-    const g = [
-      grant(["scores"], 10, 14),
-      grant(["schedule"], 12, 16),
-    ];
+    const g = [grant(["scores"], 10, 14), grant(["schedule"], 12, 16)];
     expect(powersAt(g, day(11))).toEqual(["scores"]);
     expect(powersAt(g, day(13))).toEqual(["scores", "schedule"]);
     expect(powersAt(g, day(15))).toEqual(["schedule"]);

@@ -152,7 +152,10 @@ export function checkGrant(
   )
     return "bad_dates";
   if (input.endsAt <= now) return "in_the_past";
-  if (input.endsAt.getTime() - input.startsAt.getTime() > MAX_GRANT_DAYS * 864e5)
+  if (
+    input.endsAt.getTime() - input.startsAt.getTime() >
+    MAX_GRANT_DAYS * 864e5
+  )
     return "too_long";
   return null;
 }

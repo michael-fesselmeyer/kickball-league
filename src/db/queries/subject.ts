@@ -24,66 +24,67 @@ export async function loadSubject(
   now: Date = new Date(),
 ): Promise<Subject> {
   if (userId === null) return VISITOR;
-  const [[person], roster, refereeing, [pooled], sponsors, acting] = await Promise.all([
-    db
-      .select({ role: leagueMember.role })
-      .from(profile)
-      .leftJoin(
-        leagueMember,
-        and(
-          eq(leagueMember.userId, profile.userId),
-          eq(leagueMember.leagueId, leagueId),
-        ),
-      )
-      .where(eq(profile.userId, userId)),
-    db
-      .select({
-        teamSeasonId: rosterMembership.teamSeasonId,
-        role: rosterMembership.role,
-      })
-      .from(rosterMembership)
-      .innerJoin(
-        registration,
-        eq(rosterMembership.registrationId, registration.id),
-      )
-      .innerJoin(teamSeason, eq(rosterMembership.teamSeasonId, teamSeason.id))
-      .innerJoin(season, eq(teamSeason.seasonId, season.id))
-      .where(
-        and(
-          eq(registration.userId, userId),
-          eq(rosterMembership.status, "active"),
-          eq(season.leagueId, leagueId),
-        ),
-      )
-      .orderBy(rosterMembership.teamSeasonId),
-    db
-      .select({ gameId: refereeAssignment.gameId })
-      .from(refereeAssignment)
-      .innerJoin(game, eq(refereeAssignment.gameId, game.id))
-      .innerJoin(season, eq(game.seasonId, season.id))
-      .where(
-        and(
-          eq(refereeAssignment.userId, userId),
-          eq(refereeAssignment.status, "accepted"),
-          eq(season.leagueId, leagueId),
-        ),
-      )
-      .orderBy(refereeAssignment.gameId),
-    // In the league's ref pool, so they can say when they can work before
-    // their first game (ADR 0053).
-    db
-      .select({ userId: refereeProfile.userId })
-      .from(refereeProfile)
-      .where(
-        and(
-          eq(refereeProfile.userId, userId),
-          eq(refereeProfile.leagueId, leagueId),
-        ),
-      )
-      .limit(1),
-    sponsorIdsOf(db, userId, leagueId),
-    actingPowersOf(db, userId, leagueId, now),
-  ]);
+  const [[person], roster, refereeing, [pooled], sponsors, acting] =
+    await Promise.all([
+      db
+        .select({ role: leagueMember.role })
+        .from(profile)
+        .leftJoin(
+          leagueMember,
+          and(
+            eq(leagueMember.userId, profile.userId),
+            eq(leagueMember.leagueId, leagueId),
+          ),
+        )
+        .where(eq(profile.userId, userId)),
+      db
+        .select({
+          teamSeasonId: rosterMembership.teamSeasonId,
+          role: rosterMembership.role,
+        })
+        .from(rosterMembership)
+        .innerJoin(
+          registration,
+          eq(rosterMembership.registrationId, registration.id),
+        )
+        .innerJoin(teamSeason, eq(rosterMembership.teamSeasonId, teamSeason.id))
+        .innerJoin(season, eq(teamSeason.seasonId, season.id))
+        .where(
+          and(
+            eq(registration.userId, userId),
+            eq(rosterMembership.status, "active"),
+            eq(season.leagueId, leagueId),
+          ),
+        )
+        .orderBy(rosterMembership.teamSeasonId),
+      db
+        .select({ gameId: refereeAssignment.gameId })
+        .from(refereeAssignment)
+        .innerJoin(game, eq(refereeAssignment.gameId, game.id))
+        .innerJoin(season, eq(game.seasonId, season.id))
+        .where(
+          and(
+            eq(refereeAssignment.userId, userId),
+            eq(refereeAssignment.status, "accepted"),
+            eq(season.leagueId, leagueId),
+          ),
+        )
+        .orderBy(refereeAssignment.gameId),
+      // In the league's ref pool, so they can say when they can work before
+      // their first game (ADR 0053).
+      db
+        .select({ userId: refereeProfile.userId })
+        .from(refereeProfile)
+        .where(
+          and(
+            eq(refereeProfile.userId, userId),
+            eq(refereeProfile.leagueId, leagueId),
+          ),
+        )
+        .limit(1),
+      sponsorIdsOf(db, userId, leagueId),
+      actingPowersOf(db, userId, leagueId, now),
+    ]);
   if (!person) return VISITOR;
   return {
     ...VISITOR,
