@@ -1,5 +1,6 @@
 import { db } from "@/db/client";
 import { publicDivisionPages } from "@/db/queries/divisions";
+import { publicParks } from "@/db/queries/park-page";
 import { publicEventSlugs } from "@/db/queries/events";
 import { leagueBySegment } from "@/db/queries/leagues";
 import { publishedSummarySeasons } from "@/db/queries/owner-dashboard";
@@ -28,6 +29,9 @@ export const NO_SPONSOR = "_";
 
 /** As NO_SEASON, for event pages. */
 export const NO_EVENT = "_";
+
+/** As NO_SEASON, for park pages. */
+export const NO_PARK = "_";
 
 /** As NO_SEASON, for division pages. */
 export const NO_DIVISION = "_";
@@ -159,4 +163,13 @@ export const publicCardParams = ({ params }: LeagueParams) =>
         card: c.id,
       })),
     { season: NO_SEASON, card: NO_CARD },
+  );
+
+/** The parks that hold a field in a public season. */
+export const publicParkParams = ({ params }: LeagueParams) =>
+  forLeague(
+    params.league,
+    "parks",
+    async (id) => (await publicParks(db, id)).map((p) => ({ park: p.slug })),
+    { park: NO_PARK },
   );
