@@ -36,7 +36,7 @@ const vercelPurger: PhotoCachePurger = {
  * photo's own five minutes (`optimizedPhotoLifetime`), so nothing needs it.
  */
 export function hostPurger(
-  env: { VERCEL?: string } = process.env,
+  env: Readonly<Record<string, string | undefined>> = process.env,
 ): PhotoCachePurger | null {
   return env.VERCEL === "1" ? vercelPurger : null;
 }
