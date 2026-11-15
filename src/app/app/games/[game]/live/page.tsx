@@ -7,7 +7,7 @@ import { HelpLink } from "@/components/help-link";
 import { LineScore } from "@/components/line-score";
 import { db } from "@/db/client";
 import { hasReferee, liveGame, snapshotOf } from "@/db/queries/live-scores";
-import { permitInfoFor } from "@/db/queries/permit-watch";
+import { gameLimitsFor, permitInfoFor } from "@/db/queries/permit-watch";
 import { gameForScoring, scoreHistory } from "@/db/queries/scores";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
@@ -59,14 +59,16 @@ async function Live({
   });
   const gameId = parseId<GameId>(rawId);
   if (!gameId) notFound();
-  const [g, live, refereed, league, history, permits] = await Promise.all([
-    gameForScoring(db, gameId),
-    liveGame(db, gameId),
-    hasReferee(db, gameId),
-    activeLeague(),
-    scoreHistory(db, gameId),
-    permitInfoFor(db, [gameId]),
-  ]);
+  const [g, live, refereed, league, history, permits, limits] =
+    await Promise.all([
+      gameForScoring(db, gameId),
+      liveGame(db, gameId),
+      hasReferee(db, gameId),
+      activeLeague(),
+      scoreHistory(db, gameId),
+      permitInfoFor(db, [gameId]),
+      gameLimitsFor(db, gameId),
+    ]);
   if (!g || !live) notFound();
   const ctx = {
     game: {
@@ -93,6 +95,10 @@ async function Live({
         innings: info.innings,
         rule: info.rule,
       }
+    : null;
+  // The game clock runs from the scheduled start on the phone's own clock.
+  const clock = g.startsAt
+    ? { startsAt: g.startsAt.toISOString(), limits }
     : null;
 
   return (
@@ -167,6 +173,7 @@ async function Live({
           version={scoreVersion(history.reports, history.responses)}
           endKey={randomUUID()}
           permit={permit}
+          clock={clock}
         />
       )}
 

@@ -38,6 +38,8 @@ export type RuleSetOptions = {
   stealing?: boolean;
   /** What happens when a game reaches the end of its permit (#406). */
   permitEndRule?: "call_at_last_complete" | "last_inning_to_start";
+  /** Minutes before the time limit after which no new inning starts; 10 when unset. */
+  noNewInningMinutes?: number;
 };
 
 /**

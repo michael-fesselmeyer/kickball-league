@@ -380,6 +380,9 @@ export async function addRuleSet(
         bunting: input.bunting,
         stealing: input.stealing,
         ...(input.permitEndRule ? { permitEndRule: input.permitEndRule } : {}),
+        ...(input.noNewInningMinutes != null
+          ? { noNewInningMinutes: input.noNewInningMinutes }
+          : {}),
       },
       createdBy: actorId,
     })

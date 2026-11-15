@@ -20,6 +20,10 @@ import {
   updateDivisionAction,
 } from "./actions";
 import { PERMIT_END_RULE_TEXT } from "@/domain/gameday/permit-end";
+import {
+  MAX_NO_NEW_INNING_MINUTES,
+  NO_NEW_INNING_MINUTES,
+} from "@/domain/gameday/game-clock";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeagueId } from "@/lib/league/active";
@@ -387,6 +391,17 @@ async function Divisions({
               type="number"
               min={10}
               max={240}
+              className={`${input} w-28`}
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            No new inning in the last (minutes)
+            <input
+              name="noNewInningMinutes"
+              type="number"
+              min={0}
+              max={MAX_NO_NEW_INNING_MINUTES}
+              placeholder={String(NO_NEW_INNING_MINUTES)}
               className={`${input} w-28`}
             />
           </label>

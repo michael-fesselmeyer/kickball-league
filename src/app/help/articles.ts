@@ -313,6 +313,7 @@ export const HELP_ROLES: readonly HelpRole[] = [
         notes: [
           "No signal? Runs are kept on the phone and sent when you're back in range.",
           "The public game page shows the line score within about 15 seconds.",
+          "The game clock counts down from the scheduled start and says when no new inning may start near the time limit.",
         ],
         keywords: ["score", "innings", "runs", "called game", "offline"],
       },

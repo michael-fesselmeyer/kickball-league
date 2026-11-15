@@ -31,6 +31,7 @@ import {
 } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
 import { PermitWatchNote, type PermitProps } from "./permit-watch";
+import { type ClockProps, GameClockNote } from "./game-clock";
 import { useTally } from "./use-tally";
 
 /** Takes back the last tap, and says which. */
@@ -76,6 +77,7 @@ export function Scoring({
   version,
   endKey,
   permit,
+  clock,
 }: {
   gameId: string;
   userId: string;
@@ -89,6 +91,8 @@ export function Scoring({
   endKey: string;
   /** The field's permit window and the rules, when the game has them. */
   permit: PermitProps | null;
+  /** The game's start and its innings and time limit, when it has a start. */
+  clock: ClockProps | null;
 }) {
   const outbox = useOutbox(gameId);
   const [stored, setTally] = useTally(gameId);
@@ -209,6 +213,7 @@ export function Scoring({
   return (
     <>
       <OutboxStatus outbox={outbox} />
+      {clock && <GameClockNote clock={clock} next={next} />}
       {permit && (
         <PermitWatchNote permit={permit} halvesEntered={halves.length} />
       )}

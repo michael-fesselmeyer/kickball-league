@@ -40,8 +40,16 @@ describe("rule sets", () => {
         bunting: false,
         stealing: true,
         permitEndRule: "call_at_last_complete",
+        noNewInningMinutes: null,
       },
     });
+  });
+
+  it("takes the minutes before the time limit when no new inning starts", () => {
+    const parsed = parseRuleSet({ ...form, noNewInningMinutes: "5" });
+    expect(parsed.ok && parsed.value.noNewInningMinutes).toBe(5);
+    const zero = parseRuleSet({ ...form, noNewInningMinutes: "0" });
+    expect(zero.ok && zero.value.noNewInningMinutes).toBe(0);
   });
 
   it("takes the league's rule for a game that reaches its permit's end", () => {
@@ -66,6 +74,8 @@ describe("rule sets", () => {
       { innings: "2.5" },
       { timeLimitMinutes: "5" },
       { timeLimitMinutes: "abc" },
+      { noNewInningMinutes: "61" },
+      { noNewInningMinutes: "-1" },
     ])
       expect(parseRuleSet({ ...form, ...bad })).toEqual({
         ok: false,

@@ -6,7 +6,7 @@ import { permitWindow } from "../schema/schedule";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
-import { permitInfoFor } from "./permit-watch";
+import { gameLimitsFor, permitInfoFor } from "./permit-watch";
 import { required } from "./rows";
 import type { Db } from "./schedule";
 
@@ -69,7 +69,10 @@ async function world(db: Db, options: { withRules: boolean }) {
             name: "Social",
             innings: 5,
             timeLimitMinutes: 60,
-            options: { permitEndRule: "last_inning_to_start" },
+            options: {
+              permitEndRule: "last_inning_to_start",
+              noNewInningMinutes: 5,
+            },
           })
           .returning({ id: ruleSet.id }),
         "rules",
@@ -230,11 +233,29 @@ describe("permit info for a game", () => {
       const id = await play(db, w, w.f1, p);
       const info = (await permitInfoFor(db, [id])).get(id);
       expect(info?.permitEndsAt).toEqual(at("04:00", "2026-11-15"));
-      // No division, so no limits, and the default rule.
+      // No division, so regulation length and the default rule.
       expect(info).toMatchObject({
-        timeLimitMinutes: null,
-        innings: null,
+        timeLimitMinutes: 90,
+        innings: 7,
         rule: "call_at_last_complete",
+      });
+    }));
+
+  it("reads a game's limits from its rule set, or regulation without one", () =>
+    inRolledBackDb(async (db) => {
+      const ruled = await world(db, { withRules: true });
+      const plain = await world(db, { withRules: false });
+      const withRules = await play(db, ruled, ruled.f1, null);
+      const without = await play(db, plain, plain.f1, null);
+      expect(await gameLimitsFor(db, withRules)).toEqual({
+        innings: 5,
+        timeLimitMinutes: 60,
+        noNewInningMinutes: 5,
+      });
+      expect(await gameLimitsFor(db, without)).toEqual({
+        innings: 7,
+        timeLimitMinutes: 90,
+        noNewInningMinutes: 10,
       });
     }));
 
