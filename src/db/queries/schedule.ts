@@ -85,10 +85,24 @@ export async function loadSchedulerInput(
       ),
     )
     .orderBy(teamSeason.id);
+  // A slot held by a game no version has placed (an exhibition or another
+  // game an admin added by hand) is taken: the schedule works around it,
+  // as publishing leaves that game in place (issue #426).
   const slots = await db
     .select()
     .from(slot)
-    .where(and(eq(slot.seasonId, seasonId), eq(slot.status, "open")))
+    .where(
+      and(
+        eq(slot.seasonId, seasonId),
+        eq(slot.status, "open"),
+        sql`not exists (
+          select 1 from ${game} as held
+          where held.slot_id = ${slot.id}
+            and not exists (
+              select 1 from game_placement placed
+              where placed.game_id = held.id))`,
+      ),
+    )
     .orderBy(slot.startsAt, slot.fieldId);
   const constraints = await db
     .select({
@@ -444,12 +458,19 @@ export async function publishVersion(
       from ${gamePlacement}
       where ${gamePlacement.scheduleVersionId} = ${versionId}
         and ${gamePlacement.gameId} = ${game.id}`);
+    // A game the schedule placed before and this version leaves out loses
+    // its slot. A game no version has ever placed (an exhibition or another
+    // game an admin added by hand) isn't the schedule's, and keeps its own
+    // (issue #426).
     await tx.execute(sql`
       update ${game} set slot_id = null
       where ${game.seasonId} = ${version.seasonId}
         and ${game.id} not in (
           select ${gamePlacement.gameId} from ${gamePlacement}
-          where ${gamePlacement.scheduleVersionId} = ${versionId})`);
+          where ${gamePlacement.scheduleVersionId} = ${versionId})
+        and exists (
+          select 1 from ${gamePlacement} as placed
+          where placed.game_id = ${game.id})`);
 
     const after = required(
       await loadVersion(tx, versionId),
