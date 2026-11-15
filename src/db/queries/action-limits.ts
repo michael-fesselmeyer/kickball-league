@@ -20,6 +20,10 @@ export const ACTION_LIMITS = {
   waitlist: { windowSeconds: 60 * 60, max: 5 },
   /** Private concerns sent to the league, by one person, in a day. */
   concern: { windowSeconds: 24 * 60 * 60, max: 5 },
+  /** Answers to lost and found posts, by one person, in a day. */
+  lost_found_answer: { windowSeconds: 24 * 60 * 60, max: 20 },
+  /** Messages in lost and found conversations, by one person, in a day. */
+  lost_found_message: { windowSeconds: 24 * 60 * 60, max: 60 },
 } as const;
 
 export type LimitedAction = keyof typeof ACTION_LIMITS;

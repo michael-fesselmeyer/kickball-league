@@ -45,6 +45,7 @@ export const messageTopic = pgEnum("message_topic", [
   "photos",
   "team_roles",
   "game_day_watch",
+  "lost_found",
 ]);
 
 /** Email and web push today; text arrives later behind the same outbox. */
