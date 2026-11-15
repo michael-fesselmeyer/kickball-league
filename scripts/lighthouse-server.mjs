@@ -2,10 +2,12 @@
  * Starts the production server for Lighthouse CI and warms it before the
  * first measurement (docs/adr/0028-steady-lighthouse-measurement.md).
  *
- *   node scripts/lighthouse-server.mjs <port>
+ *   node scripts/lighthouse-server.mjs <port> [config]
  *
- * lighthouserc.json runs this as its `startServerCommand`. It starts
- * `next start`, then requests every page in the config, the routes those
+ * lighthouserc.json runs this as its `startServerCommand`; a CI shard's
+ * config (scripts/lighthouse-shard.mjs) passes itself as `config`, so the
+ * shard warms only the pages it measures. It starts `next start`, then
+ * requests every page in the config (lighthouserc.json when none is given), the routes those
  * pages link to (as the page's link prefetches will) and the static files
  * they load. Only then does it print the line Lighthouse CI waits for. A
  * production server is warm after its first few visitors; without this,
@@ -21,9 +23,11 @@ const READY_LINE = "Lighthouse server warmed";
 
 const port = Number(process.argv[2]);
 if (!Number.isInteger(port) || port < 1) {
-  console.error("Usage: node scripts/lighthouse-server.mjs <port>");
+  console.error("Usage: node scripts/lighthouse-server.mjs <port> [config]");
   process.exit(1);
 }
+/** The Lighthouse CI config whose pages to warm. */
+const configPath = process.argv[3] ?? "lighthouserc.json";
 const origin = `http://localhost:${port}`;
 
 const server = spawn("node_modules/.bin/next", ["start", "--port", `${port}`], {
@@ -93,7 +97,7 @@ async function each(items, limit, task) {
 }
 
 async function warm() {
-  const config = JSON.parse(readFileSync("lighthouserc.json", "utf8"));
+  const config = JSON.parse(readFileSync(configPath, "utf8"));
   const pages = config.ci.collect.url.map((url) => new URL(url).pathname);
   const links = new Set();
   const assets = new Set();
