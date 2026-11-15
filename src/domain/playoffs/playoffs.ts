@@ -262,7 +262,7 @@ export function isReady(m: MatchState): boolean {
 export function championOf(
   matches: readonly Pick<
     MatchState,
-    "code" | "stage" | "teamA" | "winner" | "skipped"
+    "code" | "stage" | "teamA" | "winner" | "skipped" | "sourceA" | "sourceB"
   >[],
 ): string | null {
   const reset = matches.find((m) => m.stage === "reset");
@@ -275,13 +275,9 @@ export function championOf(
   // The single-elimination final: the main match nothing waits on.
   const fed = new Set(
     matches.flatMap((m) =>
-      "sourceA" in m
-        ? [m.sourceA, m.sourceB].flatMap((s) =>
-            "winnerOf" in (s as MatchSource)
-              ? [(s as { winnerOf: string }).winnerOf]
-              : [],
-          )
-        : [],
+      [m.sourceA, m.sourceB].flatMap((s) =>
+        "winnerOf" in s ? [s.winnerOf] : [],
+      ),
     ),
   );
   const final = matches.find((m) => m.stage === "main" && !fed.has(m.code));

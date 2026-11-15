@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Client } from "pg";
 import { afterAll, describe, expect, it } from "vitest";
@@ -17,6 +17,8 @@ import { closePool, inRolledBackDb } from "../test/transaction";
 import {
   advanceBracket,
   bracketView,
+  type BracketView,
+  bracketViews,
   createBracket,
   playoffPreview,
   publishBracket,
@@ -624,5 +626,237 @@ describe("two results at the same moment", () => {
         .where(eq(game.seasonId, w.seasonId));
       for (const id of semis)
         expect(placed.find((g) => g.id === id)?.slotId).not.toBeNull();
+    }));
+});
+
+const SECOND_SUNDAY = "2027-04-11";
+
+describe("playoff formats", () => {
+  it("splits the standings into tiers, each with its own format, day and innings", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db, 8);
+      const created = await createBracket(db, {
+        seasonId: w.seasonId,
+        actorId: w.adminId,
+        teams: 4,
+        fromDate: SECOND_SUNDAY,
+        tiers: [
+          { teams: 4, fromDate: SECOND_SUNDAY, format: "double_elimination" },
+          {
+            teams: 4,
+            fromDate: PLAYOFF_DAY,
+            thirdPlace: true,
+            earlyInnings: 5,
+            finalInnings: 7,
+          },
+        ],
+      });
+      expect(created.ok).toBe(true);
+      const views = await bracketViews(db, w.seasonId, { includeDraft: true });
+      expect(views.map((v) => [v.tier, v.format, v.size])).toEqual([
+        [1, "double_elimination", 4],
+        [2, "single_elimination", 4],
+      ]);
+      const [top, second] = views as [BracketView, BracketView];
+
+      // The second tier takes standings places 5 to 8, seeded 1 to 4.
+      const { rows } = await seasonStandings(db, w.seasonId);
+      const order = [...rows].sort((a, b) => a.rank - b.rank);
+      expect(second.seeds.map((s) => s.team?.id)).toEqual(
+        order.slice(4, 8).map((r) => r.teamId),
+      );
+      const seeds = await db
+        .select({ id: teamSeason.id, seed: teamSeason.seed })
+        .from(teamSeason)
+        .where(eq(teamSeason.seasonId, w.seasonId));
+      const seedOf = new Map(seeds.map((s) => [s.id as string, s.seed]));
+      expect(order.map((r) => seedOf.get(r.teamId))).toEqual([
+        1, 2, 3, 4, 5, 6, 7, 8,
+      ]);
+
+      // Double elimination: seven games, numbered in the order played.
+      expect(top.matches.map((m) => [m.gameNo, m.code, m.stage])).toEqual([
+        [1, "r1m1", "main"],
+        [2, "r1m2", "main"],
+        [3, "r2m1", "main"],
+        [4, "l1m1", "losers"],
+        [5, "l2m1", "losers"],
+        [6, "gf", "grand_final"],
+        [7, "gf2", "reset"],
+      ]);
+      // The "if necessary" final has a reserved slot after the grand final.
+      const byCode = new Map(top.matches.map((m) => [m.code, m]));
+      expect(byCode.get("gf2")!.startsAt!.getTime()).toBeGreaterThan(
+        byCode.get("gf")!.startsAt!.getTime(),
+      );
+      // The second tier plays on its own day, its title game at 7 innings.
+      const local = (d: Date | null) => d?.toISOString().slice(0, 10);
+      expect(new Set(second.matches.map((m) => local(m.startsAt)))).toEqual(
+        new Set([PLAYOFF_DAY]),
+      );
+      expect(second.matches.map((m) => [m.code, m.stage, m.innings])).toEqual([
+        ["r1m1", "main", 5],
+        ["r1m2", "main", 5],
+        ["p3", "third_place", 5],
+        ["r2m1", "main", 7],
+      ]);
+      expect(top.matches.every((m) => m.innings === null)).toBe(true);
+    }));
+
+  it("refuses tiers that need more teams than play, and bad innings", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db, 8);
+      const base = {
+        seasonId: w.seasonId,
+        actorId: w.adminId,
+        teams: 4,
+        fromDate: PLAYOFF_DAY,
+      };
+      expect(
+        await createBracket(db, {
+          ...base,
+          tiers: [
+            { teams: 4, fromDate: PLAYOFF_DAY },
+            { teams: 5, fromDate: PLAYOFF_DAY },
+          ],
+        }),
+      ).toEqual({ ok: false, error: "too_few_teams" });
+      expect(
+        await createBracket(db, {
+          ...base,
+          tiers: [
+            { teams: 4, fromDate: PLAYOFF_DAY },
+            { teams: 1, fromDate: PLAYOFF_DAY },
+          ],
+        }),
+      ).toEqual({ ok: false, error: "too_few_teams" });
+      expect(await createBracket(db, { ...base, finalInnings: 16 })).toEqual({
+        ok: false,
+        error: "bad_innings",
+      });
+      expect(
+        await bracketView(db, w.seasonId, { includeDraft: true }),
+      ).toBeNull();
+    }));
+
+  it("plays the if-necessary final only when the losers' side champion wins, and drops it on a correction", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db, 4);
+      const created = await createBracket(db, {
+        seasonId: w.seasonId,
+        actorId: w.adminId,
+        teams: 4,
+        fromDate: SECOND_SUNDAY,
+        format: "double_elimination",
+      });
+      expect(created.ok).toBe(true);
+      await publishBracket(db, w.seasonId, w.adminId);
+      let m = await matches(db, w);
+      // Higher seeds (side A) win every winners' side game.
+      await play(db, w, m.get("r1m1")!.gameId, 5, 1);
+      await play(db, w, m.get("r1m2")!.gameId, 5, 1);
+      m = await matches(db, w);
+      // Both first-round losers drop to the losers' side at once.
+      expect(m.get("l1m1")!.gameId).not.toBeNull();
+      expect([m.get("l1m1")!.teamA?.id, m.get("l1m1")!.teamB?.id]).toEqual([
+        m.get("r1m1")!.teamB!.id,
+        m.get("r1m2")!.teamB!.id,
+      ]);
+      await play(db, w, m.get("r2m1")!.gameId, 5, 1);
+      await play(db, w, m.get("l1m1")!.gameId, 5, 1);
+      m = await matches(db, w);
+      // The winners' final loser drops in to face the losers' side winner.
+      expect(m.get("l2m1")!.teamA?.id).toBe(m.get("r2m1")!.teamB!.id);
+      await play(db, w, m.get("l2m1")!.gameId, 1, 5);
+      m = await matches(db, w);
+      const gf = m.get("gf")!;
+      expect(gf.teamA?.id).toBe(m.get("r2m1")!.teamA!.id);
+
+      // The losers' side champion wins: both have one loss, so they play again.
+      await play(db, w, gf.gameId, 2, 3);
+      m = await matches(db, w);
+      const reset = m.get("gf2")!;
+      expect(reset.gameId).not.toBeNull();
+      expect(reset.skipped).toBe(false);
+      expect([reset.teamA?.id, reset.teamB?.id]).toEqual([
+        gf.teamA!.id,
+        gf.teamB!.id,
+      ]);
+      expect((await bracketView(db, w.seasonId))?.champion).toBeNull();
+
+      // A corrected grand final: the winners' side champion won after all.
+      await play(db, w, gf.gameId, 3, 2);
+      m = await matches(db, w);
+      expect(m.get("gf2")).toMatchObject({ skipped: true, gameId: null });
+      const [cancelled] = await db
+        .select({ status: game.status })
+        .from(game)
+        .where(eq(game.id, reset.gameId!));
+      expect(cancelled!.status).toBe("cancelled");
+      const view = required(await bracketView(db, w.seasonId), "bracket");
+      expect(view.status).toBe("complete");
+      expect(view.champion?.id).toBe(gf.teamA!.id);
+      // Its reserved slot goes back to the league.
+      const [held] = await db
+        .select({ kind: slot.kind })
+        .from(slot)
+        .innerJoin(bracketMatch, eq(bracketMatch.slotId, slot.id))
+        .innerJoin(bracket, eq(bracketMatch.bracketId, bracket.id))
+        .where(
+          and(eq(bracketMatch.code, "gf2"), eq(bracket.seasonId, w.seasonId)),
+        );
+      expect(held!.kind).toBe("regular");
+
+      // Corrected back: the second game is on again, then decides it.
+      await play(db, w, gf.gameId, 2, 3);
+      m = await matches(db, w);
+      expect(m.get("gf2")!.skipped).toBe(false);
+      expect(m.get("gf2")!.gameId).not.toBeNull();
+      const after = required(await bracketView(db, w.seasonId), "bracket");
+      expect(after.status).toBe("published");
+      expect(after.champion).toBeNull();
+      await play(db, w, m.get("gf2")!.gameId, 1, 4);
+      expect(
+        required(await bracketView(db, w.seasonId), "bracket").champion?.id,
+      ).toBe(gf.teamB!.id);
+    }));
+
+  it("puts a game after a rained-out game that moved past its reserved slot", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db, 4);
+      await makeBracket(db, w, 4);
+      await publishBracket(db, w.seasonId, w.adminId);
+      let m = await matches(db, w);
+      // Semifinal 2 is rained out and replayed in the day's last slot,
+      // after the final's reserved time.
+      const [last] = await db
+        .select({ id: slot.id, endsAt: slot.endsAt, fieldId: slot.fieldId })
+        .from(slot)
+        .where(eq(slot.seasonId, w.seasonId))
+        .orderBy(desc(slot.startsAt))
+        .limit(1);
+      await db
+        .update(game)
+        .set({ slotId: last!.id })
+        .where(eq(game.id, m.get("r1m2")!.gameId!));
+      // A later permit gives the final somewhere to go.
+      const [later] = await db
+        .insert(slot)
+        .values({
+          seasonId: w.seasonId,
+          fieldId: last!.fieldId,
+          startsAt: new Date("2027-05-02T14:00:00Z"),
+          endsAt: new Date("2027-05-02T15:30:00Z"),
+          timeIndex: 0,
+        })
+        .returning({ id: slot.id });
+      await play(db, w, m.get("r1m1")!.gameId, 5, 1);
+      await play(db, w, m.get("r1m2")!.gameId, 5, 1);
+      m = await matches(db, w);
+      const [final] = await db
+        .select({ slotId: game.slotId })
+        .from(game)
+        .where(eq(game.id, m.get("r2m1")!.gameId!));
+      expect(final!.slotId).toBe(later!.id);
     }));
 });

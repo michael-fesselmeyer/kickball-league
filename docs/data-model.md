@@ -584,7 +584,11 @@ erDiagram
     uuid id PK
     uuid season_id FK
     uuid division_id FK "the division it crowns; null for the season's bracket"
-    enum format "single_elimination"
+    int tier "1 for the top of the standings, 2 and 3 for the next groups"
+    enum format "single_elimination, double_elimination"
+    bool third_place "semifinal losers play once more; single elimination only"
+    int early_innings "null for the league's usual length"
+    int final_innings "the final, or both grand finals"
     enum status "draft, published, complete"
     int size "teams, 2 to 32"
     jsonb seeds "seed number and team entry, frozen from the standings"
@@ -595,10 +599,13 @@ erDiagram
   bracket_match {
     uuid id PK
     uuid bracket_id FK
-    text code UK "r{round}m{position}"
+    text code UK "r2m1, l3m2 (losers' side), gf, gf2 (if necessary), p3"
+    enum stage "main, losers, grand_final, reset, third_place"
+    int game_no UK "the game's number in the order played; null on older brackets"
+    bool skipped "the if-necessary final, once not needed"
     int round_no
     int position
-    jsonb source_a "seed number or winner of a match"
+    jsonb source_a "seed number, or winner or loser of a match"
     jsonb source_b
     uuid team_a_id FK "null until known"
     uuid team_b_id FK
@@ -639,9 +646,9 @@ Notes:
 - Kicking orders ([ADR 0030](adr/0030-kicking-order-sides.md)): a team has at most one `game_lineup` per game, and saving again replaces its `game_lineup_spot` rows in one transaction. Only players who said they're in, and approved pickups, can be saved into it. Players' lineup genders are never copied into it; they are read from `profile` (or `sub_claim` for a pickup) when the team's captains open the builder. `run_breaks` records how many runs of more than two of one side the order had when saved, so the ref and the other captain see that the order breaks the rule without seeing anyone's side. A saved order is never blocked for breaking the rule.
 - `offline_receipt` holds one row per score entry made on a phone with no signal and sent later ([ADR 0025](adr/0025-offline-scores-keep-the-servers-version.md)): a final score (`score`), a half-inning (`half`) or ending a live-scored game (`end`). It is written before the entry is applied, in the same transaction, and keeps the answer the phone got, so a resend of the same key gets that answer again and changes nothing. A final score from the phone also uses the key as its report's `client_id`. Rows go with their game, and deleting an account deletes its rows, since an answer can name the other captain.
 - Standings are computed from `game` rows on demand and cached (see [architecture.md](architecture.md)). There is no standings table to drift out of date.
-- A playoff `game` (`kind = playoff`, `round_no` null) exists only once both its teams are known, so a game never has an empty side. Until then its `bracket_match` holds the slot the bracket placement reserved, and that slot's kind becomes `playoff` so rain-out makeups and new regular-season schedules leave it alone. A season has one bracket, or one per division (`bracket.division_id`) when its divisions do not meet in a combined final ([ADR 0040](adr/0040-divisions-and-crossover-games.md)). Brackets drafted together share one schedule version and are published together.
+- A playoff `game` (`kind = playoff`, `round_no` null) exists only once both its teams are known, so a game never has an empty side. Until then its `bracket_match` holds the slot the bracket placement reserved, and that slot's kind becomes `playoff` so rain-out makeups and new regular-season schedules leave it alone. A season has one bracket, or one per division (`bracket.division_id`) when its divisions do not meet in a combined final ([ADR 0040](adr/0040-divisions-and-crossover-games.md)). A season without divisions can split its standings into up to three tiers (`bracket.tier`), each its own bracket with its own format, day and innings; only the first tier's champion is the season's champion ([ADR 0063](adr/0063-playoff-formats-and-tiers.md)). In double elimination a loser drops to the losers' side (`source` `loserOf`); the grand final's "if necessary" game (`gf2`) has a reserved slot from the start and is marked `skipped`, its slot freed, when the winners' side champion wins the grand final. Brackets drafted together share one schedule version and are published together.
 - Schedule versions keep playoff placements apart from the round robin: the round-robin rules never judge a bracket, and a version made from another (an edit or a rain-out) carries the parent's playoff placements over. When a result fills both sides of the next match, its game is created and a new `playoffs` version with it is published by the league itself (`published_by` null).
-- `team_season.seed` is written when the bracket is made, from the standings with the season's tiebreakers.
+- `team_season.seed` is written when the bracket is made, from the standings with the season's tiebreakers. With tiers it counts on through the lower tiers (5 to 12 for a second tier after a top four), while each bracket's own `seeds` start at 1.
 - Sub requests ([ADR 0006](adr/0006-sub-claims-hold-spots.md)): a team has at most one live (`open` or `filled`) request per game, and none for playoff games. `women_needed` and `men_needed` reserve spots for the fielding rule; the rest of `needed` is open to anyone eligible. A `pending` or `approved` claim holds a spot, so a request never has more of those than `needed`; the request is `filled` once approved claims take every spot, and opens again if an approved sub withdraws. A request past `closes_at` (the game's start) is closed whatever its status, so no job sweeps it. Claims are written under a lock on the request row, which is what stops two players taking the last spot.
 - League history is computed on demand like the standings: a completed season's champion is its complete bracket's `champion_id`, or the top of its final standings when it had no bracket, and a team's all-time record adds up its seasons' regular-season standings. Nothing about history is stored.
 
@@ -2010,7 +2017,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `division` | unique `(season_id, slug)`, unique `(season_id, name)`; check slug format | One division per name and public address in a season |
 | `rule_set` | unique `(league_id, name)`; `options.permitEndRule` (`call_at_last_complete`, the default, or `last_inning_to_start`) says what happens when a game reaches its permit's end (#406); `options.noNewInningMinutes` (0 to 60, 10 when unset) is how long before the time limit no new inning starts; check innings 1 to 15 and time limit 10 to 240 | Rule sets are named once per league, with sane limits |
 | `season` | check `crossover_games between 0 and 10` | A sane crossover count |
-| `bracket` | unique `(season_id, division_id)` nulls not distinct | One season-wide bracket, or one per division |
+| `bracket` | unique `(season_id, division_id, tier)` nulls not distinct | One season-wide bracket per tier, or one per division |
+| `bracket_match` | unique `(bracket_id, game_no)` | Game numbers name each game once in a bracket |
 | `slot` | unique `(field_id, starts_at)`; check `ends_at > starts_at` | No duplicate slots |
 | `slot` | exclusion on `(field_id, tstzrange(starts_at, ends_at))` | No overlapping slots on a field |
 | `game` | check `team_a_id <> team_b_id` | A team cannot play itself |

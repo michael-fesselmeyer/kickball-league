@@ -314,18 +314,26 @@ reschedule(input, schedule, cancelledSlotIds, policy):
 ## 8. Playoffs
 
 ```
-placeBracket(seeds, playoffSlots):
+placeBracket(seeds, playoffSlots, { format, thirdPlace }):
   size   = next power of two ≥ seeds.length
   bracket = standard seeding (1 v size, 2 v size−1, ...), top seeds get byes if seeds.length < size
-  for round in bracket rounds, first to last:
-    earliest = 1 + latest time index used by the previous round
-    place this round's matches in slots with timeIndex ≥ earliest, lowest first, balancing fields
-  if a round does not fit on the date: continue on the next playoff date and report it
+  double elimination: first-round losers pair up on the losers' side; each later
+    winners' round's losers drop in against the survivors, who pair up again;
+    the two champions meet in the grand final, and again "if necessary"
+  single elimination with a third-place game: the semifinal losers meet
+  wave of a match = after every match it waits on, and after the round before it on its side
+  number games in wave order, a title game last in its wave
+  for wave in waves, first to last:
+    earliest = 1 + latest time index used by the previous wave
+    place this wave's matches in slots with timeIndex ≥ earliest, lowest first, balancing fields
+  if a wave does not fit on the date: continue on the next playoff date and report it
 ```
+
+Every game a team plays waits on that team's previous game, so it is in a later wave: no team is ever placed twice at the same time, and a team's games always run in order. The "if necessary" final is the last wave and gets its slot like any other game; it is skipped, and its slot handed back, when the winners' side champion wins the grand final. Property tests in `src/domain/playoffs/formats.test.ts` play out random results for 2 to 32 teams in both formats and check every team's path, two losses to go out in double elimination, and the "if necessary" game.
 
 Eight teams on two fields need four time indexes on one day: quarterfinals fill two, semifinals one, the final one. Seeds come from the standings and tiebreakers at the moment the admin makes the bracket. Playoff games cannot tie, and sub requests are disabled for them, as the rulebook requires.
 
-In the app (`src/db/queries/playoffs.ts`), the playoff slots are the open slots from the chosen playoff day on that no published game holds. Every match is placed at once, so later rounds have their slots reserved before their teams are known. The bracket is saved as a `playoffs` version made from the published one, and its games are kept apart from the round robin so rules H5 and H7 never judge it. As results become final, `src/domain/playoffs` moves each winner on; a match whose two teams are now known gets its game, published in its reserved slot by a new version.
+In the app (`src/db/queries/playoffs.ts`), the playoff slots are the open slots from the chosen playoff day on that no published game holds. Every match is placed at once, so later rounds have their slots reserved before their teams are known. The bracket is saved as a `playoffs` version made from the published one, and its games are kept apart from the round robin so rules H5 and H7 never judge it. As results become final, `src/domain/playoffs` moves each winner on; a match whose two teams are now known gets its game, published in its reserved slot by a new version. If a rain-out moved an earlier game past that slot, the new game takes the next free open slot after the earlier game ends instead, or none ("time to be set") until an admin places it. Tiers (ADR 0063) are placed one after another, each from its own playoff day, on the slots the tiers before left.
 
 ## 9. Worked example: 8 teams, 2 fields, 3 time slots
 

@@ -12,15 +12,20 @@ import type {
 } from "@/domain/ids";
 import {
   advance,
+  type BracketFormat,
+  decidesTitle,
   defaultPlayoffTeams,
   divisionHalvesSeeds,
+  gameNumbers,
   gameWinner,
   isReady,
   MAX_PLAYOFF_TEAMS,
+  MAX_TIERS,
   matchesFrom,
   type MatchState,
   MIN_PLAYOFF_TEAMS,
   roundCount,
+  splitTiers,
 } from "@/domain/playoffs/playoffs";
 import { err, ok, type Result } from "@/domain/result";
 import { placeBracket } from "@/domain/scheduler/bracket";
@@ -250,7 +255,31 @@ export type CreateBracketError =
   | "no_schedule"
   | "already_published"
   | "too_few_teams"
-  | "no_slots";
+  | "no_slots"
+  | "bad_innings"
+  | "tiers_with_divisions";
+
+/**
+ * One bracket's settings: how many teams, from which playoff day, single
+ * or double elimination, a third-place game (single elimination only) and
+ * the innings for early games and for the title games.
+ */
+export type TierPlan = {
+  teams: number;
+  fromDate: string;
+  format?: BracketFormat;
+  thirdPlace?: boolean;
+  /** Null or missing for the league's usual innings. */
+  earlyInnings?: number | null;
+  finalInnings?: number | null;
+};
+
+const MIN_INNINGS = 1;
+const MAX_INNINGS = 15;
+const inningsOk = (n: number | null | undefined) =>
+  n === null ||
+  n === undefined ||
+  (Number.isInteger(n) && n >= MIN_INNINGS && n <= MAX_INNINGS);
 
 /**
  * Seeds the playoffs from the standings and places them on the free slots
@@ -258,18 +287,23 @@ export type CreateBracketError =
  * published one. `teams` is the number of teams that make it, per division
  * when the season has divisions: two divisions with a combined final share
  * one bracket, each in its own half; otherwise each division gets its own
- * bracket, placed one after another on the free slots. Drafts made earlier
- * are replaced; a published bracket is kept.
+ * bracket, placed one after another on the free slots.
+ *
+ * Without divisions, `tiers` can split the standings into up to three
+ * brackets (ADR 0063): the first tier's teams from the top, the next
+ * tier's from the places after, each with its own format and day. The
+ * top-level settings are the first tier when `tiers` is not given. Drafts
+ * made earlier are replaced; a published bracket is kept.
  */
 export async function createBracket(
   db: Db,
-  input: {
+  input: TierPlan & {
     seasonId: SeasonId;
-    teams: number;
-    fromDate: string;
     actorId: UserId;
+    tiers?: readonly TierPlan[];
   },
 ): Promise<Result<BracketId, CreateBracketError>> {
+  const tiers: TierPlan[] = input.tiers ? [...input.tiers] : [input];
   return db.transaction(async (tx) => {
     const settings = await seasonZone(tx, input.seasonId);
     if (!settings) return err("unknown_season");
@@ -296,17 +330,53 @@ export async function createBracket(
         .filter((s) => s.eligible)
         .slice(0, n)
         .map((s) => s.teamId as string);
-    const n = input.teams;
+    const [firstTier] = tiers;
+    if (!firstTier || tiers.length > MAX_TIERS) return err("too_few_teams");
+    if (tiers.length > 1 && preview.mode !== "single")
+      return err("tiers_with_divisions");
+    if (
+      tiers.some(
+        (t) => !inningsOk(t.earlyInnings) || !inningsOk(t.finalInnings),
+      )
+    )
+      return err("bad_innings");
+    const n = firstTier.teams;
     const lowest = preview.mode === "halves" ? 1 : MIN_PLAYOFF_TEAMS;
     const highest =
       preview.mode === "halves" ? MAX_PLAYOFF_TEAMS / 2 : MAX_PLAYOFF_TEAMS;
     if (n < lowest || n > Math.min(highest, preview.eligibleCount))
       return err("too_few_teams");
     const [first, second] = preview.divisions;
-    const planned: { divisionId: DivisionId | null; seeds: string[] }[] =
-      preview.mode === "single"
-        ? [{ divisionId: null, seeds: top(preview.standings, n) }]
-        : preview.mode === "halves" && first && second
+    type Planned = {
+      divisionId: DivisionId | null;
+      seeds: string[];
+      tier: number;
+      plan: TierPlan;
+      /** Seeds before this bracket's in the season's order. */
+      offset: number;
+    };
+    let planned: Planned[];
+    if (preview.mode === "single") {
+      const split = splitTiers(
+        top(preview.standings, MAX_PLAYOFF_TEAMS * MAX_TIERS),
+        tiers.map((t) => t.teams),
+      );
+      if (!split) return err("too_few_teams");
+      let offset = 0;
+      planned = split.map((seeds, i) => {
+        const p = {
+          divisionId: null,
+          seeds,
+          tier: i + 1,
+          plan: tiers[i] as TierPlan,
+          offset,
+        };
+        offset += seeds.length;
+        return p;
+      });
+    } else
+      planned =
+        preview.mode === "halves" && first && second
           ? [
               {
                 divisionId: null,
@@ -317,17 +387,22 @@ export async function createBracket(
                   ),
                   "halves",
                 ),
+                tier: 1,
+                plan: firstTier,
+                offset: 0,
               },
             ]
           : preview.divisions.map((d) => ({
               divisionId: d.id,
               seeds: top(d.standings, n),
+              tier: 1,
+              plan: firstTier,
+              offset: 0,
             }));
 
-    let free = (await freeSlots(tx, input.seasonId, settings.timeZone)).filter(
-      (s) => s.date >= input.fromDate,
-    );
-    if (free.length === 0) return err("no_slots");
+    let free = await freeSlots(tx, input.seasonId, settings.timeZone);
+    if (tiers.some((t) => !free.some((s) => s.date >= t.fromDate)))
+      return err("no_slots");
     // Every check has passed: only now replace earlier drafts.
     for (const o of old) await discardDraft(tx, o.id, o.scheduleVersionId);
     await tx
@@ -337,15 +412,28 @@ export async function createBracket(
 
     const created: BracketId[] = [];
     const placements: PlayoffPlacement[] = [];
-    for (const plan of planned) {
-      const placed = placeBracket(plan.seeds, free);
-      // The next division's bracket takes the slots this one leaves.
+    for (const p of planned) {
+      const format = p.plan.format ?? "single_elimination";
+      const thirdPlace =
+        format === "single_elimination" && (p.plan.thirdPlace ?? false);
+      const placed = placeBracket(
+        p.seeds,
+        free.filter((s) => s.date >= p.plan.fromDate),
+        { format, thirdPlace },
+      );
+      // The next bracket takes the slots this one leaves.
       const used = new Set(placed.matches.map((m) => m.slotId));
       free = free.filter((s) => !used.has(s.id));
       const { bracketId, games } = await saveBracket(tx, {
         seasonId: input.seasonId,
-        divisionId: plan.divisionId,
-        seeds: plan.seeds,
+        divisionId: p.divisionId,
+        tier: p.tier,
+        format,
+        thirdPlace,
+        earlyInnings: p.plan.earlyInnings ?? null,
+        finalInnings: p.plan.finalInnings ?? null,
+        seedOffset: p.offset,
+        seeds: p.seeds,
         placed,
         actorId: input.actorId,
       });
@@ -379,6 +467,13 @@ async function saveBracket(
   input: {
     seasonId: SeasonId;
     divisionId: DivisionId | null;
+    tier: number;
+    format: BracketFormat;
+    thirdPlace: boolean;
+    earlyInnings: number | null;
+    finalInnings: number | null;
+    /** Teams seeded in brackets before this one, for each team's season seed. */
+    seedOffset: number;
     seeds: readonly string[];
     placed: ReturnType<typeof placeBracket>;
     actorId: UserId;
@@ -391,6 +486,11 @@ async function saveBracket(
     .values({
       seasonId: input.seasonId,
       divisionId: input.divisionId,
+      tier: input.tier,
+      format: input.format,
+      thirdPlace: input.thirdPlace,
+      earlyInnings: input.earlyInnings,
+      finalInnings: input.finalInnings,
       size: seeds.length,
       seeds: seeds.map((teamSeasonId, i) => ({ seed: i + 1, teamSeasonId })),
       diagnostics: placed.diagnostics,
@@ -405,6 +505,8 @@ async function saveBracket(
       matches.map((m) => ({
         bracketId,
         code: m.code,
+        stage: m.stage,
+        gameNo: m.gameNo,
         roundNo: m.round,
         position: m.position,
         sourceA: m.sourceA,
@@ -431,7 +533,7 @@ async function saveBracket(
   for (const [i, id] of seeds.entries())
     await tx
       .update(teamSeason)
-      .set({ seed: i + 1 })
+      .set({ seed: input.seedOffset + i + 1 })
       .where(eq(teamSeason.id, id as TeamSeasonId));
 
   const games: PlayoffPlacement[] = [];
@@ -456,6 +558,9 @@ async function saveBracket(
     entityId: bracketId,
     after: {
       divisionId: input.divisionId,
+      tier: input.tier,
+      format: input.format,
+      thirdPlace: input.thirdPlace,
       teams: seeds.length,
       rounds: roundCount(seeds.length),
       unplaced: placed.matches.filter((m) => m.slotId === null).length,
@@ -595,16 +700,31 @@ async function matchStates(db: Db, bracketId: BracketId) {
     .select()
     .from(bracketMatch)
     .where(eq(bracketMatch.bracketId, bracketId))
-    .orderBy(asc(bracketMatch.roundNo), asc(bracketMatch.position));
+    .orderBy(
+      asc(bracketMatch.gameNo),
+      asc(bracketMatch.roundNo),
+      asc(bracketMatch.position),
+    );
+  const numbers = gameNumbers(
+    rows.map((r) => ({
+      code: r.code,
+      round: r.roundNo,
+      position: r.position,
+      gameNo: r.gameNo,
+    })),
+  );
   const states: MatchState[] = rows.map((r) => ({
     code: r.code,
+    stage: r.stage,
     round: r.roundNo,
     position: r.position,
+    gameNo: numbers.get(r.code) ?? 0,
     sourceA: r.sourceA,
     sourceB: r.sourceB,
     teamA: r.teamAId,
     teamB: r.teamBId,
     winner: r.winnerId,
+    skipped: r.skipped,
   }));
   return { rows, states };
 }
@@ -624,11 +744,15 @@ export type Advanced =
     };
 
 /**
- * Moves a finished playoff game's winner on. Safe to call any number of
- * times: an unchanged result does nothing. When the next match now has both
- * teams, its game is created and published in the slot the bracket
- * reserved for it. A corrected result swaps the team in the next game while
- * that game is still to be played; after that, it is audited for an admin.
+ * Moves a finished playoff game's winner on, and its loser where the
+ * bracket has a place for them (the losers' side, the third-place game).
+ * Safe to call any number of times: an unchanged result does nothing.
+ * When a later match now has both teams, its game is created and
+ * published, in the slot the bracket reserved for it unless a rain-out
+ * pushed an earlier game past that slot. A corrected result swaps the
+ * teams in later games while those are still to be played; after that,
+ * it is audited for an admin. A grand final won by the winners' side
+ * champion skips the "if necessary" game and frees its slot.
  */
 export async function advanceBracket(
   db: Db,
@@ -641,6 +765,8 @@ export async function advanceBracket(
       code: bracketMatch.code,
       bracketId: bracketMatch.bracketId,
       seasonId: bracket.seasonId,
+      bracketStatus: bracket.status,
+      championId: bracket.championId,
       status: game.status,
       teamA: game.teamAId,
       teamB: game.teamBId,
@@ -659,7 +785,7 @@ export async function advanceBracket(
   const { rows, states } = await matchStates(db, found.bracketId);
   const before = states.find((m) => m.code === found.code);
   const result = advance(states, found.code, winner);
-  if (before?.winner === winner && !result.moved && !result.champion)
+  if (before?.winner === winner && result.moves.length === 0 && !result.skipped)
     return { kind: "unchanged" };
 
   await db
@@ -669,43 +795,86 @@ export async function advanceBracket(
 
   let scheduled: GameId | null = null;
   let conflict = false;
-  if (result.moved) {
-    const { code, side } = result.moved;
-    const to = result.moved.to as TeamSeasonId | null;
+  const touched = [
+    ...new Set([
+      ...result.moves.map((m) => m.code),
+      ...(result.skipped ? [result.skipped.code] : []),
+    ]),
+  ];
+  for (const code of touched) {
     const row = required(
       rows.find((r) => r.code === code),
       "next match",
     );
-    await db
-      .update(bracketMatch)
-      .set(side === "A" ? { teamAId: to } : { teamBId: to })
-      .where(eq(bracketMatch.id, row.id));
     const next = required(
       result.matches.find((m) => m.code === code),
       "next match",
     );
+    await db
+      .update(bracketMatch)
+      .set({
+        teamAId: next.teamA as TeamSeasonId | null,
+        teamBId: next.teamB as TeamSeasonId | null,
+        skipped: next.skipped,
+      })
+      .where(eq(bracketMatch.id, row.id));
+    // A skipped game's reserved slot goes back to the league; a game
+    // needed again takes it back if it is still free.
+    if (row.slotId && next.skipped !== row.skipped)
+      await db
+        .update(slot)
+        .set({ kind: next.skipped ? "regular" : "playoff" })
+        .where(eq(slot.id, row.slotId));
     if (row.gameId) {
       const [nextGame] = await db
         .select({ status: game.status })
         .from(game)
         .where(eq(game.id, row.gameId));
-      if (nextGame?.status === "scheduled" && to)
+      if (nextGame?.status !== "scheduled") conflict = true;
+      else if (isReady(next))
         await db
           .update(game)
-          .set(side === "A" ? { teamAId: to } : { teamBId: to })
+          .set({
+            teamAId: next.teamA as TeamSeasonId,
+            teamBId: next.teamB as TeamSeasonId,
+          })
           .where(eq(game.id, row.gameId));
-      else conflict = true;
+      else {
+        // The game is no longer on: a corrected result took a team back
+        // out, or the "if necessary" final is not needed after all.
+        await db
+          .update(game)
+          .set({ status: "cancelled" })
+          .where(eq(game.id, row.gameId));
+        await db
+          .update(bracketMatch)
+          .set({ gameId: null })
+          .where(eq(bracketMatch.id, row.id));
+      }
     } else if (isReady(next)) {
-      scheduled = await createGame(db, found.seasonId, row.id, next, null);
-      await scheduleGame(db, found.seasonId, scheduled, row.slotId, now);
+      const created = await createGame(db, found.seasonId, row.id, next, null);
+      const earliest = await sourcesEnd(db, rows, next);
+      await scheduleGame(
+        db,
+        found.seasonId,
+        created,
+        row.slotId,
+        earliest,
+        now,
+      );
+      scheduled ??= created;
     }
   }
 
   const champion = result.champion as TeamSeasonId | null;
-  if (champion)
+  if (champion !== found.championId)
     await db
       .update(bracket)
-      .set({ status: "complete", championId: champion })
+      .set(
+        champion
+          ? { status: "complete", championId: champion }
+          : { status: "published", championId: null },
+      )
       .where(eq(bracket.id, found.bracketId));
   await recordAudit(db, {
     actorId: null,
@@ -713,20 +882,55 @@ export async function advanceBracket(
     entityType: "bracket",
     entityId: found.bracketId,
     before: { match: found.code, winner: before?.winner ?? null },
-    after: { match: found.code, winner, scheduled, champion },
+    after: {
+      match: found.code,
+      winner,
+      scheduled,
+      champion,
+      ...(result.skipped ? { skipped: result.skipped } : {}),
+    },
   });
   return { kind: "advanced", winner, scheduled, champion, conflict };
 }
 
 /**
+ * When the games a match waits on end: the latest end of their slots. A
+ * later game must not start before it, wherever a rain-out moved them.
+ */
+async function sourcesEnd(
+  db: Db,
+  rows: readonly (typeof bracketMatch.$inferSelect)[],
+  m: MatchState,
+): Promise<Date | null> {
+  const codes = [m.sourceA, m.sourceB].flatMap((s) =>
+    "winnerOf" in s ? [s.winnerOf] : "loserOf" in s ? [s.loserOf] : [],
+  );
+  const games = rows
+    .filter((r) => codes.includes(r.code))
+    .flatMap((r) => (r.gameId ? [r.gameId] : []));
+  if (games.length === 0) return null;
+  const [found] = await db
+    .select({ endsAt: sql<Date | null>`max(${slot.endsAt})` })
+    .from(game)
+    .innerJoin(slot, eq(game.slotId, slot.id))
+    .where(inArray(game.id, games));
+  return found?.endsAt ? new Date(found.endsAt) : null;
+}
+
+/**
  * Puts a new playoff game on the published schedule: a new version, made
  * from the published one with this game added, published by the league.
+ * It takes its reserved slot unless something else holds it or it starts
+ * before `notBefore` (an earlier game was rained out and moved later);
+ * then the next free open slot after `notBefore`, or no slot at all, so
+ * the game shows "time to be set" until an admin places it.
  */
 async function scheduleGame(
   db: Db,
   seasonId: SeasonId,
   gameId: GameId,
   slotId: SlotId | null,
+  notBefore: Date | null,
   now: Date,
 ) {
   // Two results recorded at once each add their game to the published
@@ -738,16 +942,48 @@ async function scheduleGame(
     await loadVersion(db, publishedId),
     "published version",
   );
-  // The reserved slot, unless something else has taken it since.
   const taken = await takenSlots(db, seasonId);
-  const free = slotId && !taken.has(slotId) ? slotId : null;
+  const fits = (s: { id: string; startsAt: Date; status: string }) =>
+    !taken.has(s.id) &&
+    s.status === "open" &&
+    (notBefore === null || s.startsAt >= notBefore);
+  let chosen: SlotId | null = null;
+  if (slotId) {
+    const [reserved] = await db
+      .select({ id: slot.id, startsAt: slot.startsAt, status: slot.status })
+      .from(slot)
+      .where(eq(slot.id, slotId));
+    if (reserved && fits(reserved)) chosen = reserved.id;
+  }
+  if (!chosen && notBefore) {
+    const later = await db
+      .select({ id: slot.id, startsAt: slot.startsAt, status: slot.status })
+      .from(slot)
+      .where(
+        and(
+          eq(slot.seasonId, seasonId),
+          eq(slot.status, "open"),
+          sql`${slot.startsAt} >= ${notBefore}`,
+          sql`${slot.kind} <> 'makeup_reserve'`,
+        ),
+      )
+      .orderBy(asc(slot.startsAt), asc(slot.fieldId));
+    const found = later.find(fits);
+    if (found) {
+      chosen = found.id;
+      await db
+        .update(slot)
+        .set({ kind: "playoff" })
+        .where(eq(slot.id, found.id));
+    }
+  }
   const versionId = await saveVersion(db, {
     seasonId,
     input: published.input,
     schedule: published.schedule,
     origin: "playoffs",
     parentVersionId: published.id,
-    playoffs: [...published.playoffs, { gameId, slotId: free }],
+    playoffs: [...published.playoffs, { gameId, slotId: chosen }],
   });
   await publishVersion(db, versionId, null, now);
 }
@@ -785,7 +1021,11 @@ export async function bracketViews(
     .from(bracket)
     .leftJoin(division, eq(bracket.divisionId, division.id))
     .where(eq(bracket.seasonId, seasonId))
-    .orderBy(sql`${division.sortOrder} nulls first`, asc(division.name));
+    .orderBy(
+      sql`${division.sortOrder} nulls first`,
+      asc(division.name),
+      asc(bracket.tier),
+    );
   const shown = found.filter(
     (f) => f.bracket.status !== "draft" || includeDraft,
   );
@@ -833,6 +1073,9 @@ async function viewOf(
   const rows = await db
     .select({
       code: bracketMatch.code,
+      stage: bracketMatch.stage,
+      gameNo: bracketMatch.gameNo,
+      skipped: bracketMatch.skipped,
       round: bracketMatch.roundNo,
       position: bracketMatch.position,
       sourceA: bracketMatch.sourceA,
@@ -856,10 +1099,27 @@ async function viewOf(
     )
     .leftJoin(field, eq(slot.fieldId, field.id))
     .where(eq(bracketMatch.bracketId, found.id))
-    .orderBy(asc(bracketMatch.roundNo), asc(bracketMatch.position));
+    .orderBy(
+      asc(bracketMatch.gameNo),
+      asc(bracketMatch.roundNo),
+      asc(bracketMatch.position),
+    );
+  const numbers = gameNumbers(rows);
+  const innings = (m: {
+    stage: (typeof rows)[number]["stage"];
+    round: number;
+  }) =>
+    decidesTitle(m, found.size, found.format)
+      ? found.finalInnings
+      : found.earlyInnings;
   return {
     id: found.id,
     division: divisionOf,
+    tier: found.tier,
+    format: found.format,
+    thirdPlace: found.thirdPlace,
+    earlyInnings: found.earlyInnings,
+    finalInnings: found.finalInnings,
     status: found.status,
     size: found.size,
     rounds: roundCount(found.size),
@@ -873,6 +1133,10 @@ async function viewOf(
     // A game keeps its match's side order, so its scores line up.
     matches: rows.map((r) => ({
       code: r.code,
+      stage: r.stage,
+      gameNo: numbers.get(r.code) ?? 0,
+      skipped: r.skipped,
+      innings: innings(r),
       round: r.round,
       position: r.position,
       sourceA: r.sourceA,
