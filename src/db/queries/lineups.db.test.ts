@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import type { UserId } from "@/domain/ids";
 import { lineupAccess } from "@/domain/lineup/access";
-import { incident, suspension } from "../schema/discipline";
+import { incident, incidentPerson, suspension } from "../schema/discipline";
 import { game, gameRsvp } from "../schema/game";
 import { gameLineupSpot } from "../schema/lineup";
 import { profile } from "../schema/profile";
@@ -281,6 +281,55 @@ describe("suspended players", () => {
           now: NOW,
         }),
       ).toEqual({ ok: false, error: "not_available" });
+    });
+  });
+});
+
+describe("ejected players", () => {
+  it("leave the saved order and the candidates for the rest of the game", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const [a, b, c] = w.acesKickers.map((p) => p.userId);
+      if (!a || !b || !c) throw new Error("world");
+      for (const id of [a, b, c]) await w.rsvp(w.later.gameId, id, "in");
+      await saveLineup(db, {
+        gameId: w.later.gameId,
+        teamSeasonId: w.aces.id,
+        order: [a, b, c],
+        savedBy: a,
+        now: NOW,
+      });
+      const report = async (userId: UserId, role: "referee" | "captain") => {
+        const [row] = await db
+          .insert(incident)
+          .values({
+            gameId: w.later.gameId,
+            kind: "ejection",
+            details: "Ejected by the ref during the game.",
+            reportedBy: w.ref.userId,
+            reporterRole: role,
+          })
+          .returning({ id: incident.id });
+        await db.insert(incidentPerson).values({
+          incidentId: required(row, "incident").id,
+          userId,
+          teamSeasonId: w.aces.id,
+        });
+      };
+      await report(b, "referee");
+      // A captain's report of an ejection takes nobody out.
+      await report(c, "captain");
+      const saved = required(
+        (await savedLineups(db, w.later.gameId)).get(w.aces.id),
+        "saved",
+      );
+      expect(saved.spots.map((s) => s.userId)).toEqual([a, c]);
+      expect(saved.ejected.map((s) => s.userId)).toEqual([b]);
+      expect(
+        (await lineupCandidates(db, w.later.gameId, w.aces.id, NOW)).map(
+          (k) => k.id,
+        ),
+      ).not.toContain(b);
     });
   });
 });

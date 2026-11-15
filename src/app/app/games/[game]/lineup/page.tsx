@@ -140,6 +140,12 @@ async function Lineups({ params }: PageProps<"/app/games/[game]/lineup">) {
                   </li>
                 ))}
               </ol>
+              {t.lineup.ejected.length > 0 && (
+                <p className="text-small">
+                  Ejected by the ref, out for the rest of the game:{" "}
+                  {t.lineup.ejected.map((s) => s.name).join(", ")}.
+                </p>
+              )}
             </>
           )}
         </section>
