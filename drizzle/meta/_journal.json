@@ -512,6 +512,13 @@
       "when": 1794760897436,
       "tag": "0072_game_attendance",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1794766604014,
+      "tag": "0073_injury_reports",
+      "breakpoints": true
     }
   ]
 }
