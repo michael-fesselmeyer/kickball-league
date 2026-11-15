@@ -115,9 +115,7 @@ test("an admin sends a rain-out to the owners and an owner confirms it", async (
       }),
     ).toBeVisible();
 
-    await rowan
-      .getByRole("checkbox", { name: /Let admins confirm/ })
-      .uncheck();
+    await rowan.getByRole("checkbox", { name: /Let admins confirm/ }).uncheck();
     await rowan.getByRole("button", { name: "Save who confirms" }).click();
     await expect(
       rowan.getByRole("status").filter({ hasText: "Only owners confirm" }),

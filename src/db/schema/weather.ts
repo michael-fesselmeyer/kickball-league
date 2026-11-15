@@ -19,7 +19,7 @@ export const weatherPart = pgEnum("weather_part", [
  * weather, so the rain-out decision card can show the last data, and when
  * it was fetched, while NWS is down. One row per park and part, replaced
  * by newer answers only; pages still read NWS through the data cache
- * first. See docs/data-model.md, section 2.10.
+ * first. See docs/data-model.md, section 2.11.
  */
 export const weatherSnapshot = pgTable(
   "weather_snapshot",

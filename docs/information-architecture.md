@@ -142,7 +142,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 │       └── report                  Weekly numbers: check-ins, players, teams and deals used by week
 └── admin/
     ├── (dashboard)                 Next game day: weather, games, missing scores, alerts; sign-up rate per team, lowest first, with how many players each still needs
-    ├── today                       Game-day command center, phone first: today (or the next game day, or ?date=) with every game's field, ref and check-in, score state (not started, playing, live with runs and inning, reported, final, called off, missing), the weather, and one tap to a rain-out, an announcement or ref assignments; refreshes itself every 10 seconds
+    ├── today                       Game-day command center, phone first: today (or the next game day, or ?date=) with every game's field, ref and check-in, score state (not started, playing, live with runs and inning, reported, final, called off, missing), the weather and, today or ahead, the rain-out decision card, and one tap to a rain-out, an announcement or ref assignments; refreshes itself every 10 seconds
     │   └── state.json              The same state as JSON for the screen to poll; admins only, never cached
     │                               Below the games, the day's league gear: each kit, who brings it to which field by when, and whether they have it yet
     ├── equipment/                  League gear: where every kit is right now (with whom, on its way, or at home), its next game and open missing-items reports; add a kit
@@ -164,7 +164,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   ├── requests                Every team's conflicts and preferences, read before generating
     │   ├── new-teams               Players' requests to start a team: approve or decline with a reason
     │   ├── schedule                Generate, metrics, versions, publish; board (desktop) and move-or-swap form
-    │   ├── rainout                 Call a rain-out and review makeups
+    │   ├── rainout                 Call a rain-out: pick a date (?date=), the decision card for each park (game-hour rain chance, rainfall and thunder, rain already fallen, alerts, one-sentence call, when each was fetched), the makeups; owners confirm, admins send it to the owners (unless the owners let them confirm); who sent it and when; the owners' "who confirms" setting
     │   ├── announcements           Email the season or one team
     │   ├── recap                   Weekly recap drafted from the scores; edit, then send as an announcement
     │   ├── team-of-the-week        The game day's best wins; name a team with an optional tab at a sponsor
