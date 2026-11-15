@@ -52,7 +52,10 @@ test.describe.serial("field check-in", () => {
   test("a forged code checks nobody in", async ({ browser }) => {
     const page = await pageSignedInAs(browser, DANA);
     await page.goto(`/app/games/${today.gameId}/check-in/abcdefghjk`);
-    await expect(page.getByRole("alert")).toContainText("this one has expired");
+    // The route announcer is an alert too, so pick the page's own.
+    await expect(
+      page.getByRole("alert").filter({ hasText: "this one has expired" }),
+    ).toBeVisible();
     await expect(page.getByRole("button", { name: "Check in" })).toHaveCount(0);
     await page.context().close();
   });
