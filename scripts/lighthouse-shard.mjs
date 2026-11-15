@@ -39,6 +39,7 @@ const SECONDS_PER_RUN = {
   "/sponsors": 11.1,
   "/free-agents": 11.1,
   "/events/spring-kickoff-bbq-2027-04-10": 11.1,
+  "/events/harbor-cup-charity-tournament-2027-06-12": 11.1,
   "/nyc-kickball-league": 11.1,
   "/style": 11.0,
   "/games/05cd8fa2-c2b9-48d9-b6d4-0d4e3414b25b": 10.3,
