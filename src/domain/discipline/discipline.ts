@@ -11,8 +11,14 @@
  *   files an incident once the game has started.
  * - An admin suspends a player from an incident: for a number of games,
  *   the rest of the season, or permanently. For outside alcohol the
- *   rulebook 4.0 ladder is suggested: 1 game, then a season ban, then a
- *   permanent ban. Games served are counted from the team's final games,
+ *   rulebook 4.0 ladder is suggested: 1 game, then one full season (the
+ *   games the player's team plays in a season), then a permanent ban. It
+ *   is only a suggestion; the admin picks the length.
+ * - The game's ref can eject a player from the live game screen. That
+ *   files an ejection report, and the player leaves their team's kicking
+ *   order for the rest of the game.
+ * - Nothing else is suggested. Reviewing a report, the admin sees each
+ *   person's earlier ejections and decides. Games served are counted from the team's final games,
  *   never stored (docs/adr/0026-discipline-counted-not-stored.md).
  */
 
@@ -199,19 +205,53 @@ export type SuspensionLength =
   | { scope: "permanent" };
 
 /**
+ * One full season as a suspension: as many games as the player's team plays
+ * in a season (at most MAX_GAMES), so it runs on into the next season when
+ * this one ends first. Without a count, the rest of the season.
+ */
+export function fullSeason(seasonGames: number | null): SuspensionLength {
+  return seasonGames !== null &&
+    Number.isInteger(seasonGames) &&
+    seasonGames >= 1
+    ? { scope: "games", games: Math.min(seasonGames, MAX_GAMES) }
+    : { scope: "season" };
+}
+
+/**
  * The rulebook 4.0 ladder for outside alcohol at the sponsor bar, from how
  * many earlier outside-alcohol suspensions the player has (lifted ones do
- * not count): a 1-game suspension, then a season ban, then a permanent ban.
- * Other kinds have no set length, so nothing is suggested.
+ * not count): a 1-game suspension, then one full season, then a permanent
+ * ban. `seasonGames` is how many games the player's team plays in a
+ * season. Other kinds have no set length, so nothing is suggested.
  */
 export function suggestedLength(
   kind: IncidentKind,
   earlierAlcoholSuspensions: number,
+  seasonGames: number | null = null,
 ): SuspensionLength | null {
   if (kind !== "outside_alcohol") return null;
   if (earlierAlcoholSuspensions <= 0) return { scope: "games", games: 1 };
-  if (earlierAlcoholSuspensions === 1) return { scope: "season" };
+  if (earlierAlcoholSuspensions === 1) return fullSeason(seasonGames);
   return { scope: "permanent" };
+}
+
+/** The most characters in the reason a ref gives for an ejection. */
+export const EJECTION_REASON_MAX = 500;
+
+/**
+ * The text of the report a ref's ejection files: that the ref ejected the
+ * player during the game, and the reason when one is given.
+ */
+export function ejectionDetails(
+  reason: string,
+): Result<string, "details_too_long"> {
+  const why = reason.trim().replace(/\s+/g, " ");
+  if (why.length > EJECTION_REASON_MAX) return err("details_too_long");
+  return ok(
+    why
+      ? `Ejected by the ref during the game. Reason: ${why}`
+      : "Ejected by the ref during the game.",
+  );
 }
 
 export type LengthError = "bad_scope" | "bad_games";

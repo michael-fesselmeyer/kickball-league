@@ -11,6 +11,9 @@ import {
   INCIDENT_KINDS,
   isIncidentKind,
   MAX_GAMES,
+  EJECTION_REASON_MAX,
+  ejectionDetails,
+  fullSeason,
   NOTE_MAX,
   OWN_AVERAGE_AFTER,
   ownAverage,
@@ -253,11 +256,16 @@ describe("ratings", () => {
 });
 
 describe("the outside-alcohol ladder (rulebook 4.0)", () => {
-  it("goes one game, then the season, then for good", () => {
-    expect(suggestedLength("outside_alcohol", 0)).toEqual({
+  it("goes one game, then one full season, then for good", () => {
+    expect(suggestedLength("outside_alcohol", 0, 9)).toEqual({
       scope: "games",
       games: 1,
     });
+    expect(suggestedLength("outside_alcohol", 1, 9)).toEqual({
+      scope: "games",
+      games: 9,
+    });
+    // Without a season's game count, the rest of the season.
     expect(suggestedLength("outside_alcohol", 1)).toEqual({ scope: "season" });
     expect(suggestedLength("outside_alcohol", 2)).toEqual({
       scope: "permanent",
@@ -285,6 +293,33 @@ describe("the outside-alcohol ladder (rulebook 4.0)", () => {
         ).toBeLessThanOrEqual(rank(suggestedLength("outside_alcohol", high)));
       }),
     );
+  });
+});
+
+describe("fullSeason", () => {
+  it("is a season's games, within the most a suspension can count", () => {
+    expect(fullSeason(8)).toEqual({ scope: "games", games: 8 });
+    expect(fullSeason(30)).toEqual({ scope: "games", games: MAX_GAMES });
+    expect(fullSeason(0)).toEqual({ scope: "season" });
+    expect(fullSeason(null)).toEqual({ scope: "season" });
+  });
+});
+
+describe("ejectionDetails", () => {
+  it("says the ref ejected the player, with the reason when given", () => {
+    expect(ejectionDetails("  ")).toEqual(
+      ok("Ejected by the ref during the game."),
+    );
+    expect(ejectionDetails(" Threw a\n punch ")).toEqual(
+      ok("Ejected by the ref during the game. Reason: Threw a punch"),
+    );
+  });
+
+  it("refuses a reason that is too long", () => {
+    expect(ejectionDetails("x".repeat(EJECTION_REASON_MAX + 1))).toEqual(
+      err("details_too_long"),
+    );
+    expect(ejectionDetails("x".repeat(EJECTION_REASON_MAX)).ok).toBe(true);
   });
 });
 
