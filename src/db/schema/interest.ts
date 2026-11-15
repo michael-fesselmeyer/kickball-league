@@ -47,7 +47,7 @@ export const interestFormStatus = pgEnum("interest_form_status", [
 export const interestResponse = pgEnum("interest_response", ["yes", "unsure"]);
 
 /**
- * A public interest form (docs/data-model.md, section 2.8): the league asks
+ * A public interest form (docs/data-model.md, section 2.7): the league asks
  * who would play on a new night, in a new park or in another format before
  * it books a permit. One form is open per league at a time. The target
  * (`teams_needed`, filled `players_per_team` at a time) is read when the

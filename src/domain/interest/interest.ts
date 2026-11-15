@@ -1,7 +1,7 @@
 import { err, ok, type Result } from "@/domain/result";
 
 /**
- * Interest sign-ups (docs/data-model.md, section 2.8): before the league
+ * Interest sign-ups (docs/data-model.md, section 2.7): before the league
  * books a permit for a new night, park or format, it asks who would come.
  * These rules read the admin's form and the public answer, and work out
  * whether an option has enough interest. Nothing here touches the database.

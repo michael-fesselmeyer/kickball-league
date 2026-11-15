@@ -118,6 +118,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - Make promo codes for a season: a percentage or an amount off, with an optional limit on uses and a last day, and turn one off at any time.
 - Correct scores, record forfeits, suspend players, and issue refunds (all or part of a payment) or league credit.
 - Run events, manage sponsors, and send announcements.
+- Ask whether there is enough interest in a new night, park or format before booking a permit: open a form, watch each option's totals against a target number of teams, and tell everyone who picked an option when it goes ahead.
 - See who changed what in an audit log.
 
 ### League owner
@@ -364,6 +365,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Admin dashboard: registrations, payments, waivers, missing scores | MVP |
 | Audit log of every admin and captain change | MVP |
 | Configurable league name, colors, logo slots, contact details, social links | MVP |
+| Interest sign-ups: a public form for a new night, park or format, totals per option with an "enough to run" marker, and one email to everyone who picked an option when it goes ahead ([ADR 0064](adr/0064-interest-sign-ups.md)) | P2 |
 | Demo deployment with seed data and one-tap role switching | MVP |
 | Installable app (PWA) for captains, refs and admins | P2 |
 | CSV export of rosters, payments and shirt sizes | P2 |
