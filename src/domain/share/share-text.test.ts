@@ -39,6 +39,7 @@ const base: PublicGame = {
   scoreA: null,
   scoreB: null,
   forfeitBy: null,
+  ruled: false,
 };
 
 describe("bold and whatsappHref", () => {

@@ -86,6 +86,7 @@ async function publishedGames(
       scoreA: game.scoreA,
       scoreB: game.scoreB,
       forfeitBy: game.forfeitBy,
+      ruledAt: game.ruledAt,
     })
     .from(gamePlacement)
     .innerJoin(
@@ -154,6 +155,7 @@ async function publishedGames(
     scoreA: r.scoreA,
     scoreB: r.scoreB,
     forfeitBy: r.forfeitBy,
+    ruled: r.ruledAt !== null,
   }));
 }
 

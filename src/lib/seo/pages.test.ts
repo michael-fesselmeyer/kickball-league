@@ -23,6 +23,7 @@ const game = (over: Partial<PublicGame> = {}): PublicGame => ({
   scoreA: null,
   scoreB: null,
   forfeitBy: null,
+  ruled: false,
   ...over,
 });
 
