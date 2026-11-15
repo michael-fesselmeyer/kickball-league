@@ -1,17 +1,23 @@
-import { and, asc, eq, inArray, like } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { nextGameDayStart } from "@/db/queries/demo";
 import { required } from "@/db/queries/rows";
 import type { Db } from "@/db/queries/schedule";
 import { user } from "@/db/schema/auth";
-import { game, gamePeriod, slot, venue } from "@/db/schema/game";
+import {
+  game,
+  gamePeriod,
+  refereeAssignment,
+  slot,
+  venue,
+} from "@/db/schema/game";
 import { message } from "@/db/schema/message";
 import { profile } from "@/db/schema/profile";
 import { gamePlacement, scheduleVersion } from "@/db/schema/schedule";
 import { season } from "@/db/schema/season";
 import { messagingWorld } from "@/db/test/messaging-world";
 import { closePool, inRolledBackDb } from "@/db/test/transaction";
-import type { FieldId, SlotId } from "@/domain/ids";
+import type { FieldId, GameId, SlotId } from "@/domain/ids";
 import type { SchedulerInput } from "@/domain/scheduler/types";
 import { liveDemo } from "./demo-live";
 import { PERSONA_IDS } from "./demo-personas";
@@ -61,6 +67,7 @@ async function nightWorld(db: Db) {
   const at = async (round: number, endsAt: Date, onField?: FieldId) => {
     const g = await w.gameBetween(w.aces.id, w.bees.id, endsAt, {
       ...(onField ? { onField } : {}),
+      refereeId: PERSONA_IDS.ref,
     });
     await db.update(game).set({ roundNo: round }).where(eq(game.id, g.gameId));
     return g;
@@ -71,6 +78,11 @@ async function nightWorld(db: Db) {
     .set({ status: "final", scoreA: 4, scoreB: 2, finalizedAt: edt(4, 21) })
     .where(eq(game.id, played.gameId));
   const nextFirst = await at(2, new Date(edt(11, 20).getTime() + HOUR));
+  const nextBeside = await at(
+    2,
+    new Date(edt(11, 20).getTime() + HOUR),
+    otherField,
+  );
   const nextSecond = await at(
     2,
     new Date(edt(11, 21).getTime() + HOUR),
@@ -95,13 +107,24 @@ async function nightWorld(db: Db) {
     "version",
   );
   await db.insert(gamePlacement).values(
-    [played, nextFirst, nextSecond, later].map((g) => ({
+    [played, nextFirst, nextBeside, nextSecond, later].map((g) => ({
       scheduleVersionId: version.id,
       gameId: g.gameId,
       slotId: g.slotId,
     })),
   );
-  return { ...w, admin, played, nextFirst, nextSecond, later };
+  return { ...w, admin, played, nextFirst, nextBeside, nextSecond, later };
+}
+
+/** A live game's runs so far, by the team kicking in the top and bottom halves. */
+async function linescore(db: Db, gameId: GameId) {
+  const halves = await db
+    .select({ half: gamePeriod.half, runs: gamePeriod.runs })
+    .from(gamePeriod)
+    .where(eq(gamePeriod.gameId, gameId));
+  const total = (half: "top" | "bottom") =>
+    halves.filter((h) => h.half === half).reduce((n, h) => n + h.runs, 0);
+  return { halves: halves.length, top: total("top"), bottom: total("bottom") };
 }
 
 const startOf = async (db: Db, slotId: SlotId) =>
@@ -116,50 +139,109 @@ const startOf = async (db: Db, slotId: SlotId) =>
   ).startsAt;
 
 describe("liveDemo", () => {
-  it("moves the next round to tonight and starts its first game a few innings in", () =>
+  it("moves the next round to tonight and starts its first games a few innings in", () =>
     inRolledBackDb(async (db) => {
       const w = await nightWorld(db);
       const done = await liveDemo(db, NOW);
-      expect(done.liveGameId).toBe(w.nextFirst.gameId);
+      const first = [w.nextFirst.gameId, w.nextBeside.gameId];
+      expect(first).toContain(done.liveGameId);
 
       // 40 minutes ago, on a five-minute mark; the round keeps its spacing.
-      expect(await startOf(db, w.nextFirst.slotId)).toEqual(
-        new Date("2027-05-10T17:20:00Z"),
-      );
+      for (const g of [w.nextFirst, w.nextBeside])
+        expect(await startOf(db, g.slotId)).toEqual(
+          new Date("2027-05-10T17:20:00Z"),
+        );
       expect(await startOf(db, w.nextSecond.slotId)).toEqual(
         new Date("2027-05-10T18:20:00Z"),
       );
       expect(await startOf(db, w.later.slotId)).toEqual(edt(18, 20));
       expect(await startOf(db, w.played.slotId)).toEqual(edt(4, 20));
 
-      const [live] = await db
-        .select({ status: game.status, kicksFirst: game.kicksFirst })
+      // Both early games are live, each with its own score; the later one
+      // hasn't started.
+      const states = await db
+        .select({
+          id: game.id,
+          status: game.status,
+          kicksFirst: game.kicksFirst,
+        })
         .from(game)
-        .where(eq(game.id, w.nextFirst.gameId));
-      expect(live).toEqual({ status: "in_progress", kicksFirst: w.aces.id });
-      const halves = await db
+        .where(inArray(game.id, [...first, w.nextSecond.gameId]))
+        .orderBy(asc(game.id));
+      for (const s of states)
+        expect(s).toEqual(
+          s.id === w.nextSecond.gameId
+            ? { id: s.id, status: "scheduled", kicksFirst: null }
+            : { id: s.id, status: "in_progress", kicksFirst: w.aces.id },
+        );
+      const lines = await Promise.all(first.map((id) => linescore(db, id)));
+      for (const line of lines) expect(line.halves).toBe(7);
+      expect(new Set(lines.map((l) => `${l.top}-${l.bottom}`)).size).toBe(2);
+      expect(await linescore(db, w.nextSecond.gameId)).toEqual({
+        halves: 0,
+        top: 0,
+        bottom: 0,
+      });
+      const [last] = await db
         .select({
           periodNo: gamePeriod.periodNo,
           half: gamePeriod.half,
-          runs: gamePeriod.runs,
           enteredBy: gamePeriod.enteredBy,
         })
         .from(gamePeriod)
         .where(eq(gamePeriod.gameId, w.nextFirst.gameId))
-        .orderBy(asc(gamePeriod.enteredAt));
-      expect(halves).toHaveLength(7);
-      expect(halves.at(-1)).toMatchObject({ periodNo: 4, half: "top" });
-      const runs = (half: "top" | "bottom") =>
-        halves.filter((h) => h.half === half).reduce((n, h) => n + h.runs, 0);
-      expect([runs("top"), runs("bottom")]).toEqual([3, 1]);
-      expect(new Set(halves.map((h) => h.enteredBy))).toEqual(
-        new Set([PERSONA_IDS.ref]),
+        .orderBy(desc(gamePeriod.enteredAt))
+        .limit(1);
+      expect(last).toEqual({
+        periodNo: 4,
+        half: "top",
+        enteredBy: PERSONA_IDS.ref,
+      });
+
+      // The demo ref is at the field for tonight's games, not next week's.
+      const checkIns = await db
+        .select({
+          gameId: refereeAssignment.gameId,
+          checkedInAt: refereeAssignment.checkedInAt,
+        })
+        .from(refereeAssignment)
+        .where(eq(refereeAssignment.userId, PERSONA_IDS.ref));
+      for (const c of checkIns)
+        expect(c.checkedInAt !== null).toBe(
+          [...first, w.nextSecond.gameId].includes(c.gameId),
+        );
+    }));
+
+  it("leaves a game night already under way as it is", () =>
+    inRolledBackDb(async (db) => {
+      const w = await nightWorld(db);
+      const once = await liveDemo(db, NOW);
+      const later = new Date(NOW.getTime() + 2 * HOUR);
+      const twice = await liveDemo(db, later);
+      expect(twice.liveGameId).toBe(once.liveGameId);
+      expect(await startOf(db, w.nextFirst.slotId)).toEqual(
+        new Date("2027-05-10T17:20:00Z"),
       );
-      const [other] = await db
-        .select({ status: game.status })
-        .from(game)
-        .where(eq(game.id, w.nextSecond.gameId));
-      expect(other?.status).toBe("scheduled");
+      expect((await linescore(db, w.nextFirst.gameId)).halves).toBe(7);
+      // The rain alert is not sent twice.
+      expect(twice.rainWatchFrom).toEqual(edt(18, 20));
+      const alerts = await db
+        .select({ id: message.id })
+        .from(message)
+        .where(like(message.dedupeKey, `rain-alert/${w.season.id}/%`));
+      expect(alerts).toHaveLength(1);
+    }));
+
+  it("starts nothing when no season is being played", () =>
+    inRolledBackDb(async (db) => {
+      const w = await nightWorld(db);
+      await db
+        .update(season)
+        .set({ status: "completed" })
+        .where(eq(season.status, "in_progress"));
+      const done = await liveDemo(db, NOW);
+      expect(done.liveGameId).toBeNull();
+      expect(await startOf(db, w.nextFirst.slotId)).toEqual(edt(11, 20));
     }));
 
   it("puts a rain watch on the next game day and the admins' alert in the mail", () =>

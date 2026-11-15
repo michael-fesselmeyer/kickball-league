@@ -1,4 +1,5 @@
 import { and, asc, eq, inArray, isNotNull, min, sql } from "drizzle-orm";
+import { checkInReferee } from "@/db/queries/command-center";
 import { nextGameDayStart } from "@/db/queries/demo";
 import { queuePaymentReminders } from "@/db/queries/payment-reminders";
 import {
@@ -20,14 +21,29 @@ const STARTED_AGO = 40 * MINUTE;
 /** The rain alert job runs the evening before a game day. */
 const ALERT_LEAD = 20 * 60 * MINUTE;
 
+type Line = readonly (readonly [number, number])[];
+
 /**
- * Runs per half-inning for the live game: the top half is the team that
- * kicks first. Three and a half innings in, 3 to 1.
+ * Runs per half-inning for the live games, one line each: the top half is
+ * the team that kicks first. Three and a half innings in: 3 to 1, 2 to 4
+ * and 2 to 3.
  */
-const LINE: readonly (readonly [number, number])[] = [
-  [1, 0],
-  [0, 1],
-  [2, 0],
+const LINES: readonly Line[] = [
+  [
+    [1, 0],
+    [0, 1],
+    [2, 0],
+  ],
+  [
+    [0, 0],
+    [2, 1],
+    [0, 3],
+  ],
+  [
+    [1, 1],
+    [0, 0],
+    [1, 2],
+  ],
 ];
 const TOP_OF_FOURTH = 0;
 
@@ -41,10 +57,11 @@ export type LiveDemo = {
  * Makes the freshly seeded demo league look like a game night in progress
  * (docs/demo.md), after `demo:reset` has seeded it:
  *
- * 1. The next round still to play moves to today, so its first game started
- *    40 minutes ago, and that game is live: the team that kicks first is
- *    set, three and a half innings are entered (by the demo ref, who
- *    referees that round), and the game is in progress.
+ * 1. The next round still to play moves to today, so its first games
+ *    started 40 minutes ago, and they are live: the team that kicks first
+ *    is set, three and a half innings are entered by the demo ref (who
+ *    referees that round and is checked in at the field), and the games
+ *    are in progress. The round's later games haven't started.
  * 2. The league's own jobs run as they would have: the rain alert for the
  *    next game day (the weather fixture puts showers there), and any payment
  *    and missing-score reminders that are due. They wait in the outbox, for
@@ -68,8 +85,23 @@ export async function liveDemo(db: Db, now: Date): Promise<LiveDemo> {
   return { liveGameId, rainWatchFrom, queued };
 }
 
-/** Moves the next round to today and starts its first game. */
+/**
+ * Moves the next round to today and starts its first games. A game night
+ * already under way is left as it is, so running this twice is harmless.
+ */
 async function startLiveRound(db: Db, now: Date): Promise<GameId | null> {
+  const [live] = await db
+    .select({ id: game.id })
+    .from(game)
+    .innerJoin(season, eq(game.seasonId, season.id))
+    .innerJoin(slot, eq(game.slotId, slot.id))
+    .where(
+      and(eq(season.status, "in_progress"), eq(game.status, "in_progress")),
+    )
+    .orderBy(asc(slot.startsAt), asc(game.id))
+    .limit(1);
+  if (live) return live.id;
+
   const [next] = await db
     .select({ seasonId: game.seasonId, roundNo: min(game.roundNo) })
     .from(game)
@@ -120,34 +152,41 @@ async function startLiveRound(db: Db, now: Date): Promise<GameId | null> {
       ),
     );
 
-  await db
-    .update(game)
-    .set({ status: "in_progress", kicksFirst: first.teamAId })
-    .where(eq(game.id, first.id));
-  const enteredBy = PERSONA_IDS.ref;
-  const enteredAt = new Date(target);
-  await db.insert(gamePeriod).values(
-    [
-      ...LINE.flatMap(([top, bottom], i) => [
-        { gameId: first.id, periodNo: i + 1, half: "top" as const, runs: top },
-        {
-          gameId: first.id,
-          periodNo: i + 1,
-          half: "bottom" as const,
-          runs: bottom,
-        },
-      ]),
-      {
-        gameId: first.id,
-        periodNo: LINE.length + 1,
-        half: "top" as const,
-        runs: TOP_OF_FOURTH,
-      },
-    ].map((p, i) => ({
-      ...p,
-      enteredBy,
-      enteredAt: new Date(enteredAt.getTime() + (i + 1) * 5 * MINUTE),
-    })),
+  // Every game in the round's first time slot is under way, each with its
+  // own score; later ones haven't started.
+  const playing = round.filter(
+    (g) => g.startsAt.getTime() === first.startsAt.getTime(),
   );
+  for (const [n, g] of playing.entries()) {
+    await db
+      .update(game)
+      .set({ status: "in_progress", kicksFirst: g.teamAId })
+      .where(eq(game.id, g.id));
+    await db
+      .insert(gamePeriod)
+      .values(halves(LINES[n % LINES.length] ?? [], g.id, target));
+  }
+  // The demo ref, who referees the round, is at the field.
+  await checkInReferee(db, {
+    gameId: first.id,
+    userId: PERSONA_IDS.ref,
+    now: new Date(target - 10 * MINUTE),
+  });
   return first.id;
+}
+
+/** A game's half-innings so far, entered by the demo ref every five minutes. */
+function halves(line: Line, gameId: GameId, startedAt: number) {
+  return [
+    ...line.flatMap(([top, bottom], i) => [
+      { periodNo: i + 1, half: "top" as const, runs: top },
+      { periodNo: i + 1, half: "bottom" as const, runs: bottom },
+    ]),
+    { periodNo: line.length + 1, half: "top" as const, runs: TOP_OF_FOURTH },
+  ].map((p, i) => ({
+    ...p,
+    gameId,
+    enteredBy: PERSONA_IDS.ref,
+    enteredAt: new Date(startedAt + (i + 1) * 5 * MINUTE),
+  }));
 }
