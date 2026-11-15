@@ -299,6 +299,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `score_dispute` | urgent | For admins: a captain disputed a reported score |
 | `score_reminder` | non-urgent | Reminders about games with no score yet |
 | `season_card` | non-urgent | Your season in kickball: your end-of-season card is ready |
+| `shirt_size_reminder` | non-urgent | A reminder to pick your shirt size before the league orders shirts |
 | `sub_request` | urgent | Teams that need a sub when you're free |
 | `sub_update` | urgent | Answers to your sub offers |
 | `suspension` | urgent | A suspension, its games and how to appeal |

@@ -60,6 +60,7 @@ erDiagram
   team ||--o{ team_keep_off : "keeps off"
   user ||--o{ team_keep_off : "kept off by"
   team_season ||--o{ captain_handoff : "offers captaincy"
+  season ||--o| season_shirts : "orders shirts as"
 
   profile {
     uuid user_id PK
@@ -69,7 +70,7 @@ erDiagram
     timestamptz phone_verified_at
     enum gender "woman, man, nonbinary, self_described, undisclosed"
     enum lineup_gender "woman, man: which side of the fielding rule the player counts toward"
-    enum shirt_size "xs, s, m, l, xl, xxl"
+    enum shirt_size "xs, s, m, l, xl, xxl, xxxl"
     date birth_date
     text stripe_customer_id
     uuid avatar_asset_id FK
@@ -272,6 +273,18 @@ erDiagram
     uuid added_by FK
     timestamptz created_at
   }
+  season_shirts {
+    uuid season_id PK,FK
+    enum sizes "shirt_size[]: what sign-up forms offer, xs to xxl by default"
+    enum status "not_placed, placed, received"
+    timestamptz placed_at
+    timestamptz received_at
+    int cost_cents "optional, 1 to 10,000,000"
+    text vendor "optional, up to 80 characters"
+    uuid expense_id FK "unique: the books expense made from the order"
+    uuid updated_by FK
+    timestamptz updated_at
+  }
 ```
 
 Notes:
@@ -289,6 +302,8 @@ Notes:
 - `captain_handoff` is a captain's offer of the captaincy to a teammate. The captain keeps the role until the teammate accepts; then, in one transaction, the old captain becomes a co-captain and the teammate the captain (the `roster_membership_one_captain` index never sees two). One offer waits per team season (unique where `status = 'pending'`); a new one cancels the last, withdrawing is quiet, and an offer whose captain has changed or whose teammate has left is closed when answered. No offer is made or accepted while a team-fee checkout is open. Deleting either account cancels a waiting offer.
 - `team_keep_off` is a team's private "not on my team" list ([ADR 0036](adr/0036-not-on-my-team-list.md)). It hangs off the lasting `team`, so it carries over from season to season; one row per person per team (unique `(team_id, user_id)` and `(team_id, email)`). A captain or admin adds an email address, and the list answers and shows it the same way whether or not the address has an account, so it never tells a captain who is a league member: an address with no account yet is kept with `user_id` null, and the account created for it later takes it on at sign-up. The team's own list shows each entry as the address typed, never a name; admins also see the account's name when there is one. A person on it sees the team's invite link as expired, is never suggested for the team by the matcher (an admin placing them anyway is warned and the override audited), and never hears of or sees the team's sub requests. Nothing else reads it. `league.export_keep_off_entries` (off by default, owners only) decides whether a person's own export lists the rows about them. The audit log records who added or removed whom, never the reason.
 - `team_formation_request` is a player's ask to start a team ([information architecture, 2.7](information-architecture.md#27-start-a-new-team-p2)). A person has at most one `pending` request per season. Approval creates the `team` and its `team_season` in `forming` status, priced as of the day they asked, and makes the requester its captain: their registration is reused (a free agent becomes a team member) or created, and any active spot on another team is ended, with `left_team_season_id` recording which captain was told. A requester who paid for their own spot keeps it as their share, so the team splits its fee; one whose spot was covered by their old captain's team fee owes again ([ADR 0013](adr/0013-new-team-approval-moves-the-player.md)). The request row is locked while an admin answers it, so two admins cannot both decide it.
+
+- `season_shirts` is a season's shirt order. A season without a row offers the default sizes and has no order yet; the row is made the first time an admin changes either. A player's size lives only on `profile.shirt_size`: every sign-up form (registering a team, joining as a free agent, joining by invite) asks for one from the season's `sizes` and saves it there, so the profile and the order never disagree. A size the season doesn't offer counts as no size. The order counts sign-ups that hold a spot (`pending_waiver`, `pending_payment`, `active`), never waitlisted, cancelled or refunded ones. Placing the order sets `placed_at` once and marks those players' `registration.shirt_status` `ordered`; later sign-ups stay `none`, so shirt tracking shows who joined after it. Receiving it marks every `ordered` shirt `received`. Once placed, the sizes are fixed. `expense_id` links the one "shirts" expense an owner adds to the books from the order; after that the cost changes only in the books. Paid replacement jerseys (`merch_order` for a `team_jersey` item, section 2.3) for the season's teams are listed with the order and its vendor CSV. The reminder to pick a size is a `shirt_size_reminder` message keyed `shirt-size/<registration id>`, so each sign-up is asked once ever.
 
 The age check, as built ([ADR 0041](adr/0041-age-check-at-registration.md), with the default from [ADR 0050](adr/0050-minimum-age-defaults-to-18.md)): `league.minimum_age` (18 to 99, 18 by default, the profile's floor) is the youngest a player may be; `season.minimum_age` overrides it for one season when set. Registering a team, joining as a free agent, joining by invite and signing the waiver each need the player to confirm they meet it, checked against the birth date already on their profile (which registration requires), so a player it shows as too young can't confirm their way in. The registration or signature stores `age_confirmed_min` and `age_confirmed_at`, set together (a check constraint); rows from before the check, and registrations an admin makes for someone (an approved new-team request), have neither, and the waiver still asks.
 
@@ -1867,6 +1882,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `league`, `season` | check `minimum_age` between 18 and 99 (the season's may be null) | A minimum age that makes sense |
 | `registration`, `waiver_signature` | check `age_confirmed_min` and `age_confirmed_at` are set together, the age between 18 and 99 | An age confirmation always says when |
 | `captain_handoff` | unique `(team_season_id)` where `status = 'pending'`; check `from_user_id <> to_user_id`; check `decided_at` set exactly when not pending | One waiting offer per team; nobody offers it to themselves |
+| `season_shirts` | primary key `season_id`; unique `expense_id`; check at least one size, `cost_cents` 1 to 10,000,000, `vendor` up to 80 characters, and `placed_at` and `received_at` set to match `status` | One order per season, booked at most once, never received before it is placed |
 | `team_keep_off` | unique `(team_id, user_id)` and `(team_id, email)`; check a person or an address is set; check reason length 1 to 300; cascades from `team` and `user` | One entry per person or address per team; a deleted row takes its reason with it |
 | `equipment_kit` | unique `(league_id, name)`; checks on the name (1 to 40), home (1 to 120) and contents (1 to 20 items) | Kits named once per league |
 | `equipment_assignment` | unique `(kit_id, game_id)`; cascades from `equipment_kit`, `game` and `user` | One person brings a kit to a game |
