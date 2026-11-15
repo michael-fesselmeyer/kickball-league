@@ -3,6 +3,7 @@ import {
   calledScore,
   checkHalf,
   type HalfInning,
+  lineFinal,
   lineScore,
   MAX_INNINGS,
   nextPollIn,
@@ -75,6 +76,17 @@ describe("lineScore", () => {
     const line = lineScore(all, "A");
     expect(line.completeInnings).toBe(MAX_INNINGS);
     expect(line.next).toBeNull();
+  });
+});
+
+describe("lineFinal", () => {
+  it("fills in every run, for the right team", () => {
+    // B kicks first, so the tops are B's: 1 + 3 = 4; A has 2 + 4 = 6.
+    expect(lineFinal(play(1, 2, 3, 4), "B")).toEqual({ scoreA: 6, scoreB: 4 });
+  });
+
+  it("fills in nothing before the first half", () => {
+    expect(lineFinal([], "A")).toBeNull();
   });
 });
 

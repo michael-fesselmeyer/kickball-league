@@ -12,9 +12,10 @@ import {
 } from "@/db/queries/scores";
 import { Pickups } from "@/components/pickups";
 import { pickupsFor } from "@/db/queries/subs";
-import { hasReferee } from "@/db/queries/live-scores";
+import { hasReferee, liveGame } from "@/db/queries/live-scores";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
+import { lineFinal } from "@/domain/scores/live";
 import { scoreVersion } from "@/domain/scores/offline";
 import { PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
@@ -81,12 +82,14 @@ async function Score({
   const found = gameId ? await gameForScoring(db, gameId) : null;
   if (!found) notFound();
   const now = new Date();
-  const [{ state, history }, refereed, league, discipline] = await Promise.all([
-    currentScoreState(db, found, now),
-    hasReferee(db, found.id),
-    currentLeague(db),
-    featureEnabled("discipline"),
-  ]);
+  const [{ state, history }, refereed, league, discipline, live] =
+    await Promise.all([
+      currentScoreState(db, found, now),
+      hasReferee(db, found.id),
+      currentLeague(db),
+      featureEnabled("discipline"),
+      liveGame(db, found.id),
+    ]);
   // An undisputed score past its 24 hours is settled on the way in. Settling
   // writes only a final score, so the game is read again only then.
   let g = found;
@@ -148,6 +151,10 @@ async function Score({
     version: scoreVersion(history.reports, history.responses),
     userId: subject.userId,
   };
+  // Innings kept live fill in the final score, so saving it takes one tap.
+  const filled = live?.kicksFirst
+    ? lineFinal(live.halves, live.kicksFirst)
+    : null;
   const pickups = can(subject, "sub_request.view_pickups", ctx)
     ? (await pickupsFor(db, [g.id])).get(g.id)
     : undefined;
@@ -299,14 +306,26 @@ async function Score({
       )}
 
       {mayScoreLive && state.state === "none" && (
-        <Link href={`/app/games/${g.id}/live`} className="btn btn-primary">
-          Score it inning by inning
-        </Link>
+        <section aria-labelledby="keep-live" className="flex flex-col gap-2">
+          <h2 id="keep-live" className="sr-only">
+            Live score
+          </h2>
+          <Link href={`/app/games/${g.id}/live`} className="btn btn-primary">
+            {filled ? "Back to the live score" : "Keep score live"}
+          </Link>
+          {!filled && (
+            <p className="text-small text-text-muted">
+              Optional. Tap +1 for each run and End half after each half, and
+              fans follow along on the game page. At the end, one tap reports
+              the final score, and the captains confirm it as usual.
+            </p>
+          )}
+        </section>
       )}
 
       {mayEnter &&
         (state.state === "none" ? (
-          <ScoreForm {...form} label="Save the score" />
+          <ScoreForm {...form} label="Save the score" filled={filled} />
         ) : state.state !== "final" || isAdmin ? (
           <details className="rounded-lg border border-border p-3">
             <summary>
