@@ -13,6 +13,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import type {
+  GameCardId,
   GameId,
   IncidentId,
   IncidentNoteId,
@@ -186,6 +187,49 @@ export const incidentNote = pgTable(
   ],
 );
 
+export const cardColor = pgEnum("card_color", ["yellow", "red"]);
+
+/**
+ * A yellow card (a warning) or a red card (asked to sit out the rest of the
+ * game) a ref gave a player, as a calm-down tool (docs/data-model.md,
+ * section 2.7). A card never leads to a suspension on its own: admins read
+ * cards in the player's conduct record and decide anything else by hand.
+ * An undo within a few minutes deletes the row. Never shown publicly.
+ */
+export const gameCard = pgTable(
+  "game_card",
+  {
+    id: uuid().primaryKey().defaultRandom().$type<GameCardId>(),
+    gameId: uuid()
+      .notNull()
+      .$type<GameId>()
+      .references(() => game.id, { onDelete: "cascade" }),
+    userId: uuid()
+      .notNull()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** The team the player played for, which matters for a co-rostered player. */
+    teamSeasonId: uuid()
+      .$type<TeamSeasonId>()
+      .references(() => teamSeason.id, { onDelete: "set null" }),
+    color: cardColor().notNull(),
+    note: text(),
+    givenBy: uuid()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "set null" }),
+    givenAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("game_card_game_idx").on(t.gameId, t.givenAt),
+    index("game_card_user_idx").on(t.userId, t.givenAt),
+    index("game_card_by_idx").on(t.givenBy),
+    check(
+      "game_card_note_length",
+      sql`${t.note} is null or char_length(${t.note}) between 1 and 200`,
+    ),
+  ],
+);
+
 export const suspensionScope = pgEnum("suspension_scope", [
   "games",
   "season",
@@ -295,4 +339,5 @@ export const injuryWitness = pgTable(
 
 export type SportsmanshipRating = typeof sportsmanshipRating.$inferSelect;
 export type Incident = typeof incident.$inferSelect;
+export type GameCard = typeof gameCard.$inferSelect;
 export type Suspension = typeof suspension.$inferSelect;

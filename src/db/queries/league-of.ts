@@ -20,6 +20,8 @@ export const LEAGUE_OF = {
     sql`select s.league_id from game g join season s on s.id = g.season_id where g.id = ${id}`,
   incident: (id) =>
     sql`select s.league_id from incident i join game g on g.id = i.game_id join season s on s.id = g.season_id where i.id = ${id}`,
+  game_card: (id) =>
+    sql`select s.league_id from game_card c join game g on g.id = c.game_id join season s on s.id = g.season_id where c.id = ${id}`,
   team_formation_request: (id) =>
     sql`select s.league_id from team_formation_request t join season s on s.id = t.season_id where t.id = ${id}`,
   signup_challenge: (id) =>
