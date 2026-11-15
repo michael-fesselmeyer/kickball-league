@@ -96,7 +96,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── seasons/[season]/team/requests  Captain: dates the team can't play and times it would rather have or avoid, until registration closes
 ├── seasons/[season]/new-team       Ask the league to start a new team; see the answer or withdraw while it waits
 ├── seasons/[season]/card           Your season in kickball: my end-of-season card, private until I make its link public; then the link, share buttons and "Make my card private"; "Copy for WhatsApp" either way. Linked from home
-├── seasons/[season]/register       Register a team or join as a free agent, confirming the season's minimum age ("I'm 21 or older"); a player the profile shows as too young sees why instead of the forms; when the season is full, the team waitlist: join, see your place, leave, or take a held spot
+├── seasons/[season]/register       Register a team or join as a free agent, confirming the season's minimum age ("I'm 18 or older" by default); a player the profile shows as too young sees why instead of the forms; when the season is full, the team waitlist: join, see your place, leave, or take a held spot
 ├── private-events/                 An organizer's requests for private leagues and tournaments, and the ones set up
 │   ├── new                         Request a booking: tournament or league, organization, teams, dates, note (signed in)
 │   ├── [season]                    Organizer page, for the organizer and admins: invite link, payment (the organization pays once, or players pay), teams, schedule, results; admins get links to the season's fields, schedule and bracket screens

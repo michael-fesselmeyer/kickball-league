@@ -166,7 +166,7 @@ Roles: **visitor** (signed out), **player** (Pat Player), **captain** (Casey Cap
 
 | ID | Area | Role | Steps | Expected |
 |---|---|---|---|---|
-| F-1 | Age check | new | Register with a birth date under the season's minimum | Friendly message instead of the form; "I'm 21 or older" confirmation otherwise |
+| F-1 | Age check | new | Register with a birth date under the season's minimum | Friendly message instead of the form; "I'm 18 or older" confirmation otherwise (or the season's minimum) |
 | F-2 | Captain handoff | captain, player | Offer captaincy to a teammate; they accept | Old captain becomes co-captain; both emailed; audited |
 | F-3 | Co-captains | captain | Make a teammate co-captain | Co-captain gets team tools but can't hand over |
 | F-4 | Not-on-my-team list | captain, admin | Add a member by email with a reason | Listed person's invite link looks expired; admin sees lists |
