@@ -29,13 +29,16 @@ import {
   rulingNeedsReason,
 } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
-import { teamRatingFor } from "@/db/queries/discipline";
+import { gameCards } from "@/db/queries/cards";
+import { gamePeople, teamRatingFor } from "@/db/queries/discipline";
+import { canGiveCard } from "@/domain/discipline/cards";
 import { canFileFor, canRate } from "@/domain/discipline/discipline";
 import { markOpen } from "@/domain/attendance/attendance";
 import { cardsVisible } from "@/domain/emergency/emergency";
 import { featureEnabled } from "@/lib/platform/site";
 import { respondAction } from "./actions";
 import { rateSportsmanshipAction } from "./rate";
+import { CardsSection } from "./cards-section";
 import { GameOutbox, ScoreForm } from "./score-form";
 import { SportsmanshipForm } from "./sportsmanship-form";
 import { PageLoading } from "@/components/page-loading";
@@ -72,6 +75,13 @@ const ERRORS: Record<string, string> = {
   bad_score: "Pick a rating from 1 to 5.",
   rating_note_too_long: "Keep the note under 200 characters.",
   not_final: "You can rate the other team once the score is final.",
+  bad_color: "Choose a yellow or a red card.",
+  unknown_person: "Pick a player from the two teams in this game.",
+  not_in_game: "That player isn't on either roster for this game.",
+  too_late: "It's too late to record a card for this game.",
+  note_too_long: "Keep the note under 200 characters.",
+  undo_too_late: "A card can only be taken back within a few minutes.",
+  undo_not_found: "That card is already gone.",
 };
 
 /** "Mon, Sep 14, 8:00 PM" in the league's time zone. */
@@ -219,6 +229,12 @@ async function Score({
   ]);
   const reports =
     discipline && canFileFor(g, now).ok && can(subject, "incident.log", ctx);
+  // Cards, a calm-down tool for the ref (and admins): never public.
+  const showsCards = discipline && can(subject, "card.give", ctx);
+  const [cardList, cardPeople] = showsCards
+    ? await Promise.all([gameCards(db, g.id), gamePeople(db, g)])
+    : [[], []];
+  const mayGiveCard = showsCards && canGiveCard(g, now).ok;
   // From game day, who played (ADR 0063).
   const takesAttendance =
     can(subject, "attendance.take", ctx) &&
@@ -280,6 +296,11 @@ async function Score({
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
           {error}
+        </p>
+      )}
+      {(query.carded || query.uncarded) && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          {query.carded ? "Card given." : "Card taken back."}
         </p>
       )}
       {(query.saved || query.confirmed || query.disputed) && (
@@ -460,6 +481,21 @@ async function Score({
         <Link href={`/app/games/${g.id}/emergency`} className="underline">
           Emergency contacts
         </Link>
+      )}
+      {showsCards && (
+        <CardsSection
+          gameId={g.id}
+          teams={[
+            { id: g.teamAId, name: g.teamAName },
+            { id: g.teamBId, name: g.teamBName },
+          ]}
+          people={cardPeople}
+          cards={cardList}
+          viewer={{ userId: subject.userId, isAdmin }}
+          now={now}
+          canGive={mayGiveCard}
+          timeZone={tz}
+        />
       )}
       {reports && (
         <Link href={`/app/games/${g.id}/incident`} className="underline">

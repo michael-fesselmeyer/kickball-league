@@ -6,6 +6,8 @@ import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import { awaySeasonsFor } from "@/db/queries/away";
 import { creditBalance, creditHistory } from "@/db/queries/credit";
+import { myCards } from "@/db/queries/cards";
+import { cardName } from "@/domain/discipline/cards";
 import { alertLimitsFor, emailSettingsOf } from "@/db/queries/notifications";
 import { DEFAULT_TIME_ZONE } from "@/db/queries/outbox";
 import { profileOf } from "@/db/queries/profile";
@@ -54,6 +56,7 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
     referrals,
     limits,
     away,
+    cards,
   ] = await Promise.all([
     profileOf(db, subject.userId),
     emailSettingsOf(db, subject.userId),
@@ -65,6 +68,7 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
     myReferrals(db, subject.userId),
     alertLimitsFor(db, subject.userId),
     awaySeasonsFor(db, subject.userId, new Date()),
+    myCards(db, subject.userId),
   ]);
   const emergency = await emergencyCardOf(
     db,
@@ -128,6 +132,31 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
           topics={push.topics}
           devices={push.devices}
         />
+      )}
+      {cards.length > 0 && (
+        <section aria-labelledby="your-cards" className="flex flex-col gap-2">
+          <h2 id="your-cards" className="text-h2">
+            Your cards
+          </h2>
+          <p className="text-small text-text-muted">
+            Yellow and red cards from refs are a calm-down tool, not a
+            punishment. Only you and the league&apos;s admins see them.
+          </p>
+          <ul className="flex flex-col text-small">
+            {cards.map((c, i) => (
+              <li key={i} className="border-t border-border py-1">
+                {cardName(c.color)} ·{" "}
+                {new Intl.DateTimeFormat("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  timeZone: league?.timeZone ?? DEFAULT_TIME_ZONE,
+                }).format(c.givenAt)}
+                {c.note ? ` · ${c.note}` : ""}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       <section aria-labelledby="signing-in" className="flex flex-col gap-3">
         <h2 id="signing-in" className="text-h2">
