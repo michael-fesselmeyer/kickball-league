@@ -58,6 +58,7 @@ export function ScoreForm({
   clientId,
   version,
   userId,
+  filled = null,
 }: {
   g: Game;
   label: string;
@@ -66,6 +67,8 @@ export function ScoreForm({
   /** The score's version as this screen shows it (`scoreVersion`). */
   version: string;
   userId: string;
+  /** The runs kept live, to start the form from; null when none were. */
+  filled?: { scoreA: number; scoreB: number } | null;
 }) {
   const [key, setKey] = useState(clientId);
   const [problem, setProblem] = useState<string | null>(null);
@@ -113,6 +116,11 @@ export function ScoreForm({
       action={submit}
       className="flex flex-col gap-4 rounded-lg border border-border p-4"
     >
+      {filled && (
+        <p className="text-small text-text-muted">
+          Filled in from the live score. Check it, then save.
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-3">
         {(
           [
@@ -129,6 +137,7 @@ export function ScoreForm({
               min={0}
               max={99}
               required
+              defaultValue={filled?.[name]}
               className={input}
             />
           </label>

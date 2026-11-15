@@ -106,6 +106,20 @@ export function lineScore(
   };
 }
 
+/**
+ * Every run the live innings hold, to fill in the final-score form; null
+ * before the first half. Only a suggestion: the form still files an
+ * ordinary report, which the captains confirm or dispute.
+ */
+export function lineFinal(
+  halves: readonly HalfInning[],
+  kicksFirst: Side,
+): { scoreA: number; scoreB: number } | null {
+  if (halves.length === 0) return null;
+  const { totalA, totalB } = lineScore(halves, kicksFirst);
+  return { scoreA: totalA, scoreB: totalB };
+}
+
 export type CalledScore = {
   scoreA: number;
   scoreB: number;
