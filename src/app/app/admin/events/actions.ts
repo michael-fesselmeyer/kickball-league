@@ -123,7 +123,7 @@ async function readForm(form: FormData, leagueId: LeagueId, timeZone: string) {
       return fail(EVENT_FORM_ERRORS.field);
     if (!cover.ok && cover.reason === "gap" && !parsed.value.openPlay) {
       // The league holds the permit but its document isn't uploaded yet:
-      // posted anyway only with a reason, kept in the audit log (ADR 0063).
+      // posted anyway only with a reason, kept in the audit log (ADR 0065).
       if (cover.gap.kind !== OVERRIDABLE)
         return fail(
           `${cover.sentence} Pick a time a permit covers, or mark it open play with no reserved field.`,

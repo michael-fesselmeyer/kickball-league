@@ -64,7 +64,7 @@ A schedule that breaks any of these is invalid. `generate` never returns one; `v
 | H9 | Locked games stay in their slots |
 | H10 | At least `reservePerDay` slots stay empty on each date, when the date has that many spare |
 | H11 | **Crossovers.** A round with a game between two divisions is a crossover round: every game in it is between divisions, and each team plays at most once. Crossovers happen only when `crossoverGames` asks for them and there are exactly two divisions. Each team of the smaller division (both, when they are the same size) plays exactly `crossoverGames` of them, and the larger division's counts differ by at most 1 |
-| H12 | **Inside a permit.** A game still to play sits on its field inside a permit window that has its document and was not marked lost, for its slot's whole time; windows that touch count as one. Judged with the permits as they are when a draft is saved and again when it is published (issue #407, [ADR 0063](adr/0063-publish-only-inside-a-documented-permit.md)). Games already played are not judged |
+| H12 | **Inside a permit.** A game still to play sits on its field inside a permit window that has its document and was not marked lost, for its slot's whole time; windows that touch count as one. Judged with the permits as they are when a draft is saved and again when it is published (issue #407, [ADR 0065](adr/0065-publish-only-inside-a-documented-permit.md)). Games already played are not judged |
 
 ### Soft constraints
 

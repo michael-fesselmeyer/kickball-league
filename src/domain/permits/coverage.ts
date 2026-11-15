@@ -123,7 +123,7 @@ export function gapSentence(
 }
 
 /**
- * The one gap an owner or admin may override (ADR 0063): the league holds
+ * The one gap an owner or admin may override (ADR 0065): the league holds
  * the permit, but its document isn't uploaded yet. A lost permit, no
  * permit, or hours that fall short are never overridden.
  */
