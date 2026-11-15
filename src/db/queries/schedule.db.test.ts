@@ -15,6 +15,7 @@ import { field, game, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
 import {
   gamePlacement,
+  permitWindow,
   scheduleVersion,
   teamConstraint,
 } from "../schema/schedule";
@@ -498,6 +499,89 @@ describe("saving and publishing versions", () => {
           ),
         ),
       ).toBeNull();
+    }));
+});
+
+describe("permits (H12, issue #407)", () => {
+  async function draftWithPermits(
+    db: Db,
+    set: Partial<typeof permitWindow.$inferInsert>,
+  ) {
+    const w = await world(db);
+    await db
+      .update(permitWindow)
+      .set(set)
+      .where(eq(permitWindow.seasonId, w.seasonId));
+    const loaded = await loadSchedulerInput(db, w.seasonId, options);
+    if (!loaded.ok) throw new Error(loaded.error);
+    const versionId = await saveVersion(db, {
+      seasonId: w.seasonId,
+      input: loaded.value,
+      schedule: generate(loaded.value),
+      origin: "generated",
+    });
+    return { w, versionId };
+  }
+
+  it("keeps the gaps on the draft and blocks publishing until documents are in or overridden", () =>
+    inRolledBackDb(async (db) => {
+      const { w, versionId } = await draftWithPermits(db, {
+        documentFileId: null,
+      });
+      const [saved] = await db
+        .select({ violations: scheduleVersion.violations })
+        .from(scheduleVersion)
+        .where(eq(scheduleVersion.id, versionId));
+      expect(saved?.violations.length).toBeGreaterThan(0);
+      for (const v of saved?.violations ?? [])
+        expect(v).toMatchObject({
+          rule: "H12",
+          message: expect.stringContaining("no document uploaded yet"),
+        });
+      expect(await publishVersion(db, versionId, w.adminId)).toEqual({
+        ok: false,
+        error: "missing_documents",
+      });
+
+      const reason = "Permit 1234 issued, PDF comes Monday";
+      const published = await publishVersion(
+        db,
+        versionId,
+        w.adminId,
+        new Date(),
+        reason,
+      );
+      expect(published.ok).toBe(true);
+      const [override] = await db
+        .select({ actorId: auditLog.actorId, after: auditLog.after })
+        .from(auditLog)
+        .where(eq(auditLog.action, "schedule.publish_override"));
+      expect(override?.actorId).toBe(w.adminId);
+      expect(override?.after).toMatchObject({ reason });
+    }));
+
+  it("never overrides a lost permit", () =>
+    inRolledBackDb(async (db) => {
+      const { w, versionId } = await draftWithPermits(db, { status: "lost" });
+      expect(
+        await publishVersion(
+          db,
+          versionId,
+          w.adminId,
+          new Date(),
+          "We still have it, honest",
+        ),
+      ).toEqual({ ok: false, error: "has_violations" });
+    }));
+
+  it("publishes once the documents are uploaded", () =>
+    inRolledBackDb(async (db) => {
+      const { w, versionId } = await draftWithPermits(db, {
+        documentFileId: null,
+      });
+      // Documented permits arrive after the draft was saved.
+      await permitEverySlot(db, w.seasonId);
+      expect((await publishVersion(db, versionId, w.adminId)).ok).toBe(true);
     }));
 });
 

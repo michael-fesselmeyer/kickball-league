@@ -55,6 +55,8 @@ const ACTIONS: Record<string, string> = {
   "equipment.unassign": "Took a kit of league gear off a game",
   "event.cancel": "Called off an event",
   "event.create": "Added an event",
+  "event.permit_override":
+    "Posted an event on a field before its permit document was uploaded",
   "private_event.request": "Asked for a private league or tournament",
   "private_event.accept": "Set up a private league or tournament",
   "private_event.decline": "Declined a private league or tournament",
@@ -182,6 +184,8 @@ const ACTIONS: Record<string, string> = {
   "roster.export": "Downloaded a roster",
   "rule_set.create": "Added a rule set",
   "schedule.publish": "Published the schedule",
+  "schedule.publish_override":
+    "Published the schedule before its permit documents were uploaded",
   "schedule.save_version": "Saved a schedule draft",
   "score.override": "Corrected a score",
   "season.assign_waiver": "Chose the season's waiver",

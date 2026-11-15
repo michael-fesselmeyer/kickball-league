@@ -1,3 +1,4 @@
+import { err, ok, type Result } from "@/domain/result";
 import { kickoff, shortDay } from "@/domain/schedule/format";
 
 /**
@@ -119,4 +120,37 @@ export function gapSentence(
     case "no_permit":
       return `No permit covers ${field} on ${shortDay(new Date(ms(item.startsAt)), timeZone)} from ${at(item.startsAt)} to ${at(item.endsAt)}.`;
   }
+}
+
+/**
+ * The one gap an owner or admin may override (ADR 0063): the league holds
+ * the permit, but its document isn't uploaded yet. A lost permit, no
+ * permit, or hours that fall short are never overridden.
+ */
+export const OVERRIDABLE: CoverageGap["kind"] = "no_document";
+
+/**
+ * The windows as they would count with every document in hand: what an
+ * override of missing documents is judged against. Lost windows still
+ * don't count.
+ */
+export function waiveDocuments(windows: readonly CoverWindow[]): CoverWindow[] {
+  return windows.map((w) => ({ ...w, hasDocument: true }));
+}
+
+export const OVERRIDE_REASON_MIN = 10;
+export const OVERRIDE_REASON_MAX = 300;
+
+/**
+ * The typed reason for publishing or posting before the permit's document
+ * is uploaded, kept in the audit log: "Permit 1234 issued, PDF coming
+ * Monday".
+ */
+export function parseOverrideReason(
+  raw: unknown,
+): Result<string, "reason_short" | "reason_long"> {
+  const reason = typeof raw === "string" ? raw.trim().replace(/\s+/g, " ") : "";
+  if (reason.length < OVERRIDE_REASON_MIN) return err("reason_short");
+  if (reason.length > OVERRIDE_REASON_MAX) return err("reason_long");
+  return ok(reason);
 }

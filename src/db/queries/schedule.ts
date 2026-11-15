@@ -22,7 +22,11 @@ import {
   type Weights,
 } from "@/domain/scheduler/types";
 import { type Violation, validate } from "@/domain/scheduler/validate";
-import { coverageGap, gapSentence } from "@/domain/permits/coverage";
+import {
+  coverageGap,
+  gapSentence,
+  waiveDocuments,
+} from "@/domain/permits/coverage";
 import type * as schema from "../schema";
 import { game, slot } from "../schema/game";
 import { league } from "../schema/league";
@@ -408,7 +412,12 @@ export async function loadVersion(
   };
 }
 
-export type PublishError = "unknown_version" | "not_draft" | "has_violations";
+export type PublishError =
+  | "unknown_version"
+  | "not_draft"
+  | "has_violations"
+  /** Only permit documents are missing: an owner or admin may override. */
+  | "missing_documents";
 
 /**
  * H12 for a stored version against today's permits: its regular games
@@ -420,10 +429,15 @@ async function permitGaps(
   versionId: ScheduleVersionId,
   seasonId: SeasonId,
   now: Date,
+  /** Count windows whose document isn't uploaded yet (an override). */
+  waived = false,
 ): Promise<Violation[]> {
   const stored = await loadVersion(db, versionId);
   if (!stored) return [];
-  const permits = await schedulerPermits(db, seasonId, now);
+  const found = await schedulerPermits(db, seasonId, now);
+  const permits = waived
+    ? { ...found, windows: waiveDocuments(found.windows) }
+    : found;
   const gaps = validate({ ...stored.input, permits }, stored.schedule).filter(
     (v) => v.rule === "H12",
   );
@@ -468,6 +482,11 @@ export async function publishVersion(
   /** Null when the league publishes on its own, as when a bracket advances. */
   publishedBy: UserId | null,
   now: Date = new Date(),
+  /**
+   * Publish although permit documents aren't uploaded yet (ADR 0063), for
+   * this typed reason, kept in the audit log. Every other gap still blocks.
+   */
+  overrideReason?: string,
 ): Promise<Result<Published, PublishError>> {
   return db.transaction(async (tx) => {
     const [version] = await tx
@@ -481,18 +500,30 @@ export async function publishVersion(
       .for("update");
     if (!version) return err("unknown_version");
     if (version.status !== "draft") return err("not_draft");
-    if ((version.violations as unknown[]).length > 0)
+    const stored = version.violations;
+    // Permit gaps (H12) are judged again below; any other rule blocks.
+    if (
+      stored.some((v) => v.rule !== "H12") ||
+      (publishedBy === null && stored.length > 0)
+    )
       return err("has_violations");
     // A permit lost or a document missing since the draft was saved still
     // blocks it: judged again now, and kept on the draft to explain why.
+    let overridden: Violation[] = [];
     if (publishedBy !== null) {
       const gaps = await permitGaps(tx, versionId, version.seasonId, now);
       if (gaps.length > 0) {
-        await tx
-          .update(scheduleVersion)
-          .set({ violations: gaps })
-          .where(eq(scheduleVersion.id, versionId));
-        return err("has_violations");
+        const onlyDocuments =
+          (await permitGaps(tx, versionId, version.seasonId, now, true))
+            .length === 0;
+        if (!onlyDocuments || overrideReason === undefined) {
+          await tx
+            .update(scheduleVersion)
+            .set({ violations: gaps })
+            .where(eq(scheduleVersion.id, versionId));
+          return err(onlyDocuments ? "missing_documents" : "has_violations");
+        }
+        overridden = gaps;
       }
     }
 
@@ -568,6 +599,17 @@ export async function publishVersion(
         rainoutNotices: notified,
       },
     });
+    if (overridden.length > 0)
+      await recordAudit(tx, {
+        actorId: publishedBy,
+        action: "schedule.publish_override",
+        entityType: "schedule_version",
+        entityId: versionId,
+        after: {
+          reason: overrideReason,
+          gaps: overridden.map((g) => g.message),
+        },
+      });
     return ok({ ...diff, notified });
   });
 }

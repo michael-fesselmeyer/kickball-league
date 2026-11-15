@@ -11,6 +11,7 @@ import {
 } from "@/db/queries/schedule";
 import { seasonBySlug, versionsOf } from "@/db/queries/schedule-screen";
 import { parseId, type ScheduleVersionId } from "@/domain/ids";
+import { parseOverrideReason } from "@/domain/permits/coverage";
 import { applyEdit } from "@/domain/scheduler/edits";
 import { generate } from "@/domain/scheduler/generate";
 import { requirePermissionToChange } from "@/lib/auth/permission";
@@ -80,6 +81,41 @@ export async function publishDraft(
   const { moved, added, removed, teams, notified } = result.value;
   if (notified > 0) sendQueuedSoon();
   // The public schedule, standings and team pages show it right away.
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
+  if (season) refreshSeasonPages(season.id);
+  redirect(
+    `${page}?published=1&moved=${moved.length}&added=${added.length}&removed=${removed.length}&teams=${teams.length}&notified=${notified}`,
+  );
+}
+
+/**
+ * Publishes a draft whose only gaps are permit documents not uploaded yet,
+ * with the admin's reason in the audit log (ADR 0063). A lost permit, no
+ * permit, or hours that fall short still block it.
+ */
+export async function publishWithoutDocuments(
+  slug: string,
+  rawVersionId: string,
+  form: FormData,
+): Promise<void> {
+  const versionId = parseId<ScheduleVersionId>(rawVersionId);
+  if (!versionId) notFound();
+  const page = pageFor(slug);
+  const subject = await requirePermissionToChange("schedule.manage", {
+    next: page,
+  });
+  const reason = parseOverrideReason(form.get("reason"));
+  if (!reason.ok) redirect(`${page}?error=${reason.error}`);
+  const result = await publishVersion(
+    txDb,
+    versionId,
+    subject.userId,
+    new Date(),
+    reason.value,
+  );
+  if (!result.ok) redirect(`${page}?error=${result.error}`);
+  const { moved, added, removed, teams, notified } = result.value;
+  if (notified > 0) sendQueuedSoon();
   const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (season) refreshSeasonPages(season.id);
   redirect(
