@@ -21,6 +21,7 @@ import {
   type ShirtSize,
   sizeLabel,
 } from "@/domain/shirts/summary";
+import { SubmitButton } from "@/components/submit-button";
 import { requirePermission } from "@/lib/auth/permission";
 import {
   addToBooksAction,
@@ -287,18 +288,18 @@ async function ShirtOrder({
                 className={`${control} w-56`}
               />
             </div>
-            <button type="submit" className="btn btn-primary">
+            <SubmitButton className="btn btn-primary">
               {settings.status === "not_placed"
                 ? "Mark the order placed"
                 : "Save the cost and vendor"}
-            </button>
+            </SubmitButton>
           </form>
         )}
         {settings.status === "placed" && (
           <form action={receiveOrderAction.bind(null, slug)}>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Mark the order received
-            </button>
+            </SubmitButton>
           </form>
         )}
         {settings.status !== "not_placed" &&
@@ -307,9 +308,9 @@ async function ShirtOrder({
             <p className="text-text-muted">In the books as a shirts expense.</p>
           ) : booksAllowed ? (
             <form action={addToBooksAction.bind(null, slug)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 Add {formatCents(settings.costCents)} to the books
-              </button>
+              </SubmitButton>
             </form>
           ) : (
             <p className="text-text-muted">
@@ -330,9 +331,9 @@ async function ShirtOrder({
             />
             Include names for team packing
           </label>
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             Download for the vendor (CSV)
-          </button>
+          </SubmitButton>
         </form>
         <p className="text-small text-text-muted">
           Sizes and counts by team and color. Names are left out unless you tick
@@ -433,9 +434,9 @@ async function ShirtOrder({
               ))}
             </ul>
             <form action={remindSizesAction.bind(null, slug)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 Remind them to pick a size
-              </button>
+              </SubmitButton>
             </form>
             <p className="text-small text-text-muted">
               One email each, never more. {reminded} reminded so far.
@@ -479,9 +480,9 @@ async function ShirtOrder({
           </fieldset>
           {settings.status === "not_placed" ? (
             <>
-              <button type="submit" className="btn self-start btn-secondary">
+              <SubmitButton className="btn self-start btn-secondary">
                 Save sizes
-              </button>
+              </SubmitButton>
               <p className="text-small text-text-muted">
                 Sign-up forms offer only these. A player whose size isn&apos;t
                 offered is listed above as without one.
