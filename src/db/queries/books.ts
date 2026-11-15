@@ -36,6 +36,8 @@ import type {
 } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { feesDueOn } from "@/domain/permits/fees";
+import { localDate } from "@/domain/books/ledger-csv";
+import { nextYear, periodOf } from "@/domain/permits/calendar";
 import type { BooksReminderPayload } from "@/emails/books-reminder";
 import type { PreparedFile } from "@/lib/books/store-file";
 import {
@@ -824,13 +826,14 @@ async function ownerIds(db: Db): Promise<UserId[]> {
  * The permit and insurance dates still to come: each permit's application
  * opening and renewal (once per permit, not per window), each season's
  * permit fees, and the newest insurance certificate's expiry. Seasons that
- * are over are left out.
+ * are over are left out, except that every season's permits renew into NYC
+ * Parks' next renewal period for the same play period.
  */
 export async function booksDeadlines(
   db: Db,
   leagueId: LeagueId,
 ): Promise<Deadline[]> {
-  const [windows, certificates, owing] = await Promise.all([
+  const [windows, certificates, owing, held] = await Promise.all([
     db
       .select({
         permitNumber: permitWindow.permitNumber,
@@ -871,6 +874,22 @@ export async function booksDeadlines(
           ne(permitWindow.status, "lost"),
         ),
       ),
+    // Every season's first held date, finished seasons too: their permits
+    // renew into the same NYC Parks period a year on.
+    db
+      .select({
+        id: season.id,
+        name: season.name,
+        first: sql<Date>`min(${permitWindow.startsAt})`,
+        timeZone: league.timezone,
+      })
+      .from(season)
+      .innerJoin(league, eq(league.id, season.leagueId))
+      .innerJoin(permitWindow, eq(permitWindow.seasonId, season.id))
+      .where(
+        and(eq(season.leagueId, leagueId), ne(permitWindow.status, "lost")),
+      )
+      .groupBy(season.id, season.name, league.timezone),
   ]);
   const deadlines = new Map<string, Deadline>();
   for (const s of owing)
@@ -880,6 +899,15 @@ export async function booksDeadlines(
       on: feesDueOn(s.startsOn),
       subject: `the ${s.name} permit fees`,
     });
+  for (const s of held) {
+    const target = nextYear(periodOf(localDate(new Date(s.first), s.timeZone)));
+    deadlines.set(`n/${s.id}`, {
+      kind: "renewal_opens",
+      key: s.id,
+      on: target.renewals.from,
+      subject: `${s.name}'s permits`,
+    });
+  }
   for (const w of windows) {
     const key = groupKey(w);
     const about = w.permitNumber
