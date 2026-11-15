@@ -26,6 +26,7 @@ const row = (over: Partial<CommandRow> = {}): CommandRow => ({
   referee: { name: "Jamie Example", checkedInAt: null },
   report: null,
   halves: [],
+  permit: null,
   ...over,
 });
 
@@ -141,6 +142,7 @@ describe("commandState", () => {
       refsAssigned: 2,
       live: 1,
       missing: 0,
+      pastPermit: 0,
     });
     // Plain data: it survives JSON unchanged.
     expect(JSON.parse(JSON.stringify(state))).toEqual(state);
@@ -159,5 +161,61 @@ describe("commandState", () => {
       minutes(200),
     );
     expect(state.games[0]?.inning).toBe("Bottom 11th");
+  });
+
+  describe("permit end", () => {
+    const permit = (endsAt: Date) => ({
+      permitEndsAt: endsAt,
+      timeLimitMinutes: 75,
+      innings: 7,
+      rule: "call_at_last_complete" as const,
+    });
+    const live = (over: Partial<CommandRow> = {}) =>
+      row({
+        status: "in_progress",
+        halves: [{ inning: 1, half: "top", runs: 1 }],
+        ...over,
+      });
+
+    it("shows the minutes left for a game being played", () => {
+      const state = commandState(
+        [live({ permit: permit(minutes(90)) })],
+        "2026-11-14",
+        minutes(30),
+      );
+      expect(state.games[0]?.permit).toMatchObject({
+        level: "ok",
+        minutesLeft: 60,
+      });
+      expect(state.counts.pastPermit).toBe(0);
+    });
+
+    it("lists a game still in progress after its permit ended", () => {
+      const state = commandState(
+        [live({ permit: permit(minutes(60)) }), live({ id: "g2" })],
+        "2026-11-14",
+        minutes(75),
+      );
+      expect(state.games[0]?.permit?.level).toBe("over");
+      expect(state.games[0]?.permit?.message).toContain("15 minutes ago");
+      // A game with no permit window saved says nothing.
+      expect(state.games[1]?.permit).toBeNull();
+      expect(state.counts.pastPermit).toBe(1);
+    });
+
+    it("says nothing about a game not started, final or called off", () => {
+      const p = permit(minutes(60));
+      const state = commandState(
+        [
+          row({ permit: p }),
+          row({ id: "f", status: "final", scoreA: 3, scoreB: 2, permit: p }),
+          row({ id: "c", status: "cancelled", permit: p }),
+        ],
+        "2026-11-14",
+        minutes(75),
+      );
+      expect(state.games.map((g) => g.permit)).toEqual([null, null, null]);
+      expect(state.counts.pastPermit).toBe(0);
+    });
   });
 });
