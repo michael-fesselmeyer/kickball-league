@@ -136,6 +136,11 @@ function reporterName(
   g: Pick<ScoringGame, "teamAId" | "teamAName" | "teamBName">,
   report: Pick<ReportForMessages, "role" | "teamSeasonId">,
 ): string {
+  // A ref who plays for one of the teams reports for it (#296).
+  if (report.role === "referee" && report.teamSeasonId !== null)
+    return report.teamSeasonId === g.teamAId
+      ? `The ref, who plays for ${g.teamAName}`
+      : `The ref, who plays for ${g.teamBName}`;
   if (report.role === "referee") return "The ref";
   if (report.role === "admin") return "An admin";
   return report.teamSeasonId === g.teamAId ? g.teamAName : g.teamBName;

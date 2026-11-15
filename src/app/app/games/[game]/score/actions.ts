@@ -17,7 +17,12 @@ import {
   type ScoreReportId,
   type TeamSeasonId,
 } from "@/domain/ids";
-import { OUTCOMES, PLAYOFF_TIE, respondingTeams } from "@/domain/scores/scores";
+import {
+  OUTCOMES,
+  PLAYOFF_TIE,
+  reportingTeam,
+  respondingTeams,
+} from "@/domain/scores/scores";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { gameTag, refreshSeasonPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
@@ -88,7 +93,8 @@ export async function submitScoreAction(
       gameId: g.id,
       userId: subject.userId,
       role,
-      teamSeasonId: role === "captain" ? team : null,
+      // A ref who plays for one of the teams reports for it (#296).
+      teamSeasonId: reportingTeam(role, subject.roster, [g.teamAId, g.teamBId]),
       score: {
         outcome,
         scoreA: number(form, "scoreA"),

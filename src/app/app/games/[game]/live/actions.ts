@@ -14,7 +14,7 @@ import { can } from "@/domain/authz/permissions";
 import { isOneOf } from "@/domain/guards";
 import { type GameId, parseId } from "@/domain/ids";
 import { HALVES } from "@/domain/scores/live";
-import { PLAYOFF_TIE } from "@/domain/scores/scores";
+import { PLAYOFF_TIE, reportingTeam } from "@/domain/scores/scores";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";
 import { refreshGamePage, refreshSeasonPages } from "@/lib/public-cache";
@@ -116,13 +116,6 @@ export async function endGameAction(
   const ending = form.get("ending");
   if (ending !== "normal" && ending !== "called")
     redirect(`${page}?error=invalid`);
-  const team = [g.teamAId, g.teamBId].find((t) =>
-    subject.roster.some(
-      (m) =>
-        m.teamSeasonId === t &&
-        (m.role === "captain" || m.role === "co_captain"),
-    ),
-  );
   const role = can(subject, "score.override")
     ? "admin"
     : subject.refereeGameIds.includes(g.id)
@@ -133,7 +126,7 @@ export async function endGameAction(
       gameId: g.id,
       userId: subject.userId,
       role,
-      teamSeasonId: role === "captain" ? (team ?? null) : null,
+      teamSeasonId: reportingTeam(role, subject.roster, [g.teamAId, g.teamBId]),
       ending,
       clientId: clientId.slice(0, 64),
       now: new Date(),
