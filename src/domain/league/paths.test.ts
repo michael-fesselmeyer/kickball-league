@@ -41,6 +41,11 @@ describe("leagueRoute", () => {
       path: `/l/${DEFAULT_LEAGUE_SEGMENT}/seasons/fall-2026/standings`,
     });
     expect(leagueRoute("/events/calendar.ics")?.kind).toBe("rewrite");
+    // Each league has its own rules page (ADR 0062).
+    expect(leagueRoute("/rules")).toEqual({
+      kind: "rewrite",
+      path: `/l/${DEFAULT_LEAGUE_SEGMENT}/rules`,
+    });
   });
 
   it("sends a typed /l/_default address back to the real one", () => {

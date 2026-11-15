@@ -249,14 +249,16 @@ export function refreshFriendPages(league: LeagueRef): void {
   }
 }
 
-/** The league's rules page and its change log (ADR 0056). */
+/** Every league's rules page and its change log (ADR 0062). */
 export const RULES_TAG = "rules";
 
 /**
- * From a Server Action: an admin published a change to the rules, so the
- * rules page, which is static HTML, shows it on its next request.
+ * From a Server Action: an admin published a change to a league's rules.
+ * The league's page shows it at once, and every league's page on its next
+ * visit, as the friends pages do (ADR 0048).
  */
-export function refreshRulesPage(): void {
+export function refreshRulesPage(league: LeagueRef): void {
   updateTag(RULES_TAG);
-  revalidatePath("/rules", "page");
+  revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/rules`);
+  revalidatePath("/l/[league]/rules", "page");
 }
