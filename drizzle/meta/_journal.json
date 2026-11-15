@@ -519,6 +519,13 @@
       "when": 1794766604014,
       "tag": "0073_injury_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1794773118861,
+      "tag": "0074_game_day_checklist",
+      "breakpoints": true
     }
   ]
 }
