@@ -60,7 +60,12 @@ import { addSeedStatAwards } from "../src/seed/stat-awards";
 import { addSeedRules } from "../src/seed/rules";
 import { seedPublishedSchedule } from "../src/seed/published-schedule";
 import { insertSeedProfiles } from "../src/seed/roles";
-import { addSecondLeague, removeSecondLeague } from "../src/seed/second-league";
+import { removeSeedPrivateEvents } from "../src/seed/private-events";
+import {
+  SECOND_LEAGUE_SLUG,
+  addSecondLeague,
+  removeSecondLeague,
+} from "../src/seed/second-league";
 
 if (!process.env.DATABASE_URL && existsSync(".env.local"))
   process.loadEnvFile(".env.local");
@@ -138,6 +143,19 @@ async function main(): Promise<void> {
           .delete(waiverSignature)
           .where(inArray(waiverSignature.userId, seedUsers));
       }
+      // Private events restrict deleting their league, season and organizer.
+      const demoLeagueIds = (
+        await tx
+          .select({ id: league.id })
+          .from(league)
+          .where(
+            inArray(league.slug, [SEED_LEAGUE_SLUG, SECOND_LEAGUE_SLUG]),
+          )
+      ).map((r) => r.id);
+      await removeSeedPrivateEvents(tx, {
+        leagueIds: demoLeagueIds,
+        userIds: seedUsers,
+      });
       // The second league first: the demo player plays in it too.
       await removeSecondLeague(tx);
       // Remove the previous demo league, children first.
