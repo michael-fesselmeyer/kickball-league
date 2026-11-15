@@ -252,7 +252,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 |---|---|---|
 | `announcement` | non-urgent | Announcements from admins and captains |
 | `away_short` | non-urgent | For captains: a week your team may be short because players will be away |
-| `books_reminder` | non-urgent | For owners: a permit application window, renewal or insurance expiry coming up |
+| `books_reminder` | non-urgent | For owners: a permit application window, renewal, fees due date or insurance expiry coming up |
 | `captain_handoff` | urgent | Your team's captaincy offered to you, waiting for your answer |
 | `email_budget` | urgent | For admins: urgent email waiting for tomorrow's email allowance |
 | `event_news` | non-urgent | Event announcements, and changes or cancellations more than a day ahead |
@@ -268,6 +268,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `merch_update` | non-urgent | Your league shop order is ready, or was refunded |
 | `new_team` | non-urgent | Answers to new-team requests |
 | `payment_reminder` | urgent | Payment deadline reminders |
+| `permit_alert` | non-urgent | For owners: a season near NYC Parks' 50-hour insurance line, or permitted field time to give back |
 | `photo_review` | non-urgent | Whether the league used a photo you uploaded |
 | `rain_alert` | urgent | Rain alerts for admins the day before games |
 | `rainout_notice` | urgent | Rain-outs and makeup times |

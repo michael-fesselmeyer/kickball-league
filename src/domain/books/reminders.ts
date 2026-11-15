@@ -1,7 +1,7 @@
 /**
  * When the owners are reminded about permits and insurance (ADR 0034):
  * 30 days and 7 days before an application window opens, a permit renews,
- * or the insurance certificate expires. NYC Parks takes applications months
+ * the insurance certificate expires, or a season's permit fees are due. NYC Parks takes applications months
  * ahead, so a month's notice leaves time to gather what it asks for, and a
  * week's notice is the last call.
  *
@@ -13,7 +13,11 @@
 export const LEAD_DAYS = [30, 7] as const;
 
 export type DeadlineKind =
-  "application_opens" | "permit_renews" | "insurance_expires";
+  | "application_opens"
+  | "permit_renews"
+  | "insurance_expires"
+  /** A season's NYC Parks fees, due 14 days before it starts (ADR 0051). */
+  | "fees_due";
 
 export type Deadline = {
   kind: DeadlineKind;

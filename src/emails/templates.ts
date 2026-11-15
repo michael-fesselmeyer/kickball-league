@@ -30,6 +30,7 @@ import {
   waitlistOfferEmail,
 } from "./money";
 import { paymentReminderEmail } from "./payment-reminder";
+import { permitAlertEmail } from "./permit-alert";
 import { photoReviewEmail } from "./photo-review";
 import { rainAlertEmail } from "./rain-alert";
 import { rainoutNoticeEmail } from "./rainout-notice";
@@ -70,6 +71,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     merch_update: merchEmail,
     new_team: newTeamEmail,
     payment_reminder: paymentReminderEmail,
+    permit_alert: permitAlertEmail,
     photo_review: photoReviewEmail,
     rain_alert: rainAlertEmail,
     rainout_notice: rainoutNoticeEmail,

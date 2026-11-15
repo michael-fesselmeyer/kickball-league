@@ -4,12 +4,18 @@ import { renderEmail } from "./layout";
 
 /**
  * Reminds an owner that a permit application window opens, a permit
- * renews or the insurance certificate expires soon (ADR 0034). NYC Parks
+ * renews, the insurance certificate expires or a season's permit fees are
+ * due soon (ADR 0034, ADR 0051). NYC Parks
  * has no public permit API, so the email points to the owners' permit
  * screen and the application is made by hand.
  */
 export const booksReminderPayload = z.object({
-  kind: z.enum(["application_opens", "permit_renews", "insurance_expires"]),
+  kind: z.enum([
+    "application_opens",
+    "permit_renews",
+    "insurance_expires",
+    "fees_due",
+  ]),
   /** Such as "permit PK-1001" or "the insurance certificate from Example Mutual". */
   subject: z.string().min(1),
   /** YYYY-MM-DD. */
@@ -41,6 +47,11 @@ const WORDS = {
     subject: (s: string, d: string) => `${capitalize(s)} renews ${d}`,
     advice:
       "Renew it with NYC Parks, then update its dates and document on the permits screen.",
+  },
+  fees_due: {
+    subject: (s: string, d: string) => `${capitalize(s)} are due ${d}`,
+    advice:
+      "NYC Parks wants permit fees 14 days before the season starts. The permits screen shows what each permit should cost; once paid, enter the real cost there so the books match.",
   },
   insurance_expires: {
     subject: (s: string, d: string) => `${capitalize(s)} expires ${d}`,
