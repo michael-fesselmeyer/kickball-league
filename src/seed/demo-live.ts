@@ -10,6 +10,7 @@ import {
 import type { Db } from "@/db/queries/schedule";
 import { queueScoreReminders } from "@/db/queries/score-reminders";
 import { game, gamePeriod, slot } from "@/db/schema/game";
+import { league } from "@/db/schema/league";
 import { season } from "@/db/schema/season";
 import type { GameId } from "@/domain/ids";
 import { fixtureForecast } from "@/services/weather-fixture";
@@ -135,9 +136,21 @@ async function startLiveRound(db: Db, now: Date): Promise<GameId | null> {
   const first = round[0];
   if (!first) return null;
 
-  // Whole minutes, five at a time, so the times read like a schedule.
-  const target =
-    Math.floor((now.getTime() - STARTED_AGO) / (5 * MINUTE)) * 5 * MINUTE;
+  // Whole minutes, five at a time, so the times read like a schedule, and
+  // never before midnight in the league's time zone: just after midnight
+  // the games start at midnight, so they are still today's.
+  const [day] = await db
+    .select({
+      midnight: sql<string>`(date_trunc('day', ${now.toISOString()}::timestamptz at time zone ${league.timezone}) at time zone ${league.timezone})`,
+    })
+    .from(season)
+    .innerJoin(league, eq(season.leagueId, league.id))
+    .where(eq(season.id, next.seasonId));
+  const midnight = day ? new Date(day.midnight).getTime() : 0;
+  const target = Math.max(
+    midnight,
+    Math.floor((now.getTime() - STARTED_AGO) / (5 * MINUTE)) * 5 * MINUTE,
+  );
   const shift = `${target - first.startsAt.getTime()} milliseconds`;
   await db
     .update(slot)

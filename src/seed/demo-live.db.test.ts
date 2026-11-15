@@ -212,6 +212,19 @@ describe("liveDemo", () => {
         );
     }));
 
+  it("keeps tonight's games on today just after midnight", () =>
+    inRolledBackDb(async (db) => {
+      const w = await nightWorld(db);
+      // 12:10 am in New York: 40 minutes ago was yesterday.
+      await liveDemo(db, new Date("2027-05-11T04:10:00Z"));
+      expect(await startOf(db, w.nextFirst.slotId)).toEqual(
+        new Date("2027-05-11T04:00:00Z"),
+      );
+      expect(await startOf(db, w.nextSecond.slotId)).toEqual(
+        new Date("2027-05-11T05:00:00Z"),
+      );
+    }));
+
   it("leaves a game night already under way as it is", () =>
     inRolledBackDb(async (db) => {
       const w = await nightWorld(db);
