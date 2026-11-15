@@ -5,8 +5,9 @@ import { pageAs } from "../support/personas";
 
 /**
  * Assigning a ref who plays in the game (issue #296), at phone width: the
- * admin is warned first and assigns Casey Captain, who plays for Kickin'
- * Chicken, to a Kickin' Chicken game only by ticking the override.
+ * admin is warned first and assigns Casey Captain, who plays for The Big
+ * Kicks, to a Big Kicks game only by ticking the override, then takes the
+ * ref off again so Casey is not a ref for the other flows.
  */
 test.use({ viewport: { width: 390, height: 844 } });
 
@@ -14,7 +15,7 @@ let today: Awaited<ReturnType<typeof addGameToday>>;
 
 test.describe.serial("a ref on one of the teams", () => {
   test.beforeAll(async () => {
-    today = await addGameToday("Kickin' Chicken", "Red Rubber Ballers");
+    today = await addGameToday("The Big Kicks", "Red Rubber Ballers");
   });
   test.afterAll(async () => {
     await today.remove();
@@ -47,6 +48,11 @@ test.describe.serial("a ref on one of the teams", () => {
     await expect(admin.locator(`#game-${today.gameId}`)).toContainText(
       "Casey Captain",
     );
+    await admin
+      .locator(`#game-${today.gameId}`)
+      .getByRole("button", { name: /^Remove the referee from/ })
+      .click();
+    await expect(admin.getByRole("status")).toContainText("Referee removed");
     await admin.context().close();
   });
 });

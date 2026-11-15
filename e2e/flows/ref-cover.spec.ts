@@ -75,11 +75,11 @@ test.describe.serial("covering a game with no ref", () => {
   });
 
   test("only refs can open a take page", async ({ browser }) => {
-    const captain = await pageAs(browser, "Captain");
-    await captain.goto(`/app/referee/take/${soon.gameId}`);
+    const player = await pageAs(browser, "Player");
+    await player.goto(`/app/referee/take/${soon.gameId}`);
     await expect(
-      captain.getByRole("heading", { name: "We can't find that page" }),
+      player.getByRole("heading", { name: "We can't find that page" }),
     ).toBeVisible();
-    await captain.context().close();
+    await player.context().close();
   });
 });
