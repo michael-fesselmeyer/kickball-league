@@ -3,8 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
+import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
-import { currentRules, rulebookVisibility, rulesVersion } from "@/db/queries/rules";
+import {
+  currentRules,
+  rulebookVisibility,
+  rulesVersion,
+} from "@/db/queries/rules";
 import { leagueHref } from "@/domain/league/paths";
 import {
   RULEBOOK_VISIBILITIES,
@@ -29,7 +34,9 @@ export default function RulebookAdminPage(
   );
 }
 
-async function Rulebook({ searchParams }: PageProps<"/app/admin/rules/rulebook">) {
+async function Rulebook({
+  searchParams,
+}: PageProps<"/app/admin/rules/rulebook">) {
   const query = await searchParams;
   await requirePermission("rulebook.manage", {
     next: "/app/admin/rules/rulebook",
@@ -49,9 +56,9 @@ async function Rulebook({ searchParams }: PageProps<"/app/admin/rules/rulebook">
         </Link>
         <h1 className="text-h1">Rulebook</h1>
         <p className="text-text-muted">
-          Import the league&apos;s rulebook as numbered sections and rules,
-          then choose who can read and search it. The text is kept in the app,
-          and every import is saved as a dated change.
+          Import the league&apos;s rulebook as numbered sections and rules, then
+          choose who can read and search it. The text is kept in the app, and
+          every import is saved as a dated change.
         </p>
       </header>
       {query.saved === "visibility" && (
@@ -70,30 +77,33 @@ async function Rulebook({ searchParams }: PageProps<"/app/admin/rules/rulebook">
         <fieldset className="flex flex-col gap-1">
           <legend className="text-h2">Who can read it</legend>
           {RULEBOOK_VISIBILITIES.map((v) => (
-            <label key={v} className="flex min-h-11 items-start gap-3 py-1">
+            <div key={v} className="flex min-h-11 items-start gap-3 py-1">
               <input
+                id={`visibility-${v}`}
                 type="radio"
                 name="visibility"
                 value={v}
                 defaultChecked={visibility === v}
+                aria-describedby={`visibility-${v}-help`}
                 className="mt-1.5"
               />
-              <span>
-                <span className="font-bold">{VISIBILITY_LABELS[v].label}</span>
-                <br />
-                <span className="text-small text-text-muted">
+              <div>
+                <label htmlFor={`visibility-${v}`} className="font-bold">
+                  {VISIBILITY_LABELS[v].label}
+                </label>
+                <p
+                  id={`visibility-${v}-help`}
+                  className="text-small text-text-muted"
+                >
                   {VISIBILITY_LABELS[v].help}
-                </span>
-              </span>
-            </label>
+                </p>
+              </div>
+            </div>
           ))}
         </fieldset>
-        <button
-          type="submit"
-          className="min-h-11 self-start rounded-input bg-brand px-4 font-bold text-on-brand"
-        >
+        <SubmitButton className="min-h-11 self-start rounded-input bg-brand px-4 font-bold text-on-brand">
           Save who can read it
-        </button>
+        </SubmitButton>
         <p className="text-small text-text-muted">
           Preview it in the app at{" "}
           <Link href="/app/rules" className="underline">

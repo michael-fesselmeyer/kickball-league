@@ -122,9 +122,8 @@ export function RulebookImport({
               <legend className="px-1 font-bold">
                 Section {i + 1} ·{" "}
                 {
-                  numberedBlocksOf("x", s.body).filter(
-                    (b) => b.kind === "rule",
-                  ).length
+                  numberedBlocksOf("x", s.body).filter((b) => b.kind === "rule")
+                    .length
                 }{" "}
                 numbered rules
               </legend>
@@ -159,7 +158,9 @@ export function RulebookImport({
         What changed, in one line
         <input
           name="summary"
-          defaultValue={hasRules ? "Replaced the rulebook" : "Added the rulebook"}
+          defaultValue={
+            hasRules ? "Replaced the rulebook" : "Added the rulebook"
+          }
           maxLength={SUMMARY_MAX}
           className={control}
         />
