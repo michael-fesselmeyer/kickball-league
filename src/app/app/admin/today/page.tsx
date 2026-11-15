@@ -7,8 +7,10 @@ import {
   RainDecisionCard,
   RainDecisionCardLoading,
 } from "@/components/rain-decision-card";
+import { db } from "@/db/client";
 import type { CommandDayRow } from "@/db/queries/command-center";
 import type { ParkGames } from "@/db/queries/rainout-decision";
+import { gamesNeedingRef } from "@/db/queries/referee-cover";
 import { gameForecast, rainRisk } from "@/domain/weather/forecast";
 import { requirePermission } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
@@ -45,9 +47,12 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
   const query = await searchParams;
   const league = await activeLeague();
   const now = new Date();
-  const found = league
-    ? await loadCommand(league.id, now, parseDay(query.date))
-    : null;
+  const [found, needRef] = league
+    ? await Promise.all([
+        loadCommand(league.id, now, parseDay(query.date)),
+        gamesNeedingRef(db, { leagueId: league.id, now }),
+      ])
+    : [null, []];
   if (!league || !found)
     return (
       <>
@@ -121,6 +126,52 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
           </Link>
         </nav>
       </header>
+      {needRef.length > 0 && (
+        <section
+          aria-labelledby="need-ref"
+          className="flex flex-col gap-2 rounded-lg border border-danger p-3"
+        >
+          <h2 id="need-ref" className="text-h3">
+            No ref yet, starting within a day
+          </h2>
+          <ul className="flex flex-col">
+            {needRef.map((g) => (
+              <li
+                key={g.gameId}
+                className="flex flex-wrap items-baseline justify-between gap-2 py-1"
+              >
+                <span>
+                  {g.teamAName} vs {g.teamBName}
+                  <span className="block text-small text-text-muted">
+                    {new Intl.DateTimeFormat("en-US", {
+                      weekday: "short",
+                      hour: "numeric",
+                      minute: "2-digit",
+                      timeZone: league.timeZone,
+                    }).format(g.startsAt)}{" "}
+                    · {g.fieldName}
+                  </span>
+                </span>
+                <Link
+                  href={`/app/admin/seasons/${g.seasonSlug}/referees/assign`}
+                  className="min-h-11 underline"
+                >
+                  Find a ref
+                  <span className="sr-only">
+                    {" "}
+                    for {g.teamAName} vs {g.teamBName}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="text-small text-text-muted">
+            The league&rsquo;s refs who are free then are asked when a ref drops
+            out and each morning; the first to tap &ldquo;Take it&rdquo; gets
+            the game.
+          </p>
+        </section>
+      )}
       {state.date >= todayDate && (await featureEnabled("weather")) && (
         <Suspense fallback={<RainDecisionCardLoading />}>
           <RainDecisionCard parks={dayParks(rows)} timeZone={league.timeZone} />
