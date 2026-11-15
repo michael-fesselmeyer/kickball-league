@@ -8,6 +8,7 @@ import {
 } from "@/domain/private-events/request";
 import { requirePermission } from "@/lib/auth/permission";
 import { requestPrivateEventAction } from "../actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = {
   title: "Request a private league or tournament",
@@ -138,9 +139,9 @@ async function RequestForm({
         <p className="text-small text-text-muted">
           We&apos;ll reply to the email address you signed in with.
         </p>
-        <button type="submit" className="btn self-start btn-primary">
+        <SubmitButton className="btn self-start btn-primary">
           Send the request
-        </button>
+        </SubmitButton>
       </form>
     </>
   );

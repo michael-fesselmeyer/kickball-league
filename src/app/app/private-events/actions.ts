@@ -11,7 +11,9 @@ import { profileOf } from "@/db/queries/profile";
 import { currentLeague } from "@/db/queries/seasons";
 import { parseRequest } from "@/domain/private-events/request";
 import { env } from "@/env";
+import { allowAction } from "@/lib/action-limit";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { logError } from "@/lib/log-error";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
 
@@ -66,6 +68,8 @@ export async function payForPrivateEventAction(slug: string): Promise<void> {
   });
   const stripe = stripeClient();
   if (!stripe) redirect(`${page}?error=payments_off`);
+  if (!(await allowAction("checkout", subject.userId)))
+    redirect(`${page}?error=too_many`);
   const started = await txDb.transaction((tx) =>
     organizerPurchase(tx, { eventId: event.id, userId: subject.userId }),
   );
@@ -96,7 +100,7 @@ export async function payForPrivateEventAction(slug: string): Promise<void> {
       { idempotencyKey: `purchase-${started.purchaseId}` },
     )
     .catch((error: unknown) => {
-      console.error("Stripe checkout failed", started.purchaseId, error);
+      logError("Stripe checkout failed", error, started.purchaseId);
       return null;
     });
   if (!session?.url) {

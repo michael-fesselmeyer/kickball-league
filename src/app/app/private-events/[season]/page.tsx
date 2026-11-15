@@ -22,6 +22,7 @@ import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { payForPrivateEventAction } from "../actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Organizer page" };
 
@@ -102,7 +103,9 @@ async function Organizer({
         <p role="alert" className="rounded-lg border border-danger p-3">
           {query.error === "payments_off"
             ? "Payments aren't switched on. Ask the league how to pay."
-            : "Stripe couldn't start the payment. Try again in a minute."}
+            : query.error === "too_many"
+              ? "That's a lot of checkouts in an hour. Wait a bit, then try again."
+              : "Stripe couldn't start the payment. Try again in a minute."}
         </p>
       )}
 
@@ -143,9 +146,9 @@ async function Organizer({
                 every team. Teams join free.
               </p>
               <form action={payForPrivateEventAction.bind(null, slug)}>
-                <button type="submit" className="btn btn-primary">
+                <SubmitButton className="btn btn-primary">
                   Pay {money(event.priceCents)}
-                </button>
+                </SubmitButton>
               </form>
             </>
           ) : (
