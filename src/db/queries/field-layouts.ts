@@ -75,8 +75,8 @@ export type SetLayoutInput = {
 /**
  * Saves a field's layout: a new file replaces the old one, which is
  * deleted; "no layout needed" removes the file. A save with neither a file
- * nor "no layout needed" only changes the note, and refuses a field that
- * has no layout to attach it to. Call inside a transaction.
+ * nor "no layout needed" only changes the note, and refuses a note for a
+ * field with no layout or answer to attach it to. Call inside a transaction.
  */
 export async function setFieldLayout(
   db: Db,
@@ -110,9 +110,13 @@ export async function setFieldLayout(
   } else if (input.noLayoutNeeded) {
     fileId = null;
     noLayoutNeeded = true;
-  } else if (fileId === null && !noLayoutNeeded && input.note !== null) {
-    return err("no_layout");
+  } else if (fileId === null) {
+    // Unticked "no layout needed": the field is back to having no answer.
+    noLayoutNeeded = false;
   }
+  // A note describes a layout, so it needs a layout or an answer to go with.
+  if (fileId === null && !noLayoutNeeded && input.note !== null)
+    return err("no_layout");
   await db
     .insert(fieldLayout)
     .values({

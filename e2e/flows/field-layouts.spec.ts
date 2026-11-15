@@ -68,9 +68,11 @@ test("an admin adds a layout, and the ref sees it with the permit", async ({
 
 test("a player can't open a field's layout page", async ({ browser }) => {
   const page = await pageAs(browser, "Player");
-  const response = await page.goto(
-    "/app/fields/00000000-0000-4000-8000-000000000000/layout",
-  );
-  expect(response?.status()).toBe(404);
+  // The lookup runs inside a Suspense boundary, so the status is already
+  // sent: check the page instead.
+  await page.goto("/app/fields/00000000-0000-4000-8000-000000000000/layout");
+  await expect(
+    page.getByRole("heading", { name: "We can't find that page" }),
+  ).toBeVisible();
   await page.context().close();
 });
