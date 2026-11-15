@@ -26,7 +26,7 @@ Sources, short names used below:
 - Organized leagues need a permit to reserve a field; the online **Field and Court Requests** system takes the application after creating an account ([Request](https://www.nycgovparks.org/permits/field-and-court/request)).
 - Applications go to the borough permit office where the field is, by mail, through the website or in person; each borough is a separate application, and online requests must come in at least 7 days before the first requested date ([Rule 2-12](https://www.nycgovparks.org/rules/section-2-12), (b)(2)).
 - An **adult** permit is for participants over 18 who aren't in a school program ([Priorities](https://www.nycgovparks.org/permits/field-and-court/request/priorities)). Rule 2-12 counts a scheduled, officiated league game with recorded results as a "Game"; pick-up play is "Practice" ([Rule 2-12](https://www.nycgovparks.org/rules/section-2-12), (a)).
-- A league can register as an **Organization**; review takes up to two weeks and may ask for the website, bylaws, rosters and schedule. Permit requests should be ready to send schedules and rosters ([Priorities](https://www.nycgovparks.org/permits/field-and-court/request/priorities)).
+- A league can register as an **Organization**; review takes up to two weeks and may ask for the website, bylaws, rosters and schedule. Permit requests should be ready to send schedules and rosters ([Priorities](https://www.nycgovparks.org/permits/field-and-court/request/priorities)). The app's application packet gathers these in one place: the website, the schedule and roster counts (player names only when an owner chooses), the request sheet as one application per borough, and the insurance certificate on file. The league's bylaws aren't in the app.
 - Kickball is one of the sports the availability map filters by, and McCarren Park's map shows what is permitted and what is free this season, with a spreadsheet of issued permits ([McCarren permits](https://www.nycgovparks.org/permits/field-and-court/issued/B058)).
 
 ## Application windows by season
@@ -56,6 +56,8 @@ Rule 2-12 gives the same renewal and new-request periods but lists the remaining
 - After the season starts, requests are handled first come, first served ([Priorities](https://www.nycgovparks.org/permits/field-and-court/request/priorities)).
 
 For the league this means: keep asking for the same hours every season to stay "returning", and ask for extra hours as a separate new request, which is what the capacity planner's request links produce.
+
+**What the app does with this** ([ADR 0056](../adr/0056-permit-renewal-and-application-packet.md)): "Renew for next year" on a season's permit screen drafts the renewal for the same play period a year on. It uses the season's confirmed windows, or the requested ones if none were marked confirmed. They are grouped by field, weekday and hours, and moved 52 weeks on so each keeps its weekday; a date that would slip a day or two out of the period moves a week to stay in it. Owners can change the draft. Anything beyond what was held (earlier or later hours, another field or day) becomes a separate new request for the new-request period, and the screen warns that folding it into the renewal would make the whole request new. Shortened or dropped time is flagged too, since time not renewed can't be renewed later. The screen also warns past the 50-hour weekly renewal cap. Owners are emailed 30 and 7 days before the renewal period opens, finished seasons included.
 
 ## Fees for adult leagues
 
