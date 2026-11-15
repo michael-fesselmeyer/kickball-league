@@ -98,20 +98,42 @@ describe("purgePhotoCopies", () => {
     expect(calls).toEqual([]);
   });
 
-  it("logs a failed purge instead of failing the takedown", async () => {
+  it("tries a refused purge once more", async () => {
+    const { calls, purger } = fakePurger();
+    let refusals = 1;
+    await purgePhotoCopies(
+      ["/media/photos/a"],
+      {
+        ...purger,
+        byTag: async (tags) => {
+          if (refusals-- > 0) throw new Error("429 Too Many Requests");
+          await purger.byTag(tags);
+        },
+      },
+      0,
+    );
+    expect(calls).toEqual(["tag /media/photos/a", "src /media/photos/a"]);
+  });
+
+  it("logs a purge refused twice instead of failing the takedown", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
     await expect(
-      purgePhotoCopies(["/media/photos/a"], {
-        byTag: async () => {
-          throw new Error("429 Too Many Requests");
+      purgePhotoCopies(
+        ["/media/photos/a"],
+        {
+          byTag: async () => {
+            throw new Error("429 Too Many Requests");
+          },
+          bySrcImage: async () => {},
         },
-        bySrcImage: async () => {},
-      }),
+        0,
+      ),
     ).resolves.toBeUndefined();
-    expect(error).toHaveBeenCalledWith("photo cache purge failed", {
-      code: null,
-      message: "429 Too Many Requests",
-    });
+    expect(error).toHaveBeenCalledWith(
+      "photo cache purge failed",
+      "/media/photos/a",
+      { code: null, message: "429 Too Many Requests" },
+    );
     error.mockRestore();
   });
 });

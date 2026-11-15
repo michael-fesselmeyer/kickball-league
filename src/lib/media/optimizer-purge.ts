@@ -10,7 +10,7 @@ import { logError } from "@/lib/log-error";
 import { photoSrc } from "./photo-src";
 
 /**
- * Clears cached copies of photos (ADR 0064). `byTag` clears the CDN's copy
+ * Clears cached copies of photos (ADR 0068). `byTag` clears the CDN's copy
  * of each photo's own address (tagged by `photoCacheHeaders`), `bySrcImage`
  * every resized copy the image optimizer made from it.
  */
@@ -44,26 +44,40 @@ export function hostPurger(
 /** The host's purge API takes at most this many tags or images a call. */
 const PURGE_BATCH = 16;
 
+/** How long to wait before the one retry of a refused purge. */
+const RETRY_AFTER_MS = 1000;
+
 /**
  * Purges every cached copy of these photo addresses: the CDN's copy of the
  * address first, so the optimizer cannot fetch it again, then the
- * optimizer's copies. A failure is logged, never thrown: the takedown
- * itself has happened, and its pages already dropped the photo.
+ * optimizer's copies. A refused call (the host allows 50 a second) is tried
+ * once more; a second failure is logged, never thrown: the takedown itself
+ * has happened, and its pages already dropped the photo (ADR 0068 says how
+ * an admin clears the copies by hand then).
  */
 export async function purgePhotoCopies(
   srcs: Iterable<string>,
   purger: PhotoCachePurger | null = hostPurger(),
+  retryAfterMs = RETRY_AFTER_MS,
 ): Promise<void> {
   const list = [...new Set(srcs)].sort();
   if (!purger || list.length === 0) return;
-  try {
-    for (let i = 0; i < list.length; i += PURGE_BATCH) {
-      const batch = list.slice(i, i + PURGE_BATCH);
-      await purger.byTag(batch);
-      await purger.bySrcImage(batch);
+  const once = async (batch: string[]) => {
+    await purger.byTag(batch);
+    await purger.bySrcImage(batch);
+  };
+  for (let i = 0; i < list.length; i += PURGE_BATCH) {
+    const batch = list.slice(i, i + PURGE_BATCH);
+    try {
+      await once(batch);
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
+      try {
+        await once(batch);
+      } catch (error) {
+        logError("photo cache purge failed", error, ...batch);
+      }
     }
-  } catch (error) {
-    logError("photo cache purge failed", error);
   }
 }
 
