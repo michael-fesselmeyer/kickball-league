@@ -176,6 +176,7 @@ const ACTIONS: Record<string, string> = {
   "season.rollover": "Started a new season from an earlier one",
   "season.create": "Created a season",
   "season.division_settings": "Changed crossover games and the playoff format",
+  "rules.publish": "Published a change to the league's rules",
   "season.update": "Changed season settings",
   "shirts.set_status": "Updated shirt status",
   "slots.sync": "Regenerated game slots",
