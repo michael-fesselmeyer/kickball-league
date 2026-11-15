@@ -11,7 +11,7 @@ export const SHORT_PHOTO_LIFETIME = 5 * 60;
  * lifetime depends on it: without a purge a takedown could only wait for
  * the optimizer's copies to expire, so they keep five minutes.
  */
-export const HOST_PURGE_READY: boolean = false;
+export const HOST_PURGE_READY: boolean = true;
 
 /**
  * How long the image optimizer keeps a resized photo (ADR 0068). On Vercel,
