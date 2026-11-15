@@ -30,6 +30,11 @@ import {
 import { payment, purchase, purchaseItem } from "../schema/money";
 import { privateEvent } from "../schema/private-event";
 import { profile } from "../schema/profile";
+import {
+  refereeAvailability,
+  refereePayout,
+  refereeProfile,
+} from "../schema/referees";
 import { season } from "../schema/season";
 import { teamFormationRequest } from "../schema/formation";
 import {
@@ -374,6 +379,16 @@ export async function personalData(
     .from(refereeAssignment)
     .where(eq(refereeAssignment.userId, userId))
     .orderBy(asc(refereeAssignment.offeredAt));
+  const refereePay = await db
+    .select({
+      seasonId: refereePayout.seasonId,
+      amountCents: refereePayout.amountCents,
+      method: refereePayout.method,
+      paidOn: refereePayout.paidOn,
+    })
+    .from(refereePayout)
+    .where(eq(refereePayout.userId, userId))
+    .orderBy(asc(refereePayout.paidOn));
 
   const subClaims = await db
     .select({
@@ -616,6 +631,7 @@ export async function personalData(
     scoresReported,
     scoreAnswers,
     refereeAssignments: refereeing,
+    refereePay,
     subClaims,
     subRequestsPosted,
     newTeamRequests,
@@ -906,6 +922,11 @@ export async function deleteAccount(
     .where(eq(notificationPreference.userId, userId));
   await db.delete(alertSetting).where(eq(alertSetting.userId, userId));
   await db.delete(pushSubscription).where(eq(pushSubscription.userId, userId));
+  // Out of the ref pool; games already reffed and pay already made stay.
+  await db.delete(refereeProfile).where(eq(refereeProfile.userId, userId));
+  await db
+    .delete(refereeAvailability)
+    .where(eq(refereeAvailability.userId, userId));
   // Answers to scores sent from their phone can name the other captain.
   await db.delete(offlineReceipt).where(eq(offlineReceipt.userId, userId));
   // Photos they uploaded, shown ones too (ADR 0039).
