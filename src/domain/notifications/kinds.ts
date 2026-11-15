@@ -136,6 +136,16 @@ export const MESSAGE_KINDS = {
     label:
       "For owners: a season near NYC Parks' 50-hour insurance line, permitted field time to give back, or games and events a permit no longer covers",
   },
+  lost_found_reply: {
+    urgency: "urgent",
+    label:
+      "Someone answered your lost and found post, or wrote in a conversation about it",
+  },
+  lost_found_update: {
+    urgency: "non_urgent",
+    label:
+      "Your lost and found post closed or was taken down, or a post you answered closed",
+  },
   photo_review: {
     urgency: "non_urgent",
     label: "Whether the league used a photo you uploaded",

@@ -33,6 +33,7 @@ import type { ProcessedPhoto } from "@/lib/member-photos/process-photo";
 import { user } from "../schema/auth";
 import { event } from "../schema/event";
 import { game, slot } from "../schema/game";
+import { lostFoundItem } from "../schema/lost-found";
 import { memberPhoto } from "../schema/member-photo";
 import { gamePlacement, scheduleVersion } from "../schema/schedule";
 import { season } from "../schema/season";
@@ -195,7 +196,11 @@ export async function uploadTargets(
   };
 }
 
-/** Stored bytes and photos waiting for review, for the league. */
+/**
+ * Stored bytes and photos waiting for review, for the league. The lost and
+ * found board's photos (and their thumbnails) count against the same cap,
+ * since they live in the same database (issue #385).
+ */
 export async function photoStorage(
   db: Db,
   leagueId: LeagueId,
@@ -207,10 +212,48 @@ export async function photoStorage(
     })
     .from(memberPhoto)
     .where(eq(memberPhoto.leagueId, leagueId));
+  const [board] = await db
+    .select({
+      usedBytes: sql<string>`coalesce(sum(${lostFoundItem.byteSize} + octet_length(${lostFoundItem.thumbBytes})), 0)`,
+    })
+    .from(lostFoundItem)
+    .where(eq(lostFoundItem.leagueId, leagueId));
   return {
-    usedBytes: Number(row?.usedBytes ?? 0),
+    usedBytes: Number(row?.usedBytes ?? 0) + Number(board?.usedBytes ?? 0),
     pending: row?.pending ?? 0,
   };
+}
+
+/**
+ * Photos one person added in the 24 hours up to `now`: member photos and
+ * lost and found photos share the daily limit.
+ */
+export async function photosInLastDay(
+  db: Db,
+  userId: UserId,
+  now: Date,
+): Promise<number> {
+  const since = new Date(now.getTime() - DAY_MS);
+  const [member] = await db
+    .select({ n: count() })
+    .from(memberPhoto)
+    .where(
+      and(
+        eq(memberPhoto.uploaderId, userId),
+        gte(memberPhoto.createdAt, since),
+      ),
+    );
+  const [board] = await db
+    .select({ n: count() })
+    .from(lostFoundItem)
+    .where(
+      and(
+        eq(lostFoundItem.posterId, userId),
+        gte(lostFoundItem.createdAt, since),
+        eq(lostFoundItem.hadPhoto, true),
+      ),
+    );
+  return (member?.n ?? 0) + (board?.n ?? 0);
 }
 
 export type UploadInput = {
@@ -257,16 +300,8 @@ export async function uploadMemberPhoto(
   await db.execute(
     sql`select pg_advisory_xact_lock(hashtext(${`member_photo:${input.leagueId}`}))`,
   );
-  const [recent] = await db
-    .select({ n: count() })
-    .from(memberPhoto)
-    .where(
-      and(
-        eq(memberPhoto.uploaderId, input.uploaderId),
-        gte(memberPhoto.createdAt, new Date(input.now.getTime() - DAY_MS)),
-      ),
-    );
-  if (!underDailyLimit(recent?.n ?? 0)) return err("daily_cap");
+  const recent = await photosInLastDay(db, input.uploaderId, input.now);
+  if (!underDailyLimit(recent)) return err("daily_cap");
   const { usedBytes } = await photoStorage(db, input.leagueId);
   if (!fitsLeagueCap(usedBytes, input.photo.bytes.length, input.capBytes))
     return err("league_full");

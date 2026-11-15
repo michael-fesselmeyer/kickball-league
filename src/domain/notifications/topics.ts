@@ -33,6 +33,8 @@ export const TOPICS = [
   // "We're watching the weather and will decide by 3 pm" (issue #383).
   // Opt-in: off until a player asks for it.
   "game_day_watch",
+  // Answers and replies on the lost and found board (issue #385).
+  "lost_found",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -54,6 +56,7 @@ export const DEFAULT_ENABLED: Readonly<Record<Topic, boolean>> = {
   photos: true,
   team_roles: true,
   game_day_watch: false,
+  lost_found: true,
 };
 
 /**
@@ -119,6 +122,11 @@ export const SETTINGS_TOPICS: readonly {
     topic: "photos",
     label: "Your photos",
     hint: "Whether the league used a photo you uploaded.",
+  },
+  {
+    topic: "lost_found",
+    label: "Lost and found",
+    hint: "Answers and replies on a post you made or answered, and when a post of yours closes.",
   },
 ];
 

@@ -26,6 +26,7 @@ export * from "./guarantee";
 export * from "./keep-off";
 export * from "./league";
 export * from "./lineup";
+export * from "./lost-found";
 export * from "./member-photo";
 export * from "./merch";
 export * from "./message";

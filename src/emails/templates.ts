@@ -39,6 +39,7 @@ import {
 import { paymentReminderEmail } from "./payment-reminder";
 import { permitAlertEmail } from "./permit-alert";
 import { incidentFiledEmail } from "./incident-filed";
+import { lostFoundReplyEmail, lostFoundUpdateEmail } from "./lost-found";
 import { photoReviewEmail } from "./photo-review";
 import { privateEventEmail } from "./private-event";
 import { rainAlertEmail } from "./rain-alert";
@@ -95,6 +96,8 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     payment_reminder: paymentReminderEmail,
     permit_alert: permitAlertEmail,
     incident_filed: incidentFiledEmail,
+    lost_found_reply: lostFoundReplyEmail,
+    lost_found_update: lostFoundUpdateEmail,
     photo_review: photoReviewEmail,
     private_event: privateEventEmail,
     rain_alert: rainAlertEmail,

@@ -71,6 +71,7 @@ import { myKeepOffEntries, removeKeepOffsFor } from "./keep-off";
 import { cancelHandoffsFor, myHandoffs } from "./captaincy";
 import { myPickemData, removePickemData } from "./pickem";
 import { myGearRecords, releaseGearOf } from "./equipment";
+import { deleteLostFoundOf, myLostFoundData } from "./lost-found";
 import { deletePhotosOf, myPhotos } from "./member-photos";
 import { heldMerchPurchases } from "./merch";
 import { expirePurchases } from "./payments";
@@ -681,6 +682,8 @@ export async function personalData(
     pushDevices,
     messages,
     photos: (await myPhotos(db, userId)).map((p) => without(p, "id")),
+    // Lost and found posts, answers and messages they wrote (issue #385).
+    lostAndFound: await myLostFoundData(db, userId),
     announcementsSent,
     actionsTaken,
     leagueCredit: credit.map((c) => without(c, "id")),
@@ -946,6 +949,8 @@ export async function deleteAccount(
   await db.delete(offlineReceipt).where(eq(offlineReceipt.userId, userId));
   // Photos they uploaded, shown ones too (ADR 0039).
   await deletePhotosOf(db, userId);
+  // Their lost and found posts and answers, with the conversations on them.
+  await deleteLostFoundOf(db, userId);
   // A new version, so a private calendar link handed out before stops working.
   await resetFeed(db, userId);
   await db.delete(message).where(eq(message.userId, userId));
