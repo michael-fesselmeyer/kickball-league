@@ -13,7 +13,7 @@ import { hoursLevel, type HoursLevel, permittedMinutes } from "./hours";
 import { NEW_YORK, sunset } from "./sun";
 
 /**
- * A season's permits as the owners plan around them (ADR 0051): the fee
+ * A season's permits as the owners plan around them (ADR 0055): the fee
  * each permit should cost, the season's hours against NYC Parks' 50-hour
  * insurance line, and the field time coming up that the league won't use.
  * Pure: the query (src/db/queries/permit-plan.ts) reads the rows, and the
@@ -103,11 +103,11 @@ export function permitPlan(input: {
   }
 
   const minutes = permittedMinutes(windows);
-  const today = localDate(input.now, timeZone);
   const unused = windows.flatMap((w): UnusedWindow[] => {
     if (w.status === "lost") return [];
+    // Only time not yet started can still go to someone else.
+    if (w.startsAt.getTime() <= input.now.getTime()) return [];
     const on = localDate(w.startsAt, timeZone);
-    if (on < today) return [];
     const reason: UnusedReason | null =
       input.blackouts.has(on) || input.blackouts.has(`${on}/${w.fieldId}`)
         ? "blackout"

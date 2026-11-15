@@ -42,3 +42,17 @@ export function permittedMinutes(
     0,
   );
 }
+
+/**
+ * What the season's hours would come to with a request sheet. A sheet with
+ * a set number of games each day is the capacity planner's extra request,
+ * on top of the permits; any other sheet is the whole season's ask, which
+ * the permits already held may cover.
+ */
+export function minutesWithSheet(
+  permitted: number,
+  sheet: number,
+  extra: boolean,
+): number {
+  return extra ? permitted + sheet : Math.max(permitted, sheet);
+}
