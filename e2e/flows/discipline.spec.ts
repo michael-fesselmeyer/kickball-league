@@ -34,7 +34,7 @@ test.describe
     await ref
       .getByRole("listitem")
       .filter({ hasText: GAME })
-      .getByRole("link", { name: "Score" })
+      .getByRole("link", { name: "Score", exact: true })
       .click();
     await ref.getByRole("link", { name: "Report an incident" }).click();
     await expect(

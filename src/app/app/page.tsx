@@ -235,12 +235,25 @@ async function Account() {
                 </span>
                 <span className="flex flex-col items-end gap-1">
                   {g.startsAt <= now && (
-                    <Link
-                      href={`/app/games/${g.id}/score`}
-                      className="btn btn-primary"
-                    >
-                      Score
-                    </Link>
+                    <>
+                      <Link
+                        href={`/app/games/${g.id}/score`}
+                        className="btn btn-primary"
+                      >
+                        Score
+                      </Link>
+                      {/* Optional: skipping it changes nothing. */}
+                      <Link
+                        href={`/app/games/${g.id}/live`}
+                        className="btn btn-secondary"
+                      >
+                        Keep score live
+                        <span className="sr-only">
+                          {" "}
+                          for {g.teamAName} vs {g.teamBName}
+                        </span>
+                      </Link>
+                    </>
                   )}
                   {isGameDay(g.startsAt, now, timeZone) &&
                     (g.checkedInAt ? (
