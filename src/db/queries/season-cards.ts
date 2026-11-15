@@ -151,6 +151,7 @@ async function seasonInputs(
       .select({
         gameId: gameRsvp.gameId,
         userId: gameRsvp.userId,
+        teamSeasonId: gameRsvp.teamSeasonId,
         status: gameRsvp.status,
       })
       .from(gameRsvp)
@@ -159,6 +160,7 @@ async function seasonInputs(
     db
       .select({
         gameId: gameLineup.gameId,
+        teamSeasonId: gameLineup.teamSeasonId,
         userId: gameLineupSpot.userId,
         pickup: gameLineupSpot.pickup,
       })
@@ -292,25 +294,30 @@ export async function seasonCardsFor(
   const { rows, teams } = data.standings;
   const names = new Map([...teams].map(([id, t]) => [id, t.name]));
 
-  // Who said they were in, or kicked, and who answered at all.
+  // Who said they were in, or kicked, and who answered at all, for one
+  // team: a player who switched teams is not credited with the old team's
+  // games, and an answer for the old team does not make the new one tracked.
   const attended = new Map<string, Set<string>>();
   const answered = new Set<string>();
-  const mark = (userId: string, gameId: string) => {
-    const set = attended.get(userId) ?? new Set<string>();
+  const key = (userId: string, teamSeasonId: string) =>
+    `${userId}/${teamSeasonId}`;
+  const mark = (userId: string, teamSeasonId: string, gameId: string) => {
+    const k = key(userId, teamSeasonId);
+    const set = attended.get(k) ?? new Set<string>();
     set.add(gameId);
-    attended.set(userId, set);
+    attended.set(k, set);
   };
   for (const r of data.rsvps) {
-    answered.add(r.userId);
-    if (r.status === "in") mark(r.userId, r.gameId);
+    answered.add(key(r.userId, r.teamSeasonId));
+    if (r.status === "in") mark(r.userId, r.teamSeasonId, r.gameId);
   }
   // A sub kicking for another team is not at their own team's game.
   const subbed = new Map<string, number>();
   const finishedIds = new Set(data.finished.map((g) => g.id));
   for (const s of data.spots) {
     if (!s.pickup) {
-      answered.add(s.userId);
-      mark(s.userId, s.gameId);
+      answered.add(key(s.userId, s.teamSeasonId));
+      mark(s.userId, s.teamSeasonId, s.gameId);
     } else if (finishedIds.has(s.gameId))
       subbed.set(s.userId, (subbed.get(s.userId) ?? 0) + 1);
   }
@@ -374,8 +381,8 @@ export async function seasonCardsFor(
         team: { name: p.teamName, slug: p.teamSlug, colorHex: p.colorHex },
         games: byTeam.get(p.teamSeasonId) ?? [],
         player: {
-          attended: attended.get(p.userId) ?? new Set(),
-          tracked: answered.has(p.userId),
+          attended: attended.get(key(p.userId, p.teamSeasonId)) ?? new Set(),
+          tracked: answered.has(key(p.userId, p.teamSeasonId)),
         },
         innings: inningsByTeam.get(p.teamSeasonId) ?? new Map(),
         record: row
