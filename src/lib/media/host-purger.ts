@@ -5,7 +5,7 @@ import {
 import { HOST_PURGE_READY } from "./optimizer-cache";
 
 /**
- * Clears cached copies of photos (ADR 0068). `byTag` clears the CDN's copy
+ * Clears cached copies of photos (ADR 0069). `byTag` clears the CDN's copy
  * of each photo's own address (tagged by `photoCacheHeaders`), `bySrcImage`
  * every resized copy the image optimizer made from it.
  */

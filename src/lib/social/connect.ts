@@ -26,7 +26,7 @@ export async function completeConnection(
   const account = await profile(config, token.value.accessToken);
   if (!account.ok) return "error=sign_in";
   // Connecting a different account deletes the old one's posts, so their
-  // cached copies are purged (ADR 0068).
+  // cached copies are purged (ADR 0069).
   await purgingPhotoChanges(txDb, () =>
     txDb.transaction((tx) =>
       saveConnection(tx, {

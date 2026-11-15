@@ -51,6 +51,6 @@ Uploads for a league take turns under a transaction lock, so two at once cannot 
 ## Consequences
 
 - Admins must clear older photos when the 100 MB fills up; the review queue shows storage used against the cap and says what to do.
-- A photo taken down leaves every page on its next request, and its address keeps answering from caches for up to five minutes, as for Instagram photos. Changed by [ADR 0068](0068-optimized-photos-kept-a-month-and-purged-at-takedown.md): on Vercel the takedown purges the cached copies at once, and the optimizer keeps them 31 days otherwise.
+- A photo taken down leaves every page on its next request, and its address keeps answering from caches for up to five minutes, as for Instagram photos. Changed by [ADR 0069](0069-optimized-photos-kept-a-month-and-purged-at-takedown.md): on Vercel the takedown purges the cached copies at once, and the optimizer keeps them 31 days otherwise.
 - Videos are not supported. The spec's "photos and videos" stays half done until there is a free way to store and serve them.
 - Tests cover the byte checks and limits as unit tests, processing with generated images (orientation, metadata removal, disguised files, a decompression bomb), the database rules (who may tag what, the daily and league limits, review, deletion and account deletion), and an end-to-end flow at phone width.

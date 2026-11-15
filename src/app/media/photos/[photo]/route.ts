@@ -8,7 +8,7 @@ import { imageResponse, notFound } from "@/lib/social/image-response";
  * A member's approved photo, for the public team, event and game pages
  * (ADR 0039). A waiting, rejected or deleted photo answers 404, so taking
  * one down also stops its address working at once: the takedown purges this
- * address's CDN copy and the optimizer's resized copies (ADR 0068), and a
+ * address's CDN copy and the optimizer's resized copies (ADR 0069), and a
  * copy anywhere else expires within five minutes.
  */
 export async function GET(

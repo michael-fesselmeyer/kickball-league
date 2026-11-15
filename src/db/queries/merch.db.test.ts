@@ -316,7 +316,7 @@ describe("the catalog", () => {
       ).toEqual({ ok: true, value: undefined });
       const added = await add();
       if (!added.ok) throw new Error("no photo");
-      // A takedown purges what leaves this list (ADR 0068).
+      // A takedown purges what leaves this list (ADR 0069).
       expect(await shopImageIds(db)).toContain(added.value);
       expect(await shopImageIds(db)).not.toContain(first.value);
       await setItemHidden(db, {

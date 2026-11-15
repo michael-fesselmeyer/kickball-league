@@ -1,4 +1,4 @@
-# ADR 0068: Optimized photos kept a month and purged at takedown
+# ADR 0069: Optimized photos kept a month and purged at takedown
 
 - Status: accepted
 - Date: 2026-11-15

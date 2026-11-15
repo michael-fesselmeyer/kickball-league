@@ -19,7 +19,7 @@ const RETRY_AFTER_MS = 1000;
  * address first, so the optimizer cannot fetch it again, then the
  * optimizer's copies. A refused call (the host allows 50 a second) is tried
  * once more; a second failure is logged, never thrown: the takedown itself
- * has happened, and its pages already dropped the photo (ADR 0068 says how
+ * has happened, and its pages already dropped the photo (ADR 0069 says how
  * an admin clears the copies by hand then).
  */
 export async function purgePhotoCopies(
