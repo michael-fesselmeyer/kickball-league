@@ -8,6 +8,8 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 
 One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-one-deployment.md)). The tree below is the default league's, at the site's own URLs. Every other league's pages are the same tree under `/l/<league>`: `/l/<league>` is its home (name, sport, a sign-up button and its seasons), then `/l/<league>/seasons/...`, `/teams/...`, `/games/...`, `/events/...`, `/sponsors/...`, `/history`, `/records`, `/friends` and `/fields/<park>`. The default league's own content pages (about, FAQ, the park, the search landing pages) have no copy under `/l/`. `/l/<default league>/...` redirects to the plain address.
 
+Languages ([ADR 0065](adr/0065-languages-from-the-path-and-the-profile.md)): the tree below is the English one, at the site's own addresses. A page translated into another language is also served under that language's code, such as `/es/faq` or `/es/l/<league>/seasons/...`, once it is listed in `TRANSLATED_PAGES`. Any other `/es/...` address goes to the English page, and `/en/...` goes to the address without a prefix. The footer links to the page in each language it is translated into. On signed-in pages, the language is the profile's setting, so the footer links there.
+
 ```
 /                                   Home: what, where, when, price, join; featured Instagram photos and the home cover
 ├── seasons/                        Every public season, newest first: status, dates, schedule and standings links (a sign-up link while registration is open); linked from the home page and the footer
@@ -79,7 +81,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── rules                           The rulebook inside the app, with the same search, contents and rule anchors: for owners while it is owners only, for anyone with an account while it is members only; never cached. Others see that the league hasn't shared it
 ├── referee                         Refs: tick the game times you can work for each season (a time you already ref is fixed), and your games worked, what you've earned, payments and the balance; "Can't make it?" drops a game still to come, with a reason
 │   └── take/[game]                 "Take it": a game with no ref, from the message refs get; the first ref to tap gets it, anyone after sees it's taken
-├── account                         Profile, weeks you'll miss for each season still to come, email, push and message-limit settings, turning down (only my team, weekly roundup, snooze), waivers, payments, league credit and its history, the referral link, and any yellow or red cards a ref gave you, visible only to you (built at /app/profile)
+├── account                         Profile, the language emails and notifications come in, weeks you'll miss for each season still to come, email, push and message-limit settings, turning down (only my team, weekly roundup, snooze), waivers, payments, league credit and its history, the referral link, and any yellow or red cards a ref gave you, visible only to you (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
 │   └── delete                      Delete your account: what is deleted, what the league keeps; a fresh sign-in (passkey or email link) and your typed email address confirm it
