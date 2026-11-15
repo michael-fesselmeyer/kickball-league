@@ -54,6 +54,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── refs                            Become a referee
 ├── faq
 ├── contact                         Public contact form (a question, a problem at the field, park rules): no account, honeypot and rate limits, static page with a server action
+├── interest                        Would you play a new night, park or format? The league's open interest form (an option for each, each with No, Not sure or Yes, friends who might join, an email to tell when one goes ahead): no account, honeypot and rate limits, static page with a server action; another league's is at `/l/<slug>/interest`
 ├── about                           The league, the commissioners, contact
 ├── join                            Landing page for the QR codes on field signs and at the bar (P3)
 ├── r/[code]                        A player's referral link: remembers who sent the visitor for 30 days, then opens the home page
@@ -222,6 +223,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │       └── giveaway/           Add or change the event's free giveaway (prize, donor, winners, entry window, official rules), entry count, draw the winners once entry closes, and replace a winner with a reason; refused for a ticketed event or a theme week
     │           └── code            The giveaway's rotating entry code, full screen, for a phone or screen at the event
     ├── checklist-template          Owners: the tasks every season checklist starts with, each due a number of days before or after the season's first day, with a usual owner; add, edit or remove one
+    ├── interest                    Interest sign-ups: open a form with options (a night, a park, a format), see each option's yes and not-sure totals against the target (default 8 teams) with an "enough to run" marker, change the target, add or remove options, delete an answer on request, close the form, and tell everyone who picked an option that it is going ahead
     ├── volunteer/                  Volunteer shifts coming up, each with its spots and who signed up
     │   ├── new                     Post a shift: the job, a season's game day or an event, date and times, spots, place, notes
     │   └── [shift]                 Edit a shift (never below the people signed up) or remove it

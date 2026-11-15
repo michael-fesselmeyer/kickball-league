@@ -283,7 +283,7 @@ export function refreshRulesPage(league: LeagueRef): void {
   revalidatePath("/l/[league]/rules", "page");
 }
 
-/** Every league's open interest form (docs/data-model.md, section 2.8). */
+/** Every league's open interest form (docs/data-model.md, section 2.7). */
 export const INTEREST_TAG = "interest";
 
 /**
