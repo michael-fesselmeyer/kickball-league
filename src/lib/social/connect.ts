@@ -2,6 +2,7 @@ import { txDb } from "@/db/client";
 import { connectedAccounts, saveConnection } from "@/db/queries/social";
 import type { LeagueId, UserId } from "@/domain/ids";
 import { env } from "@/env";
+import { purgingPhotoChanges } from "@/lib/media/optimizer-purge";
 import { exchangeCode, profile } from "@/services/instagram";
 import { type InstagramConfig, redirectUri } from "./instagram-app";
 import { syncAccount } from "./sync";
@@ -24,15 +25,19 @@ export async function completeConnection(
   if (!token.ok) return "error=sign_in";
   const account = await profile(config, token.value.accessToken);
   if (!account.ok) return "error=sign_in";
-  await txDb.transaction((tx) =>
-    saveConnection(tx, {
-      leagueId: input.leagueId,
-      profile: account.value,
-      token: token.value,
-      secret: env.BETTER_AUTH_SECRET,
-      actorId: input.actorId,
-      now,
-    }),
+  // Connecting a different account deletes the old one's posts, so their
+  // cached copies are purged (ADR 0068).
+  await purgingPhotoChanges(txDb, () =>
+    txDb.transaction((tx) =>
+      saveConnection(tx, {
+        leagueId: input.leagueId,
+        profile: account.value,
+        token: token.value,
+        secret: env.BETTER_AUTH_SECRET,
+        actorId: input.actorId,
+        now,
+      }),
+    ),
   );
   const connected = (
     await connectedAccounts(txDb, env.BETTER_AUTH_SECRET, now)
