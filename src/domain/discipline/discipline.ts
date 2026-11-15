@@ -25,6 +25,7 @@ export const INCIDENT_KINDS = {
   unsportsmanlike: "Unsportsmanlike conduct",
   outside_alcohol: "Outside alcohol at the sponsor bar",
   safety: "Safety",
+  injury: "Injury",
   other: "Other",
 } as const;
 export type IncidentKind = keyof typeof INCIDENT_KINDS;
@@ -34,6 +35,7 @@ export const INCIDENT_KIND_KEYS: readonly IncidentKind[] = [
   "unsportsmanlike",
   "outside_alcohol",
   "safety",
+  "injury",
   "other",
 ];
 export const isIncidentKind = (value: string): value is IncidentKind =>
@@ -114,7 +116,9 @@ export function parseIncidentForm(
   },
   choices: ReadonlySet<string>,
 ): Result<NewIncident, IncidentFormError> {
-  if (!isIncidentKind(values.kind)) return err("bad_kind");
+  // An injury has its own form (src/domain/discipline/injury.ts).
+  if (!isIncidentKind(values.kind) || values.kind === "injury")
+    return err("bad_kind");
   const details = values.details.trim();
   if (details.length === 0) return err("no_details");
   if (details.length > DETAILS_MAX) return err("details_too_long");

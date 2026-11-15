@@ -119,6 +119,15 @@ describe("the incident form", () => {
     );
   });
 
+  it("leaves injuries to their own form", () => {
+    expect(
+      parseIncidentForm(
+        { kind: "injury", details: "Twisted a knee.", people: [] },
+        choices,
+      ),
+    ).toEqual(err("bad_kind"));
+  });
+
   it("refuses an unknown kind, empty or long details, and strangers", () => {
     const base = { kind: "ejection", details: "x", people: [] };
     expect(parseIncidentForm({ ...base, kind: "fight" }, choices)).toEqual(
