@@ -47,6 +47,7 @@ export const booksFileKind = pgEnum("books_file_kind", [
   "insurance",
   // A photo with a field's end-of-day check (issue #409).
   "field_photo",
+  "layout",
 ]);
 
 /**

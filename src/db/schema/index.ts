@@ -16,6 +16,7 @@ export * from "./emergency";
 export * from "./equipment";
 export * from "./event";
 export * from "./formation";
+export * from "./field-layout";
 export * from "./free-agent";
 export * from "./friends";
 export * from "./game";
