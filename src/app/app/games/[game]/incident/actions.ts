@@ -31,7 +31,7 @@ export async function fileIncidentAction(
     ...gameContext,
   });
   const people = await gamePeople(db, g);
-  const values = formStrings(form, ["kind", "details"] as const);
+  const values = formStrings(form, ["kind", "details", "parkRule"] as const);
   const parsed = parseIncidentForm(
     {
       ...values,

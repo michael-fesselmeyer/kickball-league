@@ -15,6 +15,7 @@ import {
 import { type GameId, parseId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
 import { requireFeature } from "@/lib/platform/site";
+import { PARK_RULES } from "@/domain/concerns/concerns";
 import { fileIncidentAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
@@ -36,6 +37,7 @@ export default function IncidentPage(
 /** Messages by error code; an unknown code from the URL finds nothing. */
 const ERRORS: Record<string, string> = {
   bad_kind: "Choose what kind of incident it was.",
+  bad_park_rule: "Choose one of the park rules, or leave it blank.",
   no_details: "Say what happened.",
   details_too_long: `Keep it under ${DETAILS_MAX} characters.`,
   unknown_person: "Pick people from the two teams in this game.",
@@ -117,6 +119,24 @@ async function Report({
               {INCIDENT_KIND_KEYS.map((k) => (
                 <option key={k} value={k}>
                   {INCIDENT_KINDS[k]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="incident-park-rule">
+              If it is about how the park is used, which rule (optional)
+            </label>
+            <select
+              id="incident-park-rule"
+              name="parkRule"
+              defaultValue=""
+              className={field}
+            >
+              <option value="">Not about the park</option>
+              {Object.entries(PARK_RULES).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
                 </option>
               ))}
             </select>
