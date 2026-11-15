@@ -78,6 +78,7 @@ export const LEAGUE_OF = {
   insurance_certificate: (id) =>
     sql`select league_id from insurance_certificate where id = ${id}`,
   books_file: (id) => sql`select league_id from books_file where id = ${id}`,
+  conduct_code: (id) => sql`select league_id from conduct_code where id = ${id}`,
   waiver: (id) => sql`select league_id from waiver where id = ${id}`,
   venue: (id) => sql`select league_id from venue where id = ${id}`,
   field: (id) =>
