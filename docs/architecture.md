@@ -334,7 +334,7 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 
 | Job | When | Does |
 |---|---|---|
-| Outbox sweep | Every minute (daily at 13:30 UTC on Hobby) | Queues scheduled announcements that are due ([ADR 0052](adr/0052-scheduled-announcements-ride-the-daily-sweep.md)), sends due messages, retries failures, sends messages that waited out quiet hours or for the next day's email quota; deletes sign-in rate-limit counters untouched for a day (section 13) |
+| Outbox sweep | Every minute (daily at 13:30 UTC on Hobby) | Queues scheduled announcements that are due ([ADR 0058](adr/0058-scheduled-announcements-ride-the-daily-sweep.md)), sends due messages, retries failures, sends messages that waited out quiet hours or for the next day's email quota; deletes sign-in rate-limit counters untouched for a day (section 13) |
 | Digests ✔ | Daily, 18:00 or later (`/api/jobs/digests`) | Gathers each person's held non-urgent messages whose digest is due into one email, then drains the outbox |
 | Rain alerts ✔ | Daily 18:00 (`/api/jobs/rain-alerts`) | Checks the forecast for each game day whose first game starts in the next 30 hours and alerts every admin on "watch" or "likely", once per level per game day |
 | League gear reminders ✔ | Daily 18:30 (`/api/jobs/gear-reminders`) | Reminds everyone bringing a league kit to a game tomorrow (league time) which kit, where to get it (home, or who has it) and where it goes by when: a non-urgent `gear_reminder` (topic `game_reminder`), queued once per assignment and game day with the dedupe key `gear_reminder:<assignment>:<date>`, then drains the outbox ([data model, section 2.10](data-model.md#210-league-gear)) |

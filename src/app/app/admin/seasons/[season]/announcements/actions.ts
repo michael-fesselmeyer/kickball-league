@@ -33,7 +33,7 @@ async function context(slug: string) {
 
 /**
  * An admin's announcement to the whole league or to one team, sent now or
- * scheduled for a sweep (ADR 0052).
+ * scheduled for a sweep (ADR 0058).
  */
 export async function sendLeagueAnnouncementAction(
   slug: string,

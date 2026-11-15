@@ -1,4 +1,4 @@
-# ADR 0052: Scheduled announcements go out with the outbox's daily sweep
+# ADR 0058: Scheduled announcements go out with the outbox's daily sweep
 
 - Status: accepted
 - Date: 2026-11-14

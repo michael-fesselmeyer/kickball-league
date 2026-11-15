@@ -39,7 +39,7 @@ import type { Db } from "./schedule";
  * Announcements (product-spec.md, "Notifications"): an admin writes to the
  * whole league or one team, a captain to their own team. Each recipient
  * gets one outbox message, written in the same transaction as the
- * announcement. An admin can schedule one instead (ADR 0052): the outbox
+ * announcement. An admin can schedule one instead (ADR 0058): the outbox
  * sweep queues its messages once it is due (`releaseDueAnnouncements`).
  */
 

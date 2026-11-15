@@ -3,7 +3,7 @@ import { localDay } from "../schedule/public-game";
 import { addDays } from "../season/rollover";
 
 /**
- * When a scheduled announcement goes out (ADR 0052). Scheduled jobs run once
+ * When a scheduled announcement goes out (ADR 0058). Scheduled jobs run once
  * a day on the free hosting plan, so a scheduled announcement leaves with
  * the outbox's daily sweep (vercel.json, `/api/jobs/outbox`) on the day the
  * admin picks. Any earlier drain, such as the one after another message is
