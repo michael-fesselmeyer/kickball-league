@@ -56,7 +56,17 @@ export type AttendanceGame = {
   /** Kickoff; null while the game has no slot. */
   startsAt: Date | null;
   timeZone: string;
+  /**
+   * The game's slot was cancelled by a confirmed rain-out and the game waits
+   * for its makeup to be published: nobody plays it that day.
+   */
+  slotCancelled?: boolean;
 };
+
+const calledOff = (game: AttendanceGame) =>
+  game.status === "cancelled" ||
+  game.status === "postponed" ||
+  game.slotCancelled === true;
 
 export type ScanBlock = "called_off" | "not_game_day";
 
@@ -69,12 +79,7 @@ export function scanOpen(
   game: AttendanceGame,
   now: Date,
 ): Result<{ until: Date }, ScanBlock> {
-  if (
-    game.status === "cancelled" ||
-    game.status === "postponed" ||
-    game.startsAt === null
-  )
-    return err("called_off");
+  if (calledOff(game) || game.startsAt === null) return err("called_off");
   const day = localDate(game.startsAt, game.timeZone);
   if (localDate(now, game.timeZone) !== day) return err("not_game_day");
   return ok({ until: startOfNextDay(day, game.timeZone) });
@@ -97,12 +102,7 @@ export function markOpen(
   now: Date,
   admin: boolean,
 ): Result<void, MarkBlock> {
-  if (
-    game.status === "cancelled" ||
-    game.status === "postponed" ||
-    game.startsAt === null
-  )
-    return err("called_off");
+  if (calledOff(game) || game.startsAt === null) return err("called_off");
   const day = localDate(game.startsAt, game.timeZone);
   if (localDate(now, game.timeZone) < day) return err("not_yet");
   const closes =

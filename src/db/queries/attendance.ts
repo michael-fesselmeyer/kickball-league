@@ -1,4 +1,4 @@
-import { and, asc, count, eq, inArray, or } from "drizzle-orm";
+import { and, asc, count, eq, inArray, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { GameId, SeasonId, TeamSeasonId, UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
@@ -43,6 +43,7 @@ export async function attendanceGame(db: Db, gameId: GameId) {
       teamAName: nameA.name,
       teamBName: nameB.name,
       startsAt: slot.startsAt,
+      slotCancelled: sql<boolean>`coalesce(${slot.status} = 'cancelled', false)`,
       timeZone: league.timezone,
     })
     .from(game)
