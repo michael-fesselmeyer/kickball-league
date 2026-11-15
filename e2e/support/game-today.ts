@@ -31,7 +31,8 @@ export async function addGameInDays(
            join team t on t.id = ts.team_id
            join season s on s.id = ts.season_id
            join league l on l.id = s.league_id
-          where s.slug = 'fall-2026' and t.name in ($1, $2)
+          where s.slug = 'fall-2026' and l.slug = 'demo-league'
+            and t.name in ($1, $2)
        ), noon as (
          select (date_trunc('day', now() at time zone timezone)
                    + make_interval(days => $3::int, hours => $4::int))
