@@ -9,10 +9,13 @@ import {
   setKicksFirst,
   undoLastHalf,
 } from "@/db/queries/live-scores";
+import { ejectPlayer } from "@/db/queries/discipline";
 import { gameForScoring } from "@/db/queries/scores";
+import { ejectionDetails } from "@/domain/discipline/discipline";
+import { requireFeature } from "@/lib/platform/site";
 import { can } from "@/domain/authz/permissions";
 import { isOneOf } from "@/domain/guards";
-import { type GameId, parseId } from "@/domain/ids";
+import { type GameId, parseId, type UserId } from "@/domain/ids";
 import { HALVES } from "@/domain/scores/live";
 import { PLAYOFF_TIE, reportingTeam } from "@/domain/scores/scores";
 import { requirePermissionToChange } from "@/lib/auth/permission";
@@ -141,4 +144,37 @@ export async function endGameAction(
   // The final score goes out for confirmation like any reported score.
   sendQueuedSoon();
   redirect(`/app/games/${g.id}/score?saved=1`);
+}
+
+/**
+ * The game's ref (or an admin) ejects a player: files an ejection report
+ * and takes them out of their team's kicking order for the rest of the game.
+ */
+export async function ejectAction(
+  rawGameId: string,
+  form: FormData,
+): Promise<void> {
+  await requireFeature("discipline");
+  const page = pageFor(rawGameId);
+  const gameId = parseId<GameId>(rawGameId);
+  const g = gameId ? await gameForScoring(db, gameId) : null;
+  if (!g) notFound();
+  const subject = await requirePermissionToChange("player.eject", {
+    next: page,
+    game: { id: g.id, teamSeasonIds: [g.teamAId, g.teamBId] as const },
+  });
+  const person = parseId<UserId>(String(form.get("person") ?? ""));
+  if (!person) redirect(`${page}?error=no_person#eject`);
+  const details = ejectionDetails(String(form.get("reason") ?? ""));
+  if (!details.ok) redirect(`${page}?error=${details.error}#eject`);
+  const result = await ejectPlayer(txDb, {
+    gameId: g.id,
+    userId: person,
+    reportedBy: subject.userId,
+    role: subject.refereeGameIds.includes(g.id) ? "referee" : "admin",
+    details: details.value,
+    now: new Date(),
+  });
+  if (!result.ok) redirect(`${page}?error=${result.error}#eject`);
+  redirect(`${page}?notice=ejected#eject`);
 }
