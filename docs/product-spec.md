@@ -121,7 +121,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - Make promo codes for a season: a percentage or an amount off, with an optional limit on uses and a last day, and turn one off at any time.
 - Correct scores, record forfeits, suspend players, and issue refunds (all or part of a payment) or league credit.
 - Run events, manage sponsors, and send announcements.
-- Ask whether there is enough interest in a new night, park or format before booking a permit: open a form, watch each option's totals against a target number of teams, and tell everyone who picked an option when it goes ahead.
+- Ask whether there is enough interest in a new night, park or format before booking a permit: open a form, watch each option's totals against a target number of teams, and tell everyone who picked an option when it goes ahead. When an option has enough interest, open it as a new league with a draft season in one step (the operator, ADR 0072).
 - See who changed what in an audit log.
 
 ### League owner
