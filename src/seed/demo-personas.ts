@@ -31,7 +31,7 @@ import { removeMoneyRecords } from "./money";
  * - Addie Admin runs the league.
  * Fixed ids, so the personas are the same people after every reset.
  */
-const PERSONA_IDS: Record<PersonaKey, UserId> = {
+export const PERSONA_IDS: Record<PersonaKey, UserId> = {
   player: "d3e30000-0000-4000-8000-000000000001" as UserId,
   captain: "d3e30000-0000-4000-8000-000000000002" as UserId,
   ref: "d3e30000-0000-4000-8000-000000000003" as UserId,
