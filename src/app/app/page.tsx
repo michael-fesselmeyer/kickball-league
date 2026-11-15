@@ -113,28 +113,44 @@ async function Account({ searchParams }: PageProps<"/app">) {
     return id ? myCards(db, id, onShow) : [];
   })();
   const isAdmin = can(subject, "season.manage", {});
-  const league = await activeLeague();
   const userId = parseId<UserId>(subject.userId);
-  const myLeagues = userId ? await leaguesOf(db, userId) : [];
+  const now = new Date();
+  // The league on show and its open seasons, this person's leagues, and the
+  // games they referee that are not final yet (with their pickups), read
+  // alongside each other and the queries above.
+  const leagueAndSeasons = (async () => {
+    const league = await activeLeague();
+    return {
+      league,
+      open: league ? await openSeasons(db, league.id, now) : [],
+    };
+  })();
+  const leagues = userId ? leaguesOf(db, userId) : Promise.resolve([]);
+  const refereeingAndPickups = (async () => {
+    const refereeing =
+      userId && subject.isReferee
+        ? (await gamesToReferee(db, userId)).filter(
+            (g) => g.status !== "final" && g.status !== "forfeit",
+          )
+        : [];
+    const pickups = await pickupsFor(
+      db,
+      refereeing.map((g) => g.id),
+    );
+    return { refereeing, pickups };
+  })();
+  const [{ league, open }, myLeagues, { refereeing, pickups }, games] =
+    await Promise.all([
+      leagueAndSeasons,
+      leagues,
+      refereeingAndPickups,
+      myGames,
+    ]);
   // The league on show counts as theirs too, so its name is in the switcher.
   const switchable =
     league && !myLeagues.some((l) => l.id === league.id)
       ? [league, ...myLeagues]
       : myLeagues;
-  const now = new Date();
-  const open = league ? await openSeasons(db, league.id, now) : [];
-  // Games this person referees that are not final yet.
-  const refereeing =
-    userId && subject.isReferee
-      ? (await gamesToReferee(db, userId)).filter(
-          (g) => g.status !== "final" && g.status !== "forfeit",
-        )
-      : [];
-  const pickups = await pickupsFor(
-    db,
-    refereeing.map((g) => g.id),
-  );
-  const games = await myGames;
   const nextGame = pickNextGame(games, now);
   const teamSeason = newestTeamSeason(
     games,
@@ -142,16 +158,30 @@ async function Account({ searchParams }: PageProps<"/app">) {
   );
   // The next game's park permit, for its ref and captains (ADR 0034).
   const nextGameId = parseId<GameId>(nextGame?.id);
-  const permitShown =
+  const seesPermit =
     nextGame !== null &&
-    nextGameId !== null &&
     can(subject, "permit.view_at_field", {
       game: {
         id: nextGame.id,
         teamSeasonIds: [nextGame.teamA.id, nextGame.teamB.id],
       },
-    }) &&
-    (await fieldPermitForGame(db, nextGameId)) !== null;
+    });
+  const timeZone = league?.timeZone ?? "America/New_York";
+  // The next game's day status (issue #383): watching, late or off.
+  const nextDate = nextGame?.startsAt
+    ? localDay(nextGame.startsAt, timeZone)
+    : null;
+  // The permit and the day's status, read at once.
+  const [permitShown, nextDay] = await Promise.all([
+    seesPermit && nextGameId !== null
+      ? fieldPermitForGame(db, nextGameId).then((p) => p !== null)
+      : false,
+    nextGame && nextDate
+      ? statusesFrom(db, nextGame.seasonId as SeasonId, nextDate).then(
+          (days) => days.get(nextDate) ?? null,
+        )
+      : null,
+  ]);
   // On its day, the next game's emergency contacts, for its ref and
   // captains (ADR 0043); kept on the phone until midnight after.
   const emergency =
@@ -183,23 +213,12 @@ async function Account({ searchParams }: PageProps<"/app">) {
   const won = await wins;
   const surveysOpen = await surveys;
   const [latestCard] = await cards;
-  const timeZone = league?.timeZone ?? "America/New_York";
   // Where the day's one "I'm at the field" button goes: the first of today's
   // games not checked in yet.
   const checkInGameId =
     refereeing.find(
       (g) => isGameDay(g.startsAt, now, timeZone) && !g.checkedInAt,
     )?.id ?? null;
-  // The next game's day status (issue #383): watching, late or off.
-  const nextDate = nextGame?.startsAt
-    ? localDay(nextGame.startsAt, timeZone)
-    : null;
-  const nextDay =
-    nextGame && nextDate
-      ? ((await statusesFrom(db, nextGame.seasonId as SeasonId, nextDate)).get(
-          nextDate,
-        ) ?? null)
-      : null;
   const nextStatus =
     nextGame && nextDay ? gameStatus(nextDay, nextGame.id) : null;
   const nextWords = nextStatus ? gameWords(nextStatus, timeZone) : null;
