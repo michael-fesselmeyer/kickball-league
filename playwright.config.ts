@@ -62,10 +62,11 @@ export default defineConfig({
           },
         },
       ]
-    : // `--shard` cuts this list, in this order, into contiguous pieces of
-      // equal test counts, so the flows sit between the two smoke projects
-      // and the long role journeys, few but slow, come last: the shard with
-      // the most flows doesn't also get the journeys.
+    : // CI runs the two smoke projects on one shard and splits the flows
+      // and journeys across three (`--project` with `--shard`, in
+      // .github/workflows/ci.yml): a flow takes several times as long as a
+      // smoke test, so cutting the whole list by count left one shard with
+      // most of the flows. The long role journeys, few but slow, come last.
       [
         {
           name: "phone",

@@ -236,8 +236,20 @@ jobs:
     timeout-minutes: 10
     strategy:
       fail-fast: false
+      # Cut by kind of test, not by count: a flow takes several times as
+      # long as a smoke test. Shard 1 runs every smoke test, which are quick,
+      # and then the site-wide switches; the other three split the flows and
+      # the role journeys, which run last.
       matrix:
-        shard: [1, 2, 3, 4]
+        include:
+          - shard: 1
+            tests: --project=phone --project=desktop
+          - shard: 2
+            tests: --project=flows --project=journeys --shard=1/3
+          - shard: 3
+            tests: --project=flows --project=journeys --shard=2/3
+          - shard: 4
+            tests: --project=flows --project=journeys --shard=3/3
     services:
       postgres:
         image: postgres:18
@@ -285,9 +297,9 @@ jobs:
       - run: tar --zstd -xf next-build.tar.zst && rm next-build.tar.zst
       - run: npm run db:migrate
       - name: Smoke tests and core flows with axe (seeds the database first)
-        run: npm run test:e2e -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+        run: npm run test:e2e -- ${{ matrix.tests }}
       # Read-only and paused change the site for every test at once, so the
-      # operator's site-wide switches run alone, after the rest, on one shard.
+      # operator's site-wide switches run alone, after the smoke tests.
       - name: The operator's site-wide switches (reseeds the database first)
         if: matrix.shard == 1
         run: npm run test:e2e:site-wide
