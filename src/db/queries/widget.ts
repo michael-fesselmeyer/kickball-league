@@ -4,9 +4,11 @@ import { league } from "../schema/league";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
+import { publicSeasons } from "./season-scope";
 
 /**
- * One league's public seasons for its schedule widget, newest first, with the
+ * One league's public seasons for its schedule widget (not drafts, not
+ * private leagues or tournaments), newest first, with the
  * league's time zone. `widgetSeason` picks the one it follows.
  */
 export function widgetSeasons(db: Db, leagueId: LeagueId) {
@@ -20,7 +22,7 @@ export function widgetSeasons(db: Db, leagueId: LeagueId) {
     })
     .from(season)
     .innerJoin(league, eq(season.leagueId, league.id))
-    .where(and(eq(season.leagueId, leagueId), ne(season.status, "draft")))
+    .where(and(eq(season.leagueId, leagueId), publicSeasons))
     .orderBy(desc(season.startsOn));
 }
 

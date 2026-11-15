@@ -49,6 +49,7 @@ import {
 } from "../schema/team";
 import { recordAudit } from "./audit";
 import type { Db } from "./schedule";
+import { publicSeasons } from "./season-scope";
 
 /**
  * Stat awards and player stats (ADR 0046; docs/data-model.md, section
@@ -612,12 +613,16 @@ export async function awardsBoard(
     .innerJoin(league, eq(season.leagueId, league.id))
     .leftJoin(statAwardSet, eq(statAwardSet.seasonId, season.id))
     .where(
-      "seasonId" in where
-        ? eq(season.id, where.seasonId)
-        : and(
-            eq(season.leagueId, where.leagueId),
-            eq(season.slug, where.seasonSlug),
-          ),
+      and(
+        "seasonId" in where
+          ? eq(season.id, where.seasonId)
+          : and(
+              eq(season.leagueId, where.leagueId),
+              eq(season.slug, where.seasonSlug),
+            ),
+        // The public page never shows a private league or tournament.
+        options.publishedOnly ? publicSeasons : undefined,
+      ),
     )
     .orderBy(desc(season.startsOn))
     .limit(1);
@@ -716,7 +721,11 @@ export async function publishedAwardSeasons(
     .from(statAwardSet)
     .innerJoin(season, eq(statAwardSet.seasonId, season.id))
     .where(
-      and(eq(season.leagueId, leagueId), isNotNull(statAwardSet.publishedAt)),
+      and(
+        eq(season.leagueId, leagueId),
+        isNotNull(statAwardSet.publishedAt),
+        publicSeasons,
+      ),
     )
     .orderBy(desc(season.startsOn));
   return rows.flatMap((r) =>
