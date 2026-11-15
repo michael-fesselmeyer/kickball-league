@@ -10,7 +10,12 @@ import {
   surfaceOf,
 } from "./fees";
 import { formAnswers, formText, officeFor } from "./give-back";
-import { hoursLevel, hoursText, permittedMinutes } from "./hours";
+import {
+  hoursLevel,
+  hoursText,
+  minutesWithSheet,
+  permittedMinutes,
+} from "./hours";
 import { permitPlan, type PlanWindow } from "./plan";
 import { NEW_YORK, sunset } from "./sun";
 
@@ -201,6 +206,12 @@ describe("the 50-hour line", () => {
     expect(hoursText(37.5 * 60)).toBe("37.5");
   });
 
+  it("adds an extra request on top, and takes a whole-season sheet as the ask", () => {
+    expect(minutesWithSheet(30 * 60, 24 * 60, true)).toBe(54 * 60);
+    expect(minutesWithSheet(30 * 60, 24 * 60, false)).toBe(30 * 60);
+    expect(minutesWithSheet(30 * 60, 54 * 60, false)).toBe(54 * 60);
+  });
+
   it("counts requested and confirmed windows, not lost ones", () => {
     const w = (status: string, hours: number) => ({
       startsAt: at("2026-09-06T16:00:00Z"),
@@ -354,6 +365,27 @@ describe("permitPlan", () => {
       park: "McCarren Park",
       office: { phone: "(718) 965-8975" },
     });
+  });
+
+  it("leaves out time that has already started", () => {
+    const started = permitPlan({
+      windows: [{ ...base, cancelledSlots: 6 }],
+      blackouts: new Set(),
+      parkFields: [field({})],
+      timeZone: tz,
+      now: at("2026-09-13T16:30:00Z"),
+      holder: "Example Kickball League",
+    });
+    expect(started.unused).toEqual([]);
+    const later = permitPlan({
+      windows: [{ ...base, cancelledSlots: 6 }],
+      blackouts: new Set(),
+      parkFields: [field({})],
+      timeZone: tz,
+      now: at("2026-09-13T15:59:00Z"),
+      holder: "Example Kickball League",
+    });
+    expect(later.unused).toHaveLength(1);
   });
 
   it("counts a blackout on the window's own field", () => {

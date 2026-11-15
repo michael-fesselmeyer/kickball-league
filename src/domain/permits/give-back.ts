@@ -22,13 +22,16 @@ export const PERMIT_OFFICES_PAGE =
  * help page, read 2026-11-14. Prospect Park and the Parade Ground have
  * their own Brooklyn line.
  */
-export const PERMIT_OFFICES: Readonly<Record<string, string>> = {
+export const PERMIT_OFFICES = {
   B: "(718) 965-8975",
   M: "(212) 408-0234",
   Q: "(718) 393-7272",
   R: "(718) 390-8010",
   X: "(718) 430-1840",
-};
+} as const;
+
+const isBorough = (code: string): code is keyof typeof PERMIT_OFFICES =>
+  Object.hasOwn(PERMIT_OFFICES, code);
 
 const PROSPECT_PARK_LINE = "(718) 965-8974";
 
@@ -49,7 +52,9 @@ export function officeFor(
   const phone =
     borough === "B" && park && /prospect park|parade ground/i.test(park)
       ? PROSPECT_PARK_LINE
-      : PERMIT_OFFICES[borough];
+      : isBorough(borough)
+        ? PERMIT_OFFICES[borough]
+        : undefined;
   return phone
     ? { name: `${boroughName(borough)} permit office`, phone }
     : null;
