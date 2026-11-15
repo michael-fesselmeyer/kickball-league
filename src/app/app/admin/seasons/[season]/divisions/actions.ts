@@ -159,6 +159,7 @@ export async function createRuleSetAction(slug: string, form: FormData) {
     bunting: form.get("bunting") === "on",
     stealing: form.get("stealing") === "on",
     permitEndRule: text(form, "permitEndRule"),
+    noNewInningMinutes: text(form, "noNewInningMinutes"),
   });
   if (!parsed.ok) back(page, "rule-sets", { error: `rule_${parsed.error}` });
   const result = await txDb.transaction((tx) =>

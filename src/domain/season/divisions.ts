@@ -1,6 +1,7 @@
 import { err, ok, type Result } from "../result";
 import { slugify } from "../slug";
 import { type PermitEndRule, permitEndRule } from "../gameday/permit-end";
+import { MAX_NO_NEW_INNING_MINUTES } from "../gameday/game-clock";
 
 /**
  * Divisions and rule sets as an admin enters them (ADR 0040). Pure: the
@@ -28,6 +29,8 @@ export type RuleSetInput = {
   stealing: boolean;
   /** What happens when a game reaches the end of its permit; the default when left out. */
   permitEndRule?: PermitEndRule;
+  /** Minutes before the time limit when no new inning starts; null for the default. */
+  noNewInningMinutes?: number | null;
 };
 
 /** A whole number in range, or null when the field was left empty. */
@@ -50,13 +53,24 @@ export function parseRuleSet(raw: {
   stealing: boolean;
   /** "last_inning_to_start" or "call_at_last_complete"; anything else is the default. */
   permitEndRule?: string;
+  /** Left empty for the default. */
+  noNewInningMinutes?: string;
 }): Result<RuleSetInput, "invalid_name" | "invalid_limits"> {
   const name = raw.name.trim().replace(/\s+/g, " ");
   if (!slugify(name) || name.length > MAX_DIVISION_NAME)
     return err("invalid_name");
   const innings = optionalWhole(raw.innings, 1, 15);
   const timeLimitMinutes = optionalWhole(raw.timeLimitMinutes, 10, 240);
-  if (innings === undefined || timeLimitMinutes === undefined)
+  const noNewInningMinutes = optionalWhole(
+    raw.noNewInningMinutes ?? "",
+    0,
+    MAX_NO_NEW_INNING_MINUTES,
+  );
+  if (
+    innings === undefined ||
+    timeLimitMinutes === undefined ||
+    noNewInningMinutes === undefined
+  )
     return err("invalid_limits");
   return ok({
     name,
@@ -65,6 +79,7 @@ export function parseRuleSet(raw: {
     bunting: raw.bunting,
     stealing: raw.stealing,
     permitEndRule: permitEndRule({ permitEndRule: raw.permitEndRule }),
+    noNewInningMinutes,
   });
 }
 
