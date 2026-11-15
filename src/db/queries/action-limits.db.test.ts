@@ -14,6 +14,7 @@ const ACTIONS: readonly LimitedAction[] = [
   "team_invite",
   "score_report",
   "waitlist",
+  "concern",
 ];
 const later = (seconds: number) => new Date(NOW.getTime() + seconds * 1000);
 

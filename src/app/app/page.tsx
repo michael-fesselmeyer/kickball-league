@@ -501,6 +501,9 @@ async function Account({ searchParams }: PageProps<"/app">) {
           Share a photo
         </Link>
       )}
+      <Link href="/app/concerns" className="btn btn-secondary">
+        Raise a concern
+      </Link>
       <Link href="/app/profile" className="btn btn-secondary">
         Your profile
       </Link>

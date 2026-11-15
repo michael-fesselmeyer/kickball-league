@@ -19,7 +19,15 @@ describe("the help center's how-tos", () => {
       HELP_ROLES.map((r) => [r.slug, r.articles.map((a) => a.id)]),
     );
     expect(titles).toEqual({
-      player: ["sign-up", "pay", "rsvp", "subs", "install", "alerts"],
+      player: [
+        "sign-up",
+        "pay",
+        "raise-concern",
+        "rsvp",
+        "subs",
+        "install",
+        "alerts",
+      ],
       captain: ["invite", "lineup", "scores", "co-captains", "find-subs"],
       ref: ["game-day", "live-scoring", "incidents"],
       admin: ["season-setup", "schedule", "rain-outs", "command-center"],

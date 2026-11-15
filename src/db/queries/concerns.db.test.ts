@@ -14,6 +14,9 @@ import {
   closeConcern,
   concernDetail,
   concernQueue,
+  gameInLeague,
+  myConcernDetail,
+  myConcerns,
   purgeConcernEmails,
   reopenConcern,
   submitConcern,
@@ -291,6 +294,70 @@ describe("keeping addresses", () => {
         .select({ key: message.dedupeKey, to: message.recipientEmail })
         .from(message);
       expect(queued.map((m) => m.to).sort()).toEqual(["other@example.test"]);
+    });
+  });
+});
+
+describe("a player's own concerns", () => {
+  it("shows only their own, with replies and what was done but never admin notes", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await messagingWorld(db);
+      const admin = w.aces.captain.userId;
+      const mine = required(w.aces.players[0], "a player");
+      const theirs = required(w.bees.players[0], "another player");
+      const id = await submitConcern(db, {
+        leagueId: w.leagueId,
+        leagueName: "Test League",
+        source: "player",
+        senderId: mine.userId,
+        form: form({ category: "treatment", parkRule: null }),
+        now: NOW,
+      });
+      await addConcernMessage(db, {
+        concernId: id,
+        authorId: admin,
+        kind: "note",
+        body: "Internal: talk to the captain.",
+        leagueName: "Test League",
+        now: hours(1),
+      });
+      await addConcernMessage(db, {
+        concernId: id,
+        authorId: admin,
+        kind: "reply",
+        body: "Thanks, we're looking into it.",
+        leagueName: "Test League",
+        now: hours(2),
+      });
+      await closeConcern(db, {
+        concernId: id,
+        actorId: admin,
+        outcome: "Spoke with everyone involved.",
+        leagueName: "Test League",
+        now: hours(3),
+      });
+      const seen = await myConcernDetail(db, id, mine.userId);
+      expect(seen?.replies.map((r) => r.body)).toEqual([
+        "Thanks, we're looking into it.",
+      ]);
+      expect(seen?.outcome).toBe("Spoke with everyone involved.");
+      expect(JSON.stringify(seen)).not.toContain("Internal");
+      // Another player, and a signed-out reader, find nothing.
+      expect(await myConcernDetail(db, id, theirs.userId)).toBeNull();
+      expect((await myConcerns(db, theirs.userId)).length).toBe(0);
+      expect((await myConcerns(db, mine.userId)).map((c) => c.id)).toEqual([
+        id,
+      ]);
+    });
+  });
+
+  it("only accepts a game link from this league", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await messagingWorld(db);
+      const other = await messagingWorld(db);
+      const g = await w.gameBetween(w.aces.id, w.bees.id, NOW);
+      expect(await gameInLeague(db, g.gameId, w.leagueId)).toBe(true);
+      expect(await gameInLeague(db, g.gameId, other.leagueId)).toBe(false);
     });
   });
 });

@@ -88,6 +88,31 @@ export const HELP_ROLES: readonly HelpRole[] = [
         ],
       },
       {
+        id: "raise-concern",
+        title: "Raise a concern with the league",
+        summary:
+          "Tell the league privately about a game, a team or how you were treated.",
+        steps: [
+          'From your home screen, tap "Raise a concern".',
+          "Choose what it is about, add a link to the game if there is one, and say what happened.",
+          'Tap "Send to the league". You get an email that it arrived.',
+          'Follow the answer under "Your concerns". You get an email when the league replies and when it closes the concern, with what was done.',
+        ],
+        notes: [
+          "Only the league's admins read it. It is never shown to the other team, your captain or anyone outside the league.",
+          "For an emergency at the field, call 911 first.",
+        ],
+        screen: { href: "/app/concerns/new", label: "Raise a concern" },
+        keywords: [
+          "complaint",
+          "report",
+          "safety",
+          "treated",
+          "private",
+          "contact",
+        ],
+      },
+      {
         id: "rsvp",
         title: "Say if you're coming (RSVP)",
         summary:

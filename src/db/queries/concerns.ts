@@ -7,6 +7,8 @@ import {
 import { err, ok, type Result } from "@/domain/result";
 import { concern, concernMessage } from "../schema/concern";
 import { user } from "../schema/auth";
+import { game } from "../schema/game";
+import { season } from "../schema/season";
 import { recordAudit } from "./audit";
 import { enqueueMessages } from "./outbox";
 import type { Db } from "./schedule";
@@ -387,4 +389,67 @@ export async function purgeConcernEmails(db: Db, now: Date): Promise<number> {
       );
     return gone.length;
   });
+}
+
+/** A signed-in player's own concerns, newest first. Never anyone else's. */
+export async function myConcerns(db: Db, userId: UserId) {
+  return db
+    .select({
+      id: concern.id,
+      category: concern.category,
+      status: concern.status,
+      createdAt: concern.createdAt,
+      closedAt: concern.closedAt,
+    })
+    .from(concern)
+    .where(eq(concern.senderId, userId))
+    .orderBy(desc(concern.createdAt))
+    .limit(100);
+}
+
+/**
+ * One of the player's own concerns with the league's replies and what was
+ * done. Admin notes are never returned, and a concern that is not theirs
+ * reads as missing.
+ */
+export async function myConcernDetail(db: Db, id: ConcernId, userId: UserId) {
+  const [row] = await db
+    .select({
+      id: concern.id,
+      category: concern.category,
+      body: concern.body,
+      status: concern.status,
+      createdAt: concern.createdAt,
+      closedAt: concern.closedAt,
+      outcome: concern.outcome,
+    })
+    .from(concern)
+    .where(and(eq(concern.id, id), eq(concern.senderId, userId)));
+  if (!row) return null;
+  const replies = await db
+    .select({
+      id: concernMessage.id,
+      body: concernMessage.body,
+      createdAt: concernMessage.createdAt,
+    })
+    .from(concernMessage)
+    .where(
+      and(eq(concernMessage.concernId, id), eq(concernMessage.kind, "reply")),
+    )
+    .orderBy(asc(concernMessage.createdAt));
+  return { ...row, replies };
+}
+
+/** Whether a game exists in the league, for an optional game link. */
+export async function gameInLeague(
+  db: Db,
+  gameId: GameId,
+  leagueId: LeagueId,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: game.id })
+    .from(game)
+    .innerJoin(season, eq(season.id, game.seasonId))
+    .where(and(eq(game.id, gameId), eq(season.leagueId, leagueId)));
+  return row !== undefined;
 }
