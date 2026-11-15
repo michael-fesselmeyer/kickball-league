@@ -46,6 +46,8 @@ npm run test:db
 
 It starts the server if it is stopped, creates the `ci` role and `ci` database only when they are missing, and runs `npm run db:migrate`, so it is safe to run again after pulling new migrations. It connects as the `postgres` superuser (through `sudo` when you are not root); set `PG_SUPERUSER_URL` to connect another way, for example to a Postgres in Docker. Nothing here is a secret: the database is local and holds only test data.
 
+A screen's reads should not grow with its rows. `inRolledBackDb` passes each test a `queriesSent` counter, so a test can hold a query to the same number of statements for three rows as for one (`src/db/queries/subs.db.test.ts` does this for the sub page).
+
 ## Demo mode
 
 The demo deployment lets anyone view the league as a player, captain, ref or admin in one tap, with a banner on every page. It is off unless `DEMO_MODE=true` **and** the database's name contains `demo` **and**, on a Vercel production deployment, the project's address contains `demo`; see [ADR 0004](adr/0004-demo-mode.md). To try it locally against a throwaway database:
