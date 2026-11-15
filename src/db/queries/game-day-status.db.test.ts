@@ -6,6 +6,7 @@ import { rendererFor } from "@/emails/templates";
 import type { Email, EmailSender } from "@/services/email";
 import type { SchedulerInput } from "@/domain/scheduler/types";
 import { auditLog } from "../schema/audit";
+import { leagueMember } from "../schema/league";
 import { message, notificationPreference } from "../schema/message";
 import { gamePlacement, scheduleVersion } from "../schema/schedule";
 import { messagingWorld } from "../test/messaging-world";
@@ -36,6 +37,11 @@ async function dayWorld(db: Db) {
   const dog = await w.person("dog-1");
   await w.join(cats, cat);
   await w.join(dogs, dog);
+  // An admin of this league, who gets the decision-time reminder.
+  const admin = await w.person("admin-1");
+  await db
+    .insert(leagueMember)
+    .values({ leagueId: w.leagueId, userId: admin.userId, role: "admin" });
   const version = required(
     (
       await db
@@ -62,7 +68,7 @@ async function dayWorld(db: Db) {
     });
   const season = { ...w.season, timeZone: TZ };
   const games = await dayGames(db, w.season.id, DATE, TZ);
-  return { ...w, cat, dog, early, late, season, games };
+  return { ...w, cat, dog, admin, early, late, season, games };
 }
 
 type World = Awaited<ReturnType<typeof dayWorld>>;
@@ -242,6 +248,8 @@ describe("a game day's status", () => {
       ).id;
       const reminders = await queued(db, `game-day-decide/${statusId}/`);
       expect(reminders).toHaveLength(saved.reminders);
+      // This league's admin is reminded; nobody from other leagues is.
+      expect(reminders.map((m) => m.userId)).toEqual([w.admin.userId]);
       expect(
         reminders.every((m) => m.sendAfter.getTime() === edt(15).getTime()),
       ).toBe(true);

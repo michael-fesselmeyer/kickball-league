@@ -6,6 +6,7 @@ import { dayGames, setDayStatus } from "@/db/queries/game-day-status";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { parseStatusForm } from "@/domain/gameday/status";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
 import { refreshSeasonPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 
@@ -26,7 +27,7 @@ export async function setStatusAction(
   });
   // Bound arguments come back from the browser: keep only a real date.
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) notFound();
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season || season.status === "draft") notFound();
   const back = (query: string) => redirect(`${page}?date=${date}&${query}`);
 

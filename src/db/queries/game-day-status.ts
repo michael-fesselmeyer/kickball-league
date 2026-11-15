@@ -20,10 +20,10 @@ import type {
   GameDayDecidePayload,
   GameDayWatchPayload,
 } from "@/emails/game-day";
-import { user } from "../schema/auth";
 import { gameDayStatus, gameDayStatusGame } from "../schema/game-day";
+import { leagueMember } from "../schema/league";
 import { message } from "../schema/message";
-import { profile } from "../schema/profile";
+import { season as seasonTable } from "../schema/season";
 import { registration, rosterMembership } from "../schema/team";
 import { recordAudit } from "./audit";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
@@ -334,11 +334,17 @@ export async function setDayStatus(
 
   let reminders = 0;
   if (status.state === "watching" && status.decideBy) {
+    // The admins and owners of the season's league (ADR 0048).
     const admins = await db
-      .select({ id: user.id })
-      .from(profile)
-      .innerJoin(user, eq(profile.userId, user.id))
-      .where(inArray(profile.globalRole, ["admin", "owner"]));
+      .select({ id: leagueMember.userId })
+      .from(seasonTable)
+      .innerJoin(leagueMember, eq(leagueMember.leagueId, seasonTable.leagueId))
+      .where(
+        and(
+          eq(seasonTable.id, season.id),
+          inArray(leagueMember.role, ["admin", "owner"]),
+        ),
+      );
     const payload = {
       seasonName: season.name,
       seasonSlug: season.slug,
