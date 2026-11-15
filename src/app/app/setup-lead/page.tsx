@@ -39,7 +39,9 @@ export default function SetupLeadPage(props: PageProps<"/app/setup-lead">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
       <h1 className="text-h1">Set-up lead</h1>
-      <Suspense fallback={<PageLoading>Loading today&apos;s fields…</PageLoading>}>
+      <Suspense
+        fallback={<PageLoading>Loading today&apos;s fields…</PageLoading>}
+      >
         <SetupLead {...props} />
       </Suspense>
     </main>
@@ -57,9 +59,9 @@ async function SetupLead({ searchParams }: PageProps<"/app/setup-lead">) {
   const now = new Date();
   const tz = league.timeZone;
   const today = localDay(now, tz);
-  const shifts = (
-    await setupLeadShifts(db, subject.userId, tz, now)
-  ).filter((s) => s.leagueId === league.id);
+  const shifts = (await setupLeadShifts(db, subject.userId, tz, now)).filter(
+    (s) => s.leagueId === league.id,
+  );
   const todays = shifts.filter((s) => s.date === today);
   const later = shifts.filter((s) => s.date > today);
   const query = await searchParams;
@@ -134,9 +136,7 @@ async function SetupLead({ searchParams }: PageProps<"/app/setup-lead">) {
               </ul>
             </div>
           ))}
-          {fields.length === 0 && (
-            <p>No games on the schedule today.</p>
-          )}
+          {fields.length === 0 && <p>No games on the schedule today.</p>}
           {fields.map((f) => {
             const check = checks.get(f.fieldId);
             const bind = [shift.seasonId, f.fieldId] as const;

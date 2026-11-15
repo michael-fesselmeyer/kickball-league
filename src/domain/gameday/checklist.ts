@@ -22,16 +22,17 @@ export const SCRIPT_MAX = 600;
 export const NOTE_MAX = 500;
 
 /** What a season's checklist says until its admins write their own. */
-export const DEFAULT_ITEMS: Readonly<Record<ChecklistPhase, readonly string[]>> =
-  {
-    before: [
-      "Permit ready on a phone or printed",
-      "Field set up inside the permitted area",
-      "Park users asked to move only by the set-up lead, and before play",
-      "No glass and no speakers",
-    ],
-    after: ["Trash out", "Everyone off the field by the permit's end"],
-  };
+export const DEFAULT_ITEMS: Readonly<
+  Record<ChecklistPhase, readonly string[]>
+> = {
+  before: [
+    "Permit ready on a phone or printed",
+    "Field set up inside the permitted area",
+    "Park users asked to move only by the set-up lead, and before play",
+    "No glass and no speakers",
+  ],
+  after: ["Trash out", "Everyone off the field by the permit's end"],
+};
 
 export const DEFAULT_MOVE_SCRIPT =
   "Hi! We're the kickball league and we have a permit for this field from [start] to [end]. Would you mind moving over before our games start? Thanks so much, and enjoy the park.";
@@ -48,10 +49,7 @@ export type ChecklistForm = {
 };
 
 export type ChecklistFormError =
-  | "too_many_items"
-  | "item_too_long"
-  | "no_items"
-  | "script_too_long";
+  "too_many_items" | "item_too_long" | "no_items" | "script_too_long";
 
 /**
  * Reads the admin's checklist form: one item per line for each phase,
@@ -98,7 +96,9 @@ export const needsAdmins = (outcome: MoveOutcome): boolean =>
   outcome !== "fine";
 
 /** A trimmed note, null when empty, or an error when too long. */
-export function parseNote(raw: unknown): Result<string | null, "note_too_long"> {
+export function parseNote(
+  raw: unknown,
+): Result<string | null, "note_too_long"> {
   const note =
     typeof raw === "string" && raw.trim() !== ""
       ? raw.trim().replace(/\s+/g, " ")

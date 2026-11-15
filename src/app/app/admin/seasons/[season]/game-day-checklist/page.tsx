@@ -69,8 +69,8 @@ async function Editor({
         <h1 className="text-h1">Game-day checklist</h1>
         <p className="text-text-muted">
           Each team&apos;s captains tick these on their game page on game day.
-          The set-up lead sees them too, with the script below and the
-          permit. One item per line.
+          The set-up lead sees them too, with the script below and the permit.
+          One item per line.
           {list.custom ? "" : " These are the league's defaults."}
         </p>
       </header>
