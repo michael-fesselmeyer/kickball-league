@@ -10,6 +10,8 @@ export const dayLabel = (date: string): string =>
 export const ERRORS: Record<string, string> = {
   no_published: "Publish a schedule before calling a rain-out.",
   no_games: "There are no slots on that date.",
+  already:
+    "That day is already rained out. Its makeups are a draft on the schedule screen.",
 };
 
 export const NOTICES: Record<string, string> = {

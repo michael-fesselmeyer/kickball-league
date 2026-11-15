@@ -7,16 +7,19 @@ import type { ForecastHour } from "@/domain/weather/forecast";
 import { rendererFor } from "@/emails/templates";
 import type { Email, EmailSender } from "@/services/email";
 import { auditLog } from "../schema/audit";
-import { venue } from "../schema/game";
+import { slot, venue } from "../schema/game";
 import { league } from "../schema/league";
 import { message } from "../schema/message";
 import { profile } from "../schema/profile";
 import { gamePlacement, scheduleVersion } from "../schema/schedule";
+import { weatherSnapshot } from "../schema/weather";
 import { messagingWorld } from "../test/messaging-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { drainOutbox } from "./outbox";
 import {
   adminsConfirmRainouts,
+  anySlotOpen,
+  cancelOpenSlots,
   gameDayParks,
   gameDaysForDecision,
   queueDecisionAlerts,
@@ -245,6 +248,37 @@ describe("the parks on a game day", () => {
   });
 });
 
+describe("a day already rained out", () => {
+  it("cancels a day's open slots once, however many confirm it", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await decisionWorld(db, [13, 15]);
+      const parks = () => gameDayParks(db, w.season.id, "2026-09-13", TZ);
+      const [park] = await parks();
+      expect(park?.games).toHaveLength(2);
+      const slots = (
+        await db
+          .select({ id: slot.id })
+          .from(slot)
+          .where(eq(slot.seasonId, w.season.id))
+      ).map((s) => s.id);
+
+      expect(await anySlotOpen(db, slots)).toBe(true);
+      expect(await cancelOpenSlots(db, slots)).toHaveLength(slots.length);
+      // A second confirm finds nothing left to cancel.
+      expect(await cancelOpenSlots(db, slots)).toEqual([]);
+      expect(await anySlotOpen(db, slots)).toBe(false);
+      expect(await cancelOpenSlots(db, [])).toEqual([]);
+      // The card and the alert no longer count the day's games.
+      expect(await parks()).toEqual([]);
+      expect(
+        (await gameDaysForDecision(db, edt(13, 9))).filter(
+          (d) => d.seasonId === w.season.id,
+        ),
+      ).toEqual([]);
+    });
+  });
+});
+
 describe("the decision-time alert", () => {
   it("finds a game day 2 to 8 hours before first pitch, and not otherwise", async () => {
     await inRolledBackDb(async (db) => {
@@ -360,14 +394,13 @@ describe("the saved weather", () => {
   it("reads a row in an old shape as nothing rather than as wrong numbers", async () => {
     await inRolledBackDb(async (db) => {
       const place = placeKey(40.7, -73.9);
-      await saveWeather(
-        db,
+      // An older shape, as a past version might have saved it.
+      await db.insert(weatherSnapshot).values({
         place,
-        "observed",
-        // An older shape, as a past version might have saved it.
-        { stationId: "KNYC" } as never,
-        edt(13, 10),
-      );
+        part: "observed",
+        data: { stationId: "KNYC" },
+        fetchedAt: edt(13, 10),
+      });
       expect(await lastWeather(db, place, "observed")).toBeNull();
     });
   });

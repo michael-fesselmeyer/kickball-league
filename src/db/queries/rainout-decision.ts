@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
-import type { LeagueId, SeasonId, UserId } from "@/domain/ids";
+import type { LeagueId, SeasonId, SlotId, UserId } from "@/domain/ids";
 import { kickoff, shortDay } from "@/domain/schedule/format";
 import { localDay } from "@/domain/schedule/public-game";
 import type { RainRisk, Window } from "@/domain/weather/forecast";
@@ -114,6 +114,9 @@ export async function gameDayParks(
       and(
         eq(game.seasonId, seasonId),
         ne(game.status, "cancelled"),
+        // A slot cancelled by a confirmed rain-out is off, whatever the
+        // published version still says.
+        eq(slot.status, "open"),
         gte(slot.startsAt, from),
         lt(slot.startsAt, until),
       ),
@@ -133,6 +136,39 @@ export async function gameDayParks(
     parks.set(r.venueId, park);
   }
   return [...parks.values()];
+}
+
+/**
+ * Cancels the slots still open among `slotIds` and returns them. Two people
+ * confirming the same day at once each update the same rows; the second
+ * waits for the first, then finds nothing open, so the day is rained out
+ * and its makeups drafted once.
+ */
+export async function cancelOpenSlots(
+  db: Db,
+  slotIds: readonly SlotId[],
+): Promise<SlotId[]> {
+  if (slotIds.length === 0) return [];
+  const rows = await db
+    .update(slot)
+    .set({ status: "cancelled" })
+    .where(and(inArray(slot.id, [...slotIds]), eq(slot.status, "open")))
+    .returning({ id: slot.id });
+  return rows.map((r) => r.id);
+}
+
+/** Whether any of a day's slots is still open: it hasn't been rained out. */
+export async function anySlotOpen(
+  db: Db,
+  slotIds: readonly SlotId[],
+): Promise<boolean> {
+  if (slotIds.length === 0) return false;
+  const [row] = await db
+    .select({ id: slot.id })
+    .from(slot)
+    .where(and(inArray(slot.id, [...slotIds]), eq(slot.status, "open")))
+    .limit(1);
+  return row !== undefined;
 }
 
 /** Everyone who confirms rain-outs: the owners, and admins when allowed. */

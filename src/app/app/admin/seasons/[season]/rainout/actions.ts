@@ -1,11 +1,13 @@
 "use server";
 
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { recordAudit } from "@/db/queries/audit";
 import {
   adminsConfirmRainouts,
+  anySlotOpen,
+  cancelOpenSlots,
   gameDayParks,
   sendRainoutToOwners,
   setAdminsConfirmRainouts,
@@ -14,7 +16,6 @@ import {
 import { loadVersion, saveVersion } from "@/db/queries/schedule";
 import { seasonBySlug, versionsOf } from "@/db/queries/schedule-screen";
 import { user } from "@/db/schema/auth";
-import { slot } from "@/db/schema/game";
 import type { SlotId } from "@/domain/ids";
 import { reschedule } from "@/domain/scheduler/reschedule";
 import { requirePermissionToChange } from "@/lib/auth/permission";
@@ -71,10 +72,9 @@ export async function declareRainout(
   const result = reschedule(version.input, version.schedule, cancelled);
 
   const draftId = await txDb.transaction(async (tx) => {
-    await tx
-      .update(slot)
-      .set({ status: "cancelled" })
-      .where(inArray(slot.id, cancelled as SlotId[]));
+    // Someone else confirmed this day first: nothing more to cancel.
+    if ((await cancelOpenSlots(tx, cancelled as SlotId[])).length === 0)
+      return null;
     const id = await saveVersion(tx, {
       seasonId: version.seasonId,
       // Cancelled slots are gone: they are neither reserve nor places to move to.
@@ -103,6 +103,7 @@ export async function declareRainout(
     });
     return id;
   });
+  if (draftId === null) redirect(`${page}?date=${date}&error=already`);
   // The cancelled slots show as called off on the public pages at once.
   refreshSeasonPages(season.id);
   redirect(`/app/admin/seasons/${slug}/schedule?rainout=${draftId}`);
@@ -129,8 +130,12 @@ export async function sendRainoutAction(
   );
   const version = published ? await loadVersion(db, published.id) : null;
   if (!version) redirect(`${page}?error=no_published`);
-  if (!version.input.slots.some((s) => s.date === date))
-    redirect(`${page}?error=no_games`);
+  const daySlots = version.input.slots
+    .filter((s) => s.date === date)
+    .map((s) => s.id as SlotId);
+  if (daySlots.length === 0) redirect(`${page}?error=no_games`);
+  if (!(await anySlotOpen(db, daySlots)))
+    redirect(`${page}?date=${date}&error=already`);
 
   // The card's sentence goes along when the weather can be read; read
   // before the transaction, so a slow forecast never holds one open.
