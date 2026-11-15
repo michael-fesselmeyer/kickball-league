@@ -1,6 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import type { Db } from "@/db/queries/schedule";
 import { field, game, slot, venue } from "@/db/schema/game";
+import { fieldLayout } from "@/db/schema/field-layout";
 import { league, leagueMember } from "@/db/schema/league";
 import { scheduleVersion } from "@/db/schema/schedule";
 import { season } from "@/db/schema/season";
@@ -194,6 +195,7 @@ export async function addSecondLeague(db: Db): Promise<void> {
   await db
     .insert(field)
     .values({ id: fieldId, venueId, name: "Field 1", sortOrder: 0 });
+  await db.insert(fieldLayout).values({ fieldId, noLayoutNeeded: true });
 
   const teams = TEAMS.map((t, i) => ({
     id: fixed<TeamId>(10 + i),

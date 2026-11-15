@@ -2027,6 +2027,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `social_post` | check a hidden post is neither featured nor a cover; check a team cover has a team | Hiding always wins |
 | `social_post` | unique `(account_id)` where `cover = 'home'`; unique `(team_id)` where `cover = 'team'` | One cover per page |
 | `social_image` | check type is JPEG, PNG or WebP and `byte_size = octet_length(bytes)` up to 2 MB | Only images are stored and served; the 25 MB total is enforced by the sync |
+| `field_layout` | primary key `field_id`; check not both a file and "no layout needed"; note 1 to 280 characters | One layout per field, not per season: fields do not move. Its image is a `books_file` of kind `layout` under the same limits; replacing it deletes the old file. A schedule is published only when every field it uses has a layout or "no layout needed" (#403) |
 | `books_file` | check type is WebP or PDF and `byte_size = octet_length(bytes)` up to 1 MB | Only resized photos and small PDFs are stored; the 50 MB total is enforced when a file is added |
 | `expense` | unique `(recurring_cost_id, season_id, due_on)`; unique `(season_id, import_key)`; check not both `no_receipt` and a receipt | An expected cost is confirmed once; a statement row is imported once; "no receipt" never sits beside one |
 | `recurring_cost` | check `amount_cents > 0` and a label of 1 to 80 characters | |
