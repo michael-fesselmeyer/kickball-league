@@ -293,12 +293,9 @@ async function Console({ searchParams }: PageProps<"/operator">) {
                 required={false}
               />
             </div>
-            <button
-              type="submit"
-              className="min-h-11 self-start rounded-full border-2 border-text px-5 font-semibold"
-            >
+            <SubmitButton className="min-h-11 self-start rounded-full border-2 border-text px-5 font-semibold">
               Create league
-            </button>
+            </SubmitButton>
           </fieldset>
         </form>
       </section>
