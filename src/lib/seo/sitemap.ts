@@ -1,4 +1,6 @@
 import type { MetadataRoute } from "next";
+import { type Locale, localizedPath } from "@/i18n/locales";
+import { localesOf } from "@/i18n/pages";
 import { absoluteUrl } from "../site";
 
 /**
@@ -44,22 +46,63 @@ export const CONTENT_PAGES = [
 /** A public page backed by data, with the time it last changed. */
 export type DataPage = { path: string; lastModified: Date };
 
+type Entry = MetadataRoute.Sitemap[number];
+
+/**
+ * A page's entries: one per language it is translated into (ADR 0065),
+ * each listing the others as `hreflang` alternates. English only: one
+ * entry, as before.
+ */
+function inEachLanguage(
+  origin: string,
+  path: string,
+  entry: Omit<Entry, "url">,
+  localesFor: (path: string) => Locale[],
+): Entry[] {
+  const locales = localesFor(path);
+  const url = (locale: Locale) =>
+    absoluteUrl(origin, localizedPath(locale, path));
+  const alternates =
+    locales.length > 1
+      ? {
+          alternates: {
+            languages: Object.fromEntries(locales.map((l) => [l, url(l)])),
+          },
+        }
+      : {};
+  return locales.map((locale) => ({
+    ...entry,
+    url: url(locale),
+    ...alternates,
+  }));
+}
+
 export function buildSitemap(
   origin: string,
   dataPages: readonly DataPage[] = [],
+  localesFor: (path: string) => Locale[] = localesOf,
 ): MetadataRoute.Sitemap {
   return [
-    ...CONTENT_PAGES.map((page) => ({
-      url: absoluteUrl(origin, page.path),
-      changeFrequency: page.changeFrequency,
-      priority: page.priority,
-    })),
-    ...dataPages.map((page) => ({
-      url: absoluteUrl(origin, page.path),
-      lastModified: page.lastModified,
-      changeFrequency: "daily" as const,
-      priority: 0.5,
-    })),
+    ...CONTENT_PAGES.flatMap((page) =>
+      inEachLanguage(
+        origin,
+        page.path,
+        { changeFrequency: page.changeFrequency, priority: page.priority },
+        localesFor,
+      ),
+    ),
+    ...dataPages.flatMap((page) =>
+      inEachLanguage(
+        origin,
+        page.path,
+        {
+          lastModified: page.lastModified,
+          changeFrequency: "daily" as const,
+          priority: 0.5,
+        },
+        localesFor,
+      ),
+    ),
   ];
 }
 

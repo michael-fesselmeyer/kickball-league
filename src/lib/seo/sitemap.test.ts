@@ -86,3 +86,25 @@ describe("buildRobots", () => {
     });
   });
 });
+
+describe("buildSitemap in several languages", () => {
+  it("lists a translated page once per language, each with the others as alternates", () => {
+    const sitemap = buildSitemap(ORIGIN, [], (path) =>
+      path === "/faq" ? ["en", "es"] : ["en"],
+    );
+    const faq = sitemap.filter((e) => e.url.endsWith("/faq"));
+    expect(faq.map((e) => e.url)).toEqual([
+      `${ORIGIN}/faq`,
+      `${ORIGIN}/es/faq`,
+    ]);
+    for (const entry of faq)
+      expect(entry.alternates?.languages).toEqual({
+        en: `${ORIGIN}/faq`,
+        es: `${ORIGIN}/es/faq`,
+      });
+    // A page in English only has no alternates.
+    expect(sitemap.find((e) => e.url === `${ORIGIN}/about`)?.alternates).toBe(
+      undefined,
+    );
+  });
+});
