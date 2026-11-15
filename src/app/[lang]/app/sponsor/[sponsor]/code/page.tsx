@@ -16,7 +16,7 @@ import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Check-in code" };
 
-type Props = PageProps<"/app/sponsor/[sponsor]/code">;
+type Props = PageProps<"/[lang]/app/sponsor/[sponsor]/code">;
 
 /**
  * The rotating check-in code, for a screen at the bar. It changes every

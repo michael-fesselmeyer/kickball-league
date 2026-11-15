@@ -17,7 +17,7 @@ import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Weekly numbers" };
 
-type Props = PageProps<"/app/sponsor/[sponsor]/report">;
+type Props = PageProps<"/[lang]/app/sponsor/[sponsor]/report">;
 
 const WEEKS = 8;
 

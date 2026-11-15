@@ -27,7 +27,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Not-on-my-team lists" };
 
 export default function TeamListsPage(
-  props: PageProps<"/app/admin/team-lists">,
+  props: PageProps<"/[lang]/app/admin/team-lists">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -50,7 +50,7 @@ const MESSAGES: Record<string, { ok: boolean; text: string }> = {
 
 const field = "rounded-md border border-border bg-surface px-2 py-2";
 
-async function TeamLists({ searchParams }: PageProps<"/app/admin/team-lists">) {
+async function TeamLists({ searchParams }: PageProps<"/[lang]/app/admin/team-lists">) {
   const subject = await requirePermission("keep_off.review", {
     next: "/app/admin/team-lists",
   });

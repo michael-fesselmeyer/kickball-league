@@ -1,18 +1,23 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import Link from "next/link";
+import { Suspense } from "react";
 import { DemoBanner } from "@/components/demo-banner";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { Kickball } from "@/components/kickball";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { env } from "@/env";
 import { nativeShellScript } from "@/lib/mobile/native-shell";
+import { LOCALES, localizedPath } from "@/i18n/locales";
+import { isTranslated } from "@/i18n/pages";
+import { localeOf, messagesFor } from "@/i18n/messages";
 import { registerWorkerScript } from "@/lib/pwa/install";
 import { appIconPath } from "@/lib/pwa/icons";
 import { THEME_COLORS } from "@/lib/pwa/theme-colors";
 import { isIndexable, SITE, siteOrigin } from "@/lib/site";
 import { applySavedThemeScript } from "@/lib/theme";
-import "./globals.css";
-import "./motion.css";
+import "../globals.css";
+import "../motion.css";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -29,12 +34,38 @@ const bricolage = Bricolage_Grotesque({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: { default: "Kickball League", template: "%s · Kickball League" },
+/**
+ * Every page lives under `[lang]` (ADR 0065), so the root layout knows the
+ * page's language from the path and stays static. The proxy only ever
+ * serves a known language's tree; any other first segment is a page path
+ * and lands on the not-found page.
+ */
+export function generateStaticParams() {
+  return LOCALES.map((lang) => ({ lang }));
+}
+
+const OPEN_GRAPH_LOCALES = { en: "en_US", es: "es_US" } as const;
+
+export async function generateMetadata({
+  params,
+}: LayoutProps<"/[lang]">): Promise<Metadata> {
+  const locale = localeOf((await params).lang);
+  const brand = messagesFor(locale).shell.brand;
+  return {
+    ...METADATA,
+    title: { default: brand, template: `%s · ${brand}` },
+    openGraph: {
+      siteName: SITE.name,
+      type: "website",
+      locale: OPEN_GRAPH_LOCALES[locale],
+    },
+  };
+}
+
+const METADATA: Metadata = {
   description: SITE.description,
   // Relative canonical and share URLs resolve against this deployment.
   metadataBase: new URL(siteOrigin(env.BETTER_AUTH_URL)),
-  openGraph: { siteName: SITE.name, type: "website", locale: "en_US" },
   // Previews and local builds stay out of search (docs/seo-plan.md).
   robots: isIndexable(process.env) ? undefined : { index: false },
   // The installable app (docs/architecture.md, section 14).
@@ -54,26 +85,34 @@ export const viewport: Viewport = {
 };
 
 const FOOTER_LINKS = [
-  { href: "/seasons", label: "Schedules" },
-  { href: "/history", label: "History" },
-  { href: "/about", label: "About" },
-  { href: "/events", label: "Events" },
-  { href: "/faq", label: "FAQ" },
-  { href: "/contact", label: "Contact" },
-  { href: "/friends", label: "Friends" },
-  { href: "/help", label: "Help" },
-  { href: "/parks/mccarren-park", label: "McCarren Park" },
-  { href: "/rules", label: "Rules" },
-  { href: "/sponsors", label: "Sponsors" },
-  { href: "/sign-in", label: "Sign in" },
+  { href: "/seasons", key: "schedules" },
+  { href: "/history", key: "history" },
+  { href: "/about", key: "about" },
+  { href: "/events", key: "events" },
+  { href: "/faq", key: "faq" },
+  { href: "/contact", key: "contact" },
+  { href: "/friends", key: "friends" },
+  { href: "/help", key: "help" },
+  { href: "/parks/mccarren-park", key: "park" },
+  { href: "/rules", key: "rules" },
+  { href: "/sponsors", key: "sponsors" },
+  { href: "/sign-in", key: "signIn" },
 ] as const;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({
+  children,
+  params,
+}: LayoutProps<"/[lang]">) {
+  const locale = localeOf((await params).lang);
+  const { shell } = messagesFor(locale);
+  // A link stays in the page's language where its target is translated.
+  const href = (path: string) =>
+    isTranslated(locale, path) ? localizedPath(locale, path) : path;
   return (
     // data-theme is set before paint by the script below, so React must not
     // warn that the server-rendered attribute differs.
     <html
-      lang="en"
+      lang={locale}
       className={`${inter.variable} ${bricolage.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -93,7 +132,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           href="#content"
           className="fixed top-[calc(var(--safe-top)+0.5rem)] left-[calc(var(--safe-left)+0.5rem)] z-50 btn -translate-y-20 btn-primary focus:translate-y-0 print:hidden"
         >
-          Skip to content
+          {shell.skipToContent}
         </a>
         {/* Paints the status bar's strip in the app with the header's color. */}
         <div className="bg-surface pt-safe print:pt-0">
@@ -101,13 +140,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <header className="border-b-2 border-text bg-surface print:hidden">
             <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-2 md:px-6">
               <Link
-                href="/"
+                href={href("/")}
                 className="flex items-center gap-2 font-display text-h3 font-extrabold text-text"
               >
                 <Kickball className="size-8 -rotate-12" />
-                Kickball League
+                {shell.brand}
               </Link>
-              <ThemeSwitch />
+              <ThemeSwitch labels={shell.theme} />
             </div>
           </header>
         </div>
@@ -120,19 +159,25 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </div>
         <footer className="border-t-2 border-text bg-surface pb-safe print:hidden">
           <nav
-            aria-label="Site"
+            aria-label={shell.siteNav}
             className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-4 md:px-6"
           >
             {FOOTER_LINKS.map((link) => (
               <Link
                 key={link.href}
-                href={link.href}
+                href={href(link.href)}
                 className="inline-flex min-h-11 items-center font-bold text-text underline-offset-4 hover:underline"
               >
-                {link.label}
+                {shell.footer[link.key]}
               </Link>
             ))}
           </nav>
+          <div className="mx-auto w-full max-w-5xl px-4 pb-4 md:px-6">
+            {/* The path is request data on a dynamic page (Cache Components). */}
+            <Suspense fallback={null}>
+              <LanguageSwitcher current={locale} label={shell.language.group} />
+            </Suspense>
+          </div>
         </footer>
       </body>
     </html>

@@ -37,7 +37,7 @@ import { sportRules } from "@/domain/sports/sports";
 export const metadata: Metadata = { title: "Divisions" };
 
 export default function DivisionsPage(
-  props: PageProps<"/app/admin/seasons/[season]/divisions">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/divisions">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
@@ -81,7 +81,7 @@ const input =
 async function Divisions({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/divisions">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/divisions">) {
   const { season: slug } = await params;
   const raw = await searchParams;
   const query = Object.fromEntries(

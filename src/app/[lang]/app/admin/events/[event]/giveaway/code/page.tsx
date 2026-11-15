@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { RefreshAt } from "@/app/app/sponsor/[sponsor]/code/refresh";
+import { RefreshAt } from "@/app/[lang]/app/sponsor/[sponsor]/code/refresh";
 import { db } from "@/db/client";
 import { eventBySlug } from "@/db/queries/events";
 import { giveawayCodeSecret } from "@/db/queries/giveaways";
@@ -17,7 +17,7 @@ import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Giveaway entry code" };
 
-type Props = PageProps<"/app/admin/events/[event]/giveaway/code">;
+type Props = PageProps<"/[lang]/app/admin/events/[event]/giveaway/code">;
 
 /**
  * The giveaway's rotating entry code, for a phone or screen at the event.

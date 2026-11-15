@@ -14,7 +14,7 @@ import { activeLeaguePath } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Money summary" };
 
 export default function SummaryPage(
-  props: PageProps<"/app/owner/[season]/summary">,
+  props: PageProps<"/[lang]/app/owner/[season]/summary">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -47,7 +47,7 @@ const date = (d: Date, timeZone: string) =>
 async function Summary({
   params,
   searchParams,
-}: PageProps<"/app/owner/[season]/summary">) {
+}: PageProps<"/[lang]/app/owner/[season]/summary">) {
   const { season: slug } = await params;
   const page = `/app/owner/${slug}/summary`;
   await requirePermission("money_summary.publish", { next: page });

@@ -14,7 +14,7 @@ import { activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Sportsmanship" };
 
 export default function SportsmanshipPage(
-  props: PageProps<"/app/admin/seasons/[season]/sportsmanship">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/sportsmanship">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -27,7 +27,7 @@ export default function SportsmanshipPage(
 
 async function Ratings({
   params,
-}: PageProps<"/app/admin/seasons/[season]/sportsmanship">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/sportsmanship">) {
   await requireFeature("discipline");
   const { season: slug } = await params;
   await requirePermission("sportsmanship.view", {

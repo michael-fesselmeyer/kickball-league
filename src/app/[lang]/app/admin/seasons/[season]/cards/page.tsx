@@ -13,7 +13,7 @@ import { buildSeasonCardsAction } from "./actions";
 
 export const metadata: Metadata = { title: "Season cards" };
 
-type Props = PageProps<"/app/admin/seasons/[season]/cards">;
+type Props = PageProps<"/[lang]/app/admin/seasons/[season]/cards">;
 
 export default function SeasonCardsAdminPage(props: Props) {
   return (

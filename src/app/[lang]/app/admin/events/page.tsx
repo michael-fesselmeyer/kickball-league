@@ -11,7 +11,7 @@ import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Manage events" };
 
-export default function AdminEventsPage(props: PageProps<"/app/admin/events">) {
+export default function AdminEventsPage(props: PageProps<"/[lang]/app/admin/events">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading events…</PageLoading>}>
@@ -21,7 +21,7 @@ export default function AdminEventsPage(props: PageProps<"/app/admin/events">) {
   );
 }
 
-async function AdminEvents({ searchParams }: PageProps<"/app/admin/events">) {
+async function AdminEvents({ searchParams }: PageProps<"/[lang]/app/admin/events">) {
   await requirePermission("event.manage", { next: "/app/admin/events" });
   const query = await searchParams;
   const league = await activeLeague();

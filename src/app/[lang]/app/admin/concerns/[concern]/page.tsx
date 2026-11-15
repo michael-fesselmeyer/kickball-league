@@ -20,7 +20,7 @@ import { addMessageAction, closeAction, reopenAction } from "../actions";
 export const metadata: Metadata = { title: "Concern" };
 
 export default function ConcernPage(
-  props: PageProps<"/app/admin/concerns/[concern]">,
+  props: PageProps<"/[lang]/app/admin/concerns/[concern]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -50,7 +50,7 @@ const field = "rounded-md border border-border bg-surface px-2 py-2";
 async function Concern({
   params,
   searchParams,
-}: PageProps<"/app/admin/concerns/[concern]">) {
+}: PageProps<"/[lang]/app/admin/concerns/[concern]">) {
   const { concern: rawId } = await params;
   const query = await searchParams;
   const subject = await requirePermission("concern.review", {

@@ -29,7 +29,7 @@ import {
   sessionSignedInAt,
 } from "@/lib/auth/permission";
 import { stripeClient } from "@/services/stripe";
-import { recordPaymentFor } from "@/app/app/seasons/[season]/record-payment";
+import { recordPaymentFor } from "@/app/[lang]/app/seasons/[season]/record-payment";
 import { logError } from "@/lib/log-error";
 import { activeLeagueId } from "@/lib/league/active";
 import { requireInLeague } from "@/lib/league/guard";

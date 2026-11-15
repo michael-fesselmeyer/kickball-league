@@ -15,7 +15,7 @@ import { requestOrigin } from "@/lib/calendar-links";
  */
 export async function GET(
   request: Request,
-  ctx: RouteContext<"/l/[league]/teams/[team]/calendar.ics">,
+  ctx: RouteContext<"/[lang]/l/[league]/teams/[team]/calendar.ics">,
 ) {
   const { league: segment, team: slug } = await ctx.params;
   const league = await leagueBySegment(db, segment);

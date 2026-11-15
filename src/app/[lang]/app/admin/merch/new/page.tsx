@@ -9,7 +9,7 @@ import { PageLoading } from "@/components/page-loading";
 export const metadata: Metadata = { title: "New merch item" };
 
 export default function NewMerchItemPage(
-  props: PageProps<"/app/admin/merch/new">,
+  props: PageProps<"/[lang]/app/admin/merch/new">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
@@ -20,7 +20,7 @@ export default function NewMerchItemPage(
   );
 }
 
-async function NewItem({ searchParams }: PageProps<"/app/admin/merch/new">) {
+async function NewItem({ searchParams }: PageProps<"/[lang]/app/admin/merch/new">) {
   await requirePermission("merch.manage", { next: "/app/admin/merch/new" });
   const query = await searchParams;
   return (

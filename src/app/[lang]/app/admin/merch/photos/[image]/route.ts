@@ -7,7 +7,7 @@ import { imageResponse, notFound } from "@/lib/social/image-response";
 /** Any merch photo, a hidden item's included, for the admin screens only. */
 export async function GET(
   _request: Request,
-  ctx: RouteContext<"/app/admin/merch/photos/[image]">,
+  ctx: RouteContext<"/[lang]/app/admin/merch/photos/[image]">,
 ): Promise<Response> {
   await requirePermission("merch.manage", { next: "/app/admin/merch" });
   const id = parseId<MerchImageId>((await ctx.params).image);

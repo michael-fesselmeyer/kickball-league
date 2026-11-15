@@ -8,7 +8,7 @@ import { ReportCard } from "../../../report-card";
 
 export const metadata: Metadata = { title: "Season report" };
 
-type Props = PageProps<"/app/owner/[season]/report/share">;
+type Props = PageProps<"/[lang]/app/owner/[season]/report/share">;
 
 /**
  * The report card owners can show sponsors: the same lines and charts with

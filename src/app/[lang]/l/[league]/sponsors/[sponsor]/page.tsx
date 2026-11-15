@@ -19,7 +19,7 @@ import type { LeagueId } from "@/domain/ids";
 import { leagueHref } from "@/domain/league/paths";
 import { cachedLeague, publicLeague } from "@/lib/league/public";
 
-type Props = PageProps<"/l/[league]/sponsors/[sponsor]">;
+type Props = PageProps<"/[lang]/l/[league]/sponsors/[sponsor]">;
 
 /** Every sponsor's page is prerendered at build time and cached. */
 export async function generateStaticParams(props: LeagueParams) {

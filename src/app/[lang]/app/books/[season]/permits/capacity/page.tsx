@@ -29,7 +29,7 @@ import { planChoices, requestHref } from "./choices";
 export const metadata: Metadata = { title: "Capacity planner" };
 
 export default function CapacityPage(
-  props: PageProps<"/app/books/[season]/permits/capacity">,
+  props: PageProps<"/[lang]/app/books/[season]/permits/capacity">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
@@ -119,7 +119,7 @@ function describe(
 async function Planner({
   params,
   searchParams,
-}: PageProps<"/app/books/[season]/permits/capacity">) {
+}: PageProps<"/[lang]/app/books/[season]/permits/capacity">) {
   const { season: slug } = await params;
   const page = `/app/books/${slug}/permits/capacity`;
   await requirePermission("books.manage", { next: page });

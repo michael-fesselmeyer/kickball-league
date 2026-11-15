@@ -27,7 +27,7 @@ import { LeagueLink } from "@/components/league-link";
 export const metadata: Metadata = { title: "Owner dashboard" };
 
 export default function OwnerDashboardPage(
-  props: PageProps<"/app/owner/[season]">,
+  props: PageProps<"/[lang]/app/owner/[season]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
@@ -66,7 +66,7 @@ const weekLabel = (on: string) =>
 async function Dashboard({
   params,
   searchParams,
-}: PageProps<"/app/owner/[season]">) {
+}: PageProps<"/[lang]/app/owner/[season]">) {
   const { season: slug } = await params;
   const page = `/app/owner/${slug}`;
   await requirePermission("dashboard.view", { next: page });

@@ -17,7 +17,7 @@ import { SubmitButton } from "@/components/submit-button";
 export const metadata: Metadata = { title: "Delete your account" };
 
 export default function DeleteAccountPage(
-  props: PageProps<"/app/profile/delete">,
+  props: PageProps<"/[lang]/app/profile/delete">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -44,7 +44,7 @@ const ERRORS: Record<string, string> = {
 
 async function DeleteAccount({
   searchParams,
-}: PageProps<"/app/profile/delete">) {
+}: PageProps<"/[lang]/app/profile/delete">) {
   const subject = await requireSelf(
     "data.export_or_delete",
     "/app/profile/delete",

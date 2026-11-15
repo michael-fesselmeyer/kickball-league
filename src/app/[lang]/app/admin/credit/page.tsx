@@ -14,7 +14,7 @@ import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "League credit" };
 
-export default function CreditPage(props: PageProps<"/app/admin/credit">) {
+export default function CreditPage(props: PageProps<"/[lang]/app/admin/credit">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -33,7 +33,7 @@ const ERRORS: Record<string, string> = {
 
 const input = "rounded-md border border-border bg-surface px-2 py-1";
 
-async function Credit({ searchParams }: PageProps<"/app/admin/credit">) {
+async function Credit({ searchParams }: PageProps<"/[lang]/app/admin/credit">) {
   const query = await searchParams;
   await requirePermission("refund.issue", { next: "/app/admin/credit" });
   const league = await activeLeague();

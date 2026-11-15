@@ -8,7 +8,7 @@ import { activeLeague } from "@/lib/league/active";
 /** Any synced photo, hidden ones included, for the admin screen only. */
 export async function GET(
   _request: Request,
-  ctx: RouteContext<"/app/admin/instagram/photos/[image]">,
+  ctx: RouteContext<"/[lang]/app/admin/instagram/photos/[image]">,
 ): Promise<Response> {
   await requirePermission("photos.manage", { next: "/app/admin/instagram" });
   const id = parseId<SocialImageId>((await ctx.params).image);

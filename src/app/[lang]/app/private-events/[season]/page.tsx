@@ -33,7 +33,7 @@ const TEAM_STATUS = {
 } as const;
 
 export default function OrganizerPage(
-  props: PageProps<"/app/private-events/[season]">,
+  props: PageProps<"/[lang]/app/private-events/[season]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -47,7 +47,7 @@ export default function OrganizerPage(
 async function Organizer({
   params,
   searchParams,
-}: PageProps<"/app/private-events/[season]">) {
+}: PageProps<"/[lang]/app/private-events/[season]">) {
   const { season: slug } = await params;
   const page = `/app/private-events/${slug}`;
   const league = await activeLeague();

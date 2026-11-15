@@ -33,13 +33,13 @@ const METADATA: Metadata = {
 
 export function generateMetadata({
   params,
-}: PageProps<"/l/[league]/records">): Promise<Metadata> {
+}: PageProps<"/[lang]/l/[league]/records">): Promise<Metadata> {
   return withCanonical(params, METADATA, "/records");
 }
 
 export default async function RecordsPage({
   params,
-}: PageProps<"/l/[league]/records">) {
+}: PageProps<"/[lang]/l/[league]/records">) {
   const league = await publicLeague((await params).league, "/records");
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10 md:px-6">

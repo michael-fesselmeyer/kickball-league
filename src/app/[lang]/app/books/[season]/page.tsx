@@ -42,7 +42,7 @@ import {
 
 export const metadata: Metadata = { title: "Books" };
 
-export default function BooksPage(props: PageProps<"/app/books/[season]">) {
+export default function BooksPage(props: PageProps<"/[lang]/app/books/[season]">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -86,7 +86,7 @@ const dollars = (cents: number) => (cents / 100).toFixed(2);
 async function Books({
   params,
   searchParams,
-}: PageProps<"/app/books/[season]">) {
+}: PageProps<"/[lang]/app/books/[season]">) {
   const { season: slug } = await params;
   const page = `/app/books/${slug}`;
   await requirePermission("books.manage", { next: page });

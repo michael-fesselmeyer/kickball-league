@@ -25,7 +25,7 @@ import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Season survey" };
 
-type Props = PageProps<"/app/seasons/[season]/survey">;
+type Props = PageProps<"/[lang]/app/seasons/[season]/survey">;
 
 export default function SurveyPage(props: Props) {
   return (

@@ -32,7 +32,7 @@ export const metadata: Metadata = { title: "Game day" };
  * score; the weather; one tap to a rain-out or an announcement. The games
  * refresh on their own every ten seconds.
  */
-export default function GameDayPage(props: PageProps<"/app/admin/today">) {
+export default function GameDayPage(props: PageProps<"/[lang]/app/admin/today">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
       <Suspense fallback={<PageLoading>Loading game day…</PageLoading>}>
@@ -46,7 +46,7 @@ const NOTICES: Record<string, string> = {
   checked_in: "Ref marked as at the field.",
 };
 
-async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
+async function GameDay({ searchParams }: PageProps<"/[lang]/app/admin/today">) {
   await requirePermission("season.manage", { next: "/app/admin/today" });
   const query = await searchParams;
   const league = await activeLeague();

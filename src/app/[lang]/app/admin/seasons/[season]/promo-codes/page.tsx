@@ -16,7 +16,7 @@ import { activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Promo codes" };
 
 export default function PromoCodesPage(
-  props: PageProps<"/app/admin/seasons/[season]/promo-codes">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/promo-codes">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
@@ -48,7 +48,7 @@ const input =
 async function PromoCodes({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/promo-codes">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/promo-codes">) {
   const { season: slug } = await params;
   const query = await searchParams;
   await requirePermission("season.manage", {

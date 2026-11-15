@@ -22,7 +22,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Start a new team" };
 
 export default function NewTeamPage(
-  props: PageProps<"/app/seasons/[season]/new-team">,
+  props: PageProps<"/[lang]/app/seasons/[season]/new-team">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -132,7 +132,7 @@ function RequestCard({
 async function NewTeam({
   params,
   searchParams,
-}: PageProps<"/app/seasons/[season]/new-team">) {
+}: PageProps<"/[lang]/app/seasons/[season]/new-team">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const subject = await requirePermission("team.request_new", {

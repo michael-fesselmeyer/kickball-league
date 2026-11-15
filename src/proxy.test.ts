@@ -57,7 +57,22 @@ describe("proxy", () => {
       request("/app", "better-auth.session_token=abc.def"),
     );
     expect(response.headers.get("location")).toBeNull();
-    expect(response.headers.get("x-middleware-next")).toBe("1");
+    // Served from the English tree until the app's screens are translated.
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:3000/en/app",
+    );
+  });
+
+  it("keeps a signed-in page's query string, and ignores a language it can't show yet", async () => {
+    const response = await proxy(
+      request(
+        "/app/admin/rules?published=1",
+        "better-auth.session_token=a.b; kb_lang=es",
+      ),
+    );
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:3000/en/app/admin/rules?published=1",
+    );
   });
 
   it("renders a team-filtered schedule from its path segment, keeping the address", async () => {
@@ -66,15 +81,15 @@ describe("proxy", () => {
     );
     expect(response.headers.get("location")).toBeNull();
     expect(response.headers.get("x-middleware-rewrite")).toBe(
-      "http://localhost:3000/l/_default/seasons/fall-2026/schedule/the-big-kicks",
+      "http://localhost:3000/en/l/_default/seasons/fall-2026/schedule/the-big-kicks",
     );
   });
 
   it("serves the default league's pages from its route tree, keeping the address", async () => {
     for (const [path, target] of [
-      ["/", "/l/_default"],
-      ["/teams/the-big-kicks", "/l/_default/teams/the-big-kicks"],
-      ["/events/calendar.ics", "/l/_default/events/calendar.ics"],
+      ["/", "/en/l/_default"],
+      ["/teams/the-big-kicks", "/en/l/_default/teams/the-big-kicks"],
+      ["/events/calendar.ics", "/en/l/_default/events/calendar.ics"],
     ] as const) {
       const response = await proxy(request(path));
       expect(response.headers.get("location"), path).toBeNull();
@@ -86,13 +101,14 @@ describe("proxy", () => {
 
   it("serves another league's pages at their own address, with its views from the path", async () => {
     const plain = await proxy(request("/l/flag-football/teams/hail-marys"));
-    expect(plain.headers.get("x-middleware-rewrite")).toBeNull();
-    expect(plain.headers.get("x-middleware-next")).toBe("1");
+    expect(plain.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:3000/en/l/flag-football/teams/hail-marys",
+    );
     const filtered = await proxy(
       request("/l/flag-football/seasons/fall-2026/schedule?team=hail-marys"),
     );
     expect(filtered.headers.get("x-middleware-rewrite")).toBe(
-      "http://localhost:3000/l/flag-football/seasons/fall-2026/schedule/hail-marys",
+      "http://localhost:3000/en/l/flag-football/seasons/fall-2026/schedule/hail-marys",
     );
   });
 
@@ -104,18 +120,44 @@ describe("proxy", () => {
     );
   });
 
-  it("leaves pages that are no league's alone", async () => {
+  it("serves the site's other pages from the language tree as they are", async () => {
     for (const path of ["/sign-in", "/faq", "/operator"]) {
       const response = await proxy(request(path));
-      expect(response.headers.get("x-middleware-rewrite"), path).toBeNull();
+      expect(response.headers.get("x-middleware-rewrite"), path).toBe(
+        `http://localhost:3000/en${path}`,
+      );
     }
+  });
+
+  it("leaves the route handlers outside the language tree alone", async () => {
+    for (const path of ["/r/abc123", "/media/photos/x", "/embed/schedule"]) {
+      const response = await proxy(request(path));
+      expect(response.headers.get("x-middleware-rewrite"), path).toBeNull();
+      expect(response.headers.get("x-middleware-next"), path).toBe("1");
+    }
+  });
+
+  it("sends a typed /en address to the one without a prefix", async () => {
+    const response = await proxy(request("/en/faq?q=1"));
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/faq?q=1",
+    );
+  });
+
+  it("sends a language not served yet to the English page", async () => {
+    const response = await proxy(request("/es/seasons/fall-2026/schedule"));
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/seasons/fall-2026/schedule",
+    );
   });
 
   it("shows public pages the paused notice while the site is paused", async () => {
     site.status = "paused";
     const response = await proxy(request("/seasons/fall-2026/schedule"));
     expect(response.headers.get("x-middleware-rewrite")).toBe(
-      "http://localhost:3000/paused",
+      "http://localhost:3000/en/paused",
     );
   });
 
@@ -123,17 +165,21 @@ describe("proxy", () => {
     site.status = "paused";
     for (const path of ["/sign-in", "/operator"]) {
       const response = await proxy(request(path));
-      expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+      expect(response.headers.get("x-middleware-rewrite")).toBe(
+        `http://localhost:3000/en${path}`,
+      );
     }
     const app = await proxy(request("/app", "better-auth.session_token=a.b"));
-    expect(app.headers.get("x-middleware-next")).toBe("1");
+    expect(app.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:3000/en/app",
+    );
   });
 
   it("leaves public pages alone while read-only", async () => {
     site.status = "read_only";
     const response = await proxy(request("/teams/the-big-kicks"));
     expect(response.headers.get("x-middleware-rewrite")).toBe(
-      "http://localhost:3000/l/_default/teams/the-big-kicks",
+      "http://localhost:3000/en/l/_default/teams/the-big-kicks",
     );
   });
 
@@ -141,7 +187,7 @@ describe("proxy", () => {
     site.status = "paused";
     const response = await proxy(request("/teams/the-big-kicks/calendar.ics"));
     expect(response.headers.get("x-middleware-rewrite")).toBe(
-      "http://localhost:3000/l/_default/teams/the-big-kicks/calendar.ics",
+      "http://localhost:3000/en/l/_default/teams/the-big-kicks/calendar.ics",
     );
   });
 

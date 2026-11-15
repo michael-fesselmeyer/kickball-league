@@ -40,7 +40,7 @@ const ROLES = { ref: "ref", captain: "captain", admin: "admin" } as const;
  * and its history.
  */
 export default function KitPage(
-  props: PageProps<"/app/admin/equipment/[kit]">,
+  props: PageProps<"/[lang]/app/admin/equipment/[kit]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -54,7 +54,7 @@ export default function KitPage(
 async function Kit({
   params,
   searchParams,
-}: PageProps<"/app/admin/equipment/[kit]">) {
+}: PageProps<"/[lang]/app/admin/equipment/[kit]">) {
   const { kit: rawKit } = await params;
   await requirePermission("equipment.manage", {
     next: `/app/admin/equipment/${rawKit}`,

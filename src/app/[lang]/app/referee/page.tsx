@@ -30,7 +30,7 @@ const ERRORS: Record<string, string> = {
   started: "That game has started, so it can't be dropped here. Tell an admin.",
 };
 
-export default function RefereePage(props: PageProps<"/app/referee">) {
+export default function RefereePage(props: PageProps<"/[lang]/app/referee">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading your games…</PageLoading>}>
@@ -40,7 +40,7 @@ export default function RefereePage(props: PageProps<"/app/referee">) {
   );
 }
 
-async function Referee({ searchParams }: PageProps<"/app/referee">) {
+async function Referee({ searchParams }: PageProps<"/[lang]/app/referee">) {
   const query = await searchParams;
   const subject = await requirePermission("referee.availability", {
     next: "/app/referee",

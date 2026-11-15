@@ -34,7 +34,7 @@ import { activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Fields and permits" };
 
 export default function FieldsPage(
-  props: PageProps<"/app/admin/seasons/[season]/fields">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/fields">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
@@ -141,7 +141,7 @@ const input = "rounded-md border border-border bg-surface px-2 py-1";
 async function Fields({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/fields">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/fields">) {
   const { season: slug } = await params;
   const raw = await searchParams;
   const query = Object.fromEntries(

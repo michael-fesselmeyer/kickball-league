@@ -26,7 +26,7 @@ export const metadata: Metadata = { title: "Passkeys and devices" };
 const PAGE = "/app/profile/security";
 
 export default function SecurityPage(
-  props: PageProps<"/app/profile/security">,
+  props: PageProps<"/[lang]/app/profile/security">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -52,7 +52,9 @@ const ERRORS: Record<string, string> = {
   passkey: "We couldn't find that passkey. Nothing was changed.",
 };
 
-async function Security({ searchParams }: PageProps<"/app/profile/security">) {
+async function Security({
+  searchParams,
+}: PageProps<"/[lang]/app/profile/security">) {
   const subject = await requireSelf("profile.edit", PAGE);
   const session = await currentSession();
   if (!session) notFound();

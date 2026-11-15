@@ -39,7 +39,7 @@ import { activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Build the schedule" };
 
 export default function SchedulePage(
-  props: PageProps<"/app/admin/seasons/[season]/schedule">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/schedule">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10 lg:max-w-6xl">
@@ -83,7 +83,7 @@ const STATUS_STYLE: Record<Status, string> = {
 async function Schedule({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/schedule">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/schedule">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/schedule`;

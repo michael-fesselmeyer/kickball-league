@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function JoinPage(props: PageProps<"/app/join/[token]">) {
+export default function JoinPage(props: PageProps<"/[lang]/app/join/[token]">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-12">
       <Suspense fallback={<PageLoading>Loading the invite…</PageLoading>}>
@@ -51,7 +51,7 @@ const ERRORS: Record<string, string> = {
 const isAgeRefusal = (code: unknown): code is AgeRefusal =>
   code === "age_unconfirmed" || code === "under_age";
 
-async function Join({ params, searchParams }: PageProps<"/app/join/[token]">) {
+async function Join({ params, searchParams }: PageProps<"/[lang]/app/join/[token]">) {
   const { token } = await params;
   const query = await searchParams;
   const subject = await requirePermission("registration.join", {

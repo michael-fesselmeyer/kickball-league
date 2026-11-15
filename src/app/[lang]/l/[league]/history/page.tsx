@@ -37,13 +37,13 @@ const METADATA: Metadata = {
 
 export function generateMetadata({
   params,
-}: PageProps<"/l/[league]/history">): Promise<Metadata> {
+}: PageProps<"/[lang]/l/[league]/history">): Promise<Metadata> {
   return withCanonical(params, METADATA, "/history");
 }
 
 export default async function HistoryPage({
   params,
-}: PageProps<"/l/[league]/history">) {
+}: PageProps<"/[lang]/l/[league]/history">) {
   const league = await publicLeague((await params).league, "/history");
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10 md:px-6">

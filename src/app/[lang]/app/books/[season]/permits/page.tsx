@@ -62,7 +62,7 @@ import { SubmitButton } from "@/components/submit-button";
 export const metadata: Metadata = { title: "Permits and insurance" };
 
 export default function PermitsPage(
-  props: PageProps<"/app/books/[season]/permits">,
+  props: PageProps<"/[lang]/app/books/[season]/permits">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
@@ -105,7 +105,7 @@ const input = "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
 async function Permits({
   params,
   searchParams,
-}: PageProps<"/app/books/[season]/permits">) {
+}: PageProps<"/[lang]/app/books/[season]/permits">) {
   const { season: slug } = await params;
   const page = `/app/books/${slug}/permits`;
   await requirePermission("books.manage", { next: page });

@@ -45,7 +45,7 @@ const METADATA: Metadata = {
 
 export function generateMetadata({
   params,
-}: PageProps<"/l/[league]/rules">): Promise<Metadata> {
+}: PageProps<"/[lang]/l/[league]/rules">): Promise<Metadata> {
   return withCanonical(params, METADATA, "/rules");
 }
 
@@ -107,7 +107,7 @@ async function cachedRules(
 
 export default async function RulesPage({
   params,
-}: PageProps<"/l/[league]/rules">) {
+}: PageProps<"/[lang]/l/[league]/rules">) {
   const league = await publicLeague((await params).league, "/rules");
   const { visibility, sections, changes, settings, conduct, today } =
     await cachedRules(league.id, league.timeZone);

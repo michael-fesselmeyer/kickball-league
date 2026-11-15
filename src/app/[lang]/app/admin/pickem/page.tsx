@@ -12,7 +12,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Pick'em settings" };
 
 export default function PickemSettingsPage(
-  props: PageProps<"/app/admin/pickem">,
+  props: PageProps<"/[lang]/app/admin/pickem">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -23,7 +23,7 @@ export default function PickemSettingsPage(
   );
 }
 
-async function Settings({ searchParams }: PageProps<"/app/admin/pickem">) {
+async function Settings({ searchParams }: PageProps<"/[lang]/app/admin/pickem">) {
   await requirePermission("pickem.manage", { next: "/app/admin/pickem" });
   const query = await searchParams;
   const league = await activeLeague();

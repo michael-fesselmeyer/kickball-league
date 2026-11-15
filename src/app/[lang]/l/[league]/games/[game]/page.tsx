@@ -81,7 +81,7 @@ async function load(league: LeagueInfo | null, param: string) {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/l/[league]/games/[game]">): Promise<Metadata> {
+}: PageProps<"/[lang]/l/[league]/games/[game]">): Promise<Metadata> {
   const { league: segment, game: param } = await params;
   const league = await cachedLeague(segment);
   const found = await load(league, param);
@@ -119,7 +119,7 @@ export async function generateMetadata({
  * 300 ms later. Only the day's status, the forecast and the photo prompt
  * stream in; the first two keep their space while they load (#495).
  */
-export default function GamePage(props: PageProps<"/l/[league]/games/[game]">) {
+export default function GamePage(props: PageProps<"/[lang]/l/[league]/games/[game]">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:px-6">
       <Game {...props} />
@@ -149,7 +149,7 @@ function mapLink(venue: NonNullable<PublicGame["venue"]>) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
-async function Game({ params }: PageProps<"/l/[league]/games/[game]">) {
+async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
   const { league: segment, game: param } = await params;
   const league = await publicLeague(segment, `/games/${param}`);
   const id = parseId<GameId>(param);

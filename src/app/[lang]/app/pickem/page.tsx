@@ -18,7 +18,7 @@ import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Pick'em" };
 
-export default function PickemPage(props: PageProps<"/app/pickem">) {
+export default function PickemPage(props: PageProps<"/[lang]/app/pickem">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<p className="min-h-svh">Loading pick&apos;em…</p>}>
@@ -175,7 +175,7 @@ function Board({
   );
 }
 
-async function Pickem({ searchParams }: PageProps<"/app/pickem">) {
+async function Pickem({ searchParams }: PageProps<"/[lang]/app/pickem">) {
   await requireFeature("pickem");
   const query = await searchParams;
   const subject = await requirePermission("pickem.pick", {

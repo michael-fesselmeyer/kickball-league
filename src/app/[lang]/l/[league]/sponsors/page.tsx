@@ -17,13 +17,13 @@ const METADATA: Metadata = {
 
 export function generateMetadata({
   params,
-}: PageProps<"/l/[league]/sponsors">): Promise<Metadata> {
+}: PageProps<"/[lang]/l/[league]/sponsors">): Promise<Metadata> {
   return withCanonical(params, METADATA, "/sponsors");
 }
 
 export default function SponsorsPage({
   params,
-}: PageProps<"/l/[league]/sponsors">) {
+}: PageProps<"/[lang]/l/[league]/sponsors">) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10 md:px-6">
       <header className="flex flex-col gap-3">
@@ -53,7 +53,7 @@ const KIND: Record<PublicSponsor["kind"], string> = {
 async function Sponsors({
   params,
 }: {
-  params: PageProps<"/l/[league]/sponsors">["params"];
+  params: PageProps<"/[lang]/l/[league]/sponsors">["params"];
 }) {
   const league = await publicLeague((await params).league, "/sponsors");
   const { sponsors, teamOfWeek } = await cachedSponsorDirectory(league.id);

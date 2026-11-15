@@ -35,7 +35,7 @@ export const metadata: Metadata = { title: "Game-day pack" };
  * print styles in globals.css; the Print button is the only client code.
  */
 export default function GameDayPackPage(
-  props: PageProps<"/app/admin/today/print">,
+  props: PageProps<"/[lang]/app/admin/today/print">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 print:max-w-none print:p-0">
@@ -50,7 +50,7 @@ export default function GameDayPackPage(
 
 async function GameDayPack({
   searchParams,
-}: PageProps<"/app/admin/today/print">) {
+}: PageProps<"/[lang]/app/admin/today/print">) {
   await requirePermission("season.manage", {
     next: "/app/admin/today/print",
   });

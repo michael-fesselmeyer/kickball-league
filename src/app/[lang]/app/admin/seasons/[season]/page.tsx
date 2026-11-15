@@ -14,7 +14,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Season settings" };
 
 export default function SeasonPage(
-  props: PageProps<"/app/admin/seasons/[season]">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -28,7 +28,7 @@ export default function SeasonPage(
 async function Season({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]">) {
   const { season: slug } = await params;
   const query = await searchParams;
   await requirePermission("season.manage", {

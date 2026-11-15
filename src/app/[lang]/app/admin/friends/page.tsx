@@ -31,7 +31,7 @@ const SAVED: Record<string, string> = {
 };
 
 export default function AdminFriendsPage(
-  props: PageProps<"/app/admin/friends">,
+  props: PageProps<"/[lang]/app/admin/friends">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
@@ -44,7 +44,7 @@ export default function AdminFriendsPage(
 
 const kb = (bytes: number) => `${Math.ceil(bytes / 1024)} KB`;
 
-async function AdminFriends({ searchParams }: PageProps<"/app/admin/friends">) {
+async function AdminFriends({ searchParams }: PageProps<"/[lang]/app/admin/friends">) {
   await requirePermission("friends.manage", { next: PAGE });
   const query = await searchParams;
   const league = await activeLeague();

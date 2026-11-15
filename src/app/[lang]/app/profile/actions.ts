@@ -1,6 +1,6 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { saveAwayWeeks } from "@/db/queries/away";
@@ -17,7 +17,9 @@ import {
   alertLimitsForm,
 } from "@/domain/notifications/limits";
 import { parseDeviceSubscription } from "@/domain/notifications/push";
-import { saveProfile } from "@/db/queries/profile";
+import { saveLanguage, saveProfile } from "@/db/queries/profile";
+import { LANGUAGE_COOKIE, LANGUAGE_COOKIE_MAX_AGE } from "@/i18n/cookie";
+import { isLocale } from "@/i18n/locales";
 import { saveEmergencyContact } from "@/db/queries/emergency";
 import {
   EMERGENCY_FIELDS,
@@ -82,6 +84,25 @@ export async function saveProfileAction(
     });
   });
   redirect("/app/profile?saved=1");
+}
+
+/**
+ * Saves the language the signed-in person reads the league in (ADR 0065),
+ * and mirrors it in a cookie so the proxy can serve their pages in it.
+ */
+export async function saveLanguageAction(form: FormData): Promise<void> {
+  const subject = await requireSelfToChange("profile.edit", "/app/profile");
+  const chosen = form.get("language");
+  if (!isLocale(chosen)) redirect("/app/profile#language");
+  await txDb.transaction((tx) => saveLanguage(tx, subject.userId, chosen));
+  (await cookies()).set(LANGUAGE_COOKIE, chosen, {
+    path: "/",
+    maxAge: LANGUAGE_COOKIE_MAX_AGE,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+  });
+  redirect("/app/profile?language=saved#language");
 }
 
 /** Saves which topics the signed-in person gets email about. */

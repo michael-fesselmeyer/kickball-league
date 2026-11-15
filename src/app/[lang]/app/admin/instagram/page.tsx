@@ -31,7 +31,7 @@ export const metadata: Metadata = { title: "Instagram photos" };
 const PAGE = "/app/admin/instagram";
 
 export default function InstagramPage(
-  props: PageProps<"/app/admin/instagram">,
+  props: PageProps<"/[lang]/app/admin/instagram">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-10">
@@ -85,7 +85,7 @@ const when = (d: Date) =>
 const input =
   "min-h-11 rounded-md border border-border-strong bg-surface px-2 py-1";
 
-async function Instagram({ searchParams }: PageProps<"/app/admin/instagram">) {
+async function Instagram({ searchParams }: PageProps<"/[lang]/app/admin/instagram">) {
   await requirePermission("photos.manage", { next: PAGE });
   const query = await searchParams;
   const league = await activeLeague();

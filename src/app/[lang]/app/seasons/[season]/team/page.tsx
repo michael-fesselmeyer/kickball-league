@@ -69,7 +69,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Your team" };
 
 export default function TeamPage(
-  props: PageProps<"/app/seasons/[season]/team">,
+  props: PageProps<"/[lang]/app/seasons/[season]/team">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -175,7 +175,7 @@ function Mark({ yes, label }: { yes: boolean; label: string }) {
 async function Team({
   params,
   searchParams,
-}: PageProps<"/app/seasons/[season]/team">) {
+}: PageProps<"/[lang]/app/seasons/[season]/team">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const [subject, league] = await Promise.all([

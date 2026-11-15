@@ -18,7 +18,7 @@ import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Edit a league" };
 
-type Props = PageProps<"/app/admin/friends/[friend]">;
+type Props = PageProps<"/[lang]/app/admin/friends/[friend]">;
 
 export default function EditFriendPage(props: Props) {
   return (

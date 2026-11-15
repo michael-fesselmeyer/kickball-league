@@ -45,7 +45,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Incident" };
 
 export default function IncidentPage(
-  props: PageProps<"/app/admin/incidents/[incident]">,
+  props: PageProps<"/[lang]/app/admin/incidents/[incident]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -156,7 +156,7 @@ function SuspendForm({
 async function Incident({
   params,
   searchParams,
-}: PageProps<"/app/admin/incidents/[incident]">) {
+}: PageProps<"/[lang]/app/admin/incidents/[incident]">) {
   await requireFeature("discipline");
   const { incident: rawId } = await params;
   const query = await searchParams;

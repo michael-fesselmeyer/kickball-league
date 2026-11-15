@@ -20,7 +20,7 @@ import { ImportForm } from "./import-form";
 export const metadata: Metadata = { title: "Import a statement" };
 
 export default function ImportPage(
-  props: PageProps<"/app/books/[season]/import">,
+  props: PageProps<"/[lang]/app/books/[season]/import">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -48,7 +48,7 @@ const input = "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
 async function Import({
   params,
   searchParams,
-}: PageProps<"/app/books/[season]/import">) {
+}: PageProps<"/[lang]/app/books/[season]/import">) {
   const { season: slug } = await params;
   const page = `/app/books/${slug}/import`;
   await requirePermission("books.manage", { next: page });

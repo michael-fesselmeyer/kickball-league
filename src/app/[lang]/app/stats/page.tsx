@@ -26,7 +26,7 @@ import { setOptOutAction } from "./actions";
 
 export const metadata: Metadata = { title: "Your stats" };
 
-export default function StatsPage(props: PageProps<"/app/stats">) {
+export default function StatsPage(props: PageProps<"/[lang]/app/stats">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading your stats…</PageLoading>}>
@@ -95,7 +95,7 @@ function StatTable({ caption, rows }: { caption: string; rows: Row[] }) {
   );
 }
 
-async function Stats({ searchParams }: PageProps<"/app/stats">) {
+async function Stats({ searchParams }: PageProps<"/[lang]/app/stats">) {
   const subject = await requireSelf("profile.edit", "/app/stats");
   const query = await searchParams;
   // Stats are per league: the one the player is looking at (ADR 0048).

@@ -12,7 +12,7 @@ import { requestOrigin } from "@/lib/calendar-links";
  */
 export async function GET(
   request: Request,
-  ctx: RouteContext<"/l/[league]/events/calendar.ics">,
+  ctx: RouteContext<"/[lang]/l/[league]/events/calendar.ics">,
 ) {
   const league = await leagueBySegment(db, (await ctx.params).league);
   const events = league ? await leagueEvents(db, league.id, "public") : [];

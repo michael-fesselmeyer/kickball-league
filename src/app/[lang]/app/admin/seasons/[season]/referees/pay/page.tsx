@@ -23,7 +23,7 @@ import { recordPayoutAction, setPayRateAction } from "./actions";
 export const metadata: Metadata = { title: "Ref pay sheet" };
 
 export default function PayPage(
-  props: PageProps<"/app/admin/seasons/[season]/referees/pay">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/referees/pay">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -51,7 +51,7 @@ const NOTICES: Record<string, string> = {
 async function Pay({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/referees/pay">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/referees/pay">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const base = `/app/admin/seasons/${slug}/referees`;

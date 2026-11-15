@@ -31,7 +31,7 @@ import {
   publicCardParams,
 } from "@/lib/static-params";
 
-type Props = PageProps<"/l/[league]/seasons/[season]/card/[card]">;
+type Props = PageProps<"/[lang]/l/[league]/seasons/[season]/card/[card]">;
 
 /** Whole page static, as the standings are (ADR 0029). */
 export const ensureStatic = "navigation";

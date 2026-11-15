@@ -29,7 +29,7 @@ const COLUMNS: readonly Column<RequestRow>[] = [
 /** The "What to request" sheet as a CSV, with the screen's choices. */
 export async function GET(
   request: Request,
-  ctx: RouteContext<"/app/books/[season]/permits/request.csv">,
+  ctx: RouteContext<"/[lang]/app/books/[season]/permits/request.csv">,
 ) {
   const subject = await currentSubject();
   if (!can(subject, "books.manage")) return notFound();

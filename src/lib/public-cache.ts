@@ -5,6 +5,15 @@ import {
   LEAGUE_PREFIX,
   type LeagueRef,
 } from "@/domain/league/paths";
+import { LOCALES } from "@/i18n/locales";
+
+/**
+ * An internal page path (`/l/_default/friends`) in every language's route
+ * tree (`/en/...`, `/es/...`): each language's copy is cached on its own
+ * (ADR 0065), so a change expires them all.
+ */
+export const everyLanguage = (path: string): string[] =>
+  LOCALES.map((lang) => `/${lang}${path}`);
 
 /**
  * How long the public schedule, standings and team pages are served as
@@ -35,16 +44,16 @@ export const SITE_TAG = "site";
  */
 export function refreshSiteNotice(): void {
   updateTag(SITE_TAG);
-  revalidatePath("/paused");
+  revalidatePath("/[lang]/paused", "page");
 }
 /** Synced Instagram photos, on the home, team and event pages. */
 export const PHOTOS_TAG = "photos";
 
 /** The prerendered routes that show Instagram photos. */
 const PHOTO_PAGE_ROUTES = [
-  ["/l/[league]", "page"],
-  ["/l/[league]/teams/[team]/[[...season]]", "page"],
-  ["/l/[league]/events/[event]", "page"],
+  ["/[lang]/l/[league]", "page"],
+  ["/[lang]/l/[league]/teams/[team]/[[...season]]", "page"],
+  ["/[lang]/l/[league]/events/[event]", "page"],
 ] as const;
 
 /**
@@ -72,9 +81,9 @@ export const MEMBER_PHOTOS_TAG = "member-photos";
 
 /** The routes that show members' photos. */
 const MEMBER_PHOTO_ROUTES = [
-  ["/l/[league]/teams/[team]/[[...season]]", "page"],
-  ["/l/[league]/events/[event]", "page"],
-  ["/l/[league]/games/[game]", "page"],
+  ["/[lang]/l/[league]/teams/[team]/[[...season]]", "page"],
+  ["/[lang]/l/[league]/events/[event]", "page"],
+  ["/[lang]/l/[league]/games/[game]", "page"],
 ] as const;
 
 /**
@@ -110,12 +119,12 @@ export const LIVE_SCORE_CDN_SECONDS = 5;
  * schedule widget's prerendered files are expired with them.
  */
 export const SEASON_PAGE_ROUTES = [
-  "/l/[league]/seasons/[season]",
-  "/l/[league]/teams/[team]",
-  "/l/[league]/games/[game]",
+  "/[lang]/l/[league]/seasons/[season]",
+  "/[lang]/l/[league]/teams/[team]",
+  "/[lang]/l/[league]/games/[game]",
   "/embed/schedule",
   // Shows the season's division rule sets (ADR 0062).
-  "/l/[league]/rules",
+  "/[lang]/l/[league]/rules",
 ];
 
 /** A league's `[league]` segment: the default league's own, or its slug. */
@@ -127,7 +136,7 @@ export const PARKS_TAG = "parks";
 export const parkTag = (slug: string) => `park:${slug}`;
 
 /** The park page's route, under each league (ADR 0048). */
-const PARK_ROUTE = "/l/[league]/fields/[park]";
+const PARK_ROUTE = "/[lang]/l/[league]/fields/[park]";
 
 /**
  * From a Server Action: the park pages show a change to a permit, a field or
@@ -150,8 +159,11 @@ export const SEASONS_TAG = "seasons";
 export function refreshShirtArchive(league: LeagueRef, seasonId: string): void {
   updateTag(seasonTag(seasonId));
   // The league's own page right away, and every league's on its next visit.
-  revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/history`);
-  revalidatePath("/l/[league]/history", "page");
+  for (const path of everyLanguage(
+    `${LEAGUE_PREFIX}/${segmentOf(league)}/history`,
+  ))
+    revalidatePath(path);
+  revalidatePath("/[lang]/l/[league]/history", "page");
 }
 
 /**
@@ -170,7 +182,7 @@ export function refreshSeasonPages(seasonId: string): void {
   updateTag(SEASONS_TAG);
   // A season turning public, or draft again, changes which permits show.
   refreshParkPages();
-  revalidatePath("/l/[league]/seasons", "page");
+  revalidatePath("/[lang]/l/[league]/seasons", "page");
   for (const route of SEASON_PAGE_ROUTES) revalidatePath(route, "layout");
   expireSeasonPagesAgain(seasonId);
 }
@@ -206,7 +218,10 @@ export function refreshGamePage(
   updateTag(gameTag(gameId));
   // The page as its league's route serves it (ADR 0048): the default
   // league's under its own segment, another league's under its slug.
-  revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/games/${gameId}`);
+  for (const path of everyLanguage(
+    `${LEAGUE_PREFIX}/${segmentOf(league)}/games/${gameId}`,
+  ))
+    revalidatePath(path);
 }
 
 /**
@@ -226,7 +241,7 @@ export const seasonCardTag = (cardId: string) => `season-card:${cardId}`;
 export const seasonCardsTag = (seasonId: string) => `season-cards:${seasonId}`;
 
 /** The public card page's route. */
-const SEASON_CARD_ROUTE = "/l/[league]/seasons/[season]/card/[card]";
+const SEASON_CARD_ROUTE = "/[lang]/l/[league]/seasons/[season]/card/[card]";
 
 /**
  * From a Server Action: a card made public or private, or every card of a
@@ -263,10 +278,10 @@ export function refreshEventPages(
 ): void {
   updateTag(EVENTS_TAG);
   updateTag(eventTag(slug));
-  revalidatePath("/l/[league]/events/[event]", "page");
+  revalidatePath("/[lang]/l/[league]/events/[event]", "page");
   if (themeWeek) {
     updateTag(THEME_WEEKS_TAG);
-    revalidatePath("/l/[league]/seasons/[season]", "layout");
+    revalidatePath("/[lang]/l/[league]/seasons/[season]", "layout");
   }
 }
 
@@ -278,7 +293,7 @@ export function refreshEventPages(
  */
 export function refreshSponsorPages(): void {
   updateTag(SPONSORS_TAG);
-  revalidatePath("/l/[league]/sponsors", "layout");
+  revalidatePath("/[lang]/l/[league]/sponsors", "layout");
 }
 
 /** The friends of the league directory, and its clubs on the events page. */
@@ -296,8 +311,11 @@ export function refreshFriendPages(league: LeagueRef): void {
   // leagues had their own paths (ADR 0048), and every league's on its next
   // visit.
   for (const page of ["friends", "events"]) {
-    revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/${page}`);
-    revalidatePath(`/l/[league]/${page}`, "page");
+    for (const path of everyLanguage(
+      `${LEAGUE_PREFIX}/${segmentOf(league)}/${page}`,
+    ))
+      revalidatePath(path);
+    revalidatePath(`/[lang]/l/[league]/${page}`, "page");
   }
 }
 
@@ -311,8 +329,11 @@ export const RULES_TAG = "rules";
  */
 export function refreshRulesPage(league: LeagueRef): void {
   updateTag(RULES_TAG);
-  revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/rules`);
-  revalidatePath("/l/[league]/rules", "page");
+  for (const path of everyLanguage(
+    `${LEAGUE_PREFIX}/${segmentOf(league)}/rules`,
+  ))
+    revalidatePath(path);
+  revalidatePath("/[lang]/l/[league]/rules", "page");
 }
 
 /** Every league's open interest form (docs/data-model.md, section 2.7). */
@@ -325,6 +346,9 @@ export const INTEREST_TAG = "interest";
  */
 export function refreshInterestPage(league: LeagueRef): void {
   updateTag(INTEREST_TAG);
-  revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/interest`);
-  revalidatePath("/l/[league]/interest", "page");
+  for (const path of everyLanguage(
+    `${LEAGUE_PREFIX}/${segmentOf(league)}/interest`,
+  ))
+    revalidatePath(path);
+  revalidatePath("/[lang]/l/[league]/interest", "page");
 }

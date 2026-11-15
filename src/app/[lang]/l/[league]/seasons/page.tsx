@@ -26,7 +26,7 @@ const METADATA: Metadata = {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/l/[league]/seasons">): Promise<Metadata> {
+}: PageProps<"/[lang]/l/[league]/seasons">): Promise<Metadata> {
   return withCanonical(params, METADATA, "/seasons");
 }
 
@@ -49,7 +49,7 @@ const day = (iso: string) =>
 
 export default function SeasonsPage({
   params,
-}: PageProps<"/l/[league]/seasons">) {
+}: PageProps<"/[lang]/l/[league]/seasons">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:px-6">
       <header className="flex flex-col gap-2">
@@ -68,7 +68,7 @@ export default function SeasonsPage({
 async function LeagueSeasons({
   params,
 }: {
-  params: PageProps<"/l/[league]/seasons">["params"];
+  params: PageProps<"/[lang]/l/[league]/seasons">["params"];
 }) {
   const league = await publicLeague((await params).league, "/seasons");
   return <Seasons league={league} />;

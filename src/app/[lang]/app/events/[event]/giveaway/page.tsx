@@ -20,7 +20,7 @@ import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Giveaway" };
 
-type Props = PageProps<"/app/events/[event]/giveaway">;
+type Props = PageProps<"/[lang]/app/events/[event]/giveaway">;
 
 /**
  * An event's free giveaway: the prize, how to enter, the official rules,

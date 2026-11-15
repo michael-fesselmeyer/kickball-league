@@ -47,7 +47,7 @@ import type { LeagueId } from "@/domain/ids";
 import { leagueHref } from "@/domain/league/paths";
 import { cachedLeague, publicLeague } from "@/lib/league/public";
 
-type Props = PageProps<"/l/[league]/events/[event]">;
+type Props = PageProps<"/[lang]/l/[league]/events/[event]">;
 
 /** Every event's page is prerendered at build time. */
 export async function generateStaticParams(props: LeagueParams) {

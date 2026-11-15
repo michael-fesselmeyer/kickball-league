@@ -26,6 +26,7 @@ import { turnDownsOf } from "@/db/queries/alert-choices";
 import { AwayWeeks } from "./away-weeks";
 import { CreditSection } from "./credit-section";
 import { EmailSettings } from "./email-settings";
+import { LanguageSetting } from "./language-setting";
 import { ProfileSettingsForm } from "./profile-form";
 import { PushSettings } from "./push-settings";
 import { PageLoading } from "@/components/page-loading";
@@ -33,7 +34,7 @@ import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Your profile" };
 
-export default function ProfilePage(props: PageProps<"/app/profile">) {
+export default function ProfilePage(props: PageProps<"/[lang]/app/profile">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading your profile…</PageLoading>}>
@@ -43,7 +44,7 @@ export default function ProfilePage(props: PageProps<"/app/profile">) {
   );
 }
 
-async function Profile({ searchParams }: PageProps<"/app/profile">) {
+async function Profile({ searchParams }: PageProps<"/[lang]/app/profile">) {
   const subject = await requireSelf("profile.edit", "/app/profile");
   const query = await searchParams;
   const publicKey = env.VAPID_PUBLIC_KEY;
@@ -118,6 +119,10 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
           Email settings saved.
         </p>
       )}
+      <LanguageSetting
+        language={profile.language}
+        saved={query.language === "saved"}
+      />
       <EmailSettings topics={emailTopics} />
       <AlertLimitsSettings
         limits={limits}

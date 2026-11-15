@@ -7,7 +7,7 @@ import { breadcrumbJsonLd } from "@/lib/seo/structured-data";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { HELP_ROLES, helpHref, roleBySlug } from "../articles";
 
-type Props = PageProps<"/help/[role]">;
+type Props = PageProps<"/[lang]/help/[role]">;
 
 /** Each role's page is prerendered at build; there is no data to read. */
 export function generateStaticParams() {

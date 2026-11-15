@@ -7,5 +7,5 @@ import { LEAGUES_TAG } from "./public";
  */
 export function refreshLeaguePages(): void {
   updateTag(LEAGUES_TAG);
-  revalidatePath("/l/[league]", "layout");
+  revalidatePath("/[lang]/l/[league]", "layout");
 }

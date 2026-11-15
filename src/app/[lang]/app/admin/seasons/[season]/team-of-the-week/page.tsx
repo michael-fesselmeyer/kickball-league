@@ -24,7 +24,7 @@ import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Team of the week" };
 
-type Props = PageProps<"/app/admin/seasons/[season]/team-of-the-week">;
+type Props = PageProps<"/[lang]/app/admin/seasons/[season]/team-of-the-week">;
 
 export default function TeamOfWeekPage(props: Props) {
   return (

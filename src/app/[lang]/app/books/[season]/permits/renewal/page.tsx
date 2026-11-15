@@ -25,7 +25,7 @@ import { wantedFrom } from "./choices";
 export const metadata: Metadata = { title: "Permit renewal" };
 
 export default function RenewalPage(
-  props: PageProps<"/app/books/[season]/permits/renewal">,
+  props: PageProps<"/[lang]/app/books/[season]/permits/renewal">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -127,7 +127,7 @@ function Sheet({
 async function Renewal({
   params,
   searchParams,
-}: PageProps<"/app/books/[season]/permits/renewal">) {
+}: PageProps<"/[lang]/app/books/[season]/permits/renewal">) {
   const { season: slug } = await params;
   const page = `/app/books/${slug}/permits/renewal`;
   await requirePermission("books.manage", { next: page });

@@ -14,7 +14,7 @@ import {
  */
 export async function GET(
   request: Request,
-  { params }: RouteContext<"/app/private-events/join/[token]">,
+  { params }: RouteContext<"/[lang]/app/private-events/join/[token]">,
 ): Promise<Response> {
   const { token } = await params;
   const found = await seasonForInvite(db, token);

@@ -33,7 +33,7 @@ import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Sponsor page" };
 
-type Props = PageProps<"/app/sponsor/[sponsor]">;
+type Props = PageProps<"/[lang]/app/sponsor/[sponsor]">;
 
 /** A sponsor's portal: its deals, its details and, for admins, its people. */
 export default function SponsorPortalPage(props: Props) {

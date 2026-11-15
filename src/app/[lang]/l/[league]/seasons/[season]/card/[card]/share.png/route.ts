@@ -19,7 +19,7 @@ const notFound = () =>
 
 export async function GET(
   _request: Request,
-  ctx: RouteContext<"/l/[league]/seasons/[season]/card/[card]/share.png">,
+  ctx: RouteContext<"/[lang]/l/[league]/seasons/[season]/card/[card]/share.png">,
 ) {
   const { league: segment, season, card: rawId } = await ctx.params;
   const id = parseId<SeasonCardId>(rawId);

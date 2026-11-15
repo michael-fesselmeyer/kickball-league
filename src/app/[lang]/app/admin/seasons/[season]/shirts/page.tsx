@@ -22,7 +22,7 @@ import { activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Shirts" };
 
 export default function ShirtsPage(
-  props: PageProps<"/app/admin/seasons/[season]/shirts">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/shirts">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
@@ -142,7 +142,7 @@ function PlayerTable({
 async function Shirts({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/shirts">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/shirts">) {
   const { season: slug } = await params;
   const query = await searchParams;
   await requirePermission("shirts.manage", {

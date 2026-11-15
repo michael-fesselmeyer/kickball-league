@@ -11,7 +11,7 @@ import {
 } from "@/domain/events/tickets";
 import { creditToApply } from "@/domain/money/credit";
 import { formatCents } from "@/domain/registration/pricing";
-import { ConfirmingPayment } from "@/app/app/seasons/[season]/confirming";
+import { ConfirmingPayment } from "@/app/[lang]/app/seasons/[season]/confirming";
 import { buyTicketAction, leaveEventAction } from "../actions";
 import { SubmitButton } from "@/components/submit-button";
 

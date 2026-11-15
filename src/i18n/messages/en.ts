@@ -26,10 +26,8 @@ export const en = {
       signIn: "Sign in",
     },
     theme: {
-      group: "Color theme",
-      system: "Auto",
-      light: "Light",
-      dark: "Dark",
+      toLight: "Switch to light mode",
+      toDark: "Switch to dark mode",
     },
     language: {
       group: "Language",

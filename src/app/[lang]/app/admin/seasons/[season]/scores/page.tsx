@@ -14,7 +14,7 @@ import { activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Scores" };
 
 export default function ScoresPage(
-  props: PageProps<"/app/admin/seasons/[season]/scores">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/scores">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -27,7 +27,7 @@ export default function ScoresPage(
 
 async function Scores({
   params,
-}: PageProps<"/app/admin/seasons/[season]/scores">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/scores">) {
   const { season: slug } = await params;
   await requirePermission("score.override", {
     next: `/app/admin/seasons/${slug}/scores`,

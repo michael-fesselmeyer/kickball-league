@@ -34,7 +34,7 @@ const ERRORS: Record<string, string> = {
 };
 
 export default function TeamRequestsPage(
-  props: PageProps<"/app/seasons/[season]/team/requests">,
+  props: PageProps<"/[lang]/app/seasons/[season]/team/requests">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -48,7 +48,7 @@ export default function TeamRequestsPage(
 async function TeamRequests({
   params,
   searchParams,
-}: PageProps<"/app/seasons/[season]/team/requests">) {
+}: PageProps<"/[lang]/app/seasons/[season]/team/requests">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const subject = await requirePermission("registration.join", {

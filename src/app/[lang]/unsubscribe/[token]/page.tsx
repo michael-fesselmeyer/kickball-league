@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-type Props = PageProps<"/unsubscribe/[token]">;
+type Props = PageProps<"/[lang]/unsubscribe/[token]">;
 
 const STILL_COME =
   "Rain-outs, changes to your games and payment deadlines still come right away.";
