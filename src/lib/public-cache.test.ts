@@ -32,7 +32,7 @@ beforeEach(() => {
 // A page whose tag expired is answered from its route's shell, so the shells,
 // which carry only path tags, are expired by path too.
 describe("refreshSeasonPages", () => {
-  it("expires the season's tag, the season list and the season, team and game routes", () => {
+  it("expires the season's tag, the season list and the season, team, game and rules routes", () => {
     refreshSeasonPages("season-1");
 
     expect(vi.mocked(updateTag).mock.calls).toEqual([
@@ -45,6 +45,7 @@ describe("refreshSeasonPages", () => {
       ["/l/[league]/teams/[team]", "layout"],
       ["/l/[league]/games/[game]", "layout"],
       ["/embed/schedule", "layout"],
+      ["/l/[league]/rules", "layout"],
     ]);
   });
 });

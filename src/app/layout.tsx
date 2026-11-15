@@ -57,6 +57,7 @@ const FOOTER_LINKS = [
   { href: "/friends", label: "Friends" },
   { href: "/help", label: "Help" },
   { href: "/parks/mccarren-park", label: "McCarren Park" },
+  { href: "/rules", label: "Rules" },
   { href: "/sponsors", label: "Sponsors" },
   { href: "/sign-in", label: "Sign in" },
 ] as const;
