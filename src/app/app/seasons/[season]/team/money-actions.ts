@@ -23,6 +23,7 @@ import { teamBalances } from "@/db/queries/team-balance";
 import { can } from "@/domain/authz/permissions";
 import { env } from "@/env";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { checkoutPage } from "@/lib/demo/checkout";
 import { stripeClient } from "@/services/stripe";
 import { ensureCustomer } from "@/services/stripe-guarantee";
 import { allowAction } from "@/lib/action-limit";
@@ -84,8 +85,13 @@ export async function startGuaranteeSetup(slug: string): Promise<void> {
     success_url: `${env.BETTER_AUTH_URL}${page}?guarantee=saving`,
     cancel_url: `${env.BETTER_AUTH_URL}${page}?guarantee=cancelled`,
   });
-  if (!session.url) redirect(`${page}?guarantee=failed`);
-  redirect(session.url);
+  const to = checkoutPage(
+    session,
+    `${env.BETTER_AUTH_URL}${page}?guarantee=saving`,
+    "setup",
+  );
+  if (!to) redirect(`${page}?guarantee=failed`);
+  redirect(to);
 }
 
 /** Takes the card off; it is never charged after this. */
@@ -169,6 +175,10 @@ export async function payBalanceAction(
     { idempotencyKey: `purchase-${purchaseId}` },
   );
   await attachCheckoutSession(db, purchaseId, session.id);
-  if (!session.url) redirect(`${page}?guarantee=failed`);
-  redirect(session.url);
+  const to = checkoutPage(
+    session,
+    `${env.BETTER_AUTH_URL}${page}?guarantee=balance_paid`,
+  );
+  if (!to) redirect(`${page}?guarantee=failed`);
+  redirect(to);
 }

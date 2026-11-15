@@ -18,6 +18,7 @@ import { hasSignedSeasonWaiver } from "@/db/queries/waivers";
 import { checkoutItems } from "@/domain/registration/checkout";
 import { env } from "@/env";
 import { requireSelfToChange } from "@/lib/auth/permission";
+import { checkoutPage } from "@/lib/demo/checkout";
 import { stripeClient } from "@/services/stripe";
 import { allowAction } from "@/lib/action-limit";
 
@@ -96,6 +97,7 @@ export async function startCheckout(
     { idempotencyKey: `purchase-${purchaseId}` },
   );
   await attachCheckoutSession(db, purchaseId, session.id);
-  if (!session.url) redirect(`${page}?payment=failed`);
-  redirect(session.url);
+  const to = checkoutPage(session, `${env.BETTER_AUTH_URL}${page}?paid=1`);
+  if (!to) redirect(`${page}?payment=failed`);
+  redirect(to);
 }

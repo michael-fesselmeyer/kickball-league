@@ -15,6 +15,7 @@ import { can } from "@/domain/authz/permissions";
 import { type MerchItemId, parseId, type TeamSeasonId } from "@/domain/ids";
 import { env } from "@/env";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { checkoutPage } from "@/lib/demo/checkout";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
 import { logError } from "@/lib/log-error";
@@ -116,7 +117,7 @@ async function openCheckout(
               },
             ],
             expires_at: Math.floor(outcome.expiresAt.getTime() / 1000),
-            success_url: `${env.BETTER_AUTH_URL}/app/shop?order=paid`,
+            success_url: paidPage(),
             cancel_url: `${env.BETTER_AUTH_URL}${context.page}?order=cancelled`,
           },
           { idempotencyKey: `purchase-${outcome.purchaseId}` },
@@ -133,8 +134,10 @@ async function openCheckout(
     return null;
   }
   await attachCheckoutSession(db, outcome.purchaseId, session.id);
-  return session.url;
+  return checkoutPage(session, paidPage());
 }
+
+const paidPage = () => `${env.BETTER_AUTH_URL}/app/shop?order=paid`;
 
 /**
  * A checkout someone left open: its page while Stripe still takes payment;
@@ -154,8 +157,8 @@ async function resumeCheckout(
           .retrieve(found.sessionId)
           .catch(() => null)
       : null;
-  if (session?.status === "open" && session.url)
-    return { kind: "url", url: session.url };
+  const url = session ? checkoutPage(session, paidPage()) : null;
+  if (session?.status === "open" && url) return { kind: "url", url };
   if (session?.status === "complete") return { kind: "paying" };
   if (session && stripe)
     await stripe.checkout.sessions.expire(session.id).catch(() => null);

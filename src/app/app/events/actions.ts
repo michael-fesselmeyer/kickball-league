@@ -18,6 +18,7 @@ import {
   requirePermissionToChange,
   requireSelfToChange,
 } from "@/lib/auth/permission";
+import { checkoutPage } from "@/lib/demo/checkout";
 import { refreshEventPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
@@ -100,7 +101,7 @@ export async function buyTicketAction(
   // Back for a checkout they left open: carry on with it, or, once Stripe
   // has closed it, start again.
   if (result.ok && result.value.kind === "open_checkout") {
-    const resumed = await resumeCheckout(result.value.purchaseId);
+    const resumed = await resumeCheckout(result.value.purchaseId, page);
     if (resumed.kind === "url") redirect(resumed.url);
     if (resumed.kind === "paying") redirect(`${page}?ticket=paid`);
     result = await buy();
@@ -156,7 +157,7 @@ async function openCheckout(
               },
             ],
             expires_at: Math.floor(outcome.expiresAt.getTime() / 1000),
-            success_url: `${env.BETTER_AUTH_URL}${context.page}?ticket=paid`,
+            success_url: paidPage(context.page),
             cancel_url: `${env.BETTER_AUTH_URL}${context.page}?ticket=cancelled`,
           },
           { idempotencyKey: `purchase-${outcome.purchaseId}` },
@@ -173,8 +174,10 @@ async function openCheckout(
     return null;
   }
   await attachCheckoutSession(db, outcome.purchaseId, session.id);
-  return session.url;
+  return checkoutPage(session, paidPage(context.page));
 }
+
+const paidPage = (page: string) => `${env.BETTER_AUTH_URL}${page}?ticket=paid`;
 
 /**
  * A checkout someone left open: its page while Stripe still takes payment;
@@ -183,6 +186,7 @@ async function openCheckout(
  */
 async function resumeCheckout(
   purchaseId: Extract<BuyOutcome, { kind: "open_checkout" }>["purchaseId"],
+  page: string,
 ): Promise<
   { kind: "url"; url: string } | { kind: "paying" } | { kind: "closed" }
 > {
@@ -194,8 +198,8 @@ async function resumeCheckout(
           .retrieve(found.sessionId)
           .catch(() => null)
       : null;
-  if (session?.status === "open" && session.url)
-    return { kind: "url", url: session.url };
+  const url = session ? checkoutPage(session, paidPage(page)) : null;
+  if (session?.status === "open" && url) return { kind: "url", url };
   if (session?.status === "complete") return { kind: "paying" };
   if (session && stripe)
     await stripe.checkout.sessions.expire(session.id).catch(() => null);
