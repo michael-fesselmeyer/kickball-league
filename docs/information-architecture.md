@@ -159,6 +159,8 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   ├── waitlist                The team waitlist in order: who waits, who holds an offer and until when; offer free spots now
     │   ├── rebates                 Rain-out rebates: each team's games lost and money paid; issue the pro-rata rebate as league credit
     │   ├── shirts                  Shirt sizes by team, what is still to order, and each player's shirt: not ordered, ordered or received
+    │   ├── shirt-order             The season's shirt order: counts by size for the league and each team (with its color), who has no size and a one-time reminder, replacement jerseys to make, the sizes sign-up forms offer, and the order placed, received and added to the books
+    │   │   └── order.csv           The vendor's CSV: sizes and counts by team and color; player names only when the admin ticks "include names for team packing"
     │   ├── awards                  Open a game-day or season poll, close one early, remove one; results after close
     │   │   └── stats               Stat awards: set the Season MVP weights, work the awards out (a draft only admins see), review the leaders, add a note to any award, publish or take down
     │   ├── cards                   Season cards: once the season is completed, build every rostered player's card (and tell each once), or refresh them; how many are shared
