@@ -32,6 +32,10 @@ import { activeLeague } from "@/lib/league/active";
 import { requireInLeague } from "@/lib/league/guard";
 import { refreshInterestPage } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
+import { openLeagueFromOption } from "@/db/queries/interest-league";
+import { SPORTS, type Sport } from "@/domain/league/new-league";
+import { refreshLeaguePages } from "@/lib/league/refresh";
+import { requireFreshOperator } from "@/lib/platform/require-operator";
 import { type ErrorKey } from "./words";
 
 const PAGE = "/app/admin/interest";
@@ -221,4 +225,38 @@ export async function removeAnswerAction(
     email,
   });
   return removed ? go("answer-removed") : fail("no_answer");
+}
+
+/**
+ * Opens a new league with a draft season from an option (ADR 0072). Only
+ * the operator starts leagues (ADR 0048); anyone else gets a 404.
+ */
+export async function openLeagueAction(
+  rawId: string,
+  form: FormData,
+): Promise<void> {
+  const operator = await requireFreshOperator();
+  const optionId = parseId<InterestOptionId>(rawId);
+  if (!optionId) notFound();
+  const league = await activeLeague();
+  if (!league) notFound();
+  const sport = formStrings(form, ["sport"]).sport;
+  if (!SPORTS.some((s) => s.value === sport)) return fail("sport");
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: league.timeZone,
+  }).format(new Date());
+  const opened = await txDb.transaction((tx) =>
+    openLeagueFromOption(tx, {
+      optionId,
+      sport: sport as Sport,
+      actorId: operator.userId,
+      today,
+    }),
+  );
+  if (!opened.ok) {
+    if (opened.error === "not_found") notFound();
+    return fail(opened.error);
+  }
+  refreshLeaguePages();
+  return go("league-opened");
 }

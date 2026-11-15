@@ -5,6 +5,9 @@ import { Suspense } from "react";
 import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
 import { type FormRow, interestForms } from "@/db/queries/interest";
+import { openedLeagues } from "@/db/queries/interest-league";
+import { SPORTS } from "@/domain/league/new-league";
+import { isCurrentOperator } from "@/lib/platform/site";
 import {
   DEFAULT_PLAYERS_PER_TEAM,
   DEFAULT_TEAMS_NEEDED,
@@ -22,6 +25,7 @@ import {
   addOptionAction,
   closeAction,
   goAheadAction,
+  openLeagueAction,
   openFormAction,
   removeAnswerAction,
   removeOptionAction,
@@ -162,7 +166,22 @@ function OpenForm() {
   );
 }
 
-function FormCard({ form, link }: { form: FormRow; link: string }) {
+/** What the operator sees to open a league from an option (ADR 0072). */
+type Opening = {
+  operator: boolean;
+  sport: string;
+  opened: Map<string, { name: string; slug: string }>;
+};
+
+function FormCard({
+  form,
+  link,
+  opening,
+}: {
+  form: FormRow;
+  link: string;
+  opening: Opening;
+}) {
   const open = form.status === "open";
   return (
     <section
@@ -253,6 +272,7 @@ function FormCard({ form, link }: { form: FormRow; link: string }) {
                   </form>
                 </details>
               )}
+              <OpenLeague option={o} label={label} opening={opening} />
               {open &&
                 !o.goAheadAt &&
                 o.counts.yesAnswers + o.counts.unsureAnswers === 0 && (
@@ -328,12 +348,80 @@ function FormCard({ form, link }: { form: FormRow; link: string }) {
   );
 }
 
+/**
+ * The league opened from an option, or for the operator, the one step that
+ * opens it: a new league with a draft season (ADR 0072).
+ */
+function OpenLeague({
+  option,
+  label,
+  opening,
+}: {
+  option: { id: string };
+  label: string;
+  opening: Opening;
+}) {
+  const opened = opening.opened.get(option.id);
+  if (opened)
+    return (
+      <p className="text-small">
+        Opened as{" "}
+        <Link href={`/l/${opened.slug}`} className="underline">
+          {opened.name}
+        </Link>
+        , with a draft season.
+      </p>
+    );
+  if (!opening.operator) return null;
+  return (
+    <details>
+      <summary className="inline-flex min-h-11 cursor-pointer items-center underline">
+        Open {label} as a new league
+      </summary>
+      <form
+        action={openLeagueAction.bind(null, option.id)}
+        className="mt-2 flex flex-col gap-2"
+      >
+        <p className="text-small text-text-muted">
+          Starts a league named after this option, with this league&apos;s
+          colors, time zone and minimum age, and a draft season on its night six
+          weeks from now with the last season&apos;s fees. Nothing is public
+          until its admins open registration.
+        </p>
+        <label className="flex flex-col gap-1">
+          Sport
+          <select name="sport" defaultValue={opening.sport} className={input}>
+            {SPORTS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <SubmitButton className="btn self-start btn-primary">
+          Open the league
+        </SubmitButton>
+      </form>
+    </details>
+  );
+}
+
 async function Forms({ searchParams }: PageProps<"/app/admin/interest">) {
-  await requirePermission("interest.manage", { next: "/app/admin/interest" });
+  const subject = await requirePermission("interest.manage", {
+    next: "/app/admin/interest",
+  });
   const query = await searchParams;
   await connection();
   const league = await activeLeague();
   const forms = league ? await interestForms(db, league.id) : [];
+  const opening: Opening = {
+    operator: isCurrentOperator(subject.userId),
+    sport: league?.sport ?? "kickball",
+    opened: await openedLeagues(
+      db,
+      forms.flatMap((f) => f.options.map((o) => o.id)),
+    ),
+  };
   const notice =
     typeof query.notice === "string" ? noticeText(query.notice) : undefined;
   const error =
@@ -356,7 +444,7 @@ async function Forms({ searchParams }: PageProps<"/app/admin/interest">) {
       )}
       {!open && <OpenForm />}
       {forms.map((f) => (
-        <FormCard key={f.id} form={f} link={link} />
+        <FormCard key={f.id} form={f} link={link} opening={opening} />
       ))}
     </>
   );

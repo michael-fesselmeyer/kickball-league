@@ -29,6 +29,9 @@ export const ERRORS = {
   went_closed: "Reopen the form before sending a go-ahead.",
   email: "Type the address to delete.",
   no_answer: "No answer from that address.",
+  sport: "Pick a sport for the new league.",
+  already_opened: "A league was already opened from that option.",
+  slug_taken: "Another league took that address a moment ago. Try again.",
 } as const;
 
 export type ErrorKey = keyof typeof ERRORS;
@@ -44,6 +47,8 @@ export const NOTICES: Record<string, string> = {
   added: "Option added.",
   removed: "Option removed.",
   "answer-removed": "That answer is deleted.",
+  "league-opened":
+    "League opened with a draft season. Give it owners in the operator console; nothing is public until registration opens.",
 };
 
 /** "ahead-12" is a go-ahead that emailed 12 people. */
