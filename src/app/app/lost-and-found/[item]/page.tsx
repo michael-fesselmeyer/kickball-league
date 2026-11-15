@@ -122,7 +122,7 @@ async function Item({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={`/app/lost-and-found/${item.id}/photo`}
-          alt={`Photo of: ${item.description}`}
+          alt={item.description}
           width={item.width ?? undefined}
           height={item.height ?? undefined}
           decoding="async"
