@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { type CoverWindow, coverageGap, gapSentence, usable } from "./coverage";
+import {
+  type CoverWindow,
+  coverageGap,
+  gapSentence,
+  OVERRIDE_REASON_MAX,
+  parseOverrideReason,
+  usable,
+  waiveDocuments,
+} from "./coverage";
 
 const NY = "America/New_York";
 /** EDT wall-clock on Tuesday, Sep 15, 2026, as an ISO string. */
@@ -163,5 +171,37 @@ describe("gapSentence", () => {
     expect(gapSentence({ kind: "no_permit" }, item, NY)).toBe(
       "No permit covers Field 3 on Tue, Sep 15 from 7:00 PM to 8:20 PM.",
     );
+  });
+});
+
+describe("overriding missing documents (ADR 0063)", () => {
+  it("counts windows without their document, never lost ones", () => {
+    const windows = waiveDocuments([
+      window(18, 20, { hasDocument: false }),
+      window(20, 22, { status: "lost", hasDocument: false }),
+    ]);
+    expect(coverageGap(game([18, 0], [19, 0]), windows)).toBeNull();
+    expect(coverageGap(game([20, 0], [21, 0]), windows)).toEqual({
+      kind: "lost",
+    });
+  });
+
+  it("needs a reason of a sensible length", () => {
+    expect(parseOverrideReason("  Permit 1234   issued, PDF Monday ")).toEqual({
+      ok: true,
+      value: "Permit 1234 issued, PDF Monday",
+    });
+    expect(parseOverrideReason("ok")).toEqual({
+      ok: false,
+      error: "reason_short",
+    });
+    expect(parseOverrideReason(null)).toEqual({
+      ok: false,
+      error: "reason_short",
+    });
+    expect(parseOverrideReason("x".repeat(OVERRIDE_REASON_MAX + 1))).toEqual({
+      ok: false,
+      error: "reason_long",
+    });
   });
 });

@@ -14,8 +14,19 @@ import {
 } from "@/db/queries/schedule-screen";
 import { measure, type Status } from "@/domain/scheduler/measure";
 import { validate } from "@/domain/scheduler/validate";
+import {
+  OVERRIDE_REASON_MAX,
+  OVERRIDE_REASON_MIN,
+  waiveDocuments,
+} from "@/domain/permits/coverage";
 import { requirePermission } from "@/lib/auth/permission";
-import { editGame, generateDraft, publishDraft, saveBoard } from "./actions";
+import {
+  editGame,
+  generateDraft,
+  publishDraft,
+  publishWithoutDocuments,
+  saveBoard,
+} from "./actions";
 import { BoardLoader } from "./board-loader";
 import type { BoardSlot } from "./board-model";
 import { metricRows, readable } from "./labels";
@@ -45,6 +56,10 @@ const ERRORS: Record<string, string> = {
   has_violations: "This version breaks a hard rule, so it cannot be published.",
   not_draft: "Only a draft can be published.",
   unknown_version: "That version no longer exists.",
+  missing_documents:
+    "Only permit documents are missing. If the league holds these permits, publish anyway with a reason.",
+  reason_short: `Say why in at least ${OVERRIDE_REASON_MIN} characters, such as the permit number and when its document comes.`,
+  reason_long: `Keep the reason to ${OVERRIDE_REASON_MAX} characters.`,
 };
 
 /** "1 game", "3 games", from a search parameter. */
@@ -79,17 +94,30 @@ async function Schedule({
   const metrics = latest ? measure(latest.input, latest.schedule) : null;
   // A draft is judged against the permits as they are now (H12, issue
   // #407), as publishing will judge it.
+  const permits =
+    latest?.status === "draft"
+      ? await schedulerPermits(db, season.id, new Date())
+      : null;
   const violations = latest
     ? validate(
-        latest.status === "draft"
-          ? {
-              ...latest.input,
-              permits: await schedulerPermits(db, season.id, new Date()),
-            }
-          : latest.input,
+        permits ? { ...latest.input, permits } : latest.input,
         latest.schedule,
       )
     : [];
+  // Gaps that are only missing documents can be overridden with a reason
+  // (ADR 0063); anything else must be fixed.
+  const onlyDocuments =
+    latest !== null &&
+    permits !== null &&
+    violations.length > 0 &&
+    violations.every((v) => v.rule === "H12") &&
+    validate(
+      {
+        ...latest.input,
+        permits: { ...permits, windows: waiveDocuments(permits.windows) },
+      },
+      latest.schedule,
+    ).length === 0;
   const teamCount = labels.teams.size;
   // One full round robin for the largest pool: the season, or the largest
   // division. Crossover games come on top.
@@ -333,6 +361,33 @@ async function Schedule({
                 </li>
               ))}
             </ul>
+          )}
+          {latest.status === "draft" && onlyDocuments && (
+            <form
+              action={publishWithoutDocuments.bind(null, slug, latest.id)}
+              className="flex flex-col gap-2 rounded-lg border-2 border-warning p-3"
+            >
+              <p>
+                Only permit documents are missing. If the league holds these
+                permits, you can publish now: say why, and it goes in the audit
+                log. Owners can upload the documents on the permits screen.
+              </p>
+              <label htmlFor="override-reason" className="font-bold">
+                Why publish before the documents are uploaded?
+              </label>
+              <textarea
+                id="override-reason"
+                name="reason"
+                required
+                rows={2}
+                minLength={OVERRIDE_REASON_MIN}
+                maxLength={OVERRIDE_REASON_MAX}
+                className="rounded-md border border-border bg-surface px-2 py-2"
+              />
+              <SubmitButton className="btn self-start btn-secondary">
+                Publish version {latest.versionNo} anyway
+              </SubmitButton>
+            </form>
           )}
 
           <BoardLoader
