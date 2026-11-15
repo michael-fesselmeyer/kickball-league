@@ -172,7 +172,7 @@ export type ExpenseInput = {
   noReceipt?: boolean;
   /** The owner who paid it themselves, to be reimbursed; null for league money. */
   paidBy?: UserId | null;
-  /** The expected cost occurrence this settles (ADR 0054). */
+  /** The expected cost occurrence this settles (ADR 0059). */
   occurrence?: { recurringCostId: RecurringCostId; dueOn: string } | null;
   /** Hashed statement-row key, for an imported row. */
   importKey?: string | null;

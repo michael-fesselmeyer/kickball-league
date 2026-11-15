@@ -120,7 +120,9 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── games/[game]/permit             The park permit at the field: number, field, hours and document, for the game's ref and both captains (and owners); kept on the phone with the next game
 │   └── document                    The permit document itself, for the same people, never cached by a CDN
 ├── books/                          Owners and the platform operator only (404 for everyone else); opens on the newest season
-│   ├── [season]                    The ledger (money in, money out by category, net), add an expense with a receipt photo, the season's expenses
+│   ├── [season]                    Quick add (amount, category, done; date, note, receipt and who paid folded away), expected costs to confirm or skip, who is owed what with "Reimbursed", the ledger (money in, money out by category, net), the season's expenses with "Add a receipt" or "There isn't one"
+│   │   ├── expected                Expected costs: set a cost once, each season or each game day, and stop expecting it
+│   │   ├── import                  Import a Venmo or bank CSV: preview the money-out rows with guessed categories, skip ones already in, import the ticked ones; the owners' category rules
 │   │   ├── ledger.csv              Every transaction for taxes, no player names
 │   │   └── permits                 Permits (cost or fee estimate, document, dates), games on lost permits, fees due and the season's hours against the 50-hour line, field time to give back, "What to request" and its copy button, "How NYC Parks permits work", the insurance certificate
 │   │       ├── capacity            Capacity planner: teams the field time fits, the gap to teams wanting in, options with the teams each adds and links to the request sheet, nearby NYC Parks fields

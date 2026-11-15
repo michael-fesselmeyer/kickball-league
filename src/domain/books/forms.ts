@@ -69,7 +69,7 @@ export function optionalCents(value: string): Result<number | null, "amount"> {
   return cents === null ? err("amount") : ok(cents);
 }
 
-/** How an expense's receipt stands when it is added (ADR 0054). */
+/** How an expense's receipt stands when it is added (ADR 0059). */
 export const RECEIPT_CHOICES = ["later", "none", "now"] as const;
 export type ReceiptChoice = (typeof RECEIPT_CHOICES)[number];
 

@@ -1526,6 +1526,11 @@ erDiagram
   books_file |o--o{ permit_window : "document of"
   books_file |o--o{ insurance_certificate : "copy of"
   league ||--o{ insurance_certificate : holds
+  league ||--o{ recurring_cost : expects
+  recurring_cost |o--o{ expense : "settled by"
+  recurring_cost ||--o{ recurring_cost_skip : "skipped on"
+  league ||--o{ merchant_rule : guesses
+  user |o--o{ expense : "paid out of pocket"
 
   books_file {
     uuid id PK
@@ -1545,6 +1550,38 @@ erDiagram
     enum category "fields_permits, equipment, shirts, refs, events, sponsor_costs, other"
     text note
     uuid receipt_file_id FK
+    boolean no_receipt "an owner said there isn't one"
+    uuid paid_by FK "an owner who paid out of pocket; null for league money"
+    timestamptz reimbursed_at
+    uuid reimbursed_by FK
+    uuid recurring_cost_id FK "the expected cost this settled"
+    date due_on "which occurrence of it"
+    text import_key "SHA-256 of a statement row's key"
+    uuid created_by FK
+  }
+  recurring_cost {
+    uuid id PK
+    uuid league_id FK
+    text label "Ref pay"
+    enum category
+    int amount_cents "the usual amount"
+    enum cadence "season, game_day"
+    date starts_on
+    timestamptz archived_at "set when owners stop expecting it"
+    uuid created_by FK
+  }
+  recurring_cost_skip {
+    uuid recurring_cost_id PK
+    uuid season_id PK
+    date due_on PK
+    uuid skipped_by FK
+    timestamptz skipped_at
+  }
+  merchant_rule {
+    uuid id PK
+    uuid league_id FK
+    text pattern "lowercase words a description contains"
+    enum category
     uuid created_by FK
   }
   insurance_certificate {
@@ -1561,6 +1598,11 @@ erDiagram
 Notes:
 - Windows added together under one permit number share its details. The owners enter the permit's total cost once and it is split across the windows, earliest first, so the shares add up to it exactly; the ledger counts each window's share under "Fields and permits".
 - A photo is stored once, as WebP, at most 1,600 pixels on its longer side, without its metadata; a PDF is kept as uploaded. All of a league's files together are capped at 50 MB, checked under a lock so two uploads at once count each other. Removing an expense or certificate, or replacing a permit's document, deletes the file nothing else uses.
+- Keeping up ([ADR 0059](adr/0059-expected-costs-and-statement-imports.md)):
+  - **Receipts:** an expense waits on a receipt until one is attached or `no_receipt` is set. The check `expense_no_receipt` keeps the two apart. Imported rows and confirmed expected costs aren't counted as missing one.
+  - **Expected costs:** occurrences are worked out, not stored. A season cost is due on the season's first day; a game-day cost on every local day with a game that isn't cancelled or postponed, from `starts_on`. Confirming one adds an expense with `recurring_cost_id` and `due_on`, unique with the season, so it is added once. Skipping one adds a `recurring_cost_skip` row for that season. Both belong to a season because seasons can overlap. A season cost confirmed or skipped once stays settled for that season if its first day moves. A moved game day is expected on its new day.
+  - **Out of pocket:** `paid_by` must be an owner when it is set. "Reimbursed" sets `reimbursed_at` on the expenses that were listed, so one added since stays owed.
+  - **Statement imports:** only the date, amount and description of money-out rows are read. Digit runs of five or more are masked to their last two digits, the file is never stored, and `import_key` is a hash of the row's key, scoped to the league (unique per season). The statement's own ID is used when it has one; otherwise the key is the date, amount, description and position among identical rows. Money in (payments, refunds), Venmo transfers to a bank and $0 lines are left out.
 
 ### 2.9 The owner dashboard and the season money summary
 
@@ -1798,7 +1840,12 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `social_post` | unique `(account_id)` where `cover = 'home'`; unique `(team_id)` where `cover = 'team'` | One cover per page |
 | `social_image` | check type is JPEG, PNG or WebP and `byte_size = octet_length(bytes)` up to 2 MB | Only images are stored and served; the 25 MB total is enforced by the sync |
 | `books_file` | check type is WebP or PDF and `byte_size = octet_length(bytes)` up to 1 MB | Only resized photos and small PDFs are stored; the 50 MB total is enforced when a file is added |
+| `expense` | unique `(recurring_cost_id, season_id, due_on)`; unique `(season_id, import_key)`; check not both `no_receipt` and a receipt | An expected cost is confirmed once; a statement row is imported once; "no receipt" never sits beside one |
+| `recurring_cost` | check `amount_cents > 0` and a label of 1 to 80 characters | |
+| `recurring_cost_skip` | primary key `(recurring_cost_id, season_id, due_on)` | An occurrence is skipped once per season |
+| `merchant_rule` | unique `(league_id, pattern)`; check a pattern of 2 to 60 characters | One category per pattern |
 | `expense` | check `amount_cents > 0`; index `(season_id, spent_on)` | The ledger reads one season's expenses in date order |
+| `expense` | index `(paid_by)` where `reimbursed_at` is null | "Owed to owners" reads only what is still owed |
 | `permit_window` | check `cost_cents` is null or at least 0; check the application window closes on or after it opens | A permit's details make sense |
 | `insurance_certificate` | check `expires_on > starts_on` | A certificate covers a period |
 | `friend_league` | unique `(league_id, name)`; check `url` starts with `https://` and is at most 300 characters; checks on name, area and description lengths | One entry per league name; only https links reach the page |
@@ -1905,6 +1952,7 @@ Indexes for the common reads:
 | Push devices | `push_subscription` (endpoint, keys, browser) | Only the outbox. The person's export lists their devices by browser and date, without the endpoint or keys |
 | Photos and captions from the league's Instagram, which may show players | `social_post`, `social_image` | Admins; everyone once an admin features a photo. Any player can ask for a photo of them to be hidden, and hiding takes it off public pages on their next render |
 | Expenses, receipts, permit costs and documents, the insurance certificate | `expense`, `books_file`, `permit_window`, `insurance_certificate` | Owners and the platform operator. A game's referee and both captains see that game's permit number and document. The tax CSV names no player |
+| Who paid out of pocket and was reimbursed; expected costs; merchant rules; imported statement rows | `expense.paid_by`, `recurring_cost`, `merchant_rule`, `expense.import_key` | Owners and the platform operator. A statement file is read and dropped; account and card numbers are never stored, and descriptions are masked. An account merge moves `paid_by` to the kept account |
 | The Instagram access token | `social_account.token_ciphertext`, encrypted | Nobody: only the sync jobs decrypt it, and disconnecting deletes it |
 | Photos members upload, which may show players, with captions | `member_photo` | The uploader and admins; everyone once an admin approves one. The uploader can delete theirs at any time, and deleting their account deletes them all. Metadata such as a phone's location is never stored. Rejected photos' bytes are deleted at once |
 | Why an admin rejected a photo | `member_photo.review_note` | Admins only, never the uploader |

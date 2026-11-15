@@ -4,7 +4,7 @@ import { defineTemplate } from "./define";
 import { renderEmail } from "./layout";
 
 /**
- * The owners' monthly nudge (ADR 0054): expected costs waiting to be
+ * The owners' monthly nudge (ADR 0059): expected costs waiting to be
  * confirmed and expenses still waiting on a receipt. Sent in the first
  * week of a month, only when there is something to list.
  */

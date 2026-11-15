@@ -1,7 +1,7 @@
 import type { ExpenseCategory } from "./ledger";
 
 /**
- * Expected costs (ADR 0054): the owners set a recurring cost once (a
+ * Expected costs (ADR 0059): the owners set a recurring cost once (a
  * permit, insurance, ref pay, a bar deposit) and the books list it for each
  * season or each game day, for an owner to confirm with one tap or skip.
  * Nothing is stored until then: an occurrence is worked out from the
