@@ -5,7 +5,7 @@ import { renderEmail } from "./layout";
 /**
  * Reminds an owner that a permit application window opens, a permit
  * renews, the insurance certificate expires or a season's permit fees are
- * due soon (ADR 0034, ADR 0051). NYC Parks
+ * due soon (ADR 0034, ADR 0055). NYC Parks
  * has no public permit API, so the email points to the owners' permit
  * screen and the application is made by hand.
  */

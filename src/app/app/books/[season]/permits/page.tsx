@@ -28,7 +28,12 @@ import {
   formText,
   PERMIT_OFFICES_PAGE,
 } from "@/domain/permits/give-back";
-import { hoursLevel, hoursText, INSURANCE_HOURS } from "@/domain/permits/hours";
+import {
+  hoursLevel,
+  hoursText,
+  INSURANCE_HOURS,
+  minutesWithSheet,
+} from "@/domain/permits/hours";
 import { localDate } from "@/domain/books/ledger-csv";
 import { daysUntil } from "@/domain/books/reminders";
 import type { RequestProblem } from "@/domain/books/request-sheet";
@@ -148,9 +153,11 @@ async function Permits({
   const dueIn = daysUntil(today, dueOn);
   const permitted = hoursText(plan.minutes);
   // What the season would come to with the sheet's hours on top.
-  const withSheet = sheet.ok
-    ? plan.minutes + sheet.value.totalFieldHours * 60
-    : plan.minutes;
+  const withSheet = minutesWithSheet(
+    plan.minutes,
+    sheet.ok ? sheet.value.totalFieldHours * 60 : 0,
+    choices.games !== null,
+  );
 
   return (
     <>
@@ -166,8 +173,8 @@ async function Permits({
         <p className="text-text-muted">
           NYC Parks has no public permit system to connect to, so permits are
           applied for on their site and tracked here. Owners get an email 30 and
-          7 days before an application window opens, a permit renews or the
-          insurance runs out.
+          7 days before an application window opens, a permit renews, the fees
+          are due or the insurance runs out.
         </p>
         <SeasonPicker
           seasons={seasons}
@@ -327,7 +334,7 @@ async function Permits({
                     <>
                       {u.office.name}:{" "}
                       <a
-                        href={`tel:${u.office.phone.replace(/[^\d]/g, "")}`}
+                        href={`tel:+1${u.office.phone.replace(/[^\d]/g, "")}`}
                         className="underline"
                       >
                         {u.office.phone}
@@ -638,8 +645,9 @@ async function Permits({
             </p>
             {hoursLevel(withSheet) !== "under" && (
               <p role="status" className="rounded-lg border border-warning p-3">
-                With the {permitted} hours already on this season&apos;s
-                permits, asking for these would bring it to{" "}
+                {choices.games !== null
+                  ? `With the ${permitted} hours already on this season's permits, asking for these would bring it to `
+                  : "With this sheet the season comes to "}
                 {hoursText(withSheet)} hours
                 {hoursLevel(withSheet) === "over"
                   ? ", past NYC Parks' 50-hour line: Parks would ask for insurance and a notarized broker's form first."

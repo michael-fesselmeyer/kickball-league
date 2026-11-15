@@ -14,7 +14,7 @@ import { drainOutboxNow } from "@/services/outbox";
  * season's permit fees are due (ADR 0034). It also alerts them once when a
  * season nears or passes NYC Parks' 50-hour insurance line, and once for
  * each window of field time coming up that the league won't use (ADR
- * 0051). Safe to run twice: each message is queued once.
+ * 0055). Safe to run twice: each message is queued once.
  */
 export async function GET(request: Request): Promise<Response> {
   const refused = refuseUnlessCron(request, env.CRON_SECRET);

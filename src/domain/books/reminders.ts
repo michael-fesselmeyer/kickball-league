@@ -16,7 +16,7 @@ export type DeadlineKind =
   | "application_opens"
   | "permit_renews"
   | "insurance_expires"
-  /** A season's NYC Parks fees, due 14 days before it starts (ADR 0051). */
+  /** A season's NYC Parks fees, due 14 days before it starts (ADR 0055). */
   | "fees_due";
 
 export type Deadline = {

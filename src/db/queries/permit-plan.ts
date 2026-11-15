@@ -19,7 +19,7 @@ import { enqueueMessages } from "./outbox";
 import type { Db } from "./schedule";
 
 /**
- * The reads behind the season's permit plan (ADR 0051): fee estimates, the
+ * The reads behind the season's permit plan (ADR 0055): fee estimates, the
  * 50-hour insurance line and field time to give back. Two queries run
  * together, the windows with their slot counts and the blackouts; the
  * league's name and time zone come from the caller.
