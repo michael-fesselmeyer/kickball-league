@@ -347,6 +347,16 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
       "Both answered the same season survey; the answers stay, unlinked from either",
   },
   "season_survey.opened_by": actor("season surveys opened"),
+  "win_back_email.user_id": {
+    kind: "dedupe",
+    label: "win-back emails received",
+    by: ["season_id"],
+    resolve: "drop",
+    clash:
+      "Both were invited back for the same season; the kept account's invite stays",
+  },
+  "win_back_email.sent_by": actor("win-back emails sent"),
+  "win_back_template.updated_by": actor("win-back wording edited"),
   "giveaway_winner.drawn_by": actor("giveaway winners drawn"),
   "checkin.user_id": {
     kind: "dedupe",

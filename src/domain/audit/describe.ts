@@ -198,6 +198,8 @@ const ACTIONS: Record<string, string> = {
   "volunteer.delete": "Removed a volunteer shift",
   "volunteer.update": "Changed a volunteer shift",
   "waiver.publish": "Published a waiver",
+  "win_back.send": "Emailed past players to come back",
+  "win_back.template": "Changed the win-back email",
 };
 
 export function describeAction(action: string): string {

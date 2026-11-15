@@ -50,6 +50,7 @@ import { scoreReminderEmail } from "./score-reminder";
 import { seasonCardEmail } from "./season-card";
 import { subRequestEmail, subUpdateEmail } from "./sub-request";
 import { surveyInviteEmail } from "./survey-invite";
+import { winBackEmail } from "./win-back";
 import { suspensionEmail } from "./suspension";
 import { teamRoleEmail } from "./team-role";
 import { volunteerReminderEmail } from "./volunteer-reminder";
@@ -106,6 +107,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     team_role: teamRoleEmail,
     volunteer_reminder: volunteerReminderEmail,
     waitlist_offer: waitlistOfferEmail,
+    win_back: winBackEmail,
   };
 
 const isTemplateName = (name: string): name is keyof typeof TEMPLATES =>

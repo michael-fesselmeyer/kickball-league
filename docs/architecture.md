@@ -304,6 +304,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `team_role` | non-urgent | Becoming or no longer being a co-captain, and the answer to a captaincy you offered |
 | `volunteer_reminder` | non-urgent | A reminder the day before a volunteer shift you signed up for |
 | `waitlist_offer` | urgent | A team spot held for you from the waitlist |
+| `win_back` | non-urgent | An invitation back when a new season's registration opens, if you played before |
 
 The `digest` template carries held messages and is neither: it is never capped but waits out quiet hours. Event notices pick their kind when they are queued (`eventNoticeKind`): a spot that opened for the person, or a cancellation or a change to the time or place within 24 hours of the start (the earlier of the old and new start), is `event_notice`; announcements, other edits and anything further ahead are `event_news`. Both render with the same email.
 

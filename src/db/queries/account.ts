@@ -54,6 +54,7 @@ import {
 } from "../schema/team";
 import { waiver, waiverSignature } from "../schema/waiver";
 import { waitlistEntry } from "../schema/waitlist";
+import { winBackEmail } from "../schema/win-back";
 import { accountMerge } from "../schema/account-merge";
 import { recordAudit } from "./audit";
 import { myStatAwards, removeStatAwardsOf } from "./stat-awards";
@@ -934,6 +935,8 @@ export async function deleteAccount(
   // A new version, so a private calendar link handed out before stops working.
   await resetFeed(db, userId);
   await db.delete(message).where(eq(message.userId, userId));
+  // Which seasons the league invited them back for.
+  await db.delete(winBackEmail).where(eq(winBackEmail.userId, userId));
   await db
     .update(invite)
     .set({ status: "revoked" })
