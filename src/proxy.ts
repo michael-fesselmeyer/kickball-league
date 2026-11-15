@@ -15,15 +15,17 @@ export async function proxy(request: NextRequest) {
   // notice. Signing in, the app (where owners export their data) and the
   // operator console stay reachable. See ADR 0009.
   // Files (calendar feeds, share images) are never swapped for the notice.
+  let defaultSlug: string | null = null;
   if (!reachableWhilePaused(pathname) && !pathname.includes(".")) {
     const site = await siteForProxy();
     if (site?.status === "paused")
       return NextResponse.rewrite(new URL("/paused", request.url));
+    defaultSlug = site?.slug ?? null;
   }
   if (pathname === "/app" || pathname.startsWith("/app/"))
     return signedInOnly(request);
 
-  return leaguePage(request);
+  return leaguePage(request, defaultSlug);
 }
 
 const OTHER_LEAGUE = /^\/l\/([^/]+)(\/.*)?$/;
@@ -36,7 +38,7 @@ const OTHER_LEAGUE = /^\/l\/([^/]+)(\/.*)?$/;
  * address in the browser stays the same, and the league comes from the
  * path alone.
  */
-function leaguePage(request: NextRequest) {
+function leaguePage(request: NextRequest, defaultSlug: string | null) {
   const { pathname, searchParams, search } = request.nextUrl;
   const route = leagueRoute(pathname);
   if (route?.kind === "redirect")
@@ -45,6 +47,15 @@ function leaguePage(request: NextRequest) {
       308,
     );
   const other = OTHER_LEAGUE.exec(pathname);
+  // The default league has one address. Redirecting here, over HTTP, spares
+  // the browser the page's own redirect, whose follow-up request the client
+  // router can't resolve and answers with a second full page load (issue
+  // 425). The page still redirects, for a server that can't tell.
+  if (other && defaultSlug !== null && other[1] === defaultSlug)
+    return NextResponse.redirect(
+      new URL(`${other[2] ?? "/"}${search}`, request.url),
+      308,
+    );
   const base = other
     ? `${LEAGUE_PREFIX}/${other[1]}`
     : route?.kind === "rewrite"
