@@ -11,6 +11,7 @@ export * from "./books";
 export * from "./credit";
 export * from "./concern";
 export * from "./conduct";
+export * from "./acting-admin";
 export * from "./discipline";
 export * from "./division";
 export * from "./drive";

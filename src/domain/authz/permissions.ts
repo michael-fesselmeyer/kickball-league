@@ -11,6 +11,8 @@
  * admin of one league has no rights in another.
  */
 
+import { type ActingPower, actingPowersOpen } from "./acting-admin";
+
 export type GlobalRole = "player" | "admin" | "owner";
 export type RosterRole = "captain" | "co_captain" | "player";
 
@@ -35,6 +37,12 @@ export type Subject = {
    * may see, the operator may see too.
    */
   isOperator?: boolean;
+  /**
+   * Powers an owner handed over for dates that include now (issue #468),
+   * for a player only. They open exactly the actions their powers list
+   * (acting-admin.ts), as an admin would, and never a role change.
+   */
+  acting?: readonly ActingPower[];
 };
 
 /** What an action is about. Each action reads only the fields it needs. */
@@ -96,6 +104,11 @@ const inLeague: Rule = (s) =>
     s.isReferee ||
     s.sponsorIds.length > 0);
 const isOwner: Rule = (s) => s.globalRole === "owner";
+/** An acting admin whose handover includes `power`. */
+const actsFor =
+  (power: ActingPower): Rule =>
+  (s) =>
+    s.userId !== null && s.acting?.includes(power) === true;
 const isOperator: Rule = (s) => s.userId !== null && s.isOperator === true;
 const self: Rule = (s, c) => s.userId !== null && c.targetUserId === s.userId;
 const onTeam = (s: Subject, team: string | undefined) =>
@@ -311,6 +324,8 @@ const RULES = {
     isOwner,
     isOperator,
     (s, c) => isAdmin(s, c) && c.adminsConfirmRainouts === true,
+    // An owner who handed over rain-outs chose this, so it needs no setting.
+    actsFor("rainouts"),
   ),
   // Set a game day's status: on, watching, delayed or off (issue #383).
   "game_day.status": isAdmin,
@@ -403,7 +418,17 @@ export function can(
     context.leagueId !== subject.leagueId
   )
     return false;
-  return RULES[action](subject, context);
+  const rule = RULES[action];
+  if (rule(subject, context)) return true;
+  // An acting admin is a player with an admin's rights for the listed
+  // actions only: the rule runs again as an admin when a power opens it.
+  if (
+    subject.globalRole === "player" &&
+    subject.userId !== null &&
+    actingPowersOpen(subject.acting, action)
+  )
+    return rule({ ...subject, globalRole: "admin" }, context);
+  return false;
 }
 
 /** A visitor who is not signed in. */

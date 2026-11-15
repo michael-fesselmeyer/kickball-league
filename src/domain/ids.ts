@@ -87,6 +87,7 @@ export type SocialPostId = Brand<string, "SocialPostId">;
 export type SocialImageId = Brand<string, "SocialImageId">;
 export type SportsmanshipRatingId = Brand<string, "SportsmanshipRatingId">;
 export type ConcernId = Brand<string, "ConcernId">;
+export type ActingAdminId = Brand<string, "ActingAdminId">;
 export type ConcernMessageId = Brand<string, "ConcernMessageId">;
 export type InterestFormId = Brand<string, "InterestFormId">;
 export type InterestOptionId = Brand<string, "InterestOptionId">;
