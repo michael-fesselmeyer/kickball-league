@@ -526,6 +526,13 @@
       "when": 1794773118861,
       "tag": "0074_game_day_checklist",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1794774235263,
+      "tag": "0075_permit_coverage",
+      "breakpoints": true
     }
   ]
 }
