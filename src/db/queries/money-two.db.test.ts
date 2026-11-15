@@ -618,6 +618,68 @@ describe("captain guarantee", () => {
     });
   });
 
+  it("keeps a refund of the deadline charge that arrives before the charge succeeds", async () => {
+    await inRolledBackDb(async (db) => {
+      const { w } = await guaranteed(db);
+      await planGuarantees(db, new Date(DEADLINE.getTime() - 72 * HOUR));
+      await planGuarantees(db, DEADLINE);
+      const charge = required(
+        (await chargesToSend(db)).find((c) => c.paymentMethodId === "pm_test"),
+        "charge",
+      );
+      const intent = `pi_early_${w.tag}`;
+      await recordChargeIntent(db, charge.purchaseId, intent);
+      expect(
+        await handleStripeEvent(
+          db,
+          {
+            id: `evt_refund_${w.tag}`,
+            type: "charge.refunded",
+            data: {
+              object: {
+                id: `ch_${w.tag}`,
+                payment_intent: intent,
+                amount_refunded: 25_000,
+              },
+            },
+          },
+          DEADLINE,
+        ),
+      ).toBe("ignored");
+      expect(
+        await handleStripeEvent(
+          db,
+          {
+            id: `evt_pi_${w.tag}`,
+            type: "payment_intent.succeeded",
+            data: {
+              object: {
+                id: intent,
+                amount: 75_000,
+                amount_received: 75_000,
+                metadata: { purchaseId: charge.purchaseId },
+              },
+            },
+          },
+          DEADLINE,
+        ),
+      ).toBe("processed");
+      const [paid] = await db
+        .select({
+          amount: payment.amountCents,
+          refunded: payment.refundedCents,
+        })
+        .from(payment)
+        .where(eq(payment.purchaseId, charge.purchaseId));
+      expect(paid).toEqual({ amount: 75_000, refunded: 25_000 });
+      const [bought] = await db
+        .select({ status: purchase.status })
+        .from(purchase)
+        .where(eq(purchase.id, charge.purchaseId));
+      expect(bought?.status).toBe("partially_refunded");
+    });
+  });
+
   it("does nothing for a team that is paid up", async () => {
     await inRolledBackDb(async (db) => {
       const w = await moneyWorld(db);
