@@ -17,7 +17,9 @@ describe("sealing", () => {
 
   it("never stores the plaintext and differs every time", () => {
     const a = seal("Sam Example, (718) 555-0199", at);
-    expect(a).not.toContain("555");
+    // Random text, so only a long needle makes a false match as good as
+    // impossible (a short one, like "555", turns up by chance now and then).
+    for (const plain of ["Example", "5550199"]) expect(a).not.toContain(plain);
     expect(seal("Sam Example, (718) 555-0199", at)).not.toBe(a);
   });
 
