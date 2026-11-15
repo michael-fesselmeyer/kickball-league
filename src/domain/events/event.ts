@@ -1,3 +1,4 @@
+import { type FieldId, parseId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { localDay } from "@/domain/schedule/public-game";
 import { slugify } from "@/domain/slug";
@@ -16,6 +17,8 @@ export const EVENT_KINDS = [
   "bbq",
   "tournament",
   "theme_week",
+  "pickup",
+  "practice",
 ] as const;
 
 export type EventKind = (typeof EVENT_KINDS)[number];
@@ -27,7 +30,15 @@ export const KIND_LABELS: Readonly<Record<EventKind, string>> = {
   tournament: "Tournament",
   theme_week: "Theme week",
   party: "Party",
+  pickup: "Pickup game",
+  practice: "Practice",
 };
+
+/**
+ * Kinds played on a field, which must name one (or be open play): the
+ * permit check (issue #407) needs to know which field is held.
+ */
+export const ON_A_FIELD: readonly EventKind[] = ["pickup", "practice"];
 
 export const MAX_TITLE_LENGTH = 80;
 export const MAX_PLACE_LENGTH = 120;
@@ -47,6 +58,10 @@ export type EventForm = {
   startTime: string;
   endsOn: string;
   endTime: string;
+  /** A field id from the league's fields, or "" for none. */
+  fieldId?: string;
+  /** "on" for open play, no reserved field. */
+  openPlay?: string;
 };
 
 /** A checked event, ready to save. */
@@ -58,6 +73,9 @@ export type EventInput = {
   startsAt: Date;
   endsAt: Date;
   capacity: number | null;
+  /** The field it is on; the caller checks it is the league's. */
+  fieldId?: FieldId | null;
+  openPlay?: boolean;
 };
 
 export type EventFormError =
@@ -69,7 +87,8 @@ export type EventFormError =
   | "time"
   | "order"
   | "too_long"
-  | "capacity";
+  | "capacity"
+  | "field";
 
 export const EVENT_FORM_ERRORS: Readonly<Record<EventFormError, string>> = {
   kind: "Pick what kind of event this is.",
@@ -81,6 +100,8 @@ export const EVENT_FORM_ERRORS: Readonly<Record<EventFormError, string>> = {
   order: "The event has to end after it starts.",
   too_long: `A theme week can run up to ${MAX_THEME_DAYS} days.`,
   capacity: `Capacity is a whole number from 1 to ${MAX_CAPACITY}, or blank for no limit.`,
+  field:
+    "Pick the field a pickup game or practice is on, or mark it open play with no reserved field.",
 };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -130,6 +151,14 @@ export function parseEventForm(
   if (kind !== "theme_week" && place.length === 0) return err("place");
   const description = form.description.trim().replace(/\r\n/g, "\n");
   if (description.length > MAX_DESCRIPTION_LENGTH) return err("description");
+  const rawField = (form.fieldId ?? "").trim();
+  const fieldId = rawField === "" ? null : parseId<FieldId>(rawField);
+  if (rawField !== "" && fieldId === null) return err("field");
+  // A theme week runs whole days across the league: never on one field.
+  if (kind === "theme_week" && fieldId !== null) return err("field");
+  const openPlay = kind !== "theme_week" && form.openPlay === "on";
+  if (ON_A_FIELD.includes(kind) && fieldId === null && !openPlay)
+    return err("field");
   if (!validDate(form.startsOn)) return err("date");
   const endsOn = form.endsOn.trim();
   if (endsOn !== "" && !validDate(endsOn)) return err("date");
@@ -148,6 +177,8 @@ export function parseEventForm(
     place: place === "" ? null : place,
     description,
     capacity,
+    fieldId,
+    openPlay,
   };
 
   if (kind === "theme_week") {
@@ -184,6 +215,8 @@ type Timed = {
   startsAt: Date;
   endsAt: Date;
   capacity: number | null;
+  fieldId?: string | null;
+  openPlay?: boolean;
 };
 
 /** A stored event as the admin form's values, for editing. */
@@ -201,6 +234,8 @@ export function eventFormValues(e: Timed, timeZone: string): EventForm {
       startTime: "",
       endsOn: last,
       endTime: "",
+      fieldId: "",
+      openPlay: "",
     };
   }
   const startTime = localTime(e.startsAt, timeZone);
@@ -218,6 +253,8 @@ export function eventFormValues(e: Timed, timeZone: string): EventForm {
     startTime,
     endsOn: endsOnDay === implied ? "" : endsOnDay,
     endTime,
+    fieldId: e.fieldId ?? "",
+    openPlay: e.openPlay ? "on" : "",
   };
 }
 
