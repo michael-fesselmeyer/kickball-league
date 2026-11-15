@@ -35,6 +35,8 @@ export type DivisionRow = {
     id: RuleSetId;
     name: string;
     innings: number | null;
+    /** Sets in a match; present only when the rule set sets it (ADR 0072). */
+    bestOf?: number;
     timeLimitMinutes: number | null;
     options: { bunting?: boolean; stealing?: boolean };
   } | null;
@@ -54,6 +56,7 @@ export async function seasonDivisions(
       ruleSetId: ruleSet.id,
       ruleSetName: ruleSet.name,
       innings: ruleSet.innings,
+      bestOf: ruleSet.bestOf,
       timeLimitMinutes: ruleSet.timeLimitMinutes,
       options: ruleSet.options,
     })
@@ -73,6 +76,7 @@ export async function seasonDivisions(
             id: r.ruleSetId,
             name: r.ruleSetName,
             innings: r.innings,
+            ...(r.bestOf !== null ? { bestOf: r.bestOf } : {}),
             timeLimitMinutes: r.timeLimitMinutes,
             options: r.options ?? {},
           },
@@ -375,6 +379,7 @@ export async function addRuleSet(
       leagueId: input.leagueId,
       name: input.name,
       innings: input.innings,
+      bestOf: input.bestOf ?? null,
       timeLimitMinutes: input.timeLimitMinutes,
       options: {
         bunting: input.bunting,
@@ -399,6 +404,7 @@ export async function addRuleSet(
     after: {
       name: input.name,
       innings: input.innings,
+      ...(input.bestOf !== undefined ? { bestOf: input.bestOf } : {}),
       timeLimitMinutes: input.timeLimitMinutes,
       bunting: input.bunting,
       stealing: input.stealing,

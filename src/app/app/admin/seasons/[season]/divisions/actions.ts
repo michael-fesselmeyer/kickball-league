@@ -155,6 +155,7 @@ export async function createRuleSetAction(slug: string, form: FormData) {
   const parsed = parseRuleSet({
     name: text(form, "name"),
     innings: text(form, "innings"),
+    bestOf: text(form, "bestOf"),
     timeLimitMinutes: text(form, "timeLimitMinutes"),
     bunting: form.get("bunting") === "on",
     stealing: form.get("stealing") === "on",

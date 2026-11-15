@@ -230,6 +230,7 @@ export async function createLeague(
     leagueId: created.id,
     name: input.ruleSet.name,
     innings: input.ruleSet.innings,
+    bestOf: input.ruleSet.bestOf ?? null,
     timeLimitMinutes: input.ruleSet.timeLimitMinutes,
     createdBy: input.actorId,
   });

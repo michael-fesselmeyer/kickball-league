@@ -33,6 +33,7 @@ export async function seasonBySlug(
       startsOn: season.startsOn,
       feeModel: season.feeModel,
       timeZone: league.timezone,
+      sport: league.sport,
     })
     .from(season)
     .innerJoin(league, eq(season.leagueId, league.id))
