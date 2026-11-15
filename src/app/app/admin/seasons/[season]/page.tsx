@@ -112,6 +112,12 @@ async function Season({
           >
             Announcements
           </Link>
+          <Link
+            href={`/app/admin/seasons/${slug}/checklist`}
+            className="underline"
+          >
+            Checklist
+          </Link>
           <Link href={`/app/admin/seasons/${slug}/recap`} className="underline">
             Weekly recap
           </Link>
