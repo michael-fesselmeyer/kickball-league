@@ -48,9 +48,6 @@ export const PUBLIC_LIMITS = {
   everyone: { windowSeconds: 60 * 60, max: 60 },
 } as const;
 
-/** A person's concern limit: a few a day is plenty for a private concern. */
-export const PLAYER_LIMIT = { windowSeconds: 24 * 60 * 60, max: 5 } as const;
-
 const isKey = <T extends object>(
   o: T,
   k: string,

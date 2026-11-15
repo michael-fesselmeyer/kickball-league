@@ -700,6 +700,7 @@ Third-party material stays out of the public repository until the league agrees:
 | Sub requests | 3 open per team |
 | Announcements | Captain: 3 per day. Admin: 10 per day |
 | Score reports | 10 a day per person for one game |
+| Private concerns | 5 a day per person (`ACTION_LIMITS.concern`) |
 | Public contact form | 3 a day per email address, 10 a day per network, 60 an hour for everyone (`PUBLIC_LIMITS` in `src/domain/concerns/concerns.ts`, counted by `allowPublicConcern`), keyed by a hash of the address or network, plus a honeypot field and a cap of two links ([ADR 0060](adr/0060-one-queue-for-concerns-and-public-contact.md)) |
 | Waitlist | Joining or leaving a season's waitlist: 5 an hour per person (it needs an account, so it is counted per person, not per IP) |
 | Bar check-ins | 1 per sponsor per user per day (also a unique index) |
