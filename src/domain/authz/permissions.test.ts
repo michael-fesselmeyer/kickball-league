@@ -452,6 +452,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "season.manage",
       "schedule.manage",
       "rainout.prepare",
+      "game_day.status",
       "free_agents.place",
       "team.approve_new",
       "event.manage",

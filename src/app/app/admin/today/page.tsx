@@ -113,6 +113,12 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
         </Suspense>
         <nav aria-label="Game day actions" className="flex flex-wrap gap-2">
           <Link
+            href={`${base}/status?date=${state.date}`}
+            className="btn btn-secondary"
+          >
+            Set the day&apos;s status
+          </Link>
+          <Link
             href={`${base}/rainout?date=${state.date}`}
             className="btn btn-secondary"
           >
