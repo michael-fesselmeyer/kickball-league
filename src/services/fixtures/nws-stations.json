@@ -1,0 +1,33 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "id": "https://api.weather.gov/stations/KNYC",
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-73.96925, 40.77898] },
+      "properties": {
+        "@id": "https://api.weather.gov/stations/KNYC",
+        "@type": "wx:ObservationStation",
+        "stationIdentifier": "KNYC",
+        "name": "New York City, Central Park",
+        "timeZone": "America/New_York"
+      }
+    },
+    {
+      "id": "https://api.weather.gov/stations/KLGA",
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-73.88, 40.77945] },
+      "properties": {
+        "@id": "https://api.weather.gov/stations/KLGA",
+        "@type": "wx:ObservationStation",
+        "stationIdentifier": "KLGA",
+        "name": "New York, La Guardia Airport",
+        "timeZone": "America/New_York"
+      }
+    }
+  ],
+  "observationStations": [
+    "https://api.weather.gov/stations/KNYC",
+    "https://api.weather.gov/stations/KLGA"
+  ]
+}

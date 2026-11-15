@@ -1,0 +1,35 @@
+{
+  "id": "https://api.weather.gov/gridpoints/OKX/34,36",
+  "type": "Feature",
+  "properties": {
+    "@id": "https://api.weather.gov/gridpoints/OKX/34,36",
+    "@type": "wx:Gridpoint",
+    "updateTime": "2026-09-15T15:22:41+00:00",
+    "validTimes": "2026-09-15T09:00:00+00:00/P7DT16H",
+    "gridId": "OKX",
+    "gridX": "34",
+    "gridY": "36",
+    "probabilityOfPrecipitation": {
+      "uom": "wmoUnit:percent",
+      "values": [
+        { "validTime": "2026-09-15T18:00:00+00:00/PT4H", "value": 20 },
+        { "validTime": "2026-09-15T22:00:00+00:00/PT2H", "value": 70 }
+      ]
+    },
+    "probabilityOfThunder": {
+      "uom": "wmoUnit:percent",
+      "values": [
+        { "validTime": "2026-09-15T18:00:00+00:00/PT4H", "value": 0 },
+        { "validTime": "2026-09-15T22:00:00+00:00/PT2H", "value": 40 }
+      ]
+    },
+    "quantitativePrecipitation": {
+      "uom": "wmoUnit:mm",
+      "values": [
+        { "validTime": "2026-09-15T18:00:00+00:00/PT6H", "value": 7.62 },
+        { "validTime": "2026-09-16T00:00:00+00:00/PT6H", "value": 0 },
+        { "validTime": "2026-09-16T06:00:00+00:00/P1D", "value": null }
+      ]
+    }
+  }
+}

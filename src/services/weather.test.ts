@@ -1,16 +1,35 @@
 import { describe, expect, it, vi } from "vitest";
+import { decide, rainFallen } from "@/domain/weather/decision";
 import { gameForecast, rainRisk } from "@/domain/weather/forecast";
+import alertsFixture from "./fixtures/nws-alerts.json";
+import gridFixture from "./fixtures/nws-griddata.json";
 import hourlyFixture from "./fixtures/nws-hourly.json";
+import observationsFixture from "./fixtures/nws-observations.json";
 import pointFixture from "./fixtures/nws-points.json";
+import stationsFixture from "./fixtures/nws-stations.json";
 import {
+  alertsUrl,
+  durationHours,
+  nwsAlerts,
+  nwsGrid,
   nwsHourly,
   nwsHourlyUrl,
+  nwsObservations,
+  nwsPointLinks,
+  nwsStations,
+  observationsUrl,
+  parseAlerts,
+  parseGrid,
   parseHourly,
+  parseObservations,
   parsePoint,
+  parsePointLinks,
+  parseStations,
   pointUrl,
   roundCoordinate,
   type WeatherFetch,
 } from "./weather";
+import { usesWeatherFixture, weatherFixtureFetch } from "./weather-fixture";
 
 const HOURLY = "https://api.weather.gov/gridpoints/OKX/34,36/forecast/hourly";
 
@@ -157,6 +176,191 @@ describe("the National Weather Service client", () => {
     expect(roundCoordinate(40.72064999)).toBe(40.7206);
     expect(pointUrl(40.7, -73.95)).toBe(
       "https://api.weather.gov/points/40.7,-73.95",
+    );
+  });
+});
+
+describe("what the rain-out decision reads from NWS", () => {
+  it("finds the grid, hourly forecast and nearest stations from the point", () => {
+    expect(parsePointLinks(pointFixture)).toEqual({
+      ok: true,
+      value: {
+        hourly: HOURLY,
+        grid: "https://api.weather.gov/gridpoints/OKX/34,36",
+        stations: "https://api.weather.gov/gridpoints/OKX/34,36/stations",
+      },
+    });
+    expect(
+      parsePointLinks({
+        properties: {
+          forecastHourly: HOURLY,
+          forecastGridData: "https://elsewhere.example.test/grid",
+          observationStations: HOURLY,
+        },
+      }),
+    ).toEqual({ ok: false, error: "The point lookup named another host" });
+  });
+
+  it("spreads the grid's rainfall over the hours it covers, in inches", () => {
+    const found = parseGrid(gridFixture);
+    if (!found.ok) throw new Error(found.error);
+    // 6 hours of 7.62 mm, 6 dry hours, and a day with no figure.
+    expect(found.value).toHaveLength(36);
+    expect(found.value[0]).toEqual({
+      startsAt: new Date("2026-09-15T18:00:00Z"),
+      rainIn: expect.closeTo(0.05, 5),
+      thunderChance: 0,
+    });
+    expect(found.value[4]?.thunderChance).toBe(40);
+    expect(found.value[6]).toMatchObject({ rainIn: 0, thunderChance: null });
+    expect(found.value.at(-1)?.rainIn).toBe(0);
+  });
+
+  it("reads ISO durations in whole hours", () => {
+    expect(durationHours("PT1H")).toBe(1);
+    expect(durationHours("P1DT6H")).toBe(30);
+    expect(durationHours("PT30M")).toBe(1);
+    expect(durationHours("P")).toBeNull();
+    expect(durationHours("soon")).toBeNull();
+    expect(
+      parseGrid({
+        properties: {
+          quantitativePrecipitation: {
+            values: [{ validTime: "2026-09-15T18:00:00+00:00/soon", value: 1 }],
+          },
+        },
+      }),
+    ).toEqual({ ok: false, error: "The grid forecast had a bad time" });
+  });
+
+  it("lists the nearest stations and what the nearest one measured", () => {
+    expect(parseStations(stationsFixture)).toEqual({
+      ok: true,
+      value: [
+        { id: "KNYC", name: "New York City, Central Park" },
+        { id: "KLGA", name: "New York, La Guardia Airport" },
+      ],
+    });
+    const found = parseObservations(observationsFixture);
+    if (!found.ok) throw new Error(found.error);
+    expect(found.value).toHaveLength(6);
+    expect(found.value[1]).toEqual({
+      at: new Date("2026-09-15T08:51:00Z"),
+      lastHourMm: 6.1,
+    });
+    expect(found.value[5]?.lastHourMm).toBeNull();
+    // An extra report at 08:12 is inside the hour the 08:51 report closes.
+    const now = new Date("2026-09-15T18:00:00Z");
+    expect(rainFallen(found.value, now, 24)?.inches).toBeCloseTo(15.8 / 25.4);
+    expect(rainFallen(found.value, now, 48)?.inches).toBeCloseTo(18.3 / 25.4);
+  });
+
+  it("reads active alerts, falling back to when an alert expires", () => {
+    const found = parseAlerts(alertsFixture);
+    if (!found.ok) throw new Error(found.error);
+    expect(found.value).toEqual([
+      {
+        event: "Severe Thunderstorm Warning",
+        headline: expect.stringMatching(/^Severe Thunderstorm Warning issued/),
+        severity: "Severe",
+        endsAt: new Date("2026-09-16T02:30:00Z"),
+      },
+      {
+        event: "Heat Advisory",
+        headline: null,
+        severity: "Moderate",
+        endsAt: new Date("2026-09-16T00:00:00Z"),
+      },
+    ]);
+  });
+
+  it("asks for a station's reports and a point's alerts at NWS only", async () => {
+    const fetch = fixtureFetch();
+    const since = new Date("2026-09-13T18:00:00.000Z");
+    expect(observationsUrl("KNYC", since)).toBe(
+      "https://api.weather.gov/stations/KNYC/observations?start=2026-09-13T18:00:00Z",
+    );
+    expect(alertsUrl(40.72061, -73.95129)).toBe(
+      "https://api.weather.gov/alerts/active?point=40.7206,-73.9513",
+    );
+    expect(await nwsObservations("../x", since, options(fetch))).toEqual({
+      ok: false,
+      error: "Not a station",
+    });
+    expect(
+      await nwsGrid("https://elsewhere.example.test/grid", options(fetch)),
+    ).toEqual({ ok: false, error: "Not a forecast service address" });
+    expect(fetch.calls).toEqual([]);
+    const down: WeatherFetch = async () => ({
+      ok: false,
+      status: 500,
+      json: async () => ({}),
+    });
+    expect(await nwsAlerts(40.7, -73.9, options(down))).toEqual({
+      ok: false,
+      error: "The forecast service answered 500",
+    });
+  });
+});
+
+describe("the NWS playback for development, the demo and e2e", () => {
+  it("is used only when asked for, and never on the league's own site", () => {
+    expect(usesWeatherFixture({ WEATHER_FIXTURE: "true" }, false)).toBe(true);
+    expect(
+      usesWeatherFixture(
+        { WEATHER_FIXTURE: "true", NODE_ENV: "production" },
+        false,
+      ),
+    ).toBe(false);
+    expect(
+      usesWeatherFixture(
+        { WEATHER_FIXTURE: "true", NODE_ENV: "production" },
+        true,
+      ),
+    ).toBe(true);
+    expect(usesWeatherFixture({}, true)).toBe(false);
+  });
+
+  it("plays back a wet night and evening storms, read as likely unplayable", async () => {
+    // A Tuesday at 2 pm EDT, with games from 6 to 10 pm.
+    const now = new Date("2026-09-15T18:00:00Z");
+    const opts = options(weatherFixtureFetch(() => now));
+    const links = await nwsPointLinks(40.7206, -73.9513, opts);
+    if (!links.ok) throw new Error(links.error);
+    const [hourly, grid, stations, alerts] = await Promise.all([
+      nwsHourly(links.value.hourly, opts),
+      nwsGrid(links.value.grid, opts),
+      nwsStations(links.value.stations, opts),
+      nwsAlerts(40.7206, -73.9513, opts),
+    ]);
+    if (!hourly.ok || !grid.ok || !stations.ok || !alerts.ok)
+      throw new Error("The playback did not answer");
+    const station = stations.value[0];
+    if (!station) throw new Error("No station");
+    const obs = await nwsObservations(station.id, new Date(0), opts);
+    if (!obs.ok) throw new Error(obs.error);
+    const d = decide({
+      hourly: hourly.value,
+      grid: grid.value,
+      observed: {
+        stationId: station.id,
+        stationName: station.name,
+        last24: rainFallen(obs.value, now, 24),
+        last48: rainFallen(obs.value, now, 48),
+      },
+      alerts: alerts.value,
+      games: [
+        {
+          startsAt: new Date("2026-09-15T22:00:00Z"),
+          endsAt: new Date("2026-09-16T02:00:00Z"),
+        },
+      ],
+      now,
+      timeZone: "America/New_York",
+    });
+    expect(d.level).toBe("likely");
+    expect(d.summary).toBe(
+      "Likely unplayable: 0.6 in fell in the last 24 hours, 0.08 in more is due before first pitch, 70% chance of storms 6 to 10 pm and about 0.3 in expected during games.",
     );
   });
 });

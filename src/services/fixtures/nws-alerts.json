@@ -1,0 +1,48 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.example-svr",
+      "type": "Feature",
+      "properties": {
+        "@type": "wx:Alert",
+        "areaDesc": "Kings",
+        "sent": "2026-09-15T21:41:00-04:00",
+        "effective": "2026-09-15T21:41:00-04:00",
+        "onset": "2026-09-15T21:41:00-04:00",
+        "expires": "2026-09-15T22:30:00-04:00",
+        "ends": "2026-09-15T22:30:00-04:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Severe",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "Severe Thunderstorm Warning",
+        "headline": "Severe Thunderstorm Warning issued September 15 at 9:41PM EDT until September 15 at 10:30PM EDT by NWS Upton NY"
+      }
+    },
+    {
+      "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.example-heat",
+      "type": "Feature",
+      "properties": {
+        "@type": "wx:Alert",
+        "areaDesc": "Kings",
+        "sent": "2026-09-15T04:00:00-04:00",
+        "effective": "2026-09-15T04:00:00-04:00",
+        "onset": "2026-09-15T11:00:00-04:00",
+        "expires": "2026-09-15T20:00:00-04:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "category": "Met",
+        "severity": "Moderate",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Heat Advisory",
+        "headline": null
+      }
+    }
+  ],
+  "title": "Current watches, warnings, and advisories for 40.7206 N, 73.9513 W"
+}
