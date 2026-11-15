@@ -291,6 +291,8 @@ const RULES = {
   "incident.log": any(isAdmin, refereesGame, captainsGame),
   // Eject a player from the live game screen: the game's ref, or an admin.
   "player.eject": any(isAdmin, refereesGame),
+  // A yellow or red card, a calm-down tool: the game's ref or an admin.
+  "card.give": any(isAdmin, refereesGame),
   // Field check-in (ADR 0063): show the game's code and tick players in or
   // out, with each one's waiver status. The game's ref, its captains, admins.
   "attendance.take": any(isAdmin, refereesGame, captainsGame),
