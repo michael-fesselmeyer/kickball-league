@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { db } from "@/db/client";
 import { gamesOnLostPermits } from "@/db/queries/books";
 import { fieldsScreen } from "@/db/queries/fields";
+import { groupsScreen, overlapDays } from "@/db/queries/field-groups";
+import { overlapWarnings } from "@/domain/field-groups/groups";
 import { fieldsWithLayouts } from "@/db/queries/field-layouts";
 import { FILE_MESSAGES } from "@/domain/books/files";
 import { MAX_LAYOUT_NOTE } from "@/domain/fields/layout";
@@ -23,6 +25,7 @@ import {
   deleteBlackout,
   deletePermit,
 } from "./actions";
+import { GroupsSection, OverlapAlert } from "./groups-section";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeagueId } from "@/lib/league/active";
@@ -68,6 +71,18 @@ const ERRORS: Record<string, string> = {
   layout_storage_full: FILE_MESSAGES.storage_full,
   layout_unreadable: FILE_MESSAGES.unreadable,
   slots_bad_length: "A slot is 15 to 480 minutes long.",
+  group_name: "Give the group a name, up to 80 characters.",
+  group_weekdays: "Pick the days the group usually uses the field.",
+  group_hours: "Give both a start and an end time.",
+  group_hours_same: "The start and end times must differ.",
+  group_contact: "Keep the contact to 200 characters.",
+  group_unknown_field: "Pick one of the league's fields.",
+  group_unknown_group: "That group is gone. It may have just been removed.",
+  overlap_unknown_group: "Pick one of the groups.",
+  overlap_bad_date: "Pick a real date for the overlap.",
+  overlap_bad_note: "Keep the note to 300 characters.",
+  overlap_duplicate: "That overlap is already recorded.",
+  overlap_unknown_overlap: "That overlap is gone.",
 };
 
 const NOTICES: Record<string, (q: Record<string, string>) => string> = {
@@ -78,6 +93,11 @@ const NOTICES: Record<string, (q: Record<string, string>) => string> = {
     `${plural(Number(q.count), "permit window")} added. Cut slots to use them.`,
   permit_updated: () => "Permit updated. Cut slots again to apply it.",
   permit_deleted: () => "Permit deleted.",
+  group_added: () => "Group added.",
+  group_updated: () => "Group saved.",
+  group_deleted: () => "Group removed.",
+  overlap_added: () => "Overlap recorded.",
+  overlap_deleted: () => "Overlap removed.",
   blackout_added: () => "Blackout added. Cut slots again to apply it.",
   blackout_deleted: () => "Blackout removed. Cut slots again to apply it.",
   slots_synced: (q) =>
@@ -130,15 +150,31 @@ async function Fields({
   const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
 
-  const [screen, lostGames, layouts] = await Promise.all([
+  const now = new Date();
+  const [screen, lostGames, layouts, shared] = await Promise.all([
     fieldsScreen(db, season.leagueId, season.id),
     gamesOnLostPermits(db, season.id),
     fieldsWithLayouts(db, season.leagueId),
+    groupsScreen(db, season.leagueId).then(async (found) => ({
+      ...found,
+      warnings: overlapWarnings({
+        overlaps: found.overlaps,
+        today: localDate(now, season.timeZone),
+        ...(await overlapDays(db, {
+          overlaps: found.overlaps,
+          timeZone: season.timeZone,
+        })),
+      }),
+    })),
   ]);
   const tz = season.timeZone;
   const fieldName = new Map(
     screen.fields.map((f) => [f.id, `${f.name}, ${f.venueName}`]),
   );
+  const fieldChoices = screen.fields.map((f) => ({
+    id: f.id,
+    label: fieldName.get(f.id) ?? f.name,
+  }));
   const slotsPerPermit = new Map<string, number>();
   for (const s of screen.slots)
     if (s.permitWindowId)
@@ -212,6 +248,12 @@ async function Fields({
           </Link>
         </section>
       )}
+
+      <OverlapAlert
+        fields={fieldChoices}
+        groups={shared.groups}
+        warnings={shared.warnings}
+      />
 
       <section aria-labelledby="venues" className="flex flex-col gap-4">
         <h2 id="venues" className="text-h2">
@@ -583,6 +625,14 @@ async function Fields({
           </ul>
         )}
       </section>
+
+      <GroupsSection
+        slug={slug}
+        fields={fieldChoices}
+        groups={shared.groups}
+        overlaps={shared.overlaps}
+        warnings={shared.warnings}
+      />
 
       <section aria-labelledby="slots" className="flex flex-col gap-4">
         <h2 id="slots" className="text-h2">

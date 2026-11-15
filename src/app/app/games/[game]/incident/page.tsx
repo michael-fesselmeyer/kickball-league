@@ -138,7 +138,12 @@ async function Report({
             <select
               id="incident-park-rule"
               name="parkRule"
-              defaultValue=""
+              defaultValue={
+                typeof query.parkRule === "string" &&
+                Object.hasOwn(PARK_RULES, query.parkRule)
+                  ? query.parkRule
+                  : ""
+              }
               className={field}
             >
               <option value="">Not about the park</option>

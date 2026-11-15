@@ -9,6 +9,7 @@ import {
 } from "@/components/rain-decision-card";
 import { db } from "@/db/client";
 import type { CommandDayRow } from "@/db/queries/command-center";
+import type { LeagueId } from "@/domain/ids";
 import type { ParkGames } from "@/db/queries/rainout-decision";
 import { gamesNeedingRef } from "@/db/queries/referee-cover";
 import { gameForecast, rainRisk } from "@/domain/weather/forecast";
@@ -18,6 +19,8 @@ import { cachedForecast } from "@/lib/weather";
 import { CommandBoard } from "./board";
 import { DayFields } from "./fields";
 import { DayGear } from "./gear";
+import { HandoversCard } from "./handovers-card";
+import { loadHandovers } from "./handovers";
 import { loadCommand, parseDay } from "./load";
 import { activeLeague } from "@/lib/league/active";
 
@@ -196,6 +199,19 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
           <RainDecisionCard parks={dayParks(rows)} timeZone={league.timeZone} />
         </Suspense>
       )}
+      <Suspense
+        fallback={
+          <p className="min-h-11 text-text-muted">Checking the fields…</p>
+        }
+      >
+        <DayHandovers
+          leagueId={league.id}
+          date={state.date}
+          timeZone={league.timeZone}
+          now={now}
+          rows={rows}
+        />
+      </Suspense>
       <CommandBoard initial={state} timeZone={league.timeZone} />
       <Suspense fallback={<p className="min-h-24">Checking the fields…</p>}>
         <DayFields
@@ -213,6 +229,24 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
         />
       </Suspense>
     </>
+  );
+}
+
+/** Who uses each field next, and the countdown to the handover (issue #408). */
+async function DayHandovers(input: {
+  leagueId: LeagueId;
+  date: string;
+  timeZone: string;
+  now: Date;
+  rows: readonly CommandDayRow[];
+}) {
+  const fields = await loadHandovers(input);
+  return (
+    <HandoversCard
+      fields={fields}
+      renderedAt={input.now.toISOString()}
+      timeZone={input.timeZone}
+    />
   );
 }
 
