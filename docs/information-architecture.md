@@ -32,7 +32,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── events/                         Upcoming and recent public events, featured clubs run by our players, and calendar subscribe links (members' and team events never appear here)
 │   ├── calendar.ics                Events calendar feed: every public event, theme weeks as all-day entries
 │   ├── personal/[token]/calendar.ics  A member's private feed: every event they can see; the signed link is the key, reset from /app/events
-│   └── [event]                     Public event page: when, where, the ticket price, spots left or the waitlist, an RSVP or "Get a ticket" button or the invite ("RSVP on partiful.com"), share and save-the-date links, tagged Instagram photos; once it has started, players' approved photos and a link to share one
+│   └── [event]                     Public event page: when, where, the ticket price, spots left or the waitlist. A tournament adds its charity link and goal, the partner league, the guest teams' names, a guest sign-up form and the bracket, an RSVP or "Get a ticket" button or the invite ("RSVP on partiful.com"), share and save-the-date links, tagged Instagram photos; once it has started, players' approved photos and a link to share one
 │       └── calendar.ics            One public event as a calendar file
 ├── sponsors/                       Sponsors, home bar first, with the team of the week
 │   └── [sponsor]                   Sponsor page: deals with when they were confirmed, the team of the week, how to check in
@@ -60,6 +60,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── r/[code]                        A player's referral link: remembers who sent the visitor for 30 days, then opens the home page
 ├── legal/terms, legal/privacy
 ├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
+├── guest/[token]                   A guest team's waiver link: the league's waiver and a name field, so a player from another league signs without an account; the secret in the link is the key, not indexed, its own team's name and a head count are all it shows
 ├── unsubscribe/[token]             An email's "Stop emails about …" link: asks, then turns that topic's email off; the signed link is the key, no sign-in (its one-click POST is /api/unsubscribe/[token])
 ├── media/instagram/[image]         Our copy of a featured Instagram photo (404 once hidden)
 ├── media/friends/[logo]            A friend league's logo, as stored (404 once removed or replaced)
@@ -220,7 +221,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   ├── assign                  Assign refs: the proposal for a game day or the whole season, with why a game has nobody; accept all, accept one, or pick another ref; games each ref would have
     │   └── pay                     Ref pay sheet: the season's per-game fee, each ref's games worked, owed, paid and balance, and "Mark paid" (cash or Venmo) into the books
     ├── rules                       Edit the rules: every section's title and text, remove a section, add one (with suggested titles), then publish with a one-line summary, a start date and an optional email notice to every player in the active seasons; recent changes. Refused with everything kept if someone else published first
-    ├── events/                     Every event with who it's for, going and waitlist counts
+    ├── events/                     Every event with who it's for, going and waitlist counts. A tournament's page adds guest sign-up settings, the charity link and goal, the partner league, each guest team with its captain and waiver count, and the bracket with scores, fields and times
     ├── private-events              Requests for private leagues and tournaments: accept one as an invite-only private season (name, dates, games per day, who pays, amount) or decline it with a reason
     │   ├── new                     Create an event or theme week, pickup game or practice (a league field, checked against its permits, or open play with no reserved field; with a typed reason when the permit's document isn't uploaded yet): who it's for (everyone, all members, or teams from a season or any), an invite link, RSVPs in the app or not, and an optional email to everyone it's for
     │   └── [event]                 Edit (and optionally email the change, including the ticket and member prices), who's coming and the waitlist in order, "Copy for WhatsApp", call off or delete. A ticketed event adds its ticket list: holders with their code and what they paid on card and in credit, checkouts and offers open now, a check-in box for the door, and a full refund per ticket
