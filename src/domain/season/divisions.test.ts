@@ -39,8 +39,21 @@ describe("rule sets", () => {
         timeLimitMinutes: null,
         bunting: false,
         stealing: true,
+        permitEndRule: "call_at_last_complete",
       },
     });
+  });
+
+  it("takes the league's rule for a game that reaches its permit's end", () => {
+    const parsed = parseRuleSet({
+      ...form,
+      permitEndRule: "last_inning_to_start",
+    });
+    expect(parsed.ok && parsed.value.permitEndRule).toBe(
+      "last_inning_to_start",
+    );
+    const odd = parseRuleSet({ ...form, permitEndRule: "anything" });
+    expect(odd.ok && odd.value.permitEndRule).toBe("call_at_last_complete");
   });
 
   it("refuses a missing name or limits out of range", () => {

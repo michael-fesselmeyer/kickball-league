@@ -19,6 +19,7 @@ import {
   saveSettingsAction,
   updateDivisionAction,
 } from "./actions";
+import { PERMIT_END_RULE_TEXT } from "@/domain/gameday/permit-end";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeagueId } from "@/lib/league/active";
@@ -396,6 +397,21 @@ async function Divisions({
           <label className="flex min-h-11 items-center gap-2">
             <input name="stealing" type="checkbox" className="size-5" />
             Stealing
+          </label>
+          <label className="flex flex-col gap-1">
+            When a game reaches the end of its permit
+            <select
+              name="permitEndRule"
+              defaultValue="call_at_last_complete"
+              className={input}
+            >
+              <option value="call_at_last_complete">
+                {PERMIT_END_RULE_TEXT.call_at_last_complete}
+              </option>
+              <option value="last_inning_to_start">
+                {PERMIT_END_RULE_TEXT.last_inning_to_start}
+              </option>
+            </select>
           </label>
           <SubmitButton className="btn btn-secondary">
             Add rule set
