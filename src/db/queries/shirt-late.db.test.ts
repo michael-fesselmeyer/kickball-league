@@ -1,6 +1,12 @@
+import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { RegistrationId, TeamSeasonId, UserId } from "@/domain/ids";
+import {
+  parseId,
+  type RegistrationId,
+  type TeamSeasonId,
+  type UserId,
+} from "@/domain/ids";
 import { BATCH_MINIMUM } from "@/domain/shirts/late";
 import type { ShirtSize } from "@/domain/shirts/summary";
 import { auditLog } from "../schema/audit";
@@ -55,7 +61,10 @@ async function lateJoiner(
   const n = ++counter;
   const [u] = await db
     .insert(user)
-    .values({ name: `Late ${n}`, email: `late-${n}-${Date.now()}@example.test` })
+    .values({
+      name: `Late ${n}`,
+      email: `late-${n}-${Date.now()}@example.test`,
+    })
     .returning({ id: user.id });
   if (!u) throw new Error("no user");
   await db.insert(profile).values({
@@ -291,7 +300,9 @@ describe("the batch reorder", () => {
         actorId: w.admin,
         today: TODAY,
       });
-      expect(await receiveBatch(db, { leagueId: w.leagueId, actorId: w.admin })).toBe(1);
+      expect(
+        await receiveBatch(db, { leagueId: w.leagueId, actorId: w.admin }),
+      ).toBe(1);
       const [row] = await db
         .select({ s: registration.shirtStatus })
         .from(registration)
@@ -378,8 +389,10 @@ describe("a captain's own shirts", () => {
   it("refuses an unknown team", async () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
+      const unknown = parseId<TeamSeasonId>(randomUUID());
+      if (!unknown) throw new Error("bad id");
       const result = await setOwnShirts(db, {
-        teamSeasonId: w.leagueId as unknown as TeamSeasonId,
+        teamSeasonId: unknown,
         own: true,
         actorId: w.captain,
       });

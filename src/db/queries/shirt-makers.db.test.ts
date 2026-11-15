@@ -25,7 +25,11 @@ describe("the shirt makers directory", () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
       const other = await leagueWorld(db);
-      await createMaker(db, { leagueId: w.leagueId, fields: corner, actorId: w.admin });
+      await createMaker(db, {
+        leagueId: w.leagueId,
+        fields: corner,
+        actorId: w.admin,
+      });
       await createMaker(db, {
         leagueId: w.leagueId,
         fields: { ...corner, name: "Another Press", minimumOrder: null },
@@ -42,7 +46,11 @@ describe("the shirt makers directory", () => {
   it("refuses a second maker with the same name, ignoring case", async () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
-      await createMaker(db, { leagueId: w.leagueId, fields: corner, actorId: w.admin });
+      await createMaker(db, {
+        leagueId: w.leagueId,
+        fields: corner,
+        actorId: w.admin,
+      });
       const again = await createMaker(db, {
         leagueId: w.leagueId,
         fields: { ...corner, name: "corner print shop" },
@@ -55,7 +63,11 @@ describe("the shirt makers directory", () => {
   it("updates a maker, and the database itself refuses a plain-http link", async () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
-      const made = await createMaker(db, { leagueId: w.leagueId, fields: corner, actorId: w.admin });
+      const made = await createMaker(db, {
+        leagueId: w.leagueId,
+        fields: corner,
+        actorId: w.admin,
+      });
       if (!made.ok) throw new Error("not made");
       expect(
         await updateMaker(db, {
@@ -80,10 +92,18 @@ describe("the shirt makers directory", () => {
   it("removes a maker for good, keeps what it said in the audit log, and refuses a second removal", async () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
-      const made = await createMaker(db, { leagueId: w.leagueId, fields: corner, actorId: w.admin });
+      const made = await createMaker(db, {
+        leagueId: w.leagueId,
+        fields: corner,
+        actorId: w.admin,
+      });
       if (!made.ok) throw new Error("not made");
       const remove = () =>
-        removeMaker(db, { leagueId: w.leagueId, id: made.value, actorId: w.admin });
+        removeMaker(db, {
+          leagueId: w.leagueId,
+          id: made.value,
+          actorId: w.admin,
+        });
       expect(await remove()).toEqual({ ok: true, value: null });
       expect(await shirtMakers(db, w.leagueId)).toEqual([]);
       expect(await remove()).toEqual({ ok: false, error: "not_found" });
@@ -104,10 +124,18 @@ describe("the shirt makers directory", () => {
     await inRolledBackDb(async (db) => {
       const w = await leagueWorld(db);
       const other = await leagueWorld(db);
-      const made = await createMaker(db, { leagueId: w.leagueId, fields: corner, actorId: w.admin });
+      const made = await createMaker(db, {
+        leagueId: w.leagueId,
+        fields: corner,
+        actorId: w.admin,
+      });
       if (!made.ok) throw new Error("not made");
       expect(
-        await removeMaker(db, { leagueId: other.leagueId, id: made.value, actorId: other.admin }),
+        await removeMaker(db, {
+          leagueId: other.leagueId,
+          id: made.value,
+          actorId: other.admin,
+        }),
       ).toEqual({ ok: false, error: "not_found" });
       expect(await shirtMakers(db, w.leagueId)).toHaveLength(1);
     });

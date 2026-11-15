@@ -52,7 +52,9 @@ export async function logSpareAction(form: FormData): Promise<void> {
 }
 
 /** An admin hands a spare shirt to a waiting player. */
-export async function handOutSpareAction(registrationId: string): Promise<void> {
+export async function handOutSpareAction(
+  registrationId: string,
+): Promise<void> {
   const { subject, league } = await adminOfLeague();
   const id = parseId<RegistrationId>(registrationId);
   if (!id) notFound();

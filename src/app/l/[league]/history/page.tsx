@@ -78,10 +78,12 @@ async function History({ league }: { league: LeagueInfo }) {
     seasonIds: [],
   };
   const archive = shirts ?? [];
-  const tagged = [...new Set([...seasonIds, ...archive.map((a) => a.seasonId)])];
+  const tagged = [
+    ...new Set([...seasonIds, ...archive.map((a) => a.seasonId)]),
+  ];
   if (tagged.length > 0) cacheTag(...tagged.map(seasonTag));
 
-  if (pastSeasons.length === 0 && archive.length === 0)
+  if (pastSeasons.length === 0)
     return (
       <p className="text-text-muted">
         No season has finished yet. The first champion goes up here as soon as
@@ -291,8 +293,7 @@ function ShirtArchive({
                     {t.name}
                   </Link>
                   <span className="block text-small text-text-muted">
-                    {t.design ??
-                      "Wore its own shirts or jerseys that season."}
+                    {t.design ?? "Wore its own shirts or jerseys that season."}
                     {t.design && t.ownShirts && " Own shirts."}
                   </span>
                 </span>
