@@ -71,7 +71,7 @@ async function Scores({
     {
       id: "disputed",
       title: "Disputed",
-      hint: "A captain disputed the reported score. Set the final score.",
+      hint: "A captain disputed the reported score. Set the final score, with a written reason both captains and the ref will see.",
       games: games.filter((g) => g.state.state === "disputed"),
     },
     {

@@ -82,6 +82,10 @@ export const MESSAGE_KINDS = {
     label:
       "The evening before a game you're bringing league gear to: which kit and where it goes",
   },
+  game_ruling: {
+    urgency: "urgent",
+    label: "An admin's ruling on your game: a forfeit, or a score they set",
+  },
   giveaway_win: {
     urgency: "non_urgent",
     label: "A giveaway you won at a league event",
@@ -167,10 +171,6 @@ export const MESSAGE_KINDS = {
   rule_change: {
     urgency: "non_urgent",
     label: "A change to the league's rules, a few days before it takes effect",
-  },
-  game_ruling: {
-    urgency: "urgent",
-    label: "An admin's ruling on your game: a forfeit, or a score they set",
   },
   score_confirmation: {
     urgency: "urgent",

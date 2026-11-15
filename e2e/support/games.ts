@@ -40,7 +40,7 @@ export async function unscoreGame(
       await client.query(`delete from ${table} where game_id = $1`, [only.id]);
     await client.query(
       `update game set status = 'scheduled', score_a = null, score_b = null,
-              innings_played = null, forfeit_by = null, finalized_at = null,
+              innings_played = null, forfeit_by = null, finalized_at = null, ruled_at = null,
               kicks_first = null
         where id = $1`,
       [only.id],
