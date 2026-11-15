@@ -52,6 +52,7 @@ export async function sendLeagueAnnouncementAction(
   const sendAt = parseSendAt(
     { when: values.when || "now", day: values.day },
     now,
+    season.timeZone,
   );
   if (!sendAt.ok) redirect(`${page}?error=${sendAt.error}`);
   const teams = await teamsToAnnounceTo(db, season.id);
@@ -93,6 +94,7 @@ export async function editScheduledAction(
   const sendAt = parseSendAt(
     { when: values.when || "day", day: values.day },
     new Date(),
+    season.timeZone,
   );
   if (!sendAt.ok) redirect(`${page}?error=${sendAt.error}#scheduled`);
   const at = sendAt.value;
