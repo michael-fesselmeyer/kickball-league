@@ -172,6 +172,11 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Confirm a rain-out ([ADR 0057](adr/0057-owner-confirmed-rainouts.md); the operator too) | — | — | — | — | — | when the owners allow it | ✓ |
 | Let admins confirm rain-outs | — | — | — | — | — | — | ✓ |
 | Set a game day's status: On, Watching with a decision time, Delayed or Off | — | — | — | — | — | ✓ | ✓ |
+| Write a season's game-day checklist and the script for asking park users to move | — | — | — | — | — | ✓ | ✓ |
+| Tick the game-day checklist for a game | — | — | own team | — | — | — | — |
+| Note park users asked to move (only whoever claimed that day's "Set-up lead" shift) | — | set-up lead | set-up lead | set-up lead | — | — | — |
+| Confirm a field's set-up | — | set-up lead | set-up lead | set-up lead | — | ✓ | ✓ |
+| Confirm a field was left clean after its last game, with an optional photo (or the day's set-up lead) | — | — | own game | assigned | — | ✓ | ✓ |
 | See past players who haven't signed up and email them to come back (while registration is open) | — | — | — | — | — | ✓ | ✓ |
 | Place free agents; approve new-team requests | — | — | — | — | — | ✓ | ✓ |
 | Request to start a new team | — | ✓ | ✓ | — | — | — | — |

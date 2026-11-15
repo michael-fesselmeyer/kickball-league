@@ -132,6 +132,7 @@ erDiagram
     jsonb fielding_rules "max fielders, max per gender, minimum to play, minimum own players"
     jsonb tiebreakers "ordered list"
     jsonb rebate_policy "threshold and method"
+    text move_script "set-up lead's script, 1 to 600; null for the default"
   }
   division {
     uuid id PK
@@ -442,6 +443,41 @@ erDiagram
     uuid game_id PK,FK
     timestamptz new_starts_at "delayed only"
   }
+  game_checklist_item {
+    uuid id PK
+    uuid season_id FK
+    enum phase "before, after"
+    text text "1 to 140; unique per season and phase"
+    smallint position
+  }
+  game_checklist_tick {
+    uuid game_id PK,FK
+    uuid team_season_id PK,FK
+    uuid item_id PK,FK
+    uuid ticked_by FK
+    timestamptz ticked_at
+  }
+  move_request {
+    uuid id PK
+    uuid season_id FK
+    uuid field_id FK
+    enum outcome "fine, refused, complaint"
+    text note "up to 500"
+    uuid asked_by FK
+    timestamptz asked_at
+  }
+  field_check {
+    uuid id PK
+    uuid season_id FK
+    uuid field_id FK
+    date date "league time; unique with field_id and kind"
+    enum kind "setup, close"
+    enum status "ok, problem"
+    text note "needed for a problem"
+    uuid photo_id FK "books_file, close only"
+    uuid confirmed_by FK
+    timestamptz confirmed_at
+  }
   team_constraint {
     uuid id PK
     uuid team_season_id FK
@@ -593,6 +629,7 @@ Notes:
 - Slots are cut from requested and confirmed permit windows, minus blackouts, when an admin asks (the fields screen). Cutting again keeps a slot's id when its field and start are unchanged, so versions that use it stay intact. A slot no permit covers any more is deleted, or set to `cancelled` when a version uses it. Slots entered without a permit are left alone. A cancelled slot stays cancelled, because a rain-out cancels slots the same way.
 - Team A and team B are neutral names because home and away are decided at the field.
 - `game_day_status` is a season's status for one game day (issue #383): on, watching the weather until `decide_by`, delayed or off. One row per season and date (unique), updated in place under a row lock and audited as `game_day.status`; a check keeps `decide_by` set exactly when watching. `game_day_status_game` lists the games a delayed or off status touches, with a delayed game's `new_starts_at`, and is replaced with the status. Nothing here changes a slot or a game: games that are off are rescheduled by the rain-out flow. `set_by` moves to the kept account in a merge.
+- The game-day checklist (issue #409): `game_checklist_item` holds a season's short "before" and "after" lists, which captains tick per team per game in `game_checklist_tick`. A season with no items gets the defaults written on first read; the unique text per season and phase keeps two first reads from writing them twice. An admin's edit keeps the rows (and ticks) of items whose words stay and deletes the rest, ticks included. `season.move_script` is the set-up lead's script for asking park users to move, null for the default. `move_request` logs each group the day's set-up lead asked to move and how it went; anything but `fine` shows on the incidents screen. `field_check` is one field's set-up (by the set-up lead) or end-of-day "left clean" check (by its last game's ref or captains, the set-up lead or an admin) per day, replaced in place under a lock on the season; a problem needs a note, and the end-of-day photo is a `books_file` of kind `field_photo`, deleted when a new photo replaces it. Who leads set-up is a claimed `volunteer_shift` of role `setup_lead` on the season's game day. `ticked_by`, `asked_by` and `confirmed_by` move to the kept account in a merge.
 - `game_period` is named for periods, not innings, so a second sport can reuse it. It holds live scoring ([ADR 0011](adr/0011-live-scores-by-polling.md)): one row per half-inning, entered in order and corrected in place. The line score and the score at the last complete inning are worked out from these rows, never stored. Which team kicks in the top half is on the game (`kicks_first`, one of its two teams), set when live scoring starts. The final score still comes from a `score_report`, so a game scored live is confirmed like any other.
 - Kicking orders ([ADR 0030](adr/0030-kicking-order-sides.md)): a team has at most one `game_lineup` per game, and saving again replaces its `game_lineup_spot` rows in one transaction. Only players who said they're in, and approved pickups, can be saved into it. Players' lineup genders are never copied into it; they are read from `profile` (or `sub_claim` for a pickup) when the team's captains open the builder. `run_breaks` records how many runs of more than two of one side the order had when saved, so the ref and the other captain see that the order breaks the rule without seeing anyone's side. A saved order is never blocked for breaking the rule.
 - `offline_receipt` holds one row per score entry made on a phone with no signal and sent later ([ADR 0025](adr/0025-offline-scores-keep-the-servers-version.md)): a final score (`score`), a half-inning (`half`) or ending a live-scored game (`end`). It is written before the entry is applied, in the same transaction, and keeps the answer the phone got, so a resend of the same key gets that answer again and changes nothing. A final score from the phone also uses the key as its report's `client_id`. Rows go with their game, and deleting an account deletes its rows, since an answer can name the other captain.
@@ -1311,7 +1348,7 @@ erDiagram
   volunteer_shift {
     uuid id PK
     uuid league_id FK
-    enum role "setup, teardown, check_in, ref_fill_in"
+    enum role "setup, teardown, check_in, ref_fill_in, setup_lead"
     uuid season_id FK "a game day; or"
     uuid event_id FK "an event; exactly one is set"
     timestamptz starts_at
@@ -1676,7 +1713,7 @@ erDiagram
   books_file {
     uuid id PK
     uuid league_id FK
-    enum kind "receipt, permit, insurance"
+    enum kind "receipt, permit, insurance, field_photo"
     text content_type "image/webp or application/pdf"
     bytea bytes
     int byte_size "at most 1 MB"
