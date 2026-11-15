@@ -499,6 +499,7 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | Screen | Specs |
 |---|---|
 | `/app` | Every flow lands here after "view as"; `score` and `live-score` (a ref's Score link), `awards` (Vote link) |
+| `/app/referee` | `ref-assigner` (tick a time, the fixed time once assigned, pay and payments; not found for a captain) |
 | `/app/profile` | `account` (email settings, data download, delete link); every flow that completes a persona's profile |
 | `/app/profile/security` | `passkey` |
 | `/app/profile/delete` | `account` (off in the demo) |
@@ -544,7 +545,9 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | `…/rainout` | `rainout`, `season-journey` |
 | `…/rebates` | `screens` |
 | `…/recap` | `journey-admin` (draft from a result, send to a team); `screens` |
-| `…/referees` | `journey-ref` (assign by email); `screens` |
+| `…/referees` | `journey-ref` (assign by email); `ref-assigner` (to the assigner); `screens` |
+| `…/referees/assign` | `ref-assigner` (a game day's proposal, accept all, a game nobody can take) |
+| `…/referees/pay` | `ref-assigner` (the owed balance, mark paid, refused for a ref) |
 | `…/registrations` | `registration` (refunds), `admin-tools` (CSV), `journey-player` (place a free agent by hand); `screens` |
 | `…/requests` | `team-formation`; `screens` |
 | `…/schedule` | `schedule`, `rainout`, `season-journey` |

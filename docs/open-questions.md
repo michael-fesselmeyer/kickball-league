@@ -61,7 +61,7 @@ Each question lists what the design assumes until it is answered, so nothing her
 | # | Question | Assumed until answered | Who | When |
 |---|---|---|---|---|
 | 24 | How many referees work a game, and are they also players in the league? | One per game; often also a player, so they are never assigned during their own team's slot | You | now |
-| 25 | Will the owners approve the referee marketplace (availability, accept and decline, pay tracking, incentives)? | Not built. An admin assigns refs by hand | Owners | pitch |
+| 25 | Will the owners approve the referee marketplace (availability, accept and decline, pay tracking, incentives)? | In part: the owners approved a ref pool, availability, an assigner that proposes and a cash and Venmo pay sheet ([ADR 0053](adr/0053-ref-assigner-and-pay-sheet.md)). Accepting or declining offers and incentives aren't built | Owners | pitch |
 | 26 | How are refs paid today (cash, Venmo), and how often? | Tracked in the app, paid outside it | Owners | pitch |
 | 27 | Should captains be able to enter a score when a ref is assigned, or only when there is none? | Either can enter; the ref's report wins | Owners | pitch |
 | 28 | Is there a mercy rule or a cap on runs per inning? The rulebook does not mention one | None | You | now |

@@ -70,6 +70,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 
 /app                                Signed-in home: next game, links to your team and its schedule, RSVP, what you owe, alerts, any giveaway you won, any season survey waiting for my answer, and the league gear you have or bring ("You have Kit A: bring it to McCarren Park, Field 2 by 6:30 PM") with one-tap "I picked it up", "I handed Kit A to Sam", "Got it" or "It's back home", and the league switcher for anyone in more than one league
 ├── league/[league]                 Shows that league in the app, then goes on to ?next= (the switcher, and the way in from a league's public pages)
+├── referee                         Refs: tick the game times you can work for each season (a time you already ref is fixed), and your games worked, what you've earned, payments and the balance
 ├── account                         Profile, weeks you'll miss for each season still to come, email, push and message-limit settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
@@ -177,7 +178,9 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     ├── pickem                      Pick'em settings: whether players may pick their own team's games
     ├── team-lists                  Every team's "not on my team" list with reasons and who added each entry; teams listing 5 or more people and anyone on several lists; add or remove an entry; owners choose whether a person's own export lists entries about them
     ├── people                      Players, roles
-    ├── refs                        Referee pool and assignments
+    ├── refs                        Referee pool (add by email, remove) and assignments by email
+    │   ├── assign                  Assign refs: the proposal for a game day or the whole season, with why a game has nobody; accept all, accept one, or pick another ref; games each ref would have
+    │   └── pay                     Ref pay sheet: the season's per-game fee, each ref's games worked, owed, paid and balance, and "Mark paid" (cash or Venmo) into the books
     ├── events/                     Every event with who it's for, going and waitlist counts
     ├── private-events              Requests for private leagues and tournaments: accept one as an invite-only private season (name, dates, games per day, who pays, amount) or decline it with a reason
     │   ├── new                     Create an event or theme week: who it's for (everyone, all members, or teams from a season or any), an invite link, RSVPs in the app or not, and an optional email to everyone it's for

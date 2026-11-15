@@ -1338,30 +1338,31 @@ Sponsors as built (roadmap Phase 2, item 9):
 - `checkin.team_season_id` is the team the player was on in a season being played when they checked in, so the report can count teams.
 - A check-in and a deal use name the player only for the player's own data export. Deleting an account removes sponsor access and keeps check-ins, under the anonymized user, in the sponsor's counts.
 
-### 2.6 Referees (pending owner approval)
+### 2.6 Referees
 
 ```mermaid
 erDiagram
-  user ||--o| referee_profile : "may be"
-  referee_profile ||--o{ referee_availability : offers
+  league ||--o{ referee_profile : "ref pool"
+  user ||--o{ referee_profile : "is in"
+  season ||--o{ referee_availability : "times for"
+  user ||--o{ referee_availability : "can work"
   game ||--o{ referee_assignment : "officiated by"
-  referee_profile ||--o{ referee_assignment : takes
-  referee_profile ||--o{ referee_payout : "paid by"
-  referee_payout ||--o{ referee_assignment : covers
+  user ||--o{ referee_assignment : takes
+  season ||--o| referee_pay_rate : "per-game fee"
+  season ||--o{ referee_payout : "paid in"
+  user ||--o{ referee_payout : "paid to"
+  expense ||--o| referee_payout : "booked as"
 
   referee_profile {
+    uuid league_id PK
     uuid user_id PK
-    enum status "applied, approved, inactive"
-    int base_fee_cents
-    int games_worked
-    int no_shows
-    text stripe_connect_account_id
+    uuid added_by FK
+    timestamptz created_at
   }
   referee_availability {
-    uuid id PK
-    uuid user_id FK
-    date on_date
-    jsonb time_indexes
+    uuid season_id PK
+    uuid user_id PK
+    timestamptz starts_at PK "a slot start time"
   }
   referee_assignment {
     uuid id PK
@@ -1371,24 +1372,34 @@ erDiagram
     timestamptz offered_at
     timestamptz responded_at
     timestamptz checked_in_at "the ref is at the field"
-    int fee_cents
-    int bonus_cents
-    text bonus_reason
-    uuid payout_id FK
+    int fee_cents "unused"
+  }
+  referee_pay_rate {
+    uuid season_id PK
+    int fee_cents "0 to 100000"
+    uuid updated_by FK
+    timestamptz updated_at
   }
   referee_payout {
     uuid id PK
+    uuid season_id FK
     uuid user_id FK
-    int amount_cents
-    enum method "cash, venmo, stripe"
-    enum status "pending, paid"
-    text stripe_transfer_id
+    int amount_cents "1 to 100000"
+    enum method "cash, venmo"
+    date paid_on "league time zone"
     uuid paid_by FK
-    timestamptz paid_at
+    uuid expense_id FK
+    timestamptz created_at
   }
 ```
 
-The MVP uses only `referee_assignment` with `status = accepted`, created by an admin, so score entry can be tied to it. The rest waits for approval.
+The ref pool, availability, assigner and pay sheet follow [ADR 0053](adr/0053-ref-assigner-and-pay-sheet.md).
+
+- `referee_profile` is the league's ref pool. Being in it makes a person a ref (`Subject.isReferee`), as does having refereed a game. Removing someone keeps their games and pay.
+- `referee_availability` has one row per slot start time a ref can work in a season, whatever the field. No row means they can't. A ref's own form never clears a time they already referee.
+- `referee_assignment` is who refs a game: one live (`offered` or `accepted`) row per game, by a partial unique index. Admins make it by email or by accepting the assigner's proposal, both as `accepted`; neither ever puts a player on either team in the game (issue #296). Changing the ref cancels the old row.
+- `referee_pay_rate` is the season's fee per game worked. A game is worked when its assignment is `accepted` or `completed` and the ref checked in or reported its score as its ref; owed is computed, never stored.
+- `referee_payout` is money an owner or admin marked as paid. Recording one adds an `expense` in the `refs` category to the season's books, whose note names the method, not the ref. Payouts hold on to their season and ref (`restrict`); deleting an account keeps them, pointing at the anonymized user, and removes the person's pool row and times.
 
 `checked_in_at` is set when the ref taps "I'm at the field" on game day, which checks them in to every game they referee that day at once, or when an admin marks them as there (audited as `referee.check_in`). The first time stays; the game-day command center reads it.
 
@@ -1897,9 +1908,9 @@ Deleting an account removes the profile and anonymizes the user row. Signatures,
 
 In detail (`deleteAccount` in `src/db/queries/account.ts`):
 
-- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), their away weeks (`away_week`, which would otherwise stay with the kept registration), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Addresses that were merged into the account stop being aliases. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). Their `emergency_contact` is deleted. The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted. A captaincy offer waiting for or from them is cancelled. They stop bringing league gear to games still to come, and a gear handoff waiting from or to them is cancelled; a kit they hold stays shown with "Deleted account" until an admin says where it is.
+- **Removed:** the `profile` row; every `session`, `passkey` and `account` (sign-in method) row; unused sign-in links in `verification` for the address; `game_rsvp`, their spots in saved kicking orders (`game_lineup_spot`), their away weeks (`away_week`, which would otherwise stay with the kept registration), their place in any ref pool and the game times they said they can ref (`referee_profile`, `referee_availability`), `event_rsvp` (a spot at an upcoming event is given up first, so the waitlist moves up; a paid event ticket is `cancelled` and an offer released, and the ticket rows stay as a record of money paid), `notification_preference`, `alert_setting`, `push_subscription`, `offline_receipt` and `message` rows; entries in giveaways not drawn yet; free-agent quiz answers (`free_agent_profile`), and their place in any friend group; the address on any `invite` (open ones are revoked). Pending or approved `sub_claim`s for games still to come are withdrawn, which reopens the spot and tells the captains, and every claim loses its copied lineup gender. A `pending` new-team request is withdrawn. Addresses that were merged into the account stop being aliases. Their place on any waitlist is given up, any guarantee card is retired, and their referral link stops working. The private events calendar link stops working (`calendar_feed` moves to a new version). Their `emergency_contact` is deleted. The notes the person wrote come out: their `incident_note`s, and the note on any `sportsmanship_rating` they gave. Every `team_keep_off` row about them, and every one they added, is deleted. A captaincy offer waiting for or from them is cancelled. They stop bringing league gear to games still to come, and a gear handoff waiting from or to them is cancelled; a kit they hold stays shown with "Deleted account" until an admin says where it is.
 - **Anonymized:** `user.name` becomes "Deleted account", `user.email` becomes `deleted-<id>@deleted.invalid` (a reserved domain that cannot receive mail), and `image` is cleared. Roster memberships stop sharing contact details.
-- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments, past sub claims, sub requests posted, new-team requests, entries and wins in drawn giveaways, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
+- **Kept, pointing at the anonymized row:** registrations and roster memberships (so rosters, standings and history stay correct), purchases and payments, the league credit ledger, referrals, waiver signatures (with the typed name, IP and browser), score reports and responses, referee assignments and payouts, past sub claims, sub requests posted, new-team requests, entries and wins in drawn giveaways, announcements, incident reports (filed by or about them), the people named on them, suspensions and sportsmanship scores, and the audit log.
 - **Refused** while the person is the active captain of a team in a season that is not completed, or is the only owner.
 
 Every deletion writes an `account.delete` audit row with no personal data in it. The person's own export (`personalData`) returns all of the above as JSON, including their emergency contact and first-aid note (opened for them) and each passkey's name, type and date, without session tokens, sign-in tokens, provider tokens or passkey key material.
