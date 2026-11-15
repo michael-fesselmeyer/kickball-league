@@ -37,6 +37,8 @@ export type ShirtTeam = {
   teamSeasonId: TeamSeasonId;
   name: string;
   colorHex: string | null;
+  /** The team wears its own shirts; the league's order skips its players. */
+  ownShirts: boolean;
   players: ShirtPlayer[];
 };
 
@@ -70,6 +72,7 @@ export async function shirtBoard(
       teamSeasonId: teamSeason.id,
       name: team.name,
       colorHex: team.colorHex,
+      ownShirts: teamSeason.ownShirts,
     })
     .from(rosterMembership)
     .innerJoin(teamSeason, eq(rosterMembership.teamSeasonId, teamSeason.id))
@@ -104,6 +107,7 @@ export async function shirtBoard(
       teamSeasonId: spot.teamSeasonId,
       name: spot.name,
       colorHex: spot.colorHex,
+      ownShirts: spot.ownShirts,
       players: [],
     };
     entry.players.push(player);

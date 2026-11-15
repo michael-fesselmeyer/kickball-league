@@ -282,8 +282,11 @@ async function Shirts({
                     />
                   )}
                   {t.name}
+                  {t.ownShirts && (
+                    <span className="sticker text-micro">Own shirts</span>
+                  )}
                 </h3>
-                {waiting > 0 && (
+                {waiting > 0 && !t.ownShirts && (
                   <form
                     action={markTeamOrderedAction.bind(
                       null,
