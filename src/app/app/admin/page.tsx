@@ -222,6 +222,8 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               [`${base}/rebates`, "Rebates"],
               ["/app/admin/credit", "League credit"],
               ["/app/admin/merch", "Merch"],
+              ["/app/admin/shirt-waiting", "Late-joiner shirts"],
+              ["/app/admin/shirt-makers", "Shirt makers"],
               ["/app/admin/incidents", "Incidents"],
               ["/app/admin/team-lists", "Not-on-my-team lists"],
               ["/app/admin/seasons", "All seasons"],

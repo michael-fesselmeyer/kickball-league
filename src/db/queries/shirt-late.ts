@@ -177,8 +177,8 @@ export async function logSpare(
   await recordAudit(db, {
     actorId: input.actorId,
     action: "shirts.spare_log",
-    entityType: "shirt_spare",
-    entityId: `${input.leagueId}:${input.size}`,
+    entityType: "league",
+    entityId: input.leagueId,
     leagueId: input.leagueId,
     after: { size: input.size, quantity: input.quantity },
   });
