@@ -38,15 +38,18 @@ async function statuses(db: Db, seasonId: SeasonId) {
   return rows.map((r) => r.status).sort();
 }
 
+/**
+ * Rows written in one rolled-back transaction share occurred_at, so the
+ * database can return them in any order; tests compare them sorted.
+ */
 async function auditActions(db: Db, entityId: string) {
   const rows = await db
     .select({ action: auditLog.action })
     .from(auditLog)
     .where(
       and(eq(auditLog.entityId, entityId), eq(auditLog.entityType, "season")),
-    )
-    .orderBy(auditLog.occurredAt);
-  return rows.map((r) => r.action);
+    );
+  return rows.map((r) => r.action).sort();
 }
 
 describe("season sizes", () => {
@@ -261,8 +264,8 @@ describe("placing and receiving the order", () => {
       ).toEqual({ ok: false, error: "already_received" });
       expect(await auditActions(db, w.season.id)).toEqual([
         "shirts.order_place",
-        "shirts.order_update",
         "shirts.order_receive",
+        "shirts.order_update",
       ]);
     });
   });
