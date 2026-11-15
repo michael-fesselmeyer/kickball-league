@@ -36,6 +36,7 @@ import {
   saveConnection,
   setShowNewest,
   STORAGE_FULL_MESSAGE,
+  shownImageIds,
   storedImage,
   storedImageBytes,
   teamPhotos,
@@ -396,10 +397,14 @@ describe("curatePost", () => {
         (p) => p.id === ids[0],
       )!;
       expect((await storedImage(db, post.imageId!))?.shown).toBe(false);
+      expect(await shownImageIds(db)).not.toContain(post.imageId);
       await curate(ids[0]!, { kind: "feature", on: true });
       expect((await storedImage(db, post.imageId!))?.shown).toBe(true);
+      // A takedown purges what leaves this list (ADR 0064).
+      expect(await shownImageIds(db)).toContain(post.imageId);
       await curate(ids[0]!, { kind: "hide", on: true });
       expect((await storedImage(db, post.imageId!))?.shown).toBe(false);
+      expect(await shownImageIds(db)).not.toContain(post.imageId);
     });
   });
 
