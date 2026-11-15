@@ -129,8 +129,10 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── games/[game]/checklist          Game-day checklist, on game day only: each team's captains tick the season's before and after items for their team (ticks made with no signal send when it is back); after the last game on the field, its ref, a captain, the set-up lead or an admin confirms "Field left clean" or notes a problem, with an optional photo; kept on the phone with the next game until midnight, like the emergency contacts
 ├── setup-lead                      The day's set-up lead (whoever claimed the season's "Set-up lead" shift): the script for asking park users to move, the checklist items, and each field that day with its permit, a set-up check, one tap for "asked a group to move" and how it went (with an optional note), and the end-of-day check; later shifts listed below
 ├── equipment/[kit]/missing         Report what's missing from a kit you have, are handed or bring: tick its items and add a note
-├── games/[game]/permit             The park permit at the field: number, field, hours and document, for the game's ref and both captains (and owners); kept on the phone with the next game
-│   └── document                    The permit document itself, for the same people, never cached by a CDN
+├── games/[game]/permit             The park permit at the field: number, field, hours and document, and the field's layout image and note, for the game's ref and both captains (and owners); kept on the phone with the next game
+│   ├── document                    The permit document itself, for the same people, never cached by a CDN
+│   └── layout                      The field's layout file (see below), for the same people, never cached by a CDN; saved on the phone with the permit
+├── fields/[field]/layout           A field's layout: where the permitted area ends and where each diamond and spectator area goes, with a short note; for admins and members on a set-up shift (its file at `/layout/file`)
 ├── books/                          Owners and the platform operator only (404 for everyone else); opens on the newest season
 │   ├── [season]                    Quick add (amount, category, done; date, note, receipt and who paid folded away), expected costs to confirm or skip, who is owed what with "Reimbursed", the ledger (money in, money out by category, net), the season's expenses with "Add a receipt" or "There isn't one"
 │   │   ├── expected                Expected costs: set a cost once, each season or each game day, and stop expecting it

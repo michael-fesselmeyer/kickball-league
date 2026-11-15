@@ -111,6 +111,17 @@ test("a whole season, from setting it up to a rain-out", async ({
       venues.getByRole("listitem").filter({ hasText: "Hollow Oak Green" }),
     ).toContainText("Diamond 1");
 
+    // A schedule is published only when its fields have a layout, or an
+    // admin's word that they need none (#403).
+    const layouts = admin.getByRole("region", { name: "Field layouts" });
+    const layout = layouts
+      .getByRole("listitem")
+      .filter({ hasText: "Hollow Oak Green, Diamond 1" });
+    await expect(layout).toContainText("No layout yet.");
+    await layout.getByLabel("This field needs no layout").check();
+    await layout.getByRole("button", { name: /Save layout/ }).click();
+    await expect(admin.getByRole("status")).toHaveText("Layout saved.");
+
     // One evening a week ago, and the next two weeks: two hour-long slots
     // each, one for the game and one held back for makeups.
     const permits = admin.getByRole("region", { name: "Permit windows" });

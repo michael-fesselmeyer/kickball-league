@@ -90,6 +90,7 @@ async function main(): Promise<void> {
     season,
     venue,
     field,
+    fieldLayout,
     slot,
     game,
     scoreReport,
@@ -314,6 +315,15 @@ async function main(): Promise<void> {
       await tx.insert(season).values(data.season);
       await tx.insert(venue).values(data.venue);
       await tx.insert(field).values(data.fields);
+      // The demo's fields need no layout, so a schedule can be published
+      // (#403); one has a note, to show how a layout reads.
+      await tx.insert(fieldLayout).values(
+        data.fields.map((f, i) => ({
+          fieldId: f.id,
+          noLayoutNeeded: true,
+          note: i === 0 ? "Cones at the four corners." : null,
+        })),
+      );
       await tx.insert(team).values(data.teams);
       await tx.insert(teamSeason).values(data.teamSeasons);
       await tx.insert(registration).values(data.registrations);

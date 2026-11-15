@@ -110,6 +110,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 ### League admin
 - Set up a season: dates, price, early-bird window, roster limits, divisions, rule set and waiver.
 - Enter fields, permit windows and blackout dates.
+- Give each field a layout: a photo or PDF of where the permitted area ends and where each diamond and spectator area goes, with a short note such as "cones at the four corners", or confirm that the field needs none. A schedule can't be published while a field it uses has neither. The layout shows on the game-day command center, on a set-up shift for the crew on it, and on the permit page of the game's ref and captains, which is saved on the phone for offline use.
 - Generate a schedule, read its fairness metrics, adjust it by hand with constraint checks, and publish it.
 - See the weather risk for the next game day, call a rain-out with one click, and let the system notify everyone and place makeups.
 - See registration, payment and waiver status for every team and player.
