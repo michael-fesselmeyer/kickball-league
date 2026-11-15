@@ -95,6 +95,7 @@ export type InterestAnswerId = Brand<string, "InterestAnswerId">;
 export type IncidentId = Brand<string, "IncidentId">;
 export type IncidentNoteId = Brand<string, "IncidentNoteId">;
 export type SuspensionId = Brand<string, "SuspensionId">;
+export type GameCardId = Brand<string, "GameCardId">;
 export type GameLineupId = Brand<string, "GameLineupId">;
 export type GameLineupSpotId = Brand<string, "GameLineupSpotId">;
 export type AwayWeekId = Brand<string, "AwayWeekId">;

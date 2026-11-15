@@ -376,6 +376,15 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     expect(allowed("player.eject", { game: g2 })).toEqual(["admin", "owner"]);
   });
 
+  it("lets only the game's ref and admins give a card", () => {
+    expect(allowed("card.give", { game: g1 })).toEqual([
+      "referee",
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("card.give", { game: g2 })).toEqual(["admin", "owner"]);
+  });
+
   it("lets captains rate the other team in their games and see their own average", () => {
     expect(allowed("sportsmanship.rate", { game: g1 })).toEqual([
       "captain",
