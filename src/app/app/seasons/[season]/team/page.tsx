@@ -52,7 +52,7 @@ import { KeepOffSection } from "./keep-off";
 import { type GuaranteeView, TeamMoney } from "./team-money";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
-import { activeLeague, activeLeagueId } from "@/lib/league/active";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Your team" };
 
@@ -166,10 +166,12 @@ async function Team({
 }: PageProps<"/app/seasons/[season]/team">) {
   const { season: slug } = await params;
   const query = await searchParams;
-  const subject = await requirePermission("registration.join", {
-    next: `/app/seasons/${slug}/team`,
-  });
-  const league = await activeLeague();
+  const [subject, league] = await Promise.all([
+    requirePermission("registration.join", {
+      next: `/app/seasons/${slug}/team`,
+    }),
+    activeLeague(),
+  ]);
   const season = league
     ? await seasonForRegistration(db, league.id, slug)
     : null;
@@ -183,9 +185,57 @@ async function Team({
     teamSeasonId,
     targetRole: "player",
   });
-  const board = await rosterBoard(db, teamSeasonId);
-  const games = await teamGames(db, teamSeasonId);
   const now = new Date();
+  const timeZone = league?.timeZone ?? "America/New_York";
+  // Who reads what, decided before any of it is read.
+  const findsSubs = can(subject, "sub_request.post", { teamSeasonId });
+  const buildsLineups = can(subject, "lineup.edit", { teamSeasonId });
+  const rates = can(subject, "sportsmanship.view_own", { teamSeasonId });
+  // Cash or Venmo from a teammate on a split fee (payment.record_offline).
+  const records =
+    (season.feeModel === "per_player" || mine.team.paymentMode === "split") &&
+    can(subject, "payment.record_offline", { teamSeasonId });
+  // A split team's fee and its guarantee, for the team's captains.
+  const guarantees = can(subject, "guarantee.manage", { teamSeasonId });
+  // The private "not on my team" list, for the team's captains only.
+  const keepsOff = can(subject, "keep_off.manage", { teamSeasonId });
+  // Who leads the team (ADR 0042): the captain changes it; a co-captain
+  // sees it and can step down; a teammate offered the captaincy answers.
+  const leads = can(subject, "captaincy.manage", { teamSeasonId });
+  const coCaptain = mine.team.role === "co_captain";
+
+  // Everything that needs only the team, read at once.
+  const [
+    board,
+    games,
+    link,
+    challenge,
+    ownRatings,
+    [balance, guarantee, credit],
+    keepOff,
+    myOffer,
+  ] = await Promise.all([
+    rosterBoard(db, teamSeasonId),
+    teamGames(db, teamSeasonId),
+    manages ? openTeamInvite(db, teamSeasonId, now) : null,
+    // The season's sign-up challenge, if there is one: this team's progress.
+    can(subject, "challenge.view_team", { teamSeasonId })
+      ? challengeForSeason(db, season.id)
+      : null,
+    (async () =>
+      rates && (await featureEnabled("discipline"))
+        ? ownAverage(await scoresReceived(db, teamSeasonId))
+        : null)(),
+    guarantees
+      ? Promise.all([
+          teamBalances(db, [teamSeasonId]).then((m) => m.get(teamSeasonId)),
+          teamGuarantee(db, teamSeasonId),
+          creditBalance(db, subject.userId, league?.id ?? null),
+        ])
+      : ([undefined, null, 0] as const),
+    keepsOff ? teamKeepOffList(db, teamSeasonId) : [],
+    offerFor(db, teamSeasonId, subject.userId),
+  ]);
   // Answers are for games still to come.
   const upcoming = games
     .filter(
@@ -196,9 +246,6 @@ async function Team({
         g.status !== "forfeit",
     )
     .map((g) => g.id);
-  const rsvps = await teamRsvps(db, teamSeasonId, upcoming);
-  const findsSubs = can(subject, "sub_request.post", { teamSeasonId });
-  const pickups = await pickupsFor(db, upcoming);
   const seesPickups = (g: (typeof games)[number]) =>
     can(subject, "sub_request.view_pickups", {
       game: { id: g.id, teamSeasonIds: [g.teamAId, g.teamBId] },
@@ -207,8 +254,19 @@ async function Team({
   const unplayed = games
     .filter((g) => !["final", "forfeit", "cancelled"].includes(g.status))
     .map((g) => g.id);
-  const buildsLineups = can(subject, "lineup.edit", { teamSeasonId });
-  const [mineRsvps, spots, lineups, availability] = await Promise.all([
+  // Then everything that needs the games, the roster or the offer, at once.
+  const [
+    rsvps,
+    pickups,
+    mineRsvps,
+    spots,
+    lineups,
+    availability,
+    suspended,
+    captaincy,
+  ] = await Promise.all([
+    teamRsvps(db, teamSeasonId, upcoming),
+    pickupsFor(db, upcoming),
     myRsvps(db, subject.userId, upcoming),
     mySpots(db, subject.userId, unplayed),
     buildsLineups ? savedFor(db, teamSeasonId, unplayed) : new Set<string>(),
@@ -217,22 +275,18 @@ async function Team({
       db,
       teamSeasonId,
       games.filter((g) => upcoming.includes(g.id)),
-      league?.timeZone ?? "America/New_York",
+      timeZone,
     ),
+    // Suspensions are enforced even with the feature switched off; captains
+    // see that a player is out, never why.
+    suspendedAmong(
+      db,
+      board.map((m) => m.userId),
+      now,
+    ),
+    leads || coCaptain || myOffer ? teamCaptaincy(db, teamSeasonId) : null,
   ]);
-  // Suspensions are enforced even with the feature switched off; captains
-  // see that a player is out, never why.
-  const suspended = await suspendedAmong(
-    db,
-    board.map((m) => m.userId),
-    now,
-  );
   const mySuspension = suspended.get(subject.userId);
-  const ownRatings =
-    can(subject, "sportsmanship.view_own", { teamSeasonId }) &&
-    (await featureEnabled("discipline"))
-      ? ownAverage(await scoresReceived(db, teamSeasonId))
-      : null;
   const day = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -251,20 +305,9 @@ async function Team({
     const [us, them] = g.home ? [g.scoreA, g.scoreB] : [g.scoreB, g.scoreA];
     return `${us > them ? "W" : us < them ? "L" : "T"} ${us}–${them}`;
   };
-  const link = manages
-    ? await openTeamInvite(db, teamSeasonId, new Date())
-    : null;
-  // Cash or Venmo from a teammate on a split fee (payment.record_offline).
-  const records =
-    (season.feeModel === "per_player" || mine.team.paymentMode === "split") &&
-    can(subject, "payment.record_offline", { teamSeasonId });
   const error =
     typeof query.error === "string" ? PAYMENT_ERRORS[query.error] : undefined;
   const paid = board.filter((m) => m.paid).length;
-  // The season's sign-up challenge, if there is one: this team's progress.
-  const challenge = can(subject, "challenge.view_team", { teamSeasonId })
-    ? await challengeForSeason(db, season.id)
-    : null;
   const signups = challenge
     ? teamProgress(
         board.map((m) => ({
@@ -275,30 +318,6 @@ async function Team({
       )
     : null;
   const signed = board.filter((m) => m.signed).length;
-  // A split team's fee and its guarantee, for the team's captains.
-  const guarantees = can(subject, "guarantee.manage", { teamSeasonId });
-  const [balance, guarantee, credit] = guarantees
-    ? await Promise.all([
-        teamBalances(db, [teamSeasonId]).then((m) => m.get(teamSeasonId)),
-        teamGuarantee(db, teamSeasonId),
-        creditBalance(db, subject.userId, await activeLeagueId()),
-      ])
-    : [undefined, null, 0];
-  const timeZone = league?.timeZone ?? "America/New_York";
-  // The private "not on my team" list, for the team's captains only.
-  const keepsOff = can(subject, "keep_off.manage", { teamSeasonId });
-  // Who leads the team (ADR 0042): the captain changes it; a co-captain
-  // sees it and can step down; a teammate offered the captaincy answers.
-  const leads = can(subject, "captaincy.manage", { teamSeasonId });
-  const coCaptain = mine.team.role === "co_captain";
-  const [keepOff, myOffer] = await Promise.all([
-    keepsOff ? teamKeepOffList(db, teamSeasonId) : [],
-    offerFor(db, teamSeasonId, subject.userId),
-  ]);
-  const captaincy =
-    leads || coCaptain || myOffer
-      ? await teamCaptaincy(db, teamSeasonId)
-      : null;
   const deadline = season.paymentDeadlineAt;
   const guaranteeView: GuaranteeView = guarantee
     ? {
