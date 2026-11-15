@@ -134,6 +134,12 @@ async function Season({
             Season survey
           </Link>
           <Link
+            href={`/app/admin/seasons/${slug}/win-back`}
+            className="underline"
+          >
+            Win back past players
+          </Link>
+          <Link
             href={`/app/admin/seasons/${slug}/requests`}
             className="underline"
           >
