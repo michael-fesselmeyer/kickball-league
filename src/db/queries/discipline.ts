@@ -27,6 +27,7 @@ import {
   suspensionState,
   type SuspensionState,
 } from "@/domain/discipline/discipline";
+import type { NewInjury } from "@/domain/discipline/injury";
 import type {
   GameId,
   IncidentId,
@@ -56,6 +57,7 @@ import {
   teamSeason,
 } from "../schema/team";
 import { recordAudit } from "./audit";
+import { queueFiledNotices, saveInjury } from "./injury";
 import { enqueueMessages } from "./outbox";
 import type { Db } from "./schedule";
 import { gameForScoring, type ScoringGame } from "./scores";
@@ -271,9 +273,15 @@ export async function gamePeople(
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export type FileError = FileBlock | "not_found";
+export type FileError = FileBlock | "not_found" | "unknown_person";
 
-/** Files a report for a game, with the people it is about. */
+/**
+ * Files a report for a game, with the people it is about. An injury report
+ * (ADR 0064) carries its `injury` instead of people: the person hurt and
+ * the witnesses must be players in the game, nothing about the injury goes
+ * in the audit row, and the league's owners and admins are told only that
+ * a report was filed.
+ */
 export async function fileIncident(
   db: Db,
   input: {
@@ -281,6 +289,7 @@ export async function fileIncident(
     reportedBy: UserId;
     role: ReporterRole;
     incident: NewIncident;
+    injury?: NewInjury;
     now: Date;
   },
 ): Promise<Result<IncidentId, FileError>> {
@@ -292,8 +301,16 @@ export async function fileIncident(
     const byId = new Map<string, GamePerson>(
       (await gamePeople(tx, g)).map((p) => [p.userId, p]),
     );
+    const injury = input.injury;
+    if (injury) {
+      if (input.incident.kind !== "injury") return err("not_found");
+      if (![injury.hurt, ...injury.witnesses].every((id) => byId.has(id)))
+        return err("unknown_person");
+    }
     // Only the two teams' players can be named.
-    const people = input.incident.people.flatMap((id) => byId.get(id) ?? []);
+    const people = injury
+      ? []
+      : input.incident.people.flatMap((id) => byId.get(id) ?? []);
     const [created] = await tx
       .insert(incident)
       .values({
@@ -326,6 +343,15 @@ export async function fileIncident(
         people: people.length,
       },
     });
+    if (injury) {
+      await saveInjury(tx, created.id, injury);
+      await queueFiledNotices(tx, {
+        incidentId: created.id,
+        gameId: g.id,
+        filedBy: input.reportedBy,
+        now: input.now,
+      });
+    }
     return ok(created.id);
   });
 }
@@ -901,7 +927,9 @@ export async function myDisciplineRecords(db: Db, userId: UserId, now: Date) {
         reportedAt: incident.reportedAt,
       })
       .from(incident)
-      .where(eq(incident.reportedBy, userId))
+      // An injury report holds health details only owners and admins read
+      // (ADR 0064), so it isn't in the filer's own export either.
+      .where(and(eq(incident.reportedBy, userId), ne(incident.kind, "injury")))
       .orderBy(asc(incident.reportedAt)),
     suspensionsWhere(db, eq(suspension.userId, userId), now),
     db

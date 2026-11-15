@@ -285,6 +285,10 @@ const RULES = {
   "referee.manage": isAdmin,
   "player.suspend": isAdmin,
   "incident.review": isAdmin,
+  // An injury report holds health details: read, exported and deleted by
+  // owners and admins only, never by the people who filed it (ADR 0064).
+  "injury.read": isAdmin,
+  "injury.delete": isAdmin,
   // The concerns queue: private player concerns and public contact messages.
   "concern.review": isAdmin,
   // A signed-in player sends a private concern and reads their own.
