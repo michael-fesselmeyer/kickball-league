@@ -35,6 +35,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# npm run demo: its throwaway secrets and state
+/.demo/
+
 # vercel
 .vercel
 
