@@ -186,6 +186,7 @@ async function seasonInputs(
           eq(bracket.seasonId, seasonId),
           eq(bracket.status, "complete"),
           sql`${bracket.divisionId} is null`,
+          eq(bracket.tier, 1),
         ),
       )
       .limit(1),

@@ -13,7 +13,9 @@ import { seasonBySlug } from "@/db/queries/schedule-screen";
 import {
   byeSeeds,
   MAX_PLAYOFF_TEAMS,
+  MAX_TIERS,
   MIN_PLAYOFF_TEAMS,
+  tierName,
 } from "@/domain/playoffs/playoffs";
 import { dayHeading } from "@/domain/schedule/format";
 import { requirePermission } from "@/lib/auth/permission";
@@ -38,11 +40,15 @@ export default function PlayoffsAdminPage(
 }
 
 const ERRORS: Record<string, string> = {
-  bad_input: "Pick how many teams make it and a playoff date.",
+  bad_input:
+    "Pick how many teams make it and a playoff day for each bracket, and innings as whole numbers.",
+  bad_innings: "Innings are 1 to 15, or leave them empty.",
+  tiers_with_divisions:
+    "A season with divisions plays one bracket per division, so it can't add tiers.",
   no_schedule: "Publish the regular-season schedule first.",
   already_published: "This season's bracket is already published.",
   too_few_teams:
-    "That many teams can't make it. Pick at least 2 (1 a division with a combined final) and no more than the teams still in the season, or in the smallest division.",
+    "That many teams can't make it. Each bracket needs at least 2 teams (1 a division with a combined final), and together they can't take more than the teams still in the season, or in the smallest division.",
   no_slots:
     "No free slots on or after that date. Add a permit for playoff day on the fields page.",
   no_bracket: "Make a bracket first.",
@@ -149,7 +155,13 @@ async function Playoffs({
           </div>
           {brackets.map((b) => (
             <div key={b.id} className="flex flex-col gap-4">
-              {b.division && <h3 className="text-h3">{b.division.name}</h3>}
+              {b.division ? (
+                <h3 className="text-h3">{b.division.name}</h3>
+              ) : (
+                brackets.length > 1 && (
+                  <h3 className="text-h3">{tierName(b.tier)} bracket</h3>
+                )
+              )}
               <Champion bracket={b} />
               {b.diagnostics.length > 0 && (
                 <ul className="list-disc pl-5 text-small">
@@ -162,7 +174,11 @@ async function Playoffs({
                 bracket={b}
                 league={null}
                 headingLevel={3}
-                {...(b.division ? { name: b.division.name } : {})}
+                {...(b.division
+                  ? { name: b.division.name }
+                  : brackets.length > 1
+                    ? { name: tierName(b.tier) }
+                    : {})}
               />
             </div>
           ))}
@@ -196,35 +212,125 @@ async function Playoffs({
           ) : (
             <form
               action={makeBracket.bind(null, slug)}
-              className="flex flex-wrap items-end gap-4"
+              className="flex flex-col gap-4"
             >
-              <label className="flex flex-col gap-1">
-                {divided ? "Teams from each division" : "Teams in the playoffs"}
-                <input
-                  name="teams"
-                  type="number"
-                  min={lowest}
-                  max={highest}
-                  required
-                  defaultValue={defaultTeams}
-                  className="min-h-11 w-24 rounded-input border border-border-strong bg-surface px-3"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                Playoff day
-                <select
-                  name="date"
-                  required
-                  className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
-                >
-                  {preview.dates.map((d) => (
-                    <option key={d.date} value={d.date}>
-                      {dayHeading(d.date)} ({d.free} free slots)
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <SubmitButton className="btn btn-primary">
+              {Array.from(
+                { length: divided ? 1 : MAX_TIERS },
+                (_, i) => i + 1,
+              ).map((tier) => {
+                const saved = brackets.find((b) => b.tier === tier);
+                const id = (name: string) => `${name}-${tier}`;
+                const input =
+                  "min-h-11 rounded-input border border-border-strong bg-surface px-3";
+                return (
+                  <fieldset
+                    key={tier}
+                    className="flex flex-col gap-3 rounded-card border border-border p-4"
+                  >
+                    <legend className="px-1 font-bold">
+                      {divided
+                        ? "Every division's bracket"
+                        : tier === 1
+                          ? "Championship bracket"
+                          : `${tierName(tier)} bracket (optional)`}
+                    </legend>
+                    {tier > 1 && (
+                      <p className="text-small text-text-muted">
+                        Takes the next teams in the standings after the brackets
+                        above. Leave the teams empty for no{" "}
+                        {tierName(tier).toLowerCase()}.
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-end gap-4">
+                      <label className="flex flex-col gap-1">
+                        {divided
+                          ? "Teams from each division"
+                          : tier === 1
+                            ? "Teams in the playoffs"
+                            : "Teams"}
+                        <input
+                          name={id("teams")}
+                          type="number"
+                          min={tier === 1 ? lowest : 0}
+                          max={highest}
+                          required={tier === 1}
+                          defaultValue={
+                            tier === 1 ? defaultTeams : (saved?.size ?? "")
+                          }
+                          className={`${input} w-24`}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        Format
+                        <select
+                          name={id("format")}
+                          defaultValue={saved?.format ?? "single_elimination"}
+                          className={input}
+                        >
+                          <option value="single_elimination">
+                            Single elimination
+                          </option>
+                          <option value="double_elimination">
+                            Double elimination
+                          </option>
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        Playoff day
+                        <select
+                          name={id("date")}
+                          required={tier === 1}
+                          className={input}
+                        >
+                          {preview.dates.map((d) => (
+                            <option key={d.date} value={d.date}>
+                              {dayHeading(d.date)} ({d.free} free slots)
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        Innings, early rounds
+                        <input
+                          name={id("early")}
+                          type="number"
+                          min={1}
+                          max={15}
+                          defaultValue={saved?.earlyInnings ?? ""}
+                          className={`${input} w-24`}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        Innings, final
+                        <input
+                          name={id("final")}
+                          type="number"
+                          min={1}
+                          max={15}
+                          defaultValue={saved?.finalInnings ?? ""}
+                          className={`${input} w-24`}
+                        />
+                      </label>
+                      <label className="flex min-h-11 items-center gap-2">
+                        <input
+                          name={id("third")}
+                          type="checkbox"
+                          defaultChecked={saved?.thirdPlace ?? false}
+                          className="size-5"
+                        />
+                        Third-place game (single elimination)
+                      </label>
+                    </div>
+                  </fieldset>
+                );
+              })}
+              <p className="text-small text-text-muted">
+                Empty innings use the league&apos;s usual game length. Double
+                elimination sends a team out after two losses; if the
+                losers&apos; side champion wins the grand final, the two teams
+                play once more, and that game&apos;s slot is held for it.
+              </p>
+              <SubmitButton className="btn self-start btn-primary">
                 {bracket
                   ? "Replace the draft"
                   : divided && preview.mode === "per_division"

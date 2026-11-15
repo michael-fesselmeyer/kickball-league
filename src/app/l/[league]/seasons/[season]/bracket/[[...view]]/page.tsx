@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { BracketBoard, BracketList, Champion } from "@/components/bracket";
 import { db } from "@/db/client";
 import { bracketViews } from "@/db/queries/playoffs";
+import { tierName } from "@/domain/playoffs/playoffs";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 import {
@@ -122,33 +123,44 @@ async function Bracket({
           </nav>
           {brackets.map((bracket) => {
             const division = bracket.division;
+            // Several brackets without divisions are tiers of the standings.
+            const tier =
+              !division && brackets.length > 1
+                ? {
+                    slug: `tier-${bracket.tier}`,
+                    name: `${tierName(bracket.tier)} bracket`,
+                  }
+                : null;
+            const group = division
+              ? { slug: division.slug, name: division.name }
+              : tier;
             const body = (
               <>
                 <Champion bracket={bracket} />
                 {asList ? (
                   <BracketList
                     bracket={bracket}
-                    headingLevel={division ? 3 : 2}
-                    idPrefix={division ? `${division.slug}-` : ""}
+                    headingLevel={group ? 3 : 2}
+                    idPrefix={group ? `${group.slug}-` : ""}
                   />
                 ) : (
                   <BracketBoard
                     league={league}
                     bracket={bracket}
-                    headingLevel={division ? 3 : 2}
-                    {...(division ? { name: division.name } : {})}
+                    headingLevel={group ? 3 : 2}
+                    {...(group ? { name: group.name } : {})}
                   />
                 )}
               </>
             );
-            return division ? (
+            return group ? (
               <section
                 key={bracket.id}
-                aria-labelledby={`bracket-${division.slug}`}
+                aria-labelledby={`bracket-${group.slug}`}
                 className="flex flex-col gap-4"
               >
-                <h2 id={`bracket-${division.slug}`} className="text-h2">
-                  {division.name}
+                <h2 id={`bracket-${group.slug}`} className="text-h2">
+                  {group.name}
                 </h2>
                 {body}
               </section>

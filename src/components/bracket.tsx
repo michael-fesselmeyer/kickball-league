@@ -3,9 +3,11 @@ import type { CSSProperties } from "react";
 import type { BracketView, BracketViewMatch } from "@/db/queries/playoffs";
 import {
   boardColumns,
-  roundName,
+  losersColumns,
   sourceLabel,
+  tierName,
 } from "@/domain/playoffs/playoffs";
+import { stageRoundName } from "@/domain/scheduler/bracket";
 import { kickoff, shortDay } from "@/domain/schedule/format";
 import "./bracket.css";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
@@ -119,6 +121,78 @@ function MatchSide({
   );
 }
 
+/** Game numbers by match code, for "Winner of game 3" labels. */
+const numbersOf = (bracket: BracketView) =>
+  new Map(bracket.matches.map((m) => [m.code, m.gameNo]));
+
+/** The heading for a round of a stage, in this bracket's format. */
+const nameOf = (
+  bracket: BracketView,
+  m: { stage: BracketViewMatch["stage"]; round: number },
+) => stageRoundName(m.stage, m.round, bracket.rounds, bracket.format);
+
+/** "Game 5 · 7 innings": the game's number, and its length when set. */
+function gameLine(m: BracketViewMatch): string {
+  return m.innings
+    ? `Game ${m.gameNo} · ${m.innings} innings`
+    : `Game ${m.gameNo}`;
+}
+
+/** The finals after the main side: grand finals, or the third-place game. */
+function finals(bracket: BracketView): BracketViewMatch[] {
+  const order = { grand_final: 0, reset: 1, third_place: 2 } as const;
+  return bracket.matches
+    .filter(
+      (m): m is BracketViewMatch & { stage: keyof typeof order } =>
+        m.stage in order,
+    )
+    .sort((a, b) => order[a.stage] - order[b.stage]);
+}
+
+function MatchCard({
+  bracket,
+  m,
+  league,
+  numbers,
+}: {
+  bracket: BracketView;
+  m: BracketViewMatch;
+  league: LeagueRef | null;
+  numbers: ReadonlyMap<string, number>;
+}) {
+  const name = nameOf(bracket, m);
+  const status = m.skipped
+    ? "Not needed"
+    : result(m)
+      ? `Final · ${when(m, bracket.timeZone)}`
+      : when(m, bracket.timeZone);
+  return (
+    <article className={styles.match} aria-label={`Game ${m.gameNo}, ${name}`}>
+      <p className={styles.when}>
+        {gameLine(m)}
+        {m.stage === "reset" ? " · if necessary" : ""}
+      </p>
+      <ul>
+        <MatchSide
+          side={m.teamA}
+          label={sourceLabel(m.sourceA, numbers)}
+          score={m.scoreA}
+          winnerId={m.winnerId}
+          league={league}
+        />
+        <MatchSide
+          side={m.teamB}
+          label={sourceLabel(m.sourceB, numbers)}
+          score={m.scoreB}
+          winnerId={m.winnerId}
+          league={league}
+        />
+      </ul>
+      <p className={styles.when}>{status}</p>
+    </article>
+  );
+}
+
 export function BracketBoard({
   bracket,
   league,
@@ -130,95 +204,138 @@ export function BracketBoard({
   league: LeagueRef | null;
   /** The round names' heading level, below the page's own headings. */
   headingLevel?: 2 | 3;
-  /** Whose bracket, when a page shows one per division. */
+  /** Whose bracket, when a page shows more than one. */
   name?: string;
 }) {
   const Heading = headingLevel === 2 ? "h2" : "h3";
   const columns = boardColumns(bracket.size, bracket.matches);
   const seedTeam = new Map(bracket.seeds.map((s) => [s.seed, s.team]));
+  const numbers = numbersOf(bracket);
+  const double = bracket.format === "double_elimination";
+  const losers = losersColumns(bracket.matches);
+  const last = finals(bracket);
+  const whose = name ? `${name} bracket` : "Playoff bracket";
   return (
-    <div
-      className={styles.scroller}
-      role="region"
-      aria-label={`${name ? `${name} bracket` : "Playoff bracket"}; scrolls sideways on small screens`}
-      // A scrolling region must be reachable by keyboard, even with no links.
-      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-      tabIndex={0}
-    >
-      <ol className={styles.board}>
-        {columns.map(({ round, cells }) => {
-          const last = round === bracket.rounds;
-          return (
-            <li
-              key={round}
-              className={`${styles.round} ${last ? styles.final : ""}`}
-              style={{ "--round": round } as CSSProperties}
-            >
-              <Heading className={styles.roundName}>
-                {roundName(round, bracket.rounds)}
-              </Heading>
-              <ol className={styles.places}>
-                {cells.map((cell, i) => {
-                  if (cell.kind === "bye") {
-                    const team = seedTeam.get(cell.seed);
+    <div className="flex flex-col gap-4">
+      <div
+        className={styles.scroller}
+        role="region"
+        aria-label={`${whose}${double ? ", winners' side" : ""}; scrolls sideways on small screens`}
+        // A scrolling region must be reachable by keyboard, even with no links.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+      >
+        <ol className={styles.board}>
+          {columns.map(({ round, cells }) => {
+            // The single-elimination final ends the board; a winners'
+            // final feeds the grand final, drawn below.
+            const end = round === bracket.rounds;
+            return (
+              <li
+                key={round}
+                className={`${styles.round} ${end && !double ? styles.final : ""}`}
+                style={{ "--round": round } as CSSProperties}
+              >
+                <Heading className={styles.roundName}>
+                  {nameOf(bracket, { stage: "main", round })}
+                </Heading>
+                <ol className={styles.places}>
+                  {cells.map((cell, i) => {
+                    if (cell.kind === "bye") {
+                      const team = seedTeam.get(cell.seed);
+                      return (
+                        <li
+                          key={`bye-${i}`}
+                          className={`${styles.place} ${styles.out}`}
+                        >
+                          <p className={styles.bye}>
+                            {team
+                              ? `(${cell.seed}) ${team.name} has a bye`
+                              : "Bye"}
+                          </p>
+                        </li>
+                      );
+                    }
+                    const m = cell.match;
                     return (
                       <li
-                        key={`bye-${i}`}
-                        className={`${styles.place} ${styles.out}`}
+                        key={m.code}
+                        className={`${styles.place} ${end ? "" : styles.out} ${round > 1 ? styles.in : ""} ${m.winnerId ? styles.won : ""}`}
                       >
-                        <p className={styles.bye}>
-                          {team
-                            ? `(${cell.seed}) ${team.name} has a bye`
-                            : "Bye"}
-                        </p>
+                        <MatchCard
+                          bracket={bracket}
+                          m={m}
+                          league={league}
+                          numbers={numbers}
+                        />
                       </li>
                     );
-                  }
-                  const m = cell.match;
-                  return (
+                  })}
+                </ol>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+      {losers.length > 0 && (
+        <div
+          className={styles.scroller}
+          role="region"
+          aria-label={`${whose}, losers' side; scrolls sideways on small screens`}
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+          tabIndex={0}
+        >
+          <ol className={styles.board}>
+            {losers.map(({ round, matches }) => (
+              <li key={round} className={styles.round}>
+                <Heading className={styles.roundName}>
+                  {nameOf(bracket, { stage: "losers", round })}
+                </Heading>
+                <ol className={styles.places}>
+                  {matches.map((m) => (
                     <li
                       key={m.code}
-                      className={`${styles.place} ${last ? "" : styles.out} ${round > 1 ? styles.in : ""} ${m.winnerId ? styles.won : ""}`}
+                      className={`${styles.place} ${m.winnerId ? styles.won : ""}`}
                     >
-                      <article
-                        className={styles.match}
-                        aria-label={`${roundName(round, bracket.rounds)}, game ${m.position}`}
-                      >
-                        <ul>
-                          <MatchSide
-                            side={m.teamA}
-                            label={sourceLabel(m.sourceA, bracket.rounds)}
-                            score={m.scoreA}
-                            winnerId={m.winnerId}
-                            league={league}
-                          />
-                          <MatchSide
-                            side={m.teamB}
-                            label={sourceLabel(m.sourceB, bracket.rounds)}
-                            score={m.scoreB}
-                            winnerId={m.winnerId}
-                            league={league}
-                          />
-                        </ul>
-                        <p className={styles.when}>
-                          {result(m)
-                            ? `Final · ${when(m, bracket.timeZone)}`
-                            : when(m, bracket.timeZone)}
-                        </p>
-                      </article>
+                      <MatchCard
+                        bracket={bracket}
+                        m={m}
+                        league={league}
+                        numbers={numbers}
+                      />
                     </li>
-                  );
-                })}
-              </ol>
+                  ))}
+                </ol>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+      {last.length > 0 && (
+        <ol className={styles.board}>
+          {last.map((m) => (
+            <li
+              key={m.code}
+              className={`${styles.round} ${m.stage === "third_place" ? "" : styles.final}`}
+            >
+              <Heading className={styles.roundName}>
+                {nameOf(bracket, m)}
+              </Heading>
+              <MatchCard
+                bracket={bracket}
+                m={m}
+                league={league}
+                numbers={numbers}
+              />
             </li>
-          );
-        })}
-      </ol>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }
 
-/** The same bracket as a plain list, round by round. */
+/** The same bracket as a plain list, round by round, in the order played. */
 export function BracketList({
   bracket,
   headingLevel = 2,
@@ -227,26 +344,45 @@ export function BracketList({
   bracket: BracketView;
   /** The round names' heading level, below the page's own headings. */
   headingLevel?: 2 | 3;
-  /** Keeps ids unique when a page shows one bracket per division. */
+  /** Keeps ids unique when a page shows more than one bracket. */
   idPrefix?: string;
 }) {
   const Heading = headingLevel === 2 ? "h2" : "h3";
   const columns = boardColumns(bracket.size, bracket.matches);
   const seedTeam = new Map(bracket.seeds.map((s) => [s.seed, s.team]));
+  const numbers = numbersOf(bracket);
   const name = (side: Side, source: BracketViewMatch["sourceA"]) =>
     side
       ? `${side.seed ? `(${side.seed}) ` : ""}${side.name}`
-      : sourceLabel(source, bracket.rounds);
+      : sourceLabel(source, numbers);
+  type Cell = (typeof columns)[number]["cells"][number];
+  const sections: { key: string; title: string; cells: Cell[] }[] = [
+    ...columns.map(({ round, cells }) => ({
+      key: `round-${round}`,
+      title: nameOf(bracket, { stage: "main", round }),
+      cells,
+    })),
+    ...losersColumns(bracket.matches).map(({ round, matches }) => ({
+      key: `losers-${round}`,
+      title: nameOf(bracket, { stage: "losers", round }),
+      cells: matches.map((match): Cell => ({ kind: "match", match })),
+    })),
+    ...finals(bracket).map((m) => ({
+      key: m.code,
+      title: nameOf(bracket, m),
+      cells: [{ kind: "match" as const, match: m }],
+    })),
+  ];
   return (
     <div className="flex flex-col gap-6">
-      {columns.map(({ round, cells }) => (
+      {sections.map(({ key, title, cells }) => (
         <section
-          key={round}
-          aria-labelledby={`${idPrefix}round-${round}`}
+          key={key}
+          aria-labelledby={`${idPrefix}${key}`}
           className="flex flex-col gap-2"
         >
-          <Heading id={`${idPrefix}round-${round}`} className="text-h3">
-            {roundName(round, bracket.rounds)}
+          <Heading id={`${idPrefix}${key}`} className="text-h3">
+            {title}
           </Heading>
           <ul className="flex flex-col gap-2">
             {cells.map((cell, i) => {
@@ -267,22 +403,34 @@ export function BracketList({
                   : m.winnerId === m.teamB?.id
                     ? m.teamB
                     : null;
+              const title =
+                bracket.champion?.id === m.winnerId &&
+                (m.stage === "grand_final" ||
+                  m.stage === "reset" ||
+                  (m.stage === "main" &&
+                    bracket.format === "single_elimination" &&
+                    m.round === bracket.rounds));
               return (
                 <li
                   key={m.code}
                   className="rounded-card border border-border bg-surface p-3"
                 >
+                  <p className="text-small text-text-muted">
+                    {gameLine(m)}
+                    {m.stage === "reset"
+                      ? " · played only if the winners' side champion loses the grand final"
+                      : ""}
+                  </p>
                   <p className="font-bold">
                     {name(m.teamA, m.sourceA)} vs {name(m.teamB, m.sourceB)}
                   </p>
                   <p className="text-small text-text-muted">
-                    {when(m, bracket.timeZone)}
+                    {m.skipped ? "Not needed" : when(m, bracket.timeZone)}
                   </p>
                   {winner && (
                     <p className="text-small">
                       {score ? `Final, ${score}. ` : ""}
-                      {winner.name}{" "}
-                      {round === bracket.rounds ? "wins it all" : "moves on"}.
+                      {winner.name} {title ? "wins it all" : "wins"}.
                     </p>
                   )}
                 </li>
@@ -295,14 +443,18 @@ export function BracketList({
   );
 }
 
-/** The champion, once the final is decided. */
+/** The champion, once the title is decided. */
 export function Champion({ bracket }: { bracket: BracketView }) {
   if (!bracket.champion) return null;
+  const whose = bracket.division
+    ? `${bracket.division.name} champions`
+    : bracket.tier > 1
+      ? `${tierName(bracket.tier)} champions`
+      : "champions";
   return (
     <p className={`sticker ${styles.champion}`}>
       <span aria-hidden="true">🏆</span>
-      {bracket.champion.name}:{" "}
-      {bracket.division ? `${bracket.division.name} champions` : "champions"}
+      {bracket.champion.name}: {whose}
     </p>
   );
 }

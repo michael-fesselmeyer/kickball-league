@@ -270,6 +270,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Team conflicts and time preferences as inputs | P2 |
 | Drag-and-drop schedule board with a keyboard alternative | P2 |
 | Playoff bracket seeded from standings and placed on fields | P2 |
+| Playoff formats: single or double elimination, a third-place game, innings per round, and tiers of the standings | P2 |
 | Divisions with crossover games | P3 |
 | Multiple parks | P3 |
 

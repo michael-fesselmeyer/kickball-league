@@ -68,6 +68,8 @@ async function seasonResults(db: Db, seasons: readonly SeasonInfo[]) {
                 eq(bracket.status, "complete"),
                 isNotNull(bracket.championId),
                 isNull(bracket.divisionId),
+                // Lower tiers crown their own winners, not the league champion.
+                eq(bracket.tier, 1),
               ),
             )
         ).map((b) => [b.seasonId as string, b.championId]),
