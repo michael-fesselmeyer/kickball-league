@@ -1668,6 +1668,8 @@ erDiagram
   incident ||--o| injury_report : "may carry"
   incident ||--o{ injury_witness : "seen by"
   incident ||--o{ suspension : "leads to"
+  game ||--o{ game_card : "has"
+  user ||--o{ game_card : "is given"
   game ||--o{ sportsmanship_rating : "rated in"
 
   asset {
@@ -1744,6 +1746,16 @@ erDiagram
   injury_witness {
     uuid incident_id PK, FK
     uuid user_id PK, FK
+  }
+  game_card {
+    uuid id PK
+    uuid game_id FK
+    uuid user_id FK
+    uuid team_season_id FK "the team they played for"
+    enum color "yellow, red"
+    text note "at most 200 characters"
+    uuid given_by FK
+    timestamptz given_at
   }
   suspension {
     uuid id PK
@@ -2175,6 +2187,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `injury_report` | one row per incident (primary key `incident_id`); `body_area` and `care` are fixed lists | Minimum data: where and what care, never a diagnosis |
 | `injury_witness` | primary key `(incident_id, user_id)` | A witness is named once per report |
 | `incident_person` | primary key `(incident_id, user_id)` | A person is named once per report |
+| `game_card` | check `note` 1 to 200 characters when set | A card carries a short note, never an essay. An undo deletes the row within a few minutes of `given_at` (audited); nothing here ever creates a `suspension` |
 | `suspension` | unique `(incident_id, user_id)`; check `games` is set exactly for `scope = 'games'`, between 1 and 20 | One suspension per person per report; a games suspension says how many |
 | `sub_request` | unique `(game_id, team_season_id)` where `status in ('open', 'filled')` | One live request per team per game |
 | `sub_request` | check `needed` between 1 and 11; check `women_needed + men_needed <= needed` | Reserved spots fit in the request |
@@ -2282,6 +2295,7 @@ Indexes for the common reads:
 | `incident` | `(status, reported_at)`; `(game_id)` | The review queue; a game's reports |
 | `incident_person` | `(user_id)` | Reports about a person, for the ladder and their export |
 | `incident_note` | `(incident_id, written_at)`; `(author_id)` | A report's notes in order; a person's notes, removed with their account |
+| `game_card` | `(game_id, given_at)`; `(user_id, given_at)`; `(given_by)` | A game's cards for the ref's screen; a player's cards for the conduct record and their profile; a ref's own cards |
 | `suspension` | `(user_id)` | Is this player suspended? |
 | `weather_snapshot` | `(venue_id, for_date, fetched_at desc)` | Latest forecast |
 | `giveaway_entry` | `(user_id)` | A person's entries, for the export and account deletion |
@@ -2311,6 +2325,7 @@ Indexes for the common reads:
 | Sportsmanship ratings | `sportsmanship_rating` | Admins see each team's average and the notes, never which game or team they came from; a captain sees their own team's average over whole blocks of 3 ratings. The captain who rated sees their team's rating |
 | Other groups' contacts on a field | `field_group.contact` | Admins only: the fields screen and the game-day screen. Never a public page, a player's screen (the set-up lead's checklist shows the next handover without it) or an export; the audit log keeps only that a contact was set |
 | Incident reports | `incident`, `incident_person`, `incident_note` | Admins. The person filing sees what they filed in their export; a person named sees the reports about them in their export, without the other people named or the admins' notes |
+| Cards | `game_card` | The game's ref (that game's cards, for a few minutes' undo) and admins. The player sees their own on their profile and in their export. Never on a public page; captains and other players never see them |
 | Suspensions | `suspension` | The player and admins see the length and why; the player's captains see only that they are suspended and for how long still |
 | Giveaway entries and wins | `giveaway_entry`, `giveaway_winner` | The player and admins. Admins see winners' names to hand over the prize; the giveaway page shows only counts. The audit log holds entry and account ids, no names |
 | Win-back emails | `win_back_email` | Admins and owners see who was emailed this season, while registration is open. Deleting an account deletes the person's rows |
