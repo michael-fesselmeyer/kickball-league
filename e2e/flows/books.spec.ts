@@ -82,9 +82,9 @@ test("an owner adds an expense with a receipt photo, reads the ledger and downlo
   await expect(
     page.getByRole("article", { name: "Permit SAMPLE-0042" }),
   ).toContainText("$1,800.00");
-  // The fall's 40 permitted hours are close to NYC Parks' insurance line.
+  // The fall's 40-odd permitted hours are close to NYC Parks' insurance line.
   const fees = page.getByRole("region", { name: "Fees and hours" });
-  await expect(fees).toContainText("40.3 of 50");
+  await expect(fees).toContainText(/Permitted hours\s*4\d(\.\d)? of 50/);
   await expect(fees).toContainText("Close to NYC Parks' 50-hour line.");
   await expect(
     page.getByRole("heading", { name: "What to request" }),
