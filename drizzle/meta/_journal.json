@@ -498,6 +498,13 @@
       "when": 1794758883903,
       "tag": "0070_shirt_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1794759709452,
+      "tag": "0071_curved_black_queen",
+      "breakpoints": true
     }
   ]
 }
