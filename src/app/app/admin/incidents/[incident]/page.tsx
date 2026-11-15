@@ -5,7 +5,9 @@ import { Suspense } from "react";
 import { db } from "@/db/client";
 import {
   earlierAlcoholSuspensions,
+  earlierEjections,
   incidentDetail,
+  seasonGameCounts,
 } from "@/db/queries/discipline";
 import { injuryOf, recordInjuryView } from "@/db/queries/injury";
 import { can } from "@/domain/authz/permissions";
@@ -22,7 +24,7 @@ import {
   CARE_LEVELS,
   injuryRemovalDate,
 } from "@/domain/discipline/injury";
-import { type IncidentId, parseId } from "@/domain/ids";
+import { type IncidentId, parseId, type TeamSeasonId } from "@/domain/ids";
 import { requirePermission } from "@/lib/auth/permission";
 import { requireInLeague } from "@/lib/league/guard";
 import { requireFeature } from "@/lib/platform/site";
@@ -81,11 +83,14 @@ function SuspendForm({
   action,
   name,
   suggested,
+  fullSeason,
   idPrefix,
 }: {
   action: (form: FormData) => Promise<void>;
   name: string;
   suggested: SuspensionLength | null;
+  /** The suggestion is one full season, counted in the team's games. */
+  fullSeason: boolean;
   idPrefix: string;
 }) {
   const scope = suggested?.scope ?? "games";
@@ -93,8 +98,11 @@ function SuspendForm({
     <form action={action} className="flex flex-col gap-3">
       {suggested && (
         <p className="text-small">
-          Rulebook 4.0 suggests {describeLength(suggested)} for {name}, from
-          their history.
+          Rulebook 4.0 suggests {describeLength(suggested)}
+          {fullSeason &&
+            suggested.scope === "games" &&
+            " (one full season)"}{" "}
+          for {name}, from their history. You can change it.
         </p>
       )}
       <fieldset className="flex flex-col gap-2">
@@ -182,8 +190,13 @@ async function Incident({
     }).format(d);
   const suspendedHere = new Set(found.suspensions.map((s) => s.userId));
   const toDecide = found.people.filter((p) => !suspendedHere.has(p.userId));
-  const history = new Map(
-    await Promise.all(
+  const teams = [
+    ...new Set(
+      found.people.flatMap((p) => (p.teamSeasonId ? [p.teamSeasonId] : [])),
+    ),
+  ] as TeamSeasonId[];
+  const [alcohol, ejections, seasonGames] = await Promise.all([
+    Promise.all(
       toDecide.map(
         async (p) =>
           [
@@ -192,7 +205,15 @@ async function Incident({
           ] as const,
       ),
     ),
-  );
+    // An injury report names nobody, so this finds nothing for one.
+    earlierEjections(
+      db,
+      found.people.map((p) => p.userId),
+      found.id,
+    ),
+    seasonGameCounts(db, teams),
+  ]);
+  const history = new Map(alcohol);
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const notice =
@@ -281,14 +302,39 @@ async function Incident({
           <p className="text-text-muted">Nobody was named.</p>
         ) : (
           <ul className="list-disc pl-5">
-            {found.people.map((p) => (
-              <li key={p.userId}>
-                {p.name}
-                {p.teamName && (
-                  <span className="text-text-muted"> · {p.teamName}</span>
-                )}
-              </li>
-            ))}
+            {found.people.map((p) => {
+              const earlier = ejections.get(p.userId) ?? [];
+              return (
+                <li key={p.userId}>
+                  {p.name}
+                  {p.teamName && (
+                    <span className="text-text-muted"> · {p.teamName}</span>
+                  )}
+                  {earlier.length > 0 && (
+                    <div className="text-small">
+                      <p className="font-semibold">
+                        {earlier.length === 1
+                          ? "Ejected once before:"
+                          : `Ejected ${earlier.length} times before:`}
+                      </p>
+                      <ul className="list-disc pl-5">
+                        {earlier.map((e) => (
+                          <li key={e.incidentId}>
+                            <Link
+                              href={`/app/admin/incidents/${e.incidentId}`}
+                              className="underline"
+                            >
+                              {when(e.reportedAt)}, {e.seasonName}
+                            </Link>
+                            : {e.details}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
@@ -344,7 +390,14 @@ async function Incident({
                     suggested={suggestedLength(
                       found.kind,
                       history.get(p.userId) ?? 0,
+                      p.teamSeasonId
+                        ? (seasonGames.get(p.teamSeasonId) ?? null)
+                        : null,
                     )}
+                    fullSeason={
+                      found.kind === "outside_alcohol" &&
+                      history.get(p.userId) === 1
+                    }
                     idPrefix={`suspend-${i}`}
                   />
                 </div>
