@@ -106,6 +106,32 @@ async function main(): Promise<void> {
 
   try {
     await db.transaction(async (tx) => {
+      // Seed users: on the seed domain, or with an id the seed assigns (a
+      // seed user who deleted their account has an anonymized address).
+      const isSeedUser = or(
+        like(user.email, `%@${SEED_EMAIL_DOMAIN}`),
+        inArray(
+          user.id,
+          data.users.map((u) => u.id),
+        ),
+      );
+      // Seed users' money and signatures would block deleting them, and
+      // their league money (ADR 0048) would block deleting the leagues,
+      // so it all goes first.
+      const seedUsers = (
+        await tx.select({ id: user.id }).from(user).where(isSeedUser)
+      ).map((r) => r.id);
+      if (seedUsers.length) {
+        await removeMoneyRecords(tx, { userIds: seedUsers });
+        await removeAccountMerges(tx, seedUsers);
+        await tx
+          .update(registration)
+          .set({ waiverSignatureId: null })
+          .where(inArray(registration.userId, seedUsers));
+        await tx
+          .delete(waiverSignature)
+          .where(inArray(waiverSignature.userId, seedUsers));
+      }
       // The second league first: the demo player plays in it too.
       await removeSecondLeague(tx);
       // Remove the previous demo league, children first.
@@ -249,30 +275,6 @@ async function main(): Promise<void> {
           await tx.delete(field).where(inArray(field.venueId, venueIds));
         await tx.delete(venue).where(eq(venue.leagueId, leagueId));
         await tx.delete(league).where(eq(league.id, leagueId));
-      }
-      // Seed users: on the seed domain, or with an id the seed assigns (a
-      // seed user who deleted their account has an anonymized address).
-      const isSeedUser = or(
-        like(user.email, `%@${SEED_EMAIL_DOMAIN}`),
-        inArray(
-          user.id,
-          data.users.map((u) => u.id),
-        ),
-      );
-      // Seed users' signatures elsewhere would block deleting them.
-      const seedUsers = (
-        await tx.select({ id: user.id }).from(user).where(isSeedUser)
-      ).map((r) => r.id);
-      if (seedUsers.length) {
-        await removeMoneyRecords(tx, { userIds: seedUsers });
-        await removeAccountMerges(tx, seedUsers);
-        await tx
-          .update(registration)
-          .set({ waiverSignatureId: null })
-          .where(inArray(registration.userId, seedUsers));
-        await tx
-          .delete(waiverSignature)
-          .where(inArray(waiverSignature.userId, seedUsers));
       }
       // Seed users only (profiles, sessions and accounts cascade).
       await tx.delete(user).where(isSeedUser);
