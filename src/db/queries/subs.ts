@@ -81,13 +81,26 @@ export type SubGameInfo = SubGame & {
   /** "Sun, Sep 13, 7:00 PM, Field 2", in the league's time zone. */
   when: string;
 };
-
 /** A game as the sub finder needs it, or null if there is no such game. */
 export async function subGame(
   db: Db,
   gameId: GameId,
 ): Promise<SubGameInfo | null> {
-  const [row] = await db
+  return (await subGames(db, [gameId])).get(gameId) ?? null;
+}
+
+/**
+ * Games as the sub finder needs them, by id: two queries however many games
+ * there are. Ids with no game are left out.
+ */
+async function subGames(
+  db: Db,
+  gameIds: readonly GameId[],
+): Promise<Map<GameId, SubGameInfo>> {
+  const result = new Map<GameId, SubGameInfo>();
+  const ids = [...new Set(gameIds)];
+  if (ids.length === 0) return result;
+  const rows = await db
     .select({
       id: game.id,
       kind: game.kind,
@@ -107,38 +120,45 @@ export async function subGame(
     .innerJoin(league, eq(season.leagueId, league.id))
     .leftJoin(slot, eq(game.slotId, slot.id))
     .leftJoin(field, eq(slot.fieldId, field.id))
-    .where(eq(game.id, gameId));
-  if (!row) return null;
+    .where(inArray(game.id, ids));
+  if (rows.length === 0) return result;
   const names = await db
     .select({ id: teamSeason.id, name: team.name })
     .from(teamSeason)
     .innerJoin(team, eq(teamSeason.teamId, team.id))
-    .where(inArray(teamSeason.id, [row.teamAId, row.teamBId]));
+    .where(
+      inArray(teamSeason.id, [
+        ...new Set(rows.flatMap((r) => [r.teamAId, r.teamBId])),
+      ]),
+    );
   const nameOf = (id: TeamSeasonId) =>
     names.find((n) => n.id === id)?.name ?? "TBD";
-  const when = row.startsAt
-    ? `${new Intl.DateTimeFormat("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        timeZone: row.timeZone,
-      }).format(row.startsAt)}${row.fieldName ? `, ${row.fieldName}` : ""}`
-    : "time to be set";
-  return {
-    id: row.id,
-    kind: row.kind,
-    status: row.status,
-    teamSeasonIds: [row.teamAId, row.teamBId],
-    startsAt: row.startsAt,
-    endsAt: row.endsAt,
-    seasonId: row.seasonId,
-    seasonName: row.seasonName,
-    seasonSlug: row.seasonSlug,
-    teamNames: [nameOf(row.teamAId), nameOf(row.teamBId)],
-    when,
-  };
+  for (const row of rows) {
+    const when = row.startsAt
+      ? `${new Intl.DateTimeFormat("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          timeZone: row.timeZone,
+        }).format(row.startsAt)}${row.fieldName ? `, ${row.fieldName}` : ""}`
+      : "time to be set";
+    result.set(row.id, {
+      id: row.id,
+      kind: row.kind,
+      status: row.status,
+      teamSeasonIds: [row.teamAId, row.teamBId],
+      startsAt: row.startsAt,
+      endsAt: row.endsAt,
+      seasonId: row.seasonId,
+      seasonName: row.seasonName,
+      seasonSlug: row.seasonSlug,
+      teamNames: [nameOf(row.teamAId), nameOf(row.teamBId)],
+      when,
+    });
+  }
+  return result;
 }
 
 type Candidate = SubCandidate & { userId: UserId };
@@ -153,10 +173,26 @@ async function candidatesFor(
   g: SubGameInfo,
   only?: UserId,
 ): Promise<Candidate[]> {
+  return (await candidatesForGames(db, [g], only)).get(g.id) ?? [];
+}
+
+/**
+ * `candidatesFor` for several games at once, by game id, in a fixed number
+ * of queries however many games there are: the sub page asks this for every
+ * open request on one screen.
+ */
+async function candidatesForGames(
+  db: Db,
+  games: readonly SubGameInfo[],
+  only?: UserId,
+): Promise<Map<GameId, Candidate[]>> {
+  const result = new Map<GameId, Candidate[]>(games.map((g) => [g.id, []]));
+  if (games.length === 0) return result;
   const people = await db
     .select({
       userId: registration.userId,
       registrationId: registration.id,
+      seasonId: registration.seasonId,
       kind: registration.kind,
       status: registration.status,
       lineupGender: profile.lineupGender,
@@ -165,37 +201,46 @@ async function candidatesFor(
     .leftJoin(profile, eq(profile.userId, registration.userId))
     .where(
       and(
-        eq(registration.seasonId, g.seasonId),
+        inArray(registration.seasonId, [
+          ...new Set(games.map((g) => g.seasonId)),
+        ]),
         only ? eq(registration.userId, only) : undefined,
       ),
     );
-  if (people.length === 0) return [];
-  const rosters = await db
-    .select({
-      registrationId: rosterMembership.registrationId,
-      teamSeasonId: rosterMembership.teamSeasonId,
-    })
-    .from(rosterMembership)
-    .where(
-      and(
-        inArray(
-          rosterMembership.registrationId,
-          people.map((p) => p.registrationId),
-        ),
-        eq(rosterMembership.status, "active"),
-      ),
-    );
-  const teamOf = new Map(
-    rosters.map((r) => [r.registrationId, r.teamSeasonId]),
-  );
+  if (people.length === 0) return result;
+  const userIds = [...new Set(people.map((p) => p.userId))];
 
-  // Other games at an overlapping time, which keep their players and ref busy.
-  const { startsAt, endsAt } = g;
-  const clashes =
-    startsAt && endsAt
-      ? await db
+  // Other games at an overlapping time, which keep their players and ref
+  // busy: one query for every game's window.
+  const timed = games.flatMap((g) =>
+    g.startsAt && g.endsAt
+      ? [{ seasonId: g.seasonId, startsAt: g.startsAt, endsAt: g.endsAt }]
+      : [],
+  );
+  // Suspended players can't take a spot, and aren't told about requests.
+  // A team's "not on my team" list hides that team's requests only.
+  const [rosters, clashes, suspended, keptOff] = await Promise.all([
+    db
+      .select({
+        registrationId: rosterMembership.registrationId,
+        teamSeasonId: rosterMembership.teamSeasonId,
+      })
+      .from(rosterMembership)
+      .where(
+        and(
+          inArray(
+            rosterMembership.registrationId,
+            people.map((p) => p.registrationId),
+          ),
+          eq(rosterMembership.status, "active"),
+        ),
+      ),
+    timed.length === 0
+      ? []
+      : db
           .select({
             id: game.id,
+            seasonId: game.seasonId,
             teamAId: game.teamAId,
             teamBId: game.teamBId,
             startsAt: slot.startsAt,
@@ -205,13 +250,25 @@ async function candidatesFor(
           .innerJoin(slot, eq(game.slotId, slot.id))
           .where(
             and(
-              eq(game.seasonId, g.seasonId),
               notInArray(game.status, ["cancelled", "postponed"]),
-              lt(slot.startsAt, endsAt),
-              gt(slot.endsAt, startsAt),
+              or(
+                ...timed.map((w) =>
+                  and(
+                    eq(game.seasonId, w.seasonId),
+                    lt(slot.startsAt, w.endsAt),
+                    gt(slot.endsAt, w.startsAt),
+                  ),
+                ),
+              ),
             ),
-          )
-      : [];
+          ),
+    suspendedAmong(db, userIds, new Date()),
+    keptOffAmong(
+      db,
+      [...new Set(games.flatMap((g) => g.teamSeasonIds))],
+      userIds,
+    ),
+  ]);
   const refereeing =
     clashes.length === 0
       ? []
@@ -228,45 +285,56 @@ async function candidatesFor(
                 clashes.map((c) => c.id),
               ),
               eq(refereeAssignment.status, "accepted"),
+              only ? eq(refereeAssignment.userId, only) : undefined,
             ),
           );
+  const teamOf = new Map(
+    rosters.map((r) => [r.registrationId, r.teamSeasonId]),
+  );
 
-  // Suspended players can't take a spot, and aren't told about requests.
-  // A team's "not on my team" list hides that team's requests only.
-  const [suspended, keptOff] = await Promise.all([
-    suspendedAmong(
-      db,
-      people.map((p) => p.userId),
-      new Date(),
-    ),
-    keptOffAmong(
-      db,
-      g.teamSeasonIds,
-      people.map((p) => p.userId),
-    ),
-  ]);
-
-  return people.map((p) => {
-    const teamSeasonId = teamOf.get(p.registrationId) ?? null;
-    const commitments = clashes
-      .filter(
-        (c) =>
-          (c.id !== g.id &&
-            teamSeasonId !== null &&
-            (c.teamAId === teamSeasonId || c.teamBId === teamSeasonId)) ||
-          refereeing.some((r) => r.gameId === c.id && r.userId === p.userId),
-      )
-      .map((c) => ({ startsAt: c.startsAt, endsAt: c.endsAt }));
-    return {
-      userId: p.userId,
-      registration: { kind: p.kind, status: p.status },
-      teamSeasonId,
-      lineupGender: p.lineupGender,
-      commitments,
-      suspended: suspended.has(p.userId),
-      keptOffBy: keptOff.get(p.userId) ?? [],
-    };
-  });
+  for (const g of games) {
+    const { startsAt, endsAt } = g;
+    const overlapping =
+      startsAt && endsAt
+        ? clashes.filter(
+            (c) =>
+              c.seasonId === g.seasonId &&
+              c.startsAt < endsAt &&
+              c.endsAt > startsAt,
+          )
+        : [];
+    result.set(
+      g.id,
+      people
+        .filter((p) => p.seasonId === g.seasonId)
+        .map((p) => {
+          const teamSeasonId = teamOf.get(p.registrationId) ?? null;
+          const commitments = overlapping
+            .filter(
+              (c) =>
+                (c.id !== g.id &&
+                  teamSeasonId !== null &&
+                  (c.teamAId === teamSeasonId || c.teamBId === teamSeasonId)) ||
+                refereeing.some(
+                  (r) => r.gameId === c.id && r.userId === p.userId,
+                ),
+            )
+            .map((c) => ({ startsAt: c.startsAt, endsAt: c.endsAt }));
+          return {
+            userId: p.userId,
+            registration: { kind: p.kind, status: p.status },
+            teamSeasonId,
+            lineupGender: p.lineupGender,
+            commitments,
+            suspended: suspended.has(p.userId),
+            keptOffBy: (keptOff.get(p.userId) ?? []).filter((t) =>
+              g.teamSeasonIds.includes(t),
+            ),
+          };
+        }),
+    );
+  }
+  return result;
 }
 
 /** The claims that hold a spot (pending or approved), by lineup gender. */
@@ -900,15 +968,24 @@ export async function subRequestsFor(
       ),
     )
     .orderBy(asc(subRequest.closesAt));
-  const claims = await claimsOn(
-    db,
-    requests.map((r) => r.request.id),
-  );
+  // Every request's game, and this person as a candidate for each, in a
+  // fixed number of queries however many requests are open.
+  const [claims, games] = await Promise.all([
+    claimsOn(
+      db,
+      requests.map((r) => r.request.id),
+    ),
+    subGames(
+      db,
+      requests.map((r) => r.request.gameId),
+    ),
+  ]);
+  const asCandidate = await candidatesForGames(db, [...games.values()], userId);
   const result: OpenRequest[] = [];
   for (const { request: r } of requests) {
-    const g = await subGame(db, r.gameId);
+    const g = games.get(r.gameId);
     if (!g) continue;
-    const [me] = await candidatesFor(db, g, userId);
+    const [me] = asCandidate.get(g.id) ?? [];
     const spots = {
       needed: r.needed,
       womenNeeded: r.womenNeeded,

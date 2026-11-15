@@ -484,6 +484,30 @@ describe("the sub page", () => {
       ]);
       expect(await subRequestsFor(db, w.aces.captain.userId, NOW)).toEqual([]);
     }));
+
+  it("reads every open request in the same number of queries as one", () =>
+    inRolledBackDb(async (db, queriesSent) => {
+      const w = await subWorld(db);
+      await posted(db, w, { needed: 1 });
+      let start = queriesSent();
+      expect(await subRequestsFor(db, w.freeAgent.userId, NOW)).toHaveLength(1);
+      const forOne = queriesSent() - start;
+      // Two more requests from the Aces, for games on the next two days.
+      for (const days of [1, 2]) {
+        const { gameId } = await w.gameBetween(
+          w.aces.id,
+          w.bees.id,
+          hours(24 * days + 8),
+        );
+        const more = await post(db, w, { needed: 1 }, gameId);
+        if (!more.ok) throw new Error(more.error);
+      }
+      start = queriesSent();
+      const all = await subRequestsFor(db, w.freeAgent.userId, NOW);
+      expect(all).toHaveLength(3);
+      expect(all.map((r) => r.blocked)).toEqual([null, null, null]);
+      expect(queriesSent() - start).toBe(forOne);
+    }));
 });
 
 /**
