@@ -145,7 +145,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 │       ├── code                    The rotating check-in code, full screen, for a screen at the bar
 │       └── report                  Weekly numbers: check-ins, players, teams and deals used by week
 └── admin/
-    ├── (dashboard)                 Next game day: weather, games, missing scores, alerts; sign-up rate per team, lowest first, with how many players each still needs
+    ├── (dashboard)                 Next game day: weather, games, missing scores, alerts; sign-up rate per team, lowest first, with how many players each still needs; the next three open tasks on the season checklist
     ├── today                       Game-day command center, phone first (each game being played also shows the minutes left in its permit, and a game still going after the permit ended is listed at the top): today (or the next game day, or ?date=) with every game's field, ref and check-in, score state (not started, playing, live with runs and inning, reported, final, called off, missing), the weather and, today or ahead, the rain-out decision card, and one tap to the day's status, a rain-out, an announcement, ref assignments or the printable pack; above the games, every game starting within a day with no ref, each linking to the assigner; refreshes itself every 10 seconds
     │   ├── state.json              The same state as JSON for the screen to poll; admins only, never cached
     │   └── print                   Printable game-day pack for a day (?date=, else the screen's day): a US Letter sheet per field with its games, blank line scores, captains' initials, the permit and a QR code to each game's score page; ?rosters=1 adds a check-in sheet per team (first name and last initial)
@@ -163,7 +163,8 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   ├── cards                   Season cards: once the season is completed, build every rostered player's card (and tell each once), or refresh them; how many are shared
     │   ├── sportsmanship           Each team's average sportsmanship rating and the notes left for admins, lowest first, never saying who rated
     │   ├── free-agents             Matcher: suggested placements with reasons (apply one or all), the pool with quiz answers and friend groups, and building a new team from the pool
-    │   ├── rollover                Start the next season from this one: name, first day and teams to bring, a preview of what the new draft gets and what starts fresh, then create it
+    │   ├── rollover                Start the next season from this one: name, first day and teams to bring, a preview of what the new draft gets and what starts fresh, then create it (and, ticked by default, start its season checklist)
+    │   ├── checklist               Owners and admins: the season's ops checklist. Open tasks by due date with how far off each is and who owns it; mark done, edit (title, due date, owner, notes) or remove; add a task; start from the template or add the template's new tasks; done tasks, each with "Open again"
     │   ├── divisions               Divisions and their rule sets, each team's division, crossover games per team, whether crossovers count in standings, and the combined final
     │   ├── fields                  Fields, permit windows, blackout dates, slots
     │   ├── requests                Every team's conflicts and preferences, read before generating
@@ -193,6 +194,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   └── [event]                 Edit (and optionally email the change, including the ticket and member prices), who's coming and the waitlist in order, "Copy for WhatsApp", call off or delete. A ticketed event adds its ticket list: holders with their code and what they paid on card and in credit, checkouts and offers open now, a check-in box for the door, and a full refund per ticket
     │       └── giveaway/           Add or change the event's free giveaway (prize, donor, winners, entry window, official rules), entry count, draw the winners once entry closes, and replace a winner with a reason; refused for a ticketed event or a theme week
     │           └── code            The giveaway's rotating entry code, full screen, for a phone or screen at the event
+    ├── checklist-template          Owners: the tasks every season checklist starts with, each due a number of days before or after the season's first day, with a usual owner; add, edit or remove one
     ├── volunteer/                  Volunteer shifts coming up, each with its spots and who signed up
     │   ├── new                     Post a shift: the job, a season's game day or an event, date and times, spots, place, notes
     │   └── [shift]                 Edit a shift (never below the people signed up) or remove it
