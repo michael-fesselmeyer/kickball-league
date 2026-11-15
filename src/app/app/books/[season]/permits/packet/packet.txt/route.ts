@@ -1,7 +1,7 @@
 import { db } from "@/db/client";
 import { booksSeasons } from "@/db/queries/books";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
+import { activeLeague } from "@/lib/league/active";
 import { boroughName } from "@/domain/capacity/nearby";
 import { exportFilename } from "@/domain/export/csv";
 import { packetText } from "@/domain/permits/packet";
@@ -22,7 +22,7 @@ export async function GET(
   const subject = await currentSubject();
   if (!can(subject, "books.manage")) return notFound();
   const { season: slug } = await ctx.params;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) return notFound();
   const season = (await booksSeasons(db, league.id)).find(
     (s) => s.slug === slug,
