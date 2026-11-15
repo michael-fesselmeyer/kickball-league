@@ -35,6 +35,7 @@ import {
 } from "../src/seed/money-summary";
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addSeedFriends } from "../src/seed/friends";
+import { addSeedShirtMakers } from "../src/seed/shirt-makers";
 import { addSeedLineups } from "../src/seed/lineups";
 import { addMerchDemo, removeSeedMerch } from "../src/seed/merch";
 import { addSeedKits } from "../src/seed/equipment";
@@ -363,6 +364,7 @@ async function main(): Promise<void> {
       await addInstagramPhotos(tx, data);
       await addSeedBooks(tx, data);
       await addSeedFriends(tx, data);
+      await addSeedShirtMakers(tx, data);
       await addSeedFeePayments(tx, data);
       await addMemberPhotos(tx, data);
       await addSeedStatAwards(tx, data, new Date());
