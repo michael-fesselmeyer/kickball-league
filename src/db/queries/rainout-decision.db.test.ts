@@ -8,9 +8,8 @@ import { rendererFor } from "@/emails/templates";
 import type { Email, EmailSender } from "@/services/email";
 import { auditLog } from "../schema/audit";
 import { slot, venue } from "../schema/game";
-import { league } from "../schema/league";
+import { league, leagueMember } from "../schema/league";
 import { message } from "../schema/message";
-import { profile } from "../schema/profile";
 import { gamePlacement, scheduleVersion } from "../schema/schedule";
 import { weatherSnapshot } from "../schema/weather";
 import { messagingWorld } from "../test/messaging-world";
@@ -52,9 +51,10 @@ async function decisionWorld(db: Db, sundayKickoffs: number[]) {
     .where(eq(venue.leagueId, w.leagueId));
   const admin = await w.person("Jules Park");
   const owner = await w.person("Rowan Vale");
-  await db.insert(profile).values([
-    { userId: admin.userId, globalRole: "admin" },
-    { userId: owner.userId, globalRole: "owner" },
+  // Roles are per league (ADR 0048): these two run this world's league.
+  await db.insert(leagueMember).values([
+    { leagueId: w.leagueId, userId: admin.userId, role: "admin" },
+    { leagueId: w.leagueId, userId: owner.userId, role: "owner" },
   ]);
   const version = required(
     (
@@ -80,13 +80,18 @@ async function decisionWorld(db: Db, sundayKickoffs: number[]) {
       slotId: g.slotId,
     });
   }
-  // A seeded database may already have owners and admins of its own.
+  // Only this league's people count, however many a seeded database has.
   const count = async (roles: ("owner" | "admin")[]) =>
     (
       await db
-        .select({ id: profile.userId })
-        .from(profile)
-        .where(inArray(profile.globalRole, roles))
+        .select({ id: leagueMember.userId })
+        .from(leagueMember)
+        .where(
+          and(
+            eq(leagueMember.leagueId, w.leagueId),
+            inArray(leagueMember.role, roles),
+          ),
+        )
     ).length;
   return {
     ...w,
@@ -311,16 +316,10 @@ describe("the decision-time alert", () => {
         parks: 1,
       });
 
-      expect(await queueDecisionAlerts(db, w.leagueId, [check(10)], now)).toBe(
-        0,
-      );
-      expect(await queueDecisionAlerts(db, w.leagueId, [check(55)], now)).toBe(
-        w.owners,
-      );
+      expect(await queueDecisionAlerts(db, [check(10)], now)).toBe(0);
+      expect(await queueDecisionAlerts(db, [check(55)], now)).toBe(w.owners);
       // The afternoon run finds it likely now; the day was already alerted.
-      expect(
-        await queueDecisionAlerts(db, w.leagueId, [check(90)], edt(13, 14)),
-      ).toBe(0);
+      expect(await queueDecisionAlerts(db, [check(90)], edt(13, 14))).toBe(0);
       const keys = await keysLike(db, `rain-decision/${w.season.id}/`);
       expect(keys.map((k) => k.userId)).toContain(w.owner.userId);
       expect(keys.map((k) => k.userId)).not.toContain(w.admin.userId);
@@ -356,7 +355,6 @@ describe("the decision-time alert", () => {
       expect(
         await queueDecisionAlerts(
           db,
-          w.leagueId,
           [{ day, decision: decisionAt(80, now), park: "Park", parks: 1 }],
           now,
         ),

@@ -32,6 +32,8 @@ const PLATFORM_TABLES: Record<string, string> = {
   message: "a notice to one person, sent by the outbox",
   account_merge: "two accounts of one person merged by an admin",
   webhook_event: "a provider's webhook, before it is matched to a league",
+  weather_snapshot:
+    "a public point's last weather answers, shared by every league that plays there",
   league: "the leagues themselves",
 };
 
