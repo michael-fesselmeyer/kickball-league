@@ -10,7 +10,7 @@ import {
   saveTournament,
   updateBracketGame,
 } from "@/db/queries/tournaments";
-import type { GuestTeamId } from "@/domain/ids";
+import { type GuestTeamId, parseId } from "@/domain/ids";
 import { seededRandom } from "@/domain/random";
 import { zonedInstant } from "@/domain/time/zoned";
 import { parseSettings } from "@/domain/tournaments/tournament";
@@ -72,11 +72,13 @@ export async function removeGuestTeamAction(
   teamId: string,
 ): Promise<void> {
   const { subject, e } = await load(slug);
+  const id = parseId<GuestTeamId>(teamId);
+  if (!id) redirect(back(slug, "Error", "no_team"));
   const result = await txDb.transaction((tx) =>
     removeGuestTeam(tx, {
       leagueId: e.leagueId,
       eventId: e.id,
-      teamId: teamId as GuestTeamId,
+      teamId: id,
       actorId: subject.userId,
     }),
   );
@@ -105,9 +107,7 @@ export async function drawBracketAction(
   redirect(back(slug, "Saved", "drawn"));
 }
 
-export async function resetBracketAction(
-  slug: string,
-): Promise<void> {
+export async function resetBracketAction(slug: string): Promise<void> {
   const { subject, e } = await load(slug);
   const result = await txDb.transaction((tx) =>
     resetBracket(tx, {
@@ -135,7 +135,11 @@ export async function scoreGameAction(
       leagueId: e.leagueId,
       eventId: e.id,
       code,
-      change: { kind: "score", scoreA: whole(f.scoreA), scoreB: whole(f.scoreB) },
+      change: {
+        kind: "score",
+        scoreA: whole(f.scoreA),
+        scoreB: whole(f.scoreB),
+      },
       actorId: subject.userId,
     }),
   );
