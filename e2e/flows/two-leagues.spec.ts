@@ -65,13 +65,28 @@ test("each league's public pages show that league's data only, at its own addres
 });
 
 test("the default league keeps one address", async ({ page }) => {
-  const response = await page.goto("/l/demo-league/records");
-  expect(response?.ok()).toBe(true);
+  // Its slug's pages move to the site's own URL. The page does that, so the
+  // first answer is the page or, once cached, a redirect: check where the
+  // browser lands, not the first answer's status (issue 429).
+  await page.goto("/l/demo-league/records");
   await expect(page).toHaveURL(/\/records$/);
-  await page.goto("/l/_default/history");
-  await expect(page).toHaveURL(/\/history$/);
-  await page.goto("/l/no-such-league");
-  await expect(page.getByRole("heading", { name: NOT_FOUND })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+  // `_default`, the internal name of the site's own pages, is sent to the
+  // site's own URL by the proxy before any page loads. Asked of the server
+  // directly, so no navigation can cancel another (issue 429).
+  const internal = await page.request.get("/l/_default/history", {
+    maxRedirects: 0,
+  });
+  expect(internal.status()).toBe(308);
+  expect(new URL(internal.headers().location ?? "", page.url()).pathname).toBe(
+    "/history",
+  );
+
+  // A league that doesn't exist, in a page of its own for the same reason.
+  const unknown = await page.context().newPage();
+  await unknown.goto("/l/no-such-league");
+  await expect(unknown.getByRole("heading", { name: NOT_FOUND })).toBeVisible();
 });
 
 test("a player in two leagues switches between them in the app", async ({
