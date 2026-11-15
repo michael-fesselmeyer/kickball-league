@@ -42,6 +42,11 @@ export const MESSAGE_KINDS = {
     label:
       "For owners and admins: a season checklist task that is due soon or overdue",
   },
+  captain_poll: {
+    urgency: "non_urgent",
+    label:
+      "For captains: a quick poll from the league, and a reminder if your team has not voted before it closes",
+  },
   captain_handoff: {
     urgency: "urgent",
     label: "Your team's captaincy offered to you, waiting for your answer",

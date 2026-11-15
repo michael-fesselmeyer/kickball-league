@@ -11,6 +11,7 @@ import { announcementEmail } from "./announcement";
 import { awayShortEmail } from "./away-short";
 import { booksNudgeEmail } from "./books-nudge";
 import { booksReminderEmail } from "./books-reminder";
+import { captainPollEmail } from "./captain-poll";
 import { checklistReminderEmail } from "./checklist-reminder";
 import type { Template } from "./define";
 import { digestEmail } from "./digest";
@@ -77,6 +78,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     books_reminder: booksReminderEmail,
     checklist_reminder: checklistReminderEmail,
     captain_handoff: teamRoleEmail,
+    captain_poll: captainPollEmail,
     digest: digestEmail,
     email_budget: emailBudgetEmail,
     event_news: eventNoticeEmail,

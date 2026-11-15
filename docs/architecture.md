@@ -271,6 +271,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `books_nudge` | non-urgent | For owners: a monthly list of expected costs to confirm and receipts still missing |
 | `books_reminder` | non-urgent | For owners: a permit application window, renewal, fees due date or insurance expiry coming up |
 | `checklist_reminder` | non-urgent | For owners and admins: a season checklist task that is due soon or overdue |
+| `captain_poll` | non-urgent | For captains: a quick poll from the league, and a reminder if your team has not voted before it closes |
 | `captain_handoff` | urgent | Your team's captaincy offered to you, waiting for your answer |
 | `email_budget` | urgent | For admins: urgent email waiting for tomorrow's email allowance |
 | `event_news` | non-urgent | Event announcements, and changes or cancellations more than a day ahead |

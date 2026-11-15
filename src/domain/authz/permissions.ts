@@ -351,6 +351,12 @@ const RULES = {
   // The win-back list: email past players while registration is open.
   "win_back.manage": isAdmin,
   "awards.manage": isAdmin,
+  // Quick polls for captains (ADR 0063): admins ask, a team's captains answer.
+  "captain_polls.manage": isAdmin,
+  "captain_polls.vote": (s, c) =>
+    c.teamSeasonId === undefined
+      ? s.roster.some((m) => m.role === "captain" || m.role === "co_captain")
+      : captains(s, c.teamSeasonId),
   "pickem.manage": isAdmin,
   "photos.manage": isAdmin,
   // Take any post off the lost and found board.
