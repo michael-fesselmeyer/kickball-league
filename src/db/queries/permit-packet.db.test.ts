@@ -3,10 +3,10 @@ import { afterAll, describe, expect, it } from "vitest";
 import { patternsOf, renewalTarget } from "@/domain/permits/renewal";
 import { field, game, slot, venue } from "../schema/game";
 import { message } from "../schema/message";
-import { profile } from "../schema/profile";
 import { permitWindow } from "../schema/schedule";
 import { season } from "../schema/season";
 import { leagueWorld } from "../test/league-world";
+import { grantRole } from "../test/leagues";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { queueBooksReminders } from "./books";
 import { packetCounts, packetRosters, renewalInputs } from "./permit-packet";
@@ -147,10 +147,7 @@ describe("the renewal reminder", () => {
   it("reminds owners before the renewal period, finished seasons too", async () => {
     await inRolledBackDb(async (db) => {
       const w = await packetWorld(db);
-      await db
-        .update(profile)
-        .set({ globalRole: "owner" })
-        .where(eq(profile.userId, w.captain));
+      await grantRole(db, w.captain, "owner", w.leagueId);
       await db
         .update(season)
         .set({ status: "completed" })
