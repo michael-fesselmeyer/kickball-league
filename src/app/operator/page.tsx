@@ -27,6 +27,7 @@ import {
 } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { DEFAULT_MINIMUM_AGE } from "@/domain/registration/age";
 
 // No title: the page must not hint that it exists to anyone else.
 export const metadata: Metadata = { robots: { index: false } };
@@ -258,7 +259,7 @@ async function Console({ searchParams }: PageProps<"/operator">) {
               label="Minimum age"
               name="minimumAge"
               type="number"
-              defaultValue="21"
+              defaultValue={String(DEFAULT_MINIMUM_AGE)}
             />
             <div className="flex flex-wrap gap-4">
               <Field
