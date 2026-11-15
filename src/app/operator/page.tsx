@@ -319,7 +319,9 @@ async function Console({ searchParams }: PageProps<"/operator">) {
               ) : (
                 <ul className="flex flex-col gap-1">
                   {theirs.map((p) => (
-                    <li key={p.userId}>
+                    // A long email address breaks across lines on a phone
+                    // instead of pushing the page sideways.
+                    <li key={p.userId} className="break-words">
                       {[p.firstName, p.lastName].filter(Boolean).join(" ") ||
                         p.email}{" "}
                       <span className="text-text-muted">
