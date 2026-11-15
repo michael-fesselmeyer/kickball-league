@@ -194,6 +194,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Add and retire kits, assign them to games, correct where one is, sort missing-items reports | — | — | — | — | — | ✓ | ✓ |
 | Log an incident | — | — | own team's games | assigned | — | ✓ | ✓ |
 | Review incidents, suspend a player or lift a suspension | — | — | — | — | — | ✓ | ✓ |
+| Read, export or delete an injury report (filing one is "Log an incident") | — | — | — | — | — | ✓ | ✓ |
 | Keep a person off the team with a private "not on my team" list ([ADR 0036](adr/0036-not-on-my-team-list.md)) | — | — | own team | — | — | ✓ (any team) | ✓ (any team) |
 | See every team's "not on my team" list and reasons | — | — | — | — | — | ✓ | ✓ |
 | Choose whether a person's own data export lists entries about them | — | — | — | — | — | — | ✓ |
