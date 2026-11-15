@@ -105,6 +105,14 @@ async function Shifts({ searchParams }: PageProps<"/app/volunteer">) {
                     timeZone,
                   )}
                 </a>
+                {s.role === "setup_lead" && (
+                  <>
+                    {" · "}
+                    <Link href="/app/setup-lead" className="underline">
+                      Set-up checklist
+                    </Link>
+                  </>
+                )}
               </li>
             ))}
           </ul>
