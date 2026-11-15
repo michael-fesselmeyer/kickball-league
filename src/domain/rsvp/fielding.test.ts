@@ -60,11 +60,9 @@ describe("checkFielding", () => {
   });
 
   it("offers no pickups in a playoff game", () => {
-    const check = checkFielding(
-      { women: 3, men: 3 },
-      undefined,
-      { pickupsAllowed: false },
-    );
+    const check = checkFielding({ women: 3, men: 3 }, undefined, {
+      pickupsAllowed: false,
+    });
     expect(check.level).toBe("forfeit");
     expect(check.message).toContain("Playoff games can't use pickups.");
     expect(check.message).not.toContain("Pick up");

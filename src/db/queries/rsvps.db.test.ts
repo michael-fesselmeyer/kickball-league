@@ -142,6 +142,10 @@ describe("RSVPs", () => {
       // Three women and three men coming: 6 fielders, a forfeit.
       expect(counts?.fielding).toMatchObject({ level: "forfeit", fielders: 6 });
       expect(counts?.fielding.message).toContain("1 more has not set");
+      // Seven of their own are in, so a pickup would let them play.
+      expect(counts?.fielding.message).toContain(
+        "Pick up 1 registered player to play",
+      );
       expect((await myRsvps(db, ids[0] as UserId, [g.id])).get(g.id)).toBe(
         "maybe",
       );
@@ -161,6 +165,15 @@ describe("RSVPs", () => {
         out: 0,
         noAnswer: 0,
       });
+
+      // A playoff game takes no pickups.
+      await db.update(game).set({ kind: "playoff" }).where(eq(game.id, g.id));
+      const playoff = (await teamRsvps(db, aces, [g.id])).get(g.id);
+      expect(playoff?.fielding.level).toBe("forfeit");
+      expect(playoff?.fielding.message).toContain(
+        "Playoff games can't use pickups.",
+      );
+      await db.update(game).set({ kind: "regular" }).where(eq(game.id, g.id));
 
       // Not their game, and not after it is final.
       expect(
