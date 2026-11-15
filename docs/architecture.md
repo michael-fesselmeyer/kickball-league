@@ -286,6 +286,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `rainout_notice` | urgent | Rain-outs and makeup times |
 | `rainout_request` | urgent | Rain-outs sent to the owners to confirm |
 | `rebate_credit` | non-urgent | League credit for rained-out games |
+| `referee_needed` | urgent | A game starting within a day that needs a ref, for refs free then |
 | `referral_credit` | non-urgent | League credit for a friend you referred |
 | `score_confirmation` | urgent | Scores waiting for your confirmation |
 | `score_dispute` | urgent | For admins: a captain disputed a reported score |
@@ -345,6 +346,7 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Payment reminders | Daily 10:00 | Reminds unpaid players at 7, 3 and 1 days before the deadline. A missed day still sends the closest milestone; each is queued once per registration and deadline |
 | Guarantee charges ✔ | Daily (`/api/jobs/guarantee-charges`) | Warns each captain with a saved card about 72 hours before the payment deadline, once per deadline, then charges the card off-session for the team's unpaid balance, never sooner than 72 hours after the warning. The database half (warnings and the `balance` purchase) commits first; each Stripe call uses the purchase as its idempotency key, and a charge Stripe could not take is sent again on the next run. A decline fails the purchase and emails the captain; the card is not retried |
 | Permit and insurance reminders ✔ | Daily (`/api/jobs/books-reminders`) | Emails every owner 30 and 7 days before a permit application window opens, a permit renews, a season's permit fees are due, the newest insurance certificate expires or NYC Parks' renewal period opens for a season's permits a year on (finished seasons included; [ADR 0056](adr/0056-permit-renewal-and-application-packet.md)). A missed day still sends the closest reminder; each is queued once per deadline, milestone and owner ([ADR 0034](adr/0034-owners-books-and-permits-in-postgres.md)). The same run sends `permit_alert`s, once each: a season reaching 40 permitted hours or passing NYC Parks' 50-hour insurance line, and each permit window not yet started that a rain-out or blackout leaves unused ([ADR 0055](adr/0055-permit-fees-hours-and-give-back.md)) |
+| Ref cover ✔ | Daily, late morning (`/api/jobs/referee-cover`) | Asks the league's refs who are free about every game starting within a day that has no ref (`referee_needed`, urgent, topic `sub_request`); each is queued once per game, round and ref. A ref dropping a game within a day asks at once instead ([ADR 0054](adr/0054-first-ref-to-take-a-game-gets-it.md)) |
 | Volunteer reminders ✔ | Daily (`/api/jobs/volunteer-reminders`) | Reminds everyone on a volunteer shift that starts tomorrow in the league's time zone (`volunteer_reminder`, non-urgent, topic `events`); each is queued once per shift and person |
 | Waitlist offers ✔ | Daily (`/api/jobs/waitlist-offers`) | Marks offers whose 48 hours ran out as expired and offers each free team spot to the next captain in line. Offers stop holding their spot the moment they run out, whether or not this has run. Raising a season's team limit, or an admin's "Offer now", sends offers at once |
 | Sponsor stats rollup (P2) | Daily 3:00 | Aggregates impressions and clicks into `sponsor_stat_daily` |
@@ -499,7 +501,8 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | Screen | Specs |
 |---|---|
 | `/app` | Every flow lands here after "view as"; `score` and `live-score` (a ref's Score link), `awards` (Vote link) |
-| `/app/referee` | `ref-assigner` (tick a time, the fixed time once assigned, pay and payments; not found for a captain) |
+| `/app/referee` | `ref-assigner` (tick a time, the fixed time once assigned, pay and payments; not found for a captain); `ref-cover` (drop a game with a reason) |
+| `/app/referee/take/[game]` | `ref-cover` (take a game that lost its ref; not found for a captain) |
 | `/app/profile` | `account` (email settings, data download, delete link); every flow that completes a persona's profile |
 | `/app/profile/security` | `passkey` |
 | `/app/profile/delete` | `account` (off in the demo) |
@@ -523,7 +526,7 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | `/app/seasons/[season]/team/announcements` | `announcements` |
 | `/app/seasons/[season]/export/roster.csv`, `payments.csv` | `admin-tools` (team and season files) |
 | `/app/admin` | `screens`; `owner-dashboard` (Owner dashboard link); `game-day` (Game day screen link) |
-| `/app/admin/today`, `state.json` | `game-day` (the ref checks in on their phone and the admin's open screen shows it within 15 seconds without a reload; a captain finds nothing) |
+| `/app/admin/today`, `state.json` | `game-day` (the ref checks in on their phone and the admin's open screen shows it within 15 seconds without a reload; a captain finds nothing); `ref-cover` (a game within a day with no ref is listed, and leaves the list once taken) |
 | `/app/owner/[season]`, `dashboard.csv`, `summary`; `/seasons/[season]/money` | `owner-dashboard` (read, download, fold a category, publish, a visitor reads it; a captain finds nothing); `journey-owner` (a new owner refreshes it, an admin finds nothing) |
 | `/app/owner/[season]/report`, `/share`, `report.csv` | `report-card` (read, download, the version for sponsors with no money; a captain finds nothing; a season not started has none) |
 | `/app/admin/credit` | `registration` (league credit) |
