@@ -158,6 +158,7 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 **Demo mode**
 
 - Turned on only by a server environment flag and refused in production: a banner on every page and one-tap "view as" a player, captain, ref or admin, plus a reset script that reseeds the demo database and then moves the seeded league forward by whole weeks (same weekdays and local times, in the league's time zone), so the season being played always has its next game day coming up. `npm run seed`, and so the end-to-end tests, keep the fixed calendar.
+- `npm run demo` shows the league the whole app from one laptop, offline and with no accounts: a game in progress, a rain watch on the next game day, payments through a local demo checkout, a "Demo mail" page with every email the league would have sent, and a "Reset demo" button for admins. The 10-minute walkthrough is [docs/demo.md](docs/demo.md).
 
 **Platform operator**
 
@@ -194,6 +195,14 @@ Quality: Vitest (unit, property and database tests) · Playwright with axe · Li
 ## Getting started
 
 Requires Node 24 (`nvm use` reads `.nvmrc`).
+
+To show the league the app, with nothing to set up but Docker or a local Postgres:
+
+```bash
+npm run demo
+```
+
+It builds and starts the whole app in demo mode on this computer and opens the browser; [docs/demo.md](docs/demo.md) is the walkthrough. To work on the code:
 
 ```bash
 npm install
@@ -292,28 +301,29 @@ In CI, the end-to-end and Lighthouse checks each build the app once and share th
 
 ## Scripts
 
-| Command                      | What it does                                                                                                  |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`                | Start the development server                                                                                  |
-| `npm test`                   | Run unit tests once                                                                                           |
-| `npm run test:coverage`      | Run unit tests with coverage of `src/domain` and `src/lib`                                                    |
-| `npm run db:generate`        | Generate a SQL migration from `src/db/schema`                                                                 |
-| `npm run db:migrate`         | Apply pending migrations to `DATABASE_URL`                                                                    |
-| `npm run db:check`           | Check migration files are consistent                                                                          |
-| `npm run db:studio`          | Browse the database in Drizzle Studio                                                                         |
-| `npm run test:db`            | Database constraint tests (each rolls back)                                                                   |
-| `npm run seed`               | Replace the demo league with fresh seed data; refuses production                                              |
-| `npm run demo:reset`         | Reseed the demo deployment and bring its season up to today; refuses unless demo mode is on                   |
-| `npm run push:keys`          | Add a new VAPID key pair for web push to `.env.local`                                                         |
-| `scripts/backup-drill.sh`    | Back up a database, restore it to a scratch database and compare ([steps](docs/launch/backup-and-restore.md)) |
-| `npm run lint`               | ESLint, failing on any warning                                                                                |
-| `npm run typecheck`          | Generate route types and run `tsc`                                                                            |
-| `npm run format:check`       | Check Prettier formatting                                                                                     |
-| `npm run build`              | Production build                                                                                              |
-| `npm run test:e2e`           | Seed, build, then smoke tests and core flows with axe                                                         |
-| `npm run test:e2e:site-wide` | Reseed, then the operator's site-wide switches on their own                                                   |
-| `npm run lighthouse`         | Lighthouse budgets on the public pages of the last build                                                      |
-| `npm run check:route-js`     | Every route's first-load JavaScript against its budget                                                        |
+| Command                      | What it does                                                                                                    |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                | Start the development server                                                                                    |
+| `npm test`                   | Run unit tests once                                                                                             |
+| `npm run test:coverage`      | Run unit tests with coverage of `src/domain` and `src/lib`                                                      |
+| `npm run db:generate`        | Generate a SQL migration from `src/db/schema`                                                                   |
+| `npm run db:migrate`         | Apply pending migrations to `DATABASE_URL`                                                                      |
+| `npm run db:check`           | Check migration files are consistent                                                                            |
+| `npm run db:studio`          | Browse the database in Drizzle Studio                                                                           |
+| `npm run test:db`            | Database constraint tests (each rolls back)                                                                     |
+| `npm run seed`               | Replace the demo league with fresh seed data; refuses production                                                |
+| `npm run demo`               | Run the whole app locally in demo mode, offline, for showing the league ([walkthrough](docs/demo.md))           |
+| `npm run demo:reset`         | Reseed the demo deployment, bring its season up to today and start a game night; refuses unless demo mode is on |
+| `npm run push:keys`          | Add a new VAPID key pair for web push to `.env.local`                                                           |
+| `scripts/backup-drill.sh`    | Back up a database, restore it to a scratch database and compare ([steps](docs/launch/backup-and-restore.md))   |
+| `npm run lint`               | ESLint, failing on any warning                                                                                  |
+| `npm run typecheck`          | Generate route types and run `tsc`                                                                              |
+| `npm run format:check`       | Check Prettier formatting                                                                                       |
+| `npm run build`              | Production build                                                                                                |
+| `npm run test:e2e`           | Seed, build, then smoke tests and core flows with axe                                                           |
+| `npm run test:e2e:site-wide` | Reseed, then the operator's site-wide switches on their own                                                     |
+| `npm run lighthouse`         | Lighthouse budgets on the public pages of the last build                                                        |
+| `npm run check:route-js`     | Every route's first-load JavaScript against its budget                                                          |
 
 ## How changes land
 
