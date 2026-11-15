@@ -477,6 +477,13 @@
       "when": 1794755314304,
       "tag": "0067_win_back",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1794756742489,
+      "tag": "0068_season_checklist",
+      "breakpoints": true
     }
   ]
 }
