@@ -235,3 +235,50 @@ describe("who hears about a change", () => {
     expect(watchNews(watching, status("on"))).toBe(false);
   });
 });
+
+describe("every line a status can make", () => {
+  it("says whether some or all games start late, with the reason", () => {
+    expect(dayLine(status("delayed", [["g1", edt(18, 30)]]), 3, TZ)).toBe(
+      "Some games start late.",
+    );
+    expect(
+      dayLine(
+        {
+          ...status("delayed", [
+            ["g1", edt(18, 30)],
+            ["g2", edt(19, 30)],
+            ["g3", edt(20, 30)],
+          ]),
+          reason: "Lights are late",
+        },
+        3,
+        TZ,
+      ),
+    ).toBe("All games start late. Lights are late.");
+  });
+
+  it("writes a line for On only when there is a reason to say", () => {
+    expect(dayLine({ ...status("on"), reason: "Field dried out" }, 3, TZ)).toBe(
+      "Games are on. Field dried out.",
+    );
+  });
+
+  it("writes each game's words, and none for a game that is on", () => {
+    expect(gameWords({ kind: "on" }, TZ)).toBeNull();
+    expect(gameWords({ kind: "watching", decideBy: edt(15) }, TZ)).toBe(
+      "Watching the weather: decision by 3:00 PM",
+    );
+    expect(gameWords({ kind: "off" }, TZ)).toBe("Off");
+  });
+
+  it("treats a watch with no time, or a delay with no new start, as on", () => {
+    // Neither can be saved (a check and the form rule stop them), but a
+    // half-read row must never show a game as late or watched.
+    const noTime = status("watching");
+    expect(gameStatus(noTime, "g1")).toEqual({ kind: "on" });
+    expect(dayLine(noTime, 3, TZ)).toBeNull();
+    expect(gameStatus(status("delayed", [["g1", null]]), "g1")).toEqual({
+      kind: "on",
+    });
+  });
+});
