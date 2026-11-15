@@ -126,13 +126,6 @@ export const interestOption = pgTable(
   },
   (t) => [
     index("interest_option_form_idx").on(t.formId, t.position),
-    // The same night, format and park (ignoring case) is one option.
-    uniqueIndex("interest_option_parts").on(
-      t.formId,
-      sql`coalesce(${t.night}::text, '')`,
-      sql`coalesce(${t.format}::text, '')`,
-      sql`lower(coalesce(${t.park}, ''))`,
-    ),
     check(
       "interest_option_has_a_part",
       sql`${t.park} is not null or ${t.night} is not null or ${t.format} is not null`,

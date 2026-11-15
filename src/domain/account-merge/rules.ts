@@ -367,6 +367,8 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     clash: "Both took a spot on the same shift; the kept account's spot stays",
   },
   "volunteer_shift.created_by": actor("volunteer shifts posted"),
+  "interest_form.created_by": actor("interest forms opened"),
+  "interest_option.go_ahead_by": actor("interest options sent ahead"),
   "survey_response.user_id": {
     kind: "dedupe",
     label: "season surveys answered",

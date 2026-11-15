@@ -25,6 +25,7 @@ import {
 import { gearReminderEmail } from "./gear-reminder";
 import { giveawayWinEmail } from "./giveaway";
 import { instagramReconnectEmail } from "./instagram-reconnect";
+import { interestGoAheadEmail } from "./interest-go-ahead";
 import { instagramStorageFullEmail } from "./instagram-storage-full";
 import type { RenderContext } from "./layout";
 import { merchEmail } from "./merch";
@@ -90,6 +91,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     guarantee_warning: guaranteeWarningEmail,
     instagram_reconnect: instagramReconnectEmail,
     instagram_storage_full: instagramStorageFullEmail,
+    interest_go_ahead: interestGoAheadEmail,
     merch_receipt: merchEmail,
     merch_update: merchEmail,
     new_team: newTeamEmail,

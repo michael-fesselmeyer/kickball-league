@@ -98,6 +98,10 @@ export const LEAGUE_OF = {
   team_keep_off: (id) =>
     sql`select t.league_id from team_keep_off k join team t on t.id = k.team_id where k.id = ${id}`,
   concern: (id) => sql`select league_id from concern where id = ${id}`,
+  interest_form: (id) =>
+    sql`select league_id from interest_form where id = ${id}`,
+  interest_option: (id) =>
+    sql`select f.league_id from interest_option o join interest_form f on f.id = o.form_id where o.id = ${id}`,
   purchase: (id) => sql`select league_id from purchase where id = ${id}`,
 } satisfies Record<string, (id: string) => SQL>;
 
