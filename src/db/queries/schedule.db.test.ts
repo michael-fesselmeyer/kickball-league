@@ -1,13 +1,23 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import { parseId, type ScheduleVersionId, type SeasonId } from "@/domain/ids";
+import {
+  parseId,
+  type GameId,
+  type ScheduleVersionId,
+  type SeasonId,
+  type SlotId,
+} from "@/domain/ids";
 import { generate } from "@/domain/scheduler/generate";
 import { reschedule } from "@/domain/scheduler/reschedule";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
 import { field, game, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
-import { scheduleVersion, teamConstraint } from "../schema/schedule";
+import {
+  gamePlacement,
+  scheduleVersion,
+  teamConstraint,
+} from "../schema/schedule";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
@@ -253,6 +263,81 @@ describe("saving and publishing versions", () => {
       expect(
         await db.select().from(game).where(eq(game.seasonId, w.seasonId)),
       ).toHaveLength(28);
+    }));
+
+  it("leaves a hand-added game in its slot, and detaches only games a version dropped", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const loaded = await loadSchedulerInput(db, w.seasonId, options);
+      if (!loaded.ok) throw new Error(loaded.error);
+      const input = loaded.value;
+      const first = generate(input);
+      const used = new Set(first.games.map((g) => g.slotId));
+      const free = input.slots.find((s) => !used.has(s.id));
+      if (!free) throw new Error("no free slot");
+      // An exhibition an admin added by hand, in a slot no version uses.
+      const [exhibition] = await db
+        .insert(game)
+        .values({
+          seasonId: w.seasonId,
+          kind: "exhibition",
+          teamAId: required(w.entries[0], "team"),
+          teamBId: required(w.entries[1], "team"),
+          slotId: free.id as SlotId,
+        })
+        .returning({ id: game.id });
+      const exhibitionId = required(exhibition, "exhibition").id;
+      // The next schedule works around the exhibition's slot, so publishing
+      // never puts two games in it.
+      const reloaded = await loadSchedulerInput(db, w.seasonId, options);
+      if (!reloaded.ok) throw new Error(reloaded.error);
+      expect(reloaded.value.slots.map((s) => s.id)).not.toContain(free.id);
+      expect(reloaded.value.slots).toHaveLength(input.slots.length - 1);
+      const slotOf = async (id: GameId) =>
+        (
+          await db
+            .select({ slotId: game.slotId })
+            .from(game)
+            .where(eq(game.id, id))
+        )[0]?.slotId;
+
+      const v1 = await saveVersion(db, {
+        seasonId: w.seasonId,
+        input,
+        schedule: first,
+        origin: "generated",
+      });
+      const published = await publishVersion(db, v1, w.adminId);
+      if (!published.ok) throw new Error(published.error);
+      expect(await slotOf(exhibitionId)).toBe(free.id);
+
+      // A version that no longer places one regular game (as if its team
+      // withdrew): that game loses its slot, the exhibition keeps its own.
+      const v2 = await saveVersion(db, {
+        seasonId: w.seasonId,
+        input,
+        schedule: first,
+        origin: "manual_edit",
+        parentVersionId: v1,
+      });
+      const [dropped] = await db
+        .select({ id: game.id })
+        .from(game)
+        .where(and(eq(game.seasonId, w.seasonId), eq(game.kind, "regular")))
+        .limit(1);
+      const droppedId = required(dropped, "regular game").id;
+      await db
+        .delete(gamePlacement)
+        .where(
+          and(
+            eq(gamePlacement.scheduleVersionId, v2),
+            eq(gamePlacement.gameId, droppedId),
+          ),
+        );
+      const second = await publishVersion(db, v2, w.adminId);
+      if (!second.ok) throw new Error(second.error);
+      expect(await slotOf(droppedId)).toBeNull();
+      expect(await slotOf(exhibitionId)).toBe(free.id);
     }));
 
   it("keeps makeup rules for edits made after a rain-out", () =>
