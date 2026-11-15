@@ -16,21 +16,28 @@ import { GameStats } from "@/components/stats/game-stats";
 import { db } from "@/db/client";
 import { approvedPhotos } from "@/db/queries/member-photos";
 import type { Hex } from "@/domain/color/contrast";
-import { type GameId, parseId } from "@/domain/ids";
+import { type GameId, parseId, type SeasonId } from "@/domain/ids";
 import { fullWhen } from "@/domain/schedule/format";
 import {
   hasResult,
   isCalledOff,
+  localDay,
   outcomeFor,
   type PublicGame,
   type PublicTeam,
   resultLine,
   statusLabel,
 } from "@/domain/schedule/public-game";
+import { gameStatus, gameWords } from "@/domain/gameday/status";
+import { GameDayNotice, toneOf } from "@/components/game-day-notice";
 import { cardVersion, gameCard } from "@/domain/share/cards";
 import { gameShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
-import { cachedPageSnapshot, cachedPublishedGame } from "@/lib/game-cache";
+import {
+  cachedDayStatus,
+  cachedPageSnapshot,
+  cachedPublishedGame,
+} from "@/lib/game-cache";
 import { MEMBER_PHOTOS_TAG, PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 import { gamePageJsonLd } from "@/lib/seo/pages";
 import { shareMetadata } from "@/lib/share/metadata";
@@ -157,6 +164,18 @@ async function Game({ params }: PageProps<"/l/[league]/games/[game]">) {
   const calledOff = isCalledOff(game);
   const label = statusLabel(game);
   const result = resultLine(game);
+  // The game day's status (issue #383), while the game is still to play.
+  const day =
+    game.startsAt && !done && !calledOff
+      ? await cachedDayStatus(
+          game.seasonId as SeasonId,
+          localDay(game.startsAt, timeZone),
+        )
+      : null;
+  const dayStatus = day
+    ? gameStatus({ ...day, games: new Map(day.games) }, game.id)
+    : null;
+  const dayWords = dayStatus ? gameWords(dayStatus, timeZone) : null;
 
   return (
     <>
@@ -186,6 +205,14 @@ async function Game({ params }: PageProps<"/l/[league]/games/[game]">) {
           {game.teamA.name} vs {game.teamB.name}
           {result ? `: ${result}` : ""}
         </h1>
+        {day && dayStatus && dayWords && (
+          <GameDayNotice
+            line={`${dayWords}.${day.reason ? ` ${day.reason}.` : ""}`}
+            setAt={day.setAt}
+            timeZone={timeZone}
+            tone={toneOf(dayStatus.kind)}
+          />
+        )}
         <Morph name={gameMorph(game.id)}>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-card border-2 border-text bg-surface p-4 shadow-sticker md:p-8">
             <Side

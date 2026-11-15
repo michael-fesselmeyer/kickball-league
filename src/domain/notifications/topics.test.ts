@@ -13,6 +13,14 @@ describe("wantsEmail", () => {
   it("uses the default when the person has not chosen", () => {
     expect(wantsEmail([], "announcement")).toBe(true);
     expect(wantsEmail([], "marketing")).toBe(false);
+    // Weather watches are opt-in (issue #383).
+    expect(wantsEmail([], "game_day_watch")).toBe(false);
+    expect(
+      wantsEmail(
+        [{ topic: "game_day_watch", enabled: true }],
+        "game_day_watch",
+      ),
+    ).toBe(true);
   });
 
   it("follows the person's choice over the default", () => {
@@ -56,9 +64,10 @@ describe("wantsPush", () => {
     expect(isPushTopic("payment")).toBe(false);
   });
 
-  it("offers push for rain-outs, sub requests and scores, all on the email page too", () => {
+  it("offers push for rain-outs, weather watches, sub requests and scores, all on the email page too", () => {
     expect(PUSH_TOPICS.map((t) => t.topic)).toEqual([
       "rainout",
+      "game_day_watch",
       "sub_request",
       "score",
     ]);
