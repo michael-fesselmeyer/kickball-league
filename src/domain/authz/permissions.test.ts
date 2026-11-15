@@ -451,7 +451,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "score.override",
       "season.manage",
       "schedule.manage",
-      "rainout.declare",
+      "rainout.prepare",
       "free_agents.place",
       "team.approve_new",
       "event.manage",
@@ -483,6 +483,25 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "money_summary.publish",
     ] as const)
       expect(allowed(action)).toEqual(["owner"]);
+  });
+
+  it("leaves confirming a rain-out to the owners and the operator unless they let admins", () => {
+    const operator = person("op", { isOperator: true });
+    expect(allowed("rainout.confirm")).toEqual(["owner"]);
+    expect(
+      allowed("rainout.confirm", { adminsConfirmRainouts: false }),
+    ).toEqual(["owner"]);
+    expect(can(operator, "rainout.confirm")).toBe(true);
+    expect(can({ ...VISITOR, isOperator: true }, "rainout.confirm")).toBe(
+      false,
+    );
+    // With the owners' say-so, admins confirm too; never anyone else.
+    expect(allowed("rainout.confirm", { adminsConfirmRainouts: true })).toEqual(
+      ["admin", "owner"],
+    );
+    // Only the owners change that setting.
+    expect(allowed("rainout.confirm_policy")).toEqual(["owner"]);
+    expect(can(operator, "rainout.confirm_policy")).toBe(false);
   });
 
   it("opens the books to the operator, never to an admin", () => {

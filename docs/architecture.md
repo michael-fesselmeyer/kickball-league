@@ -282,7 +282,9 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `permit_alert` | non-urgent | For owners: a season near NYC Parks' 50-hour insurance line, or permitted field time to give back |
 | `photo_review` | non-urgent | Whether the league used a photo you uploaded |
 | `rain_alert` | urgent | Rain alerts for admins the day before games |
+| `rain_decision` | urgent | Rain-out decision alerts for owners on game days |
 | `rainout_notice` | urgent | Rain-outs and makeup times |
+| `rainout_request` | urgent | Rain-outs sent to the owners to confirm |
 | `rebate_credit` | non-urgent | League credit for rained-out games |
 | `referral_credit` | non-urgent | League credit for a friend you referred |
 | `score_confirmation` | urgent | Scores waiting for your confirmation |

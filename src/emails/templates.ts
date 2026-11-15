@@ -34,7 +34,9 @@ import { permitAlertEmail } from "./permit-alert";
 import { photoReviewEmail } from "./photo-review";
 import { privateEventEmail } from "./private-event";
 import { rainAlertEmail } from "./rain-alert";
+import { rainDecisionEmail } from "./rain-decision";
 import { rainoutNoticeEmail } from "./rainout-notice";
+import { rainoutRequestEmail } from "./rainout-request";
 import { scoreConfirmationEmail } from "./score-confirmation";
 import { scoreDisputeEmail } from "./score-dispute";
 import { scoreReminderEmail } from "./score-reminder";
@@ -76,7 +78,9 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     photo_review: photoReviewEmail,
     private_event: privateEventEmail,
     rain_alert: rainAlertEmail,
+    rain_decision: rainDecisionEmail,
     rainout_notice: rainoutNoticeEmail,
+    rainout_request: rainoutRequestEmail,
     rebate_credit: rebateCreditEmail,
     referral_credit: referralCreditEmail,
     score_confirmation: scoreConfirmationEmail,
