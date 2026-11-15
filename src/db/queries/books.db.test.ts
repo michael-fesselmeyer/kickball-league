@@ -497,6 +497,38 @@ describe("reminders", () => {
   });
 });
 
+describe("the permit fees reminder", () => {
+  it("reminds owners before a season's fees are due, once a milestone", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await permitWorld(db);
+      await makeOwner(db, w.captain);
+      const now = new Date("2027-03-01T15:00:00Z");
+      // Spring 2027 starts April 5, so its fees are due March 22.
+      expect(await queueBooksReminders(db, w.leagueId, "2027-03-01", now)).toBe(
+        1,
+      );
+      expect(await queueBooksReminders(db, w.leagueId, "2027-03-01", now)).toBe(
+        0,
+      );
+      const [sent] = await db
+        .select({ payload: message.payload })
+        .from(message)
+        .where(
+          and(
+            eq(message.userId, w.captain),
+            eq(message.template, "books_reminder"),
+          ),
+        );
+      expect(sent?.payload).toEqual({
+        kind: "fees_due",
+        subject: "the Spring 2027 permit fees",
+        on: "2027-03-22",
+        daysLeft: 21,
+      });
+    });
+  });
+});
+
 describe("the owners' export", () => {
   it("lists the books and file details, never the file bytes", async () => {
     await inRolledBackDb(async (db) => {

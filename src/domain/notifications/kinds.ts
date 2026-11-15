@@ -30,7 +30,7 @@ export const MESSAGE_KINDS = {
   books_reminder: {
     urgency: "non_urgent",
     label:
-      "For owners: a permit application window, renewal or insurance expiry coming up",
+      "For owners: a permit application window, renewal, fees due date or insurance expiry coming up",
   },
   captain_handoff: {
     urgency: "urgent",
@@ -95,6 +95,11 @@ export const MESSAGE_KINDS = {
   payment_reminder: {
     urgency: "urgent",
     label: "Payment deadline reminders",
+  },
+  permit_alert: {
+    urgency: "non_urgent",
+    label:
+      "For owners: a season near NYC Parks' 50-hour insurance line, or permitted field time to give back",
   },
   photo_review: {
     urgency: "non_urgent",

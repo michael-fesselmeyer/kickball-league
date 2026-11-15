@@ -35,6 +35,7 @@ import type {
   UserId,
 } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
+import { feesDueOn } from "@/domain/permits/fees";
 import type { BooksReminderPayload } from "@/emails/books-reminder";
 import type { PreparedFile } from "@/lib/books/store-file";
 import {
@@ -821,14 +822,15 @@ async function ownerIds(db: Db): Promise<UserId[]> {
 
 /**
  * The permit and insurance dates still to come: each permit's application
- * opening and renewal (once per permit, not per window), and the newest
- * insurance certificate's expiry. Seasons that are over are left out.
+ * opening and renewal (once per permit, not per window), each season's
+ * permit fees, and the newest insurance certificate's expiry. Seasons that
+ * are over are left out.
  */
 export async function booksDeadlines(
   db: Db,
   leagueId: LeagueId,
 ): Promise<Deadline[]> {
-  const [windows, certificates] = await Promise.all([
+  const [windows, certificates, owing] = await Promise.all([
     db
       .select({
         permitNumber: permitWindow.permitNumber,
@@ -853,8 +855,31 @@ export async function booksDeadlines(
         ),
       ),
     insuranceCertificates(db, leagueId),
+    // Seasons with field time asked for or granted owe NYC Parks its fees.
+    db
+      .selectDistinct({
+        id: season.id,
+        name: season.name,
+        startsOn: season.startsOn,
+      })
+      .from(season)
+      .innerJoin(permitWindow, eq(permitWindow.seasonId, season.id))
+      .where(
+        and(
+          eq(season.leagueId, leagueId),
+          ne(season.status, "completed"),
+          ne(permitWindow.status, "lost"),
+        ),
+      ),
   ]);
   const deadlines = new Map<string, Deadline>();
+  for (const s of owing)
+    deadlines.set(`f/${s.id}`, {
+      kind: "fees_due",
+      key: s.id,
+      on: feesDueOn(s.startsOn),
+      subject: `the ${s.name} permit fees`,
+    });
   for (const w of windows) {
     const key = groupKey(w);
     const about = w.permitNumber
