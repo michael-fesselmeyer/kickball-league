@@ -1126,7 +1126,14 @@ erDiagram
     text description "up to 280"
     text url "https only"
     boolean links_back
+    boolean run_by_player "listed under Run by our players"
+    boolean featured "player-run only; on the events page"
     uuid created_by FK
+  }
+  friend_click {
+    uuid friend_league_id PK "FK"
+    date day PK "UTC"
+    int clicks "counts only"
   }
   friend_logo {
     uuid id PK
@@ -1309,6 +1316,8 @@ Friends of the league, as built (`src/db/schema/friends.ts`, `src/db/queries/fri
 - `friend_league` is another local league in the public directory at `/friends`, grouped there by `activity`. Only admins add, change or remove entries (`friends.manage`), and each change writes an audit row. A removed entry is deleted with its logo; the audit row keeps what it said.
 - `url` is checked by the form (`src/domain/friends/friend-form.ts`): https only, a host name with a dot that is not an IP address, no user name, password or port, up to 300 characters. The database holds it to https and the length.
 - `links_back` is the admin's note that the league's site links to ours; the public page shows it as "Links to us".
+- `run_by_player` marks a club or meetup one of our players runs. The public page lists these first, under "Run by our players", whatever their activity. `featured` also shows one as a small card on the public events page; only a player-run entry can be featured, and the database holds it to that (`friend_league_featured_player_run`).
+- `friend_click` counts clicks out to an entry's site, one row per entry and UTC day. The entry's links on `/friends` and `/events` carry the HTML `ping` attribute, so the browser posts to `/api/friends/[friend]/click` as it follows the link, and that route adds one in a single statement. Nothing about who clicked is read or stored. Crawlers don't ping, and Firefox turns ping off by default, so the counts are a floor. Admins see each entry's clicks in the last 30 days and in all, to show a club what the league's promotion is worth; any cross-promotion or fee is agreed outside the app, and owners record income in the books. The counts go with their entry (`on delete cascade`).
 - `friend_logo` is one small copy of the league's logo, made on the server with sharp (fits in 192 × 192, WebP, metadata dropped) and kept in Postgres like the Instagram photos ([ADR 0023](adr/0023-instagram-photos-stored-in-postgres.md)). Uploads are PNG, JPEG or WebP up to 800 KB. A new upload replaces the row, so its public address changes with the picture. All logos together stay under 5 MB: the save takes a transaction-scoped advisory lock and counts what is stored, minus the logo it replaces.
 - Entries go with the league (`on delete cascade`), so the seed needs no clean-up step for them.
 
