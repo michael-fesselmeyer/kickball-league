@@ -8,13 +8,15 @@ export const NEXT_GAME_INFO = "/offline/next-game.json";
 /**
  * `permit` is the game's permit page, saved for its ref and captains;
  * `emergency` its emergency contacts page, saved for them on game day only,
- * until `emergencyUntil`.
+ * until `emergencyUntil`; `checklist` its game-day checklist page, kept the
+ * same way (issue #409).
  */
 export type SavedGame = {
   path: string;
   label: string;
   permit?: string;
   emergency?: string;
+  checklist?: string;
   emergencyUntil?: string;
 };
 
@@ -32,6 +34,11 @@ const isSavedGame = (value: unknown): value is SavedGame =>
   (!("emergency" in value) ||
     (typeof value.emergency === "string" &&
       value.emergency.startsWith("/app/games/") &&
+      "emergencyUntil" in value &&
+      typeof value.emergencyUntil === "string")) &&
+  (!("checklist" in value) ||
+    (typeof value.checklist === "string" &&
+      value.checklist.startsWith("/app/games/") &&
       "emergencyUntil" in value &&
       typeof value.emergencyUntil === "string"));
 
@@ -72,7 +79,9 @@ export type WorkerMessage =
       permit: string | null;
       /** The game's emergency contacts page, for them on game day only. */
       emergency?: string | null;
-      /** When the emergency page stops being kept (ISO). */
+      /** The game's checklist page, for them on game day only. */
+      checklist?: string | null;
+      /** When the emergency and checklist pages stop being kept (ISO). */
       emergencyUntil?: string | null;
     }
   | { type: "forget" };

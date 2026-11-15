@@ -12,7 +12,8 @@ export function SavedGameLink() {
   const [game, setGame] = useState<SavedGame | null>(null);
   useEffect(() => {
     void savedGame().then((saved) => {
-      // Emergency contacts are kept only until midnight after game day.
+      // Emergency contacts and the checklist are kept only until midnight
+      // after game day.
       if (
         saved?.emergencyUntil !== undefined &&
         !(Date.parse(saved.emergencyUntil) > Date.now())
@@ -47,6 +48,15 @@ export function SavedGameLink() {
           and today&apos;s{" "}
           <a href={game.emergency} className="font-bold text-brand underline">
             emergency contacts
+          </a>
+        </>
+      )}
+      {game.checklist && (
+        <>
+          {" "}
+          and its{" "}
+          <a href={game.checklist} className="font-bold text-brand underline">
+            game-day checklist
           </a>
         </>
       )}
