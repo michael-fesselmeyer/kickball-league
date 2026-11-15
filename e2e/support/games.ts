@@ -13,12 +13,31 @@ export async function unscoreGame(
   teamB: string,
   seasonSlug?: string,
 ): Promise<void> {
+  await resetGame({ teamA, teamB, seasonSlug });
+}
+
+/** `unscoreGame` for a game picked by its id. */
+export async function unscoreGameById(gameId: string): Promise<void> {
+  await resetGame({ gameId });
+}
+
+async function resetGame(
+  which:
+    | { gameId: string }
+    | { teamA: string; teamB: string; seasonSlug?: string | undefined },
+): Promise<void> {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
   try {
     await client.query("begin");
-    const { rows } = await client.query<{ id: string }>(
-      `select g.id from game g
+    const { rows } =
+      "gameId" in which
+        ? await client.query<{ id: string }>(
+            "select id from game where id = $1",
+            [which.gameId],
+          )
+        : await client.query<{ id: string }>(
+            `select g.id from game g
          join team_season tsa on tsa.id = g.team_a_id
          join team ta on ta.id = tsa.team_id
          join team_season tsb on tsb.id = g.team_b_id
@@ -26,11 +45,11 @@ export async function unscoreGame(
          join season s on s.id = g.season_id
         where ta.name = $1 and tb.name = $2
           and ($3::text is null or s.slug = $3)`,
-      [teamA, teamB, seasonSlug ?? null],
-    );
+            [which.teamA, which.teamB, which.seasonSlug ?? null],
+          );
     const [only] = rows;
     if (!only || rows.length !== 1)
-      throw new Error(`Expected one game ${teamA} vs ${teamB}`);
+      throw new Error("Expected exactly one game to reset");
     await client.query(
       `delete from score_response where score_report_id in
          (select id from score_report where game_id = $1)`,
