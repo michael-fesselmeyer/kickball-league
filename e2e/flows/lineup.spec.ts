@@ -82,7 +82,7 @@ test("a captain sets a kicking order that keeps to the two-in-a-row rule", async
     .click();
   const bigKicks = ref.getByRole("region", { name: "The Big Kicks" });
   await expect(bigKicks.getByRole("listitem")).toHaveCount(10);
-  await expect(bigKicks).toContainText("Keeps to the two-in-a-row rule");
+  await expect(bigKicks).toContainText("Keeps to the kicking-order rule");
   await expect(bigKicks.getByRole("listitem").first()).toContainText(leadOff);
   await expect(ref.getByText(/Counts with/)).toHaveCount(0);
   await expect(ref.getByRole("region", { name: "Sun Kickers" })).toContainText(
