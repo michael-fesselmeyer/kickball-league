@@ -3,8 +3,17 @@
 import { useState } from "react";
 import { copyText } from "@/components/share";
 
-/** Copies the request sheet, to paste into the NYC Parks application. */
-export function CopySheet({ text }: { text: string }) {
+/**
+ * Copies text to paste into NYC Parks: the request sheet for the
+ * application, or the answers for its cancellation form.
+ */
+export function CopySheet({
+  text,
+  label = "Copy the sheet",
+}: {
+  text: string;
+  label?: string;
+}) {
   const [copied, setCopied] = useState<"idle" | "copied" | "failed">("idle");
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -15,7 +24,7 @@ export function CopySheet({ text }: { text: string }) {
           setCopied((await copyText(text)) ? "copied" : "failed")
         }
       >
-        Copy the sheet
+        {label}
       </button>
       <span role="status" className="text-small text-text-muted">
         {copied === "copied"

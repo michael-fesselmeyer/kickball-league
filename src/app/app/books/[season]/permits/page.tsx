@@ -16,6 +16,19 @@ import {
   storageLine,
 } from "@/domain/books/files";
 import { money } from "@/domain/books/ledger";
+import { seasonPermitPlan } from "@/db/queries/permit-plan";
+import {
+  ADULT_RATES,
+  feesDueOn,
+  LIGHTS_RATE,
+  SURFACE_LABELS,
+} from "@/domain/permits/fees";
+import {
+  CANCELLATION_FORM,
+  formText,
+  PERMIT_OFFICES_PAGE,
+} from "@/domain/permits/give-back";
+import { hoursLevel, hoursText, INSURANCE_HOURS } from "@/domain/permits/hours";
 import { localDate } from "@/domain/books/ledger-csv";
 import { daysUntil } from "@/domain/books/reminders";
 import type { RequestProblem } from "@/domain/books/request-sheet";
@@ -93,13 +106,16 @@ async function Permits({
   await requirePermission("books.manage", { next: page });
   const query = await searchParams;
   const { league, season, seasons } = await booksSeason(slug);
-  const [groups, lostGames, inputs, certificates, used] = await Promise.all([
-    permitGroups(db, season.id),
-    gamesOnLostPermits(db, season.id),
-    requestSheetInputs(db, league.id, season.id),
-    insuranceCertificates(db, league.id),
-    storedBytes(db, league.id),
-  ]);
+  const now = new Date();
+  const [groups, lostGames, inputs, certificates, used, plan] =
+    await Promise.all([
+      permitGroups(db, season.id),
+      gamesOnLostPermits(db, season.id),
+      requestSheetInputs(db, league.id, season.id),
+      insuranceCertificates(db, league.id),
+      storedBytes(db, league.id),
+      seasonPermitPlan(db, season.id, league, now),
+    ]);
   const message = (
     table: Record<string, string>,
     key: string | string[] | undefined,
@@ -108,7 +124,7 @@ async function Permits({
   const notice = message(NOTICES, query.notice);
 
   const tz = league.timeZone;
-  const today = localDate(new Date(), tz);
+  const today = localDate(now, tz);
   const day = (on: string | null) =>
     on
       ? new Intl.DateTimeFormat("en-US", {
@@ -128,6 +144,13 @@ async function Permits({
   });
   const sheet = requestSheetFor(choices, season, inputs);
   const current = certificates[0];
+  const dueOn = feesDueOn(season.startsOn);
+  const dueIn = daysUntil(today, dueOn);
+  const permitted = hoursText(plan.minutes);
+  // What the season would come to with the sheet's hours on top.
+  const withSheet = sheet.ok
+    ? plan.minutes + sheet.value.totalFieldHours * 60
+    : plan.minutes;
 
   return (
     <>
@@ -200,6 +223,132 @@ async function Permits({
         </section>
       )}
 
+      {groups.length > 0 && (
+        <section
+          aria-labelledby="fees"
+          className={`flex flex-col gap-3 rounded-lg p-4 ${
+            plan.level === "over"
+              ? "border-2 border-danger"
+              : plan.level === "near"
+                ? "border-2 border-warning"
+                : "border border-border"
+          }`}
+        >
+          <h2 id="fees" className="text-h2">
+            Fees and hours
+          </h2>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+            <dt className="text-text-muted">Permitted hours</dt>
+            <dd>
+              {permitted} of {INSURANCE_HOURS}
+            </dd>
+            <dt className="text-text-muted">Fees due</dt>
+            <dd>
+              {day(dueOn)}
+              {dueIn >= 0 ? (
+                <strong className="ml-2">in {dueIn} days</strong>
+              ) : (
+                <span className="ml-2 text-text-muted">(passed)</span>
+              )}
+            </dd>
+            {plan.expectedCents > 0 && (
+              <>
+                <dt className="text-text-muted">Expected fees</dt>
+                <dd>
+                  {money(plan.expectedCents)}, estimated for the permits with no
+                  cost entered
+                </dd>
+              </>
+            )}
+          </dl>
+          {plan.level === "over" ? (
+            <p role="alert">
+              <strong>The season is past NYC Parks&apos; 50-hour line.</strong>{" "}
+              Parks asks for liability insurance naming the City and a notarized{" "}
+              <a
+                href="https://www.nycgovparks.org/sub_about/parks_divisions/concessions/pdfs_and_docs/insurance_broker_certification.pdf"
+                className="underline"
+              >
+                broker&apos;s certification form
+              </a>
+              , and takes no more applications until both are approved.
+            </p>
+          ) : plan.level === "near" ? (
+            <p>
+              <strong>Close to NYC Parks&apos; 50-hour line.</strong> Past 50
+              permitted hours, Parks asks for liability insurance naming the
+              City and a notarized broker&apos;s certification form. Get them
+              started before asking for more time.
+            </p>
+          ) : null}
+          <p className="text-small text-text-muted">
+            NYC Parks wants its fees 14 days before the season starts. Owners
+            get an email 30 and 7 days before, and when the season&apos;s hours
+            near 50.
+          </p>
+        </section>
+      )}
+
+      {plan.unused.length > 0 && (
+        <section
+          aria-labelledby="give-back"
+          className="flex flex-col gap-3 rounded-lg border-2 border-warning p-4"
+        >
+          <h2 id="give-back" className="text-h2">
+            Give back field time
+          </h2>
+          <p>
+            The league won&apos;t use{" "}
+            {plan.unused.length === 1
+              ? "this permitted time"
+              : `these ${plan.unused.length} permitted times`}
+            . Parks gives no refund, but asks to hear ahead so the field can go
+            to someone else, and giving it back keeps the league in good
+            standing for its renewal. Call the borough office or use{" "}
+            <a href={CANCELLATION_FORM} className="underline">
+              NYC Parks&apos; cancellation form
+            </a>
+            ; the answers are ready to copy.
+          </p>
+          <ul className="flex flex-col gap-4">
+            {plan.unused.map((u) => (
+              <li
+                key={u.windowId}
+                className="flex flex-col gap-2 border-t border-border pt-3"
+              >
+                <h3 className="text-h3">
+                  {day(u.on)}: {u.park}, {u.field}, {u.start}–{u.end}
+                </h3>
+                <p className="text-text-muted">
+                  {u.reason === "rained_out"
+                    ? "Rained out: every game on it moved."
+                    : "Blacked out: no games that day."}{" "}
+                  {u.office ? (
+                    <>
+                      {u.office.name}:{" "}
+                      <a
+                        href={`tel:${u.office.phone.replace(/[^\d]/g, "")}`}
+                        className="underline"
+                      >
+                        {u.office.phone}
+                      </a>
+                    </>
+                  ) : (
+                    <a href={PERMIT_OFFICES_PAGE} className="underline">
+                      Find the borough office
+                    </a>
+                  )}
+                </p>
+                <pre className="overflow-x-auto rounded-md bg-surface-2 p-2 text-small whitespace-pre-wrap">
+                  {formText(u)}
+                </pre>
+                <CopySheet text={formText(u)} label="Copy the answers" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section aria-labelledby="permits" className="flex flex-col gap-4">
         <h2 id="permits" className="text-h2">
           Permits
@@ -219,6 +368,7 @@ async function Permits({
           groups.map((g) => {
             const dates = g.windows.map((w) => localDate(w.startsAt, tz));
             const renewIn = g.renewsOn ? daysUntil(today, g.renewsOn) : null;
+            const fee = plan.fees.get(g.key);
             return (
               <article
                 key={g.key}
@@ -240,6 +390,20 @@ async function Permits({
                   <dt className="text-text-muted">Cost</dt>
                   <dd>
                     {g.costCents === null ? "not set" : money(g.costCents)}
+                    {g.costCents === null && fee && (
+                      <span className="block text-small text-text-muted">
+                        Estimate {money(fee.estimate.cents)}:{" "}
+                        {hoursText(fee.estimate.minutes)} hours of{" "}
+                        {SURFACE_LABELS[fee.surface]} at{" "}
+                        {money(ADULT_RATES[fee.surface])} an hour
+                        {fee.estimate.litMinutes > 0 &&
+                          `, plus ${hoursText(fee.estimate.litMinutes)} hours after sunset at ${money(LIGHTS_RATE)} for lights`}
+                        .{" "}
+                        {fee.basis === "assumed"
+                          ? "The surface is assumed: NYC Parks' field list has no match."
+                          : `Surface from NYC Parks' field list for ${fee.park}.`}
+                      </span>
+                    )}
                   </dd>
                   <dt className="text-text-muted">Applications</dt>
                   <dd>
@@ -472,6 +636,16 @@ async function Permits({
               {sheet.value.totalFieldHours.toLocaleString("en-US")} field hours
               in all.
             </p>
+            {hoursLevel(withSheet) !== "under" && (
+              <p role="status" className="rounded-lg border border-warning p-3">
+                With the {permitted} hours already on this season&apos;s
+                permits, asking for these would bring it to{" "}
+                {hoursText(withSheet)} hours
+                {hoursLevel(withSheet) === "over"
+                  ? ", past NYC Parks' 50-hour line: Parks would ask for insurance and a notarized broker's form first."
+                  : ", close to NYC Parks' 50-hour insurance line."}
+              </p>
+            )}
             <CopySheet text={sheetText(sheet.value.rows)} />
             <div
               role="region"

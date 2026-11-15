@@ -4,6 +4,8 @@
  * docs/permits/nyc-parks.md together, with the new date.
  */
 
+import { CANCELLATION_FORM, PERMIT_OFFICES } from "@/domain/permits/give-back";
+
 export const NYC_PARKS_LAST_CHECKED = "2026-11-14";
 
 const PARKS = "https://www.nycgovparks.org";
@@ -53,6 +55,15 @@ function Source({ href, children }: { href: string; children: string }) {
     </a>
   );
 }
+
+const OFFICES = [
+  ["Brooklyn", PERMIT_OFFICES.B],
+  ["Prospect Park and the Parade Ground", "(718) 965-8974"],
+  ["Bronx", PERMIT_OFFICES.X],
+  ["Manhattan", PERMIT_OFFICES.M],
+  ["Queens", PERMIT_OFFICES.Q],
+  ["Staten Island", PERMIT_OFFICES.R],
+] as const;
 
 const dateText = (on: string) =>
   new Intl.DateTimeFormat("en-US", {
@@ -223,6 +234,12 @@ export function NycParksPanel() {
             naming the City of New York as additional insured, with a
             certificate and a notarized broker&rsquo;s form.
           </p>
+          <p>
+            This screen estimates each permit&rsquo;s fee from its surface,
+            hours and hours after sunset until its real cost is entered, counts
+            the season&rsquo;s hours against the 50-hour line, and emails the
+            owners before the fees are due and as the hours near 50.
+          </p>
           <p className="text-small">
             Source:{" "}
             <Source href={L.priorities}>Requesting a field permit</Source> and{" "}
@@ -277,6 +294,14 @@ export function NycParksPanel() {
             Closures are posted on the{" "}
             <Source href={L.notices}>notices page</Source>.
           </p>
+          <p>
+            When a rain-out or a blackout leaves permitted time unused, give it
+            back: call the borough office or use Parks&rsquo;{" "}
+            <Source href={CANCELLATION_FORM}>cancellation form</Source>. Doing
+            so keeps the league in good standing for its renewal. This screen
+            lists that time with the form&rsquo;s answers ready, and emails the
+            owners once for each date.
+          </p>
           <p className="text-small">
             Source: <Source href={L.rule}>Parks rule 2-12</Source> and{" "}
             <Source href={L.guidelines}>field guidelines</Source>.
@@ -285,13 +310,23 @@ export function NycParksPanel() {
       </details>
 
       <div className="flex flex-col gap-1">
-        <h3 className="text-h3">Brooklyn permit office</h3>
+        <h3 className="text-h3">Borough permit offices</h3>
+        <ul className="flex flex-col gap-1">
+          {OFFICES.map(([where, phone]) => (
+            <li key={where}>
+              {where}:{" "}
+              <a
+                href={`tel:+1${phone.replace(/[^\d]/g, "")}`}
+                className="underline"
+              >
+                {phone}
+              </a>
+            </li>
+          ))}
+        </ul>
         <p>
-          Litchfield Villa, 95 Prospect Park West, Brooklyn, NY 11215.{" "}
-          <a href="tel:+17189658975" className="underline">
-            (718) 965-8975
-          </a>
-          .
+          Brooklyn&rsquo;s office is at Litchfield Villa, 95 Prospect Park West,
+          Brooklyn, NY 11215.
         </p>
         <p className="text-small">
           See{" "}
