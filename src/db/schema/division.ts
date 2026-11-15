@@ -33,7 +33,12 @@ const audit = () => ({
 });
 
 /** Optional rule switches a rule set can turn on or off. */
-export type RuleSetOptions = { bunting?: boolean; stealing?: boolean };
+export type RuleSetOptions = {
+  bunting?: boolean;
+  stealing?: boolean;
+  /** What happens when a game reaches the end of its permit (#406). */
+  permitEndRule?: "call_at_last_complete" | "last_inning_to_start";
+};
 
 /**
  * A named set of game rules a league can give a division, for example a
