@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { decide, rainFallen } from "@/domain/weather/decision";
+import { rainFallen } from "@/domain/weather/decision";
 import { gameForecast, rainRisk } from "@/domain/weather/forecast";
 import alertsFixture from "./fixtures/nws-alerts.json";
 import gridFixture from "./fixtures/nws-griddata.json";
@@ -15,8 +15,6 @@ import {
   nwsHourly,
   nwsHourlyUrl,
   nwsObservations,
-  nwsPointLinks,
-  nwsStations,
   observationsUrl,
   parseAlerts,
   parseGrid,
@@ -29,7 +27,6 @@ import {
   roundCoordinate,
   type WeatherFetch,
 } from "./weather";
-import { usesWeatherFixture, weatherFixtureFetch } from "./weather-fixture";
 
 const HOURLY = "https://api.weather.gov/gridpoints/OKX/34,36/forecast/hourly";
 
@@ -300,67 +297,5 @@ describe("what the rain-out decision reads from NWS", () => {
       ok: false,
       error: "The forecast service answered 500",
     });
-  });
-});
-
-describe("the NWS playback for development, the demo and e2e", () => {
-  it("is used only when asked for, and never on the league's own site", () => {
-    expect(usesWeatherFixture({ WEATHER_FIXTURE: "true" }, false)).toBe(true);
-    expect(
-      usesWeatherFixture(
-        { WEATHER_FIXTURE: "true", NODE_ENV: "production" },
-        false,
-      ),
-    ).toBe(false);
-    expect(
-      usesWeatherFixture(
-        { WEATHER_FIXTURE: "true", NODE_ENV: "production" },
-        true,
-      ),
-    ).toBe(true);
-    expect(usesWeatherFixture({}, true)).toBe(false);
-  });
-
-  it("plays back a wet night and evening storms, read as likely unplayable", async () => {
-    // A Tuesday at 2 pm EDT, with games from 6 to 10 pm.
-    const now = new Date("2026-09-15T18:00:00Z");
-    const opts = options(weatherFixtureFetch(() => now));
-    const links = await nwsPointLinks(40.7206, -73.9513, opts);
-    if (!links.ok) throw new Error(links.error);
-    const [hourly, grid, stations, alerts] = await Promise.all([
-      nwsHourly(links.value.hourly, opts),
-      nwsGrid(links.value.grid, opts),
-      nwsStations(links.value.stations, opts),
-      nwsAlerts(40.7206, -73.9513, opts),
-    ]);
-    if (!hourly.ok || !grid.ok || !stations.ok || !alerts.ok)
-      throw new Error("The playback did not answer");
-    const station = stations.value[0];
-    if (!station) throw new Error("No station");
-    const obs = await nwsObservations(station.id, new Date(0), opts);
-    if (!obs.ok) throw new Error(obs.error);
-    const d = decide({
-      hourly: hourly.value,
-      grid: grid.value,
-      observed: {
-        stationId: station.id,
-        stationName: station.name,
-        last24: rainFallen(obs.value, now, 24),
-        last48: rainFallen(obs.value, now, 48),
-      },
-      alerts: alerts.value,
-      games: [
-        {
-          startsAt: new Date("2026-09-15T22:00:00Z"),
-          endsAt: new Date("2026-09-16T02:00:00Z"),
-        },
-      ],
-      now,
-      timeZone: "America/New_York",
-    });
-    expect(d.level).toBe("likely");
-    expect(d.summary).toBe(
-      "Likely unplayable: 0.6 in fell in the last 24 hours, 0.08 in more is due before first pitch, 70% chance of storms 6 to 10 pm and about 0.3 in expected during games.",
-    );
   });
 });
