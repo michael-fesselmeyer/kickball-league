@@ -3,6 +3,7 @@ import { type Subject, VISITOR } from "@/domain/authz/permissions";
 import type { LeagueId, UserId } from "@/domain/ids";
 import { game, refereeAssignment } from "../schema/game";
 import { leagueMember } from "../schema/league";
+import { refereeProfile } from "../schema/referees";
 import { profile } from "../schema/profile";
 import { season } from "../schema/season";
 import { registration, rosterMembership, teamSeason } from "../schema/team";
@@ -11,8 +12,9 @@ import { sponsorIdsOf } from "./sponsors";
 
 /**
  * Who a person is for permission checks in one league (ADR 0048): their
- * role there, and their active roster roles, refereed games and managed
- * sponsors in that league only. A missing user is treated as a visitor.
+ * role there, and their active roster roles, refereed games, place in the
+ * ref pool (ADR 0053) and managed sponsors in that league only. A missing
+ * user is treated as a visitor.
  */
 export async function loadSubject(
   db: Db,
@@ -20,7 +22,7 @@ export async function loadSubject(
   leagueId: LeagueId,
 ): Promise<Subject> {
   if (userId === null) return VISITOR;
-  const [[person], roster, refereeing, sponsors] = await Promise.all([
+  const [[person], roster, refereeing, [pooled], sponsors] = await Promise.all([
     db
       .select({ role: leagueMember.role })
       .from(profile)
@@ -65,6 +67,18 @@ export async function loadSubject(
         ),
       )
       .orderBy(refereeAssignment.gameId),
+    // In the league's ref pool, so they can say when they can work before
+    // their first game (ADR 0053).
+    db
+      .select({ userId: refereeProfile.userId })
+      .from(refereeProfile)
+      .where(
+        and(
+          eq(refereeProfile.userId, userId),
+          eq(refereeProfile.leagueId, leagueId),
+        ),
+      )
+      .limit(1),
     sponsorIdsOf(db, userId, leagueId),
   ]);
   if (!person) return VISITOR;
@@ -74,7 +88,7 @@ export async function loadSubject(
     leagueId,
     globalRole: person.role ?? "player",
     roster,
-    isReferee: refereeing.length > 0,
+    isReferee: refereeing.length > 0 || pooled !== undefined,
     refereeGameIds: refereeing.map((r) => r.gameId),
     sponsorIds: sponsors,
   };

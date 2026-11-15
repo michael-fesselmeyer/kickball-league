@@ -3,10 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
+import { refereePool } from "@/db/queries/referee-pool";
 import { refereeBoard } from "@/db/queries/referees";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { requirePermission } from "@/lib/auth/permission";
-import { assignRefereeAction, unassignRefereeAction } from "./actions";
+import {
+  addToPoolAction,
+  assignRefereeAction,
+  removeFromPoolAction,
+  unassignRefereeAction,
+} from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeagueId } from "@/lib/league/active";
@@ -29,10 +35,17 @@ const ERRORS: Record<string, string> = {
   no_account:
     "Nobody has an account with that email yet. Ask them to sign in once, then assign them.",
   unknown_game: "That game is gone.",
+  own_team:
+    "They play on one of those teams. A ref can't work their own team's game, so pick someone else.",
+  already_in_pool: "They're already in the ref pool.",
 };
 const NOTICES: Record<string, string> = {
   assigned: "Referee assigned. They'll see the game on their home screen.",
   removed: "Referee removed.",
+  pool_added:
+    "Added to the ref pool. They can now say when they can work, from their home screen.",
+  pool_removed:
+    "Taken out of the ref pool. Games they already referee stay theirs.",
 };
 
 async function Referees({
@@ -46,7 +59,10 @@ async function Referees({
   });
   const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
-  const games = await refereeBoard(db, season.id);
+  const [games, pool] = await Promise.all([
+    refereeBoard(db, season.id),
+    refereePool(db, season.leagueId),
+  ]);
   const days = Map.groupBy(games, (g) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "long",
@@ -78,6 +94,20 @@ async function Referees({
           {covered} of {games.length} games have a referee. A referee enters the
           final score from their phone.
         </p>
+        <nav aria-label="Referees" className="mt-2 flex flex-wrap gap-2">
+          <Link
+            href={`/app/admin/seasons/${slug}/referees/assign`}
+            className="btn btn-primary"
+          >
+            Assign refs
+          </Link>
+          <Link
+            href={`/app/admin/seasons/${slug}/referees/pay`}
+            className="btn btn-secondary"
+          >
+            Pay sheet
+          </Link>
+        </nav>
       </header>
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
@@ -89,6 +119,55 @@ async function Referees({
           {notice}
         </p>
       )}
+      <section aria-labelledby="pool" className="flex flex-col gap-2">
+        <h2 id="pool" className="text-h3">
+          Ref pool
+        </h2>
+        <p className="text-small text-text-muted">
+          The people &ldquo;Assign refs&rdquo; proposes. Each one says which
+          game times they can work from their home screen.
+        </p>
+        {pool.length === 0 ? (
+          <p className="text-text-muted">Nobody is in the pool yet.</p>
+        ) : (
+          <ul className="flex flex-col">
+            {pool.map((p) => (
+              <li
+                key={p.userId}
+                className="flex items-center justify-between gap-3 border-t border-border py-2"
+              >
+                <span>{p.name || p.email}</span>
+                <form action={removeFromPoolAction.bind(null, slug, p.userId)}>
+                  <SubmitButton className="inline-flex min-h-11 items-center underline">
+                    Remove
+                    <span className="sr-only">
+                      {" "}
+                      {p.name || p.email} from the ref pool
+                    </span>
+                  </SubmitButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form
+          action={addToPoolAction.bind(null, slug)}
+          className="flex flex-wrap items-end gap-2"
+        >
+          <label className="flex flex-col gap-1">
+            Add a ref by email
+            <input
+              name="email"
+              type="email"
+              required
+              className="min-h-11 w-64 rounded-input border border-border-strong bg-surface px-3"
+            />
+          </label>
+          <SubmitButton className="btn btn-secondary">
+            Add to the pool
+          </SubmitButton>
+        </form>
+      </section>
       {games.length === 0 && (
         <p className="text-text-muted">No games are placed yet.</p>
       )}
