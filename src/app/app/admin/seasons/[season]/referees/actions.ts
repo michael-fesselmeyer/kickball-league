@@ -2,9 +2,13 @@
 
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
+import {
+  addToRefereePool,
+  removeFromRefereePool,
+} from "@/db/queries/referee-pool";
 import { assignReferee, unassignReferee } from "@/db/queries/referees";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
-import { type GameId, parseId } from "@/domain/ids";
+import { type GameId, parseId, type UserId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { activeLeagueId } from "@/lib/league/active";
 import { requireInLeague } from "@/lib/league/guard";
@@ -55,4 +59,48 @@ export async function unassignRefereeAction(
     }),
   );
   redirect(`${page}?notice=removed#game-${gameId}`);
+}
+
+async function poolContext(slug: string) {
+  const page = pageFor(slug);
+  const subject = await requirePermissionToChange("referee.manage", {
+    next: page,
+  });
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
+  if (!season) notFound();
+  return { page, subject, season };
+}
+
+export async function addToPoolAction(
+  slug: string,
+  form: FormData,
+): Promise<void> {
+  const { page, subject, season } = await poolContext(slug);
+  const email = form.get("email");
+  const result = await txDb.transaction((tx) =>
+    addToRefereePool(tx, {
+      leagueId: season.leagueId,
+      email: typeof email === "string" ? email : "",
+      actorId: subject.userId,
+    }),
+  );
+  if (!result.ok) redirect(`${page}?error=${result.error}#pool`);
+  redirect(`${page}?notice=pool_added#pool`);
+}
+
+export async function removeFromPoolAction(
+  slug: string,
+  rawUserId: string,
+): Promise<void> {
+  const { page, subject, season } = await poolContext(slug);
+  const userId = parseId<UserId>(rawUserId);
+  if (!userId) notFound();
+  await txDb.transaction((tx) =>
+    removeFromRefereePool(tx, {
+      leagueId: season.leagueId,
+      userId,
+      actorId: subject.userId,
+    }),
+  );
+  redirect(`${page}?notice=pool_removed#pool`);
 }
