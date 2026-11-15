@@ -381,8 +381,10 @@ jobs:
       - run: tar --zstd -xf next-build.tar.zst && rm next-build.tar.zst
       - name: This shard's pages, with every budget in lighthouserc.json
         run: node scripts/lighthouse-shard.mjs ${{ matrix.shard }} ${{ strategy.job-total }}
+      # A Lighthouse crash before any page is scored (no budget checked)
+      # measures the whole shard once more; a budget miss fails at once.
       - name: Performance and accessibility budgets (throttled phone)
-        run: npm run lighthouse -- --config=.lighthouseci/shard.json
+        run: node scripts/lighthouse-run.mjs .lighthouseci/shard.json
       - name: Upload the Lighthouse reports
         if: always()
         uses: actions/upload-artifact@v7
