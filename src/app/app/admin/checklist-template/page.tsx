@@ -66,7 +66,7 @@ async function Template({
   });
   const league = await currentLeague(db);
   if (!league) notFound();
-  // A league with no template gets the starter tasks (ADR 0053).
+  // A league with no template gets the starter tasks (ADR 0061).
   await txDb.transaction((tx) => ensureTemplate(tx, league.id));
   const [tasks, staff] = await Promise.all([
     templateTasks(db, league.id),

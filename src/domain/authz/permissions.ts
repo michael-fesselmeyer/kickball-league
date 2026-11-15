@@ -308,7 +308,7 @@ const RULES = {
   "dashboard.view": any(isOwner, isOperator),
   // Publish or take down a season's money summary (ADR 0038).
   "money_summary.publish": any(isOwner, isOperator),
-  // The ops checklist template every season starts from (ADR 0053).
+  // The ops checklist template every season starts from (ADR 0061).
   "checklist.template": any(isOwner, isOperator),
   "admins.manage": isOwner,
   // Whether a person's own data export lists entries about them (ADR 0036).

@@ -37,7 +37,7 @@ import { enqueueMessages, type OutboxMessage } from "./outbox";
 import type { Db } from "./schedule";
 
 /**
- * The season ops checklist (ADR 0053, src/domain/checklist/tasks.ts): the
+ * The season ops checklist (ADR 0061, src/domain/checklist/tasks.ts): the
  * league's template, each season's tasks, the dashboard's next few and the
  * daily reminders to each task's owner.
  */

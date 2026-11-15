@@ -4,7 +4,7 @@ import { dueLabel } from "@/domain/checklist/tasks";
 
 /**
  * The admin dashboard's card: the season checklist's next three open
- * tasks (ADR 0053), soonest first, with who has each one.
+ * tasks (ADR 0061), soonest first, with who has each one.
  */
 export function ChecklistCard({
   tasks,

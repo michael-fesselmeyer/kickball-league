@@ -3,7 +3,7 @@ import { err, ok, type Result } from "@/domain/result";
 import { addDays, daysBetween } from "@/domain/season/rollover";
 
 /**
- * The season ops checklist (ADR 0053): the league-running jobs owners and
+ * The season ops checklist (ADR 0061): the league-running jobs owners and
  * admins share each season, the template they come from, and when each
  * task's owner hears about it.
  */

@@ -9,7 +9,7 @@ import { drainOutboxNow } from "@/services/outbox";
 
 /**
  * Daily job: reminds each season checklist task's owner a few days before
- * it is due and once when it is overdue (ADR 0053). Safe to run twice:
+ * it is due and once when it is overdue (ADR 0061). Safe to run twice:
  * each reminder is queued once.
  */
 export async function GET(request: Request): Promise<Response> {
