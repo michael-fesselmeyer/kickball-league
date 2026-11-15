@@ -23,6 +23,7 @@ import { waiver, waiverSignature } from "../schema/waiver";
 import { recordAudit } from "./audit";
 import { settleCoveredRegistrations, teamOfRegistration } from "./payments";
 import { confirmAge } from "./age";
+import { acceptConduct, type ConductRefusal } from "./conduct";
 import type { Db } from "./schedule";
 import { required } from "./rows";
 
@@ -172,6 +173,7 @@ export type SignError =
   | "profile_incomplete"
   | "name_mismatch"
   | "already_signed"
+  | ConductRefusal
   | AgeRefusal;
 
 /**
@@ -188,6 +190,8 @@ export async function signWaiver(
     agreed: boolean;
     /** They ticked "I'm 18 or older" (or the season's minimum). */
     ageConfirmed: boolean;
+    /** The league's code of conduct, when it has one: ticked, and the text shown. */
+    conduct?: { accepted: boolean; shownSha256: string };
     signedName: string;
     ip: string | null;
     userAgent: string | null;
@@ -215,6 +219,19 @@ export async function signWaiver(
     now: new Date(),
   });
   if (!age.ok) return age;
+  const [owner] = await db
+    .select({ leagueId: season.leagueId })
+    .from(season)
+    .where(eq(season.id, input.seasonId));
+  if (!owner) return err("no_waiver");
+  const conduct = await acceptConduct(db, {
+    leagueId: owner.leagueId,
+    seasonId: input.seasonId,
+    userId: input.userId,
+    accepted: input.conduct?.accepted ?? false,
+    shownSha256: input.conduct?.shownSha256 ?? "",
+  });
+  if (!conduct.ok) return conduct;
   const [created] = await db
     .insert(waiverSignature)
     .values({
