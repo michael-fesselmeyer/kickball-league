@@ -1083,10 +1083,12 @@ erDiagram
   event {
     uuid id PK
     uuid league_id FK
-    enum kind "social, bar_night, bbq, tournament, theme_week, party"
+    enum kind "social, bar_night, bbq, tournament, theme_week, party, pickup, practice"
     text title
     text slug UK "title and start date, set once"
     text place "null allowed for a theme week"
+    uuid field_id FK "a league field; needed for a pickup or practice unless open play"
+    bool open_play "no reserved field: never checked against a permit"
     text description
     timestamptz starts_at
     timestamptz ends_at
@@ -1420,6 +1422,7 @@ Events, as built (`src/db/schema/event.ts`, `src/db/queries/events.ts`):
 
 The sign-up drive, as built (`src/db/schema/drive.ts`, `src/db/queries/giveaways.ts`, `src/db/queries/challenges.ts`; [ADR 0035](adr/0035-free-giveaways-and-the-sign-up-challenge.md)):
 
+- An event on a league field (`field_id`, issue #407) is saved only while a permit window with its document, not lost, covers the field for its whole time, unless it is `open_play`, which its public page says. Pickups and practices need a field or open play. The same rule judges schedule drafts (H12) and lists what isn't covered on the owners' permits screen ([ADR 0063](adr/0063-publish-only-inside-a-documented-permit.md)).
 - A `giveaway` belongs to one event (a unique constraint) and is free to enter. Nothing in the three giveaway tables can point at a purchase, payment, ticket or registration, and an event that sells tickets, or a theme week, can't hold one. The official rules are required and must say no purchase is necessary.
 - A player enters by scanning the giveaway's rotating code at the event: the sponsors' check-in code ([ADR 0016](adr/0016-rotating-check-in-code.md)) under the giveaway's own `checkin_secret`, which no public query selects. The event's audience decides who may enter; admins see every event but enter only one that is for them. `giveaway_entry` is unique on `(giveaway_id, user_id)`, and an entry first takes a share lock on the giveaway row, so a draw (which takes an update lock) never misses an entry or lets one in after it starts.
 - The draw happens once, after `closes_at`: every entry in the order people entered, through a partial Fisher-Yates shuffle over `crypto.randomInt`, with no seed kept. It writes the winners (`round` 1), sets `drawn_at` and writes a `giveaway.draw` audit row with the entry count, the method, the drawn positions and the winners' entry and account ids. After the draw the giveaway can't change.
