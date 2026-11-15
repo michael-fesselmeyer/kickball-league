@@ -8,6 +8,7 @@ import { money } from "@/domain/books/ledger";
 import type { AcceptProblem } from "@/domain/private-events/request";
 import { requirePermission } from "@/lib/auth/permission";
 import { acceptPrivateEventAction, declinePrivateEventAction } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = {
   title: "Private leagues and tournaments",
@@ -201,9 +202,9 @@ async function Queue({ searchParams }: PageProps<"/app/admin/private-events">) {
                     className={`${field} w-40`}
                   />
                 </label>
-                <button type="submit" className="btn self-start btn-primary">
+                <SubmitButton className="btn self-start btn-primary">
                   Set up the private season
-                </button>
+                </SubmitButton>
               </form>
             </details>
             <details>
@@ -225,9 +226,9 @@ async function Queue({ searchParams }: PageProps<"/app/admin/private-events">) {
                     className={`${field} min-h-24`}
                   />
                 </label>
-                <button type="submit" className="btn self-start btn-secondary">
+                <SubmitButton className="btn self-start btn-secondary">
                   Decline the request
-                </button>
+                </SubmitButton>
               </form>
             </details>
           </article>
