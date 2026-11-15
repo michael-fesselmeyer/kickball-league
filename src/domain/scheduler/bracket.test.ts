@@ -19,7 +19,13 @@ const playoffDay = (date: string, fields: number, times: number): Slot[] =>
 const teams = (n: number) => Array.from({ length: n }, (_, i) => `T${i + 1}`);
 const label = (m: BracketMatch) =>
   [m.home, m.away]
-    .map((s) => ("seed" in s ? String(s.seed) : `W(${s.winnerOf})`))
+    .map((s) =>
+      "seed" in s
+        ? String(s.seed)
+        : "winnerOf" in s
+          ? `W(${s.winnerOf})`
+          : `L(${s.loserOf})`,
+    )
     .join("v");
 
 describe("seedOrder", () => {
@@ -97,7 +103,7 @@ describe("placeBracket", () => {
       "r2m1",
     ]);
     expect(diagnostics).toEqual([
-      "No free slot is left for the final. Add a permit for playoff day or seed fewer teams.",
+      "No free slot is left for game 3 (final). Add a permit for playoff day or seed fewer teams.",
     ]);
   });
 

@@ -9,6 +9,7 @@ import {
   byeSeeds,
   championOf,
   defaultPlayoffTeams,
+  gameNumbers,
   gameWinner,
   isReady,
   matchesFrom,
@@ -156,37 +157,31 @@ describe("advancing", () => {
     matches = win(matches, "r2m2", "A").matches;
     const final = win(matches, "r3m1", "A");
     expect(final.champion).toBe("t04");
-    expect(final.moved).toBeNull();
+    expect(final.moves).toEqual([]);
     expect(championOf(final.matches)).toBe("t04");
   });
 
   it("reports which side of the next match it filled", () => {
     const matches = bracketFor(6);
     const result = win(matches, "r1m2", "B");
-    expect(result.moved).toEqual({
-      code: "r2m1",
-      side: "B",
-      from: null,
-      to: "t05",
-    });
+    expect(result.moves).toEqual([
+      { code: "r2m1", side: "B", from: null, to: "t05" },
+    ]);
     expect(nextMatch(matches, "r2m1")).toEqual({ code: "r3m1", side: "A" });
   });
 
   it("replaces the team it moved on when a score is corrected", () => {
     let matches = win(bracketFor(4), "r1m1", "A").matches;
     const corrected = win(matches, "r1m1", "B");
-    expect(corrected.moved).toEqual({
-      code: "r2m1",
-      side: "A",
-      from: "t01",
-      to: "t04",
-    });
+    expect(corrected.moves).toEqual([
+      { code: "r2m1", side: "A", from: "t01", to: "t04" },
+    ]);
     matches = corrected.matches;
     expect(matches.find((m) => m.code === "r2m1")?.teamA).toBe("t04");
     // The same result again changes nothing.
-    expect(win(matches, "r1m1", "B").moved).toBeNull();
+    expect(win(matches, "r1m1", "B").moves).toEqual([]);
     // A result taken back clears the team it moved on.
-    expect(advance(matches, "r1m1", null).moved?.to).toBeNull();
+    expect(advance(matches, "r1m1", null).moves[0]?.to).toBeNull();
   });
 
   it("refuses a winner who is not in the match", () => {
@@ -255,13 +250,12 @@ describe("the bracket board", () => {
   });
 
   it("names undecided sides by the game they wait on", () => {
-    expect(sourceLabel({ seed: 3 }, 3)).toBe("Seed 3");
-    expect(sourceLabel({ winnerOf: "r1m2" }, 3)).toBe(
-      "Winner of quarterfinal 2",
-    );
-    expect(sourceLabel({ winnerOf: "r2m1" }, 3)).toBe("Winner of semifinal 1");
-    expect(sourceLabel({ winnerOf: "r1m7" }, 4)).toBe(
-      "Winner of round 1 game 7",
+    const numbers = gameNumbers(bracketFor(8));
+    expect(sourceLabel({ seed: 3 }, numbers)).toBe("Seed 3");
+    expect(sourceLabel({ winnerOf: "r1m2" }, numbers)).toBe("Winner of game 2");
+    expect(sourceLabel({ loserOf: "r2m1" }, numbers)).toBe("Loser of game 5");
+    expect(sourceLabel({ winnerOf: "r9m9" }, numbers)).toBe(
+      "Winner of an earlier game",
     );
   });
 });
