@@ -98,7 +98,7 @@ export async function publishDraft(
 
 /**
  * Publishes a draft whose only gaps are permit documents not uploaded yet,
- * with the admin's reason in the audit log (ADR 0065). A lost permit, no
+ * with the admin's reason in the audit log (ADR 0066). A lost permit, no
  * permit, or hours that fall short still block it.
  */
 export async function publishWithoutDocuments(

@@ -537,7 +537,7 @@ export async function publishVersion(
   publishedBy: UserId | null,
   now: Date = new Date(),
   /**
-   * Publish although permit documents aren't uploaded yet (ADR 0065), for
+   * Publish although permit documents aren't uploaded yet (ADR 0066), for
    * this typed reason, kept in the audit log. Every other gap still blocks.
    */
   overrideReason?: string,

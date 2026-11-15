@@ -343,7 +343,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 ### Community, events and content
 | Feature | Tag |
 |---|---|
-| Searchable HTML rulebook | MVP |
+| Searchable HTML rulebook, stored in the app: an owner pastes the text, reviews it split into numbered sections and rules, and saves it as a dated change. Players search it on a phone and a result jumps to the rule and highlights the words. Owners choose who can read it (owners only by default, members only, or public), and the text never goes in the repository ([ADR 0066](adr/0066-searchable-rulebook-stored-in-the-app.md)). PDF upload follows once a text-extraction library is approved | MVP |
 | ICS calendar feed per team | MVP |
 | Events calendar with RSVPs (bar nights, BBQ, tournament, theme weeks) | P2 |
 | Share images for game results and teams | P2 |

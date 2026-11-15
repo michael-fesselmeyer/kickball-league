@@ -17,7 +17,7 @@ import type { SeedData } from "./generate";
  * The demo league's rulebook: an invented sample, imported the way an owner
  * would, and made public so the demo, the end-to-end tests and the
  * performance run have a rules page with text on it. A real league starts
- * owners only (ADR 0065).
+ * owners only (ADR 0066).
  */
 export async function addSeedRulebook(
   db: Db,

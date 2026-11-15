@@ -18,7 +18,7 @@ const control =
 const INITIAL: ImportState = { error: null };
 
 /**
- * Import in two steps (ADR 0065): paste the text, see it split into
+ * Import in two steps (ADR 0066): paste the text, see it split into
  * numbered sections and rules, fix titles and text, leave sections out, then
  * save. The text is split in the browser and sent to the server only when
  * saved; the server checks it again.
