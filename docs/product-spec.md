@@ -168,6 +168,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Preview a rain-out with the weather card and send it to the owners to confirm | — | — | — | — | — | ✓ | ✓ |
 | Confirm a rain-out ([ADR 0057](adr/0057-owner-confirmed-rainouts.md); the operator too) | — | — | — | — | — | when the owners allow it | ✓ |
 | Let admins confirm rain-outs | — | — | — | — | — | — | ✓ |
+| Set a game day's status: On, Watching with a decision time, Delayed or Off | — | — | — | — | — | ✓ | ✓ |
 | Place free agents; approve new-team requests | — | — | — | — | — | ✓ | ✓ |
 | Request to start a new team | — | ✓ | ✓ | — | — | — | — |
 | Send an announcement | — | — | own team | — | — | league-wide | league-wide |

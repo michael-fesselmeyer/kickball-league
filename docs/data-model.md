@@ -411,6 +411,21 @@ erDiagram
     uuid slot_id FK "null means unplaced"
     bool locked "manual pin"
   }
+  game_day_status {
+    uuid id PK
+    uuid season_id FK
+    date date "league time; unique with season_id"
+    enum state "on, watching, delayed, off"
+    timestamptz decide_by "set exactly when watching"
+    text reason "up to 120 characters"
+    uuid set_by FK
+    timestamptz set_at
+  }
+  game_day_status_game {
+    uuid status_id PK,FK
+    uuid game_id PK,FK
+    timestamptz new_starts_at "delayed only"
+  }
   team_constraint {
     uuid id PK
     uuid team_season_id FK
@@ -553,6 +568,7 @@ Notes:
 - `game.slot_id` copies the placement from the published version so public pages need one join. It is written only when a version is published, inside the same transaction.
 - Slots are cut from requested and confirmed permit windows, minus blackouts, when an admin asks (the fields screen). Cutting again keeps a slot's id when its field and start are unchanged, so versions that use it stay intact. A slot no permit covers any more is deleted, or set to `cancelled` when a version uses it. Slots entered without a permit are left alone. A cancelled slot stays cancelled, because a rain-out cancels slots the same way.
 - Team A and team B are neutral names because home and away are decided at the field.
+- `game_day_status` is a season's status for one game day (issue #383): on, watching the weather until `decide_by`, delayed or off. One row per season and date (unique), updated in place under a row lock and audited as `game_day.status`; a check keeps `decide_by` set exactly when watching. `game_day_status_game` lists the games a delayed or off status touches, with a delayed game's `new_starts_at`, and is replaced with the status. Nothing here changes a slot or a game: games that are off are rescheduled by the rain-out flow. `set_by` moves to the kept account in a merge.
 - `game_period` is named for periods, not innings, so a second sport can reuse it. It holds live scoring ([ADR 0011](adr/0011-live-scores-by-polling.md)): one row per half-inning, entered in order and corrected in place. The line score and the score at the last complete inning are worked out from these rows, never stored. Which team kicks in the top half is on the game (`kicks_first`, one of its two teams), set when live scoring starts. The final score still comes from a `score_report`, so a game scored live is confirmed like any other.
 - Kicking orders ([ADR 0030](adr/0030-kicking-order-sides.md)): a team has at most one `game_lineup` per game, and saving again replaces its `game_lineup_spot` rows in one transaction. Only players who said they're in, and approved pickups, can be saved into it. Players' lineup genders are never copied into it; they are read from `profile` (or `sub_claim` for a pickup) when the team's captains open the builder. `run_breaks` records how many runs of more than two of one side the order had when saved, so the ref and the other captain see that the order breaks the rule without seeing anyone's side. A saved order is never blocked for breaking the rule.
 - `offline_receipt` holds one row per score entry made on a phone with no signal and sent later ([ADR 0025](adr/0025-offline-scores-keep-the-servers-version.md)): a final score (`score`), a half-inning (`half`) or ending a live-scored game (`end`). It is written before the entry is applied, in the same transaction, and keeps the answer the phone got, so a resend of the same key gets that answer again and changes nothing. A final score from the phone also uses the key as its report's `client_id`. Rows go with their game, and deleting an account deletes its rows, since an answer can name the other captain.
