@@ -12,12 +12,12 @@ describe("countShirts", () => {
       { size: null, status: "received" },
     ]);
     expect(counts).toEqual({
-      bySize: { xs: 1, s: 0, m: 2, l: 1, xl: 0, xxl: 0 },
+      bySize: { xs: 1, s: 0, m: 2, l: 1, xl: 0, xxl: 0, xxxl: 0 },
       unknown: 2,
       total: 6,
       ordered: 1,
       received: 2,
-      toOrder: { xs: 1, s: 0, m: 0, l: 1, xl: 0, xxl: 0 },
+      toOrder: { xs: 1, s: 0, m: 0, l: 1, xl: 0, xxl: 0, xxxl: 0 },
       toOrderUnknown: 1,
     });
   });

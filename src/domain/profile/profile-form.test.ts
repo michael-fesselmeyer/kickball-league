@@ -126,7 +126,7 @@ describe("parseProfileForm", () => {
     expect(errorsOf({ gender: "other" })).toEqual({
       gender: "Choose an option.",
     });
-    expect(errorsOf({ shirtSize: "xxxl" })).toHaveProperty("shirtSize");
+    expect(errorsOf({ shirtSize: "xxxxl" })).toHaveProperty("shirtSize");
     expect(errorsOf({ birthDate: "1995-02-30" })).toHaveProperty("birthDate");
     expect(errorsOf({ birthDate: "2030-01-01" })).toHaveProperty("birthDate");
   });

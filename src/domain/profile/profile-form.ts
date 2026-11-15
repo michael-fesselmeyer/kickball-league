@@ -16,7 +16,7 @@ export const GENDERS = [
   "undisclosed",
 ] as const;
 export const LINEUP_GENDERS = ["woman", "man"] as const;
-export const SHIRT_SIZES = ["xs", "s", "m", "l", "xl", "xxl"] as const;
+export const SHIRT_SIZES = ["xs", "s", "m", "l", "xl", "xxl", "xxxl"] as const;
 
 export type Gender = (typeof GENDERS)[number];
 export type LineupGender = (typeof LINEUP_GENDERS)[number];

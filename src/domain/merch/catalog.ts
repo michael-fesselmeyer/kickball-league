@@ -185,8 +185,7 @@ export function jerseyDefaults<T extends { teamSeasonId: string }>(
 ): { team: T | null; size: MerchSize | null } {
   return {
     team: teams[0] ?? null,
-    size:
-      profileSize !== null && sizes.includes(profileSize) ? profileSize : null,
+    size: sizes.find((s) => s === profileSize) ?? null,
   };
 }
 

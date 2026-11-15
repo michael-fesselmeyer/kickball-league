@@ -36,6 +36,7 @@ export * from "./rules";
 export * from "./schedule";
 export * from "./season";
 export * from "./season-card";
+export * from "./shirts";
 export * from "./social";
 export * from "./sponsor";
 export * from "./stat-awards";
