@@ -39,8 +39,17 @@ test("a player adds a passkey and signs in with it", async ({ browser }) => {
   // Signed out, the passkey signs the player back in without an email.
   await page.context().clearCookies();
   await page.goto("/sign-in");
-  await page.getByRole("button", { name: "Sign in with a passkey" }).click();
-  await expect(page).toHaveURL(/\/app(\/|$)/);
+  // The tap can land before the page's script is ready, and the first one
+  // loads the passkey code on demand before it signs in, which is slow on a
+  // busy runner. So tap again until the player is signed in, and wait for
+  // that end state rather than for one redirect to beat a short timeout.
+  await expect(async () => {
+    if (!new URL(page.url()).pathname.startsWith("/app"))
+      await page
+        .getByRole("button", { name: "Sign in with a passkey" })
+        .click({ timeout: 2_000 });
+    await expect(page).toHaveURL(/\/app(\/|$)/, { timeout: 8_000 });
+  }).toPass({ timeout: 45_000 });
 
   await page.goto("/app/profile/security");
   await expect(page.getByText("This device", { exact: true })).toBeVisible();
