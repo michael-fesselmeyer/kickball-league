@@ -137,7 +137,10 @@ export async function gatherSeasons(
         eq(game.status, "final"),
         ne(game.kind, "exhibition"),
       ),
-    );
+    )
+    // In the order they were played, so each player's games read the same
+    // way every time.
+    .orderBy(asc(slot.startsAt), asc(game.id));
   const gameIds = finals.map((g) => g.id);
   const days = [...new Set(finals.map((g) => g.day))];
   const none = Promise.resolve([] as never[]);
