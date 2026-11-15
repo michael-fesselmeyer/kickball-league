@@ -24,8 +24,7 @@ import { loadSubject } from "./subject";
 
 afterAll(closePool);
 
-const day = (n: number, hour = 0) =>
-  new Date(Date.UTC(2027, 3, n, hour, 0, 0));
+const day = (n: number, hour = 0) => new Date(Date.UTC(2027, 3, n, hour, 0, 0));
 const NOW = day(10, 12);
 
 async function world(db: Db) {
@@ -57,7 +56,7 @@ async function world(db: Db) {
     return u.id;
   }
   return {
-    leagueId: lg.id as LeagueId,
+    leagueId: lg.id,
     owner: await person("Olive", "owner"),
     otherOwner: await person("Otto", "owner"),
     admin: await person("Adele", "admin"),
@@ -147,7 +146,12 @@ describe("acting admin handovers", () => {
         now: NOW,
       });
       expect(ended.ok).toBe(true);
-      const after = await subjectAt(db, w, w.trusted, new Date(NOW.getTime() + 1));
+      const after = await subjectAt(
+        db,
+        w,
+        w.trusted,
+        new Date(NOW.getTime() + 1),
+      );
       expect(can(after, "score.override")).toBe(false);
       // A second end is refused, not silently repeated.
       expect(
@@ -200,7 +204,12 @@ describe("acting admin handovers", () => {
         actorId: w.owner,
         now: NOW,
       });
-      const now2 = await subjectAt(db, w, w.trusted, new Date(NOW.getTime() + 1));
+      const now2 = await subjectAt(
+        db,
+        w,
+        w.trusted,
+        new Date(NOW.getTime() + 1),
+      );
       expect(now2.acting).toEqual(["scores"]);
     });
   });
@@ -210,7 +219,9 @@ describe("acting admin handovers", () => {
       const w = await world(db);
       const trusted = await w.person("Gone", "player");
       await grant(db, w, { userId: trusted });
-      expect((await actingPowersOf(db, trusted, w.leagueId, NOW)).length).toBe(2);
+      expect((await actingPowersOf(db, trusted, w.leagueId, NOW)).length).toBe(
+        2,
+      );
       const result = await deleteAccount(db, trusted, NOW);
       expect(result.ok).toBe(true);
       expect(await actingPowersOf(db, trusted, w.leagueId, NOW)).toEqual([]);
@@ -266,7 +277,9 @@ describe("acting admin handovers", () => {
         "in_the_past",
       );
       expect(
-        await refusal({ userId: "00000000-0000-4000-8000-000000000000" as UserId }),
+        await refusal({
+          userId: "00000000-0000-4000-8000-000000000000" as UserId,
+        }),
       ).toBe("not_a_player");
       const none = await db.select().from(actingAdmin);
       expect(none).toEqual([]);
@@ -280,7 +293,10 @@ describe("acting admin handovers", () => {
         (
           await db
             .insert(league)
-            .values({ name: "Other", slug: `oth-${Math.random().toString(36).slice(2, 8)}` })
+            .values({
+              name: "Other",
+              slug: `oth-${Math.random().toString(36).slice(2, 8)}`,
+            })
             .returning({ id: league.id })
         )[0],
         "league",
@@ -342,7 +358,11 @@ describe("handover notices", () => {
       expect(started.map((m) => m.userId).sort()).toEqual(
         [w.trusted, w.owner, w.otherOwner].sort(),
       );
-      expect(started.every((m) => (m.payload as { kind: string }).kind === "started")).toBe(true);
+      expect(
+        started.every(
+          (m) => (m.payload as { kind: string }).kind === "started",
+        ),
+      ).toBe(true);
       // Ended by date.
       expect(await queueActingAdminNotices(db, day(13, 1))).toBe(3);
       expect(await queueActingAdminNotices(db, day(14))).toBe(0);

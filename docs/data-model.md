@@ -2053,6 +2053,34 @@ Notes:
 - `message_topic` gains `lost_found`; notices are the `lost_found_reply` (urgent) and `lost_found_update` (non-urgent) templates.
 - A daily job closes open posts after 30 days and deletes posts closed for over 90 days. Deleting an account deletes the person's posts and answers, with their conversations.
 
+### 2.15 Acting admins
+
+An owner hands some admin powers to a player for a date range ([ADR 0076](adr/0076-acting-admin-handover.md)).
+
+```mermaid
+erDiagram
+  league ||--o{ acting_admin : "handed over in"
+  user ||--o{ acting_admin : "acts as admin"
+  acting_admin {
+    uuid id PK
+    uuid league_id FK
+    uuid user_id FK "the acting admin; cascade"
+    text_array powers "names from ACTING_POWERS"
+    timestamptz starts_at
+    timestamptz ends_at "exclusive"
+    timestamptz ended_at "set when an owner ends it early"
+    uuid granted_by FK "set null"
+    timestamptz start_notice_at
+    timestamptz end_notice_at
+  }
+```
+
+Notes:
+- The person's `league_member.role` never changes. A row gives its powers when `starts_at <= now < ends_at` and `ended_at` is null; the permissions matrix reads this when it loads a person (`loadSubject`), only for a player. Overlapping rows add their powers, each ending on its own.
+- Check constraints: `ends_at > starts_at` and at least one power. Names outside `ACTING_POWERS` are refused by the app before the insert; the list of actions each power opens is code (`ACTING_POWER_ACTIONS`), not data.
+- `start_notice_at` and `end_notice_at` make each notice go out once. A handover ended before it began sends none.
+- Granting and ending write `acting_admin.grant` and `acting_admin.end` audit rows. Deleting an account ends its rows (`ended_at`) first, while the row stays for the record; the player's actions stay in the audit log under the anonymized account.
+
 ## 3. Constraints and indexes
 
 Integrity rules the database enforces, so application bugs cannot break them:
@@ -2098,6 +2126,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `team_constraint` | check `on_date` or `time_index` is set; check `weight` between 1 and 10 | A constraint says when; weights stay comparable |
 | `free_agent_profile` | check `skill_score` and `vibe_score` between 1 and 5; check `notes` at most 200 characters | Scores stay on their scale |
 | `friend_group` | unique `(code)`; check `code` is 6 of `A-Z` and `2-9` | Codes are unambiguous |
+| `acting_admin` | check `ends_at > starts_at`; check at least one power | A handover has a real range and gives something |
 | `audit_log` | check `action` matches `area.verb` | Actions stay searchable, such as every `schedule.*` |
 | `waiver_signature` | unique `(waiver_id, user_id, season_id)` | One signature per waiver per season |
 | `conduct_code` | unique `(league_id, version)`; `version` above 0; `body_sha256` is 64 hex characters | A league's versions are numbered and fingerprinted |
@@ -2209,6 +2238,7 @@ Indexes for the common reads:
 | `message` | `(sent_at)` where `status = 'sent'` and `channel = 'email'` | Counting the emails sent today and this month, for the provider's quota |
 | `message` | `(digest_id)` | The messages a digest listed |
 | `push_subscription` | `(user_id)` | A person's devices, when the outbox sends |
+| `acting_admin` | `(user_id, league_id)`, `(league_id, ends_at desc)` | A person's powers when they load, a league's handovers |
 | `audit_log` | `(entity_type, entity_id, occurred_at desc)`, `(actor_id, occurred_at desc)` | History of a record, history of a person |
 | `checkin` | `(sponsor_id, on_date)` | Sponsor report |
 | `game_rsvp` | `(game_id, team_season_id)` | Captain's RSVP board |

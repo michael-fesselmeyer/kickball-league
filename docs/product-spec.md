@@ -215,6 +215,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Merge duplicate player accounts | — | — | — | — | — | ✓ | ✓ |
 | Set prices, connect Stripe, change refund policy | — | — | — | — | — | — | ✓ |
 | Add or remove admins | — | — | — | — | — | — | ✓ |
+| Hand chosen admin powers to a player for set dates (acting admin), and end it early | — | — | — | — | — | — | ✓ |
 | Keep the books: expenses and receipts, permit costs and documents, insurance, request sheet | — | — | — | — | — | — | ✓ |
 | See the owner dashboard and download its numbers | — | — | — | — | — | — | ✓ |
 | See a season report card, its CSV and its version for sponsors | — | — | — | — | — | — | ✓ |
@@ -225,6 +226,8 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Export or delete personal data | — | own | own | own | own | — | ✓ |
 
 Above every role in the matrix is the **platform operator**, who runs the software and its hosting rather than the league. The operator isn't a role anyone can be given in the app. They can set who the owners and admins are, make the whole site read-only or pause it, switch features off, and download all of the league's data. Owners see each of those actions in the audit log and can download the same data themselves. See [ADR 0009](adr/0009-platform-operator.md).
+
+**Acting admin** ([ADR 0076](adr/0076-acting-admin-handover.md)). An owner can name a player acting admin for a date range with some of these powers: game day, scores, rain-outs, schedule, teams and rosters, announcements, discipline. For those dates the player has an admin's rights for the actions in the chosen powers and nothing else: never money (refunds, payments, exports), roles, merging accounts, the audit log, the books or private lists. It starts and ends on its dates, an owner can end it early, and deleting the account ends it. Each action is in the audit log under the acting admin's name, and the acting admin and every owner are notified when it starts and ends.
 
 One person can hold several roles at once: a captain who also refs and is a league admin is common. Permissions are the union of global role (player, admin, owner) and scoped memberships (captain of a team, referee for a season, member of a sponsor).
 

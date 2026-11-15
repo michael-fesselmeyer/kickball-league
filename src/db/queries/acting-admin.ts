@@ -272,7 +272,10 @@ export async function queueActingAdminNotices(
     .returning();
   const ending = await db
     .update(actingAdmin)
-    .set({ endNoticeAt: now, startNoticeAt: sql`coalesce(${actingAdmin.startNoticeAt}, ${now})` })
+    .set({
+      endNoticeAt: now,
+      startNoticeAt: sql`coalesce(${actingAdmin.startNoticeAt}, ${now})`,
+    })
     .where(
       and(
         isNull(actingAdmin.endNoticeAt),

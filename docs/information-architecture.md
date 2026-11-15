@@ -241,6 +241,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     ├── credit                      League credit: give goodwill credit, who holds credit, what was given lately
     ├── money                       Payments, refunds, credit, promo codes
     ├── accounts                    Merge duplicate accounts: look up both by email, preview what moves and how clashes are settled, confirm it's you and merge; recent merges
+    ├── acting-admins               Owners only: handovers running, coming and recently ended; name a player acting admin (first and last day, powers) or end a handover now
     ├── audit                       Audit log in plain words, newest first; filter for the platform operator's actions
     ├── demo-mail                   Demo only: every email the league would have sent, newest first, each opened as the person would get it; 404 outside demo mode
     ├── photos                      Member photos: the review queue (approve, download, or reject with a note only admins see), approved photos to download or take down, recent rejections, and storage used against the cap
