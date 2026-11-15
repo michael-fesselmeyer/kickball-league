@@ -1,5 +1,9 @@
 import { and, eq } from "drizzle-orm";
-import { type Subject, VISITOR } from "@/domain/authz/permissions";
+import {
+  type GlobalRole,
+  type Subject,
+  VISITOR,
+} from "@/domain/authz/permissions";
 import type { LeagueId, UserId } from "@/domain/ids";
 import { actingPowersOf } from "./acting-admin";
 import { game, refereeAssignment } from "../schema/game";
@@ -10,6 +14,31 @@ import { season } from "../schema/season";
 import { registration, rosterMembership, teamSeason } from "../schema/team";
 import type { Db } from "./schedule";
 import { sponsorIdsOf } from "./sponsors";
+
+/**
+ * The person an action is aimed at, for the permissions matrix: who they
+ * are and their role in the league. An acting admin may not act on
+ * themselves or on staff (issue #468).
+ */
+export async function targetOf(
+  db: Db,
+  userId: UserId,
+  leagueId: string | null,
+): Promise<{ targetUserId: UserId; targetGlobalRole: GlobalRole }> {
+  const [row] =
+    leagueId === null
+      ? []
+      : await db
+          .select({ role: leagueMember.role })
+          .from(leagueMember)
+          .where(
+            and(
+              eq(leagueMember.userId, userId),
+              eq(leagueMember.leagueId, leagueId as LeagueId),
+            ),
+          );
+  return { targetUserId: userId, targetGlobalRole: row?.role ?? "player" };
+}
 
 /**
  * Who a person is for permission checks in one league (ADR 0048): their

@@ -875,6 +875,18 @@ export async function suspendPlayer(
 export type LiftError = "not_found" | "already_lifted";
 
 /** Ends a suspension early, for example after an appeal. No email. */
+/** The person a suspension is about, or null. */
+export async function suspendedUser(
+  db: Db,
+  suspensionId: SuspensionId,
+): Promise<UserId | null> {
+  const [row] = await db
+    .select({ userId: suspension.userId })
+    .from(suspension)
+    .where(eq(suspension.id, suspensionId));
+  return row?.userId ?? null;
+}
+
 export async function liftSuspension(
   db: Db,
   input: { suspensionId: SuspensionId; actorId: UserId; now: Date },

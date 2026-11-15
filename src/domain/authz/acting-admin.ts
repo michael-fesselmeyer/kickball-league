@@ -46,7 +46,7 @@ export const ACTING_POWER_LABELS: Record<
   },
   teams: {
     label: "Teams and rosters",
-    hint: "Approve new teams, manage rosters and lineups, place free agents, handle sub requests.",
+    hint: "Approve new teams, manage rosters and lineups, place free agents, handle sub requests. Shows players' phone numbers and emails.",
   },
   messages: {
     label: "Announcements",
