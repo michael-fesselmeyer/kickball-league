@@ -37,6 +37,11 @@ export const MESSAGE_KINDS = {
     label:
       "For owners: a permit application window, renewal, fees due date or insurance expiry coming up",
   },
+  checklist_reminder: {
+    urgency: "non_urgent",
+    label:
+      "For owners and admins: a season checklist task that is due soon or overdue",
+  },
   captain_handoff: {
     urgency: "urgent",
     label: "Your team's captaincy offered to you, waiting for your answer",
