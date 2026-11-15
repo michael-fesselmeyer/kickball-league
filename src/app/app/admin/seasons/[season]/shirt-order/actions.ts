@@ -14,6 +14,7 @@ import { localDate } from "@/domain/scheduler/slots";
 import { parseOrderForm, parseSeasonSizes } from "@/domain/shirts/order";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { sendQueuedSoon } from "@/services/outbox";
+import { activeLeagueId } from "@/lib/league/active";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/shirt-order`;
 
@@ -22,7 +23,7 @@ async function adminFor(slug: string) {
   const subject = await requirePermissionToChange("shirts.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   return { page, subject, season };
 }
@@ -100,7 +101,7 @@ export async function addToBooksAction(slug: string): Promise<void> {
   const subject = await requirePermissionToChange("books.manage", {
     next: page,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const result = await txDb.transaction((tx) =>
     addOrderToBooks(tx, {
