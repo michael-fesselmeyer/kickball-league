@@ -8,6 +8,8 @@ import { CopyForWhatsApp, ShareButtons } from "@/components/share";
 import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
 import { myCard } from "@/db/queries/season-cards";
+import { leagueHref } from "@/domain/league/paths";
+import { activeLeague } from "@/lib/league/active";
 import {
   publicCardPath,
   seasonCardShareText,
@@ -37,9 +39,11 @@ async function Card({ params, searchParams }: Props) {
   const subject = await requirePermission("registration.join", {
     next: `/app/seasons/${slug}/card`,
   });
-  const card = await myCard(db, subject.userId, slug);
+  const league = await activeLeague();
+  const card = await myCard(db, subject.userId, slug, league?.id);
   if (!card) notFound();
-  const path = publicCardPath(card.seasonSlug, card.id);
+  const own = publicCardPath(card.seasonSlug, card.id);
+  const path = league ? leagueHref(league, own) : own;
   const url = absoluteUrl(siteOrigin(env.BETTER_AUTH_URL), path);
   const notice =
     query.shared === "1"

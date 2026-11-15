@@ -1,7 +1,8 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type {
   ScoreReportId,
   ScoreResponseId,
+  SeasonId,
   TeamSeasonId,
   UserId,
 } from "@/domain/ids";
@@ -11,9 +12,7 @@ import {
   type ScoreConfirmationPayload,
 } from "@/emails/score-confirmation";
 import type { ScoreDisputePayload } from "@/emails/score-dispute";
-import { user } from "../schema/auth";
-import { league } from "../schema/league";
-import { profile } from "../schema/profile";
+import { league, leagueMember } from "../schema/league";
 import { season } from "../schema/season";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
 import type { Db } from "./schedule";
@@ -139,13 +138,21 @@ function reporterName(
   return report.teamSeasonId === g.teamAId ? g.teamAName : g.teamBName;
 }
 
-/** Everyone who can set a disputed score: the league's admins and owners. */
-async function scoreAdmins(db: Db): Promise<UserId[]> {
+/**
+ * Everyone who can set a disputed score: the admins and owners of the
+ * game's own league (ADR 0048).
+ */
+async function scoreAdmins(db: Db, seasonId: SeasonId): Promise<UserId[]> {
   const rows = await db
-    .select({ id: user.id })
-    .from(profile)
-    .innerJoin(user, eq(profile.userId, user.id))
-    .where(inArray(profile.globalRole, ["admin", "owner"]));
+    .select({ id: leagueMember.userId })
+    .from(leagueMember)
+    .innerJoin(season, eq(season.leagueId, leagueMember.leagueId))
+    .where(
+      and(
+        eq(season.id, seasonId),
+        inArray(leagueMember.role, ["admin", "owner"]),
+      ),
+    );
   return rows.map((r) => r.id);
 }
 
@@ -169,7 +176,7 @@ export async function queueDisputeAlerts(
   },
 ): Promise<number> {
   const [admins, place] = await Promise.all([
-    scoreAdmins(db),
+    scoreAdmins(db, g.seasonId),
     seasonPlace(db, g),
   ]);
   if (admins.length === 0 || !place) return 0;

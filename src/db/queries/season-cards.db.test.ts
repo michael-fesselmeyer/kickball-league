@@ -340,7 +340,7 @@ describe("sharing a card", () => {
       await w.build();
       const mine = await myCard(db, w.alex.userId, w.season.slug);
       expect(await publicCard(db, mine!.id)).toBeNull();
-      expect(await publicCardIds(db)).not.toContainEqual(
+      expect(await publicCardIds(db, w.leagueId)).not.toContainEqual(
         expect.objectContaining({ id: mine!.id }),
       );
 
@@ -353,7 +353,7 @@ describe("sharing a card", () => {
       expect((await publicCard(db, mine!.id))?.stats.playerName).toBe(
         "Alex S.",
       );
-      expect(await publicCardIds(db)).toContainEqual({
+      expect(await publicCardIds(db, w.leagueId)).toContainEqual({
         id: mine!.id,
         seasonSlug: w.season.slug,
       });

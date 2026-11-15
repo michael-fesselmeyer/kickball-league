@@ -1,12 +1,16 @@
+import { DEFAULT_LEAGUE_SEGMENT } from "@/domain/league/paths";
 import { env } from "@/env";
 import { siteOrigin } from "@/lib/site";
 import { NO_TEAM, publicTeamParams } from "@/lib/static-params";
 import { teamWidgetPage } from "@/lib/widget/data";
 import { notFoundWidgetHtml, WIDGET_HEADERS } from "@/lib/widget/embed-html";
 
-/** Every public team's widget is prerendered, like its team page. */
+/**
+ * Every public team's widget is prerendered, like its team page: the
+ * default league's, whose pages are the site's own (ADR 0048).
+ */
 export async function generateStaticParams() {
-  return publicTeamParams();
+  return publicTeamParams({ params: { league: DEFAULT_LEAGUE_SEGMENT } });
 }
 
 /**

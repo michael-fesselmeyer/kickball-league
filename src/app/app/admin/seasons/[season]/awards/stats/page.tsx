@@ -7,6 +7,7 @@ import { AwardsBoardView } from "@/components/stat-awards";
 import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { activeLeagueId } from "@/lib/league/active";
 import { awardsBoard } from "@/db/queries/stat-awards";
 import {
   DEFAULT_MVP_WEIGHTS,
@@ -68,7 +69,7 @@ async function StatAwards({
   await requirePermission("awards.manage", {
     next: `/app/admin/seasons/${slug}/awards/stats`,
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const found = await awardsBoard(
     db,

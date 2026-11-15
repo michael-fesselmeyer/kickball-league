@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { CATEGORIES } from "@/domain/awards/awards";
 import { seasonChampion } from "@/domain/history/history";
-import type { SeasonCardId, SeasonId, UserId } from "@/domain/ids";
+import type { LeagueId, SeasonCardId, SeasonId, UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import {
   awardsWon,
@@ -457,36 +457,61 @@ export async function myCard(
   db: Db,
   userId: UserId,
   seasonSlug: string,
+  leagueId?: LeagueId | null,
 ): Promise<CardRow | null> {
   const [row] = await db
     .select(cardColumns)
     .from(seasonCard)
     .innerJoin(season, eq(season.id, seasonCard.seasonId))
-    .where(and(eq(seasonCard.userId, userId), eq(season.slug, seasonSlug)))
+    .where(
+      and(
+        eq(seasonCard.userId, userId),
+        eq(season.slug, seasonSlug),
+        // The season of that name in the league on show (ADR 0048).
+        leagueId ? eq(season.leagueId, leagueId) : undefined,
+      ),
+    )
     .limit(1);
   return current(row);
 }
 
 /** A player's cards, newest season first, for the signed-in home. */
-export async function myCards(db: Db, userId: UserId) {
+export async function myCards(
+  db: Db,
+  userId: UserId,
+  leagueId?: LeagueId | null,
+) {
   return db
     .select({ seasonSlug: season.slug, seasonName: season.name })
     .from(seasonCard)
     .innerJoin(season, eq(season.id, seasonCard.seasonId))
-    .where(eq(seasonCard.userId, userId))
+    .where(
+      and(
+        eq(seasonCard.userId, userId),
+        leagueId ? eq(season.leagueId, leagueId) : undefined,
+      ),
+    )
     .orderBy(desc(season.startsOn));
 }
 
-/** A card anyone can see: only one its player made public. */
+/** A card anyone can see: only one its player made public, in `leagueId` when given. */
 export async function publicCard(
   db: Db,
   id: SeasonCardId,
+  leagueId?: LeagueId,
 ): Promise<CardRow | null> {
   const [row] = await db
     .select(cardColumns)
     .from(seasonCard)
     .innerJoin(season, eq(season.id, seasonCard.seasonId))
-    .where(and(eq(seasonCard.id, id), eq(seasonCard.isPublic, true)))
+    .where(
+      and(
+        eq(seasonCard.id, id),
+        eq(seasonCard.isPublic, true),
+        // On a league's page, only that league's cards (ADR 0048).
+        leagueId ? eq(season.leagueId, leagueId) : undefined,
+      ),
+    )
     .limit(1);
   return current(row);
 }
@@ -494,9 +519,14 @@ export async function publicCard(
 /** The player makes their card's link public, or private again. */
 export async function setCardPublic(
   db: Db,
-  input: { userId: UserId; seasonSlug: string; isPublic: boolean },
+  input: {
+    userId: UserId;
+    seasonSlug: string;
+    leagueId?: LeagueId | null;
+    isPublic: boolean;
+  },
 ): Promise<Result<CardRow, "not_found">> {
-  const card = await myCard(db, input.userId, input.seasonSlug);
+  const card = await myCard(db, input.userId, input.seasonSlug, input.leagueId);
   if (!card) return err("not_found");
   await db
     .update(seasonCard)
@@ -508,10 +538,10 @@ export async function setCardPublic(
 }
 
 /** Every public card's id, to prerender their pages at build time. */
-export async function publicCardIds(db: Db) {
+export async function publicCardIds(db: Db, leagueId: LeagueId) {
   return db
     .select({ id: seasonCard.id, seasonSlug: season.slug })
     .from(seasonCard)
     .innerJoin(season, eq(season.id, seasonCard.seasonId))
-    .where(eq(seasonCard.isPublic, true));
+    .where(and(eq(season.leagueId, leagueId), eq(seasonCard.isPublic, true)));
 }

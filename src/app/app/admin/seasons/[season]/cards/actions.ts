@@ -3,6 +3,7 @@
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
+import { activeLeagueId } from "@/lib/league/active";
 import { buildSeasonCards } from "@/db/queries/season-cards";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { refreshSeasonCards } from "@/lib/public-cache";
@@ -18,7 +19,7 @@ export async function buildSeasonCardsAction(slug: string): Promise<void> {
   const subject = await requirePermissionToChange("season.manage", {
     next: pageOf(slug),
   });
-  const season = await seasonBySlug(db, slug);
+  const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const result = await buildSeasonCards(txDb, {
     seasonId: season.id,

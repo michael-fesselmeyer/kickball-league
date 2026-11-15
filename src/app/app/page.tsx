@@ -11,8 +11,6 @@ import { myGiveawayWins } from "@/db/queries/giveaways";
 import { publishedGamesFor } from "@/db/queries/public-schedule";
 import { gamesToReferee } from "@/db/queries/referees";
 import { myCurrentSeasons, openSeasons } from "@/db/queries/registration";
-import { currentLeague } from "@/db/queries/seasons";
-import { openSeasons } from "@/db/queries/registration";
 import { pickupsFor } from "@/db/queries/subs";
 import { surveysWaitingFor } from "@/db/queries/surveys";
 import { AllOutboxStatus } from "@/components/offline-outbox";
@@ -22,6 +20,7 @@ import { isGameDay } from "@/domain/lineup/access";
 import { newestTeamSeason } from "@/domain/schedule/public-game";
 import {
   type GameId,
+  type LeagueId,
   parseId,
   type TeamSeasonId,
   type UserId,
@@ -82,6 +81,8 @@ async function Account({ searchParams }: PageProps<"/app">) {
   })();
   // Whether pick'em is on, started early too.
   const pickemOn = featureEnabled("pickem");
+  // The league on show (ADR 0048): its seasons and cards only.
+  const onShow = parseId<LeagueId>(subject.leagueId);
   // League gear this person has or brings to a game (issue #286), early too.
   const gear = (async () => {
     const id = parseId<UserId>(subject.userId);
@@ -95,7 +96,7 @@ async function Account({ searchParams }: PageProps<"/app">) {
   // The seasons this person plays in, with their team, started early too.
   const seasons = (async () => {
     const id = parseId<UserId>(subject.userId);
-    return id ? myCurrentSeasons(db, id) : [];
+    return id ? myCurrentSeasons(db, id, onShow) : [];
   })();
   // Season surveys waiting for this player's answer, started early too.
   const surveys = (async () => {
@@ -105,7 +106,7 @@ async function Account({ searchParams }: PageProps<"/app">) {
   // End-of-season cards, newest season first, started early too.
   const cards = (async () => {
     const id = parseId<UserId>(subject.userId);
-    return id ? myCards(db, id) : [];
+    return id ? myCards(db, id, onShow) : [];
   })();
   const isAdmin = can(subject, "season.manage", {});
   const league = await activeLeague();
