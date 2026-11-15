@@ -16,7 +16,7 @@ import { hasReferee, liveGame } from "@/db/queries/live-scores";
 import { permitInfoFor } from "@/db/queries/permit-watch";
 import { GameClock } from "@/components/game-clock";
 import { kickoff } from "@/domain/schedule/format";
-import { can } from "@/domain/authz/permissions";
+import { can, hasAdminRole } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { lineFinal } from "@/domain/scores/live";
 import { scoreVersion } from "@/domain/scores/offline";
@@ -491,7 +491,7 @@ async function Score({
           ]}
           people={cardPeople}
           cards={cardList}
-          viewer={{ userId: subject.userId, isAdmin }}
+          viewer={{ userId: subject.userId, isAdmin: hasAdminRole(subject) }}
           now={now}
           canGive={mayGiveCard}
           timeZone={tz}
