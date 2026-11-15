@@ -1,6 +1,7 @@
 import {
   aliasedTable,
   and,
+  sql,
   asc,
   desc,
   eq,
@@ -18,7 +19,6 @@ import type {
 } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import {
-  checkScore,
   REASON_MAX,
   type ReporterRole,
   rulingKind,
@@ -29,7 +29,10 @@ import {
   type ScoreState,
 } from "@/domain/scores/scores";
 import { describeScore } from "@/emails/score-confirmation";
+import { sportRules } from "@/domain/sports/sports";
 import { user } from "../schema/auth";
+import { division, ruleSet } from "../schema/division";
+import { league } from "../schema/league";
 import { field, game, scoreReport, scoreResponse, slot } from "../schema/game";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
@@ -53,7 +56,13 @@ const teamB = aliasedTable(team, "team_b");
 const entryA = aliasedTable(teamSeason, "entry_a");
 const entryB = aliasedTable(teamSeason, "entry_b");
 
-/** A game with its teams and slot, for the score screen. */
+const firstRuleSet = aliasedTable(ruleSet, "first_rule_set");
+
+/**
+ * A game with its teams and slot, for the score screen, with its league's
+ * sport and the match length its rules set (ADR 0072): team A's division's
+ * rule set, else the league's first, else null for the sport's default.
+ */
 export async function gameForScoring(db: Db, gameId: GameId) {
   const [found] = await db
     .select({
@@ -74,15 +83,22 @@ export async function gameForScoring(db: Db, gameId: GameId) {
       ruledAt: game.ruledAt,
       startsAt: slot.startsAt,
       fieldName: field.name,
+      sport: league.sport,
+      bestOf: sql<
+        number | null
+      >`coalesce(${ruleSet.bestOf}, (select ${firstRuleSet.bestOf} from ${firstRuleSet} where ${firstRuleSet.leagueId} = ${season.leagueId} order by ${firstRuleSet.createdAt}, ${firstRuleSet.id} limit 1))`,
     })
     .from(game)
     .innerJoin(season, eq(game.seasonId, season.id))
+    .innerJoin(league, eq(season.leagueId, league.id))
     .innerJoin(entryA, eq(game.teamAId, entryA.id))
     .innerJoin(teamA, eq(entryA.teamId, teamA.id))
     .innerJoin(entryB, eq(game.teamBId, entryB.id))
     .innerJoin(teamB, eq(entryB.teamId, teamB.id))
     .leftJoin(slot, eq(game.slotId, slot.id))
     .leftJoin(field, eq(slot.fieldId, field.id))
+    .leftJoin(division, eq(entryA.divisionId, division.id))
+    .leftJoin(ruleSet, eq(division.ruleSetId, ruleSet.id))
     .where(eq(game.id, gameId));
   return found ?? null;
 }
@@ -356,8 +372,10 @@ export async function reportScore(
     input.role !== "admin"
   )
     return err("already_final");
-  const errors = checkScore(input.score, {
+  const rules = sportRules(g.sport);
+  const errors = rules.score.check(input.score, {
     tiesAllowed: g.kind !== "playoff",
+    bestOf: g.bestOf,
   });
   if (Object.keys(errors).length > 0) return err(errors);
   const forfeit =
@@ -377,6 +395,11 @@ export async function reportScore(
     })
   )
     return err("reason_needed");
+  // Only a called game of a sport with periods records how many were played.
+  const innings =
+    input.score.outcome === "called" && rules.score.period
+      ? input.score.inningsPlayed
+      : null;
   const [created] = await db
     .insert(scoreReport)
     .values({
@@ -387,8 +410,7 @@ export async function reportScore(
       outcome: input.score.outcome,
       scoreA: forfeit ? 0 : input.score.scoreA,
       scoreB: forfeit ? 0 : input.score.scoreB,
-      inningsPlayed:
-        input.score.outcome === "called" ? input.score.inningsPlayed : null,
+      inningsPlayed: innings,
       reason,
       callReason:
         input.score.outcome === "called"
@@ -437,8 +459,7 @@ export async function reportScore(
       outcome: input.score.outcome,
       scoreA: forfeit ? 0 : input.score.scoreA,
       scoreB: forfeit ? 0 : input.score.scoreB,
-      inningsPlayed:
-        input.score.outcome === "called" ? input.score.inningsPlayed : null,
+      inningsPlayed: innings,
     });
   return ok(state);
 }

@@ -20,6 +20,7 @@ import {
   minutesLate,
 } from "@/domain/gameday/daylight";
 import { gameForScoring, scoreHistory } from "@/db/queries/scores";
+import { sportRules } from "@/domain/sports/sports";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { fullWhen, kickoff } from "@/domain/schedule/format";
@@ -108,7 +109,8 @@ async function Live({
     delayedStarts(db, [gameId]),
     startOf(db, gameId),
   ]);
-  if (!g || !live) notFound();
+  // Live scoring counts half-innings: only a sport that has it (ADR 0072).
+  if (!g || !live || !sportRules(g.sport).score.liveScoring) notFound();
   const ctx = {
     game: {
       id: g.id,

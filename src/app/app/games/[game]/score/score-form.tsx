@@ -13,6 +13,7 @@ import {
 import { canSaveOffline, newKey, saveOffline } from "@/lib/pwa/score-outbox";
 import { submitScoreAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
+import { KICKBALL_FORM, type ScoreFormRules } from "@/domain/sports/sports";
 
 type Game = { id: string; teamAName: string; teamBName: string };
 
@@ -66,6 +67,7 @@ export function ScoreForm({
   asAdmin = false,
   reasonRequired = false,
   filled = null,
+  rules = KICKBALL_FORM,
 }: {
   g: Game;
   label: string;
@@ -80,6 +82,8 @@ export function ScoreForm({
   reasonRequired?: boolean;
   /** The runs kept live, to start the form from; null when none were. */
   filled?: { scoreA: number; scoreB: number } | null;
+  /** The sport's words and limits (ADR 0072); kickball's by default. */
+  rules?: ScoreFormRules;
 }) {
   const [key, setKey] = useState(clientId);
   const [problem, setProblem] = useState<string | null>(null);
@@ -97,7 +101,7 @@ export function ScoreForm({
     }
     const score = scoreFrom(form);
     if (!score) {
-      setProblem("Check the score: runs from 0 to 99.");
+      setProblem(`Check the score: ${rules.unit} from 0 to ${rules.max}.`);
       return;
     }
     const saved = await saveOffline({
@@ -156,7 +160,7 @@ export function ScoreForm({
               type="number"
               inputMode="numeric"
               min={0}
-              max={99}
+              max={rules.max}
               required={!forfeiting}
               defaultValue={filled?.[name]}
               className={input}
@@ -178,21 +182,26 @@ export function ScoreForm({
           <option value="forfeit_b">{g.teamBName} forfeited</option>
         </select>
       </label>
-      <label className="flex flex-col gap-1">
-        Complete innings, if called early
-        <input
-          name="inningsPlayed"
-          type="number"
-          inputMode="numeric"
-          min={4}
-          max={20}
-          className="w-24 rounded-md border border-border bg-surface px-2 py-1"
-        />
-        <span className="text-small text-text-muted">
-          A called game counts after 4 complete innings, with the score at the
-          last complete inning. For a forfeit, the runs are ignored.
-        </span>
-      </label>
+      {rules.period ? (
+        <label className="flex flex-col gap-1">
+          Complete {rules.period}, if called early
+          <input
+            name="inningsPlayed"
+            type="number"
+            inputMode="numeric"
+            min={rules.minPeriods}
+            max={20}
+            className="w-24 rounded-md border border-border bg-surface px-2 py-1"
+          />
+          <span className="text-small text-text-muted">
+            {rules.calledRule} For a forfeit, the {rules.unit} are ignored.
+          </span>
+        </label>
+      ) : (
+        <p className="text-small text-text-muted">
+          {rules.calledRule} For a forfeit, the {rules.unit} are ignored.
+        </p>
+      )}
       {asAdmin && (
         <label className="flex flex-col gap-1">
           {needsReason ? "Reason for the ruling" : "Reason (optional)"}

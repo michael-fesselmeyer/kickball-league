@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { defineTemplate } from "./define";
 import { renderEmail } from "./layout";
+import { calledNote } from "@/domain/sports/sports";
 
 /** A reported score waiting for a captain to confirm or dispute it. */
 export const scoreConfirmationPayload = z.object({
@@ -30,8 +31,7 @@ export function describeScore(
 ): string {
   if (r.outcome === "forfeit_a") return `${teamA} forfeited`;
   if (r.outcome === "forfeit_b") return `${teamB} forfeited`;
-  const called =
-    r.outcome === "called" ? ` (called after ${r.inningsPlayed} innings)` : "";
+  const called = r.outcome === "called" ? calledNote(r.inningsPlayed) : "";
   return `${teamA} ${r.scoreA}, ${teamB} ${r.scoreB}${called}`;
 }
 

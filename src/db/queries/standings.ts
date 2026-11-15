@@ -7,7 +7,9 @@ import {
   type StandingsRow,
   standings,
 } from "@/domain/standings/standings";
+import { sportRules } from "@/domain/sports/sports";
 import { game } from "../schema/game";
+import { league } from "../schema/league";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { type DivisionRow, seasonDivisions } from "./divisions";
@@ -26,8 +28,10 @@ async function standingsData(db: Db, seasonId: SeasonId) {
       .select({
         tiebreakers: season.tiebreakers,
         crossoversCount: season.crossoversCount,
+        sport: league.sport,
       })
       .from(season)
+      .innerJoin(league, eq(season.leagueId, league.id))
       .where(eq(season.id, seasonId)),
     db
       .select({
@@ -85,8 +89,12 @@ async function standingsData(db: Db, seasonId: SeasonId) {
       },
     ];
   });
+  // The sport's cap on a game's difference: 10 runs for kickball, none for
+  // sets (ADR 0072).
+  const sport = settings?.sport ?? "kickball";
   const options = {
     seed: seasonId,
+    differenceCap: sportRules(sport).score.differenceCap,
     ...(settings ? { tiebreakers: settings.tiebreakers } : {}),
   };
   const teams = new Map<string, StandingsTeam>(
@@ -101,6 +109,7 @@ async function standingsData(db: Db, seasonId: SeasonId) {
     options,
     crossoversCount: settings?.crossoversCount ?? true,
     teams,
+    sport,
   };
 }
 
@@ -141,6 +150,8 @@ export async function seasonDivisionStandings(
   tables: DivisionTable[];
   teams: Map<string, StandingsTeam>;
   crossoversCount: boolean;
+  /** The league's sport, whose words the table uses (ADR 0072). */
+  sport: string;
 }> {
   const [data, divisions] = await Promise.all([
     standingsData(db, seasonId),
@@ -159,5 +170,10 @@ export async function seasonDivisionStandings(
     division: byId.get(table.id) ?? null,
     rows: table.rows,
   }));
-  return { tables, teams: data.teams, crossoversCount: data.crossoversCount };
+  return {
+    tables,
+    teams: data.teams,
+    crossoversCount: data.crossoversCount,
+    sport: data.sport,
+  };
 }
