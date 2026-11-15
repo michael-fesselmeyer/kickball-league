@@ -28,6 +28,7 @@ export const LEAGUE_PAGE_ROOTS = [
   "records",
   "friends",
   "rules",
+  "fields",
 ] as const;
 
 const ROOTS: ReadonlySet<string> = new Set(LEAGUE_PAGE_ROOTS);

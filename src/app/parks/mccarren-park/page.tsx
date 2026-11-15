@@ -76,7 +76,11 @@ export default function McCarrenParkPage() {
         </address>
         <p>
           The park has several ball fields. Your game page names yours, so check
-          it before you head out.
+          it before you head out.{" "}
+          <Link href="/fields/mccarren-park" className="underline">
+            See who has which field today
+          </Link>
+          .
         </p>
         <p>
           <a

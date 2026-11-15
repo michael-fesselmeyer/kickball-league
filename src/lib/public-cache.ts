@@ -121,6 +121,24 @@ export const SEASON_PAGE_ROUTES = [
 const segmentOf = (league: LeagueRef | null): string =>
   !league || league.isDefault ? DEFAULT_LEAGUE_SEGMENT : league.slug;
 
+/** Every park page: which fields the league holds there, and when. */
+export const PARKS_TAG = "parks";
+export const parkTag = (slug: string) => `park:${slug}`;
+
+/** The park page's route, under each league (ADR 0048). */
+const PARK_ROUTE = "/l/[league]/fields/[park]";
+
+/**
+ * From a Server Action: the park pages show a change to a permit, a field or
+ * a park, or a season turning public, on their next request. As with the
+ * other refreshes, the route is expired by path too, so its prerendered
+ * pages don't serve the windows they were built with.
+ */
+export function refreshParkPages(): void {
+  updateTag(PARKS_TAG);
+  revalidatePath(PARK_ROUTE, "page");
+}
+
 /** The list of seasons on /seasons. */
 export const SEASONS_TAG = "seasons";
 
@@ -138,6 +156,8 @@ export function refreshSeasonPages(seasonId: string): void {
   // The season list (/seasons) shows every season's name, dates and status,
   // one per league (ADR 0048).
   updateTag(SEASONS_TAG);
+  // A season turning public, or draft again, changes which permits show.
+  refreshParkPages();
   revalidatePath("/l/[league]/seasons", "page");
   for (const route of SEASON_PAGE_ROUTES) revalidatePath(route, "layout");
 }

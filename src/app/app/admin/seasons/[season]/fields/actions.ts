@@ -25,6 +25,7 @@ import { parseId } from "@/domain/ids";
 import { weeklyDates } from "@/domain/time/zoned";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { activeLeagueId } from "@/lib/league/active";
+import { refreshParkPages } from "@/lib/public-cache";
 import { requireInLeague } from "@/lib/league/guard";
 
 const pageFor = (slug: string) => `/app/admin/seasons/${slug}/fields`;
@@ -77,6 +78,7 @@ export async function createVenue(slug: string, form: FormData) {
     ),
   );
   if (!result.ok) back(page, "venues", { error: `venue_${result.error}` });
+  refreshParkPages();
   back(page, "venues", { notice: "venue_added" });
 }
 
@@ -97,6 +99,7 @@ export async function createField(slug: string, form: FormData) {
     ),
   );
   if (!result.ok) back(page, "venues", { error: `field_${result.error}` });
+  refreshParkPages();
   back(page, "venues", { notice: "field_added" });
 }
 
@@ -138,6 +141,7 @@ export async function createPermits(slug: string, form: FormData) {
     ),
   );
   if (!result.ok) back(page, "permits", { error: `permit_${result.error}` });
+  refreshParkPages();
   back(page, "permits", { notice: "permits_added", count: result.value });
 }
 
@@ -157,6 +161,7 @@ export async function changePermitStatus(
     setPermitStatus(tx, { seasonId: season.id, permitId, status }, actor),
   );
   if (!result.ok) back(page, "permits", { error: `permit_${result.error}` });
+  refreshParkPages();
   back(page, "permits", { notice: "permit_updated" });
 }
 
@@ -169,6 +174,7 @@ export async function deletePermit(slug: string, rawPermitId: string) {
     removePermitWindow(tx, { seasonId: season.id, permitId }, actor),
   );
   if (!result.ok) back(page, "permits", { error: `permit_${result.error}` });
+  refreshParkPages();
   back(page, "permits", { notice: "permit_deleted" });
 }
 
