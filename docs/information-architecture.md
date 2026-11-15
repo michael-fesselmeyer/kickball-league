@@ -70,7 +70,8 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 
 /app                                Signed-in home: next game, links to your team and its schedule, RSVP, what you owe, alerts, any giveaway you won, any season survey waiting for my answer, and the league gear you have or bring ("You have Kit A: bring it to McCarren Park, Field 2 by 6:30 PM") with one-tap "I picked it up", "I handed Kit A to Sam", "Got it" or "It's back home", and the league switcher for anyone in more than one league
 ├── league/[league]                 Shows that league in the app, then goes on to ?next= (the switcher, and the way in from a league's public pages)
-├── referee                         Refs: tick the game times you can work for each season (a time you already ref is fixed), and your games worked, what you've earned, payments and the balance
+├── referee                         Refs: tick the game times you can work for each season (a time you already ref is fixed), and your games worked, what you've earned, payments and the balance; "Can't make it?" drops a game still to come, with a reason
+│   └── take/[game]                 "Take it": a game with no ref, from the message refs get; the first ref to tap gets it, anyone after sees it's taken
 ├── account                         Profile, weeks you'll miss for each season still to come, email, push and message-limit settings, waivers, payments, league credit and its history, and the referral link (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
@@ -143,7 +144,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 │       └── report                  Weekly numbers: check-ins, players, teams and deals used by week
 └── admin/
     ├── (dashboard)                 Next game day: weather, games, missing scores, alerts; sign-up rate per team, lowest first, with how many players each still needs
-    ├── today                       Game-day command center, phone first: today (or the next game day, or ?date=) with every game's field, ref and check-in, score state (not started, playing, live with runs and inning, reported, final, called off, missing), the weather and, today or ahead, the rain-out decision card, and one tap to a rain-out, an announcement or ref assignments; refreshes itself every 10 seconds
+    ├── today                       Game-day command center, phone first: today (or the next game day, or ?date=) with every game's field, ref and check-in, score state (not started, playing, live with runs and inning, reported, final, called off, missing), the weather and, today or ahead, the rain-out decision card, and one tap to a rain-out, an announcement or ref assignments; above the games, every game starting within a day with no ref, each linking to the assigner; refreshes itself every 10 seconds
     │   └── state.json              The same state as JSON for the screen to poll; admins only, never cached
     │                               Below the games, the day's league gear: each kit, who brings it to which field by when, and whether they have it yet
     ├── equipment/                  League gear: where every kit is right now (with whom, on its way, or at home), its next game and open missing-items reports; add a kit

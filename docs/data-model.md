@@ -1401,6 +1401,8 @@ The ref pool, availability, assigner and pay sheet follow [ADR 0053](adr/0053-re
 - `referee_pay_rate` is the season's fee per game worked. A game is worked when its assignment is `accepted` or `completed` and the ref checked in or reported its score as its ref; owed is computed, never stored.
 - `referee_payout` is money an owner or admin marked as paid. Recording one adds an `expense` in the `refs` category to the season's books, whose note names the method, not the ref. Payouts hold on to their season and ref (`restrict`); deleting an account keeps them, pointing at the anonymized user, and removes the person's pool row and times.
 
+A ref drops a game they can't make until it starts: their assignment becomes `declined`, and the reason is in the `referee.drop` audit row. The first ref to take a game with no ref gets an `accepted` assignment they created themselves (`referee.take`); the one-live-assignment index means a second can't ([ADR 0054](adr/0054-first-ref-to-take-a-game-gets-it.md)).
+
 `checked_in_at` is set when the ref taps "I'm at the field" on game day, which checks them in to every game they referee that day at once, or when an admin marks them as there (audited as `referee.check_in`). The first time stays; the game-day command center reads it.
 
 ### 2.7 Platform
