@@ -72,22 +72,38 @@ export async function insert(
 }
 
 /**
+ * How many statements the test's connection has sent so far, for tests that
+ * hold a screen to a fixed number of queries however many rows it shows.
+ */
+export type QueriesSent = () => number;
+
+/**
  * Runs `body` with a Drizzle transaction that is always rolled back. Query
  * functions that open their own transaction get a savepoint inside it.
  */
 export async function inRolledBackDb(
-  body: (db: Db) => Promise<void>,
+  body: (db: Db, queriesSent: QueriesSent) => Promise<void>,
 ): Promise<void> {
   const client: PoolClient = await pool.connect();
+  let sent = 0;
+  const query = client.query.bind(client);
+  // Counts every statement on this connection, then sends it as before.
+  const counting = ((...args: Parameters<typeof query>) => {
+    sent++;
+    return query(...args);
+  }) as typeof client.query;
+  client.query = counting;
   const db = drizzle({ client, schema, casing: "snake_case" });
   try {
     await db.transaction(async (tx) => {
-      await body(tx);
+      await body(tx, () => sent);
       tx.rollback();
     });
   } catch (error) {
     if (!(error instanceof TransactionRollbackError)) throw error;
   } finally {
+    // The pool's connection goes back with its own query method.
+    Reflect.deleteProperty(client, "query");
     client.release();
   }
 }
