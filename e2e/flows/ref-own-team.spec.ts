@@ -31,9 +31,12 @@ test.describe.serial("a ref on one of the teams", () => {
       .getByLabel(/^Referee's email for/)
       .fill("casey.captain@example.test");
     await game.getByRole("button", { name: "Assign" }).click();
-    await expect(admin.getByRole("alert")).toContainText(
-      "They play for one of those teams",
-    );
+    // Next's empty route announcer is an alert too, so pick ours by its text.
+    await expect(
+      admin
+        .getByRole("alert")
+        .filter({ hasText: "They play for one of those teams" }),
+    ).toBeVisible();
     const again = admin.locator(`#game-${today.gameId}`);
     const override = again.getByLabel(/They play in this game/);
     await expect(override).not.toBeChecked();
