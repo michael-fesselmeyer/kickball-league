@@ -87,6 +87,8 @@ What works on `main` today. The [roadmap](docs/roadmap.md) lists what comes next
 **Friends of the league**
 
 - A public, static directory of the other local leagues players also play in (softball, soccer, pool, tabletop games and more), grouped by activity, with each league's area, a short description, its logo and a link to its own site. The page carries `ItemList` structured data.
+- Clubs run by our players: a hobby club or meetup one of the league's players runs is listed first, under "Run by our players". An admin can feature one, which also shows a small card for it on the public events page.
+- Click counts: each entry counts how many people followed its link out, per day, with nothing about who they were (the link's `ping` attribute, so no script and no redirect). Admins see the last 30 days and the total, to show a club what the league's promotion is worth when they agree a cross-promotion or a fee. Any agreement and payment happen outside the app; owners record the income in the books as usual.
 - A "Link to us" section with the league's address and a copyable HTML snippet, so partner leagues can link back; entries that do show "Links to us".
 - Admins add, edit and remove entries. Website links must be https on a public host name, and are checked on the server. An optional logo is shrunk on the server to one small WebP and kept in Postgres, within a per-logo and total cap. Every change is audited.
 

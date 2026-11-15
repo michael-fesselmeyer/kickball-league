@@ -29,14 +29,14 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── records                         League records across every season: most runs, biggest win, longest streaks
 ├── rules/                          Searchable rulebook with a link for every rule number
 ├── parks/[park]                    Park page: map, fields, directions, nearby home bar
-├── events/                         Upcoming and recent public events, and calendar subscribe links (members' and team events never appear here)
+├── events/                         Upcoming and recent public events, featured clubs run by our players, and calendar subscribe links (members' and team events never appear here)
 │   ├── calendar.ics                Events calendar feed: every public event, theme weeks as all-day entries
 │   ├── personal/[token]/calendar.ics  A member's private feed: every event they can see; the signed link is the key, reset from /app/events
 │   └── [event]                     Public event page: when, where, the ticket price, spots left or the waitlist, an RSVP or "Get a ticket" button or the invite ("RSVP on partiful.com"), share and save-the-date links, tagged Instagram photos; once it has started, players' approved photos and a link to share one
 │       └── calendar.ics            One public event as a calendar file
 ├── sponsors/                       Sponsors, home bar first, with the team of the week
 │   └── [sponsor]                   Sponsor page: deals with when they were confirmed, the team of the week, how to check in
-├── friends                         Friends of the league: other local leagues grouped by activity, each linking to its own site, and a "Link to us" snippet
+├── friends                         Friends of the league: clubs run by our players first, then other local leagues grouped by activity, each linking to its own site (clicks counted, never who), and a "Link to us" snippet
 ├── help/                           Help center: short how-tos by role and a search box that filters them as you type (every how-to is listed without JavaScript too)
 │   └── [role]                      One role's how-tos (player, captain, ref, admin, owner), each under its own anchor; the matching screens link here with "Help"
 ├── widget                          Get the schedule widget: the iframe snippet for the league and for each team, with a live preview
