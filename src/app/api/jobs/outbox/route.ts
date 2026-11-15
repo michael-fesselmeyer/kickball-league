@@ -1,5 +1,6 @@
 import { db } from "@/db/client";
 import { purgeConcernEmails } from "@/db/queries/concerns";
+import { purgeInterestEmails } from "@/db/queries/interest";
 import { pruneRateLimits } from "@/db/queries/rate-limit";
 import { env } from "@/env";
 import { refuseUnlessCron } from "@/lib/jobs";
@@ -20,6 +21,7 @@ export async function GET(request: Request): Promise<Response> {
   if (frozen) return frozen;
   const prunedRateLimits = await pruneRateLimits(db, new Date());
   const purgedConcernEmails = await purgeConcernEmails(db, new Date());
+  const purgedInterestEmails = await purgeInterestEmails(db, new Date());
   const result = await drainOutboxNow();
   if (!result)
     return Response.json(
@@ -29,5 +31,10 @@ export async function GET(request: Request): Promise<Response> {
       },
       { status: 503 },
     );
-  return Response.json({ ...result, prunedRateLimits, purgedConcernEmails });
+  return Response.json({
+    ...result,
+    prunedRateLimits,
+    purgedConcernEmails,
+    purgedInterestEmails,
+  });
 }

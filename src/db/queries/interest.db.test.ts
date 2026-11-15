@@ -1,6 +1,6 @@
 import { and, eq, like } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { InterestFormId, LeagueId, UserId } from "@/domain/ids";
+import type { InterestFormId } from "@/domain/ids";
 import {
   type AnswerInput,
   type FormInput,
@@ -87,9 +87,9 @@ async function world(
     .from(interestOption)
     .where(eq(interestOption.formId, opened.value));
   return {
-    leagueId: first.id as LeagueId,
-    otherLeagueId: second.id as LeagueId,
-    admin: admin.id as UserId,
+    leagueId: first.id,
+    otherLeagueId: second.id,
+    admin: admin.id,
     formId: opened.value,
     options: rows,
   };
@@ -466,10 +466,11 @@ describe("options", () => {
   it("keeps the last option even with no answers", () =>
     inRolledBackDb(async (db) => {
       const w = await world(db, [FORT]);
-      const [only] = w.options;
+      const only = w.options[0];
+      if (!only) throw new Error("no option");
       expect(
         await removeOption(db, {
-          optionId: only?.id as never,
+          optionId: only.id,
           leagueId: w.leagueId,
           actorId: w.admin,
         }),

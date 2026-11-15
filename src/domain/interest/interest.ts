@@ -142,8 +142,8 @@ export function parseOption(
   if (park.length > MAX_PARK) return err("park");
   if (raw.night !== "" && !isKey(NIGHTS, raw.night)) return err("night");
   if (raw.format !== "" && !isKey(FORMATS, raw.format)) return err("format");
-  const night = raw.night === "" ? null : (raw.night as Night);
-  const format = raw.format === "" ? null : (raw.format as Format);
+  const night = raw.night === "" ? null : raw.night;
+  const format = raw.format === "" ? null : raw.format;
   if (park === "" && !night && !format) return err("empty");
   return ok({ park: park || null, night, format });
 }

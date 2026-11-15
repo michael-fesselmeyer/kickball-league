@@ -550,7 +550,9 @@ export async function saveAnswer(
       .for("share", { of: interestForm });
     if (!form) return err("not_found");
     if (form.status !== "open") return err("closed");
-    const chosen = input.answer.choices.map((c) => c.optionId);
+    const chosen = input.answer.choices.map(
+      (c) => c.optionId as InterestOptionId,
+    );
     const options =
       chosen.length === 0
         ? []
