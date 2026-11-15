@@ -46,6 +46,15 @@ const STRIPE_CONTAINER = "kb-demo-stripe-mock";
 const APP_PORT = 4100;
 const PG_PORT = 55432;
 const STRIPE_PORT = 12112;
+/** Pages visited once after starting, so their first view in the demo is quick. */
+const WARM_UP = [
+  "/",
+  "/seasons/fall-2026/schedule",
+  "/seasons/fall-2026/standings",
+  "/seasons/spring-2027",
+  "/events",
+  "/sign-in",
+];
 
 let step = 0;
 const say = (line) => console.info(`\n[demo ${++step}] ${line}`);
@@ -436,6 +445,14 @@ async function main() {
   if (!(await waitFor(() => answers(port), 60)))
     fail(["The app did not start within a minute. The output above says why."]);
   const url = `http://localhost:${port}`;
+  // The first visit to a page after starting loads its code and fills its
+  // caches; do that now, so nothing is slow in front of the league.
+  note("Warming up the pages.");
+  for (const page of WARM_UP)
+    await fetch(`${url}${page}`, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(60_000),
+    }).catch(() => undefined);
   console.info(
     [
       "",
