@@ -146,8 +146,10 @@ export const SEASONS_TAG = "seasons";
  * From a Server Action: the league history's shirt archive after a team's
  * shirt design changed. Only the history page reads it, so only it expires.
  */
-export function refreshShirtArchive(seasonId: string): void {
+export function refreshShirtArchive(league: LeagueRef, seasonId: string): void {
   updateTag(seasonTag(seasonId));
+  // The league's own page right away, and every league's on its next visit.
+  revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/history`);
   revalidatePath("/l/[league]/history", "page");
 }
 
