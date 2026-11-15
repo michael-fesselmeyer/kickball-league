@@ -16,12 +16,19 @@ import {
 import { localDate } from "@/domain/books/ledger-csv";
 import { money } from "@/domain/books/ledger";
 import { parseId, type SeasonId, type UserId } from "@/domain/ids";
+import { DROP_REASON_MAX } from "@/domain/referees/cover";
 import { PAYOUT_METHOD_LABELS, paySheet } from "@/domain/referees/pay";
 import { requirePermission } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";
-import { saveAvailabilityAction } from "./actions";
+import { dropGameAction, saveAvailabilityAction } from "./actions";
 
 export const metadata: Metadata = { title: "Reffing" };
+
+const ERRORS: Record<string, string> = {
+  reason: `Say why in a few words (up to ${DROP_REASON_MAX} characters).`,
+  not_yours: "That game isn't yours to drop any more.",
+  started: "That game has started, so it can't be dropped here. Tell an admin.",
+};
 
 export default function RefereePage(props: PageProps<"/app/referee">) {
   return (
@@ -60,6 +67,19 @@ async function Referee({ searchParams }: PageProps<"/app/referee">) {
           those. You&rsquo;ll never be asked to ref a game your own team plays.
         </p>
       </header>
+      {typeof query.dropped === "string" && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          You&rsquo;re off that game.{" "}
+          {query.dropped === "0"
+            ? "Admins can see it needs a ref."
+            : `We asked ${query.dropped === "1" ? "1 other ref" : `${query.dropped} other refs`} to take it.`}
+        </p>
+      )}
+      {typeof query.error === "string" && ERRORS[query.error] && (
+        <p role="alert" className="rounded-lg border border-danger p-3">
+          {ERRORS[query.error]}
+        </p>
+      )}
       {query.saved && (
         <p role="status" className="rounded-lg border border-success p-3">
           Saved. Thanks!
@@ -241,21 +261,56 @@ async function SeasonBlock({
             {games.map((g) => (
               <li
                 key={g.gameId}
-                className="flex items-center justify-between gap-2 border-t border-border py-2"
+                id={`game-${g.gameId}`}
+                className="flex flex-col gap-2 border-t border-border py-2"
               >
-                <span>
-                  {g.teamAName} vs {g.teamBName}
-                  <span className="block text-small text-text-muted">
-                    {dayLabel(g.startsAt)}, {time(g.startsAt)} · {g.fieldName}
+                <div className="flex items-center justify-between gap-2">
+                  <span>
+                    {g.teamAName} vs {g.teamBName}
+                    <span className="block text-small text-text-muted">
+                      {dayLabel(g.startsAt)}, {time(g.startsAt)} · {g.fieldName}
+                    </span>
                   </span>
-                </span>
-                <span className="text-small">
-                  {g.worked
-                    ? "Worked"
-                    : g.startsAt > now
-                      ? "Coming up"
-                      : "Not checked in"}
-                </span>
+                  <span className="text-small">
+                    {g.worked
+                      ? "Worked"
+                      : g.startsAt > now
+                        ? "Coming up"
+                        : "Not checked in"}
+                  </span>
+                </div>
+                {!g.worked && g.startsAt > now && (
+                  <details>
+                    <summary className="inline-flex min-h-11 cursor-pointer items-center underline">
+                      Can&rsquo;t make it?
+                      <span className="sr-only">
+                        {" "}
+                        {g.teamAName} vs {g.teamBName}
+                      </span>
+                    </summary>
+                    <form
+                      action={dropGameAction.bind(null, g.gameId)}
+                      className="flex flex-col gap-2 pt-1"
+                    >
+                      <label className="flex flex-col gap-1 text-small">
+                        Why? Admins see this.
+                        <input
+                          name="reason"
+                          required
+                          maxLength={DROP_REASON_MAX}
+                          className="min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body"
+                        />
+                      </label>
+                      <p className="text-small text-text-muted">
+                        If the game is within a day, the league&rsquo;s other
+                        refs who are free then are asked to take it.
+                      </p>
+                      <SubmitButton className="btn self-start btn-secondary">
+                        Drop this game
+                      </SubmitButton>
+                    </form>
+                  </details>
+                )}
               </li>
             ))}
           </ul>
