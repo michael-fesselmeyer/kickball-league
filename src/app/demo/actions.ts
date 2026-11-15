@@ -4,10 +4,9 @@ import { isAPIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { can } from "@/domain/authz/permissions";
 import { auth } from "@/lib/auth";
 import {
-  currentSubject,
+  permissionToChange,
   requirePermissionToChange,
 } from "@/lib/auth/permission";
 import { demoStatus } from "@/lib/demo/guard";
@@ -41,8 +40,11 @@ export async function viewAs(formData: FormData): Promise<void> {
  */
 export async function demoTools(): Promise<{ mail: boolean; reset: boolean }> {
   if (!demoStatus(process.env).on) return { mail: false, reset: false };
-  const admin = can(await currentSubject(), "demo.manage", {});
-  return { mail: admin, reset: admin && localResetAvailable() };
+  // An admin may read the demo's mail even while the site is frozen; the
+  // reset changes data, so it waits until the site is open again.
+  const allowed = await permissionToChange("demo.manage");
+  const admin = allowed.ok || allowed.error === "frozen";
+  return { mail: admin, reset: allowed.ok && localResetAvailable() };
 }
 
 /**
