@@ -20,20 +20,20 @@ A failed row passes again only after its fix merges and the row is run again; th
 |---|---|---|---|---|
 | M5-5, M6-8 | The signed-in home links to a season only while its registration is open, so a rostered player, captain or ref in a running season has no link to their team, next game or RSVPs ([before](screenshots/player-home-no-team.jpg), [after](screenshots/player-home-your-season.png)) | [#314](https://github.com/michael-fesselmeyer/kickball-league/issues/314) | [#340](https://github.com/michael-fesselmeyer/kickball-league/pull/340), open | Checked on the PR's build; re-run after merge |
 | M5-2 | A disputed score queues no message to admins, and the dashboard shows it only the next day | [#315](https://github.com/michael-fesselmeyer/kickball-league/issues/315) | [#338](https://github.com/michael-fesselmeyer/kickball-league/pull/338), open | After merge |
-| M6-7 | No JSON-LD on team and game pages; no team or schedule pages in the sitemap | [#316](https://github.com/michael-fesselmeyer/kickball-league/issues/316) | [#339](https://github.com/michael-fesselmeyer/kickball-league/pull/339), merged | Passed |
+| M6-7 | No JSON-LD on team and game pages; no team or schedule pages in the sitemap | [#316](https://github.com/michael-fesselmeyer/kickball-league/issues/316) | [#339](https://github.com/michael-fesselmeyer/kickball-league/pull/339), merged | Passed on a build of `main` at `2d7d6aa8` |
 | S9-3 | No one-click unsubscribe per topic and no `List-Unsubscribe` header; announcements on by default | [#331](https://github.com/michael-fesselmeyer/kickball-league/issues/331) | [#342](https://github.com/michael-fesselmeyer/kickball-league/pull/342), open (the unsubscribe; the announcement default waits for the owners) | After merge |
 | M3-2 | "Cut slots" after adding playoff hours cancelled slots holding final games | [#332](https://github.com/michael-fesselmeyer/kickball-league/issues/332) | [#341](https://github.com/michael-fesselmeyer/kickball-league/pull/341), open | After merge |
-| M3-1 | A new season has no waiver, and registration opens anyway, stranding players before payment | [#345](https://github.com/michael-fesselmeyer/kickball-league/issues/345) | Not started | – |
-| Seed | Fall 2026's dates are fixed, so after Oct 27 the demo has no upcoming games | [#317](https://github.com/michael-fesselmeyer/kickball-league/issues/317) | Not started | – |
+| M3-1 | A new season has no waiver, and registration opens anyway, stranding players before payment | [#345](https://github.com/michael-fesselmeyer/kickball-league/issues/345) | [#348](https://github.com/michael-fesselmeyer/kickball-league/pull/348), open | After merge |
+| Seed | Fall 2026's dates are fixed, so after Oct 27 the demo has no upcoming games | [#317](https://github.com/michael-fesselmeyer/kickball-league/issues/317) | [#351](https://github.com/michael-fesselmeyer/kickball-league/pull/351), open (only `demo:reset` moves the league; `npm run seed` keeps its calendar) | After merge |
 
 ### UX issues
 
 Things that work but would confuse a volunteer:
 
-- [#333](https://github.com/michael-fesselmeyer/kickball-league/issues/333): no link from the home page or footer to schedules, standings or teams, and no list of seasons. Not started.
+- [#333](https://github.com/michael-fesselmeyer/kickball-league/issues/333): no link from the home page or footer to schedules, standings or teams, and no list of seasons. Fix: [#349](https://github.com/michael-fesselmeyer/kickball-league/pull/349), open.
 - [#334](https://github.com/michael-fesselmeyer/kickball-league/issues/334): the minimum age reads 18 on the profile and the sample waiver, 21 at registration. Fix: [#343](https://github.com/michael-fesselmeyer/kickball-league/pull/343), open.
 - [#335](https://github.com/michael-fesselmeyer/kickball-league/issues/335): no next step after signing the waiver. Fix: [#344](https://github.com/michael-fesselmeyer/kickball-league/pull/344), open. (Saving the quiz already returns to the season page; the first report misread it.)
-- [#336](https://github.com/michael-fesselmeyer/kickball-league/issues/336): admin copy (raw audit diffs, an ISO date, "Make a player", per-game check-in buttons that check in the whole day, a new-team card that contradicts itself, a 115-name vote dropdown, a full-pay team's invite text). Not started.
+- [#336](https://github.com/michael-fesselmeyer/kickball-league/issues/336): admin copy (raw audit diffs, an ISO date, "Make a player", per-game check-in buttons that check in the whole day, a new-team card that contradicts itself, a 115-name vote dropdown, a full-pay team's invite text). Fix: [#350](https://github.com/michael-fesselmeyer/kickball-league/pull/350), open.
 
 Also seen, not filed: the demo seed has no emergency contacts on file and no registrations for past seasons (the owner dashboard shows 0 members for them); Summer 2026 has no bracket.
 
@@ -87,7 +87,7 @@ Also seen, not filed: the demo seed has no emergency contacts on file and no reg
 | M6-4 | Team announcement | pass | Team announcement: "Sent to 16 people. Anyone who turned announcements off is skipped." |
 | M6-5 | Rulebook | n/a | /rules not built: the rulebook text stays out until the league agrees (AGENTS.md) |
 | M6-6 | Content pages | pass | Home, About, FAQ, park page load at 375 px with no horizontal scroll |
-| M6-7 | SEO | pass | Sitemap and robots fine; JSON-LD on home, park, events, sponsors, FAQ, article; team and game pages have none (teamJsonLd/gameJsonLd built and tested but never rendered); sitemap has no team, schedule or game pages (#316) · Re-run after #339 merged: team pages carry SportsTeam and game pages SportsEvent JSON-LD; the sitemap lists 11 team pages and 5 schedules |
+| M6-7 | SEO | pass | Sitemap and robots fine; JSON-LD on home, park, events, sponsors, FAQ, article; team and game pages have none (teamJsonLd/gameJsonLd built and tested but never rendered); sitemap has no team, schedule or game pages (#316) · Re-run after #339 merged: team pages carry SportsTeam and game pages SportsEvent JSON-LD; the sitemap lists 11 team pages and 5 schedules. Confirmed again on a build of main at 2d7d6aa8 |
 | M6-8 | Admin dashboard | pass | Admin home: next game day (games, refs, forfeit risk), registrations, payments and waivers by team, sign-up rate |
 | M6-9 | Demo | pass | Demo banner on every page with one-tap Player, Captain, Ref, Admin |
 | M6-10 | Accessibility and speed | pass | Lighthouse shards and axe checks green in CI on main |
