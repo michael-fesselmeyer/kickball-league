@@ -1,4 +1,4 @@
-# ADR 0063: A versioned code of conduct, accepted at the waiver step
+# ADR 0074: A versioned code of conduct, accepted at the waiver step
 
 - Status: accepted
 - Date: 2026-11-15
