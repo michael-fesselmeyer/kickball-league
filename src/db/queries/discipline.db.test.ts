@@ -731,6 +731,43 @@ describe("ejections from the live game screen", () => {
       expect(await earlierEjections(db, [], latest)).toEqual(new Map());
     });
   });
+
+  it("lists only ejections from the report's own league", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const player = w.aces.players[0]!;
+      const elsewhere = await messagingWorld(db);
+      const theirs = await elsewhere.gameEnding(days(-3));
+      // The same person, ejected in another league's game.
+      const [other] = await db
+        .insert(incident)
+        .values({
+          gameId: theirs.gameId,
+          kind: "ejection",
+          details: "Another league's report.",
+          reporterRole: "referee",
+          reportedAt: days(-3),
+        })
+        .returning({ id: incident.id });
+      await db
+        .insert(incidentPerson)
+        .values({ incidentId: other!.id, userId: player.userId });
+      const ours = filed(await w.file("ejection", [player.userId]));
+      const latest = filed(await w.file("ejection", [player.userId]));
+      const history = await earlierEjections(db, [player.userId], latest);
+      expect(history.get(player.userId)?.map((e) => e.incidentId)).toEqual([
+        ours,
+      ]);
+      // Any report in this league leaves out the other league's.
+      const there = await earlierEjections(db, [player.userId], ours);
+      expect(there.get(player.userId)?.map((e) => e.incidentId)).toEqual([
+        latest,
+      ]);
+      // And reviewing the other league's report shows none of this league's.
+      const fromThere = await earlierEjections(db, [player.userId], other!.id);
+      expect(fromThere.has(player.userId)).toBe(false);
+    });
+  });
 });
 
 describe("a full season for the outside-alcohol suggestion", () => {
