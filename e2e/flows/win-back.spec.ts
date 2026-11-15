@@ -91,7 +91,7 @@ test("captains and players never see the win-back list", async ({
   const page = await pageAs(browser, "Captain");
   await page.goto(`/app/admin/seasons/${SLUG}/win-back`);
   await expect(
-    page.getByRole("heading", { name: "This page could not be found." }),
+    page.getByRole("heading", { name: "We can't find that page" }),
   ).toBeVisible();
   await page.context().close();
 });
