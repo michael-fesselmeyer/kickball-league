@@ -331,9 +331,9 @@ export const refereeAssignmentStatus = pgEnum("referee_assignment_status", [
 ]);
 
 /**
- * Who referees a game (docs/data-model.md, section 2.6). The MVP uses only
- * assignments an admin creates as accepted; offers, availability and pay
- * wait for the owners' approval. One live assignment per game.
+ * Who referees a game (docs/data-model.md, section 2.6). Admins create them
+ * as accepted, by email or from the ref assigner (ADR 0053). One live
+ * assignment per game.
  */
 export const refereeAssignment = pgTable(
   "referee_assignment",
