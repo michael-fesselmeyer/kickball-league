@@ -209,7 +209,7 @@ export const alertSetting = pgTable(
  * A message an admin sent to the league, or an admin or captain sent to one
  * team. Each recipient gets a message row pointing back here.
  *
- * An admin may schedule one instead (ADR 0052): it waits with `send_at` set
+ * An admin may schedule one instead (ADR 0058): it waits with `send_at` set
  * and no `sent_at`, can be edited or cancelled until then, and the outbox
  * sweep queues its messages, for the audience as it stands, once `send_at`
  * has passed. `sent_at` is when its messages were queued; `recipient_count`

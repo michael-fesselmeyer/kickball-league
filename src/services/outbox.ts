@@ -73,7 +73,7 @@ const pushSender = pushSenderFrom({
 });
 
 /**
- * Queues the scheduled announcements that are due (ADR 0052), in batches
+ * Queues the scheduled announcements that are due (ADR 0058), in batches
  * until none are left, so a busy day's sweep sends them all at once. A
  * failure is logged and never stops the drain: the outbox's other messages
  * still go, and the announcement waits for the next drain.
@@ -95,7 +95,7 @@ async function releaseScheduled(now: Date): Promise<void> {
 /**
  * Sends everything that is due, in batches, until the outbox is empty or
  * `maxBatches` is reached. Null when neither email nor push is configured.
- * First it queues any scheduled announcement that is due (ADR 0052), so
+ * First it queues any scheduled announcement that is due (ADR 0058), so
  * the daily sweep, and any send after it, picks them up.
  */
 export async function drainOutboxNow(

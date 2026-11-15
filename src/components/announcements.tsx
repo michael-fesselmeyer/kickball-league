@@ -23,7 +23,7 @@ export const ANNOUNCE_ERRORS: Record<string, string> = {
 };
 
 /**
- * The "when" choice for an admin's announcement (ADR 0052). Scheduled jobs
+ * The "when" choice for an admin's announcement (ADR 0058). Scheduled jobs
  * run once a day, so a scheduled announcement goes with the outbox's
  * morning send on the chosen day; the labels say when that is in the
  * league's time zone.
