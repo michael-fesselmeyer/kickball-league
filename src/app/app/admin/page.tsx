@@ -206,6 +206,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               [`${base}/registrations`, "Registrations"],
               ["/app/admin/waivers", "Waivers"],
               ["/app/admin/events", "Events"],
+              ["/app/admin/rules", "League rules"],
               ["/app/admin/volunteer", "Volunteer shifts"],
               [`${base}/checklist`, "Season checklist"],
               [`${base}/survey`, "Season survey"],
