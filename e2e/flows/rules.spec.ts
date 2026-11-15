@@ -3,7 +3,7 @@ import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 
 /**
- * The rules page and its change log (ADR 0056), at phone width. The seed
+ * The rules page and its change log (ADR 0062), at phone width. The seed
  * publishes sample rules for the demo league (src/seed/rules.ts).
  */
 test.use({ viewport: { width: 390, height: 844 } });

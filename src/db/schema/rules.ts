@@ -24,7 +24,7 @@ import { user } from "./auth";
 import { league } from "./league";
 
 /**
- * The league's rules as they stand, one row per section (ADR 0056). Admins
+ * The league's rules as they stand, one row per section (ADR 0062). Admins
  * write the text in the app; none of it is in the repository. The public
  * rules page shows the sections in `position` order, each with an anchor
  * from its slug.

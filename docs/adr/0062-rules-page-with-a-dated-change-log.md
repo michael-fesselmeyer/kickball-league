@@ -1,4 +1,4 @@
-# ADR 0056: A rules page with a dated change log
+# ADR 0062: A rules page with a dated change log
 
 - Status: accepted
 - Date: 2026-11-15
@@ -33,3 +33,4 @@ The league's rulebook stays out of the repository until the league agrees to pub
 - Sections keep their order. A new section goes at the end, and reordering is left for later.
 - The notice period is 3 days for every league, set in code (`NOTICE_DAYS`). A league that wants a longer notice picks a later start date.
 - The demo seed publishes sample rules that are clearly invented, so the page has content in the demo and in Lighthouse runs.
+- Each league has its own rules, change log and page, like its other public pages ([ADR 0048](0048-several-leagues-on-one-deployment.md)). The default league's page is `/rules`, and another league's is `/l/<slug>/rules`. A publish refreshes its own league's page at once, and the notice links to that page.
