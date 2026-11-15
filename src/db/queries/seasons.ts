@@ -1,4 +1,4 @@
-import { and, asc, eq, ne, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import type { LeagueId, SeasonId, UserId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import type { SeasonSettings } from "@/domain/season/settings";
