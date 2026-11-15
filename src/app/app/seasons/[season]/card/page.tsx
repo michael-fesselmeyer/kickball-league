@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { PageLoading } from "@/components/page-loading";
 import { SeasonCardView } from "@/components/season-card";
 import { CopyForWhatsApp, ShareButtons } from "@/components/share";
+import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
 import { myCard } from "@/db/queries/season-cards";
 import {
@@ -22,7 +24,7 @@ type Props = PageProps<"/app/seasons/[season]/card">;
 export default function SeasonCardPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
-      <Suspense fallback={<p>Loading your season…</p>}>
+      <Suspense fallback={<PageLoading>Loading your season…</PageLoading>}>
         <Card {...props} />
       </Suspense>
     </main>
@@ -79,9 +81,9 @@ async function Card({ params, searchParams }: Props) {
               text={seasonCardShareText(card.stats, url)}
             />
             <form action={setCardPublicAction.bind(null, slug, false)}>
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 Make my card private
-              </button>
+              </SubmitButton>
             </form>
           </>
         ) : (
@@ -92,9 +94,9 @@ async function Card({ params, searchParams }: Props) {
               time.
             </p>
             <form action={setCardPublicAction.bind(null, slug, true)}>
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton className="btn btn-primary">
                 Make my card&apos;s link public
-              </button>
+              </SubmitButton>
             </form>
             <CopyForWhatsApp
               text={seasonCardShareText(card.stats, null)}
