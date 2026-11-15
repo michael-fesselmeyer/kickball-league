@@ -6,6 +6,7 @@ import { PageLoading } from "@/components/page-loading";
 import { money } from "@/domain/books/ledger";
 import { localDate } from "@/domain/books/ledger-csv";
 import { percent } from "@/domain/dashboard/metrics";
+import { REPORT_STATUSES } from "@/domain/dashboard/report-card";
 import { spentCategories } from "@/domain/dashboard/view";
 import { requirePermission } from "@/lib/auth/permission";
 import { SeasonPicker } from "../../books/season-picker";
@@ -117,6 +118,11 @@ async function Dashboard({
           <Link href={`${page}/summary`} className="btn btn-secondary">
             Money summary
           </Link>
+          {REPORT_STATUSES.includes(season.status) && (
+            <Link href={`${page}/report`} className="btn btn-secondary">
+              Report card
+            </Link>
+          )}
         </div>
         <form
           action={refreshDashboardAction.bind(null, season.slug)}
