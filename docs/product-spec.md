@@ -298,7 +298,11 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Final score entry by ref or captain; the other captain confirms, or it auto-confirms after 24 hours | MVP |
 | A ref who plays for one of the game's teams reports for that team, so only the other team can confirm or dispute the score. Assigning such a ref, by email or with "Take it", warns first and needs an explicit override; the assigner never proposes one. A ref on both rosters, or neither, is neutral (either team answers), and an admin's report stays final at once. The assign and score screens say which rule applies | MVP |
 | Forfeits, and games called after 4 innings | MVP |
+<<<<<<< HEAD
 | Daylight and field-time clock: each game's end of play is the earlier of the time its field must be clear and sunset at its park less a margin (fields with lights have no daylight end). The ref's and captains' screens count down to first pitch and to that end; the ref records first pitch with one tap and says who held up a late start; captains and the ref of a game with no time to spare get a reminder two hours before; admins see start times by team, and the scheduler warns about slots that run past daylight (#467) | P2 |
+=======
+| Other sports: each league plays one sport with its own scoring rules; dodgeball is played in best-of-N sets (ADR 0072) | P2 |
+>>>>>>> 895891bc (docs: describe sport rules, dodgeball and the match length)
 | Missing-score reminders to the ref, then captains, then an admin list | MVP |
 | Game-day RSVPs with a fielding-rule warning for captains | MVP |
 | Inning-by-inning live scoring | P2 |

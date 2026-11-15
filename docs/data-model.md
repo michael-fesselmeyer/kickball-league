@@ -86,7 +86,7 @@ erDiagram
     uuid id PK
     text name
     text slug UK "public pages at /l/slug, except the default league's"
-    text sport "kickball, football, softball..."
+    text sport "kickball, dodgeball, football...: sets its rules (ADR 0072)"
     text timezone
     bool is_default "the league at the site's own URLs; exactly one"
     jsonb branding "primary and secondary colors, logo asset ids"
@@ -150,6 +150,7 @@ erDiagram
     uuid league_id FK
     text name UK "for example Competitive rules; unique in the league"
     int innings "1 to 15, or open"
+    smallint best_of "sets in a match, odd 1 to 9, for sports played in sets; null for the sport's default"
     int time_limit_minutes "10 to 240, or open"
     jsonb options "bunting, stealing, permitEndRule, noNewInningMinutes"
   }
@@ -1990,6 +1991,8 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 - A person's role is per league, in `league_member`; everyone signed in is at least a player. Playing in a league (a registration) makes it one of theirs without a row.
 - `league.is_default` marks the league at the site's own URLs (a partial unique index allows one). Until one is marked, the oldest league counts.
 - League credit, purchases and the audit log each carry the league.
+- A league plays one sport, `league.sport` (kickball by default), and the sport sets its rules ([ADR 0072](adr/0072-sport-rules-per-league.md)): what a score counts (runs, sets), how a result is checked, whether there are innings and live scoring, and the standings' difference cap. The rules are code in `src/domain/sports/`, not data; a sport without a module of its own plays by kickball's. A score is always `score_a` and `score_b` on the game in the sport's unit, so standings, brackets and history need nothing per sport. `game.innings_played` is kept only for a sport with innings.
+- A sport played in sets takes its match length from `rule_set.best_of`: the rule set of team A's division, else the league's first rule set that sets one, else the sport's default (best of 5 for dodgeball).
 
 ### 2.12 Private leagues and tournaments
 
@@ -2146,7 +2149,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `equipment_report` | check it lists an item or has a note; note length 1 to 500 | A report says what is missing |
 | `team_season` | foreign key `(division_id, season_id)` to `division (id, season_id)` | A team's division is in its own season |
 | `division` | unique `(season_id, slug)`, unique `(season_id, name)`; check slug format | One division per name and public address in a season |
-| `rule_set` | unique `(league_id, name)`; `options.permitEndRule` (`call_at_last_complete`, the default, or `last_inning_to_start`) says what happens when a game reaches its permit's end or loses the light (#406, #467); `options.noNewInningMinutes` (0 to 60, 10 when unset) is how long before the time limit no new inning starts; `options.daylightMarginMinutes` (0 to 60, 15 when unset) is how long before sunset play ends on a field without lights; check innings 1 to 15 and time limit 10 to 240 | Rule sets are named once per league, with sane limits |
+| `rule_set` | unique `(league_id, name)`; `options.permitEndRule` (`call_at_last_complete`, the default, or `last_inning_to_start`) says what happens when a game reaches its permit's end or loses the light (#406, #467); `options.noNewInningMinutes` (0 to 60, 10 when unset) is how long before the time limit no new inning starts; `options.daylightMarginMinutes` (0 to 60, 15 when unset) is how long before sunset play ends on a field without lights; check innings 1 to 15, `best_of` odd from 1 to 9, and time limit 10 to 240 | Rule sets are named once per league, with sane limits |
 | `season` | check `crossover_games between 0 and 10` | A sane crossover count |
 | `bracket` | unique `(season_id, division_id, tier)` nulls not distinct | One season-wide bracket per tier, or one per division |
 | `bracket_match` | unique `(bracket_id, game_no)` | Game numbers name each game once in a bracket |

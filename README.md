@@ -131,7 +131,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 - Park permits, fees, renewals and a capacity planner; the schedule cannot be published outside a documented permit.
 - Other groups on our fields: admins record who else uses each field, their usual days and hours, and a contact only admins see. The game-day screen shows each field's next handover with a countdown in the last 30 minutes, and the set-up lead's checklist shows it too, without contacts. A recorded overlap warns admins ahead of the day with the borough permit office's number ([ADR 0066](docs/adr/0066-other-groups-on-a-field.md)).
 - A dashboard, a season report card, win-back list and a public "where the money goes" page.
-- Several leagues on one deployment, and a platform operator role above the owners.
+- Several leagues on one deployment, each playing its own sport (kickball by default, dodgeball in best-of sets), and a platform operator role above the owners.
 
 **Everyone, signed in or not**
 
@@ -162,7 +162,7 @@ It builds and starts the whole app in demo mode on this computer, offline, and o
 npm install
 cp .env.example .env.local   # fill in values; DATABASE_URL is your own Neon branch
 npm run db:migrate           # apply migrations to that branch
-npm run seed                 # a demo league: 8 teams, invented players, a season half played, three past seasons; plus a small second league
+npm run seed                 # a demo league: 8 teams, invented players, a season half played, three past seasons; plus a small second league at /l/flag-football and a dodgeball league at /l/dodgeball
 npm run dev
 ```
 
