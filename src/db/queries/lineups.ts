@@ -25,7 +25,7 @@ import {
   team,
   teamSeason,
 } from "../schema/team";
-import { suspendedAmong } from "./discipline";
+import { ejectedIn, suspendedAmong } from "./discipline";
 import type { Db } from "./schedule";
 
 /** Kicking orders for game day (rulebook 2.2.4; ADR 0030). */
@@ -79,7 +79,8 @@ const isOver = (status: string) => OVER.some((s) => s === status);
  * Who can kick for a team in a game: its active players who said they're
  * in, by name, then its approved pickups in the order they claimed. A
  * player suspended right now is left out, as from every way into a game
- * (ADR 0026). Each carries their lineup gender, which
+ * (ADR 0026), and so is a player the ref ejected from this game. Each
+ * carries their lineup gender, which
  * only the team's captains and admins may see.
  */
 export async function lineupCandidates(
@@ -135,12 +136,15 @@ export async function lineupCandidates(
       )
       .orderBy(asc(subClaim.claimedAt)),
   ]);
-  const suspended = await suspendedAmong(
-    db,
-    [...regulars, ...pickups].map((r) => r.id),
-    now,
-  );
-  const seen = new Set<UserId>(suspended.keys());
+  const [suspended, ejected] = await Promise.all([
+    suspendedAmong(
+      db,
+      [...regulars, ...pickups].map((r) => r.id),
+      now,
+    ),
+    ejectedIn(db, gameId),
+  ]);
+  const seen = new Set<UserId>([...suspended.keys(), ...ejected]);
   const once = <T extends { id: UserId }>(rows: T[]) =>
     rows.filter((r) => !seen.has(r.id) && seen.add(r.id));
   const side = (s: Side | undefined): Side => s ?? null;
@@ -162,31 +166,40 @@ export type SavedLineup = {
   teamSeasonId: TeamSeasonId;
   runBreaks: number;
   savedAt: Date;
+  /** Who kicks, in order; a player the ref ejected is no longer here. */
   spots: SavedSpot[];
+  /** Players the ref ejected from this game, out of the order for the rest of it. */
+  ejected: SavedSpot[];
 };
 
-/** The saved orders for a game, by team, names only. */
+/**
+ * The saved orders for a game, by team, names only. A player the ref
+ * ejected leaves the order, and the rest move up.
+ */
 export async function savedLineups(
   db: Db,
   gameId: GameId,
 ): Promise<Map<TeamSeasonId, SavedLineup>> {
-  const rows = await db
-    .select({
-      id: gameLineup.id,
-      teamSeasonId: gameLineup.teamSeasonId,
-      runBreaks: gameLineup.runBreaks,
-      savedAt: gameLineup.updatedAt,
-      userId: gameLineupSpot.userId,
-      name: shortName,
-      pickup: gameLineupSpot.pickup,
-      position: gameLineupSpot.position,
-    })
-    .from(gameLineup)
-    .innerJoin(gameLineupSpot, eq(gameLineupSpot.lineupId, gameLineup.id))
-    .innerJoin(user, eq(user.id, gameLineupSpot.userId))
-    .leftJoin(profile, eq(profile.userId, gameLineupSpot.userId))
-    .where(eq(gameLineup.gameId, gameId))
-    .orderBy(asc(gameLineup.teamSeasonId), asc(gameLineupSpot.position));
+  const [rows, ejected] = await Promise.all([
+    db
+      .select({
+        id: gameLineup.id,
+        teamSeasonId: gameLineup.teamSeasonId,
+        runBreaks: gameLineup.runBreaks,
+        savedAt: gameLineup.updatedAt,
+        userId: gameLineupSpot.userId,
+        name: shortName,
+        pickup: gameLineupSpot.pickup,
+        position: gameLineupSpot.position,
+      })
+      .from(gameLineup)
+      .innerJoin(gameLineupSpot, eq(gameLineupSpot.lineupId, gameLineup.id))
+      .innerJoin(user, eq(user.id, gameLineupSpot.userId))
+      .leftJoin(profile, eq(profile.userId, gameLineupSpot.userId))
+      .where(eq(gameLineup.gameId, gameId))
+      .orderBy(asc(gameLineup.teamSeasonId), asc(gameLineupSpot.position)),
+    ejectedIn(db, gameId),
+  ]);
   const result = new Map<TeamSeasonId, SavedLineup>();
   for (const r of rows) {
     const found = result.get(r.teamSeasonId) ?? {
@@ -195,8 +208,9 @@ export async function savedLineups(
       runBreaks: r.runBreaks,
       savedAt: r.savedAt,
       spots: [],
+      ejected: [],
     };
-    found.spots.push({
+    (ejected.has(r.userId) ? found.ejected : found.spots).push({
       userId: r.userId,
       name: r.name,
       pickup: r.pickup,
