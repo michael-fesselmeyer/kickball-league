@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { Client } from "pg";
 import { afterAll, describe, expect, it } from "vitest";
 import type {
   PromoCodeId,
@@ -11,7 +12,7 @@ import type { CheckoutItem } from "@/domain/registration/checkout";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
 import { league } from "../schema/league";
-import { payment, purchase, refund } from "../schema/money";
+import { payment, purchase, refund, webhookEvent } from "../schema/money";
 import { season } from "../schema/season";
 import { registration } from "../schema/team";
 import { closePool, inRolledBackDb } from "../test/transaction";
@@ -597,6 +598,227 @@ describe("refunds", () => {
           actorId: w.adminId,
         }),
       ).toEqual({ ok: false, error: "unknown_payment" });
+    });
+  });
+});
+
+describe("refunds Stripe reports out of order", () => {
+  /** A paid-for player and the PaymentIntent Checkout will charge them on. */
+  async function checkout(db: Db, w: Awaited<ReturnType<typeof world>>) {
+    const p = await w.player();
+    const started = await start(db, w.seasonId, p, null);
+    if (!started.ok) throw new Error(started.error);
+    const sessionId = `cs_${w.tag}_${p.registrationId.slice(0, 8)}`;
+    await attachCheckoutSession(db, started.value.purchaseId, sessionId);
+    return {
+      purchaseId: started.value.purchaseId,
+      sessionId,
+      intent: `pi_${sessionId}`,
+    };
+  }
+
+  const paymentOf = async (db: Db, intent: string) => {
+    const [row] = await db
+      .select({
+        amount: payment.amountCents,
+        refunded: payment.refundedCents,
+        charge: payment.stripeChargeId,
+      })
+      .from(payment)
+      .where(eq(payment.stripePaymentIntentId, intent));
+    return row;
+  };
+
+  it("ends the same whether a partial refund arrives before or after its payment", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+
+      const inOrder = await checkout(db, w);
+      await payByStripe(db, inOrder.purchaseId, inOrder.sessionId, 8500);
+      await handleStripeEvent(
+        db,
+        refunded(`evt_in_${w.tag}`, inOrder.intent, 2000),
+        NOW,
+      );
+
+      const early = await checkout(db, w);
+      expect(
+        await handleStripeEvent(
+          db,
+          refunded(`evt_early_${w.tag}`, early.intent, 2000),
+          NOW,
+        ),
+      ).toBe("ignored");
+      await payByStripe(db, early.purchaseId, early.sessionId, 8500);
+
+      for (const c of [inOrder, early]) {
+        expect(await paymentOf(db, c.intent)).toEqual({
+          amount: 8500,
+          refunded: 2000,
+          charge: `ch_${c.intent}`,
+        });
+        expect(await purchaseStatus(db, c.purchaseId)).toMatchObject({
+          status: "partially_refunded",
+        });
+      }
+      // The registration still counts as paid: only part went back.
+      const board = await registrationsBoard(db, w.seasonId);
+      expect(
+        board.freeAgents.filter((f) => f.paidBy === "stripe"),
+      ).toHaveLength(2);
+    });
+  });
+
+  it("keeps a whole refund that arrives first, and the highest of several", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const c = await checkout(db, w);
+      // Two refunds in Stripe's dashboard; their events arrive newest first,
+      // one twice, and all before the payment.
+      const later = refunded(`evt_r2_${w.tag}`, c.intent, 8500);
+      expect(await handleStripeEvent(db, later, NOW)).toBe("ignored");
+      expect(await handleStripeEvent(db, later, NOW)).toBe("duplicate");
+      await handleStripeEvent(
+        db,
+        refunded(`evt_r1_${w.tag}`, c.intent, 3000),
+        NOW,
+      );
+      await payByStripe(db, c.purchaseId, c.sessionId, 8500);
+      expect(await paymentOf(db, c.intent)).toMatchObject({ refunded: 8500 });
+      expect(await purchaseStatus(db, c.purchaseId)).toMatchObject({
+        status: "refunded",
+      });
+      // Replaying the completion, or a stale refund, changes nothing.
+      await handleStripeEvent(
+        db,
+        {
+          id: `evt_async_${w.tag}`,
+          type: "checkout.session.async_payment_succeeded",
+          data: {
+            object: {
+              id: c.sessionId,
+              payment_status: "paid",
+              payment_intent: c.intent,
+              amount_total: 8500,
+            },
+          },
+        },
+        NOW,
+      );
+      await handleStripeEvent(
+        db,
+        refunded(`evt_r0_${w.tag}`, c.intent, 1000),
+        NOW,
+      );
+      expect(await paymentOf(db, c.intent)).toMatchObject({
+        amount: 8500,
+        refunded: 8500,
+      });
+      expect(await purchaseStatus(db, c.purchaseId)).toMatchObject({
+        status: "refunded",
+      });
+    });
+  });
+
+  it("never lets an early refund exceed the payment or touch another one", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const c = await checkout(db, w);
+      const other = await checkout(db, w);
+      await handleStripeEvent(
+        db,
+        refunded(`evt_big_${w.tag}`, c.intent, 99_999),
+        NOW,
+      );
+      await payByStripe(db, c.purchaseId, c.sessionId, 8500);
+      await payByStripe(db, other.purchaseId, other.sessionId, 8500);
+      expect(await paymentOf(db, c.intent)).toMatchObject({ refunded: 8500 });
+      expect(await paymentOf(db, other.intent)).toMatchObject({
+        refunded: 0,
+        charge: null,
+      });
+      expect(await purchaseStatus(db, other.purchaseId)).toMatchObject({
+        status: "paid",
+      });
+    });
+  });
+
+  it("keeps only the payment and the total of a refund whose payment never arrives", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const event = {
+        id: `evt_orphan_${w.tag}`,
+        type: "charge.refunded",
+        data: {
+          object: {
+            id: `ch_orphan_${w.tag}`,
+            object: "charge",
+            payment_intent: { id: `pi_orphan_${w.tag}` },
+            amount_refunded: 500,
+            billing_details: { email: "buyer@example.test", name: "A Buyer" },
+          },
+        },
+      };
+      expect(await handleStripeEvent(db, event, NOW)).toBe("ignored");
+      const [row] = await db
+        .select({
+          payload: webhookEvent.payload,
+          status: webhookEvent.status,
+        })
+        .from(webhookEvent)
+        .where(eq(webhookEvent.eventId, event.id));
+      expect(row).toEqual({
+        status: "processed",
+        payload: {
+          id: event.id,
+          type: "charge.refunded",
+          object: "charge",
+          objectId: `ch_orphan_${w.tag}`,
+          paymentIntent: `pi_orphan_${w.tag}`,
+          amountRefunded: 500,
+        },
+      });
+      expect(
+        await db
+          .select({ id: payment.id })
+          .from(payment)
+          .where(eq(payment.stripePaymentIntentId, `pi_orphan_${w.tag}`)),
+      ).toEqual([]);
+    });
+  });
+
+  it("holds the PaymentIntent's lock while a refund is applied", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const intent = `pi_locked_${w.tag}`;
+      await handleStripeEvent(
+        db,
+        refunded(`evt_lock_${w.tag}`, intent, 100),
+        NOW,
+      );
+      // Another connection, as a second webhook delivery would be, cannot
+      // take the same intent's lock until this transaction ends.
+      const other = new Client({ connectionString: process.env.DATABASE_URL });
+      await other.connect();
+      try {
+        const key = `stripe_intent:${intent}`;
+        const [held] = (
+          await other.query<{ got: boolean }>(
+            "select pg_try_advisory_xact_lock(hashtext($1)) as got",
+            [key],
+          )
+        ).rows;
+        expect(held?.got).toBe(false);
+        const [free] = (
+          await other.query<{ got: boolean }>(
+            "select pg_try_advisory_xact_lock(hashtext($1)) as got",
+            [`stripe_intent:pi_other_${w.tag}`],
+          )
+        ).rows;
+        expect(free?.got).toBe(true);
+      } finally {
+        await other.end();
+      }
     });
   });
 });
