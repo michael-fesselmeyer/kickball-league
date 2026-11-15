@@ -30,6 +30,7 @@ export const profileShirtSize = pgEnum("profile_shirt_size", [
   "l",
   "xl",
   "xxl",
+  "xxxl",
 ]);
 
 /**

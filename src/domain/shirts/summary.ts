@@ -5,7 +5,7 @@
  * registration's shirt_status for the season.
  */
 
-export const SHIRT_SIZES = ["xs", "s", "m", "l", "xl", "xxl"] as const;
+export const SHIRT_SIZES = ["xs", "s", "m", "l", "xl", "xxl", "xxxl"] as const;
 export type ShirtSize = (typeof SHIRT_SIZES)[number];
 export const SHIRT_STATUSES = ["none", "ordered", "received"] as const;
 export type ShirtStatus = (typeof SHIRT_STATUSES)[number];
@@ -39,6 +39,7 @@ const zeroes = (): Record<ShirtSize, number> => ({
   l: 0,
   xl: 0,
   xxl: 0,
+  xxxl: 0,
 });
 
 export function countShirts(

@@ -27,6 +27,7 @@ const SHIRT_LABELS: [string, string][] = [
   ["l", "L"],
   ["xl", "XL"],
   ["xxl", "XXL"],
+  ["xxxl", "XXXL"],
 ];
 
 type Field = ProfileField | EmergencyField;
