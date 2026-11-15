@@ -113,6 +113,8 @@ export const SEASON_PAGE_ROUTES = [
   "/l/[league]/teams/[team]",
   "/l/[league]/games/[game]",
   "/embed/schedule",
+  // Shows the season's division rule sets (ADR 0062).
+  "/l/[league]/rules",
 ];
 
 /** A league's `[league]` segment: the default league's own, or its slug. */
@@ -245,4 +247,16 @@ export function refreshFriendPages(league: LeagueRef): void {
     revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/${page}`);
     revalidatePath(`/l/[league]/${page}`, "page");
   }
+}
+
+/** The league's rules page and its change log (ADR 0056). */
+export const RULES_TAG = "rules";
+
+/**
+ * From a Server Action: an admin published a change to the rules, so the
+ * rules page, which is static HTML, shows it on its next request.
+ */
+export function refreshRulesPage(): void {
+  updateTag(RULES_TAG);
+  revalidatePath("/rules", "page");
 }
