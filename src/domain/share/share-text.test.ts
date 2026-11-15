@@ -186,7 +186,7 @@ describe("eventShareText", () => {
     place: "The Example Ballroom, 1 Example St",
     audience: "Sun Kickers and Foul Play, Fall 2026",
     invite: {
-      host: "partiful.example.test",
+      site: "partiful.example.test",
       url: "https://partiful.example.test/e/prom",
     },
     url: "https://league.example.test/app/events/spring-prom-2027-03-06",

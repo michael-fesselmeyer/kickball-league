@@ -10,7 +10,7 @@ import { eventAttendees, eventBySlug } from "@/db/queries/events";
 import {
   audienceLine,
   audienceShareLine,
-  inviteHost,
+  inviteSite,
   reachFormValues,
 } from "@/domain/events/audience";
 import { eventFormValues, KIND_LABELS, whenLine } from "@/domain/events/event";
@@ -108,7 +108,7 @@ async function AdminEvent({
     place: e.place,
     audience: audienceShareLine(e.audience, names),
     invite: e.inviteUrl
-      ? { host: inviteHost(e.inviteUrl), url: e.inviteUrl }
+      ? { site: inviteSite(e.inviteUrl), url: e.inviteUrl }
       : null,
     url: absoluteUrl(
       origin,
@@ -236,6 +236,7 @@ async function AdminEvent({
           reach={reachFormValues(e, choices)}
           prices={ticketPriceFormValues(e)}
           choices={choices}
+          hasRsvps={attendees.length > 0}
           submitLabel="Save changes"
           announceLabel="Email everyone it's for about this change"
         />

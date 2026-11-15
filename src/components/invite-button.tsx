@@ -1,4 +1,4 @@
-import { inviteHost } from "@/domain/events/audience";
+import { inviteSite } from "@/domain/events/audience";
 
 /**
  * An event's external invite (Partiful or any https page) as a button that
@@ -18,7 +18,7 @@ export function InviteButton({
       rel="noopener noreferrer nofollow"
       className={`btn ${primary ? "btn-primary" : "btn-secondary"}`}
     >
-      RSVP on {inviteHost(url)}
+      RSVP on {inviteSite(url)}
       <span className="sr-only"> (opens in a new tab)</span>
     </a>
   );
