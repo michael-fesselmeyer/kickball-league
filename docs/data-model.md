@@ -816,9 +816,11 @@ erDiagram
     uuid season_id FK
     uuid team_season_id FK "null means league-wide"
     text subject
-    text body_md
-    jsonb audience
-    timestamptz sent_at
+    text body
+    int recipient_count
+    timestamptz send_at "scheduled; null when sent as written"
+    timestamptz sent_at "messages queued; null while waiting"
+    timestamptz cancelled_at
   }
   push_subscription {
     uuid id PK
@@ -837,6 +839,7 @@ Notes:
 - No text messages are sent, because every text is billed and the product runs on free services only ([ADR 0021](adr/0021-free-services-only.md)). The `sms` value of the `message_channel` enum stays in the schema unused, and an `sms_consent_event` table is **not planned**.
 - Push is a channel like email: a person's push choices are `notification_preference` rows with channel `push`, off unless they turned the topic on. A notice about a push topic gets a second `message` row with channel `push` and dedupe key `push:<key>` for each person with a device and that topic on. `suppress_reason` adds `no_device` (every device gone) and `push_off` (no VAPID keys).
 - Alert limits: `alert_setting` holds a person's daily cap on non-urgent messages (per channel), digest frequency and quiet hours, as whole hours in the league's time zone; no row means the defaults (3, daily, 10 pm to 8 am). A non-urgent message over the cap is `held` with `send_after` at the person's next digest; the digest job puts it in a `digest` message (topic `digest`, template `digest`) and marks it `digested` with `digest_id`. A non-urgent message in quiet hours stays `queued` with `send_after` moved to when they end. Which kinds are urgent is in [architecture.md](architecture.md), section 5. When the day's email quota runs out, an urgent email whose push copy was sent is `suppressed` (`sent_by_push`), and other email waits as `queued` with `send_after` at the next midnight UTC; the drain counts sent email with `message_email_sent_idx`. Topic `operations` carries notices to admins about the league's own running (today, the email quota), and is not on the settings page.
+- An `announcement` is sent as written (`sent_at` = when it was written) or, for an admin, scheduled ([ADR 0052](adr/0052-scheduled-announcements-ride-the-daily-sweep.md)): `send_at` is the outbox sweep on the chosen day, and `sent_at` stays null until the sweep queues its messages, for the audience as it stands then, and sets `recipient_count`. Until then it can be edited, or cancelled (`cancelled_at`). A check constraint keeps a row either sent, or waiting or cancelled with a `send_at`; `announcement_due_idx` is the sweep's look for waiting rows.
 - `push_subscription` is one browser or installed app. A browser has one endpoint, so the endpoint is unique and moves to whoever subscribed it last. The outbox deletes a row when its push service answers 404 or 410.
 
 ### 2.5 Sponsors, events, community
