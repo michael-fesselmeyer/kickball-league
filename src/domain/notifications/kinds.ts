@@ -60,6 +60,18 @@ export const MESSAGE_KINDS = {
     label:
       "Your event ticket's receipt or refund, or an event spot held for you to buy by a deadline",
   },
+  game_day_change: {
+    urgency: "urgent",
+    label: "Your game starts late, is called off or is back on",
+  },
+  game_day_decide: {
+    urgency: "urgent",
+    label: "A game day's decision time passed with no decision",
+  },
+  game_day_watch: {
+    urgency: "urgent",
+    label: "Weather watches before your game, if you asked for them",
+  },
   gear_reminder: {
     urgency: "non_urgent",
     label:

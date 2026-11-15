@@ -270,6 +270,9 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `event_news` | non-urgent | Event announcements, and changes or cancellations more than a day ahead |
 | `event_notice` | urgent | An event spot that opened for you, or an event cancelled or moved within a day of its start |
 | `event_ticket` | urgent | Your event ticket's receipt or refund, or an event spot held for you to buy by a deadline |
+| `game_day_change` | urgent | Your game starts late, is called off or is back on |
+| `game_day_decide` | urgent | A game day's decision time passed with no decision |
+| `game_day_watch` | urgent | Weather watches before your game, if you asked for them |
 | `gear_reminder` | non-urgent | The evening before a game you're bringing league gear to: which kit and where it goes |
 | `giveaway_win` | non-urgent | A giveaway you won at a league event |
 | `guarantee_failed` | urgent | A captain's card guarantee that could not be charged |
