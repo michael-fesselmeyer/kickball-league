@@ -31,6 +31,7 @@ import type {
   InsuranceCertificateId,
   LeagueId,
   PermitWindowId,
+  RecurringCostId,
   SeasonId,
   UserId,
 } from "@/domain/ids";
@@ -45,6 +46,8 @@ import {
   type BooksFileKind,
   expense,
   insuranceCertificate,
+  merchantRule,
+  recurringCost,
 } from "../schema/books";
 import { field, game, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
@@ -165,6 +168,14 @@ export type ExpenseInput = {
   category: ExpenseCategory;
   note: string;
   receipt: PreparedFile | null;
+  /** An owner said there is no receipt (ignored when one is attached). */
+  noReceipt?: boolean;
+  /** The owner who paid it themselves, to be reimbursed; null for league money. */
+  paidBy?: UserId | null;
+  /** The expected cost occurrence this settles (ADR 0054). */
+  occurrence?: { recurringCostId: RecurringCostId; dueOn: string } | null;
+  /** Hashed statement-row key, for an imported row. */
+  importKey?: string | null;
   /** Tests pass a smaller storage cap. */
   cap?: number;
 };
@@ -173,9 +184,13 @@ export async function addExpense(
   db: Db,
   input: ExpenseInput,
   actorId: UserId,
-): Promise<Result<ExpenseId, FileProblem | "unknown_season">> {
+): Promise<
+  Result<ExpenseId, FileProblem | "unknown_season" | "unknown_payer">
+> {
   if (!(await seasonInLeague(db, input.leagueId, input.seasonId)))
     return err("unknown_season");
+  if (input.paidBy && !(await ownerIds(db, input.leagueId)).includes(input.paidBy))
+    return err("unknown_payer");
   let receiptFileId: BooksFileId | null = null;
   if (input.receipt) {
     const stored = await storeFile(
@@ -200,6 +215,11 @@ export async function addExpense(
       category: input.category,
       note: input.note.trim() || null,
       receiptFileId,
+      noReceipt: receiptFileId === null && (input.noReceipt ?? false),
+      paidBy: input.paidBy ?? null,
+      recurringCostId: input.occurrence?.recurringCostId ?? null,
+      dueOn: input.occurrence?.dueOn ?? null,
+      importKey: input.importKey ?? null,
       createdBy: actorId,
     })
     .returning({ id: expense.id });
@@ -215,6 +235,10 @@ export async function addExpense(
       amountCents: input.amountCents,
       category: input.category,
       receipt: receiptFileId !== null,
+      ...(input.noReceipt && !receiptFileId && { noReceipt: true }),
+      ...(input.paidBy && { paidBy: input.paidBy }),
+      ...(input.occurrence && { occurrence: input.occurrence }),
+      ...(input.importKey && { imported: true }),
     },
   });
   return ok(id);
@@ -314,6 +338,14 @@ function expensesOfSeason(db: Db, seasonId: SeasonId) {
       category: expense.category,
       note: expense.note,
       receiptFileId: expense.receiptFileId,
+      noReceipt: expense.noReceipt,
+      paidBy: expense.paidBy,
+      paidByName: sql<
+        string | null
+      >`(select coalesce(nullif(trim(concat_ws(' ', p.first_name, p.last_name)), ''), u.name) from "user" u left join profile p on p.user_id = u.id where u.id = ${expense.paidBy})`,
+      reimbursedAt: expense.reimbursedAt,
+      imported: sql<boolean>`${expense.importKey} is not null`,
+      expected: sql<boolean>`${expense.recurringCostId} is not null`,
     })
     .from(expense)
     .where(eq(expense.seasonId, seasonId))
@@ -815,8 +847,11 @@ export async function permitDocumentForGame(db: Db, gameId: GameId) {
 // ---------------------------------------------------------------------------
 // Reminders
 
-/** The league's owners: who the books reminders go to. */
-function ownerIds(db: Db, leagueId: LeagueId): Promise<UserId[]> {
+/**
+ * The league's owners: who the books reminders go to, and who may be
+ * named as having paid a cost out of pocket (ADR 0059).
+ */
+export function ownerIds(db: Db, leagueId: LeagueId): Promise<UserId[]> {
   return leagueUsersWithRole(db, leagueId, ["owner"]);
 }
 
@@ -982,6 +1017,12 @@ export async function booksExport(db: Db, leagueId: LeagueId) {
         category: expense.category,
         note: expense.note,
         receiptFileId: expense.receiptFileId,
+        noReceipt: expense.noReceipt,
+        paidBy: expense.paidBy,
+        reimbursedAt: expense.reimbursedAt,
+        recurringCostId: expense.recurringCostId,
+        dueOn: expense.dueOn,
+        imported: sql<boolean>`${expense.importKey} is not null`,
         createdAt: expense.createdAt,
       })
       .from(expense)
@@ -1017,5 +1058,35 @@ export async function booksExport(db: Db, leagueId: LeagueId) {
       .where(eq(booksFile.leagueId, leagueId))
       .orderBy(asc(booksFile.createdAt)),
   ]);
-  return { expenses, permits, insurance, files };
+  const [recurringCosts, merchantRules] = await Promise.all([
+    db
+      .select({
+        id: recurringCost.id,
+        label: recurringCost.label,
+        category: recurringCost.category,
+        amountCents: recurringCost.amountCents,
+        cadence: recurringCost.cadence,
+        startsOn: recurringCost.startsOn,
+        archivedAt: recurringCost.archivedAt,
+      })
+      .from(recurringCost)
+      .where(eq(recurringCost.leagueId, leagueId))
+      .orderBy(asc(recurringCost.createdAt)),
+    db
+      .select({
+        pattern: merchantRule.pattern,
+        category: merchantRule.category,
+      })
+      .from(merchantRule)
+      .where(eq(merchantRule.leagueId, leagueId))
+      .orderBy(asc(merchantRule.pattern)),
+  ]);
+  return {
+    expenses,
+    permits,
+    insurance,
+    files,
+    recurringCosts,
+    merchantRules,
+  };
 }

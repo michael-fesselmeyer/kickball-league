@@ -9,6 +9,7 @@ import {
 } from "@/lib/unsubscribe";
 import { announcementEmail } from "./announcement";
 import { awayShortEmail } from "./away-short";
+import { booksNudgeEmail } from "./books-nudge";
 import { booksReminderEmail } from "./books-reminder";
 import type { Template } from "./define";
 import { digestEmail } from "./digest";
@@ -58,6 +59,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
   {
     announcement: announcementEmail,
     away_short: awayShortEmail,
+    books_nudge: booksNudgeEmail,
     books_reminder: booksReminderEmail,
     captain_handoff: teamRoleEmail,
     digest: digestEmail,

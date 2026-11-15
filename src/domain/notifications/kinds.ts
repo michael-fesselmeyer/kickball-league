@@ -27,6 +27,11 @@ export const MESSAGE_KINDS = {
     label:
       "For captains: a week your team may be short because players will be away",
   },
+  books_nudge: {
+    urgency: "non_urgent",
+    label:
+      "For owners: a monthly list of expected costs to confirm and receipts still missing",
+  },
   books_reminder: {
     urgency: "non_urgent",
     label:
