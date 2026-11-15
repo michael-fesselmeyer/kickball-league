@@ -8,7 +8,7 @@ import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
 import { PUBLIC_PAGE_LIFE, SEASONS_TAG, seasonTag } from "@/lib/public-cache";
 
 export const metadata: Metadata = {
-  title: "Seasons",
+  title: "Schedules and standings",
   description:
     "Every season of the league: schedules, standings and how to sign up for the next one.",
   alternates: { canonical: "/seasons" },
