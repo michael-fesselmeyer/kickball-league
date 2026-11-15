@@ -8,11 +8,11 @@ import {
   requestPrivateEvent,
 } from "@/db/queries/private-events";
 import { profileOf } from "@/db/queries/profile";
-import { currentLeague } from "@/db/queries/seasons";
 import { parseRequest } from "@/domain/private-events/request";
 import { env } from "@/env";
 import { allowAction } from "@/lib/action-limit";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 import { logError } from "@/lib/log-error";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
@@ -29,7 +29,7 @@ export async function requestPrivateEventAction(form: FormData): Promise<void> {
   const subject = await requirePermissionToChange("private_event.request", {
     next: NEW,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const parsed = parseRequest({
     kind: text(form, "kind"),
@@ -58,7 +58,7 @@ export async function requestPrivateEventAction(form: FormData): Promise<void> {
  */
 export async function payForPrivateEventAction(slug: string): Promise<void> {
   const page = `/app/private-events/${slug}`;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const event = await privateEventBySeason(db, league.id, slug);
   if (!event) notFound();

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, max, ne, notInArray } from "drizzle-orm";
+import { and, asc, desc, eq, max, notInArray } from "drizzle-orm";
 import type { LeagueId } from "@/domain/ids";
 import { game } from "../schema/game";
 import { gamePlacement, scheduleVersion } from "../schema/schedule";

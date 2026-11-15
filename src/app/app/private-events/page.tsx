@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { myPrivateEvents } from "@/db/queries/private-events";
-import { currentLeague } from "@/db/queries/seasons";
 import { requirePermission } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = {
   title: "Your private leagues and tournaments",
@@ -35,7 +35,7 @@ async function MyEvents({ searchParams }: PageProps<"/app/private-events">) {
     next: PAGE,
   });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const events = league
     ? await myPrivateEvents(db, league.id, subject.userId)
     : [];

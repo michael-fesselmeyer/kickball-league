@@ -393,15 +393,24 @@ describe("a private league or tournament (ADR 0049)", () => {
       // Public pages, feeds and records see nothing of it.
       expect(await publishedSchedule(db, w.seasonId)).toEqual([]);
       expect(
-        (await allPublishedGames(db)).filter((g) => g.seasonId === w.seasonId),
+        (await allPublishedGames(db, await newestLeague(db))).filter(
+          (g) => g.seasonId === w.seasonId,
+        ),
       ).toEqual([]);
       const [aces, bees] = w.teams;
       expect(await publishedGamesForTeam(db, aces!.id)).toEqual([]);
-      expect(await publishedGamesBetween(db, aces!.slug, bees!.slug)).toEqual(
-        [],
-      );
+      expect(
+        await publishedGamesBetween(
+          db,
+          await newestLeague(db),
+          aces!.slug,
+          bees!.slug,
+        ),
+      ).toEqual([]);
       // A team that has only played private events has no public page.
-      expect(await teamBySlug(db, aces!.slug)).toBeNull();
+      expect(
+        await teamBySlug(db, await newestLeague(db), aces!.slug),
+      ).toBeNull();
 
       // Its players and organizer still see the games.
       expect(await publishedSchedule(db, w.seasonId, "mine")).toHaveLength(2);

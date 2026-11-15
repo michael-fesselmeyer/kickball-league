@@ -3,10 +3,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { privateEventQueue, type QueueRow } from "@/db/queries/private-events";
-import { currentLeague } from "@/db/queries/seasons";
 import { money } from "@/domain/books/ledger";
 import type { AcceptProblem } from "@/domain/private-events/request";
 import { requirePermission } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 import { acceptPrivateEventAction, declinePrivateEventAction } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
 
@@ -46,7 +46,7 @@ const who = (r: QueueRow) =>
 async function Queue({ searchParams }: PageProps<"/app/admin/private-events">) {
   await requirePermission("private_event.manage", { next: PAGE });
   const query = await searchParams;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const rows = league ? await privateEventQueue(db, league.id) : [];
   const error =
     typeof query.error === "string" && query.error in ERRORS

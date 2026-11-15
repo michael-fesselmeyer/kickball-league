@@ -305,14 +305,14 @@ describe("a private season", () => {
         .set({ seasonId: accepted.seasonId })
         .where(eq(teamSeason.id, w.teamSeasonId));
 
-      const slugs = (await publicSeasons(db)).map((s) => s.slug);
+      const slugs = (await publicSeasons(db, w.leagueId)).map((s) => s.slug);
       expect(slugs).not.toContain(accepted.seasonSlug);
       const history = await leagueHistory(db, w.leagueId);
       expect(history.seasonIds ?? []).not.toContain(accepted.seasonId);
       expect(history.pastSeasons.map((s) => s.slug)).not.toContain(
         accepted.seasonSlug,
       );
-      const teams = (await publicTeams(db)).map((t) => t.slug);
+      const teams = (await publicTeams(db, w.leagueId)).map((t) => t.slug);
       const [moved] = await db
         .select({ teamId: teamSeason.teamId })
         .from(teamSeason)
@@ -357,16 +357,16 @@ describe("a private season", () => {
         publishedAt: NOW,
       });
 
-      expect((await widgetSeasons(db)).map((s) => s.id)).not.toContain(
-        accepted.seasonId,
-      );
       expect(
-        (await publishedAwardSeasons(db)).map((s) => s.slug),
+        (await widgetSeasons(db, w.leagueId)).map((s) => s.id),
+      ).not.toContain(accepted.seasonId);
+      expect(
+        (await publishedAwardSeasons(db, w.leagueId)).map((s) => s.slug),
       ).not.toContain(accepted.seasonSlug);
       expect(
         await awardsBoard(
           db,
-          { seasonSlug: accepted.seasonSlug },
+          { leagueId: w.leagueId, seasonSlug: accepted.seasonSlug },
           { publishedOnly: true },
         ),
       ).toEqual({ found: false });
@@ -386,9 +386,9 @@ describe("a private season", () => {
     inRolledBackDb(async (db) => {
       const w = await requested(db);
       const [organizer, admin, captain] = await Promise.all([
-        loadSubject(db, w.agent),
-        loadSubject(db, w.admin),
-        loadSubject(db, w.captain),
+        loadSubject(db, w.agent, w.leagueId),
+        loadSubject(db, w.admin, w.leagueId),
+        loadSubject(db, w.captain, w.leagueId),
       ]);
       const context = { targetUserId: w.agent };
       expect(can(organizer, "private_event.organize", context)).toBe(true);
@@ -397,7 +397,11 @@ describe("a private season", () => {
       expect(can(organizer, "private_event.manage", {})).toBe(false);
       expect(can(admin, "private_event.manage", {})).toBe(true);
       expect(
-        can(await loadSubject(db, null), "private_event.request", {}),
+        can(
+          await loadSubject(db, null, w.leagueId),
+          "private_event.request",
+          {},
+        ),
       ).toBe(false);
     }));
 });
