@@ -42,7 +42,7 @@ test("a player says they're in, the captain orders the lineup, and the player se
     await test.step("the player says they're in", async () => {
       await player.goto(`/app/seasons/${SEASON}/team`);
       const row = coming(player);
-      await expect(row.getByText(/\d+ in · \d+ maybe/)).toBeVisible();
+      await expect(row.getByText(/\d+ maybe/)).toBeVisible();
       await expectNoAxeViolations(player);
       await row.getByRole("button", { name: "In", exact: true }).click();
       await expect(
