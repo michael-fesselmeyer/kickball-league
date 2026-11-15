@@ -352,6 +352,13 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "owner",
     ]);
     expect(allowed("incident.log", { game: g2 })).toEqual(["admin", "owner"]);
+    // Only the game's own ref ejects a player, never a captain.
+    expect(allowed("player.eject", { game: g1 })).toEqual([
+      "referee",
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("player.eject", { game: g2 })).toEqual(["admin", "owner"]);
   });
 
   it("lets captains rate the other team in their games and see their own average", () => {
