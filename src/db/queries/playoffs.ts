@@ -290,7 +290,7 @@ const inningsOk = (n: number | null | undefined) =>
  * bracket, placed one after another on the free slots.
  *
  * Without divisions, `tiers` can split the standings into up to three
- * brackets (ADR 0063): the first tier's teams from the top, the next
+ * brackets (ADR 0064): the first tier's teams from the top, the next
  * tier's from the places after, each with its own format and day. The
  * top-level settings are the first tier when `tiers` is not given. Drafts
  * made earlier are replaced; a published bracket is kept.
