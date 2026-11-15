@@ -21,6 +21,8 @@ import {
   type ShirtSize,
   sizeLabel,
 } from "@/domain/shirts/summary";
+import { FlashMessage } from "@/components/flash-message";
+import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { requirePermission } from "@/lib/auth/permission";
 import {
@@ -63,7 +65,7 @@ export default function ShirtOrderPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
-      <Suspense fallback={<p className="min-h-svh">Loading…</p>}>
+      <Suspense fallback={<PageLoading>Loading the shirt order…</PageLoading>}>
         <ShirtOrder {...props} />
       </Suspense>
     </main>
@@ -93,7 +95,8 @@ function CountsRow({
   sizes: readonly ShirtSize[];
   strong?: boolean;
 }) {
-  const Cell = strong ? "th" : "td";
+  // The totals row's counts are data cells; only its first cell is a header.
+  const Cell = "td";
   return (
     <tr className="border-t border-border">
       <th scope="row" className="py-2 pr-2 font-normal">
@@ -103,12 +106,16 @@ function CountsRow({
         </span>
       </th>
       {sizes.map((s) => (
-        <Cell key={s} className="tabular-nums">
+        <Cell key={s} className={`tabular-nums ${strong ? "font-bold" : ""}`}>
           {counts.bySize[s] ?? "–"}
         </Cell>
       ))}
-      <Cell className="tabular-nums">{counts.missing || "–"}</Cell>
-      <Cell className="tabular-nums">{counts.total - counts.missing}</Cell>
+      <Cell className={`tabular-nums ${strong ? "font-bold" : ""}`}>
+        {counts.missing || "–"}
+      </Cell>
+      <Cell className={`tabular-nums ${strong ? "font-bold" : ""}`}>
+        {counts.total - counts.missing}
+      </Cell>
     </tr>
   );
 }
@@ -208,23 +215,19 @@ async function ShirtOrder({
       </header>
 
       {saved && (
-        <p role="status" className="rounded-lg border border-success p-3">
-          {saved}
-        </p>
+        <FlashMessage kind="notice">{saved}</FlashMessage>
       )}
       {remindedNow !== null && Number.isInteger(remindedNow) && (
-        <p role="status" className="rounded-lg border border-success p-3">
+        <FlashMessage kind="notice">
           {remindedNow === 0
             ? "Nobody new to remind: everyone without a size has had a reminder."
             : remindedNow === 1
               ? "Reminded 1 player to pick a size."
               : `Reminded ${remindedNow} players to pick a size.`}
-        </p>
+        </FlashMessage>
       )}
       {error && (
-        <p role="alert" className="rounded-lg border border-danger p-3">
-          {error}
-        </p>
+        <FlashMessage kind="error">{error}</FlashMessage>
       )}
 
       <section
@@ -348,6 +351,9 @@ async function ShirtOrder({
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[32rem] text-left">
+            <caption className="sr-only">
+              Shirt sizes by team, with the whole league last
+            </caption>
             <thead className="text-text-muted">
               <tr>
                 <th scope="col">Team</th>
