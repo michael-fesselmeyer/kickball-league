@@ -16,6 +16,8 @@ import { scoreVersion } from "@/domain/scores/offline";
 import { MIN_CALLED_INNINGS, PLAYOFF_TIE } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
 import { kicksFirstAction } from "./actions";
+import { EJECT_ERRORS, EjectSection } from "./eject";
+import { featureEnabled } from "@/lib/platform/site";
 import { Scoring } from "./scoring";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
@@ -48,6 +50,7 @@ const ERRORS: Record<string, string> = {
   too_few_innings: `A game called before ${MIN_CALLED_INNINGS} complete innings doesn’t count. If the weather stopped it, tell an admin it’s a rain-out.`,
   playoff_tie: PLAYOFF_TIE,
   not_found: "That game is gone.",
+  ...EJECT_ERRORS,
 };
 
 async function Live({
@@ -61,7 +64,7 @@ async function Live({
   });
   const gameId = parseId<GameId>(rawId);
   if (!gameId) notFound();
-  const [g, live, refereed, league, history, permits, limits] =
+  const [g, live, refereed, league, history, permits, limits, discipline] =
     await Promise.all([
       gameForScoring(db, gameId),
       liveGame(db, gameId),
@@ -70,6 +73,7 @@ async function Live({
       scoreHistory(db, gameId),
       permitInfoFor(db, [gameId]),
       gameLimitsFor(db, gameId),
+      featureEnabled("discipline"),
     ]);
   if (!g || !live) notFound();
   const ctx = {
@@ -80,6 +84,8 @@ async function Live({
     },
   };
   if (!can(subject, "score.live", ctx)) notFound();
+  // Only the game's ref (or an admin) ejects a player, while it's in play.
+  const mayEject = discipline && can(subject, "player.eject", ctx);
   const tz = league?.timeZone ?? "America/New_York";
   const snapshot = snapshotOf(live);
   const names = { A: g.teamAName, B: g.teamBName } as const;
@@ -177,6 +183,10 @@ async function Live({
           permit={permit}
           clock={clock}
         />
+      )}
+
+      {mayEject && !snapshot.closed && (
+        <EjectSection game={g} ejectedNotice={query.notice === "ejected"} />
       )}
 
       <Link
