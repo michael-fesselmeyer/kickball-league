@@ -3,7 +3,7 @@ import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 
 /**
- * Playoff formats (ADR 0064), at phone width: an admin adds a playoff-day
+ * Playoff formats (ADR 0071), at phone width: an admin adds a playoff-day
  * permit to last fall's season, splits its six teams into a
  * double-elimination top four and a second tier of two, publishes both,
  * and the public list shows game numbers with "winner of / loser of"
