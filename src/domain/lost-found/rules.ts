@@ -170,3 +170,23 @@ export function firstName(name: string): string {
   const first = squash(name).split(" ")[0];
   return first || "A member";
 }
+
+/** The notice a redirect's `error` key stands for on a post's page. */
+export const NOTICE_ERRORS: Readonly<Record<string, string>> = {
+  ...CLAIM_MESSAGES,
+  ...MESSAGE_PROBLEMS,
+  not_found: "That post or conversation isn't there any more.",
+  closed: "This conversation is closed.",
+  limit: "You've sent a lot today. Try again tomorrow.",
+  not_open: "This post is already closed.",
+};
+
+/** The notice a redirect's `done` key stands for. */
+export const NOTICE_DONE: Readonly<Record<string, string>> = {
+  posted: "Posted. Members can see it on the board now.",
+  answered:
+    "Sent. The poster has been told and can reply here. Nobody's contact details are shared.",
+  sent: "Message sent.",
+  returned: "Marked as handed over, and the post is closed.",
+  withdrawn: "You took your answer back.",
+};

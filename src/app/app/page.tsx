@@ -531,6 +531,9 @@ async function Account({ searchParams }: PageProps<"/app">) {
       <Link href="/app/concerns" className="btn btn-secondary">
         Raise a concern
       </Link>
+      <Link href="/app/lost-and-found" className="btn btn-secondary">
+        Lost and found
+      </Link>
       <Link href="/app/profile" className="btn btn-secondary">
         Your profile
       </Link>

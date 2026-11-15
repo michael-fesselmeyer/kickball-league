@@ -27,6 +27,7 @@ import type {
   LostFoundUpdatePayload,
 } from "@/emails/lost-found";
 import { user } from "../schema/auth";
+import { venue } from "../schema/game";
 import {
   lostFoundClaim,
   lostFoundItem,
@@ -943,4 +944,17 @@ export async function myLostFoundData(db: Db, userId: UserId) {
     .where(eq(lostFoundMessage.authorId, userId))
     .orderBy(desc(lostFoundMessage.createdAt));
   return { posts, answers, messages };
+}
+
+/** The places a post can name: the league's parks, then the home bar. */
+export async function placeNames(
+  db: Db,
+  leagueId: LeagueId,
+): Promise<string[]> {
+  const rows = await db
+    .select({ name: venue.name })
+    .from(venue)
+    .where(eq(venue.leagueId, leagueId))
+    .orderBy(asc(venue.name));
+  return rows.map((r) => r.name);
 }

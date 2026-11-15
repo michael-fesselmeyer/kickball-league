@@ -17,6 +17,7 @@
     { "path": "/api/jobs/gear-reminders", "schedule": "30 22 * * *" },
     { "path": "/api/jobs/rain-decision", "schedule": "0 13 * * *" },
     { "path": "/api/jobs/rain-decision", "schedule": "0 18 * * *" },
+    { "path": "/api/jobs/lost-found", "schedule": "45 14 * * *" },
     { "path": "/api/jobs/instagram-sync", "schedule": "0 11 * * *" },
     { "path": "/api/jobs/injury-retention", "schedule": "30 5 * * *" },
     { "path": "/api/jobs/photo-purges", "schedule": "45 5 * * *" },
