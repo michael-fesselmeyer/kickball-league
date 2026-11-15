@@ -527,7 +527,8 @@ describe("the league's marks on a card", () => {
         attended: 1,
         runs: 5,
         record: { wins: 1, losses: 2, ties: 0 },
-        longestWinStreak: 0,
+        // Bees won the last game, 5-2, and the mover kicked in it.
+        longestWinStreak: 1,
       });
     });
   });
