@@ -104,7 +104,7 @@ async function Mail({
                     title={`Email: ${subject}`}
                     srcDoc={email.value.html}
                     sandbox=""
-                    className="bg-white h-[32rem] w-full border-t-2 border-text"
+                    className="h-[32rem] w-full border-t-2 border-text"
                   />
                 ) : (
                   <p className="border-t-2 border-text p-3 text-text-muted">
