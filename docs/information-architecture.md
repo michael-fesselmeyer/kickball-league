@@ -99,6 +99,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── volunteer                       Volunteer shifts coming up (game days and events): the job, when and where, spots left; sign up or drop a shift until it starts; my shifts at the top, a set-up lead shift linking to the set-up checklist
 ├── vote                            Awards: open ballots (one vote each, never for yourself or your own team; a season MVP, best-sport or best-newcomer ballot lists the stat leaders first) and closed polls
 │   └── [poll]                      Results after voting closes, ties sharing a place; until then, only when it closes
+├── polls                           Captains' polls (captains, and co-captains when a poll includes them): one vote for each team you answer for, changeable until it closes; totals once your team has voted or at close, as the admin chose
 ├── pickem                          Pick'em, for bragging rights only (no money, no fee, no prizes): pick each game's winner on the coming game day until it starts, my season record, hide or show me, and the season and game-day leaderboards (?day= picks a scored day)
 ├── check-in/[sponsor]/[code]       Where the bar's QR code lands: one tap to check in (an expired code says so)
 ├── check-in/[sponsor]              Today's visit: checked in or not, today's deals and "Use this deal"
@@ -181,6 +182,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   │   └── order.csv           The vendor's CSV: sizes and counts by team and color; player names only when the admin ticks "include names for team packing"
     │   ├── awards                  Open a game-day or season poll, close one early, remove one; results after close
     │   │   └── stats               Stat awards: set the Season MVP weights, work the awards out (a draft only admins see), review the leaders, add a note to any award, publish or take down
+    │   ├── captain-polls           Captains' polls: ask a question with two to five options, a closing time, who votes (captains, or co-captains too) and when captains see results; live totals and each team's answer, close early, remind teams that haven't voted, remove
     │   ├── cards                   Season cards: once the season is completed, build every rostered player's card (and tell each once), or refresh them; how many are shared
     │   ├── attendance              Every team's players with their games played and who is short of the season's playoff minimum
     │   ├── sportsmanship           Each team's average sportsmanship rating and the notes left for admins, lowest first, never saying who rated

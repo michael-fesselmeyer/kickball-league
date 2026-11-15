@@ -107,10 +107,7 @@ export function parsePollForm(
 export type VoterRole = "captain" | "co_captain";
 
 export type VoteError =
-  | "not_open"
-  | "not_a_voter"
-  | "not_an_option"
-  | "team_not_in_poll";
+  "not_open" | "not_a_voter" | "not_an_option" | "team_not_in_poll";
 
 /**
  * Whether this person may vote for this team: the poll is open, the team is
@@ -188,7 +185,8 @@ export function optionResults(
   });
   return {
     rows,
-    winners: total === 0 ? [] : rows.filter((r) => r.rank === 1).map((r) => r.id),
+    winners:
+      total === 0 ? [] : rows.filter((r) => r.rank === 1).map((r) => r.id),
     total,
   };
 }

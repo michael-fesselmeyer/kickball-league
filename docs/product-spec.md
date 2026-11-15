@@ -196,6 +196,8 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | View own referee earnings | — | — | — | own | — | — | — |
 | Vote in awards | — | ✓ (rostered) | ✓ | — | — | — | — |
 | Open, close and remove awards polls | — | — | — | — | — | ✓ | ✓ |
+| Vote in a captains' poll for your team | — | — | ✓ | ✓ (when included) | — | — | — |
+| Open, close, remind and remove captains' polls | — | — | — | — | — | ✓ | ✓ |
 | Make pick'em picks (bragging rights only) | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Choose whether players may pick their own team's games | — | — | — | — | — | ✓ | ✓ |
 | Pick up, hand on, confirm, return or report missing items from a kit of league gear they have, are handed or bring to a game | — | ✓ | ✓ | ✓ | — | ✓ | ✓ |

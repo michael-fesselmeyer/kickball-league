@@ -87,7 +87,11 @@ describe("voting", () => {
       const w = await world(db);
       const id = await w.pollOf();
       const [five, seven] = await optionIds(db, id);
-      const cast = (option: typeof five, team = w.aces.id, who = w.aces.captain) =>
+      const cast = (
+        option: typeof five,
+        team = w.aces.id,
+        who = w.aces.captain,
+      ) =>
         castVote(db, {
           pollId: id,
           teamSeasonId: team,
@@ -240,7 +244,10 @@ describe("what a captain sees", () => {
     await inRolledBackDb(async (db) => {
       const w = await world(db);
       const after = await w.pollOf({ title: "After" });
-      const atClose = await w.pollOf({ title: "At close", results: "at_close" });
+      const atClose = await w.pollOf({
+        title: "At close",
+        results: "at_close",
+      });
       const cap = w.aces.captain;
       const find = async (title: string, now = NOW) =>
         (await captainBallots(db, cap.userId, now)).find(
@@ -360,7 +367,12 @@ describe("reminders", () => {
       const reminders = await db
         .select({ userId: message.userId, payload: message.payload })
         .from(message)
-        .where(eq(message.dedupeKey, `captain_poll/${soon}/reminder/2026-09-15/${w.bees.captain.userId}`));
+        .where(
+          eq(
+            message.dedupeKey,
+            `captain_poll/${soon}/reminder/2026-09-15/${w.bees.captain.userId}`,
+          ),
+        );
       expect(reminders).toHaveLength(1);
       expect(reminders[0]?.payload).toMatchObject({
         kind: "reminder",

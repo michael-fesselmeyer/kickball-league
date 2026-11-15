@@ -1493,6 +1493,13 @@ Awards, as built (`src/db/schema/awards.ts`, `src/db/queries/awards.ts`):
 - An admin opens an `award_poll` for one `game_day` (a weekly poll) or the whole season. Voting runs from `opens_at` until `closes_at`; closing early sets `closes_at` to now. The category decides whether a vote names a player (`nominee_user_id`) or a team (`nominee_team_season_id`), and a check keeps exactly one of them set. Anyone on an active roster that season may vote; a weekly ballot lists only the teams with a game that day (and their players). Totals are read only after `closes_at`, and who voted for whom is never shown to anyone but the voter.
 - Deleting a poll deletes its votes; deleting a season deletes its polls.
 
+Captains' polls, as built (`src/db/schema/captain-poll.ts`, `src/db/queries/captain-polls.ts`, [ADR 0063](adr/0063-quick-polls-for-captains.md)):
+
+- An admin opens a `captain_poll` for a season: a question (up to 120 characters), an optional note, two to five `captain_poll_option` rows in order, `include_co_captains`, `results` (`after_voting` or `at_close`) and `opens_at`/`closes_at`; a check keeps `closes_at` after `opens_at`, and closing early sets `closes_at` to now.
+- `captain_poll_vote` is one row per `(captain_poll_id, team_season_id)`. Changing a vote overwrites it (`option_id`, `voter_id`, `cast_at`), so when two captains of one team differ the last answer wins. The option must belong to the poll, which the query checks.
+- The electorate is not stored: it is the active captains (and co-captains when included) of the season's teams that have not withdrawn, read when needed. A team added after opening can vote; a withdrawn team's vote leaves the totals.
+- Opening writes `captain_poll.open` and queues a `captain_poll` message (non-urgent, topic `announcement`, dedupe key `captain_poll/<poll>/new/<user>`) to each voter. Reminders use `captain_poll/<poll>/reminder/<local date>/<user>`. Closing and removing write `captain_poll.close` and `captain_poll.remove`. Deleting a poll deletes its options and votes; deleting an account clears `created_by` and `voter_id`.
+
 Pick'em, as built ([ADR 0044](adr/0044-pickem-for-bragging-rights-scored-from-results.md); `src/db/schema/pickem.ts`, `src/db/queries/pickem.ts`), for bragging rights only: nothing in it holds money, a fee or a prize.
 
 - A `pickem_pick` is one player's predicted winner for one game (unique `(game_id, user_id)`), saved or changed while the game is scheduled, its slot is open and its start is still ahead. `slot_id` is the game's slot when the pick was saved; a pick for a slot the game has since left (a rain-out move) or that was deleted is void.

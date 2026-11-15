@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { ballotsWaiting } from "@/db/queries/awards";
+import { pollsWaiting } from "@/db/queries/captain-polls";
 import { myCards } from "@/db/queries/season-cards";
 import { myGear } from "@/db/queries/equipment";
 import { fieldPermitForGame } from "@/db/queries/books";
@@ -82,6 +83,12 @@ async function Account({ searchParams }: PageProps<"/app">) {
     if (!id || subject.roster.length === 0) return 0;
     if (!(await featureEnabled("awards"))) return 0;
     return ballotsWaiting(db, id, new Date());
+  })();
+  // Captains' polls this person still owes a vote in, started early too.
+  const pollsOwed = (async () => {
+    const id = parseId<UserId>(subject.userId);
+    if (!id || !subject.roster.some((m) => m.role !== "player")) return 0;
+    return pollsWaiting(db, id, new Date());
   })();
   // Whether pick'em is on, started early too.
   const pickemOn = featureEnabled("pickem");
@@ -206,6 +213,7 @@ async function Account({ searchParams }: PageProps<"/app">) {
       : null;
   const emergencyUntil = emergency?.ok ? emergency.until : null;
   const ballots = await waiting;
+  const polls = await pollsOwed;
   const mine = await seasons;
   const showPickem = await pickemOn;
   const kits = await gear;
@@ -495,6 +503,11 @@ async function Account({ searchParams }: PageProps<"/app">) {
       {ballots > 0 && (
         <Link href="/app/vote" className="btn btn-primary">
           Vote for awards ({ballots} open)
+        </Link>
+      )}
+      {polls > 0 && (
+        <Link href="/app/polls" className="btn btn-primary">
+          Captains&apos; poll waiting for your vote ({polls})
         </Link>
       )}
       {surveysOpen.map((sv) => (
