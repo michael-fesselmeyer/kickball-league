@@ -9,6 +9,7 @@ import {
   publishVersion,
   saveVersion,
 } from "@/db/queries/schedule";
+import { fieldsMissingLayout } from "@/db/queries/field-layouts";
 import { seasonBySlug, versionsOf } from "@/db/queries/schedule-screen";
 import { parseId, type ScheduleVersionId } from "@/domain/ids";
 import { parseOverrideReason } from "@/domain/permits/coverage";
@@ -76,6 +77,10 @@ export async function publishDraft(
   const subject = await requirePermissionToChange("schedule.manage", {
     next: page,
   });
+  // Every field the schedule uses needs a layout, or an admin's word that
+  // it needs none (#403), so set-up crews and refs know where the permit ends.
+  if ((await fieldsMissingLayout(db, versionId)).length > 0)
+    redirect(`${page}?error=missing_layout`);
   const result = await publishVersion(txDb, versionId, subject.userId);
   if (!result.ok) redirect(`${page}?error=${result.error}`);
   const { moved, added, removed, teams, notified } = result.value;

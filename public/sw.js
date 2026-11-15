@@ -59,7 +59,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const ID = "[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}";
 const GAME_PAGE = new RegExp(`^/games/(${ID})$`);
 const PERMIT_PAGE = new RegExp(`^/app/games/(${ID})/permit$`);
-const PERMIT_FILE = new RegExp(`^/app/games/(${ID})/permit/document$`);
+const PERMIT_FILE = new RegExp(
+  `^/app/games/(${ID})/permit/(?:document|layout)$`,
+);
 const EMERGENCY_PAGE = new RegExp(`^/app/games/(${ID})/emergency$`);
 const CHECKLIST_PAGE = new RegExp(`^/app/games/(${ID})/checklist$`);
 const STATIC_ASSET = /\/_next\/static\/[^"'\s)<>\\]+/g;
@@ -71,7 +73,7 @@ const STATIC_ASSET = /\/_next\/static\/[^"'\s)<>\\]+/g;
  * - "shell": a shell file; served from the shell cache when saved.
  * - "page": a page; from the network, always checked with the server, and
  *   when that fails, the saved copy of the next game or the offline page.
- * - "saved-file": the next game's permit document; from the network, and
+ * - "saved-file": the next game's permit document or field layout; from the network, and
  *   the saved copy when that fails.
  */
 function routeFor(request) {
@@ -483,6 +485,18 @@ async function savePermit(games, permit) {
         headers: {
           "Content-Type":
             file.headers.get("Content-Type") ?? "application/octet-stream",
+        },
+      }),
+    );
+  // The field's layout, saved with the permit so it opens with no signal.
+  const layout = await get(`${permit}/layout`, { credentials: "same-origin" });
+  if (layout)
+    await games.put(
+      `${permit}/layout`,
+      new Response(await layout.blob(), {
+        headers: {
+          "Content-Type":
+            layout.headers.get("Content-Type") ?? "application/octet-stream",
         },
       }),
     );
