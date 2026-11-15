@@ -180,6 +180,87 @@ export async function addGamesNextWeek(
   };
 }
 
+/**
+ * A game three hours from now between two fall teams, with the demo ref
+ * down to ref it, for the flows that drop and take a game. It sits in a
+ * small private season of its own that is under way, not in Fall 2026:
+ * publishing a season's schedule takes the slot off any game the schedule
+ * doesn't place, and other flows publish Fall 2026's. Nobody but admins
+ * sees a private season. `remove` deletes it all.
+ */
+export async function addRefereedGameSoon(
+  teamA: string,
+  teamB: string,
+): Promise<{ gameId: string; remove: () => Promise<void> }> {
+  const tag = Math.random().toString(36).slice(2, 8);
+  const made = await withDb(async (db) => {
+    const { rows } = await db.query<{ season: string; game: string }>(
+      `with new_season as (
+         insert into season (league_id, name, slug, status, visibility,
+                             starts_on, ends_on, fee_model, player_fee_cents,
+                             roster_min, roster_max)
+         select s.league_id, $3, $4, 'in_progress', 'private',
+                current_date, current_date + 7,
+                s.fee_model, s.player_fee_cents, s.roster_min, s.roster_max
+           from season s where s.slug = 'fall-2026'
+            and s.league_id = (select id from league where is_default)
+         returning id, league_id
+       ), entries as (
+         insert into team_season (team_id, season_id)
+         select t.id, new_season.id from team t, new_season
+          where t.league_id = new_season.league_id and t.name in ($1, $2)
+         returning id, team_id
+       ), place as (
+         select f.id as field_id from field f
+           join venue v on v.id = f.venue_id
+          where v.league_id = (select league_id from new_season)
+          order by f.name desc limit 1
+       ), new_slot as (
+         insert into slot (season_id, field_id, starts_at, ends_at, time_index)
+         select new_season.id, (select field_id from place),
+                date_trunc('hour', now()) + interval '3 hours',
+                date_trunc('hour', now()) + interval '4 hours', 0
+           from new_season
+         returning id, season_id
+       ), new_game as (
+         insert into game (season_id, team_a_id, team_b_id, kind, slot_id)
+         select new_slot.season_id,
+                (select e.id from entries e join team t on t.id = e.team_id
+                  where t.name = $1),
+                (select e.id from entries e join team t on t.id = e.team_id
+                  where t.name = $2),
+                'exhibition', new_slot.id
+           from new_slot
+         returning id, season_id
+       ), ref as (
+         insert into referee_assignment (game_id, user_id, status, responded_at)
+         select new_game.id, u.id, 'accepted', now()
+           from new_game, "user" u
+          where u.email = 'reese.ref@example.test'
+         returning game_id
+       )
+       select new_game.season_id as season, new_game.id as game
+         from new_game, ref`,
+      [teamA, teamB, `Pickup ${tag}`, `pickup-${tag}`],
+    );
+    const [row] = rows;
+    if (!row) throw new Error(`Could not add ${teamA} vs ${teamB} soon`);
+    return row;
+  });
+  return {
+    gameId: made.game,
+    remove: () =>
+      withDb(async (db) => {
+        await db.query("delete from game where season_id = $1", [made.season]);
+        await db.query("delete from slot where season_id = $1", [made.season]);
+        await db.query("delete from team_season where season_id = $1", [
+          made.season,
+        ]);
+        await db.query("delete from season where id = $1", [made.season]);
+      }),
+  };
+}
+
 async function withDb<T>(body: (db: Client) => Promise<T>): Promise<T> {
   const db = new Client({ connectionString: process.env.DATABASE_URL });
   await db.connect();
