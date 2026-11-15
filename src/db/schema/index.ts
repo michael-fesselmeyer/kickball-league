@@ -6,6 +6,7 @@ export * from "./availability";
 export * from "./captaincy";
 export * from "./checklist";
 export * from "./awards";
+export * from "./captain-poll";
 export * from "./books";
 export * from "./credit";
 export * from "./concern";

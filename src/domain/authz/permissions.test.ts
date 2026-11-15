@@ -523,6 +523,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "shirts.manage",
       "win_back.manage",
       "awards.manage",
+      "captain_polls.manage",
       "pickem.manage",
       "photos.manage",
       "lost_found.manage",

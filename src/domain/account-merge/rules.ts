@@ -330,6 +330,8 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     handler: "award_nominee",
   },
   "award_poll.created_by": actor("award polls opened"),
+  "captain_poll.created_by": actor("captain polls opened"),
+  "captain_poll_vote.voter_id": actor("captain poll votes cast"),
   "season_card.user_id": {
     kind: "dedupe",
     label: "season cards",
