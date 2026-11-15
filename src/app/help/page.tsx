@@ -38,7 +38,11 @@ export default function HelpPage() {
           <Link href="/faq" className="font-bold text-brand underline">
             FAQ
           </Link>{" "}
-          covers the basics.
+          covers the basics, and the{" "}
+          <Link href="/rules" className="font-bold text-brand underline">
+            league rules
+          </Link>{" "}
+          say how we play, with what changed and when.
         </p>
       </header>
 
