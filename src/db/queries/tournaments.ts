@@ -19,7 +19,7 @@ import {
   hasResults,
   makeBracket,
   recordScore,
-  setPlace,
+  setSchedule,
   teamsIn,
   type TournamentBracket,
 } from "@/domain/tournaments/bracket";
@@ -532,7 +532,7 @@ export async function updateBracketGame(
     code: string;
     change:
       | { kind: "score"; scoreA: number; scoreB: number }
-      | { kind: "place"; place: string };
+      | { kind: "schedule"; place: string; startsAt: Date | null };
     actorId: UserId;
   },
 ): Promise<Result<TournamentBracket, BracketSaveError>> {
@@ -543,7 +543,12 @@ export async function updateBracketGame(
   const next =
     input.change.kind === "score"
       ? recordScore(bracket, input.code, input.change.scoreA, input.change.scoreB)
-      : setPlace(bracket, input.code, input.change.place);
+      : setSchedule(
+          bracket,
+          input.code,
+          input.change.place,
+          input.change.startsAt,
+        );
   if (!next.ok) return next;
   await db
     .update(tournament)

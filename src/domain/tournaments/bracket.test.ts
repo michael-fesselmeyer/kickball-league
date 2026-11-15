@@ -4,7 +4,7 @@ import {
   hasResults,
   makeBracket,
   recordScore,
-  setPlace,
+  setSchedule,
   type TournamentBracket,
 } from "./bracket";
 
@@ -100,10 +100,18 @@ describe("recordScore", () => {
     // The same winner with a new score is fine.
     expect(recordScore(b, "r1m1", 9, 0).ok).toBe(true);
   });
-  it("keeps a game's place through a result", () => {
-    const placed = must(setPlace(build(4), "r1m1", " Field 2 "));
+  it("keeps a game's place and time through a result", () => {
+    const at = new Date("2027-06-05T15:00:00Z");
+    const placed = must(setSchedule(build(4), "r1m1", " Field 2 ", at));
     const r = must(recordScore(placed, "r1m1", 5, 2));
     expect(r.matches[0]?.place).toBe("Field 2");
+    expect(r.matches[0]?.startsAt).toBe(at.toISOString());
+    const cleared = must(setSchedule(r, "r1m1", "", null));
+    expect(cleared.matches[0]).toMatchObject({ place: null, startsAt: null });
+    expect(setSchedule(r, "r9m9", "x", null)).toEqual({
+      ok: false,
+      error: "no_such_match",
+    });
   });
 });
 

@@ -25,6 +25,8 @@ export type TournamentMatch = MatchState & {
   scoreB: number | null;
   /** Free text such as "Field 2", set by an admin. */
   place: string | null;
+  /** When it is played, as an ISO instant; null until an admin sets it. */
+  startsAt: string | null;
 };
 
 export type TournamentBracket = {
@@ -71,6 +73,7 @@ export function makeBracket(
     scoreA: null,
     scoreB: null,
     place: null,
+    startsAt: null,
   }));
   return ok({ seeds, matches, champion: null });
 }
@@ -134,18 +137,25 @@ export function nameOf(
   return bracket.seeds.find((s) => s.teamId === teamId)?.name ?? null;
 }
 
-/** Sets the place (a field) for a game, or clears it with an empty string. */
-export function setPlace(
+/**
+ * Sets where (a field, as free text) and when a game is played. An empty
+ * place or a null time clears it.
+ */
+export function setSchedule(
   bracket: TournamentBracket,
   code: string,
   place: string,
+  startsAt: Date | null,
 ): Result<TournamentBracket, BracketError> {
-  if (!bracket.matches.some((m) => m.code === code)) return err("no_such_match");
+  if (!bracket.matches.some((m) => m.code === code))
+    return err("no_such_match");
   const clean = place.replace(/\s+/g, " ").trim().slice(0, 60);
   return ok({
     ...bracket,
     matches: bracket.matches.map((m) =>
-      m.code === code ? { ...m, place: clean || null } : m,
+      m.code === code
+        ? { ...m, place: clean || null, startsAt: startsAt?.toISOString() ?? null }
+        : m,
     ),
   });
 }
