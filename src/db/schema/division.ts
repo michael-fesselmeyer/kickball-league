@@ -5,6 +5,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  smallint,
   text,
   timestamp,
   unique,
@@ -62,6 +63,11 @@ export const ruleSet = pgTable(
       .references(() => league.id, { onDelete: "restrict" }),
     name: text().notNull(),
     innings: integer(),
+    /**
+     * Sets in a match, for a sport played in sets such as dodgeball (ADR
+     * 0072): best of this many. Null uses the sport's default.
+     */
+    bestOf: smallint(),
     timeLimitMinutes: integer(),
     options: jsonb().$type<RuleSetOptions>().notNull().default({}),
     ...audit(),
@@ -71,6 +77,10 @@ export const ruleSet = pgTable(
     check(
       "rule_set_innings_range",
       sql`${t.innings} is null or ${t.innings} between 1 and 15`,
+    ),
+    check(
+      "rule_set_best_of",
+      sql`${t.bestOf} is null or (${t.bestOf} between 1 and 9 and ${t.bestOf} % 2 = 1)`,
     ),
     check(
       "rule_set_time_limit_range",
