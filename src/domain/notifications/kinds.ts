@@ -168,6 +168,10 @@ export const MESSAGE_KINDS = {
     urgency: "non_urgent",
     label: "A change to the league's rules, a few days before it takes effect",
   },
+  game_ruling: {
+    urgency: "urgent",
+    label: "An admin's ruling on your game: a forfeit, or a score they set",
+  },
   score_confirmation: {
     urgency: "urgent",
     label: "Scores waiting for your confirmation",
