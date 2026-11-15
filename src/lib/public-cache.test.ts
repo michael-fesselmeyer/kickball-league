@@ -5,6 +5,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
 const { revalidatePath, updateTag } = await import("next/cache");
 const {
   EVENTS_TAG,
+  FRIENDS_TAG,
   SEASONS_TAG,
   SITE_TAG,
   SPONSORS_TAG,
@@ -12,6 +13,7 @@ const {
   eventTag,
   gameTag,
   refreshEventPages,
+  refreshFriendPages,
   refreshGamePage,
   refreshSeasonPages,
   refreshSeasonCards,
@@ -120,6 +122,24 @@ describe("refreshSeasonCards", () => {
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
       ["/l/[league]/seasons/[season]/card/[card]", "page"],
       ["/l/[league]/seasons/[season]/card/[card]", "page"],
+    ]);
+  });
+});
+
+describe("refreshFriendPages", () => {
+  it("expires the league's own friends page at once, and every league's", () => {
+    refreshFriendPages({ slug: "flag-football", isDefault: false });
+    refreshFriendPages({ slug: "kickball", isDefault: true });
+
+    expect(vi.mocked(updateTag).mock.calls).toEqual([
+      [FRIENDS_TAG],
+      [FRIENDS_TAG],
+    ]);
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([
+      ["/l/flag-football/friends"],
+      ["/l/[league]/friends", "page"],
+      ["/l/_default/friends"],
+      ["/l/[league]/friends", "page"],
     ]);
   });
 });

@@ -115,6 +115,10 @@ export const SEASON_PAGE_ROUTES = [
   "/embed/schedule",
 ];
 
+/** A league's `[league]` segment: the default league's own, or its slug. */
+const segmentOf = (league: LeagueRef | null): string =>
+  !league || league.isDefault ? DEFAULT_LEAGUE_SEGMENT : league.slug;
+
 /** The list of seasons on /seasons. */
 export const SEASONS_TAG = "seasons";
 
@@ -148,9 +152,7 @@ export function refreshGamePage(
   updateTag(gameTag(gameId));
   // The page as its league's route serves it (ADR 0048): the default
   // league's under its own segment, another league's under its slug.
-  const segment =
-    !league || league.isDefault ? DEFAULT_LEAGUE_SEGMENT : league.slug;
-  revalidatePath(`${LEAGUE_PREFIX}/${segment}/games/${gameId}`);
+  revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/games/${gameId}`);
 }
 
 /**
@@ -234,7 +236,10 @@ export const FRIENDS_TAG = "friends";
  * path too, so its prerendered page doesn't serve the entries it was built
  * with.
  */
-export function refreshFriendPages(): void {
+export function refreshFriendPages(league: LeagueRef): void {
   updateTag(FRIENDS_TAG);
+  // The league's own page right away, as /friends was before leagues had
+  // their own paths (ADR 0048), and every league's on its next visit.
+  revalidatePath(`${LEAGUE_PREFIX}/${segmentOf(league)}/friends`);
   revalidatePath("/l/[league]/friends", "page");
 }

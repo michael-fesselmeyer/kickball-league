@@ -129,7 +129,7 @@ export async function createFriendAction(
     return set.ok ? created : set;
   });
   if (!saved.ok) return { values, error: message(saved.error) };
-  refreshFriendPages();
+  refreshFriendPages(league);
   redirect(`${LIST}?saved=created`);
 }
 
@@ -165,7 +165,7 @@ export async function updateFriendAction(
     return set.ok ? ok(id) : set;
   });
   if (!saved.ok) return { values, error: message(saved.error) };
-  refreshFriendPages();
+  refreshFriendPages(league);
   redirect(`${LIST}?saved=updated`);
 }
 
@@ -178,7 +178,7 @@ export async function removeFriendLogoAction(friendId: string): Promise<void> {
   await txDb.transaction((tx) =>
     removeFriendLogo(tx, { leagueId: league.id, id, actorId: subject.userId }),
   );
-  refreshFriendPages();
+  refreshFriendPages(league);
   redirect(`${page}?saved=logo_removed`);
 }
 
@@ -200,6 +200,6 @@ export async function removeFriendAction(
     }),
   );
   if (!removed.ok) notFound();
-  refreshFriendPages();
+  refreshFriendPages(league);
   redirect(`${LIST}?saved=removed`);
 }
