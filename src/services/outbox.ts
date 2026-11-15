@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { txDb } from "@/db/client";
+import { releaseDueAnnouncements } from "@/db/queries/announcements";
 import { buildDigests, type DigestResult } from "@/db/queries/digests";
 import {
   DEFAULT_TIME_ZONE,
@@ -71,11 +72,14 @@ const pushSender = pushSenderFrom({
 /**
  * Sends everything that is due, in batches, until the outbox is empty or
  * `maxBatches` is reached. Null when neither email nor push is configured.
+ * First it queues any scheduled announcement that is due (ADR 0052), so
+ * the daily sweep, and any send after it, picks them up.
  */
 export async function drainOutboxNow(
   now: Date = new Date(),
   maxBatches = 10,
 ): Promise<DrainResult | null> {
+  await txDb.transaction((tx) => releaseDueAnnouncements(tx, now));
   if (!sender && !pushSender) return null;
   const render = rendererFor({
     siteUrl: env.BETTER_AUTH_URL,
