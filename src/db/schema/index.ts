@@ -16,6 +16,7 @@ export * from "./formation";
 export * from "./free-agent";
 export * from "./friends";
 export * from "./game";
+export * from "./game-day";
 export * from "./guarantee";
 export * from "./keep-off";
 export * from "./league";

@@ -160,6 +160,7 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     label: "captaincy offered to them",
   },
   "captain_handoff.created_by": actor("captaincy offers made"),
+  "game_day_status.set_by": actor("game-day statuses set"),
   "friend_group.created_by": actor("friend groups started"),
   "invite.created_by": actor("invites created"),
   "roster_membership.created_by": actor("roster changes"),
