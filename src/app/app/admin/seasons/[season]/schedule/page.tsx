@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import { divisionsScreen } from "@/db/queries/divisions";
+import { schedulerPermits } from "@/db/queries/permit-coverage";
 import { loadVersion } from "@/db/queries/schedule";
 import {
   scheduleLabels,
@@ -76,7 +77,19 @@ async function Schedule({
   const latest = versions[0] ? await loadVersion(db, versions[0].id) : null;
   const labels = await scheduleLabels(db, season.id, season.timeZone);
   const metrics = latest ? measure(latest.input, latest.schedule) : null;
-  const violations = latest ? validate(latest.input, latest.schedule) : [];
+  // A draft is judged against the permits as they are now (H12, issue
+  // #407), as publishing will judge it.
+  const violations = latest
+    ? validate(
+        latest.status === "draft"
+          ? {
+              ...latest.input,
+              permits: await schedulerPermits(db, season.id, new Date()),
+            }
+          : latest.input,
+        latest.schedule,
+      )
+    : [];
   const teamCount = labels.teams.size;
   // One full round robin for the largest pool: the season, or the largest
   // division. Crossover games come on top.

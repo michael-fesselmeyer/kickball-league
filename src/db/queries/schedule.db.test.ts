@@ -20,6 +20,7 @@ import {
 } from "../schema/schedule";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
+import { permitEverySlot } from "../test/permits";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { recordAudit } from "./audit";
 import { required } from "./rows";
@@ -93,6 +94,8 @@ async function world(db: Db) {
       ),
     ),
   );
+  // Held under permits with their documents (H12, issue #407).
+  await permitEverySlot(db, sn!.id);
   const teams = await db
     .insert(team)
     .values(

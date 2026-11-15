@@ -10,6 +10,7 @@ import type { Email, EmailSender } from "@/services/email";
 import { field, slot, venue } from "../schema/game";
 import { message, notificationPreference } from "../schema/message";
 import { messagingWorld } from "../test/messaging-world";
+import { permitEverySlot } from "../test/permits";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { drainOutbox } from "./outbox";
 import { queueRainoutNotices } from "./rainout-notices";
@@ -88,6 +89,8 @@ async function rainyWorld(db: Db) {
       }),
     ),
   );
+  // Held under permits with their documents (H12, issue #407).
+  await permitEverySlot(db, w.season.id);
   const loaded = await loadSchedulerInput(db, w.season.id, {
     rounds: 2,
     reservePerDay: 1,

@@ -17,7 +17,7 @@ import type { SeedData } from "./generate";
 /**
  * Sample books for the demo league (ADR 0034): the current season's games
  * sit on permit windows under one invented permit with a cost, a renewal
- * date and a sample document image; a few expenses; and an insurance
+ * date and a sample document image (next season's permits share it); a few expenses; and an insurance
  * certificate from an invented insurer. Nothing here is a real permit.
  */
 
@@ -64,6 +64,12 @@ export async function addSeedBooks(tx: Db, data: SeedData) {
     })
     .returning({ id: booksFile.id });
   const documentFileId: BooksFileId | null = file?.id ?? null;
+  // Next season's permits carry the sample document too, so the schedule
+  // made from them can be published (issue #407).
+  await tx
+    .update(permitWindow)
+    .set({ documentFileId })
+    .where(eq(permitWindow.seasonId, data.nextSeason.id));
 
   // One window per field and game day, covering that day's slots.
   const byWindow = Map.groupBy(
