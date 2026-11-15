@@ -43,11 +43,16 @@ export type WinBackSeason = {
   status: string;
 };
 
-/** A season by slug, as the win-back screen needs it. */
+/**
+ * A season of the league by slug, as the win-back screen needs it. Slugs
+ * are unique within a league only, so the league is part of the lookup.
+ */
 export async function winBackSeason(
   db: Db,
+  leagueId: LeagueId | null | undefined,
   slug: string,
 ): Promise<WinBackSeason | null> {
+  if (!leagueId) return null;
   const [found] = await db
     .select({
       id: season.id,
@@ -58,7 +63,7 @@ export async function winBackSeason(
       status: season.status,
     })
     .from(season)
-    .where(eq(season.slug, slug));
+    .where(and(eq(season.leagueId, leagueId), eq(season.slug, slug)));
   return found ?? null;
 }
 

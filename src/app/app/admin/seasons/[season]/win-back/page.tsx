@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { db } from "@/db/client";
-import { currentLeague } from "@/db/queries/seasons";
 import {
   winBackCandidates,
   winBackResults,
@@ -19,6 +18,7 @@ import {
 } from "@/domain/win-back/win-back";
 import { SubmitButton } from "@/components/submit-button";
 import { requirePermission } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 import { saveTemplateAction, sendAllAction, sendOneAction } from "./actions";
 
 export const metadata: Metadata = { title: "Win back past players" };
@@ -50,10 +50,8 @@ async function WinBack({ params, searchParams }: Props) {
   const page = `/app/admin/seasons/${slug}/win-back`;
   await requirePermission("win_back.manage", { next: page });
   await connection();
-  const [season, league] = await Promise.all([
-    winBackSeason(db, slug),
-    currentLeague(db),
-  ]);
+  const league = await activeLeague();
+  const season = await winBackSeason(db, league?.id, slug);
   if (!season || !league) notFound();
   const open = season.status === "registration_open";
   const [template, candidates, results] = await Promise.all([

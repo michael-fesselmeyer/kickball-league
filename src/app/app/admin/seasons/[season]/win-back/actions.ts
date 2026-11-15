@@ -10,6 +10,7 @@ import {
 import { parseId, type UserId } from "@/domain/ids";
 import { parseTemplate } from "@/domain/win-back/win-back";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
 import { refreshOwnerDashboard } from "@/lib/owner-dashboard-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 
@@ -25,7 +26,7 @@ async function send(slug: string, userIds: readonly UserId[] | "all") {
   const subject = await requirePermissionToChange("win_back.manage", {
     next: page,
   });
-  const season = await winBackSeason(db, slug);
+  const season = await winBackSeason(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const sent = await txDb.transaction((tx) =>
     sendWinBack(tx, {
@@ -59,7 +60,7 @@ export async function saveTemplateAction(slug: string, form: FormData) {
   const subject = await requirePermissionToChange("win_back.manage", {
     next: page,
   });
-  const season = await winBackSeason(db, slug);
+  const season = await winBackSeason(db, await activeLeagueId(), slug);
   if (!season) notFound();
   const parsed = parseTemplate({
     subject: text(form, "subject"),
