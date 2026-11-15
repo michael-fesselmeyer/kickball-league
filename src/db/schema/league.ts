@@ -84,6 +84,14 @@ export const league = pgTable(
      * to the owners to confirm. The owners decide.
      */
     adminsConfirmRainouts: boolean().notNull().default(false),
+    /**
+     * Who may read the rulebook text (ADR 0065): the owners only, anyone
+     * signed in, or everyone. Owners only until the league decides.
+     */
+    rulebookVisibility: text()
+      .$type<"owners" | "members" | "public">()
+      .notNull()
+      .default("owners"),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -94,6 +102,10 @@ export const league = pgTable(
       .references(() => user.id, { onDelete: "set null" }),
   },
   (table) => [
+    check(
+      "league_rulebook_visibility",
+      sql`${table.rulebookVisibility} in ('owners', 'members', 'public')`,
+    ),
     check(
       "league_slug_format",
       sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`,

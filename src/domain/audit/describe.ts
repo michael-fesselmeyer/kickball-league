@@ -223,6 +223,7 @@ const ACTIONS: Record<string, string> = {
   "season.create": "Created a season",
   "season.division_settings": "Changed crossover games and the playoff format",
   "rules.publish": "Published a change to the league's rules",
+  "rules.visibility": "Changed who can read the rulebook",
   "season.update": "Changed season settings",
   "shirt_maker.create": "Added a maker to the shirt makers directory",
   "shirt_maker.remove": "Removed a maker from the shirt makers directory",

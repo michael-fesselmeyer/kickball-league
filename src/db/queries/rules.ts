@@ -1,4 +1,10 @@
 import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
+import { league } from "../schema/league";
+import {
+  parseVisibility,
+  type RulebookVisibility,
+  tsQueryOf,
+} from "@/domain/rules/rulebook";
 import type {
   LeagueId,
   RuleChangeId,
@@ -342,4 +348,85 @@ export async function publishRuleChange(
     },
   });
   return ok({ id: change.id, recipients });
+}
+
+/** Who may read the league's rulebook; owners only until the league decides. */
+export async function rulebookVisibility(
+  db: Db,
+  leagueId: LeagueId,
+): Promise<RulebookVisibility> {
+  const [row] = await db
+    .select({ visibility: league.rulebookVisibility })
+    .from(league)
+    .where(eq(league.id, leagueId));
+  return parseVisibility(row?.visibility) ?? "owners";
+}
+
+/** Changes who may read the rulebook, with an audit entry when it differs. */
+export async function setRulebookVisibility(
+  db: Db,
+  input: {
+    leagueId: LeagueId;
+    actorId: UserId;
+    visibility: RulebookVisibility;
+  },
+): Promise<{ changed: boolean }> {
+  const before = await rulebookVisibility(db, input.leagueId);
+  if (before === input.visibility) return { changed: false };
+  await db
+    .update(league)
+    .set({ rulebookVisibility: input.visibility })
+    .where(eq(league.id, input.leagueId));
+  await recordAudit(db, {
+    actorId: input.actorId,
+    action: "rules.visibility",
+    entityType: "league",
+    entityId: input.leagueId,
+    before: { visibility: before },
+    after: { visibility: input.visibility },
+  });
+  return { changed: true };
+}
+
+export type SearchRow = {
+  slug: string;
+  title: string;
+  body: string;
+  rank: number;
+};
+
+/**
+ * The sections that contain every word, best first: the title counts for
+ * more than the text. Each word matches as a prefix, so results appear
+ * while the person types. `terms` come from `searchTerms`, letters and
+ * digits only.
+ */
+export async function searchSections(
+  db: Db,
+  leagueId: LeagueId,
+  terms: readonly string[],
+  limit = 8,
+): Promise<SearchRow[]> {
+  const query = tsQueryOf(terms);
+  if (!query) return [];
+  const tsquery = sql`to_tsquery('english', ${query})`;
+  return db
+    .select({
+      slug: ruleSection.slug,
+      title: ruleSection.title,
+      body: ruleSection.body,
+      rank: sql<number>`ts_rank_cd(${ruleSection.search}, ${tsquery})::float8`,
+    })
+    .from(ruleSection)
+    .where(
+      and(
+        eq(ruleSection.leagueId, leagueId),
+        sql`${ruleSection.search} @@ ${tsquery}`,
+      ),
+    )
+    .orderBy(
+      sql`ts_rank_cd(${ruleSection.search}, ${tsquery}) desc`,
+      asc(ruleSection.position),
+    )
+    .limit(limit);
 }
