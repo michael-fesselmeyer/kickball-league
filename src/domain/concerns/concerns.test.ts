@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PUBLIC_CATEGORIES, parseConcern } from "./concerns";
+import { PUBLIC_CATEGORIES, parseConcern, parseText } from "./concerns";
 
 const PUBLIC = Object.keys(PUBLIC_CATEGORIES);
 const base = {
@@ -74,5 +74,13 @@ describe("parseConcern", () => {
     });
     const ok = parse({ replyEmail: " Pat@Example.TEST " });
     expect(ok.ok && ok.value.replyEmail).toBe("pat@example.test");
+  });
+});
+
+describe("parseText", () => {
+  it("trims, and refuses empty or too long text", () => {
+    expect(parseText("  hi  ", 5)).toEqual({ ok: true, value: "hi" });
+    expect(parseText("   ", 5)).toEqual({ ok: false, error: "text" });
+    expect(parseText("abcdef", 5)).toEqual({ ok: false, error: "text" });
   });
 });
