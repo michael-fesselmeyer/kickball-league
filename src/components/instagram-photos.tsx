@@ -17,11 +17,14 @@ export function InstagramPhotos({
   heading,
   cover,
   photos,
+  opensPost = "(opens the post on Instagram)",
 }: {
   id: string;
   heading: string;
   cover: PublicPhoto | null;
   photos: PublicPhoto[];
+  /** For screen readers, in the page's language (ADR 0065). */
+  opensPost?: string;
 }) {
   if (!cover && photos.length === 0) return null;
   return (
@@ -32,6 +35,7 @@ export function InstagramPhotos({
       {cover && (
         <PhotoLink
           photo={cover}
+          opensPost={opensPost}
           className="aspect-[4/3] md:aspect-[16/7]"
           sizes="(min-width: 1024px) 1000px, 100vw"
         />
@@ -42,6 +46,7 @@ export function InstagramPhotos({
             <li key={photo.imageId}>
               <PhotoLink
                 photo={photo}
+                opensPost={opensPost}
                 className="aspect-square"
                 sizes="(min-width: 1024px) 240px, (min-width: 768px) 25vw, 50vw"
               />
@@ -57,10 +62,12 @@ function PhotoLink({
   photo,
   className,
   sizes,
+  opensPost,
 }: {
   photo: PublicPhoto;
   className: string;
   sizes: string;
+  opensPost: string;
 }) {
   return (
     <a
@@ -72,7 +79,7 @@ function PhotoLink({
       {/* A plain img with the optimizer's srcset: no client component. */}
       {/* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */}
       <img {...imageProps(photo, sizes)} className="object-cover" />
-      <span className="sr-only"> (opens the post on Instagram)</span>
+      <span className="sr-only"> {opensPost}</span>
     </a>
   );
 }

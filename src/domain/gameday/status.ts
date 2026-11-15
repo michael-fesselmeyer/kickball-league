@@ -1,3 +1,6 @@
+import { fill } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 import { kickoff } from "@/domain/schedule/format";
 import { err, ok, type Result } from "@/domain/result";
 import { zonedInstant } from "@/domain/time/zoned";
@@ -138,8 +141,14 @@ export function gameStatus(
 }
 
 /** "Updated 2:10 PM", the status's age, so a saved copy says how old it is. */
-export const updatedWords = (setAt: Date, timeZone: string): string =>
-  `Updated ${kickoff(setAt, timeZone)}`;
+export const updatedWords = (
+  setAt: Date,
+  timeZone: string,
+  locale: Locale = DEFAULT_LOCALE,
+): string =>
+  fill(messagesFor(locale).gameday.updated, {
+    time: kickoff(setAt, timeZone, locale),
+  });
 
 /**
  * The line at the top of the schedule and on the home screen for a day:
@@ -150,36 +159,46 @@ export function dayLine(
   status: Pick<DayStatus, "state" | "decideBy" | "reason" | "games">,
   dayGames: number,
   timeZone: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): string | null {
+  const words = messagesFor(locale).gameday;
+  // The reason is the admin's own words, shown as written.
   const why = status.reason ? ` ${status.reason}.` : "";
   const some = status.games.size < dayGames;
   switch (status.state) {
     case "on":
-      return status.reason ? `Games are on.${why}` : null;
+      return status.reason ? `${words.gamesOn}${why}` : null;
     case "watching":
       return status.decideBy
-        ? `Watching the weather: we'll decide by ${kickoff(status.decideBy, timeZone)}.${why}`
+        ? `${fill(words.watchingDay, { time: kickoff(status.decideBy, timeZone, locale) })}${why}`
         : null;
     case "delayed":
-      return some
-        ? `Some games start late.${why}`
-        : `All games start late.${why}`;
+      return `${some ? words.someLate : words.allLate}${why}`;
     case "off":
-      return some ? `Some games are off.${why}` : `All games are off.${why}`;
+      return `${some ? words.someOff : words.allOff}${why}`;
   }
 }
 
 /** The words for one game: "Starts late: 7:30 PM", "Off", … */
-export function gameWords(s: GameStatus, timeZone: string): string | null {
+export function gameWords(
+  s: GameStatus,
+  timeZone: string,
+  locale: Locale = DEFAULT_LOCALE,
+): string | null {
+  const words = messagesFor(locale).gameday;
   switch (s.kind) {
     case "on":
       return null;
     case "watching":
-      return `Watching the weather: decision by ${kickoff(s.decideBy, timeZone)}`;
+      return fill(words.watchingGame, {
+        time: kickoff(s.decideBy, timeZone, locale),
+      });
     case "delayed":
-      return `Starts late: ${kickoff(s.newStartsAt, timeZone)}`;
+      return fill(words.startsLate, {
+        time: kickoff(s.newStartsAt, timeZone, locale),
+      });
     case "off":
-      return "Off";
+      return words.off;
   }
 }
 

@@ -8,6 +8,10 @@ import { revealOrder } from "@/components/motion";
 import { db } from "@/db/client";
 import { sportLabel } from "@/domain/league/new-league";
 import { DEFAULT_LEAGUE_SEGMENT, leagueHref } from "@/domain/league/paths";
+import { fill } from "@/i18n/catalog";
+import type { Locale } from "@/i18n/locales";
+import { localeOf, messagesFor } from "@/i18n/messages";
+import { languageAlternates, linkIn } from "@/i18n/routing";
 import { cachedLeague, publicLeague } from "@/lib/league/public";
 import { LeagueHome } from "./league-home";
 import { defaultLeague } from "@/db/queries/leagues";
@@ -31,83 +35,63 @@ export const instant = false;
 export async function generateMetadata({
   params,
 }: PageProps<"/[lang]/l/[league]">): Promise<Metadata> {
-  const { league: segment } = await params;
+  const { league: segment, lang } = await params;
+  const locale = localeOf(lang);
+  const { home } = messagesFor(locale);
   const league =
     segment === DEFAULT_LEAGUE_SEGMENT ? null : await cachedLeague(segment);
-  if (league && !league.isDefault)
+  if (league && !league.isDefault) {
+    const path = leagueHref(league, "/");
     return {
       title: { absolute: `${league.name} · ${sportLabel(league.sport)}` },
-      description: `${league.name}: seasons, schedules, standings, teams and events.`,
-      alternates: { canonical: leagueHref(league, "/") },
+      description: fill(home.league.description, { league: league.name }),
+      alternates: {
+        canonical: linkIn(locale, path),
+        languages: languageAlternates(path),
+      },
     };
+  }
   return {
-    title: { absolute: `${SITE.name} · Coed adult kickball in Brooklyn` },
+    title: { absolute: fill(home.title, { site: SITE.name }) },
     description: SITE.description,
-    alternates: { canonical: "/" },
+    alternates: {
+      canonical: linkIn(locale, "/"),
+      languages: languageAlternates("/"),
+    },
   };
 }
-
-const FACTS = [
-  {
-    term: "What",
-    detail: "Coed kickball for adults. Friendly games, real standings.",
-  },
-  {
-    term: "Where",
-    detail: "McCarren Park, between Greenpoint and Williamsburg.",
-    href: "/parks/mccarren-park",
-    label: "Getting there",
-  },
-  {
-    term: "When",
-    detail:
-      "Sunday afternoons in summer; weeknight evenings in spring and fall.",
-    href: "/seasons",
-    label: "Schedules and standings",
-  },
-  {
-    term: "Price",
-    detail:
-      "Set each season and shown before you pay. Teams can split the fee.",
-    href: "/faq#season",
-    label: "How fees work",
-  },
-] as const;
-
-const WAYS_IN = [
-  {
-    title: "Bring a team",
-    body: "Register as captain, share one invite link in the group chat, and everyone signs up and pays their own share.",
-  },
-  {
-    title: "Join a friend's team",
-    body: "Open your captain's invite link, sign the waiver, and you're on the roster.",
-  },
-  {
-    title: "Come solo",
-    body: "Sign up as a free agent and we'll place you on a team. Half the fun is the new people.",
-    href: "/free-agents",
-    label: "How solo signup works",
-  },
-] as const;
-
-/** Search landing pages (docs/seo-plan.md, section 4). */
-const NEW_HERE = [
-  { href: "/news/how-to-play-kickball", label: "How to play kickball" },
-  { href: "/nyc-kickball-league", label: "Playing from elsewhere in NYC" },
-  { href: "/free-agents", label: "Joining without a team" },
-] as const;
 
 export default async function Home({
   params,
 }: PageProps<"/[lang]/l/[league]">) {
-  const { league: segment } = await params;
+  const { league: segment, lang } = await params;
+  const locale = localeOf(lang);
   // The default league's home is the site's own and reads no league data, so
   // it serves even before there is a league (a new site, or the end-to-end
   // tests' server before they seed). Another league gets its own plain home
   // page with its seasons (ADR 0048).
   if (segment !== DEFAULT_LEAGUE_SEGMENT)
-    return <LeagueHome league={await publicLeague(segment, "/")} />;
+    return (
+      <LeagueHome league={await publicLeague(segment, "/")} locale={locale} />
+    );
+  const { home } = messagesFor(locale);
+  const href = (path: string) => linkIn(locale, path);
+  const facts = [
+    { ...home.facts.what },
+    { ...home.facts.where, href: "/parks/mccarren-park" },
+    { ...home.facts.when, href: "/seasons" },
+    { ...home.facts.price, href: "/faq#season" },
+  ];
+  const ways = [
+    home.ways.team,
+    home.ways.friend,
+    { ...home.ways.solo, href: "/free-agents" },
+  ];
+  const newHere = [
+    { href: "/news/how-to-play-kickball", label: home.newHereLinks.howToPlay },
+    { href: "/nyc-kickball-league", label: home.newHereLinks.elsewhere },
+    { href: "/free-agents", label: home.newHereLinks.solo },
+  ];
   const league = leagueInfo(siteOrigin(env.BETTER_AUTH_URL));
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-16 px-4 py-12 md:px-6 md:py-16">
@@ -119,23 +103,18 @@ export default async function Home({
       />
       <section className="flex flex-col gap-8" aria-labelledby="hero">
         <p>
-          <span className="sticker">McCarren Park, Brooklyn ☀️</span>
+          <span className="sticker">{home.sticker}</span>
         </p>
         <h1 id="hero" className="max-w-[14ch] text-display text-text">
-          Kick a ball. Meet your new{" "}
-          <span className="swipe">favorite people.</span>
+          {home.heroStart} <span className="swipe">{home.heroSwipe}</span>
         </h1>
-        <p className="max-w-prose text-body-lg text-text-muted">
-          Grown-up, coed kickball in Brooklyn for people who haven&apos;t played
-          since recess. Bring a team or come solo and we&apos;ll find you one.
-          Stick around after for a drink (or a seltzer).
-        </p>
+        <p className="max-w-prose text-body-lg text-text-muted">{home.intro}</p>
         <div className="flex flex-wrap items-center gap-4">
           <Link href="/sign-in" className="btn btn-primary">
-            Sign up for a season
+            {home.signUp}
           </Link>
-          <Link href="/faq" className="btn btn-secondary">
-            Questions? We&apos;ve got answers
+          <Link href={href("/faq")} className="btn btn-secondary">
+            {home.questions}
           </Link>
           <Kickball className="size-12 rotate-12" />
         </div>
@@ -143,26 +122,26 @@ export default async function Home({
 
       <section aria-labelledby="the-basics" className="flex flex-col gap-6">
         <h2 id="the-basics" className="text-h2">
-          The basics
+          {home.basics}
         </h2>
         <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FACTS.map((fact, i) => (
+          {facts.map((fact, i) => (
             <div
               key={fact.term}
-              className="reveal flex flex-col gap-2 rounded-card border-2 border-text bg-surface p-4"
+              className="reveal flex min-w-0 flex-col gap-2 rounded-card border-2 border-text bg-surface p-4"
               style={revealOrder(i)}
             >
               <dt className="text-micro font-bold tracking-wider text-text-muted uppercase">
                 {fact.term}
               </dt>
-              <dd className="flex flex-col gap-2">
+              <dd className="flex flex-col gap-2 break-words hyphens-auto">
                 <span>{fact.detail}</span>
                 {"href" in fact && (
                   <Link
-                    href={fact.href}
+                    href={href(fact.href)}
                     className="font-bold text-brand underline underline-offset-4"
                   >
-                    {fact.label}
+                    {fact.link}
                   </Link>
                 )}
               </dd>
@@ -173,13 +152,13 @@ export default async function Home({
 
       <section aria-labelledby="ways-in" className="flex flex-col gap-6">
         <h2 id="ways-in" className="text-h2">
-          Three ways in
+          {home.waysIn}
         </h2>
         <ol className="grid gap-4 md:grid-cols-3">
-          {WAYS_IN.map((way, i) => (
+          {ways.map((way, i) => (
             <li
               key={way.title}
-              className="reveal flex flex-col gap-2 rounded-card bg-surface-2 p-4"
+              className="reveal flex min-w-0 flex-col gap-2 rounded-card bg-surface-2 p-4"
               style={revealOrder(i)}
             >
               <span
@@ -188,14 +167,14 @@ export default async function Home({
               >
                 {i + 1}
               </span>
-              <h3 className="text-h3">{way.title}</h3>
+              <h3 className="text-h3 break-words hyphens-auto">{way.title}</h3>
               <p>{way.body}</p>
               {"href" in way && (
                 <Link
-                  href={way.href}
+                  href={href(way.href)}
                   className="font-bold text-brand underline underline-offset-4"
                 >
-                  {way.label}
+                  {way.link}
                 </Link>
               )}
             </li>
@@ -208,34 +187,30 @@ export default async function Home({
         className="reveal flex flex-col gap-4 rounded-card border-2 border-text bg-surface p-6 md:p-8"
       >
         <h2 id="after" className="text-h2">
-          The game is half of it
+          {home.afterTitle}
         </h2>
-        <p className="max-w-prose">
-          Teams hang out after games, every season ends in playoffs, and most
-          people leave with a few new friends. Nobody has to drink, and nobody
-          has to be good at kickball.
-        </p>
+        <p className="max-w-prose">{home.afterBody}</p>
         <p>
           <Link
-            href="/about"
+            href={href("/about")}
             className="font-bold text-brand underline underline-offset-4"
           >
-            More about the league
+            {home.aboutLink}
           </Link>
         </p>
       </section>
 
-      <HomePhotos />
+      <HomePhotos locale={locale} />
 
       <section aria-labelledby="new-here" className="flex flex-col gap-4">
         <h2 id="new-here" className="text-h2">
-          New to kickball, or to Brooklyn?
+          {home.newHere}
         </h2>
         <ul className="flex flex-col gap-2">
-          {NEW_HERE.map((link) => (
+          {newHere.map((link) => (
             <li key={link.href}>
               <Link
-                href={link.href}
+                href={href(link.href)}
                 className="inline-flex min-h-11 items-center font-bold text-brand underline underline-offset-4"
               >
                 {link.label}
@@ -249,11 +224,11 @@ export default async function Home({
 }
 
 /**
- * Featured photos from the league's Instagram, cached with the rest of the
- * page and refreshed when an admin curates or the sync brings new ones.
+ * The default league's latest photos, for the site's own home page,
+ * cached with the rest of the page (once per language) and refreshed when
+ * an admin curates or the sync brings new ones.
  */
-/** The default league's latest photos, for the site's own home page. */
-async function HomePhotos() {
+async function HomePhotos({ locale }: { locale: Locale }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   cacheTag(PHOTOS_TAG);
@@ -265,7 +240,8 @@ async function HomePhotos() {
   return (
     <InstagramPhotos
       id="photos"
-      heading="Lately, on the field"
+      heading={messagesFor(locale).home.photos}
+      opensPost={messagesFor(locale).home.opensPost}
       cover={found.cover}
       photos={found.photos}
     />

@@ -12,6 +12,9 @@ import {
   statusLabel,
 } from "@/domain/schedule/public-game";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
+import { linkIn } from "@/i18n/routing";
 
 type Props = {
   /** The league whose public pages the links open (ADR 0048). */
@@ -31,6 +34,8 @@ type Props = {
    * second card of the same game on one page, since a name is used once.
    */
   morph?: boolean;
+  /** The page's language (ADR 0065); English unless given. */
+  locale?: Locale;
 };
 
 /** One game in a list: when, where, who, and the result. Opens the game page. */
@@ -43,10 +48,11 @@ export function GameCard({
   compact,
   note,
   morph = true,
+  locale = DEFAULT_LOCALE,
 }: Props) {
   const done = hasResult(game);
   const calledOff = isCalledOff(game);
-  const label = statusLabel(game);
+  const label = statusLabel(game, locale);
   const winner =
     outcomeFor(game, game.teamA.id) === "W"
       ? game.teamA.id
@@ -59,7 +65,7 @@ export function GameCard({
 
   const card = (
     <Link
-      href={leagueHref(league, `/games/${game.id}`)}
+      href={linkIn(locale, leagueHref(league, `/games/${game.id}`))}
       className={`flex min-h-11 items-center gap-3 rounded-card border bg-surface p-3 shadow-card hover:bg-surface-2 ${
         mine ? "border-2 border-brand" : "border-border"
       }`}
@@ -69,13 +75,17 @@ export function GameCard({
       >
         {game.startsAt ? (
           <>
-            {showDay && <span>{shortDay(game.startsAt, timeZone)}</span>}
+            {showDay && (
+              <span>{shortDay(game.startsAt, timeZone, locale)}</span>
+            )}
             <span className="font-bold tabular-nums">
-              {kickoff(game.startsAt, timeZone)}
+              {kickoff(game.startsAt, timeZone, locale)}
             </span>
           </>
         ) : (
-          <span className="font-bold">Time TBA</span>
+          <span className="font-bold">
+            {messagesFor(locale).schedule.timeTba}
+          </span>
         )}
         {game.field && <span className="text-text-muted">{game.field}</span>}
       </span>
@@ -101,7 +111,7 @@ export function GameCard({
           className={`shrink-0 rounded-full border px-2 py-0.5 text-micro font-bold tracking-wide uppercase ${
             calledOff
               ? "border-danger text-danger"
-              : label === "Live"
+              : game.status === "in_progress"
                 ? "border-accent text-accent"
                 : "border-border-strong text-text-muted"
           }`}

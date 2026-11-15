@@ -71,6 +71,16 @@ export function publicPathOf(pathname: string): string {
   return inDefault ? (inDefault[1] ?? "/") : rest;
 }
 
+/**
+ * A link from a page in `locale` to `path`: the same language where the
+ * target is translated, else the English page.
+ */
+export function linkIn(locale: Locale, path: string): string {
+  return isTranslated(locale, path.split(/[?#]/)[0] ?? path)
+    ? localizedPath(locale, path)
+    : path;
+}
+
 /** The same page in another language, for the switcher. */
 export function switchLanguagePath(pathname: string, target: Locale): string {
   return localizedPath(target, splitLocale(pathname).rest);

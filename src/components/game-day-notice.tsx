@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { gameStatus, gameWords, updatedWords } from "@/domain/gameday/status";
 import type { SeasonId } from "@/domain/ids";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
 import { cachedDayStatus } from "@/lib/game-cache";
 
 type DayStatus = NonNullable<Awaited<ReturnType<typeof cachedDayStatus>>>;
@@ -63,6 +64,7 @@ export function GameDayNotice({
   setAt,
   timeZone,
   tone,
+  locale = DEFAULT_LOCALE,
 }: {
   /** "Tue, Sep 15", or the game's own teams. */
   label?: string;
@@ -70,6 +72,8 @@ export function GameDayNotice({
   setAt: Date;
   timeZone: string;
   tone: "watch" | "change" | "calm";
+  /** The page's language (ADR 0065); English unless given. */
+  locale?: Locale;
 }) {
   const border =
     tone === "change"
@@ -86,7 +90,7 @@ export function GameDayNotice({
         {line}
       </p>
       <p className="text-small text-text-muted">
-        {updatedWords(setAt, timeZone)}
+        {updatedWords(setAt, timeZone, locale)}
       </p>
     </div>
   );

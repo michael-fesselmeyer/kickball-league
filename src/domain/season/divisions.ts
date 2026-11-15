@@ -1,3 +1,6 @@
+import { fill, plural } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 import { err, ok, type Result } from "../result";
 import { slugify } from "../slug";
 import { type PermitEndRule, permitEndRule } from "../gameday/permit-end";
@@ -105,35 +108,43 @@ export function parseRuleSet(raw: {
 }
 
 /** "7 innings · 55 minutes · bunting allowed": a rule set in a line. */
-export function ruleSetSummary(rules: {
-  innings: number | null;
-  bestOf?: number | null;
-  timeLimitMinutes: number | null;
-  options: {
-    bunting?: boolean;
-    stealing?: boolean;
-    daylightMarginMinutes?: number;
-  };
-}): string {
+export function ruleSetSummary(
+  rules: {
+    innings: number | null;
+    bestOf?: number | null;
+    timeLimitMinutes: number | null;
+    options: {
+      bunting?: boolean;
+      stealing?: boolean;
+      daylightMarginMinutes?: number;
+    };
+  },
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  const words = messagesFor(locale).ruleSet;
   return [
-    rules.bestOf == null ? null : `best of ${rules.bestOf} sets`,
-    rules.innings === null ? null : `${rules.innings} innings`,
+    rules.bestOf == null ? null : fill(words.bestOf, { n: rules.bestOf }),
+    rules.innings === null
+      ? null
+      : plural(locale, words.innings, rules.innings),
     rules.timeLimitMinutes === null
       ? null
-      : `${rules.timeLimitMinutes}-minute limit`,
+      : fill(words.timeLimit, { minutes: rules.timeLimitMinutes }),
     rules.options.bunting === undefined
       ? null
       : rules.options.bunting
-        ? "bunting allowed"
-        : "no bunting",
+        ? words.bunting
+        : words.noBunting,
     rules.options.stealing === undefined
       ? null
       : rules.options.stealing
-        ? "stealing allowed"
-        : "no stealing",
+        ? words.stealing
+        : words.noStealing,
     rules.options.daylightMarginMinutes === undefined
       ? null
-      : `play ends ${rules.options.daylightMarginMinutes} minutes before sunset`,
+      : fill(words.daylight, {
+          minutes: rules.options.daylightMarginMinutes,
+        }),
   ]
     .filter((part) => part !== null)
     .join(" · ");

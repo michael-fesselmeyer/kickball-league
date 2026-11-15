@@ -44,3 +44,46 @@ test("a player picks the language their emails come in", async ({
   ).toContainText("English");
   await player.context().close();
 });
+
+test("the home page, FAQ and schedule read in Spanish at /es", async ({
+  page,
+}) => {
+  await page.goto("/es");
+  await expect(page.locator("html")).toHaveAttribute("lang", "es");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    "Patea una pelota",
+  );
+  await expect(
+    page.getByRole("link", { name: "Liga de Kickball" }),
+  ).toHaveAttribute("href", "/es");
+  // The footer offers the same page in English.
+  const languages = page.getByRole("navigation", { name: "Idioma" });
+  await expect(
+    languages.getByRole("link", { name: "English" }),
+  ).toHaveAttribute("href", "/");
+  await page
+    .getByRole("link", { name: "¿Preguntas? Tenemos respuestas" })
+    .click();
+  await expect(page).toHaveURL(/\/es\/faq$/);
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(
+    "Preguntas,",
+  );
+  await expect(
+    page.getByRole("heading", { name: "¿Necesito un equipo para unirme?" }),
+  ).toBeVisible();
+
+  await page.goto("/es/seasons/fall-2026/schedule");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Calendario",
+  );
+  await expect(page.getByLabel("Equipo")).toBeVisible();
+  // Each language's page lists the other as an alternate.
+  await expect(
+    page.locator('link[rel="alternate"][hreflang="en"]'),
+  ).toHaveAttribute("href", /\/seasons\/fall-2026\/schedule$/);
+
+  // A page not translated yet is still English, and says so in <html>.
+  await page.goto("/es/about");
+  await expect(page).toHaveURL(/\/about$/);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+});

@@ -13,6 +13,10 @@ import {
 } from "@/lib/static-params";
 import { SeasonSchedule } from "../season-schedule";
 import { isPublicSeason } from "@/domain/private-events/visibility";
+import { leagueHref } from "@/domain/league/paths";
+import { fill } from "@/i18n/catalog";
+import { localeOf, messagesFor } from "@/i18n/messages";
+import { languageAlternates, linkIn } from "@/i18n/routing";
 
 type Props =
   PageProps<"/[lang]/l/[league]/seasons/[season]/schedule/[[...team]]">;
@@ -44,13 +48,26 @@ async function cachedSeason(leagueId: LeagueId, slug: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { league: segment, season: slug } = await params;
-  if (slug === NO_SEASON) return { title: "Schedule" };
+  const { league: segment, season: slug, lang } = await params;
+  const locale = localeOf(lang);
+  const words = messagesFor(locale).schedule;
+  if (slug === NO_SEASON) return { title: words.title };
   const league = await cachedLeague(segment);
   const season = league ? await cachedSeason(league.id, slug) : null;
+  const path = league ? leagueHref(league, `/seasons/${slug}/schedule`) : null;
   return {
     title:
-      season && isPublicSeason(season) ? `${season.name} schedule` : "Schedule",
+      season && isPublicSeason(season)
+        ? fill(words.seasonTitle, { season: season.name })
+        : words.title,
+    ...(path
+      ? {
+          alternates: {
+            canonical: linkIn(locale, path),
+            languages: languageAlternates(path),
+          },
+        }
+      : {}),
   };
 }
 
@@ -68,11 +85,16 @@ export default function SchedulePage(props: Props) {
  * and can be served as static HTML.
  */
 async function Schedule({ params }: Props) {
-  const { league: segment, season: slug, team } = await params;
+  const { league: segment, season: slug, team, lang } = await params;
   // The build's placeholder when it had no database to read.
   if (slug === NO_SEASON) notFound();
   const league = await publicLeague(segment, `/seasons/${slug}/schedule`);
   return (
-    <SeasonSchedule league={league} slug={slug} teamSlug={team?.[0] ?? null} />
+    <SeasonSchedule
+      league={league}
+      slug={slug}
+      teamSlug={team?.[0] ?? null}
+      locale={localeOf(lang)}
+    />
   );
 }

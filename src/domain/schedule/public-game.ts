@@ -1,3 +1,5 @@
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 /**
  * A game as the public pages and calendar feeds show it: where the
  * published schedule version places it, and its result. Built by
@@ -61,13 +63,17 @@ export function isCalledOff(g: PublicGame): boolean {
 }
 
 /** "Cancelled", "Postponed", "Rained out", "Final", "Ruling", "Forfeit", "Live" or null. */
-export function statusLabel(g: PublicGame): string | null {
-  if (g.status === "cancelled") return "Cancelled";
-  if (g.status === "postponed") return "Postponed";
-  if (g.slotCancelled) return "Rained out";
-  if (g.status === "final") return g.ruled ? "Ruling" : "Final";
-  if (g.status === "forfeit") return "Forfeit";
-  if (g.status === "in_progress") return "Live";
+export function statusLabel(
+  g: PublicGame,
+  locale: Locale = DEFAULT_LOCALE,
+): string | null {
+  const words = messagesFor(locale).gameStatus;
+  if (g.status === "cancelled") return words.cancelled;
+  if (g.status === "postponed") return words.postponed;
+  if (g.slotCancelled) return words.rainedOut;
+  if (g.status === "final") return g.ruled ? words.ruling : words.final;
+  if (g.status === "forfeit") return words.forfeit;
+  if (g.status === "in_progress") return words.live;
   return null;
 }
 

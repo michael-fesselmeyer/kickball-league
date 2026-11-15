@@ -13,9 +13,11 @@ describe("buildSitemap", () => {
     const urls = buildSitemap(ORIGIN).map((entry) => entry.url);
     expect(urls).toEqual([
       ORIGIN,
+      `${ORIGIN}/es`,
       `${ORIGIN}/parks/mccarren-park`,
       `${ORIGIN}/seasons`,
       `${ORIGIN}/faq`,
+      `${ORIGIN}/es/faq`,
       `${ORIGIN}/rules`,
       `${ORIGIN}/contact`,
       `${ORIGIN}/nyc-kickball-league`,
@@ -36,7 +38,8 @@ describe("buildSitemap", () => {
       `${ORIGIN}/help/owner`,
       `${ORIGIN}/widget`,
     ]);
-    expect(urls).toHaveLength(CONTENT_PAGES.length);
+    // The home page and the FAQ are also in Spanish.
+    expect(urls).toHaveLength(CONTENT_PAGES.length + 2);
   });
 
   it("adds data pages after the content pages, with when they last changed", () => {
@@ -61,9 +64,11 @@ describe("buildSitemap", () => {
     ]);
   });
 
-  it("ranks the home page first", () => {
-    const [home, ...rest] = buildSitemap(ORIGIN);
+  it("ranks the home page first, in each language", () => {
+    const [home, inSpanish, ...rest] = buildSitemap(ORIGIN);
     expect(home?.priority).toBe(1);
+    expect(inSpanish?.url).toBe(`${ORIGIN}/es`);
+    expect(inSpanish?.priority).toBe(1);
     for (const entry of rest) expect(entry.priority).toBeLessThan(1);
   });
 });
