@@ -17,6 +17,7 @@ import {
   LOOKBACK_SEASONS,
   stateOf,
 } from "@/domain/win-back/win-back";
+import { SubmitButton } from "@/components/submit-button";
 import { requirePermission } from "@/lib/auth/permission";
 import { saveTemplateAction, sendAllAction, sendOneAction } from "./actions";
 
@@ -122,9 +123,9 @@ async function WinBack({ params, searchParams }: Props) {
             </h2>
             {ready > 0 && (
               <form action={sendAllAction.bind(null, slug)}>
-                <button type="submit" className="btn btn-primary">
+                <SubmitButton className="btn btn-primary">
                   Email all {ready} not emailed yet
-                </button>
+                </SubmitButton>
               </form>
             )}
           </div>
@@ -177,9 +178,9 @@ async function WinBack({ params, searchParams }: Props) {
               className={`${input} py-2`}
             />
           </label>
-          <button type="submit" className="btn self-start btn-secondary">
+          <SubmitButton className="btn self-start btn-secondary">
             Save the wording
-          </button>
+          </SubmitButton>
         </form>
       </section>
     </>
@@ -201,7 +202,9 @@ function Row({
       <span className="flex min-w-0 flex-col">
         <span className="font-bold">{c.name}</span>
         <span className="text-small text-text-muted">
-          {c.lastTeam ?? "Free agent"} in {c.lastSeasonName} · {c.seasonsPlayed}{" "}
+          {c.lastTeam ??
+            (c.lastRole === "free_agent" ? "Free agent" : "No team")}{" "}
+          in {c.lastSeasonName} · {c.seasonsPlayed}{" "}
           {c.seasonsPlayed === 1 ? "season" : "seasons"}
           {c.lastRole === "captain" && " · captain"}
         </span>
@@ -209,10 +212,10 @@ function Row({
       {state === "ready" ? (
         <form action={sendOneAction.bind(null, slug)}>
           <input type="hidden" name="userId" value={c.userId} />
-          <button type="submit" className="btn btn-secondary">
+          <SubmitButton className="btn btn-secondary">
             Email
             <span className="sr-only"> {c.name}</span>
-          </button>
+          </SubmitButton>
         </form>
       ) : state === "emailed" && c.emailedAt ? (
         <span className="text-small text-success">
