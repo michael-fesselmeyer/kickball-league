@@ -26,6 +26,9 @@ import {
   addIncidentNote,
   activeSuspensions,
   earlierAlcoholSuspensions,
+  earlierEjections,
+  ejectedIn,
+  ejectPlayer,
   fileIncident,
   gamePeople,
   incidentDetail,
@@ -34,6 +37,7 @@ import {
   liftSuspension,
   rateGame,
   scoresReceived,
+  seasonGameCounts,
   seasonSportsmanship,
   setIncidentStatus,
   suspendedAmong,
@@ -635,6 +639,120 @@ describe("personal data", () => {
           .from(incidentPerson)
           .where(eq(incidentPerson.userId, player.userId)),
       ).toHaveLength(1);
+    });
+  });
+});
+
+describe("ejections from the live game screen", () => {
+  it("files one ejection report per player and game, naming only the game's players", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const player = w.aces.players[0]!;
+      const eject = (userId: UserId, role: "referee" | "admin" = "referee") =>
+        ejectPlayer(db, {
+          gameId: w.played.gameId,
+          userId,
+          reportedBy: role === "referee" ? w.ref.userId : w.admin.userId,
+          role,
+          details: "Ejected by the ref during the game.",
+          now: NOW,
+        });
+      const id = filed(await eject(player.userId));
+      const [row] = await db
+        .select({ kind: incident.kind, role: incident.reporterRole })
+        .from(incident)
+        .where(eq(incident.id, id));
+      expect(row).toEqual({ kind: "ejection", role: "referee" });
+      expect(await ejectedIn(db, w.played.gameId)).toEqual(
+        new Set([player.userId]),
+      );
+      expect(await eject(player.userId)).toEqual(err("already_ejected"));
+      expect(await eject(w.freeAgent.userId)).toEqual(err("unknown_person"));
+    });
+  });
+
+  it("takes out only those the ref or an admin ejected, not a captain's report", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const [a, b] = w.bees.players;
+      await fileIncident(db, {
+        gameId: w.played.gameId,
+        reportedBy: w.aces.captain.userId,
+        role: "captain",
+        incident: {
+          kind: "ejection",
+          details: "They were ejected.",
+          people: [a!.userId],
+        },
+        now: NOW,
+      });
+      filed(
+        await ejectPlayer(db, {
+          gameId: w.played.gameId,
+          userId: b!.userId,
+          reportedBy: w.admin.userId,
+          role: "admin",
+          details: "Ejected by the ref during the game.",
+          now: NOW,
+        }),
+      );
+      expect(await ejectedIn(db, w.played.gameId)).toEqual(
+        new Set([b!.userId]),
+      );
+    });
+  });
+
+  it("shows a person's earlier ejections, newest first, leaving out the report under review", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const player = w.aces.players[0]!;
+      const older = await w.gameEnding(days(-20));
+      const first = filed(
+        await w.file("ejection", [player.userId], older.gameId, days(-20)),
+      );
+      // Another kind of report isn't an ejection.
+      filed(await w.file("unsportsmanlike", [player.userId]));
+      const second = filed(await w.file("ejection", [player.userId]));
+      const latest = filed(await w.file("ejection", [player.userId]));
+      const history = await earlierEjections(
+        db,
+        [player.userId, w.bees.players[0]!.userId],
+        latest,
+      );
+      expect(history.get(player.userId)?.map((e) => e.incidentId)).toEqual([
+        second,
+        first,
+      ]);
+      expect(history.get(player.userId)?.[0]).toMatchObject({
+        details: "What the ref saw.",
+        seasonName: expect.any(String),
+      });
+      expect(history.has(w.bees.players[0]!.userId)).toBe(false);
+      expect(await earlierEjections(db, [], latest)).toEqual(new Map());
+    });
+  });
+});
+
+describe("a full season for the outside-alcohol suggestion", () => {
+  it("counts each team's regular-season games, leaving out cancelled ones", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const second = await w.gameEnding(days(-7));
+      const cancelled = await w.gameEnding(days(-14));
+      await db
+        .update(game)
+        .set({ status: "cancelled" })
+        .where(eq(game.id, cancelled.gameId));
+      const playoff = await w.gameEnding(days(-21));
+      await db
+        .update(game)
+        .set({ kind: "playoff" })
+        .where(eq(game.id, playoff.gameId));
+      const counts = await seasonGameCounts(db, [w.aces.id, w.bees.id]);
+      expect(counts.get(w.aces.id)).toBe(2);
+      expect(counts.get(w.bees.id)).toBe(2);
+      expect(second.gameId).toBeDefined();
+      expect(await seasonGameCounts(db, [])).toEqual(new Map());
     });
   });
 });

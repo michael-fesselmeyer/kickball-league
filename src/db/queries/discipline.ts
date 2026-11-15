@@ -470,6 +470,7 @@ export async function incidentDetail(db: Db, id: IncidentId, now: Date) {
       .select({
         userId: incidentPerson.userId,
         name: user.name,
+        teamSeasonId: incidentPerson.teamSeasonId,
         teamName: team.name,
       })
       .from(incidentPerson)
@@ -969,4 +970,143 @@ export async function removeDisciplineNotes(
     .update(sportsmanshipRating)
     .set({ note: null })
     .where(eq(sportsmanshipRating.ratedBy, userId));
+}
+
+export type EjectError = FileError | "already_ejected";
+
+/**
+ * The game's ref (or an admin) ejects a player during the game: files an
+ * ejection report naming them, which admins review like any other. A player
+ * can be ejected from a game once.
+ */
+export async function ejectPlayer(
+  db: Db,
+  input: {
+    gameId: GameId;
+    userId: UserId;
+    reportedBy: UserId;
+    role: ReporterRole;
+    details: string;
+    now: Date;
+  },
+): Promise<Result<IncidentId, EjectError>> {
+  return db.transaction(async (tx) => {
+    if ((await ejectedIn(tx, input.gameId)).has(input.userId))
+      return err("already_ejected");
+    const g = await gameForScoring(tx, input.gameId);
+    if (!g) return err("not_found");
+    const people = await gamePeople(tx, g);
+    if (!people.some((p) => p.userId === input.userId))
+      return err("unknown_person");
+    return fileIncident(tx, {
+      gameId: input.gameId,
+      reportedBy: input.reportedBy,
+      role: input.role,
+      incident: {
+        kind: "ejection",
+        details: input.details,
+        people: [input.userId],
+      },
+      now: input.now,
+    });
+  });
+}
+
+/**
+ * The players the ref (or an admin) ejected from a game. A captain's report
+ * of an ejection doesn't take anyone out of the kicking order.
+ */
+export async function ejectedIn(db: Db, gameId: GameId): Promise<Set<UserId>> {
+  const rows = await db
+    .selectDistinct({ userId: incidentPerson.userId })
+    .from(incident)
+    .innerJoin(incidentPerson, eq(incidentPerson.incidentId, incident.id))
+    .where(
+      and(
+        eq(incident.gameId, gameId),
+        eq(incident.kind, "ejection"),
+        inArray(incident.reporterRole, ["referee", "admin"]),
+      ),
+    );
+  return new Set(rows.map((r) => r.userId));
+}
+
+export type EarlierEjection = {
+  incidentId: IncidentId;
+  reportedAt: Date;
+  seasonName: string;
+  details: string;
+};
+
+/**
+ * Each person's ejections before the report being reviewed, newest first,
+ * so the admin can weigh a player's history. One query.
+ */
+export async function earlierEjections(
+  db: Db,
+  userIds: readonly UserId[],
+  excluding: IncidentId,
+): Promise<Map<UserId, EarlierEjection[]>> {
+  const out = new Map<UserId, EarlierEjection[]>();
+  if (userIds.length === 0) return out;
+  const rows = await db
+    .select({
+      userId: incidentPerson.userId,
+      incidentId: incident.id,
+      reportedAt: incident.reportedAt,
+      details: incident.details,
+      seasonName: season.name,
+    })
+    .from(incidentPerson)
+    .innerJoin(incident, eq(incidentPerson.incidentId, incident.id))
+    .innerJoin(game, eq(incident.gameId, game.id))
+    .innerJoin(season, eq(game.seasonId, season.id))
+    .where(
+      and(
+        inArray(incidentPerson.userId, [...userIds]),
+        eq(incident.kind, "ejection"),
+        ne(incident.id, excluding),
+      ),
+    )
+    .orderBy(desc(incident.reportedAt));
+  for (const r of rows) {
+    const list = out.get(r.userId) ?? [];
+    list.push({
+      incidentId: r.incidentId,
+      reportedAt: r.reportedAt,
+      seasonName: r.seasonName,
+      details: r.details,
+    });
+    out.set(r.userId, list);
+  }
+  return out;
+}
+
+/**
+ * How many regular-season games each team plays in its season, cancelled
+ * ones left out: a full season, for the outside-alcohol suggestion.
+ */
+export async function seasonGameCounts(
+  db: Db,
+  teamSeasonIds: readonly TeamSeasonId[],
+): Promise<Map<TeamSeasonId, number>> {
+  const out = new Map<TeamSeasonId, number>();
+  if (teamSeasonIds.length === 0) return out;
+  const ids = [...teamSeasonIds];
+  const rows = await db
+    .select({ teamAId: game.teamAId, teamBId: game.teamBId })
+    .from(game)
+    .where(
+      and(
+        eq(game.kind, "regular"),
+        ne(game.status, "cancelled"),
+        or(inArray(game.teamAId, ids), inArray(game.teamBId, ids)),
+      ),
+    );
+  for (const id of ids)
+    out.set(
+      id,
+      rows.filter((r) => r.teamAId === id || r.teamBId === id).length,
+    );
+  return out;
 }
