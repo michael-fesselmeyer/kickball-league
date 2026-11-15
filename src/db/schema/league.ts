@@ -80,7 +80,7 @@ export const league = pgTable(
     pickemOwnGames: boolean().notNull().default(true),
     /**
      * Whether admins may confirm a rain-out themselves, for game days no
-     * owner is around (ADR 0048). Off by default: admins send a rain-out
+     * owner is around (ADR 0057). Off by default: admins send a rain-out
      * to the owners to confirm. The owners decide.
      */
     adminsConfirmRainouts: boolean().notNull().default(false),

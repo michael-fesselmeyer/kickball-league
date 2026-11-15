@@ -5,7 +5,7 @@ import type { Db } from "./schedule";
 
 /**
  * The last good National Weather Service answer for each part of a park's
- * weather (ADR 0048), so the rain-out card shows the last data while NWS
+ * weather (ADR 0057), so the rain-out card shows the last data while NWS
  * is down. Saved after a fresh answer; an older answer never replaces a
  * newer one. Read back through a schema, so a row in an old shape reads
  * as nothing rather than as wrong numbers.

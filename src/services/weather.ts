@@ -139,7 +139,7 @@ export async function nwsHourly(
 }
 
 /*
- * For the rain-out decision (ADR 0048): the grid square's raw forecast
+ * For the rain-out decision (ADR 0057): the grid square's raw forecast
  * (expected rainfall and chance of thunder), the observation stations
  * nearest the point, what the nearest one measured, and the active alerts
  * for the point. Each is one request, checked with a schema.

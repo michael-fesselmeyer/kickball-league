@@ -2,7 +2,7 @@ import { z } from "zod";
 import { defineTemplate } from "./define";
 import { renderEmail } from "./layout";
 
-/** An admin sent a rain-out to the owners to confirm (ADR 0048). */
+/** An admin sent a rain-out to the owners to confirm (ADR 0057). */
 export const rainoutRequestPayload = z.object({
   seasonName: z.string().min(1),
   seasonSlug: z.string().min(1),

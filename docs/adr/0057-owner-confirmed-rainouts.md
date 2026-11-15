@@ -1,4 +1,4 @@
-# ADR 0048: Owners confirm rain-outs, from a decision card on the park's own weather
+# ADR 0057: Owners confirm rain-outs, from a decision card on the park's own weather
 
 - Status: accepted
 - Date: 2026-11-14

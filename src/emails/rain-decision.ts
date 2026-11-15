@@ -3,7 +3,7 @@ import { defineTemplate } from "./define";
 import { renderEmail } from "./layout";
 
 /**
- * The decision-time alert (ADR 0048): a few hours before a game day's first
+ * The decision-time alert (ADR 0057): a few hours before a game day's first
  * pitch, the people who can confirm a rain-out get the decision card's
  * summary and a link to the rain-out screen. Nothing is cancelled.
  */

@@ -67,7 +67,7 @@ export type Context = {
   scope?: "team" | "league";
   /**
    * For confirming a rain-out: the owners let admins confirm too, for days
-   * no owner is around (ADR 0048). Read from the league's setting.
+   * no owner is around (ADR 0057). Read from the league's setting.
    */
   adminsConfirmRainouts?: boolean;
 };
@@ -253,7 +253,7 @@ const RULES = {
   "season.manage": isAdmin,
   "schedule.manage": isAdmin,
   // Open the rain-out screen, preview the makeups and send a rain-out to
-  // the owners to confirm (ADR 0048).
+  // the owners to confirm (ADR 0057).
   "rainout.prepare": isAdmin,
   // Cancel the day and save the makeups as a draft: the owners and the
   // operator, and admins too when the owners allow it.
@@ -305,7 +305,7 @@ const RULES = {
   "admins.manage": isOwner,
   // Whether a person's own data export lists entries about them (ADR 0036).
   "keep_off.export_policy": isOwner,
-  // Whether admins may confirm rain-outs too (ADR 0048).
+  // Whether admins may confirm rain-outs too (ADR 0057).
   "rainout.confirm_policy": isOwner,
 } satisfies Record<string, Rule>;
 

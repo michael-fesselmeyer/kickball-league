@@ -22,7 +22,7 @@ import {
 } from "@/lib/weather";
 
 /**
- * A park's weather for the rain-out decision (ADR 0048): the forecast, the
+ * A park's weather for the rain-out decision (ADR 0057): the forecast, the
  * nearest station's reports and the active alerts, each read fresh through
  * the data cache and saved, or, when NWS does not answer, the last saved
  * answer with when it was fetched. Never throws: a part nobody has seen

@@ -9,7 +9,7 @@ import {
 } from "./forecast";
 
 /**
- * The rain-out decision for one park on one game day (ADR 0048): the
+ * The rain-out decision for one park on one game day (ADR 0057): the
  * forecast over the game hours, the rain that has already fallen, and any
  * active National Weather Service alert, read into a level and one plain
  * sentence. Pure functions, so the rule is tested without a network. It

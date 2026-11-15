@@ -66,7 +66,7 @@ async function Rainout({
   const league = await activeLeague();
   const season = league ? await seasonBySlug(db, league.id, slug) : null;
   if (!season || !league) notFound();
-  // Who confirms (ADR 0048): the owners and the operator, and admins
+  // Who confirms (ADR 0057): the owners and the operator, and admins
   // when the owners allow it.
   const adminsConfirm = await adminsConfirmRainouts(db, league.id);
   const canConfirm = can(subject, "rainout.confirm", {
