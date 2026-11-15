@@ -333,6 +333,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Instagram connection: an admin connects the league's Instagram once; new posts sync in, and admins pick which appear on the home page, team pages and event pages, or use one as a page's cover photo | P2 |
 | Paid event tickets | P3 |
 | Photo galleries uploaded by players and captains | P3 |
+| Lost and found board: found items and lost notes for members, with private conversations between the two people and no contact details shown; posts close when handed over or after 30 days, and admins can take any down | P2 |
 | "Friends of the league" directory (softball, soccer, pool, and other local leagues) | P3 |
 | Corporate and private-event leagues | P3 |
 | Charity tie-in (round-up at checkout, charity game) | P3 |

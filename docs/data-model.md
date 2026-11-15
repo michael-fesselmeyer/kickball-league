@@ -1935,6 +1935,51 @@ Notes:
 - Nothing personal is stored; a park's point is public, and every league with a park there shares its readings.
 - Who may confirm a rain-out is `league.admins_confirm_rainouts`: each league's own, off by default, changed only by that league's owners and audited as `rainout.confirm_policy`. A rain-out sent to the owners is an audit row (`rainout.prepare`, with the date) and the owners' messages, not a table of its own.
 
+### 2.14 The lost and found board
+
+Members post what they found or lost, answer each other's posts and talk in the app, so nobody's contact details are shown ([issue #385](https://github.com/michael-fesselmeyer/kickball-league/issues/385)).
+
+```mermaid
+erDiagram
+  lost_found_item {
+    uuid id PK
+    uuid league_id FK
+    uuid poster_id FK
+    enum kind "found, lost"
+    text description
+    text place "a park, the home bar or free text"
+    text whereNow "found items only"
+    enum status "open, returned, closed, expired, removed"
+    timestamptz closed_at
+    uuid removed_by FK
+    boolean had_photo
+    bytea bytes "one shrunk JPEG, null once closed"
+    bytea thumb_bytes "320 px thumbnail"
+    text sha256
+  }
+  lost_found_claim {
+    uuid id PK
+    uuid item_id FK
+    uuid responder_id FK
+    enum status "open, handed_over, withdrawn, closed"
+  }
+  lost_found_message {
+    uuid id PK
+    uuid claim_id FK
+    uuid author_id FK
+    text body
+  }
+  lost_found_item ||--o{ lost_found_claim : "answered by"
+  lost_found_claim ||--o{ lost_found_message : "thread"
+```
+
+Notes:
+- A post is a found item or a lost note. "That's mine" (or "I found it" on a lost note) is a claim: one per person per post, whatever became of it, at most five open at once. The poster hands the post to one claim, which closes the others.
+- A post's photo is kept only while it is open: handing over, closing, expiry and removal all delete the bytes (a check enforces it), so closed posts cost no storage. The thumbnail and photo count against the member-photo cap of 100 MB and the daily 10-photo limit.
+- People are shown by first name only. A conversation is visible to its two people and nobody else, admins included.
+- `message_topic` gains `lost_found`; notices are the `lost_found_reply` (urgent) and `lost_found_update` (non-urgent) templates.
+- A daily job closes open posts after 30 days and deletes posts closed for over 90 days. Deleting an account deletes the person's posts and answers, with their conversations.
+
 ## 3. Constraints and indexes
 
 Integrity rules the database enforces, so application bugs cannot break them:
@@ -1951,6 +1996,9 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `registration`, `waiver_signature` | check `age_confirmed_min` and `age_confirmed_at` are set together, the age between 18 and 99 | An age confirmation always says when |
 | `captain_handoff` | unique `(team_season_id)` where `status = 'pending'`; check `from_user_id <> to_user_id`; check `decided_at` set exactly when not pending | One waiting offer per team; nobody offers it to themselves |
 | `season_shirts` | primary key `season_id`; unique `expense_id`; check at least one size, `cost_cents` 1 to 10,000,000, `vendor` up to 80 characters, and `placed_at` and `received_at` set to match `status` | One order per season, booked at most once, never received before it is placed |
+| `lost_found_item` | checks: closed exactly when not open; `where_now` set exactly for found items; photo columns set together and only while open; text lengths | A closed post keeps no photo; a lost note has no "where it is now" |
+| `lost_found_claim` | unique `(item_id, responder_id)`; unique `(item_id)` where `status = 'handed_over'`; check closed exactly when not open | One answer per person; one hand-over per post |
+| `lost_found_message` | check body 1 to 500 characters | Short messages |
 | `team_keep_off` | unique `(team_id, user_id)` and `(team_id, email)`; check a person or an address is set; check reason length 1 to 300; cascades from `team` and `user` | One entry per person or address per team; a deleted row takes its reason with it |
 | `equipment_kit` | unique `(league_id, name)`; checks on the name (1 to 40), home (1 to 120) and contents (1 to 20 items) | Kits named once per league |
 | `equipment_assignment` | unique `(kit_id, game_id)`; cascades from `equipment_kit`, `game` and `user` | One person brings a kit to a game |
