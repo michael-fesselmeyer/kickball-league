@@ -96,6 +96,11 @@ export const season = pgTable(
      * counted from game attendance (ADR 0063); null sets no minimum.
      */
     playoffMinGames: smallint(),
+    /**
+     * What the set-up lead says when asking park users to move (issue
+     * #409); null uses the default in src/domain/gameday/checklist.ts.
+     */
+    moveScript: text(),
     gamesPerTeamPerDay: integer().notNull().default(1),
     /** The waiver version players sign for this season. */
     waiverId: uuid()
@@ -137,6 +142,10 @@ export const season = pgTable(
       sql`${t.rosterMin} > 0 and ${t.rosterMax} >= ${t.rosterMin}`,
     ),
     check("season_games_per_day", sql`${t.gamesPerTeamPerDay} in (1, 2)`),
+    check(
+      "season_move_script_length",
+      sql`${t.moveScript} is null or char_length(${t.moveScript}) between 1 and 600`,
+    ),
     check(
       "season_minimum_age",
       sql`${t.minimumAge} is null or ${t.minimumAge} between 18 and 99`,

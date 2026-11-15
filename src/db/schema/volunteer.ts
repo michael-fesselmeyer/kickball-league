@@ -29,6 +29,9 @@ export const volunteerRole = pgEnum("volunteer_role", [
   "teardown",
   "check_in",
   "ref_fill_in",
+  // Sets up the fields, asks park users to move and runs the game-day
+  // checklist (issue #409).
+  "setup_lead",
 ]);
 
 /**

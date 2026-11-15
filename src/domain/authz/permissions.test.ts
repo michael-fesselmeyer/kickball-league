@@ -568,6 +568,41 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     ]);
     expect(allowed("permit.view_at_field", { game: g2 })).toEqual(["owner"]);
   });
+
+  it("shows the permit to the day's set-up lead, signed in", () => {
+    expect(
+      allowed("permit.view_at_field", { game: g2, setupLead: true }),
+    ).toEqual(everyone.filter((w) => w !== "visitor"));
+  });
+
+  it("runs the game-day checklist (issue #409)", () => {
+    // Admins write it; each team's captains tick their own team's.
+    expect(allowed("game_checklist.manage")).toEqual(["admin", "owner"]);
+    expect(allowed("game_checklist.tick", { teamSeasonId: "A" })).toEqual([
+      "captain",
+      "coCaptain",
+    ]);
+    expect(allowed("game_checklist.tick", { teamSeasonId: "B" })).toEqual([]);
+    // Only the day's set-up lead notes park users asked to move.
+    expect(allowed("move_request.record")).toEqual([]);
+    expect(allowed("move_request.record", { setupLead: true })).toEqual(
+      everyone.filter((w) => w !== "visitor"),
+    );
+    // Set-up: the lead or an admin.
+    expect(allowed("field_check.setup")).toEqual(["admin", "owner"]);
+    // Left clean: the game's ref or captains, the lead, or an admin.
+    expect(allowed("field_check.close", { game: g1 })).toEqual([
+      "captain",
+      "coCaptain",
+      "referee",
+      "admin",
+      "owner",
+    ]);
+    expect(allowed("field_check.close", { game: g2 })).toEqual([
+      "admin",
+      "owner",
+    ]);
+  });
 });
 
 describe("permission properties", () => {

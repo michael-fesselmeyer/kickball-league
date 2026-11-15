@@ -8,6 +8,7 @@ export const VOLUNTEER_ROLES = [
   "teardown",
   "check_in",
   "ref_fill_in",
+  "setup_lead",
 ] as const;
 
 export type VolunteerRole = (typeof VOLUNTEER_ROLES)[number];
@@ -17,6 +18,7 @@ export const ROLE_LABELS: Readonly<Record<VolunteerRole, string>> = {
   teardown: "Teardown",
   check_in: "Check-in table",
   ref_fill_in: "Ref fill-in",
+  setup_lead: "Set-up lead",
 };
 
 export const MAX_SPOTS = 50;

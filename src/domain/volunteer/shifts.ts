@@ -33,6 +33,8 @@ export const ROLE_HINTS: Readonly<Record<VolunteerRole, string>> = {
     "Everything packed up and the field left clean after the last game.",
   check_in: "Greet players and tick them off as they arrive.",
   ref_fill_in: "Step in as ref when an assigned ref can't make it.",
+  setup_lead:
+    "Run set-up: inside the permitted area, park users asked to move before play, and the field left clean.",
 };
 
 /** A game day in a season, or an event. */
