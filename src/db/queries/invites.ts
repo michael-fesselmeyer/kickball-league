@@ -172,7 +172,7 @@ export async function acceptInvite(
   input: {
     token: string;
     userId: UserId;
-    /** They ticked "I'm 21 or older" (or the season's minimum). */
+    /** They ticked "I'm 18 or older" (or the season's minimum). */
     ageConfirmed: boolean;
     now: Date;
   },

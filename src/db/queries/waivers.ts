@@ -186,7 +186,7 @@ export async function signWaiver(
     seasonId: SeasonId;
     shownSha256: string;
     agreed: boolean;
-    /** They ticked "I'm 21 or older" (or the season's minimum). */
+    /** They ticked "I'm 18 or older" (or the season's minimum). */
     ageConfirmed: boolean;
     signedName: string;
     ip: string | null;

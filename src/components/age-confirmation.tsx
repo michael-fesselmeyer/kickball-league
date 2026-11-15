@@ -1,7 +1,7 @@
 import { ageConfirmationLabel } from "@/domain/registration/age";
 
 /**
- * The box registration and the waiver ask a player to tick: "I'm 21 or
+ * The box registration and the waiver ask a player to tick: "I'm 18 or
  * older", with the season's minimum age (ADR 0041). The server checks it
  * again, against the birth date on the profile.
  */
