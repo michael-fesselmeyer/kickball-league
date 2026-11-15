@@ -10,6 +10,7 @@ import { cardChoice, parseCardForm } from "@/domain/discipline/cards";
 import { type GameCardId, type GameId, parseId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { formStrings } from "@/lib/form";
+import { requireInLeague } from "@/lib/league/guard";
 import { requireFeature } from "@/lib/platform/site";
 
 /** The game and the viewer, who must be its ref or an admin. */
@@ -56,6 +57,8 @@ export async function undoCardAction(
   const { page, g, subject } = await context(rawGameId);
   const cardId = parseId<GameCardId>(rawCardId);
   if (!cardId) notFound();
+  // The card must be in the league the person's rights were checked in.
+  await requireInLeague(subject, { game_card: cardId });
   const undone = await undoCard(txDb, {
     cardId,
     gameId: g.id,

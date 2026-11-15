@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import { can } from "@/domain/authz/permissions";
+import { can, hasAdminRole } from "@/domain/authz/permissions";
 import {
   cardChoice,
   parseCardForm,
@@ -13,9 +13,12 @@ import { gameCard, suspension } from "../schema/discipline";
 import { game } from "../schema/game";
 import { profile } from "../schema/profile";
 import { messagingWorld } from "../test/messaging-world";
-import { grantRole, subjectIn } from "../test/leagues";
+import { grantRole, leagueFor, subjectIn } from "../test/leagues";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { deleteAccount, personalData } from "./account";
+import { leaguesOfRecords } from "./league-of";
+import { createLeague } from "./leagues";
+import { loadSubject } from "./subject";
 import {
   cardedPlayers,
   cardsForPlayers,
@@ -272,6 +275,50 @@ describe("reading cards", () => {
       expect(JSON.stringify(data)).toContain("cardsYouReceived");
       await deleteAccount(db, p.userId, NOW);
       expect(await gameCards(db, w.played.gameId)).toHaveLength(2);
+    });
+  });
+});
+
+describe("cards stay in their league", () => {
+  it("are taken back only by an admin of the card's own league", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await world(db);
+      const made = given(await w.card(w.aces.players[0]!.userId, w.aces.id));
+      const created = await createLeague(db, {
+        name: "Sunday Flag Football",
+        sport: "football",
+        timeZone: "America/Chicago",
+        minimumAge: 21,
+        primaryColor: "#14532D",
+        secondaryColor: "#F5B301",
+        ruleSet: { name: "Standard", innings: null, timeLimitMinutes: 50 },
+        slug: `football-${Math.random().toString(36).slice(2, 8)}`,
+        actorId: w.admin.userId,
+      });
+      if (!created.ok) throw new Error(created.error);
+      const other = created.value;
+      const home = await leagueFor(db, w.admin.userId);
+      const [cardLeague] = await leaguesOfRecords(db, [
+        { kind: "game_card", id: made },
+      ]);
+      expect(cardLeague).toBe(home);
+
+      // An admin of the card's league counts as an admin there...
+      expect(hasAdminRole(await loadSubject(db, w.admin.userId, home))).toBe(
+        true,
+      );
+      // ...but has no role in the other league.
+      expect(hasAdminRole(await loadSubject(db, w.admin.userId, other))).toBe(
+        false,
+      );
+      // An admin of the other league has the role there, yet the card is not
+      // in their league, which the action's league guard refuses.
+      const rival = await w.person("rival");
+      await db.insert(profile).values({ userId: rival.userId });
+      await grantRole(db, rival.userId, "admin", other);
+      const rivalSubject = await loadSubject(db, rival.userId, other);
+      expect(hasAdminRole(rivalSubject)).toBe(true);
+      expect(cardLeague).not.toBe(rivalSubject.leagueId);
     });
   });
 });
