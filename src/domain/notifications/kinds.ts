@@ -94,6 +94,10 @@ export const MESSAGE_KINDS = {
     urgency: "urgent",
     label: "A warning before a captain's card guarantee is charged",
   },
+  incident_filed: {
+    urgency: "urgent",
+    label: "For owners and admins: a report was filed for a game",
+  },
   instagram_reconnect: {
     urgency: "non_urgent",
     label: "For admins: the Instagram connection needs reconnecting",

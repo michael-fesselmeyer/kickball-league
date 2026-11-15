@@ -492,6 +492,8 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "referee.manage",
       "player.suspend",
       "incident.review",
+      "injury.read",
+      "injury.delete",
       "sportsmanship.view",
       "refund.issue",
       "audit.read",

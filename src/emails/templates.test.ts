@@ -230,6 +230,24 @@ describe("rendererFor", () => {
     );
   });
 
+  it("tells admins a report was filed, with a link and no details", () => {
+    const id = "6f1d2c1e-6f7a-4c53-9a6e-1d0a9b8c7d6e";
+    const result = render("incident_filed", {
+      incidentId: id,
+      matchup: "Aces vs Bees",
+    });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe("A report was filed for a game");
+    expect(result.value.text).toContain("A report was filed for Aces vs Bees.");
+    expect(result.value.text).toContain(
+      `Open the report: https://league.example.test/app/admin/incidents/${id}`,
+    );
+    // Email is no place for health details: nothing says what kind it is.
+    expect(`${result.value.subject}\n${result.value.text}`).not.toMatch(
+      /injur|hurt|ambulance|EMS|first aid|knee|head/i,
+    );
+  });
+
   it("alerts admins to rain, linking the rain-out screen with the day chosen", () => {
     const alert = (level: "watch" | "likely", thunder: boolean) => {
       const result = render("rain_alert", {
