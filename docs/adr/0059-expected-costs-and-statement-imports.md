@@ -30,6 +30,13 @@ Dates move, so each settled occurrence belongs to its season:
 - A game day that moves before anyone confirms it is expected on its new day.
 - A confirmed day keeps its expense even if its games move afterwards, because the money was spent.
 
+**Ref pay comes from the pay sheet when a season has one.** ADR 0053's pay sheet adds a Refs expense to the books each time a ref is marked paid. In a season with a per-game fee set there:
+- a game-day expected cost in the Refs category isn't expected, so ref pay isn't counted twice;
+- the books' expected section shows the pay sheet's games worked, fee and what is still to pay, with a link to it;
+- the payout record stands in for a receipt, so a payout's expense never counts as missing one, and is tagged "From the ref pay sheet".
+
+A season with no fee set keeps a Refs expected cost as usual, for leagues that pay refs a flat amount per game day.
+
 **Out of pocket.** An expense can name an owner as `paid_by`. The books sum what each owner is owed across seasons. "Reimbursed" stamps `reimbursed_at` on exactly the expenses that were listed, so one added in the meantime stays owed. Only owners can be named as payers: they are the people who see the books.
 
 **Statement import from a file the owner downloads.** Venmo's statement CSV and banks' transaction exports are read in memory and never stored. The import reads:

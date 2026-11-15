@@ -375,6 +375,25 @@ describe("expectedCosts", () => {
     expect(e.due.map((o) => o.dueOn)).toEqual(["2026-09-14", "2026-09-20"]);
   });
 
+  it("leaves game-day ref pay to the pay sheet when the season has a ref fee", () => {
+    const input = {
+      costs: [refPay, { ...refPay, id: "bar", category: "events" as const }],
+      season,
+      gameDays,
+      settled: new Set<string>(),
+      today: "2026-09-14",
+    };
+    expect(
+      expectedCosts({ ...input, refsFromPaySheet: true }).due.map(
+        (o) => o.costId,
+      ),
+    ).toEqual(["bar"]);
+    expect(expectedCosts(input).due.map((o) => o.costId)).toEqual([
+      "ref",
+      "bar",
+    ]);
+  });
+
   it("doesn't expect a season cost in a season over before it started", () => {
     const e = expectedCosts({
       costs: [{ ...permit, startsOn: "2027-01-01" }],

@@ -210,7 +210,9 @@ async function Expected({
           <p className="text-small text-text-muted">
             A season cost is expected on the season&apos;s first day; a game-day
             cost on every day with games, leaving out cancelled and postponed
-            ones.
+            ones. In a season with a per-game ref fee on the ref pay sheet, a
+            game-day Refs cost isn&apos;t expected: each payout marked on the
+            pay sheet goes into the books on its own.
           </p>
           <SubmitButton className="btn self-start btn-primary">
             Save expected cost

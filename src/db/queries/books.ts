@@ -52,6 +52,7 @@ import {
 import { field, game, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
 import { payment, purchase } from "../schema/money";
+import { refereePayout } from "../schema/referees";
 import { blackout, permitWindow } from "../schema/schedule";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
@@ -189,7 +190,10 @@ export async function addExpense(
 > {
   if (!(await seasonInLeague(db, input.leagueId, input.seasonId)))
     return err("unknown_season");
-  if (input.paidBy && !(await ownerIds(db, input.leagueId)).includes(input.paidBy))
+  if (
+    input.paidBy &&
+    !(await ownerIds(db, input.leagueId)).includes(input.paidBy)
+  )
     return err("unknown_payer");
   let receiptFileId: BooksFileId | null = null;
   if (input.receipt) {
@@ -329,6 +333,12 @@ function paymentsOfSeason(db: Db, s: SeasonRef) {
     .orderBy(asc(payment.paidAt), asc(payment.id));
 }
 
+/**
+ * An expense a ref payout wrote (ADR 0053): the payout record stands in for
+ * a receipt, so it never counts as missing one (ADR 0059).
+ */
+export const fromPaySheet = sql<boolean>`exists (select 1 from ${refereePayout} where ${refereePayout.expenseId} = ${expense.id})`;
+
 function expensesOfSeason(db: Db, seasonId: SeasonId) {
   return db
     .select({
@@ -346,6 +356,7 @@ function expensesOfSeason(db: Db, seasonId: SeasonId) {
       reimbursedAt: expense.reimbursedAt,
       imported: sql<boolean>`${expense.importKey} is not null`,
       expected: sql<boolean>`${expense.recurringCostId} is not null`,
+      fromPaySheet,
     })
     .from(expense)
     .where(eq(expense.seasonId, seasonId))
