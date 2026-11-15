@@ -4,7 +4,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DemoBanner } from "./demo-banner";
 
 // The real action loads the auth server; the banner only needs a reference.
-vi.mock("@/app/demo/actions", () => ({ viewAs: vi.fn() }));
+vi.mock("@/app/demo/actions", () => ({
+  viewAs: vi.fn(),
+  demoTools: vi.fn(() => Promise.resolve({ mail: false, reset: false })),
+  resetDemo: vi.fn(),
+}));
 
 afterEach(() => {
   cleanup();
