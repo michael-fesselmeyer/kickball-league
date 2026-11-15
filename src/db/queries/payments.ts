@@ -333,6 +333,26 @@ const chargeEvent = z.object({
 
 export type StripeEventLike = { id: string; type: string; data: unknown };
 
+/** The id of the PaymentIntent a Stripe object names, expanded or not. */
+function intentIdOf(
+  ref: string | { id: string } | null | undefined,
+): string | null {
+  return typeof ref === "string" ? ref : (ref?.id ?? null);
+}
+
+/**
+ * Serializes everything one PaymentIntent's events do: its payment being
+ * recorded and its refunds being applied. Without it, a refund event that
+ * runs beside its payment's completion finds no payment yet, and the
+ * completion does not see the refund's uncommitted event row, so the refund
+ * is lost. Taken before any ticket, merch or purchase lock.
+ */
+async function lockIntent(db: Db, intent: string): Promise<void> {
+  await db.execute(
+    sql`select pg_advisory_xact_lock(hashtext(${`stripe_intent:${intent}`}))`,
+  );
+}
+
 /**
  * What `webhook_event` keeps of an event: enough to find it in Stripe's
  * dashboard and see what it was about. Stripe's objects carry the buyer's
@@ -345,6 +365,8 @@ export function storedEventPayload(event: StripeEventLike): {
   type: string;
   object: string | null;
   objectId: string | null;
+  paymentIntent?: string | null;
+  amountRefunded?: number;
 } {
   const data: unknown = event.data;
   const object =
@@ -354,12 +376,25 @@ export function storedEventPayload(event: StripeEventLike): {
     const value: unknown = (object as Record<string, unknown>)[name];
     return typeof value === "string" ? value : null;
   };
-  return {
+  const stored = {
     id: event.id,
     type: event.type,
     object: field("object"),
     objectId: field("id"),
   };
+  // A refund also keeps which payment it refunds and Stripe's running total,
+  // so a refund that arrives before its payment is applied when the payment
+  // is recorded (applyEarlyRefund). Neither names the buyer.
+  if (event.type === "charge.refunded") {
+    const charge = chargeEvent.safeParse(event);
+    if (charge.success)
+      return {
+        ...stored,
+        paymentIntent: intentIdOf(charge.data.data.object.payment_intent),
+        amountRefunded: charge.data.data.object.amount_refunded,
+      };
+  }
+  return stored;
 }
 
 export type EventOutcome = "processed" | "duplicate" | "ignored";
@@ -409,6 +444,8 @@ export async function handleStripeEvent(
       .where(eq(purchase.stripeCheckoutSessionId, session.id));
     if (found) {
       outcome = "processed";
+      const intent = intentIdOf(session.payment_intent);
+      if (intent) await lockIntent(db, intent);
       // An event spot this checkout holds is changed under the event's lock,
       // taken before the purchase row, in the same order as buying one.
       await lockTicketEvents(db, [found.id]);
@@ -481,6 +518,7 @@ async function recordAppCharge(
   intent: z.infer<typeof intentEvent>["data"]["object"],
   now: Date,
 ): Promise<boolean> {
+  await lockIntent(db, intent.id);
   const named = intent.metadata?.purchaseId;
   const [found] = await db
     .select({
@@ -523,24 +561,66 @@ async function recordAppCharge(
     amountCents: intent.amount_received ?? intent.amount,
     paidAt: now,
   });
+  await applyEarlyRefund(db, intent.id, now);
   return true;
 }
 
 /**
  * Takes Stripe's word for how much of a charge has been refunded, whether an
  * admin refunded it here or in Stripe's dashboard. Stripe sends the running
- * total, so applying an older event again never lowers it.
+ * total, so applying an older event again never lowers it. Stripe does not
+ * deliver events in order: a refund of a payment not recorded yet changes
+ * nothing now, and its stored event is applied when the payment arrives.
  */
 async function recordChargeRefunded(
   db: Db,
   charge: z.infer<typeof chargeEvent>["data"]["object"],
   now: Date,
 ): Promise<boolean> {
-  const intent =
-    typeof charge.payment_intent === "string"
-      ? charge.payment_intent
-      : charge.payment_intent?.id;
+  const intent = intentIdOf(charge.payment_intent);
   if (!intent) return false;
+  await lockIntent(db, intent);
+  return applyRefundedTotal(db, intent, charge.id, charge.amount_refunded, now);
+}
+
+/**
+ * Applies the highest refunded total Stripe reported for a PaymentIntent
+ * before its payment was recorded. Call it after recording the payment,
+ * under the intent's lock, so a refund event that ran first is seen.
+ */
+async function applyEarlyRefund(
+  db: Db,
+  intent: string,
+  now: Date,
+): Promise<void> {
+  const amount = sql<number>`(${webhookEvent.payload}->>'amountRefunded')::integer`;
+  const [early] = await db
+    .select({
+      amount,
+      chargeId: sql<string | null>`${webhookEvent.payload}->>'objectId'`,
+    })
+    .from(webhookEvent)
+    .where(
+      and(
+        eq(webhookEvent.provider, "stripe"),
+        eq(webhookEvent.type, "charge.refunded"),
+        sql`${webhookEvent.payload}->>'paymentIntent' = ${intent}`,
+      ),
+    )
+    .orderBy(sql`${amount} desc`)
+    .limit(1);
+  if (!early?.chargeId || !(early.amount > 0)) return;
+  await applyRefundedTotal(db, intent, early.chargeId, early.amount, now);
+}
+
+/** Raises a payment's refunded total to Stripe's, and settles what follows. */
+async function applyRefundedTotal(
+  db: Db,
+  intent: string,
+  chargeId: string,
+  amountRefunded: number,
+  now: Date,
+): Promise<boolean> {
   const [paidFor] = await db
     .select({ purchaseId: payment.purchaseId })
     .from(payment)
@@ -552,8 +632,8 @@ async function recordChargeRefunded(
   const [changed] = await db
     .update(payment)
     .set({
-      refundedCents: sql`least(${payment.amountCents}, greatest(${payment.refundedCents}, ${charge.amount_refunded}))`,
-      stripeChargeId: sql`coalesce(${payment.stripeChargeId}, ${charge.id})`,
+      refundedCents: sql`least(${payment.amountCents}, greatest(${payment.refundedCents}, ${amountRefunded}))`,
+      stripeChargeId: sql`coalesce(${payment.stripeChargeId}, ${chargeId})`,
     })
     .where(eq(payment.stripePaymentIntentId, intent))
     .returning({ purchaseId: payment.purchaseId });
@@ -622,16 +702,14 @@ async function markPaid(
   session: z.infer<typeof sessionEvent>["data"]["object"],
   now: Date,
 ) {
-  const intent =
-    typeof session.payment_intent === "string"
-      ? session.payment_intent
-      : (session.payment_intent?.id ?? `session:${session.id}`);
+  const intent = intentIdOf(session.payment_intent) ?? `session:${session.id}`;
   await settlePurchase(db, purchaseId, {
     method: "stripe",
     stripePaymentIntentId: intent,
     amountCents: session.amount_total ?? 0,
     paidAt: now,
   });
+  await applyEarlyRefund(db, intent, now);
 }
 
 type PaymentRecord =
