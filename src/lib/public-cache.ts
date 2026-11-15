@@ -1,4 +1,9 @@
 import { revalidatePath, revalidateTag, updateTag } from "next/cache";
+import {
+  DEFAULT_LEAGUE_SEGMENT,
+  LEAGUE_PREFIX,
+  type LeagueRef,
+} from "@/domain/league/paths";
 
 /**
  * How long the public schedule, standings and team pages are served as
@@ -136,9 +141,16 @@ export function refreshSeasonPages(seasonId: string): void {
  * undo, who kicks first). Its cached reads expire, and so does its page,
  * which is static HTML kept per game (docs/architecture.md, section 3).
  */
-export function refreshGamePage(gameId: string): void {
+export function refreshGamePage(
+  gameId: string,
+  league: LeagueRef | null,
+): void {
   updateTag(gameTag(gameId));
-  revalidatePath(`/games/${gameId}`);
+  // The page as its league's route serves it (ADR 0048): the default
+  // league's under its own segment, another league's under its slug.
+  const segment =
+    !league || league.isDefault ? DEFAULT_LEAGUE_SEGMENT : league.slug;
+  revalidatePath(`${LEAGUE_PREFIX}/${segment}/games/${gameId}`);
 }
 
 /**
@@ -158,7 +170,7 @@ export const seasonCardTag = (cardId: string) => `season-card:${cardId}`;
 export const seasonCardsTag = (seasonId: string) => `season-cards:${seasonId}`;
 
 /** The public card page's route. */
-const SEASON_CARD_ROUTE = "/seasons/[season]/card/[card]";
+const SEASON_CARD_ROUTE = "/l/[league]/seasons/[season]/card/[card]";
 
 /**
  * From a Server Action: a card made public or private, or every card of a

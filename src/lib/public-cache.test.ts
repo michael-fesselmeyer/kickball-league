@@ -49,10 +49,18 @@ describe("refreshSeasonPages", () => {
 
 describe("refreshGamePage", () => {
   it("expires the game's tag and its own page, not every game's", () => {
-    refreshGamePage("game-1");
+    refreshGamePage("game-1", { slug: "kickball", isDefault: true });
+    refreshGamePage("game-2", { slug: "flag-football", isDefault: false });
 
-    expect(vi.mocked(updateTag).mock.calls).toEqual([[gameTag("game-1")]]);
-    expect(vi.mocked(revalidatePath).mock.calls).toEqual([["/games/game-1"]]);
+    expect(vi.mocked(updateTag).mock.calls).toEqual([
+      [gameTag("game-1")],
+      [gameTag("game-2")],
+    ]);
+    // Each page at its league's route (ADR 0048).
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([
+      ["/l/_default/games/game-1"],
+      ["/l/flag-football/games/game-2"],
+    ]);
   });
 });
 
@@ -110,8 +118,8 @@ describe("refreshSeasonCards", () => {
       [seasonCardsTag("season-1")],
     ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/seasons/[season]/card/[card]", "page"],
-      ["/seasons/[season]/card/[card]", "page"],
+      ["/l/[league]/seasons/[season]/card/[card]", "page"],
+      ["/l/[league]/seasons/[season]/card/[card]", "page"],
     ]);
   });
 });

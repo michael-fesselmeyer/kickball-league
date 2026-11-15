@@ -86,6 +86,7 @@ export const config = {
     "/teams/:team/calendar.ics",
     "/teams/:team/share.png",
     "/games/:game/share.png",
+    "/seasons/:season/card/:card/share.png",
     "/events/calendar.ics",
     "/events/:event/calendar.ics",
   ],

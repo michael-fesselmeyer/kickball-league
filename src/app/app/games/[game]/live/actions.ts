@@ -16,6 +16,7 @@ import { type GameId, parseId } from "@/domain/ids";
 import { HALVES } from "@/domain/scores/live";
 import { PLAYOFF_TIE } from "@/domain/scores/scores";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 import { refreshGamePage, refreshSeasonPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 
@@ -56,7 +57,7 @@ export async function kicksFirstAction(
     setKicksFirst(tx, { gameId: g.id, side, now: new Date() }),
   );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
-  refreshGamePage(g.id);
+  refreshGamePage(g.id, await activeLeague());
   redirect(page);
 }
 
@@ -88,7 +89,7 @@ export async function saveHalfAction(
     }),
   );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
-  refreshGamePage(g.id);
+  refreshGamePage(g.id, await activeLeague());
   redirect(page);
 }
 
@@ -98,7 +99,7 @@ export async function undoAction(rawGameId: string): Promise<void> {
     undoLastHalf(tx, { gameId: g.id, now: new Date() }),
   );
   if (!result.ok) redirect(`${page}?error=${result.error}`);
-  refreshGamePage(g.id);
+  refreshGamePage(g.id, await activeLeague());
   redirect(page);
 }
 
@@ -142,7 +143,7 @@ export async function endGameAction(
     redirect(
       `${page}?error=${typeof result.error === "string" ? result.error : result.error.scoreB === PLAYOFF_TIE ? "playoff_tie" : "invalid"}`,
     );
-  refreshGamePage(g.id);
+  refreshGamePage(g.id, await activeLeague());
   refreshSeasonPages(g.seasonId);
   // The final score goes out for confirmation like any reported score.
   sendQueuedSoon();
