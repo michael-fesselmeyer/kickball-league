@@ -163,6 +163,7 @@ const ACTIONS: Record<string, string> = {
   "report_card.export": "Downloaded a season report card",
   "money_summary.publish": "Published a season money summary",
   "money_summary.unpublish": "Took down a season money summary",
+  "fields.layout_set": "Changed a field's layout",
   "permit.create": "Added a permit window",
   "permit.delete": "Removed a permit window",
   "permit.update": "Changed a permit window",
