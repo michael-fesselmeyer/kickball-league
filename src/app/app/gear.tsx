@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import type { MyGearKit } from "@/db/queries/equipment";
 import { GEAR_ERRORS, kitLine } from "@/domain/equipment/equipment";
 import {
@@ -114,17 +115,17 @@ function KitCard({
             <form
               action={answerHandoffAction.bind(null, incoming.id, "confirm")}
             >
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton className="btn btn-primary">
                 Got it
                 <span className="sr-only">: I have {kit.kitName}</span>
-              </button>
+              </SubmitButton>
             </form>
             <form
               action={answerHandoffAction.bind(null, incoming.id, "decline")}
             >
-              <button type="submit" className="btn btn-secondary">
+              <SubmitButton className="btn btn-secondary">
                 I don&apos;t have it
-              </button>
+              </SubmitButton>
             </form>
           </div>
         </>
@@ -133,9 +134,9 @@ function KitCard({
         <div className="flex flex-wrap items-center gap-2">
           <p>Waiting for {outgoing.otherName} to confirm.</p>
           <form action={cancelHandoffAction.bind(null, outgoing.id)}>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               Take it back
-            </button>
+            </SubmitButton>
           </form>
         </div>
       )}
@@ -143,24 +144,24 @@ function KitCard({
         <div className="flex flex-wrap gap-2">
           {kit.handTo && (
             <form action={handOffAction.bind(null, kit.kitId)}>
-              <button type="submit" className="btn btn-primary">
+              <SubmitButton className="btn btn-primary">
                 I handed {kit.kitName} to {kit.handTo.name}
-              </button>
+              </SubmitButton>
             </form>
           )}
           <form action={returnHomeAction.bind(null, kit.kitId)}>
-            <button type="submit" className="btn btn-secondary">
+            <SubmitButton className="btn btn-secondary">
               It&apos;s back home
               <span className="sr-only">: {kit.kitName}</span>
-            </button>
+            </SubmitButton>
           </form>
         </div>
       )}
       {!kit.holding && !kit.pending && !kit.holderName && kit.game && (
         <form action={pickUpAction.bind(null, kit.kitId)}>
-          <button type="submit" className="btn btn-primary">
+          <SubmitButton className="btn btn-primary">
             I picked up {kit.kitName}
-          </button>
+          </SubmitButton>
         </form>
       )}
       <Link

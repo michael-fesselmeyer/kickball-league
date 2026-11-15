@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
@@ -80,9 +81,9 @@ async function Missing({
             className="rounded-md border border-border bg-surface px-2 py-2"
           />
         </label>
-        <button type="submit" className="btn self-start btn-primary">
+        <SubmitButton className="btn self-start btn-primary">
           Report it
-        </button>
+        </SubmitButton>
       </form>
     </>
   );
