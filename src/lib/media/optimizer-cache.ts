@@ -7,16 +7,26 @@ export const LONG_PHOTO_LIFETIME = 31 * 24 * 60 * 60;
 export const SHORT_PHOTO_LIFETIME = 5 * 60;
 
 /**
- * How long the image optimizer keeps a resized photo (ADR 0068). On Vercel a
- * takedown purges a photo's copies at once, so they can live the full 31
- * days and each photo costs a transformation per width about once a month.
- * Anywhere else nothing purges them, so they keep the photo's own five
- * minutes and a takedown still reaches them in time.
+ * Whether the host's purge is wired in (`hostPurger`, ADR 0068). The long
+ * lifetime depends on it: without a purge a takedown could only wait for
+ * the optimizer's copies to expire, so they keep five minutes.
+ */
+export const HOST_PURGE_READY: boolean = false;
+
+/**
+ * How long the image optimizer keeps a resized photo (ADR 0068). On Vercel,
+ * once its purge is wired in, a takedown purges a photo's copies at once, so
+ * they can live the full 31 days and each photo costs a transformation per
+ * width about once a month. Anywhere else, or without the purge, they keep
+ * the photo's own five minutes, so a takedown still reaches them in time.
  */
 export function optimizedPhotoLifetime(
   env: Readonly<Record<string, string | undefined>>,
+  purgeReady: boolean = HOST_PURGE_READY,
 ): number {
-  return env.VERCEL === "1" ? LONG_PHOTO_LIFETIME : SHORT_PHOTO_LIFETIME;
+  return purgeReady && env.VERCEL === "1"
+    ? LONG_PHOTO_LIFETIME
+    : SHORT_PHOTO_LIFETIME;
 }
 
 /**

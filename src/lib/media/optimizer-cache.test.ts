@@ -5,7 +5,9 @@ import {
 } from "next/dist/shared/lib/image-config";
 import defaultLoader from "next/dist/shared/lib/image-loader";
 import { describe, expect, it } from "vitest";
+import { hostPurger } from "./host-purger";
 import {
+  HOST_PURGE_READY,
   LONG_PHOTO_LIFETIME,
   optimizedPhotoLifetime,
   PHOTO_DEVICE_SIZES,
@@ -14,15 +16,26 @@ import {
 } from "./optimizer-cache";
 
 describe("optimizedPhotoLifetime", () => {
-  it("keeps optimized photos the host's full 31 days on Vercel, where takedowns purge them", () => {
+  it("keeps optimized photos the host's full 31 days on Vercel once takedowns purge them", () => {
     expect(LONG_PHOTO_LIFETIME).toBe(2_678_400);
-    expect(optimizedPhotoLifetime({ VERCEL: "1" })).toBe(LONG_PHOTO_LIFETIME);
+    expect(optimizedPhotoLifetime({ VERCEL: "1" }, true)).toBe(
+      LONG_PHOTO_LIFETIME,
+    );
   });
 
   it("keeps the photo's own five minutes anywhere nothing can purge them", () => {
     expect(SHORT_PHOTO_LIFETIME).toBe(300);
-    expect(optimizedPhotoLifetime({})).toBe(300);
-    expect(optimizedPhotoLifetime({ VERCEL: "0" })).toBe(300);
+    expect(optimizedPhotoLifetime({}, true)).toBe(300);
+    expect(optimizedPhotoLifetime({ VERCEL: "0" }, true)).toBe(300);
+    expect(optimizedPhotoLifetime({ VERCEL: "1" }, false)).toBe(300);
+  });
+
+  it("goes long only together with the host's purge", () => {
+    expect(hostPurger({ VERCEL: "1" }) !== null).toBe(HOST_PURGE_READY);
+    expect(optimizedPhotoLifetime({ VERCEL: "1" })).toBe(
+      HOST_PURGE_READY ? LONG_PHOTO_LIFETIME : SHORT_PHOTO_LIFETIME,
+    );
+    expect(hostPurger({})).toBeNull();
   });
 });
 

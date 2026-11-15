@@ -59,6 +59,7 @@ The worst case is every public photo asked for at every allowed width in both We
 
 ## Consequences
 
+- The host's purge lives in one file, `src/lib/media/host-purger.ts`, behind `HOST_PURGE_READY` in `src/lib/media/optimizer-cache.ts`. The 31-day lifetime turns on only together with it, so the optimizer never keeps a copy longer than a takedown can reach.
 - A new action that can take a photo down must run inside `purgingPhotoChanges`; a takedown that skips it leaves the optimized copies up to 31 days.
 - Each takedown reads three short lists of IDs twice, a few kilobytes.
 - Moving to another host keeps the five minutes and needs no change, at the cost of that host's own image optimization limits.
