@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
+import { type Choice, wantsEmail } from "@/domain/notifications/topics";
 import type { SocialPostId } from "@/domain/ids";
 import { syncAll, refreshAll } from "@/lib/social/sync";
 import { decryptToken } from "@/lib/social/token-crypto";
@@ -44,6 +45,9 @@ import {
 import { grantRole } from "../test/leagues";
 
 afterAll(closePool);
+
+/** A new account's email choices: league news off (startWithNewsOff). */
+const NEWS_OFF: Choice[] = [{ topic: "announcement", enabled: false }];
 
 // A stand-in for the auth secret: long enough, plainly not a real one.
 const SECRET = "x".repeat(40);
@@ -295,14 +299,25 @@ describe("a refused token", () => {
       // The jobs leave it alone until an admin reconnects.
       expect(await syncAll(db, app, SECRET, LATER)).toEqual([]);
       const notices = await db
-        .select({ userId: message.userId, template: message.template })
+        .select({
+          userId: message.userId,
+          template: message.template,
+          topic: message.topic,
+        })
         .from(message)
         .where(eq(message.template, "instagram_reconnect"));
+      // An admin notice, not league news: it reaches an admin whose account
+      // started with news email off.
       expect(notices).toEqual(
         expect.arrayContaining([
-          { userId: w.adminId, template: "instagram_reconnect" },
+          {
+            userId: w.adminId,
+            template: "instagram_reconnect",
+            topic: "operations",
+          },
         ]),
       );
+      expect(notices.every((n) => wantsEmail(NEWS_OFF, n.topic))).toBe(true);
       const mine = notices.filter((n) => n.userId === w.adminId);
       expect(mine).toHaveLength(1);
       expect(id).toBeTruthy();
@@ -672,7 +687,7 @@ describe("storage limits", () => {
       expect(await sync(LATER)).toMatchObject({ added: 0, full: true });
       expect(await storedImageBytes(db)).toBeLessThanOrEqual(cap);
       const notices = await db
-        .select({ userId: message.userId })
+        .select({ userId: message.userId, topic: message.topic })
         .from(message)
         .where(
           and(
@@ -680,7 +695,8 @@ describe("storage limits", () => {
             eq(message.userId, w.adminId),
           ),
         );
-      expect(notices).toHaveLength(1);
+      expect(notices).toEqual([{ userId: w.adminId, topic: "operations" }]);
+      expect(wantsEmail(NEWS_OFF, "operations")).toBe(true);
     });
   });
 });

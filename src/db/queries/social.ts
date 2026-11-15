@@ -462,7 +462,8 @@ async function tellAdminsStorageIsFull(
     db,
     (await adminIds(db, accountId)).map((id) => ({
       userId: id,
-      topic: "announcement" as const,
+      // An admin notice, not league news, which new accounts start with off.
+      topic: "operations" as const,
       template: "instagram_storage_full",
       payload,
       dedupeKey: `instagram-storage-full/${accountId}/${month}/${id}`,
@@ -542,7 +543,8 @@ export async function recordProblem(
     db,
     admins.map((id) => ({
       userId: id,
-      topic: "announcement" as const,
+      // An admin notice, not league news, which new accounts start with off.
+      topic: "operations" as const,
       template: "instagram_reconnect",
       payload,
       dedupeKey: `instagram-reconnect/${accountId}/${connection}/${id}`,
