@@ -34,6 +34,7 @@
         "http://localhost:3200/seasons",
         "http://localhost:3200/seasons/fall-2026/bracket",
         "http://localhost:3200/games/05cd8fa2-c2b9-48d9-b6d4-0d4e3414b25b",
+        "http://localhost:3200/games/5bd6cb4b-6e9f-483e-8ae0-de5bc1035bbc",
         "http://localhost:3200/seasons/summer-2026/card/5ea50000-0000-4000-8000-000000000001",
         "http://localhost:3200/style",
         "http://localhost:3200/paused",
