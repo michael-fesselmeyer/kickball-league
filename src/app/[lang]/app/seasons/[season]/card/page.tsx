@@ -21,7 +21,7 @@ import { setCardPublicAction } from "./actions";
 
 export const metadata: Metadata = { title: "Your season in kickball" };
 
-type Props = PageProps<"/app/seasons/[season]/card">;
+type Props = PageProps<"/[lang]/app/seasons/[season]/card">;
 
 export default function SeasonCardPage(props: Props) {
   return (

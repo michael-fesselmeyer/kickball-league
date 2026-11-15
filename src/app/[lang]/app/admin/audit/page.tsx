@@ -21,7 +21,7 @@ export const metadata: Metadata = { title: "Audit log" };
 const filterLink =
   "inline-flex min-h-11 items-center rounded-full border-2 border-text px-4 font-semibold aria-[current=page]:bg-brand aria-[current=page]:text-on-brand";
 
-export default function AuditPage(props: PageProps<"/app/admin/audit">) {
+export default function AuditPage(props: PageProps<"/[lang]/app/admin/audit">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -31,7 +31,7 @@ export default function AuditPage(props: PageProps<"/app/admin/audit">) {
   );
 }
 
-async function Audit({ searchParams }: PageProps<"/app/admin/audit">) {
+async function Audit({ searchParams }: PageProps<"/[lang]/app/admin/audit">) {
   const subject = await requirePermission("audit.read", {
     next: "/app/admin/audit",
   });

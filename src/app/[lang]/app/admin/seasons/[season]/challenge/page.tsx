@@ -25,7 +25,7 @@ import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Run the sign-up challenge" };
 
-type Props = PageProps<"/app/admin/seasons/[season]/challenge">;
+type Props = PageProps<"/[lang]/app/admin/seasons/[season]/challenge">;
 
 export default function ChallengeAdminPage(props: Props) {
   return (

@@ -61,7 +61,7 @@ const ERRORS: Record<string, string> = {
 };
 
 export default function ShirtOrderPage(
-  props: PageProps<"/app/admin/seasons/[season]/shirt-order">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/shirt-order">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
@@ -131,7 +131,7 @@ const day = (at: Date, timeZone: string) =>
 async function ShirtOrder({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/shirt-order">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/shirt-order">) {
   const { season: slug } = await params;
   const page = `/app/admin/seasons/${slug}/shirt-order`;
   const subject = await requirePermission("shirts.manage", { next: page });

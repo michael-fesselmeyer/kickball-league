@@ -22,7 +22,7 @@ import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Share a photo" };
 
-export default function PhotosPage(props: PageProps<"/app/photos">) {
+export default function PhotosPage(props: PageProps<"/[lang]/app/photos">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
       <header className="flex flex-col gap-1">
@@ -55,7 +55,7 @@ const STATUS: Record<ListedPhoto["status"], string> = {
 const first = (v: string | string[] | undefined) =>
   typeof v === "string" ? v : "";
 
-async function Photos({ searchParams }: PageProps<"/app/photos">) {
+async function Photos({ searchParams }: PageProps<"/[lang]/app/photos">) {
   // Signed in, looking at their own photos.
   const subject = await requireSelf("photos.delete_own", "/app/photos");
   const query = await searchParams;

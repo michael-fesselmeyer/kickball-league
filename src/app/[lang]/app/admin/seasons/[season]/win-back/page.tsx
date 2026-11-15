@@ -23,7 +23,7 @@ import { saveTemplateAction, sendAllAction, sendOneAction } from "./actions";
 
 export const metadata: Metadata = { title: "Win back past players" };
 
-type Props = PageProps<"/app/admin/seasons/[season]/win-back">;
+type Props = PageProps<"/[lang]/app/admin/seasons/[season]/win-back">;
 
 export default function WinBackPage(props: Props) {
   return (

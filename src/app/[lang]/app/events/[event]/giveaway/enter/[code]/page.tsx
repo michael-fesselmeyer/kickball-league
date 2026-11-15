@@ -21,7 +21,7 @@ import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Enter the giveaway" };
 
-type Props = PageProps<"/app/events/[event]/giveaway/enter/[code]">;
+type Props = PageProps<"/[lang]/app/events/[event]/giveaway/enter/[code]">;
 
 /** Where the giveaway's code at the event lands: one tap to enter. */
 export default function EnterPage(props: Props) {

@@ -55,7 +55,7 @@ const NOTICES: Record<string, string> = {
 };
 
 export default function QuizPage(
-  props: PageProps<"/app/seasons/[season]/quiz">,
+  props: PageProps<"/[lang]/app/seasons/[season]/quiz">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -120,7 +120,7 @@ function Question({
 async function Quiz({
   params,
   searchParams,
-}: PageProps<"/app/seasons/[season]/quiz">) {
+}: PageProps<"/[lang]/app/seasons/[season]/quiz">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const subject = await requireSelf(

@@ -24,7 +24,7 @@ export const metadata: Metadata = {
  * without signal. The only place anyone but an owner sees a permit.
  */
 export default function PermitPage(
-  props: PageProps<"/app/games/[game]/permit">,
+  props: PageProps<"/[lang]/app/games/[game]/permit">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
@@ -35,7 +35,7 @@ export default function PermitPage(
   );
 }
 
-async function Permit({ params }: PageProps<"/app/games/[game]/permit">) {
+async function Permit({ params }: PageProps<"/[lang]/app/games/[game]/permit">) {
   const { game: rawId } = await params;
   const subject = await requirePermission("public.view", {
     next: `/app/games/${rawId}/permit`,

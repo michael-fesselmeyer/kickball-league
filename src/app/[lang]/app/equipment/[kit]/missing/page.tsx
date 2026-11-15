@@ -17,7 +17,7 @@ export const metadata: Metadata = { title: "Report missing gear" };
  * add a note. Admins see the report on the kit's page.
  */
 export default function MissingPage(
-  props: PageProps<"/app/equipment/[kit]/missing">,
+  props: PageProps<"/[lang]/app/equipment/[kit]/missing">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-sm flex-col gap-6 px-4 py-10">
@@ -31,7 +31,7 @@ export default function MissingPage(
 async function Missing({
   params,
   searchParams,
-}: PageProps<"/app/equipment/[kit]/missing">) {
+}: PageProps<"/[lang]/app/equipment/[kit]/missing">) {
   const { kit: rawKit } = await params;
   await requireSelf("equipment.carry", `/app/equipment/${rawKit}/missing`);
   const kitId = parseId<EquipmentKitId>(rawKit);

@@ -24,7 +24,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Message your team" };
 
 export default function TeamAnnouncementsPage(
-  props: PageProps<"/app/seasons/[season]/team/announcements">,
+  props: PageProps<"/[lang]/app/seasons/[season]/team/announcements">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -38,7 +38,7 @@ export default function TeamAnnouncementsPage(
 async function TeamAnnouncements({
   params,
   searchParams,
-}: PageProps<"/app/seasons/[season]/team/announcements">) {
+}: PageProps<"/[lang]/app/seasons/[season]/team/announcements">) {
   await requireFeature("announcements");
   const { season: slug } = await params;
   const query = await searchParams;

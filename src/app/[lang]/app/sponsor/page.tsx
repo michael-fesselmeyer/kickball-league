@@ -22,7 +22,7 @@ export const metadata: Metadata = { title: "Sponsors" };
  * The sponsors a person manages. A sponsor's own people with one sponsor
  * go straight to it; admins see every sponsor and can add one.
  */
-export default function SponsorsHome(props: PageProps<"/app/sponsor">) {
+export default function SponsorsHome(props: PageProps<"/[lang]/app/sponsor">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -44,7 +44,7 @@ const ERRORS: Record<string, string> = {
   no_league: "Set up the league first.",
 };
 
-async function Sponsors({ searchParams }: PageProps<"/app/sponsor">) {
+async function Sponsors({ searchParams }: PageProps<"/[lang]/app/sponsor">) {
   const subject = await currentSubject();
   if (subject.userId === null) redirect("/sign-in?next=/app/sponsor");
   const isAdmin = can(subject, "sponsor.edit", {});

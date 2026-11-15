@@ -28,7 +28,7 @@ import { LeagueLink } from "@/components/league-link";
 export const metadata: Metadata = { title: "Playoffs" };
 
 export default function PlayoffsAdminPage(
-  props: PageProps<"/app/admin/seasons/[season]/playoffs">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/playoffs">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10">
@@ -60,7 +60,7 @@ const ERRORS: Record<string, string> = {
 async function Playoffs({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/playoffs">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/playoffs">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/playoffs`;

@@ -29,7 +29,7 @@ import {
 export const metadata: Metadata = { title: "Stat awards" };
 
 export default function StatAwardsAdminPage(
-  props: PageProps<"/app/admin/seasons/[season]/awards/stats">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/awards/stats">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -62,7 +62,7 @@ const field = "rounded-md border border-border bg-surface px-2 py-2";
 async function StatAwards({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/awards/stats">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/awards/stats">) {
   await requireFeature("awards");
   const { season: slug } = await params;
   const query = await searchParams;

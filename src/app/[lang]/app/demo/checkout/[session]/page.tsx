@@ -19,7 +19,7 @@ export const metadata: Metadata = { title: "Demo checkout" };
  * complete without a network or a card. A 404 everywhere else.
  */
 export default function DemoCheckoutPage(
-  props: PageProps<"/app/demo/checkout/[session]">,
+  props: PageProps<"/[lang]/app/demo/checkout/[session]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-10">
@@ -34,7 +34,7 @@ export default function DemoCheckoutPage(
 async function Checkout({
   params,
   searchParams,
-}: PageProps<"/app/demo/checkout/[session]">) {
+}: PageProps<"/[lang]/app/demo/checkout/[session]">) {
   if (!demoCheckoutOn(process.env)) notFound();
   const { session } = await params;
   const query = await searchParams;

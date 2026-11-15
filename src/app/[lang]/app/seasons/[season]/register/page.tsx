@@ -44,7 +44,7 @@ const WAITLIST_NOTICES: Record<string, string> = {
 export const metadata: Metadata = { title: "Register" };
 
 export default function RegisterPage(
-  props: PageProps<"/app/seasons/[season]/register">,
+  props: PageProps<"/[lang]/app/seasons/[season]/register">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -58,7 +58,7 @@ export default function RegisterPage(
 async function Register({
   params,
   searchParams,
-}: PageProps<"/app/seasons/[season]/register">) {
+}: PageProps<"/[lang]/app/seasons/[season]/register">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const subject = await requirePermission("team.register", {

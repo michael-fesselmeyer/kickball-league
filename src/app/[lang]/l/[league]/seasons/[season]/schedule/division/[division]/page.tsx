@@ -16,7 +16,7 @@ import { SeasonSchedule } from "../../season-schedule";
 import { isPublicSeason } from "@/domain/private-events/visibility";
 
 type Props =
-  PageProps<"/l/[league]/seasons/[season]/schedule/division/[division]">;
+  PageProps<"/[lang]/l/[league]/seasons/[season]/schedule/division/[division]">;
 
 /** Static, as the season's full schedule is (see its page). */
 export const ensureStatic = "navigation";

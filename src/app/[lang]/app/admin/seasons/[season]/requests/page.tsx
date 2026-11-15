@@ -13,7 +13,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Team scheduling requests" };
 
 export default function SeasonRequestsPage(
-  props: PageProps<"/app/admin/seasons/[season]/requests">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/requests">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -26,7 +26,7 @@ export default function SeasonRequestsPage(
 
 async function SeasonRequests({
   params,
-}: PageProps<"/app/admin/seasons/[season]/requests">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/requests">) {
   const { season: slug } = await params;
   await requirePermission("schedule.manage", {
     next: `/app/admin/seasons/${slug}/requests`,

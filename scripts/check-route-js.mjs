@@ -87,7 +87,10 @@ function routes() {
         for (const [key, manifest] of Object.entries(
           globalThis.__RSC_MANIFEST,
         )) {
-          const route = key.replace(/\/page$/, "") || "/";
+          // Every page lives under [lang] (ADR 0065); budgets are per page,
+          // whatever its language, so the segment is left out of its name.
+          const route =
+            key.replace(/\/page$/, "").replace(/^\/\[lang\]/, "") || "/";
           if (route.startsWith("/_")) continue;
           found.push({ route, segments: manifest.entryJSFiles });
         }
@@ -104,7 +107,7 @@ if (all.length === 0) {
   process.exit(1);
 }
 
-const rootLayout = all[0].segments["[project]/src/app/layout"] ?? [];
+const rootLayout = all[0].segments["[project]/src/app/[lang]/layout"] ?? [];
 const shared = new Set([...build.rootMainFiles, ...rootLayout]);
 const sum = (files) => [...files].reduce((n, f) => n + gzipped(f), 0);
 const sharedSize = sum(shared);

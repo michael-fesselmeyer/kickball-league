@@ -42,7 +42,7 @@ export async function generateStaticParams(props: LeagueParams) {
 }
 
 export default function StandingsPage(
-  props: PageProps<"/l/[league]/seasons/[season]/standings">,
+  props: PageProps<"/[lang]/l/[league]/seasons/[season]/standings">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-10">
@@ -57,7 +57,7 @@ const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 async function Standings({
   params,
-}: PageProps<"/l/[league]/seasons/[season]/standings">) {
+}: PageProps<"/[lang]/l/[league]/seasons/[season]/standings">) {
   const { league: segment, season: slug } = await params;
   // The build's placeholder when it had no database to read.
   if (slug === NO_SEASON) notFound();

@@ -14,7 +14,7 @@ import { safeNextPath } from "@/lib/safe-next";
  */
 export async function GET(
   request: Request,
-  { params }: RouteContext<"/app/league/[league]">,
+  { params }: RouteContext<"/[lang]/app/league/[league]">,
 ): Promise<Response> {
   const { league: slug } = await params;
   const url = new URL(request.url);

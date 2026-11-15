@@ -30,7 +30,7 @@ export async function generateStaticParams(props: LeagueParams) {
 }
 
 export default function MoneyPage(
-  props: PageProps<"/l/[league]/seasons/[season]/money">,
+  props: PageProps<"/[lang]/l/[league]/seasons/[season]/money">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -41,7 +41,7 @@ export default function MoneyPage(
 
 async function Money({
   params,
-}: PageProps<"/l/[league]/seasons/[season]/money">) {
+}: PageProps<"/[lang]/l/[league]/seasons/[season]/money">) {
   const { league: segment, season: slug } = await params;
   // The build's placeholder when it had no summary to list.
   if (slug === NO_SEASON) notFound();

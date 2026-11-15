@@ -15,7 +15,7 @@ import { activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Rain-out rebates" };
 
 export default function RebatesPage(
-  props: PageProps<"/app/admin/seasons/[season]/rebates">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/rebates">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -35,7 +35,7 @@ const ERRORS: Record<string, string> = {
 async function Rebates({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/rebates">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/rebates">) {
   const { season: slug } = await params;
   const query = await searchParams;
   await requirePermission("refund.issue", {

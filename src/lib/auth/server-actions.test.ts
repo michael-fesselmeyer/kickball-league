@@ -14,22 +14,22 @@ const ROOT = join(__dirname, "..", "..");
 
 /** Actions that must keep working while frozen: signing in, out and again. */
 const ALLOWED_WITHOUT_GUARD = new Set([
-  "app/sign-in/actions.ts",
-  "app/app/actions.ts",
+  "app/[lang]/sign-in/actions.ts",
+  "app/[lang]/app/actions.ts",
   "app/demo/actions.ts",
   // The public contact form has no account; it stops while frozen itself.
-  "app/contact/actions.ts",
+  "app/[lang]/contact/actions.ts",
   // The public interest form has no account; it stops while frozen itself.
-  "app/l/[league]/interest/actions.ts",
+  "app/[lang]/l/[league]/interest/actions.ts",
   // A guest team's sign-up and waiver have no account; they stop while
   // frozen themselves.
-  "app/guest/actions.ts",
-  "app/operator/actions.ts",
+  "app/[lang]/guest/actions.ts",
+  "app/[lang]/operator/actions.ts",
   // Emails a fresh sign-in link; the operator needs it while frozen.
   "lib/auth/confirm-actions.ts",
   // An email's one-click unsubscribe: withdrawing consent to email must
   // work even while the site is read-only. Its signed link is the check.
-  "app/unsubscribe/[token]/actions.ts",
+  "app/[lang]/unsubscribe/[token]/actions.ts",
 ]);
 
 function files(dir: string): string[] {

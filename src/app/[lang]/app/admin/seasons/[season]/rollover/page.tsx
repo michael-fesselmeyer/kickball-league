@@ -22,7 +22,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Start the next season" };
 
 export default function RolloverPage(
-  props: PageProps<"/app/admin/seasons/[season]/rollover">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/rollover">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -59,7 +59,7 @@ const input = "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
 async function Rollover({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/rollover">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/rollover">) {
   const { season: slug } = await params;
   const page = `/app/admin/seasons/${slug}/rollover`;
   await requirePermission("season.manage", { next: page });

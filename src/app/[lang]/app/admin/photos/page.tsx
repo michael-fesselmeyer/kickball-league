@@ -21,7 +21,7 @@ import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Member photos" };
 
-export default function AdminPhotosPage(props: PageProps<"/app/admin/photos">) {
+export default function AdminPhotosPage(props: PageProps<"/[lang]/app/admin/photos">) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-1">
@@ -59,7 +59,7 @@ const ERROR: Record<string, string> = {
 
 const mb = (bytes: number) => (bytes / (1024 * 1024)).toFixed(1);
 
-async function Queue({ searchParams }: PageProps<"/app/admin/photos">) {
+async function Queue({ searchParams }: PageProps<"/[lang]/app/admin/photos">) {
   await requirePermission("photos.manage", { next: "/app/admin/photos" });
   const query = await searchParams;
   const league = await activeLeague();

@@ -54,7 +54,7 @@ const ERRORS: Record<string, string> = {
 };
 
 export default function AdminEventPage(
-  props: PageProps<"/app/admin/events/[event]">,
+  props: PageProps<"/[lang]/app/admin/events/[event]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -68,7 +68,7 @@ export default function AdminEventPage(
 async function AdminEvent({
   params,
   searchParams,
-}: PageProps<"/app/admin/events/[event]">) {
+}: PageProps<"/[lang]/app/admin/events/[event]">) {
   const { event: slug } = await params;
   const query = await searchParams;
   await requirePermission("event.manage", {

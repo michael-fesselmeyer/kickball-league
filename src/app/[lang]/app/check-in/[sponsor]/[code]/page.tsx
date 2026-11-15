@@ -14,7 +14,7 @@ import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Check in" };
 
-type Props = PageProps<"/app/check-in/[sponsor]/[code]">;
+type Props = PageProps<"/[lang]/app/check-in/[sponsor]/[code]">;
 
 /** Where the QR code at the bar lands: one tap to check in. */
 export default function CheckInPage(props: Props) {

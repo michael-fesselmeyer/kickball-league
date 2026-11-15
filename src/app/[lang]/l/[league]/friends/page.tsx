@@ -41,7 +41,7 @@ const METADATA: Metadata = {
 
 export function generateMetadata({
   params,
-}: PageProps<"/l/[league]/friends">): Promise<Metadata> {
+}: PageProps<"/[lang]/l/[league]/friends">): Promise<Metadata> {
   return withCanonical(params, METADATA, "/friends");
 }
 
@@ -53,7 +53,7 @@ export function generateMetadata({
  */
 export default async function FriendsPage({
   params,
-}: PageProps<"/l/[league]/friends">) {
+}: PageProps<"/[lang]/l/[league]/friends">) {
   const league = await publicLeague((await params).league, "/friends");
   const [entries, partners] = await Promise.all([
     cachedFriendDirectory(league.id),

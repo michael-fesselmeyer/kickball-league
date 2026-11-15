@@ -23,7 +23,7 @@ import { activeLeagueId, activeLeaguePath } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Weekly recap" };
 
 export default function RecapPage(
-  props: PageProps<"/app/admin/seasons/[season]/recap">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/recap">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -37,7 +37,7 @@ export default function RecapPage(
 async function Recap({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/recap">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/recap">) {
   const { season: slug } = await params;
   const query = await searchParams;
   await requirePermission("announcement.send", {

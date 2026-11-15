@@ -8,7 +8,7 @@ import { requestOrigin } from "@/lib/calendar-links";
 /** One event as a calendar file, to save it to Apple Calendar or Outlook. */
 export async function GET(
   request: Request,
-  ctx: RouteContext<"/l/[league]/events/[event]/calendar.ics">,
+  ctx: RouteContext<"/[lang]/l/[league]/events/[event]/calendar.ics">,
 ) {
   const { league: segment, event: slug } = await ctx.params;
   const league = await leagueBySegment(db, segment);

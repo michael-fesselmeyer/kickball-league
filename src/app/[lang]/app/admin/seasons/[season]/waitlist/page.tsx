@@ -16,7 +16,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Waitlist" };
 
 export default function WaitlistPage(
-  props: PageProps<"/app/admin/seasons/[season]/waitlist">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/waitlist">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -37,7 +37,7 @@ const STATUS: Record<string, string> = {
 async function Waitlist({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/waitlist">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/waitlist">) {
   const { season: slug } = await params;
   const query = await searchParams;
   await requirePermission("season.manage", {

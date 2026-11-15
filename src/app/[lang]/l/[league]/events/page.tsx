@@ -33,7 +33,7 @@ const NOT_KEPT = { stale: 0, revalidate: 0, expire: 0 } as const;
 
 export default function EventsPage({
   params,
-}: PageProps<"/l/[league]/events">) {
+}: PageProps<"/[lang]/l/[league]/events">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:px-6">
       <header className="flex flex-col gap-2">
@@ -63,7 +63,7 @@ export default function EventsPage({
 async function LeagueEvents({
   params,
 }: {
-  params: PageProps<"/l/[league]/events">["params"];
+  params: PageProps<"/[lang]/l/[league]/events">["params"];
 }) {
   const { league: segment } = await params;
   const league = await publicLeague(segment, "/events");

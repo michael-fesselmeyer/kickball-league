@@ -11,7 +11,7 @@ import { SignInForm } from "./sign-in-form";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
+export default function SignInPage({ searchParams }: PageProps<"/[lang]/sign-in">) {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-4 py-12">
       <div className="flex flex-col gap-2">
@@ -31,7 +31,7 @@ export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
 
 async function FormForRequest({
   searchParams,
-}: Pick<PageProps<"/sign-in">, "searchParams">) {
+}: Pick<PageProps<"/[lang]/sign-in">, "searchParams">) {
   const { next, google, app } = await searchParams;
   // `app` comes back from the apps' browser sheet (ADR 0077).
   const problem = google ?? app;

@@ -4,7 +4,7 @@
  * The default league keeps the site's own URLs (`/seasons/fall-2026/schedule`);
  * every other league's pages live under `/l/<slug>`
  * (`/l/football/seasons/fall-2026/schedule`). The pages themselves are one
- * route tree, `src/app/l/[league]`: the proxy rewrites the default league's
+ * route tree, `src/app/[lang]/l/[league]`: the proxy rewrites the default league's
  * URLs onto it with the reserved segment `_default`, which no league slug
  * can be (slugs are lowercase letters, digits and hyphens). So a public page
  * always knows its league from its path alone, never from a cookie, a header

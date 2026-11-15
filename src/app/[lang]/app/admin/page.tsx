@@ -29,7 +29,7 @@ import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "League admin" };
 
-export default function AdminHomePage(props: PageProps<"/app/admin">) {
+export default function AdminHomePage(props: PageProps<"/[lang]/app/admin">) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -90,7 +90,7 @@ function Status({ tone, children }: { tone: Tone; children: React.ReactNode }) {
   );
 }
 
-async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
+async function Dashboard({ searchParams }: PageProps<"/[lang]/app/admin">) {
   const subject = await requirePermission("season.manage", {
     next: "/app/admin",
   });

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
  * the next game until midnight. Every load is recorded in the audit log.
  */
 export default function EmergencyPage(
-  props: PageProps<"/app/games/[game]/emergency">,
+  props: PageProps<"/[lang]/app/games/[game]/emergency">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
@@ -36,7 +36,7 @@ export default function EmergencyPage(
   );
 }
 
-async function Contacts({ params }: PageProps<"/app/games/[game]/emergency">) {
+async function Contacts({ params }: PageProps<"/[lang]/app/games/[game]/emergency">) {
   const { game: rawId } = await params;
   const subject = await requirePermission("public.view", {
     next: `/app/games/${rawId}/emergency`,

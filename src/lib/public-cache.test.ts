@@ -58,13 +58,13 @@ describe("refreshSeasonPages", () => {
       [PARKS_TAG],
     ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/l/[league]/fields/[park]", "page"],
-      ["/l/[league]/seasons", "page"],
-      ["/l/[league]/seasons/[season]", "layout"],
-      ["/l/[league]/teams/[team]", "layout"],
-      ["/l/[league]/games/[game]", "layout"],
+      ["/[lang]/l/[league]/fields/[park]", "page"],
+      ["/[lang]/l/[league]/seasons", "page"],
+      ["/[lang]/l/[league]/seasons/[season]", "layout"],
+      ["/[lang]/l/[league]/teams/[team]", "layout"],
+      ["/[lang]/l/[league]/games/[game]", "layout"],
       ["/embed/schedule", "layout"],
-      ["/l/[league]/rules", "layout"],
+      ["/[lang]/l/[league]/rules", "layout"],
     ]);
   });
 
@@ -85,11 +85,11 @@ describe("refreshSeasonPages", () => {
         [seasonTag("season-1"), { expire: 0 }],
       ]);
       expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-        ["/l/[league]/seasons/[season]", "layout"],
-        ["/l/[league]/teams/[team]", "layout"],
-        ["/l/[league]/games/[game]", "layout"],
+        ["/[lang]/l/[league]/seasons/[season]", "layout"],
+        ["/[lang]/l/[league]/teams/[team]", "layout"],
+        ["/[lang]/l/[league]/games/[game]", "layout"],
         ["/embed/schedule", "layout"],
-        ["/l/[league]/rules", "layout"],
+        ["/[lang]/l/[league]/rules", "layout"],
       ]);
     } finally {
       vi.useRealTimers();
@@ -103,7 +103,7 @@ describe("refreshParkPages", () => {
 
     expect(vi.mocked(updateTag).mock.calls).toEqual([[PARKS_TAG]]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/l/[league]/fields/[park]", "page"],
+      ["/[lang]/l/[league]/fields/[park]", "page"],
     ]);
   });
 });
@@ -119,8 +119,10 @@ describe("refreshGamePage", () => {
     ]);
     // Each page at its league's route (ADR 0048).
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/l/_default/games/game-1"],
-      ["/l/flag-football/games/game-2"],
+      ["/en/l/_default/games/game-1"],
+      ["/es/l/_default/games/game-1"],
+      ["/en/l/flag-football/games/game-2"],
+      ["/es/l/flag-football/games/game-2"],
     ]);
   });
 });
@@ -134,7 +136,7 @@ describe("refreshEventPages", () => {
       [eventTag("trivia-night")],
     ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/l/[league]/events/[event]", "page"],
+      ["/[lang]/l/[league]/events/[event]", "page"],
     ]);
   });
 
@@ -143,8 +145,8 @@ describe("refreshEventPages", () => {
 
     expect(updateTag).toHaveBeenCalledWith(THEME_WEEKS_TAG);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/l/[league]/events/[event]", "page"],
-      ["/l/[league]/seasons/[season]", "layout"],
+      ["/[lang]/l/[league]/events/[event]", "page"],
+      ["/[lang]/l/[league]/seasons/[season]", "layout"],
     ]);
   });
 });
@@ -155,7 +157,7 @@ describe("refreshSponsorPages", () => {
 
     expect(vi.mocked(updateTag).mock.calls).toEqual([[SPONSORS_TAG]]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/l/[league]/sponsors", "layout"],
+      ["/[lang]/l/[league]/sponsors", "layout"],
     ]);
   });
 });
@@ -165,7 +167,9 @@ describe("refreshSiteNotice", () => {
     refreshSiteNotice();
 
     expect(vi.mocked(updateTag).mock.calls).toEqual([[SITE_TAG]]);
-    expect(vi.mocked(revalidatePath).mock.calls).toEqual([["/paused"]]);
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([
+      ["/[lang]/paused", "page"],
+    ]);
   });
 });
 
@@ -179,8 +183,8 @@ describe("refreshSeasonCards", () => {
       [seasonCardsTag("season-1")],
     ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/l/[league]/seasons/[season]/card/[card]", "page"],
-      ["/l/[league]/seasons/[season]/card/[card]", "page"],
+      ["/[lang]/l/[league]/seasons/[season]/card/[card]", "page"],
+      ["/[lang]/l/[league]/seasons/[season]/card/[card]", "page"],
     ]);
   });
 });
@@ -195,14 +199,18 @@ describe("refreshFriendPages", () => {
       [FRIENDS_TAG],
     ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/l/flag-football/friends"],
-      ["/l/[league]/friends", "page"],
-      ["/l/flag-football/events"],
-      ["/l/[league]/events", "page"],
-      ["/l/_default/friends"],
-      ["/l/[league]/friends", "page"],
-      ["/l/_default/events"],
-      ["/l/[league]/events", "page"],
+      ["/en/l/flag-football/friends"],
+      ["/es/l/flag-football/friends"],
+      ["/[lang]/l/[league]/friends", "page"],
+      ["/en/l/flag-football/events"],
+      ["/es/l/flag-football/events"],
+      ["/[lang]/l/[league]/events", "page"],
+      ["/en/l/_default/friends"],
+      ["/es/l/_default/friends"],
+      ["/[lang]/l/[league]/friends", "page"],
+      ["/en/l/_default/events"],
+      ["/es/l/_default/events"],
+      ["/[lang]/l/[league]/events", "page"],
     ]);
   });
 });
@@ -218,9 +226,9 @@ describe("refreshInterestPage", () => {
     ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
       ["/l/flag-football/interest"],
-      ["/l/[league]/interest", "page"],
+      ["/[lang]/l/[league]/interest", "page"],
       ["/l/_default/interest"],
-      ["/l/[league]/interest", "page"],
+      ["/[lang]/l/[league]/interest", "page"],
     ]);
   });
 });

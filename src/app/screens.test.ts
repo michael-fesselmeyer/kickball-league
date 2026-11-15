@@ -27,11 +27,13 @@ const pages = all.filter((f) => f.name.endsWith("page.tsx"));
 /** Pages with no title of their own, and why. */
 const UNTITLED = new Set([
   // Each only redirects to a season's page.
-  "app/books/page.tsx",
-  "app/books/permits/page.tsx",
-  "app/owner/page.tsx",
+  "[lang]/app/books/page.tsx",
+  "[lang]/app/books/permits/page.tsx",
+  "[lang]/app/owner/page.tsx",
   // Must not hint to anyone else that it exists.
-  "operator/page.tsx",
+  "[lang]/operator/page.tsx",
+  // Only ever shows the not-found page, which has its own title.
+  "[lang]/[...missing]/page.tsx",
 ]);
 
 const staticTitle = (source: string) =>

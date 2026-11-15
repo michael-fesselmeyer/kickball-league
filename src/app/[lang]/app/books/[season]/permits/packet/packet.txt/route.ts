@@ -17,7 +17,7 @@ const notFound = () =>
 /** The application packet as a text file, with the screen's choices. */
 export async function GET(
   request: Request,
-  ctx: RouteContext<"/app/books/[season]/permits/packet/packet.txt">,
+  ctx: RouteContext<"/[lang]/app/books/[season]/permits/packet/packet.txt">,
 ) {
   const subject = await currentSubject();
   if (!can(subject, "books.manage")) return notFound();

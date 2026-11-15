@@ -20,7 +20,7 @@ import { addRecurringAction, removeRecurringAction } from "./actions";
 export const metadata: Metadata = { title: "Expected costs" };
 
 export default function ExpectedPage(
-  props: PageProps<"/app/books/[season]/expected">,
+  props: PageProps<"/[lang]/app/books/[season]/expected">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -50,7 +50,7 @@ const input = "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
 async function Expected({
   params,
   searchParams,
-}: PageProps<"/app/books/[season]/expected">) {
+}: PageProps<"/[lang]/app/books/[season]/expected">) {
   const { season: slug } = await params;
   const page = `/app/books/${slug}/expected`;
   await requirePermission("books.manage", { next: page });

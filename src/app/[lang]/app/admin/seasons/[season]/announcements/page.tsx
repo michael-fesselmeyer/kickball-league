@@ -57,7 +57,7 @@ const NOTICES: Record<string, string> = {
 const field = "rounded-md border border-border bg-surface px-2 py-1";
 
 export default function AnnouncementsPage(
-  props: PageProps<"/app/admin/seasons/[season]/announcements">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/announcements">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -71,7 +71,7 @@ export default function AnnouncementsPage(
 async function Announcements({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/announcements">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/announcements">) {
   await requireFeature("announcements");
   const { season: slug } = await params;
   const query = await searchParams;

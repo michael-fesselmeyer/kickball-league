@@ -14,7 +14,7 @@ import {
 import { SeasonSchedule } from "../season-schedule";
 import { isPublicSeason } from "@/domain/private-events/visibility";
 
-type Props = PageProps<"/l/[league]/seasons/[season]/schedule/[[...team]]">;
+type Props = PageProps<"/[lang]/l/[league]/seasons/[season]/schedule/[[...team]]">;
 
 /**
  * The whole page is static, and a view the build didn't list is rendered in

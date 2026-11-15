@@ -44,7 +44,7 @@ import { dayLabel, ERRORS, NOTICES } from "./words";
 export const metadata: Metadata = { title: "Rain-out" };
 
 export default function RainoutPage(
-  props: PageProps<"/app/admin/seasons/[season]/rainout">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/rainout">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
@@ -58,7 +58,7 @@ export default function RainoutPage(
 async function Rainout({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/rainout">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/rainout">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/rainout`;

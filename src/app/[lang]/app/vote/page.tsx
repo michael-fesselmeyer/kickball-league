@@ -13,7 +13,7 @@ import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Vote for awards" };
 
-export default function VotePage(props: PageProps<"/app/vote">) {
+export default function VotePage(props: PageProps<"/[lang]/app/vote">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading the ballots…</PageLoading>}>
@@ -174,7 +174,7 @@ function BallotCard({
   );
 }
 
-async function Vote({ searchParams }: PageProps<"/app/vote">) {
+async function Vote({ searchParams }: PageProps<"/[lang]/app/vote">) {
   await requireFeature("awards");
   const query = await searchParams;
   const subject = await requirePermission("registration.join", {

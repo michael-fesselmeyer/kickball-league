@@ -21,7 +21,7 @@ import { RulesEditor } from "./editor";
 
 export const metadata: Metadata = { title: "Edit the rules" };
 
-export default function AdminRulesPage(props: PageProps<"/app/admin/rules">) {
+export default function AdminRulesPage(props: PageProps<"/[lang]/app/admin/rules">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -39,7 +39,7 @@ const dayLabel = (on: string) =>
     timeZone: "UTC",
   }).format(new Date(`${on}T12:00:00Z`));
 
-async function Rules({ searchParams }: PageProps<"/app/admin/rules">) {
+async function Rules({ searchParams }: PageProps<"/[lang]/app/admin/rules">) {
   const query = await searchParams;
   const subject = await requirePermission("rules.manage", {
     next: "/app/admin/rules",

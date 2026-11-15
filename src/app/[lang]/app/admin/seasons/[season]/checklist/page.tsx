@@ -38,7 +38,7 @@ import {
 export const metadata: Metadata = { title: "Season checklist" };
 
 export default function ChecklistPage(
-  props: PageProps<"/app/admin/seasons/[season]/checklist">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/checklist">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -73,7 +73,7 @@ const shortDate = (on: string) =>
 async function Checklist({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/checklist">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/checklist">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const subject = await requirePermission("checklist.manage", {

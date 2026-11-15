@@ -29,7 +29,7 @@ const ERRORS: Record<AcceptProblem | "not_found" | "not_open", string> = {
 const field = "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
 
 export default function AdminPrivateEventsPage(
-  props: PageProps<"/app/admin/private-events">,
+  props: PageProps<"/[lang]/app/admin/private-events">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
@@ -43,7 +43,7 @@ export default function AdminPrivateEventsPage(
 const who = (r: QueueRow) =>
   [r.firstName, r.lastName].filter(Boolean).join(" ") || r.organizerName;
 
-async function Queue({ searchParams }: PageProps<"/app/admin/private-events">) {
+async function Queue({ searchParams }: PageProps<"/[lang]/app/admin/private-events">) {
   await requirePermission("private_event.manage", { next: PAGE });
   const query = await searchParams;
   const league = await activeLeague();

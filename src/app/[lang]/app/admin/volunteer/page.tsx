@@ -12,7 +12,7 @@ import { requirePermission } from "@/lib/auth/permission";
 export const metadata: Metadata = { title: "Volunteer shifts" };
 
 export default function VolunteerAdminPage(
-  props: PageProps<"/app/admin/volunteer">,
+  props: PageProps<"/[lang]/app/admin/volunteer">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
@@ -42,7 +42,7 @@ const SAVED: Record<string, string> = {
   removed: "Shift removed.",
 };
 
-async function Shifts({ searchParams }: PageProps<"/app/admin/volunteer">) {
+async function Shifts({ searchParams }: PageProps<"/[lang]/app/admin/volunteer">) {
   await requirePermission("volunteer.manage", { next: "/app/admin/volunteer" });
   const query = await searchParams;
   await connection();

@@ -23,7 +23,7 @@ import { SubmitButton } from "@/components/submit-button";
 export const metadata: Metadata = { title: "Report an incident" };
 
 export default function IncidentPage(
-  props: PageProps<"/app/games/[game]/incident">,
+  props: PageProps<"/[lang]/app/games/[game]/incident">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
@@ -51,7 +51,7 @@ const field = "rounded-md border border-border bg-surface px-2 py-2";
 async function Report({
   params,
   searchParams,
-}: PageProps<"/app/games/[game]/incident">) {
+}: PageProps<"/[lang]/app/games/[game]/incident">) {
   await requireFeature("discipline");
   const { game: rawId } = await params;
   const query = await searchParams;

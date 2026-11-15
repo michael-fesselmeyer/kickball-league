@@ -12,7 +12,7 @@ import { LONG_CACHE, renderShareImage, SHORT_CACHE } from "@/lib/share/image";
  */
 export async function GET(
   request: Request,
-  ctx: RouteContext<"/l/[league]/games/[game]/share.png">,
+  ctx: RouteContext<"/[lang]/l/[league]/games/[game]/share.png">,
 ) {
   const { league: segment, game } = await ctx.params;
   const id = parseId<GameId>(game);

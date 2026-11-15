@@ -32,7 +32,7 @@ import {
 export const metadata: Metadata = { title: "Checklist template" };
 
 export default function ChecklistTemplatePage(
-  props: PageProps<"/app/admin/checklist-template">,
+  props: PageProps<"/[lang]/app/admin/checklist-template">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -59,7 +59,7 @@ const pick = <T,>(table: Record<string, T>, key: unknown): T | undefined =>
 
 async function Template({
   searchParams,
-}: PageProps<"/app/admin/checklist-template">) {
+}: PageProps<"/[lang]/app/admin/checklist-template">) {
   const query = await searchParams;
   await requirePermission("checklist.template", {
     next: "/app/admin/checklist-template",

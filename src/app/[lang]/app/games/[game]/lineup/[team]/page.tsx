@@ -25,7 +25,7 @@ import { PageLoading } from "@/components/page-loading";
 export const metadata: Metadata = { title: "Kicking order" };
 
 export default function LineupBuilderPage(
-  props: PageProps<"/app/games/[game]/lineup/[team]">,
+  props: PageProps<"/[lang]/app/games/[game]/lineup/[team]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
@@ -59,7 +59,7 @@ const whenIn = (timeZone: string, d: Date) =>
 async function Builder({
   params,
   searchParams,
-}: PageProps<"/app/games/[game]/lineup/[team]">) {
+}: PageProps<"/[lang]/app/games/[game]/lineup/[team]">) {
   const { game: rawGame, team: rawTeam } = await params;
   const query = await searchParams;
   const subject = await requirePermission("public.view", {

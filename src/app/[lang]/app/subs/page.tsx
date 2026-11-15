@@ -14,7 +14,7 @@ import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Sub for a team" };
 
-export default function SubsPage(props: PageProps<"/app/subs">) {
+export default function SubsPage(props: PageProps<"/[lang]/app/subs">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading sub requests…</PageLoading>}>
@@ -136,7 +136,7 @@ function RequestCard({ r }: { r: OpenRequest }) {
   );
 }
 
-async function Subs({ searchParams }: PageProps<"/app/subs">) {
+async function Subs({ searchParams }: PageProps<"/[lang]/app/subs">) {
   await requireFeature("subs");
   const query = await searchParams;
   const subject = await requirePermission("registration.join", {

@@ -13,7 +13,7 @@ import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "League shop" };
 
-export default function ShopPage(props: PageProps<"/app/shop">) {
+export default function ShopPage(props: PageProps<"/[lang]/app/shop">) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading the shop…</PageLoading>}>
@@ -37,7 +37,7 @@ const day = (at: Date, timeZone: string) =>
     day: "numeric",
   }).format(at);
 
-async function Shop({ searchParams }: PageProps<"/app/shop">) {
+async function Shop({ searchParams }: PageProps<"/[lang]/app/shop">) {
   const subject = await requirePermission("merch.order", { next: "/app/shop" });
   const query = await searchParams;
   const now = new Date();

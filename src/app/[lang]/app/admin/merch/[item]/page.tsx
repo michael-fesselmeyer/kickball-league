@@ -64,7 +64,7 @@ function paidLine(o: AdminOrder): string {
 }
 
 export default function MerchItemAdminPage(
-  props: PageProps<"/app/admin/merch/[item]">,
+  props: PageProps<"/[lang]/app/admin/merch/[item]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -78,7 +78,7 @@ export default function MerchItemAdminPage(
 async function MerchItemAdmin({
   params,
   searchParams,
-}: PageProps<"/app/admin/merch/[item]">) {
+}: PageProps<"/[lang]/app/admin/merch/[item]">) {
   const { item: raw } = await params;
   const itemId = parseId<MerchItemId>(raw);
   if (!itemId) notFound();

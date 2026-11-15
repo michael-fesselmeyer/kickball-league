@@ -10,6 +10,6 @@ export async function generateStaticParams() {
   return leagueSegments();
 }
 
-export default function LeagueLayout({ children }: LayoutProps<"/l/[league]">) {
+export default function LeagueLayout({ children }: LayoutProps<"/[lang]/l/[league]">) {
   return children;
 }

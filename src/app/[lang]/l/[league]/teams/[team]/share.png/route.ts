@@ -7,7 +7,7 @@ import { LONG_CACHE, renderShareImage, SHORT_CACHE } from "@/lib/share/image";
 /** A team's share image, cached for good while its `?v=` version is current. */
 export async function GET(
   request: Request,
-  ctx: RouteContext<"/l/[league]/teams/[team]/share.png">,
+  ctx: RouteContext<"/[lang]/l/[league]/teams/[team]/share.png">,
 ) {
   const { league: segment, team } = await ctx.params;
   const league = await leagueBySegment(db, segment);

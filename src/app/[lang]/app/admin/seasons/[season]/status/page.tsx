@@ -30,7 +30,7 @@ export const metadata: Metadata = { title: "Game-day status" };
  * or the whole day, with a short reason. Phone first, for the park.
  */
 export default function StatusPage(
-  props: PageProps<"/app/admin/seasons/[season]/status">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/status">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
@@ -47,7 +47,7 @@ const FIELD =
 async function Status({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/status">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/status">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/status`;

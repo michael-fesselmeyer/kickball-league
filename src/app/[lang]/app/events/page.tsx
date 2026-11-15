@@ -23,7 +23,7 @@ import { leagueHref } from "@/domain/league/paths";
 
 export const metadata: Metadata = { title: "Your events" };
 
-export default function MyEventsPage(props: PageProps<"/app/events">) {
+export default function MyEventsPage(props: PageProps<"/[lang]/app/events">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
       <header className="flex flex-col gap-1">
@@ -48,7 +48,7 @@ export default function MyEventsPage(props: PageProps<"/app/events">) {
 
 const NOTES = { going: "You're going", waitlisted: "You're on the waitlist" };
 
-async function MyEvents({ searchParams }: PageProps<"/app/events">) {
+async function MyEvents({ searchParams }: PageProps<"/[lang]/app/events">) {
   const subject = await requirePermission("event.rsvp", {
     next: "/app/events",
   });

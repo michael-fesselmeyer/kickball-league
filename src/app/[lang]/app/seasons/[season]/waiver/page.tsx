@@ -18,7 +18,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Season waiver" };
 
 export default function WaiverPage(
-  props: PageProps<"/app/seasons/[season]/waiver">,
+  props: PageProps<"/[lang]/app/seasons/[season]/waiver">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -32,7 +32,7 @@ export default function WaiverPage(
 async function Waiver({
   params,
   searchParams,
-}: PageProps<"/app/seasons/[season]/waiver">) {
+}: PageProps<"/[lang]/app/seasons/[season]/waiver">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const subject = await requireSelf(

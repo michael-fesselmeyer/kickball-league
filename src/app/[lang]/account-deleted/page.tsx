@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ForgetSavedGame } from "@/app/app/offline-sync";
+import { ForgetSavedGame } from "@/app/[lang]/app/offline-sync";
 
 export const metadata: Metadata = {
   title: "Account deleted",

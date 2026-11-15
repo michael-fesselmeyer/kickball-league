@@ -12,7 +12,7 @@ import { takeGameAction } from "../../actions";
 
 export const metadata: Metadata = { title: "Take a game" };
 
-export default function TakePage(props: PageProps<"/app/referee/take/[game]">) {
+export default function TakePage(props: PageProps<"/[lang]/app/referee/take/[game]">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>
@@ -37,7 +37,7 @@ const ERRORS: Record<string, string> = {
 async function Take({
   params,
   searchParams,
-}: PageProps<"/app/referee/take/[game]">) {
+}: PageProps<"/[lang]/app/referee/take/[game]">) {
   const { game: rawGameId } = await params;
   const query = await searchParams;
   const gameId = parseId<GameId>(rawGameId);

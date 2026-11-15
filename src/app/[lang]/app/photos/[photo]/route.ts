@@ -13,7 +13,7 @@ import { activeLeague } from "@/lib/league/active";
  */
 export async function GET(
   request: Request,
-  ctx: RouteContext<"/app/photos/[photo]">,
+  ctx: RouteContext<"/[lang]/app/photos/[photo]">,
 ): Promise<Response> {
   const id = parseId<MemberPhotoId>((await ctx.params).photo);
   const [subject, photo, league] = await Promise.all([

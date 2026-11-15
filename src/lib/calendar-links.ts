@@ -14,7 +14,7 @@ export function calendarLinks(
   );
 }
 
-/** A league's events calendar (src/app/l/[league]/events/calendar.ics). */
+/** A league's events calendar (src/app/[lang]/l/[league]/events/calendar.ics). */
 export const eventsCalendarLinks = (origin: string, league: LeagueRef) =>
   feedLinks(`${origin}${leagueHref(league, "/events/calendar.ics")}`);
 

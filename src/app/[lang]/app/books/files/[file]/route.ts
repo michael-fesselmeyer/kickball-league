@@ -19,7 +19,7 @@ const notFound = () =>
  */
 export async function GET(
   _request: Request,
-  ctx: RouteContext<"/app/books/files/[file]">,
+  ctx: RouteContext<"/[lang]/app/books/files/[file]">,
 ) {
   const subject = await currentSubject();
   if (!can(subject, "books.manage")) return notFound();

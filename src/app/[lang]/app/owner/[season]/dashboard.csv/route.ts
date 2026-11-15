@@ -22,7 +22,7 @@ const notFound = () =>
  */
 export async function GET(
   _request: Request,
-  ctx: RouteContext<"/app/owner/[season]/dashboard.csv">,
+  ctx: RouteContext<"/[lang]/app/owner/[season]/dashboard.csv">,
 ) {
   const subject = await currentSubject();
   const userId = parseId<UserId>(subject.userId);

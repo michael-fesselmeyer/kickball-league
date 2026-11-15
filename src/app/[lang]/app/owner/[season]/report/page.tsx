@@ -8,7 +8,7 @@ import { ReportCard } from "../../report-card";
 
 export const metadata: Metadata = { title: "Season report card" };
 
-type Props = PageProps<"/app/owner/[season]/report">;
+type Props = PageProps<"/[lang]/app/owner/[season]/report">;
 
 /**
  * The season report card for owners (issue #371): the season beside the

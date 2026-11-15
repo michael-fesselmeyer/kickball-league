@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { type HelpRole, helpHref } from "@/app/help/articles";
+import { type HelpRole, helpHref } from "@/app/[lang]/help/articles";
 
 /**
  * A screen's "Help" link to its how-to in the help center. `article` is the

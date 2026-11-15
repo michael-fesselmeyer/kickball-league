@@ -45,7 +45,7 @@ const ERRORS: Record<string, string> = {
 const SIDE: Record<string, string> = { woman: "W", man: "M" };
 
 export default function FreeAgentsPage(
-  props: PageProps<"/app/admin/seasons/[season]/free-agents">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/free-agents">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-10">
@@ -93,7 +93,7 @@ function quizCells(p: PoolEntry) {
 async function FreeAgents({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/free-agents">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/free-agents">) {
   const { season: slug } = await params;
   const query = await searchParams;
   await requirePermission("free_agents.place", {

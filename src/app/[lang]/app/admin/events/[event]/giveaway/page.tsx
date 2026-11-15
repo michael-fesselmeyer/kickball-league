@@ -32,7 +32,7 @@ import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Event giveaway" };
 
-type Props = PageProps<"/app/admin/events/[event]/giveaway">;
+type Props = PageProps<"/[lang]/app/admin/events/[event]/giveaway">;
 
 export default function AdminGiveawayPage(props: Props) {
   return (

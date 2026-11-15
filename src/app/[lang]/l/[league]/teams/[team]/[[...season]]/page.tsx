@@ -55,7 +55,7 @@ import type { LeagueId } from "@/domain/ids";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 import { cachedLeague, publicLeague } from "@/lib/league/public";
 
-type Props = PageProps<"/l/[league]/teams/[team]/[[...season]]">;
+type Props = PageProps<"/[lang]/l/[league]/teams/[team]/[[...season]]">;
 
 /**
  * The whole page is static, and a view the build didn't list is rendered in

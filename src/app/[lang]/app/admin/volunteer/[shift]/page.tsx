@@ -19,7 +19,7 @@ import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Edit a shift" };
 
-type Props = PageProps<"/app/admin/volunteer/[shift]">;
+type Props = PageProps<"/[lang]/app/admin/volunteer/[shift]">;
 
 export default function EditShiftPage(props: Props) {
   return (

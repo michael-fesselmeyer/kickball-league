@@ -16,7 +16,7 @@ import { acceptAllAction, assignOneAction } from "./actions";
 export const metadata: Metadata = { title: "Assign refs" };
 
 export default function AssignPage(
-  props: PageProps<"/app/admin/seasons/[season]/referees/assign">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/referees/assign">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -45,7 +45,7 @@ const SKIPPED: Record<string, string> = {
 async function Assign({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/referees/assign">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/referees/assign">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const base = `/app/admin/seasons/${slug}/referees`;

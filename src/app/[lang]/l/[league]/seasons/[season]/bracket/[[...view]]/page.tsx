@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     "The playoff bracket: seeds from the final standings, game times and fields, and who moves on.",
 };
 
-type Props = PageProps<"/l/[league]/seasons/[season]/bracket/[[...view]]">;
+type Props = PageProps<"/[lang]/l/[league]/seasons/[season]/bracket/[[...view]]">;
 
 /**
  * Static, like the schedule (ADR 0029): each public season's bracket is

@@ -19,7 +19,7 @@ export const metadata: Metadata = { title: "League gear" };
  * form to add a kit.
  */
 export default function EquipmentPage(
-  props: PageProps<"/app/admin/equipment">,
+  props: PageProps<"/[lang]/app/admin/equipment">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -30,7 +30,7 @@ export default function EquipmentPage(
   );
 }
 
-async function Equipment({ searchParams }: PageProps<"/app/admin/equipment">) {
+async function Equipment({ searchParams }: PageProps<"/[lang]/app/admin/equipment">) {
   await requirePermission("equipment.manage", {
     next: "/app/admin/equipment",
   });

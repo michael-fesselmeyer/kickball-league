@@ -34,7 +34,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Find subs" };
 
 export default function TeamSubsPage(
-  props: PageProps<"/app/seasons/[season]/team/subs">,
+  props: PageProps<"/[lang]/app/seasons/[season]/team/subs">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -172,7 +172,7 @@ function RequestCard({
 async function TeamSubs({
   params,
   searchParams,
-}: PageProps<"/app/seasons/[season]/team/subs">) {
+}: PageProps<"/[lang]/app/seasons/[season]/team/subs">) {
   await requireFeature("subs");
   const { season: slug } = await params;
   const query = await searchParams;

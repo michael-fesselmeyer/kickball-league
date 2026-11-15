@@ -22,7 +22,7 @@ import { activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Manage awards" };
 
 export default function AwardsAdminPage(
-  props: PageProps<"/app/admin/seasons/[season]/awards">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/awards">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -112,7 +112,7 @@ function PollRow({ poll, slug, now }: { poll: Poll; slug: string; now: Date }) {
 async function Awards({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/awards">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/awards">) {
   await requireFeature("awards");
   const { season: slug } = await params;
   const query = await searchParams;

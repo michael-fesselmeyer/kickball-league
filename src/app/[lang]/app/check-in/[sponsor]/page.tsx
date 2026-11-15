@@ -20,7 +20,7 @@ import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Your visit" };
 
-type Props = PageProps<"/app/check-in/[sponsor]">;
+type Props = PageProps<"/[lang]/app/check-in/[sponsor]">;
 
 /** Today's check-in at a sponsor and the deals to use on it. */
 export default function VisitPage(props: Props) {

@@ -12,7 +12,7 @@ import { loadPacket, wantsNames } from "./load";
 export const metadata: Metadata = { title: "Permit application packet" };
 
 export default function PacketPage(
-  props: PageProps<"/app/books/[season]/permits/packet">,
+  props: PageProps<"/[lang]/app/books/[season]/permits/packet">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -26,7 +26,7 @@ export default function PacketPage(
 async function Packet({
   params,
   searchParams,
-}: PageProps<"/app/books/[season]/permits/packet">) {
+}: PageProps<"/[lang]/app/books/[season]/permits/packet">) {
   const { season: slug } = await params;
   const page = `/app/books/${slug}/permits/packet`;
   await requirePermission("books.manage", { next: page });

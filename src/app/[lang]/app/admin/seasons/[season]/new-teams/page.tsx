@@ -18,7 +18,7 @@ import { activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "New-team requests" };
 
 export default function NewTeamRequestsPage(
-  props: PageProps<"/app/admin/seasons/[season]/new-teams">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/new-teams">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -159,7 +159,7 @@ function OpenRequest({
 async function NewTeamRequests({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/new-teams">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/new-teams">) {
   const { season: slug } = await params;
   const query = await searchParams;
   await requirePermission("team.approve_new", {

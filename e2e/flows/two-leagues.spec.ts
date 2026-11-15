@@ -13,7 +13,7 @@ import { pageAs } from "../support/personas";
  */
 const FOOTBALL = "/l/flag-football";
 const FOOTBALL_NAME = "Sunday Flag Football (demo)";
-/** The site's not-found page (src/app/not-found.tsx). */
+/** The site's not-found page (src/app/[lang]/not-found.tsx). */
 const NOT_FOUND = "We can't find that page";
 
 test("each league's public pages show that league's data only, at its own address", async ({

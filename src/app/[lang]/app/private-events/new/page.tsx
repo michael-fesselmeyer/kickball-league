@@ -29,7 +29,7 @@ const ERRORS: Record<RequestProblem | "too_many", string> = {
 const field = "min-h-11 rounded-md border border-border bg-surface px-3 py-2";
 
 export default function NewPrivateEventPage(
-  props: PageProps<"/app/private-events/new">,
+  props: PageProps<"/[lang]/app/private-events/new">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
@@ -42,7 +42,7 @@ export default function NewPrivateEventPage(
 
 async function RequestForm({
   searchParams,
-}: PageProps<"/app/private-events/new">) {
+}: PageProps<"/[lang]/app/private-events/new">) {
   await requirePermission("private_event.request", { next: PAGE });
   const query = await searchParams;
   const error =

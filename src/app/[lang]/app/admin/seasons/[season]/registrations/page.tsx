@@ -13,7 +13,7 @@ import { can } from "@/domain/authz/permissions";
 import { formatCents } from "@/domain/registration/pricing";
 import { refundableCents } from "@/domain/registration/refund";
 import { requirePermission } from "@/lib/auth/permission";
-import { RECORD_PAYMENT_MESSAGES } from "@/app/app/seasons/[season]/record-payment";
+import { RECORD_PAYMENT_MESSAGES } from "@/app/[lang]/app/seasons/[season]/record-payment";
 import {
   adminCancelCaptaincyAction,
   adminOfferCaptaincyAction,
@@ -26,7 +26,7 @@ import { captaincies } from "@/db/queries/captaincy";
 import {
   CaptaincyNotice,
   CaptaincyPanel,
-} from "@/app/app/seasons/[season]/team/captaincy";
+} from "@/app/[lang]/app/seasons/[season]/team/captaincy";
 import { PageLoading } from "@/components/page-loading";
 import { refundForPrice } from "@/domain/money/processing-fee";
 import { SubmitButton } from "@/components/submit-button";
@@ -35,7 +35,7 @@ import { activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Registrations" };
 
 export default function RegistrationsPage(
-  props: PageProps<"/app/admin/seasons/[season]/registrations">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/registrations">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10">
@@ -261,7 +261,7 @@ function PaymentActions({
 async function Registrations({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/registrations">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/registrations">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const subject = await requirePermission("season.manage", {

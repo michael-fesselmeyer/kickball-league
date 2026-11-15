@@ -87,7 +87,7 @@ export async function publishRulesAction(
   if (!result.ok) {
     const stale = result.error === "stale";
     // The page comes back with the newest rules and version.
-    if (stale) revalidatePath(PAGE);
+    if (stale) revalidatePath("/[lang]/app/admin/rules", "page");
     return { draft, error: RULE_FORM_ERRORS[result.error], stale };
   }
   refreshRulesPage(league);

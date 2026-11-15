@@ -30,7 +30,7 @@ const STATUS: Record<string, string> = {
  */
 export default function DemoMailPage({
   searchParams,
-}: PageProps<"/app/admin/demo-mail">) {
+}: PageProps<"/[lang]/app/admin/demo-mail">) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
       <header className="flex flex-col gap-2">
@@ -50,7 +50,7 @@ export default function DemoMailPage({
 
 async function Mail({
   searchParams,
-}: Pick<PageProps<"/app/admin/demo-mail">, "searchParams">) {
+}: Pick<PageProps<"/[lang]/app/admin/demo-mail">, "searchParams">) {
   if (!demoStatus(process.env).on) notFound();
   await requirePermission("demo.manage", { next: PAGE });
   const [rows, query] = await Promise.all([demoMail(db), searchParams]);

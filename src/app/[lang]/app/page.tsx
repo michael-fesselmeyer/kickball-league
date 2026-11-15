@@ -56,7 +56,7 @@ import { leagueBase, leagueHref } from "@/domain/league/paths";
 
 export const metadata: Metadata = { title: "Home" };
 
-export default function AppHome(props: PageProps<"/app">) {
+export default function AppHome(props: PageProps<"/[lang]/app">) {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-8">
       <Suspense fallback={<PageLoading>Loading your account…</PageLoading>}>
@@ -66,7 +66,7 @@ export default function AppHome(props: PageProps<"/app">) {
   );
 }
 
-async function Account({ searchParams }: PageProps<"/app">) {
+async function Account({ searchParams }: PageProps<"/[lang]/app">) {
   // proxy.ts only checks that a cookie exists; this verifies the session itself.
   const session = await currentAuthSession();
   if (!session) redirect("/sign-in?next=/app");

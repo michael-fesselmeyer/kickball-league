@@ -64,7 +64,7 @@ const ERRORS: Record<string, string> = {
   stale: "Confirm it's you first. Nothing was changed.",
 };
 
-export default function OperatorPage(props: PageProps<"/operator">) {
+export default function OperatorPage(props: PageProps<"/[lang]/operator">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -74,7 +74,7 @@ export default function OperatorPage(props: PageProps<"/operator">) {
   );
 }
 
-async function Console({ searchParams }: PageProps<"/operator">) {
+async function Console({ searchParams }: PageProps<"/[lang]/operator">) {
   const operator = await requireOperator();
   const query = await searchParams;
   const [site, leagues, people, fresh, me, withPasskey] = await Promise.all([
