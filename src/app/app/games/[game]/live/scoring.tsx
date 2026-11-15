@@ -30,6 +30,7 @@ import {
   undoAction,
 } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
+import { PermitWatchNote, type PermitProps } from "./permit-watch";
 import { useTally } from "./use-tally";
 
 /** Takes back the last tap, and says which. */
@@ -74,6 +75,7 @@ export function Scoring({
   scorePage,
   version,
   endKey,
+  permit,
 }: {
   gameId: string;
   userId: string;
@@ -85,6 +87,8 @@ export function Scoring({
   version: string;
   /** A fresh key from the server for ending the game. */
   endKey: string;
+  /** The field's permit window and the rules, when the game has them. */
+  permit: PermitProps | null;
 }) {
   const outbox = useOutbox(gameId);
   const [stored, setTally] = useTally(gameId);
@@ -205,6 +209,9 @@ export function Scoring({
   return (
     <>
       <OutboxStatus outbox={outbox} />
+      {permit && (
+        <PermitWatchNote permit={permit} halvesEntered={halves.length} />
+      )}
       {notice && (
         <p role="alert" className="rounded-lg border border-danger p-3">
           {notice}
