@@ -131,7 +131,8 @@ function loadSecrets() {
     : {};
   const secrets = demoSecrets(saved);
   writeFileSync(secretsFile, formatEnvFile(secrets), { mode: 0o600 });
-  return secrets;
+  // A new database password: a container made with the old one can't be used.
+  return { secrets, newPassword: !saved.PG_PASSWORD };
 }
 
 function loadState() {
@@ -148,8 +149,8 @@ const saveState = (state) =>
 const dockerRunning = () => ok("docker", ["info"], { timeout: 15_000 });
 
 /** Postgres in Docker: the demo's own container, kept between runs. */
-async function dockerPostgres(secrets, state) {
-  const exists = output("docker", [
+async function dockerPostgres(secrets, state, newPassword) {
+  let exists = output("docker", [
     "ps",
     "-a",
     "--filter",
@@ -157,7 +158,14 @@ async function dockerPostgres(secrets, state) {
     "--format",
     "{{.Status}}",
   ]);
-  let port = state.pgPort;
+  if (exists && newPassword) {
+    // The saved password is gone (.demo was deleted), so the old container
+    // can't be signed in to: start a new one. It only ever held demo data.
+    note(`Replacing ${PG_CONTAINER}: its password was not saved.`);
+    ok("docker", ["rm", "-f", PG_CONTAINER]);
+    exists = null;
+  }
+  let port = exists ? state.pgPort : undefined;
   if (!exists) {
     port = await freePort(PG_PORT);
     note(`Starting Postgres in Docker (${PG_CONTAINER}, ${POSTGRES_IMAGE}).`);
@@ -255,8 +263,8 @@ function localPostgres(secrets) {
   };
 }
 
-async function findPostgres(secrets, state) {
-  if (dockerRunning()) return dockerPostgres(secrets, state);
+async function findPostgres(secrets, state, newPassword) {
+  if (dockerRunning()) return dockerPostgres(secrets, state, newPassword);
   const local = localPostgres(secrets);
   if (local) return local;
   return fail([
@@ -334,11 +342,11 @@ async function main() {
     );
   }
 
-  const secrets = loadSecrets();
+  const { secrets, newPassword } = loadSecrets();
   const state = loadState();
 
   say("Finding Postgres");
-  const pg = await findPostgres(secrets, state);
+  const pg = await findPostgres(secrets, state, newPassword);
   note(`Using the ${DEMO_DATABASE} database on port ${pg.port}.`);
 
   const docker = dockerRunning();
