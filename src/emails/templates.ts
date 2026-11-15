@@ -37,6 +37,7 @@ import { rainAlertEmail } from "./rain-alert";
 import { rainDecisionEmail } from "./rain-decision";
 import { rainoutNoticeEmail } from "./rainout-notice";
 import { rainoutRequestEmail } from "./rainout-request";
+import { refereeNeededEmail } from "./referee-needed";
 import { scoreConfirmationEmail } from "./score-confirmation";
 import { scoreDisputeEmail } from "./score-dispute";
 import { scoreReminderEmail } from "./score-reminder";
@@ -82,6 +83,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     rainout_notice: rainoutNoticeEmail,
     rainout_request: rainoutRequestEmail,
     rebate_credit: rebateCreditEmail,
+    referee_needed: refereeNeededEmail,
     referral_credit: referralCreditEmail,
     score_confirmation: scoreConfirmationEmail,
     score_dispute: scoreDisputeEmail,
