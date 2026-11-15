@@ -31,13 +31,21 @@ const utcSweep = (day: string) =>
  * in summer and 8:30 a.m. in winter, the same date either way. Far east of
  * UTC (New Zealand, say) the sweep on the UTC date before is the one that
  * lands on the chosen local day.
+ *
+ * A day shortened by the clocks going forward can have no sweep at all:
+ * in Sydney, 3 October 2027 runs from 14:00 UTC the day before to 13:00
+ * UTC, so the sweeps fall at 23:30 on the 2nd and 00:30 on the 4th. Then
+ * it is the first sweep after the day, never one before it: a message
+ * scheduled for a day never goes out early.
  */
 export function sweepOn(day: string, timeZone: string): Date {
-  for (const d of [day, addDays(day, -1), addDays(day, 1)]) {
+  // Candidates in time order; local days only ever increase with time, so
+  // the first not before `day` is that day's sweep, or the next one.
+  for (const d of [addDays(day, -1), day, addDays(day, 1)]) {
     const at = utcSweep(d);
-    if (localDay(at, timeZone) === day) return at;
+    if (localDay(at, timeZone) >= day) return at;
   }
-  return utcSweep(day);
+  return utcSweep(addDays(day, 1));
 }
 
 /** The first sweep after `now`. */

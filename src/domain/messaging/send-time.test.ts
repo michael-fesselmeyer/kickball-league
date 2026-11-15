@@ -39,7 +39,14 @@ describe("the send time", () => {
     );
   });
 
-  it("always lands on the chosen local day", () => {
+  it("goes out on the chosen local day, or just after it when the day has no sweep", () => {
+    const localDay = (at: Date, zone: string) =>
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: zone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(at);
     fc.assert(
       fc.property(
         fc.integer({ min: 0, max: 800 }),
@@ -58,15 +65,40 @@ describe("the send time", () => {
             .toISOString()
             .slice(0, 10);
           const at = sweepOn(day, zone);
-          const local = new Intl.DateTimeFormat("en-CA", {
-            timeZone: zone,
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          }).format(at);
-          expect(local).toBe(day);
+          const local = localDay(at, zone);
+          // Never before the chosen day.
+          expect(local >= day).toBe(true);
+          if (local !== day) {
+            // Only when no sweep falls on it: the sweep before is the
+            // day before, and this one is the next day.
+            const before = new Date(at.getTime() - 86_400_000);
+            expect(localDay(before, zone) < day).toBe(true);
+            expect(local).toBe(
+              new Date(Date.parse(`${day}T12:00:00Z`) + 86_400_000)
+                .toISOString()
+                .slice(0, 10),
+            );
+          }
         },
       ),
+      // Short days are rare (a few a year, in a few zones): run enough to
+      // meet them.
+      { numRuns: 2000 },
+    );
+  });
+
+  it("sends just after a day the clocks shortened so it has no sweep", () => {
+    // Sydney's clocks go forward on 3 October 2027: 13:30 UTC is 23:30 on
+    // the 2nd, then 00:30 on the 4th. Found by the property test above.
+    expect(sweepOn("2027-10-03", "Australia/Sydney")).toEqual(
+      new Date("2027-10-03T13:30:00Z"),
+    );
+    // The days either side have their own sweep.
+    expect(sweepOn("2027-10-02", "Australia/Sydney")).toEqual(
+      new Date("2027-10-02T13:30:00Z"),
+    );
+    expect(sweepOn("2027-10-04", "Australia/Sydney")).toEqual(
+      new Date("2027-10-03T13:30:00Z"),
     );
   });
 
