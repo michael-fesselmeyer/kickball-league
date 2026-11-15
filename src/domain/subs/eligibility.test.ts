@@ -282,7 +282,12 @@ describe("suggesting what to ask for", () => {
     expect(
       suggestSubs(
         { women: 2, men: 2 },
-        { maxFielders: 9, maxPerGender: 5, minimumToPlay: 7 },
+        {
+          maxFielders: 9,
+          maxPerGender: 5,
+          minimumToPlay: 7,
+          minimumOwnPlayers: 6,
+        },
       ),
     ).toEqual({ needed: 5, womenNeeded: 2, menNeeded: 2 });
   });

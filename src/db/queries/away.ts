@@ -17,7 +17,7 @@ import type {
   UserId,
 } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
-import { type FieldingRules, RULEBOOK } from "@/domain/rsvp/fielding";
+import { type FieldingRules, fieldingRulesOf } from "@/domain/rsvp/fielding";
 import { localDate } from "@/domain/scheduler/slots";
 import type { AwayShortPayload } from "@/emails/away-short";
 import { user } from "../schema/auth";
@@ -43,11 +43,8 @@ const shortName = sql<string>`coalesce(${profile.firstName} || coalesce(' ' || l
 const OVER = ["final", "forfeit", "cancelled"] as const;
 const isOver = (status: string) => OVER.some((s) => s === status);
 
-const rulesOf = (saved: Partial<FieldingRules> | null): FieldingRules => ({
-  maxFielders: saved?.maxFielders ?? RULEBOOK.maxFielders,
-  maxPerGender: saved?.maxPerGender ?? RULEBOOK.maxPerGender,
-  minimumToPlay: saved?.minimumToPlay ?? RULEBOOK.minimumToPlay,
-});
+const rulesOf = (saved: Partial<FieldingRules> | null): FieldingRules =>
+  fieldingRulesOf(saved);
 
 /** The team's active players, with the side they count toward. */
 async function membersOf(
