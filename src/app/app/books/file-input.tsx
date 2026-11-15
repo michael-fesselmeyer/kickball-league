@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, useState } from "react";
+import { type ChangeEvent, useId, useState } from "react";
 
 /** Phone photos are shrunk to this before upload; the server resizes again. */
 const UPLOAD_EDGE = 2000;
@@ -25,7 +25,8 @@ export function FileInput({
   camera?: boolean;
 }) {
   const [status, setStatus] = useState("");
-  const hintId = `${name}-hint`;
+  // Unique, as a page can show several file fields with the same name.
+  const hintId = `${useId()}-hint`;
 
   async function onChange(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;

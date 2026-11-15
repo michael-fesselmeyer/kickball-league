@@ -393,12 +393,14 @@ export const HELP_ROLES: readonly HelpRole[] = [
         id: "books",
         title: "Keep the books",
         summary:
-          "Record each season's expenses with a receipt photo; the ledger adds up money in and out.",
+          "Record each season's expenses in a few taps, confirm the regular costs, pay back owners and import a Venmo or bank statement.",
         steps: [
           "Open Books. It opens on the newest season.",
-          'Under "Add an expense", enter the date, amount, category and a note, and take or choose a photo of the receipt.',
-          "The ledger shows money in, money out by category and the net. Payments in come from registrations on their own.",
-          "Download the ledger as a CSV for taxes. It has no player names.",
+          'Under "Add an expense", type the amount, tap a category and tap Add expense. The date, a note, a receipt photo and who paid are under "Date, note, receipt and who paid". A receipt can come later, or choose "There isn\'t one".',
+          'Set regular costs once under "Expected costs", such as ref pay each game day or the permit each season. When one is due, confirm it with one tap (change the amount first if it differs) or skip it.',
+          'If an owner paid out of their own pocket, pick them under "Paid from". "Owed to owners" adds it up; press Reimbursed once they\'re paid back.',
+          'To import, download a CSV from Venmo or your bank and pick it under "Import a statement". Check the guessed categories, untick anything that isn\'t a league cost, and import. Rows already in the books are skipped.',
+          "The ledger shows money in (from registrations, on their own), money out by category and the net. Download it as a CSV for taxes; it has no player names.",
         ],
         screen: { href: "/app/books", label: "Books" },
         keywords: [
@@ -408,6 +410,10 @@ export const HELP_ROLES: readonly HelpRole[] = [
           "taxes",
           "accounting",
           "csv",
+          "venmo",
+          "bank statement",
+          "reimburse",
+          "ref pay",
         ],
       },
       {
