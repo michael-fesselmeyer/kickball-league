@@ -1,6 +1,6 @@
 import { and, eq, like } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { SeasonId, UserId } from "@/domain/ids";
+import type { SeasonId, TeamSeasonId, UserId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
 import { user } from "../schema/auth";
 import { league } from "../schema/league";
@@ -152,7 +152,7 @@ async function world(db: Db) {
     who: string,
     slug: string,
     opts: {
-      team?: string;
+      team?: TeamSeasonId;
       role?: "captain" | "co_captain" | "player";
       status?: "active" | "cancelled";
       kind?: "team_member" | "free_agent";
