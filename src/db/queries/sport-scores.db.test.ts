@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { TeamSeasonId, UserId } from "@/domain/ids";
+import type { TeamSeasonId } from "@/domain/ids";
 import type { ScoreInput } from "@/domain/scores/scores";
 import { user } from "../schema/auth";
 import { division, ruleSet } from "../schema/division";
@@ -47,7 +47,7 @@ async function world(
       .values({ name: "admin", email: `sport-${tag}@example.test` })
       .returning({ id: user.id }),
     "user",
-  ).id as UserId;
+  ).id;
   const lg = one(
     await db
       .insert(league)
@@ -129,9 +129,7 @@ async function world(
     .returning({ id: team.id });
   const entries = await db
     .insert(teamSeason)
-    .values(
-      teams.map((t) => ({ teamId: t.id, seasonId: sn.id, divisionId })),
-    )
+    .values(teams.map((t) => ({ teamId: t.id, seasonId: sn.id, divisionId })))
     .returning({ id: teamSeason.id });
   const [a, b, c] = entries.map((e) => e.id) as [
     TeamSeasonId,

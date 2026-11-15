@@ -45,11 +45,7 @@ import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeague } from "@/lib/league/active";
 import { LeagueLink } from "@/components/league-link";
-import {
-  calledNote,
-  scoreFormRules,
-  sportRules,
-} from "@/domain/sports/sports";
+import { calledNote, scoreFormRules, sportRules } from "@/domain/sports/sports";
 
 export const metadata: Metadata = { title: "Score" };
 
