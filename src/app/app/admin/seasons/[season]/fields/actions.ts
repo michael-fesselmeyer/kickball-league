@@ -13,6 +13,14 @@ import {
   setPermitStatus,
   syncSlots,
 } from "@/db/queries/fields";
+import {
+  addGroup,
+  addOverlap,
+  removeGroup,
+  removeOverlap,
+  updateGroup,
+} from "@/db/queries/field-groups";
+import { parseGroup } from "@/domain/field-groups/groups";
 import { fieldInLeague, setFieldLayout } from "@/db/queries/field-layouts";
 import {
   tellOwnersOfNewGaps,
@@ -24,7 +32,9 @@ import { parseLayoutNote } from "@/domain/fields/layout";
 import { prepareUpload } from "@/lib/books/store-file";
 import type {
   BlackoutId,
+  FieldGroupId,
   FieldId,
+  FieldOverlapId,
   LeagueId,
   PermitWindowId,
   VenueId,
@@ -304,4 +314,95 @@ export async function saveLayout(
   );
   if (!result.ok) back(page, "layouts", { error: `layout_${result.error}` });
   back(page, "layouts", { notice: "layout_saved" });
+}
+
+/** The group form's fields, read as the domain wants them. */
+function groupForm(form: FormData) {
+  return parseGroup({
+    name: text(form, "name"),
+    weekdays: form.getAll("weekdays").filter((d) => typeof d === "string"),
+    startsAt: text(form, "startsAt"),
+    endsAt: text(form, "endsAt"),
+    contact: text(form, "contact"),
+  });
+}
+
+export async function createGroup(slug: string, form: FormData) {
+  const { page, actor, season } = await context(slug);
+  const fieldId = parseId<FieldId>(text(form, "fieldId"));
+  if (!fieldId) back(page, "groups", { error: "group_unknown_field" });
+  const group = groupForm(form);
+  if (!group.ok) back(page, "groups", { error: `group_${group.error}` });
+  const result = await txDb.transaction((tx) =>
+    addGroup(
+      tx,
+      { leagueId: season.leagueId, fieldId, group: group.value },
+      actor,
+    ),
+  );
+  if (!result.ok) back(page, "groups", { error: `group_${result.error}` });
+  back(page, "groups", { notice: "group_added" });
+}
+
+export async function editGroup(
+  slug: string,
+  rawGroupId: string,
+  form: FormData,
+) {
+  const groupId = parseId<FieldGroupId>(rawGroupId);
+  if (!groupId) notFound();
+  const { page, actor, season } = await context(slug);
+  const group = groupForm(form);
+  if (!group.ok) back(page, "groups", { error: `group_${group.error}` });
+  const result = await txDb.transaction((tx) =>
+    updateGroup(
+      tx,
+      { leagueId: season.leagueId, groupId, group: group.value },
+      actor,
+    ),
+  );
+  if (!result.ok) back(page, "groups", { error: `group_${result.error}` });
+  back(page, "groups", { notice: "group_updated" });
+}
+
+export async function deleteGroup(slug: string, rawGroupId: string) {
+  const groupId = parseId<FieldGroupId>(rawGroupId);
+  if (!groupId) notFound();
+  const { page, actor, season } = await context(slug);
+  const result = await txDb.transaction((tx) =>
+    removeGroup(tx, { leagueId: season.leagueId, groupId }, actor),
+  );
+  if (!result.ok) back(page, "groups", { error: `group_${result.error}` });
+  back(page, "groups", { notice: "group_deleted" });
+}
+
+export async function createOverlap(slug: string, form: FormData) {
+  const { page, actor, season } = await context(slug);
+  const groupId = parseId<FieldGroupId>(text(form, "groupId"));
+  if (!groupId) back(page, "overlaps", { error: "overlap_unknown_group" });
+  const result = await txDb.transaction((tx) =>
+    addOverlap(
+      tx,
+      {
+        leagueId: season.leagueId,
+        groupId,
+        on: text(form, "on"),
+        note: text(form, "note"),
+      },
+      actor,
+    ),
+  );
+  if (!result.ok) back(page, "overlaps", { error: `overlap_${result.error}` });
+  back(page, "overlaps", { notice: "overlap_added" });
+}
+
+export async function deleteOverlap(slug: string, rawOverlapId: string) {
+  const overlapId = parseId<FieldOverlapId>(rawOverlapId);
+  if (!overlapId) notFound();
+  const { page, actor, season } = await context(slug);
+  const result = await txDb.transaction((tx) =>
+    removeOverlap(tx, { leagueId: season.leagueId, overlapId }, actor),
+  );
+  if (!result.ok) back(page, "overlaps", { error: `overlap_${result.error}` });
+  back(page, "overlaps", { notice: "overlap_deleted" });
 }

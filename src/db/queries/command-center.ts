@@ -9,7 +9,7 @@ import {
   sql,
 } from "drizzle-orm";
 import type { CommandRow } from "@/domain/gameday/command-center";
-import type { GameId, LeagueId, UserId } from "@/domain/ids";
+import type { FieldId, GameId, LeagueId, UserId } from "@/domain/ids";
 import type { HalfInning } from "@/domain/scores/live";
 import { user } from "../schema/auth";
 import {
@@ -73,6 +73,7 @@ export async function commandDate(
 
 export type CommandDayRow = CommandRow & {
   seasonSlug: string;
+  fieldId: FieldId;
   venue: { lat: number; lng: number; name: string } | null;
 };
 
@@ -93,6 +94,7 @@ export async function commandRows(
       slotCancelled: sql<boolean>`(${slot.status} = 'cancelled')`,
       startsAt: slot.startsAt,
       endsAt: slot.endsAt,
+      fieldId: field.id,
       fieldName: field.name,
       fieldId: field.id,
       venueName: venue.name,
@@ -158,6 +160,7 @@ export async function commandRows(
     slotCancelled: r.slotCancelled,
     startsAt: r.startsAt,
     endsAt: r.endsAt,
+    fieldId: r.fieldId,
     fieldName: r.fieldName,
     fieldId: r.fieldId,
     layout: layouts.get(r.fieldId)?.state ?? "missing",

@@ -316,6 +316,8 @@ The age check, as built ([ADR 0041](adr/0041-age-check-at-registration.md), with
 erDiagram
   venue ||--o{ field : contains
   field ||--o{ permit_window : "permitted for"
+  field ||--o{ field_group : "shared with"
+  field_group ||--o{ field_overlap : "overlaps on"
   season ||--o{ permit_window : uses
   season ||--o{ blackout : excludes
   season ||--o{ slot : offers
@@ -359,6 +361,21 @@ erDiagram
     text name
     int sort_order
     text notes
+  }
+  field_group {
+    uuid id PK
+    uuid field_id FK
+    text name
+    int_array weekdays "0 Sunday to 6; empty when no usual hours"
+    time starts_at "local wall clock; null with no weekdays"
+    time ends_at "at or before starts_at means past midnight"
+    text contact "admins only, up to 200 characters"
+  }
+  field_overlap {
+    uuid id PK
+    uuid group_id FK
+    date on_date UK "with group_id"
+    text note
   }
   permit_window {
     uuid id PK
@@ -653,6 +670,10 @@ Notes:
 - League history is computed on demand like the standings: a completed season's champion is its complete bracket's `champion_id`, or the top of its final standings when it had no bracket, and a team's all-time record adds up its seasons' regular-season standings. Nothing about history is stored.
 
 Field check-in, as built ([ADR 0063](adr/0063-field-check-in.md)): `game_attendance` records who played in a game and for which team. A player on either roster, or a sub approved for that game, checks in by scanning the game's rotating code on game day (`method` `scan`); the game's captains, its ref or an admin tick players in or out (`marked`) from game day until 7 days after it (admins at any time). Games played are counted from these rows for the season, for any team, and compared with `season.playoff_min_games`; nothing is stored. The code's key is derived from the server's auth secret and the game id, so no secret is stored per game.
+
+#### Other groups on a field
+
+`field_group` records who else uses a field before or after the league (issue #408): a name, the days and hours they usually have it in the league's time zone, and an optional contact. A group with no usual hours is just a name. Hours whose end is at or before the start run past midnight, so a 10 pm to 1 am group on Tuesdays also holds the first hour of Wednesday. `field_overlap` is a day an admin recorded two groups holding the same time, with a note. Both are league data reached through the field's venue, and deleting a field or a group takes its rows with it. The rules (parsing, handovers, countdowns, overlap warnings) are in `src/domain/field-groups`; `src/db/queries/field-groups.ts` reads and writes, audits every change without the contact, and is read only by admin screens.
 
 ### 2.3 Money
 
@@ -2027,6 +2048,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `season` | check `crossover_games between 0 and 10` | A sane crossover count |
 | `bracket` | unique `(season_id, division_id, tier)` nulls not distinct | One season-wide bracket per tier, or one per division |
 | `bracket_match` | unique `(bracket_id, game_no)` | Game numbers name each game once in a bracket |
+| `field_group` | check `weekdays` within 0 to 6; check days and both times are all set or all empty, and `starts_at <> ends_at`; name 1 to 80 characters; contact up to 200 | A group has real, whole usual hours or none |
+| `field_overlap` | unique `(group_id, on_date)`; note up to 300 characters | An overlap is recorded once per group and day |
 | `slot` | unique `(field_id, starts_at)`; check `ends_at > starts_at` | No duplicate slots |
 | `slot` | exclusion on `(field_id, tstzrange(starts_at, ends_at))` | No overlapping slots on a field |
 | `game` | check `team_a_id <> team_b_id` | A team cannot play itself |
@@ -2206,6 +2229,7 @@ Indexes for the common reads:
 | Captaincy offers | `captain_handoff` | The captain who offered, the teammate offered it, and admins; both people find the offers in their own export |
 | "Not on my team" entries, with the private reason | `team_keep_off` | The team's captains and admins. The person listed never sees them anywhere; their own export lists them only if the owners turn on `league.export_keep_off_entries`. The captain or admin who added an entry finds it in their own export |
 | Sportsmanship ratings | `sportsmanship_rating` | Admins see each team's average and the notes, never which game or team they came from; a captain sees their own team's average over whole blocks of 3 ratings. The captain who rated sees their team's rating |
+| Other groups' contacts on a field | `field_group.contact` | Admins only: the fields screen and the game-day screen. Never a public page, a player's screen or an export; the audit log keeps only that a contact was set |
 | Incident reports | `incident`, `incident_person`, `incident_note` | Admins. The person filing sees what they filed in their export; a person named sees the reports about them in their export, without the other people named or the admins' notes |
 | Suspensions | `suspension` | The player and admins see the length and why; the player's captains see only that they are suspended and for how long still |
 | Giveaway entries and wins | `giveaway_entry`, `giveaway_winner` | The player and admins. Admins see winners' names to hand over the prize; the giveaway page shows only counts. The audit log holds entry and account ids, no names |

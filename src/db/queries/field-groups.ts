@@ -470,3 +470,30 @@ export async function handoverInputs(
   }
   return out;
 }
+
+/** The overlaps recorded for one day, with the field each is on. */
+export async function overlapsOn(
+  db: Db,
+  input: { leagueId: LeagueId; date: string },
+): Promise<RecordedOverlap[]> {
+  return db
+    .select({
+      id: fieldOverlap.id,
+      groupId: fieldOverlap.groupId,
+      group: fieldGroup.name,
+      fieldId: fieldGroup.fieldId,
+      on: fieldOverlap.onDate,
+      note: fieldOverlap.note,
+    })
+    .from(fieldOverlap)
+    .innerJoin(fieldGroup, eq(fieldOverlap.groupId, fieldGroup.id))
+    .innerJoin(field, eq(fieldGroup.fieldId, field.id))
+    .innerJoin(venue, eq(field.venueId, venue.id))
+    .where(
+      and(
+        eq(venue.leagueId, input.leagueId),
+        eq(fieldOverlap.onDate, input.date),
+      ),
+    )
+    .orderBy(asc(fieldGroup.name));
+}
