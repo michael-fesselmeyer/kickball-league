@@ -14,7 +14,7 @@ async function openScoreScreen(page: Page, matchup: string) {
   await page
     .getByRole("listitem")
     .filter({ hasText: matchup })
-    .getByRole("link", { name: "Score" })
+    .getByRole("link", { name: "Score", exact: true })
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(matchup);
   // The first page load installs the worker; the outbox needs it running.
@@ -70,19 +70,24 @@ test("innings scored with no signal reach the live score in order", async ({
   await unscoreGame("Grand Slammers", "Foul Play");
   const ref = await pageAs(browser, "Ref");
   await openScoreScreen(ref, "Grand Slammers vs Foul Play");
-  await ref.getByRole("link", { name: "Score it inning by inning" }).click();
+  await ref.getByRole("link", { name: "Keep score live" }).click();
   await ref.getByRole("button", { name: "Grand Slammers" }).click();
   await expect(
     ref.getByRole("heading", { name: "Top of the 1st" }),
   ).toBeVisible();
 
   await ref.context().setOffline(true);
-  await ref.getByRole("button", { name: "2", exact: true }).click();
+  // Counting runs needs no signal; ending the half saves it on the phone.
+  const counter = ref.getByRole("button", { name: /^\+1 run/ });
+  await counter.click();
+  await counter.click();
+  await ref.getByRole("button", { name: "End half, 2 runs" }).click();
   // The next half comes up at once, from what is saved on the phone.
   await expect(
     ref.getByRole("heading", { name: "Bottom of the 1st" }),
   ).toBeVisible();
-  await ref.getByRole("button", { name: "3", exact: true }).click();
+  for (let i = 0; i < 3; i++) await counter.click();
+  await ref.getByRole("button", { name: "End half, 3 runs" }).click();
   await expect(
     ref.getByRole("heading", { name: "Top of the 2nd" }),
   ).toBeVisible();
