@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   integer,
@@ -41,7 +42,18 @@ const audit = () => ({
     .references(() => user.id, { onDelete: "set null" }),
 });
 
-export const bracketFormat = pgEnum("bracket_format", ["single_elimination"]);
+export const bracketFormat = pgEnum("bracket_format", [
+  "single_elimination",
+  "double_elimination",
+]);
+/** Which part of a bracket a match is in (src/domain/scheduler/bracket.ts). */
+export const bracketStage = pgEnum("bracket_stage", [
+  "main",
+  "losers",
+  "grand_final",
+  "reset",
+  "third_place",
+]);
 export const bracketStatus = pgEnum("bracket_status", [
   "draft",
   "published",
@@ -71,7 +83,18 @@ export const bracket = pgTable(
     divisionId: uuid()
       .$type<DivisionId>()
       .references(() => division.id, { onDelete: "restrict" }),
+    /**
+     * Which slice of the final standings this bracket plays: 1 for the
+     * top teams, 2 for the next group, and so on (ADR 0063).
+     */
+    tier: integer().notNull().default(1),
     format: bracketFormat().notNull().default("single_elimination"),
+    /** A game between the semifinal losers; single elimination only. */
+    thirdPlace: boolean().notNull().default(false),
+    /** Innings for every game but the title games; null for the league rule. */
+    earlyInnings: integer(),
+    /** Innings for the final, or both grand finals; null for the league rule. */
+    finalInnings: integer(),
     status: bracketStatus().notNull().default("draft"),
     /** Teams in the bracket; byes fill it to the next power of two. */
     size: integer().notNull(),
@@ -87,9 +110,18 @@ export const bracket = pgTable(
     ...audit(),
   },
   (t) => [
-    unique("bracket_season_division_unique")
-      .on(t.seasonId, t.divisionId)
+    unique("bracket_season_division_tier_unique")
+      .on(t.seasonId, t.divisionId, t.tier)
       .nullsNotDistinct(),
+    check("bracket_tier_range", sql`${t.tier} between 1 and 3`),
+    check(
+      "bracket_innings_range",
+      sql`(${t.earlyInnings} is null or ${t.earlyInnings} between 1 and 15) and (${t.finalInnings} is null or ${t.finalInnings} between 1 and 15)`,
+    ),
+    check(
+      "bracket_third_place_single",
+      sql`not ${t.thirdPlace} or ${t.format} = 'single_elimination'`,
+    ),
     check("bracket_size_range", sql`${t.size} between 2 and 32`),
     check(
       "bracket_complete_has_champion",
@@ -111,8 +143,16 @@ export const bracketMatch = pgTable(
       .notNull()
       .$type<BracketId>()
       .references(() => bracket.id, { onDelete: "cascade" }),
-    /** `r{round}m{position}`, stable for the bracket's life. */
+    /** `r2m1`, `l3m2`, `gf`, `gf2` or `p3`; stable for the bracket's life. */
     code: text().notNull(),
+    stage: bracketStage().notNull().default("main"),
+    /**
+     * The game's number in the bracket, in the order games are played, for
+     * "winner of game 3" labels. Null on brackets made before numbering.
+     */
+    gameNo: integer(),
+    /** The "if necessary" final, once the grand final made it unneeded. */
+    skipped: boolean().notNull().default(false),
     roundNo: integer().notNull(),
     position: integer().notNull(),
     sourceA: jsonb().$type<MatchSource>().notNull(),
@@ -136,6 +176,7 @@ export const bracketMatch = pgTable(
   (t) => [
     unique("bracket_match_code_unique").on(t.bracketId, t.code),
     unique("bracket_match_game_unique").on(t.gameId),
+    unique("bracket_match_game_no_unique").on(t.bracketId, t.gameNo),
     index("bracket_match_bracket_idx").on(t.bracketId, t.roundNo),
     check("bracket_match_round_positive", sql`${t.roundNo} > 0`),
     check("bracket_match_position_positive", sql`${t.position} > 0`),
