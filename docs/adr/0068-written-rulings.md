@@ -1,4 +1,4 @@
-# ADR 0063: Written rulings on forfeits and disputed scores
+# ADR 0068: Written rulings on forfeits and disputed scores
 
 - Status: accepted
 - Date: 2026-11-15
