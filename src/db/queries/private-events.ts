@@ -76,6 +76,7 @@ export async function requestPrivateEvent(
     .returning({ id: privateEvent.id });
   const id = required(created, "private event").id;
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId: input.organizerId,
     action: "private_event.request",
     entityType: "private_event",
@@ -274,6 +275,7 @@ export async function acceptPrivateEvent(
     })
     .where(eq(privateEvent.id, event.id));
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId: input.actorId,
     action: "private_event.accept",
     entityType: "private_event",
@@ -319,6 +321,7 @@ export async function declinePrivateEvent(
     })
     .where(eq(privateEvent.id, event.id));
   await recordAudit(db, {
+    leagueId: input.leagueId,
     actorId: input.actorId,
     action: "private_event.decline",
     entityType: "private_event",
@@ -452,6 +455,7 @@ export async function organizerPurchase(
       paidAt: privateEvent.paidAt,
       seasonId: privateEvent.seasonId,
       seasonName: season.name,
+      leagueId: privateEvent.leagueId,
     })
     .from(privateEvent)
     .innerJoin(season, eq(season.id, privateEvent.seasonId))
@@ -466,6 +470,7 @@ export async function organizerPurchase(
     return null;
   const purchaseId = await createPurchase(db, {
     userId: input.userId,
+    leagueId: event.leagueId,
     seasonId: event.seasonId,
     items: [
       {

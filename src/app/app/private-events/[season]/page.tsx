@@ -8,7 +8,6 @@ import {
   privateEventTeams,
 } from "@/db/queries/private-events";
 import { publishedSchedule } from "@/db/queries/public-schedule";
-import { currentLeague } from "@/db/queries/seasons";
 import { can } from "@/domain/authz/permissions";
 import { money } from "@/domain/books/ledger";
 import { fullWhen } from "@/domain/schedule/format";
@@ -20,6 +19,7 @@ import {
 } from "@/domain/schedule/public-game";
 import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
 import { payForPrivateEventAction } from "../actions";
 import { SubmitButton } from "@/components/submit-button";
@@ -50,7 +50,7 @@ async function Organizer({
 }: PageProps<"/app/private-events/[season]">) {
   const { season: slug } = await params;
   const page = `/app/private-events/${slug}`;
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const event = await privateEventBySeason(db, league.id, slug);
   // Its organizer and the league's admins; anyone else gets a 404.

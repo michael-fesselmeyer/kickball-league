@@ -1,14 +1,14 @@
 "use server";
 import { notFound, redirect } from "next/navigation";
-import { db, txDb } from "@/db/client";
+import { txDb } from "@/db/client";
 import {
   acceptPrivateEvent,
   declinePrivateEvent,
 } from "@/db/queries/private-events";
-import { currentLeague } from "@/db/queries/seasons";
 import { type PrivateEventId, parseId } from "@/domain/ids";
 import { parseAcceptance } from "@/domain/private-events/request";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 import { sendQueuedSoon } from "@/services/outbox";
 
 const PAGE = "/app/admin/private-events";
@@ -22,7 +22,7 @@ async function setup(id: string) {
   const subject = await requirePermissionToChange("private_event.manage", {
     next: PAGE,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   const eventId = parseId<PrivateEventId>(id);
   if (!league || !eventId) notFound();
   return { subject, league, eventId };
