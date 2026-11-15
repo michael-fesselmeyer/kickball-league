@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   ACTIONS,
   can,
+  hasAdminRole,
   type Action,
   type Context,
   type Subject,
@@ -383,6 +384,17 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "owner",
     ]);
     expect(allowed("card.give", { game: g2 })).toEqual(["admin", "owner"]);
+  });
+
+  it("counts only a real admin or owner role as an admin, not a permission", () => {
+    expect(everyone.filter((who) => hasAdminRole(people[who]))).toEqual([
+      "admin",
+      "owner",
+    ]);
+    // Someone holding the score-override permission without the role (such as
+    // an acting admin with limited powers) is not an admin here.
+    const limited = person("l", { globalRole: null });
+    expect(hasAdminRole(limited)).toBe(false);
   });
 
   it("lets captains rate the other team in their games and see their own average", () => {

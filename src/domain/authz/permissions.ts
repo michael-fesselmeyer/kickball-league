@@ -92,9 +92,15 @@ export type Context = {
 
 type Rule = (s: Subject, c: Context) => boolean;
 
-const signedIn: Rule = (s) => s.userId !== null;
-const isAdmin: Rule = (s) =>
+/**
+ * Whether the person's own role in the league is admin or owner. Unlike a
+ * permission such as "score.override", it is not granted to someone acting
+ * with limited admin powers, so use it where only a real admin may act.
+ */
+export const hasAdminRole = (s: Subject): boolean =>
   s.globalRole === "admin" || s.globalRole === "owner";
+const signedIn: Rule = (s) => s.userId !== null;
+const isAdmin: Rule = (s) => hasAdminRole(s);
 /**
  * Belongs to the league: has a place in it (a team, the ref pool or a
  * sponsor) or runs it. A signed-in account with none of these is not a

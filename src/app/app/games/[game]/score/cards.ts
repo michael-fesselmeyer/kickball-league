@@ -5,7 +5,7 @@ import { db, txDb } from "@/db/client";
 import { gamePeople } from "@/db/queries/discipline";
 import { giveCard, undoCard } from "@/db/queries/cards";
 import { gameForScoring } from "@/db/queries/scores";
-import { can } from "@/domain/authz/permissions";
+import { hasAdminRole } from "@/domain/authz/permissions";
 import { cardChoice, parseCardForm } from "@/domain/discipline/cards";
 import { type GameCardId, type GameId, parseId } from "@/domain/ids";
 import { requirePermissionToChange } from "@/lib/auth/permission";
@@ -60,7 +60,7 @@ export async function undoCardAction(
     cardId,
     gameId: g.id,
     by: subject.userId,
-    isAdmin: can(subject, "score.override", {}),
+    isAdmin: hasAdminRole(subject),
     now: new Date(),
   });
   if (!undone.ok) redirect(`${page}?error=undo_${undone.error}#cards`);
