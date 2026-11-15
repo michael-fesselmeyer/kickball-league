@@ -36,6 +36,7 @@ import {
 import { addSeedEvents, removeSeedEvents } from "../src/seed/events";
 import { addSeedFriends } from "../src/seed/friends";
 import { addSeedShirtMakers } from "../src/seed/shirt-makers";
+import { addSeedTournament } from "../src/seed/tournament";
 import { addSeedLineups } from "../src/seed/lineups";
 import { addMerchDemo, removeSeedMerch } from "../src/seed/merch";
 import { addSeedKits } from "../src/seed/equipment";
@@ -353,6 +354,7 @@ async function main(): Promise<void> {
       await addSeedDivisions(tx, data);
       await addFreeAgentPool(tx, data);
       await addSeedEvents(tx, data);
+      await addSeedTournament(tx, data);
       await addAudienceDemo(tx, data);
       await addTicketDemo(tx, data);
       await addMerchDemo(tx, data);
