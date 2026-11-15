@@ -327,9 +327,8 @@ export async function setOwnShirtsAction(
     next: page,
   });
   const league = await activeLeague();
-  const season = league
-    ? await seasonForRegistration(db, league.id, slug)
-    : null;
+  if (!league) notFound();
+  const season = await seasonForRegistration(db, league.id, slug);
   if (!season) notFound();
   const mine = await myRegistration(db, season.id, subject.userId);
   const teamSeasonId = mine?.team?.teamSeasonId;
@@ -343,7 +342,7 @@ export async function setOwnShirtsAction(
     setOwnShirts(tx, { teamSeasonId, own, actorId: subject.userId }),
   );
   if (!result.ok) notFound();
-  refreshShirtArchive(season.id);
+  refreshShirtArchive(league, season.id);
   redirect(
     `${page}?shirts=${own ? (result.value.alreadyOrdered > 0 ? "own_after_order" : "own") : "league"}#shirts`,
   );
@@ -359,9 +358,8 @@ export async function setShirtDesignAction(
     next: page,
   });
   const league = await activeLeague();
-  const season = league
-    ? await seasonForRegistration(db, league.id, slug)
-    : null;
+  if (!league) notFound();
+  const season = await seasonForRegistration(db, league.id, slug);
   if (!season) notFound();
   const mine = await myRegistration(db, season.id, subject.userId);
   const teamSeasonId = mine?.team?.teamSeasonId;
@@ -380,6 +378,6 @@ export async function setShirtDesignAction(
       actorId: subject.userId,
     }),
   );
-  refreshShirtArchive(season.id);
+  refreshShirtArchive(league, season.id);
   redirect(`${page}?shirts=design_saved#shirts`);
 }
