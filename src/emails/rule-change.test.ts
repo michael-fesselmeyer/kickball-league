@@ -24,6 +24,20 @@ describe("rule_change", () => {
     );
   });
 
+  it("links another league's own rules page", () => {
+    const result = render("rule_change", {
+      summary: "Two-hand touch only",
+      sections: ["Tackling"],
+      effectiveOn: "Sunday, April 4, 2027",
+      rulesPath: "/l/flag-football/rules",
+      anchor: "tackling",
+    });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.text).toContain(
+      "https://league.example.test/l/flag-football/rules#tackling",
+    );
+  });
+
   it("links the page itself when only removals changed", () => {
     const result = render("rule_change", {
       summary: "Dropped the old tiebreaker",

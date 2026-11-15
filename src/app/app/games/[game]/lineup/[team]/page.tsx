@@ -15,6 +15,7 @@ import {
 import { teamRsvps } from "@/db/queries/rsvps";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId, type TeamSeasonId } from "@/domain/ids";
+import { leagueHref } from "@/domain/league/paths";
 import { reconcile } from "@/domain/lineup/order";
 import { requirePermission } from "@/lib/auth/permission";
 import { saveLineupAction } from "../actions";
@@ -109,7 +110,10 @@ async function Builder({
           {teamName} vs {opponent}
         </h1>
         <HelpLink audience="captain" article="lineup" topic="kicking orders" />
-        <Link href="/rules#lineups" className="text-small underline">
+        <Link
+          href={leagueHref(g.league, "/rules#lineups")}
+          className="text-small underline"
+        >
           The league&apos;s lineup rules
         </Link>
         <p className="text-small text-text-muted">

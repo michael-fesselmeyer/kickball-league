@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { notFound, redirect } from "next/navigation";
-import { db, txDb } from "@/db/client";
+import { txDb } from "@/db/client";
 import { publishRuleChange } from "@/db/queries/rules";
-import { currentLeague } from "@/db/queries/seasons";
 import { localDate } from "@/domain/books/ledger-csv";
+import { leagueHref } from "@/domain/league/paths";
 import { RULE_FORM_ERRORS, type SubmittedSection } from "@/domain/rules/rules";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { activeLeague } from "@/lib/league/active";
 import { refreshRulesPage } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
 
@@ -57,7 +58,7 @@ function readDraft(form: FormData): RulesDraft {
 }
 
 /**
- * An admin publishes a change to the rules (ADR 0056). On a refusal the
+ * An admin publishes a change to the rules (ADR 0062). On a refusal the
  * editor comes back with everything typed, so nothing is lost.
  */
 export async function publishRulesAction(
@@ -67,7 +68,7 @@ export async function publishRulesAction(
   const subject = await requirePermissionToChange("rules.manage", {
     next: PAGE,
   });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const draft = readDraft(form);
   const result = await txDb.transaction((tx) =>
@@ -80,6 +81,7 @@ export async function publishRulesAction(
       effectiveOn: draft.effectiveOn,
       notice: draft.notice,
       today: localDate(new Date(), league.timeZone),
+      rulesPath: leagueHref(league, "/rules"),
     }),
   );
   if (!result.ok) {
@@ -88,7 +90,7 @@ export async function publishRulesAction(
     if (stale) revalidatePath(PAGE);
     return { draft, error: RULE_FORM_ERRORS[result.error], stale };
   }
-  refreshRulesPage();
+  refreshRulesPage(league);
   // The notices go now, within quiet hours and the email quota.
   if (result.value.recipients > 0) sendQueuedSoon();
   redirect(`${PAGE}?published=1&told=${result.value.recipients}`);

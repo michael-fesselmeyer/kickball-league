@@ -23,7 +23,7 @@ import { enqueueMessages } from "./outbox";
 import type { Db } from "./schedule";
 
 /**
- * The league's rules and their change log (ADR 0056,
+ * The league's rules and their change log (ADR 0062,
  * src/domain/rules/rules.ts): what the public rules page reads, and the one
  * way to change them, publishing a dated change.
  */
@@ -242,6 +242,8 @@ export async function publishRuleChange(
     notice: boolean;
     /** Today in the league's time zone. */
     today: string;
+    /** The league's public rules page, for the notice's link. */
+    rulesPath: string;
   },
 ): Promise<Result<{ id: RuleChangeId; recipients: number }, RuleFormError>> {
   await db.execute(
@@ -313,6 +315,7 @@ export async function publishRuleChange(
             summary: publish.value.summary,
             sections: plan.value.changes.map((c) => c.title),
             effectiveOn: longDate(publish.value.effectiveOn),
+            rulesPath: input.rulesPath,
             anchor:
               plan.value.changes.find((c) => c.kind !== "removed")?.slug ??
               null,
@@ -329,6 +332,7 @@ export async function publishRuleChange(
     actorId: input.actorId,
     action: "rules.publish",
     entityType: "rule_change",
+    leagueId: input.leagueId,
     entityId: change.id,
     after: {
       summary: publish.value.summary,

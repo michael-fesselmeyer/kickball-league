@@ -5,10 +5,11 @@ import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { db } from "@/db/client";
 import { currentRules, ruleChanges, rulesVersion } from "@/db/queries/rules";
-import { currentLeague } from "@/db/queries/seasons";
 import { localDate } from "@/domain/books/ledger-csv";
 import { earliestWithNotice } from "@/domain/rules/rules";
 import { requirePermission } from "@/lib/auth/permission";
+import { leagueHref } from "@/domain/league/paths";
+import { activeLeague } from "@/lib/league/active";
 import { RulesEditor } from "./editor";
 
 export const metadata: Metadata = { title: "Edit the rules" };
@@ -34,7 +35,7 @@ const dayLabel = (on: string) =>
 async function Rules({ searchParams }: PageProps<"/app/admin/rules">) {
   const query = await searchParams;
   await requirePermission("rules.manage", { next: "/app/admin/rules" });
-  const league = await currentLeague(db);
+  const league = await activeLeague();
   if (!league) notFound();
   const [sections, changes, version] = await Promise.all([
     currentRules(db, league.id),
@@ -54,7 +55,7 @@ async function Rules({ searchParams }: PageProps<"/app/admin/rules">) {
         <p className="text-text-muted">
           Write the rules in sections. Each publish is saved as a dated change
           and listed on the{" "}
-          <Link href="/rules" className="underline">
+          <Link href={leagueHref(league, "/rules")} className="underline">
             public rules page
           </Link>{" "}
           under &ldquo;What changed&rdquo;. Each division&apos;s game settings
