@@ -54,7 +54,9 @@ test("an admin sets a game day to watching, then off, then on again", async ({
       // show on the first visit after it.
       await visitor.goto(`/games/${game.gameId}`);
       await expect(
-        visitor.getByText("Watching the weather: decision by 5:00 PM."),
+        visitor
+          .getByText("Watching the weather: decision by 5:00 PM.")
+          .locator("visible=true"),
       ).toBeVisible();
     });
 
@@ -75,7 +77,9 @@ test("an admin sets a game day to watching, then off, then on again", async ({
       ).toHaveAttribute("href", new RegExp(`/rainout\\?date=${game.date}$`));
 
       await visitor.goto(`/games/${game.gameId}`);
-      await expect(visitor.getByText("Off. Field flooded.")).toBeVisible();
+      await expect(
+        visitor.getByText("Off. Field flooded.").locator("visible=true"),
+      ).toBeVisible();
       await expectNoAxeViolations(visitor);
       // The schedule is static HTML refreshed in the background once its
       // season changes, so a visit just after may still be the old copy.
@@ -103,7 +107,9 @@ test("an admin sets a game day to watching, then off, then on again", async ({
       ).toContainText("Games are on.");
       await visitor.goto(`/games/${game.gameId}`);
       await expect(visitor.getByRole("heading", { level: 1 })).toBeAttached();
-      await expect(visitor.getByText("Off. Field flooded.")).toHaveCount(0);
+      await expect(
+        visitor.getByText("Off. Field flooded.").locator("visible=true"),
+      ).toHaveCount(0);
     });
   } finally {
     await game.remove();
