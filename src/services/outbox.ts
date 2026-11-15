@@ -86,7 +86,7 @@ async function releaseScheduled(now: Date): Promise<void> {
       );
       if (released.announcements < RELEASE_BATCH) return;
     } catch (error) {
-      console.error("Releasing scheduled announcements failed", error);
+      logError("Releasing scheduled announcements failed", error);
       return;
     }
   }
