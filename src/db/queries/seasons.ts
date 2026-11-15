@@ -4,6 +4,7 @@ import { err, ok, type Result } from "@/domain/result";
 import type { SeasonSettings } from "@/domain/season/settings";
 import { season } from "../schema/season";
 import { recordAudit } from "./audit";
+import { shiftChecklistForNewStart } from "./checklist";
 import type { Db } from "./schedule";
 import { required } from "./rows";
 
@@ -145,6 +146,13 @@ export async function updateSeason(
   );
   if (changed.length === 0) return ok({ slug: input.settings.slug });
   await db.update(season).set(after).where(eq(season.id, input.seasonId));
+  // The season checklist's template tasks are dated from the first day.
+  if (before.startsOn !== after.startsOn)
+    await shiftChecklistForNewStart(db, {
+      seasonId: input.seasonId,
+      from: before.startsOn,
+      to: after.startsOn,
+    });
   await recordAudit(db, {
     actorId,
     action: "season.update",

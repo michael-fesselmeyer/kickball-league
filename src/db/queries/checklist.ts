@@ -1,4 +1,14 @@
-import { and, asc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  sql,
+} from "drizzle-orm";
 import {
   dueLabel,
   dueOnFor,
@@ -17,7 +27,7 @@ import type {
   UserId,
 } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
-import { addDays } from "@/domain/season/rollover";
+import { addDays, daysBetween } from "@/domain/season/rollover";
 import { user } from "../schema/auth";
 import { checklistTask, checklistTemplateTask } from "../schema/checklist";
 import { profile } from "../schema/profile";
@@ -228,6 +238,32 @@ export async function startSeasonChecklist(
     after: { added: added.length },
   });
   return added.length;
+}
+
+/**
+ * When a season's first day moves, its open tasks that came from the
+ * template move by the same number of days, since they were dated from
+ * it. Tasks added by hand keep their dates, and so do done tasks. Returns
+ * how many moved.
+ */
+export async function shiftChecklistForNewStart(
+  db: Db,
+  input: { seasonId: SeasonId; from: string; to: string },
+): Promise<number> {
+  const days = daysBetween(input.from, input.to);
+  if (days === 0) return 0;
+  const moved = await db
+    .update(checklistTask)
+    .set({ dueOn: sql`${checklistTask.dueOn} + ${days}::int` })
+    .where(
+      and(
+        eq(checklistTask.seasonId, input.seasonId),
+        isNull(checklistTask.doneAt),
+        isNotNull(checklistTask.templateTaskId),
+      ),
+    )
+    .returning({ id: checklistTask.id });
+  return moved.length;
 }
 
 export type TaskRow = {
