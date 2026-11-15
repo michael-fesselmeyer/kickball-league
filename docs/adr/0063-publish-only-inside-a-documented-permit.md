@@ -20,10 +20,11 @@ We had to decide what counts as holding a field, where the check runs, and what 
 - **Events.** An event can name one of the league's fields; pickups and practices must (new event kinds), unless marked "open play, no reserved field". Saving an event on a field checks the same rule; an open-play event skips it and its public page says it is open play.
 - **After the fact.** The owners' permits screen lists every upcoming game or event that isn't covered. Marking a permit lost or removing a window emails the owners once about what newly lost its cover (`permit_alert`, kind `uncovered`), in the same transaction as the change.
 - **The league's own bracket advance** is not held up by a gap elsewhere on the schedule: it publishes as before, and the permits screen and email cover the gap.
+- **One override.** A league often holds its permits before anyone uploads the documents. When the only gap is a missing document, an owner or admin may publish the schedule, or save the event, anyway by typing a reason (10 to 300 characters, such as "Permit 1234 issued, PDF comes Monday"). It is kept in the audit log (`schedule.publish_override`, `event.permit_override`) with the gaps it waived. A lost permit, no permit, or hours that fall short are never overridden: those mean the league doesn't hold the field.
 
 ## Consequences
 
-- A new season can't be published until an owner uploads its permits' documents. Admins see exactly which games are short and why, but publishing now waits on the owners for that step.
+- A new season can't be published without its permits' documents unless someone signs for it with a reason. Admins see exactly which games are short and why, and the audit log shows every time the documents were waived.
 - Existing schedules are not changed. Upcoming games on undocumented or lost permits show on the permits screen, and the next publish for that season is blocked until they are covered or moved.
 - Test fixtures and the demo seed give their permits a document (`src/db/test/permits.ts`, `src/seed/books.ts`).
 - The check reads every window on the fields involved; a season has tens of windows, so this stays one small query per save or page.
