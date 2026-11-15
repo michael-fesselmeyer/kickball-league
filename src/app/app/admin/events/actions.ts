@@ -3,6 +3,7 @@
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { announceEvent, audienceChoices } from "@/db/queries/event-audience";
+import { checkCoverage } from "@/db/queries/permit-coverage";
 import {
   cancelEvent,
   createEvent,
@@ -18,6 +19,7 @@ import {
 import {
   EVENT_FORM_ERRORS,
   type EventForm,
+  type EventKind,
   parseEventForm,
 } from "@/domain/events/event";
 import {
@@ -50,9 +52,17 @@ const FIELDS = [
   "startTime",
   "endsOn",
   "endTime",
+  "fieldId",
+  "openPlay",
 ] as const;
 
 const LIST = "/app/admin/events";
+
+/** What the permit gap calls the item: "this pickup ends at 8:20 PM". */
+const NOUNS: Partial<Record<EventKind, string>> = {
+  pickup: "pickup",
+  practice: "practice",
+};
 
 /** Who the event is for, as the form sent it. */
 function reachStrings(form: FormData): ReachForm {
@@ -90,6 +100,25 @@ async function readForm(form: FormData, leagueId: LeagueId, timeZone: string) {
   });
   const parsed = parseEventForm(values, timeZone);
   if (!parsed.ok) return fail(EVENT_FORM_ERRORS[parsed.error]);
+  // Something on a league field is posted only while a permit covers it
+  // for its whole time, unless it is open play (issue #407).
+  const fieldId = parsed.value.fieldId;
+  if (fieldId) {
+    const cover = await checkCoverage(db, {
+      leagueId,
+      fieldId,
+      startsAt: parsed.value.startsAt,
+      endsAt: parsed.value.endsAt,
+      noun: NOUNS[parsed.value.kind] ?? "event",
+      timeZone,
+    });
+    if (!cover.ok && cover.reason === "unknown_field")
+      return fail(EVENT_FORM_ERRORS.field);
+    if (!cover.ok && cover.reason === "gap" && !parsed.value.openPlay)
+      return fail(
+        `${cover.sentence} Pick a time a permit covers, or mark it open play with no reserved field.`,
+      );
+  }
   const reach = parseReach(
     reachValues,
     parsed.value.kind,

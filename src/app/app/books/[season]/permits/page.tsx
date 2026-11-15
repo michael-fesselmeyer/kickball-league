@@ -3,8 +3,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
+import { uncoveredItems } from "@/db/queries/permit-coverage";
 import {
-  gamesOnLostPermits,
   insuranceCertificates,
   permitGroups,
   requestSheetInputs,
@@ -112,10 +112,10 @@ async function Permits({
   const query = await searchParams;
   const { league, season, seasons } = await booksSeason(slug);
   const now = new Date();
-  const [groups, lostGames, inputs, certificates, used, plan] =
+  const [groups, uncovered, inputs, certificates, used, plan] =
     await Promise.all([
       permitGroups(db, season.id),
-      gamesOnLostPermits(db, season.id),
+      uncoveredItems(db, league.id, now),
       requestSheetInputs(db, league.id, season.id),
       insuranceCertificates(db, league.id),
       storedBytes(db, league.id),
@@ -214,33 +214,34 @@ async function Permits({
         </p>
       )}
 
-      {lostGames.length > 0 && (
+      {uncovered.length > 0 && (
         <section
-          aria-labelledby="lost"
+          aria-labelledby="uncovered"
           className="flex flex-col gap-3 rounded-lg border-2 border-danger p-4"
         >
-          <h2 id="lost" className="text-h2">
-            {lostGames.length === 1
-              ? "1 game is on a lost permit"
-              : `${lostGames.length} games are on a lost permit`}
+          <h2 id="uncovered" className="text-h2">
+            {uncovered.length === 1
+              ? "1 game or event isn't covered by a permit"
+              : `${uncovered.length} games or events aren't covered by a permit`}
           </h2>
+          <p className="text-small text-text-muted">
+            Coming up at a park with no permit holding the field for the whole
+            time: none at all, one marked lost, or one with no document uploaded
+            yet.
+          </p>
           <ul className="flex flex-col">
-            {lostGames.map((g) => (
-              <li key={g.id} className="border-b border-border py-2">
-                {g.teamA} vs {g.teamB}
+            {uncovered.map((u) => (
+              <li key={u.key} className="border-b border-border py-2">
+                <Link href={u.path} className="underline">
+                  {u.title}
+                </Link>
                 <span className="block text-small text-text-muted">
-                  {fullWhen(g.startsAt, tz)} · {g.fieldName}
-                  {g.permitNumber ? ` · permit ${g.permitNumber}` : ""}
+                  {fullWhen(u.startsAt, tz)} · {u.place}
                 </span>
+                <span className="block text-small">{u.sentence}</span>
               </li>
             ))}
           </ul>
-          <Link
-            href={`/app/admin/seasons/${slug}/schedule`}
-            className="btn self-start btn-primary"
-          >
-            Move them on the schedule board
-          </Link>
         </section>
       )}
 

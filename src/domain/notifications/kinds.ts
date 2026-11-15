@@ -130,7 +130,7 @@ export const MESSAGE_KINDS = {
   permit_alert: {
     urgency: "non_urgent",
     label:
-      "For owners: a season near NYC Parks' 50-hour insurance line, or permitted field time to give back",
+      "For owners: a season near NYC Parks' 50-hour insurance line, permitted field time to give back, or games and events a permit no longer covers",
   },
   photo_review: {
     urgency: "non_urgent",

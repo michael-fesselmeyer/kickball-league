@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { audienceChoices } from "@/db/queries/event-audience";
+import { leagueFields } from "@/db/queries/permit-coverage";
 import { blankReach } from "@/domain/events/audience";
 import { FREE, ticketPriceFormValues } from "@/domain/events/tickets";
 import { requirePermission } from "@/lib/auth/permission";
@@ -49,7 +50,10 @@ async function NewEvent() {
   await requirePermission("event.manage", { next: "/app/admin/events/new" });
   const league = await activeLeague();
   if (!league) notFound();
-  const choices = await audienceChoices(db, league.id);
+  const [choices, fields] = await Promise.all([
+    audienceChoices(db, league.id),
+    leagueFields(db, league.id),
+  ]);
   return (
     <EventFormFields
       action={createEventAction}
@@ -57,6 +61,7 @@ async function NewEvent() {
       reach={blankReach(choices)}
       prices={ticketPriceFormValues(FREE)}
       choices={choices}
+      fields={fields}
       submitLabel="Create event"
       announceLabel="Email everyone it's for"
     />

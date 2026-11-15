@@ -200,6 +200,7 @@ export function EventFormFields({
   reach,
   prices,
   choices,
+  fields = [],
   hasRsvps = false,
   submitLabel,
   announceLabel,
@@ -209,6 +210,8 @@ export function EventFormFields({
   reach: ReachForm;
   prices: TicketPriceForm;
   choices: AudienceChoices;
+  /** The league's fields, for something played at a park (issue #407). */
+  fields?: readonly { id: string; label: string }[];
   /** People have RSVP'd in the app, so RSVPs there stay on. */
   hasRsvps?: boolean;
   submitLabel: string;
@@ -289,6 +292,43 @@ export function EventFormFields({
           />
         )}
       </Field>
+      {fields.length > 0 && (
+        <Field
+          label="Field"
+          hidden={themeWeek}
+          hint="For a pickup game, a practice or anything else on a league field. Saving checks that a permit with its document covers the field for the whole time."
+        >
+          {(props) => (
+            <select
+              {...props}
+              name="fieldId"
+              defaultValue={v.fieldId ?? ""}
+              className={control}
+            >
+              <option value="">Not on a league field</option>
+              {fields.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      )}
+      <label className="flex min-h-11 items-center gap-3" hidden={themeWeek}>
+        <input
+          type="checkbox"
+          name="openPlay"
+          defaultChecked={v.openPlay === "on"}
+          className="size-5"
+        />
+        <span>
+          Open play, no reserved field
+          <span className="block text-small text-text-muted">
+            The event page says so, and nothing is checked against a permit.
+          </span>
+        </span>
+      </label>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={themeWeek ? "First day" : "Date"}>
           {(props) => (
