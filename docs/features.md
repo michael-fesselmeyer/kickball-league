@@ -184,6 +184,7 @@ The complete list of what works on `main`, by area. The [README](../README.md#fe
 
 - One deployment runs several leagues, for example a flag football league beside the kickball league ([ADR 0048](adr/0048-several-leagues-on-one-deployment.md)). Each league has its own owners and admins, seasons, teams, sponsors, events, books, league credit and audit log; an admin of one league has no rights in another, which the permission tests and a database test show.
 - The default league keeps the site's own URLs; every other league's public pages live at `/l/<league>/...`, with its own home page. Pages take their league from the path alone, so they stay static HTML.
+- Each league plays one sport, and the sport sets how scores and standings work ([ADR 0072](adr/0072-sport-rules-per-league.md)). Kickball is the default. Dodgeball is played in best-of-five sets (or whatever the rule set says): its score screen asks for sets won, a match called early counts with the sets as they stand, and the standings show sets for, against and the set difference. Sports without rules of their own yet keep kickball's.
 - One account plays in any number of leagues. The app shows a league switcher to anyone in more than one, and a league's public pages hand visitors into the app in that league.
 - A schema test fails when a new table with season or team data isn't scoped to a league.
 
