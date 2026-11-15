@@ -10,6 +10,7 @@ import type {
   GameDayStatusId,
   GameId,
   SeasonId,
+  SlotId,
   TeamSeasonId,
   UserId,
 } from "@/domain/ids";
@@ -23,6 +24,7 @@ import type {
 import { gameDayStatus, gameDayStatusGame } from "../schema/game-day";
 import { leagueMember } from "../schema/league";
 import { message } from "../schema/message";
+import { gamePlacement, scheduleVersion } from "../schema/schedule";
 import { season as seasonTable } from "../schema/season";
 import { registration, rosterMembership } from "../schema/team";
 import { recordAudit } from "./audit";
@@ -367,4 +369,92 @@ export async function setDayStatus(
   }
   await enqueueMessages(db, messages);
   return { told, watchers, reminders };
+}
+
+/**
+ * A confirmed rain-out calls the day's games off for good (ADR 0057). When
+ * the day already has a status, it becomes Off for the rained-out games, so
+ * the public pages stop saying "Watching the weather" or "Starts late" over
+ * games that are called off, and the admins' decision-time reminder is
+ * suppressed. Nobody is messaged here: the rain-out's own notices tell the
+ * players. A day with no status keeps none. Call it in the rain-out's
+ * transaction, with the slots it cancelled; returns whether a status
+ * changed.
+ */
+export async function settleDayOnRainout(
+  db: Db,
+  input: {
+    seasonId: SeasonId;
+    date: string;
+    slotIds: readonly SlotId[];
+    actorId: UserId;
+    now: Date;
+  },
+): Promise<boolean> {
+  const [row] = await db
+    .select()
+    .from(gameDayStatus)
+    .where(
+      and(
+        eq(gameDayStatus.seasonId, input.seasonId),
+        eq(gameDayStatus.date, input.date),
+      ),
+    )
+    .for("update");
+  if (!row || input.slotIds.length === 0) return false;
+  const rainedOut = await db
+    .selectDistinct({ gameId: gamePlacement.gameId })
+    .from(gamePlacement)
+    .innerJoin(
+      scheduleVersion,
+      and(
+        eq(scheduleVersion.id, gamePlacement.scheduleVersionId),
+        eq(scheduleVersion.status, "published"),
+        eq(scheduleVersion.seasonId, input.seasonId),
+      ),
+    )
+    .where(inArray(gamePlacement.slotId, [...input.slotIds]));
+  const before = await db
+    .select()
+    .from(gameDayStatusGame)
+    .where(eq(gameDayStatusGame.statusId, row.id));
+  // Games already off stay off; the rained-out games join them.
+  const off = new Set<GameId>([
+    ...(row.state === "off" ? before.map((g) => g.gameId) : []),
+    ...rainedOut.map((g) => g.gameId),
+  ]);
+  if (off.size === 0) return false;
+  await db
+    .update(gameDayStatus)
+    .set({
+      state: "off",
+      decideBy: null,
+      setBy: input.actorId,
+      setAt: input.now,
+    })
+    .where(eq(gameDayStatus.id, row.id));
+  await db
+    .delete(gameDayStatusGame)
+    .where(eq(gameDayStatusGame.statusId, row.id));
+  await db.insert(gameDayStatusGame).values(
+    [...off].map((gameId) => ({ statusId: row.id, gameId, newStartsAt: null })),
+  );
+  await recordAudit(db, {
+    actorId: input.actorId,
+    action: "game_day.status",
+    entityType: "season",
+    entityId: input.seasonId,
+    before: { date: input.date, state: row.state, games: before.length },
+    after: { date: input.date, state: "off", games: off.size, rainout: true },
+  });
+  await db
+    .update(message)
+    .set({ status: "suppressed", suppressReason: "superseded" })
+    .where(
+      and(
+        like(message.dedupeKey, `${decideKey(row.id)}%`),
+        eq(message.status, "queued"),
+      ),
+    );
+  return true;
 }
