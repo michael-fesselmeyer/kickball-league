@@ -47,7 +47,7 @@ function taskId(slug: string, raw: string): ChecklistTaskId {
   return id;
 }
 
-/** Copies the league's template into the season (ADR 0053). */
+/** Copies the league's template into the season (ADR 0061). */
 export async function startChecklistAction(slug: string): Promise<void> {
   const { userId, season } = await context(slug);
   const added = await txDb.transaction((tx) =>

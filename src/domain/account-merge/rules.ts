@@ -161,7 +161,7 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
   },
   "captain_handoff.created_by": actor("captaincy offers made"),
   "game_day_status.set_by": actor("game-day statuses set"),
-  // The season ops checklist (ADR 0053): tasks an owner or admin holds.
+  // The season ops checklist (ADR 0061): tasks an owner or admin holds.
   "checklist_task.owner_id": { kind: "move", label: "checklist tasks owned" },
   "checklist_task.done_by": actor("checklist tasks ticked off"),
   "checklist_template_task.owner_id": {

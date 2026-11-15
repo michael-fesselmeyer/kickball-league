@@ -22,7 +22,7 @@ import { league } from "./league";
 import { season } from "./season";
 
 /**
- * The league's season ops checklist template (ADR 0053): the tasks that
+ * The league's season ops checklist template (ADR 0061): the tasks that
  * come round every season, each due a number of days before or after the
  * season starts. Owners edit it; starting a season's checklist copies it.
  */

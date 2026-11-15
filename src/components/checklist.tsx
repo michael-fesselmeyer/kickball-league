@@ -1,7 +1,7 @@
 import type { StaffMember } from "@/db/queries/checklist";
 import { NOTES_MAX, OFFSET_MAX, TITLE_MAX } from "@/domain/checklist/tasks";
 
-/** Form pieces shared by a season's checklist and its template (ADR 0053). */
+/** Form pieces shared by a season's checklist and its template (ADR 0061). */
 
 const field = "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
 

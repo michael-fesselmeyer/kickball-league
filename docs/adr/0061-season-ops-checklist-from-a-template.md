@@ -1,4 +1,4 @@
-# ADR 0053: The season ops checklist comes from a template
+# ADR 0061: The season ops checklist comes from a template
 
 - Status: accepted
 - Date: 2026-11-14

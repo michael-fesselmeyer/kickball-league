@@ -3,7 +3,7 @@ import { defineTemplate } from "./define";
 import { renderEmail } from "./layout";
 
 /**
- * Reminds a task's owner about a season ops checklist task (ADR 0053): a
+ * Reminds a task's owner about a season ops checklist task (ADR 0061): a
  * few days before it is due, and once when it is overdue. A task with no
  * owner reminds the league's owners. Non-urgent, so it waits out quiet
  * hours and counts toward the daily cap.

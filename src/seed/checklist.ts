@@ -8,7 +8,7 @@ import { PERSONAS } from "@/lib/demo/personas";
 import type { SeedData } from "./generate";
 
 /**
- * The current season's ops checklist (ADR 0053), started from the starter
+ * The current season's ops checklist (ADR 0061), started from the starter
  * template by the demo admin. The jobs that were due more than a week ago
  * are ticked off, and the admin owns what is left, so the dashboard's card
  * has something to show.
