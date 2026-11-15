@@ -475,6 +475,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "photos.manage",
       "merch.manage",
       "friends.manage",
+      "checklist.manage",
     ] as const)
       expect(allowed(action)).toEqual(["admin", "owner"]);
     for (const action of [
@@ -483,6 +484,7 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
       "books.manage",
       "dashboard.view",
       "money_summary.publish",
+      "checklist.template",
     ] as const)
       expect(allowed(action)).toEqual(["owner"]);
   });
@@ -513,9 +515,13 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     expect(can(people.admin, "books.manage")).toBe(false);
   });
 
-  it("opens the dashboard and the money summary to the operator, never to an admin", () => {
+  it("opens the dashboard, the money summary and the checklist template to the operator, never to an admin", () => {
     const operator = person("op", { isOperator: true });
-    for (const action of ["dashboard.view", "money_summary.publish"] as const) {
+    for (const action of [
+      "dashboard.view",
+      "money_summary.publish",
+      "checklist.template",
+    ] as const) {
       expect(can(operator, action)).toBe(true);
       expect(can({ ...VISITOR, isOperator: true }, action)).toBe(false);
       expect(can(people.admin, action)).toBe(false);

@@ -298,6 +298,8 @@ const RULES = {
   "friends.manage": isAdmin,
   // Kits, who brings them to which game, and where they are.
   "equipment.manage": isAdmin,
+  // The season ops checklist: see it, assign, date and tick off tasks.
+  "checklist.manage": isAdmin,
   // The owner alone
   "billing.manage": isOwner,
   // The books (expenses, receipts, permit costs and documents, insurance).
@@ -306,6 +308,8 @@ const RULES = {
   "dashboard.view": any(isOwner, isOperator),
   // Publish or take down a season's money summary (ADR 0038).
   "money_summary.publish": any(isOwner, isOperator),
+  // The ops checklist template every season starts from (ADR 0053).
+  "checklist.template": any(isOwner, isOperator),
   "admins.manage": isOwner,
   // Whether a person's own data export lists entries about them (ADR 0036).
   "keep_off.export_policy": isOwner,
