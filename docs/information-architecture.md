@@ -91,6 +91,10 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 │   └── [item]                      Photos and details; pick a size (my profile's size first) and how many; a replacement jersey also picks my team (my newest first) and is made in its color; order through Stripe Checkout with league credit, or straight away when credit covers it
 ├── photos/                         Share a photo: choose it, tag a recent game day, public event or your team, an optional caption, and the required "The league may repost this on its socials"; your photos with what the league decided, each with Delete
 │   └── [photo]                     The stored copy, waiting ones included, for its uploader and admins; ?download saves it as a file
+├── lost-and-found/                 Lost and found: found items and lost notes, each newest first on one screen, with a thumbnail, where, who (first name) and days left; "I found something" and "I lost something"
+│   ├── new                         Post it: what it is, where (a park, the home bar or elsewhere), where it is now (found items), an optional photo
+│   └── [item]                      The post; "That's mine" or "I found it" with an optional message; the conversation with the poster (or, for the poster, with each answer) to write back, hand over, take an answer back or close the post; admins take it down
+│       └── photo                   The photo (?size=thumb for the small copy), members only, while the post is open
 ├── volunteer                       Volunteer shifts coming up (game days and events): the job, when and where, spots left; sign up or drop a shift until it starts; my shifts at the top, a set-up lead shift linking to the set-up checklist
 ├── vote                            Awards: open ballots (one vote each, never for yourself or your own team; a season MVP, best-sport or best-newcomer ballot lists the stat leaders first) and closed polls
 │   └── [poll]                      Results after voting closes, ties sharing a place; until then, only when it closes

@@ -397,6 +397,20 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
   },
   "sponsor.created_by": actor("sponsors added"),
   "team_of_week.created_by": actor("teams of the week named"),
+  "lost_found_item.poster_id": { kind: "move", label: "lost and found posts" },
+  "lost_found_item.removed_by": actor("lost and found posts taken down"),
+  "lost_found_claim.responder_id": {
+    kind: "dedupe",
+    label: "lost and found answers",
+    by: ["item_id"],
+    resolve: "leave",
+    clash:
+      "Both answered the same lost and found post; the merged-away answer stays as history",
+  },
+  "lost_found_message.author_id": {
+    kind: "move",
+    label: "lost and found messages",
+  },
   "member_photo.uploader_id": { kind: "move", label: "photos" },
   "member_photo.reviewed_by": actor("photos reviewed"),
   "signup_challenge.created_by": actor("sign-up challenges created"),

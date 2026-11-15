@@ -47,7 +47,7 @@ export const lostFoundClaimStatus = pgEnum("lost_found_claim_status", [
 
 /**
  * A found item or a lost note on the members-only board (issue #385;
- * docs/data-model.md, section 2.8). The photo is one shrunk JPEG with no
+ * docs/data-model.md, section 2.14). The photo is one shrunk JPEG with no
  * metadata plus a small thumbnail, kept in the row like member photos
  * (ADR 0039) and deleted when the post closes, so closed posts cost no
  * storage. An account's deletion deletes its posts.
