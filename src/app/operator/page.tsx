@@ -14,6 +14,7 @@ import {
   featureOn,
 } from "@/domain/platform/operator";
 import { SPORTS, sportLabel } from "@/domain/league/new-league";
+import { hasOwnRules } from "@/domain/sports/sports";
 import { leagueHref } from "@/domain/league/paths";
 import {
   operatorIsFresh,
@@ -241,15 +242,22 @@ async function Console({ searchParams }: PageProps<"/operator">) {
               <select
                 name="sport"
                 defaultValue="football"
+                aria-describedby="sport-rules"
                 className="min-h-11 rounded-input border border-border-strong bg-surface px-3"
               >
                 {SPORTS.map((s) => (
                   <option key={s.value} value={s.value}>
-                    {s.label}
+                    {hasOwnRules(s.value)
+                      ? s.label
+                      : `${s.label} (kickball's scoring for now)`}
                   </option>
                 ))}
               </select>
             </label>
+            <p id="sport-rules" className="text-small text-text-muted">
+              Kickball and dodgeball have their own scoring and standings.
+              Other sports use kickball&apos;s until theirs are added.
+            </p>
             <Field
               label="Time zone"
               name="timeZone"
@@ -284,6 +292,12 @@ async function Console({ searchParams }: PageProps<"/operator">) {
               <Field
                 label="Innings (optional)"
                 name="innings"
+                type="number"
+                required={false}
+              />
+              <Field
+                label="Sets in a match, for dodgeball (optional)"
+                name="bestOf"
                 type="number"
                 required={false}
               />

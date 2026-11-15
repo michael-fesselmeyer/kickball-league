@@ -105,6 +105,7 @@ export async function createLeagueAction(form: FormData): Promise<void> {
       "secondaryColor",
       "ruleSetName",
       "innings",
+      "bestOf",
       "timeLimitMinutes",
     ] as const),
   );

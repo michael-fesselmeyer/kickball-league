@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isBestOf } from "@/domain/sports/dodgeball";
 import { DEFAULT_LEAGUE_SEGMENT, isLeagueSlug } from "./paths";
 
 /** A person's role in one league (ADR 0048). */
@@ -88,6 +89,15 @@ export const newLeagueSchema = z.object({
     .min(2, { error: "Name the rule set, for example Standard." })
     .max(60, { error: "Keep the rule set's name under 60 characters." }),
   innings: optionalNumber(1, 15, "Innings are 1 to 15, or leave it empty."),
+  /** Sets in a match, for a sport played in sets (ADR 0072). */
+  bestOf: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v === undefined || v === "" ? null : Number(v)))
+    .refine((n) => n === null || isBestOf(n), {
+      error: "Sets in a match are an odd number from 1 to 9, or leave it empty.",
+    }),
   timeLimitMinutes: optionalNumber(
     10,
     240,
@@ -106,6 +116,8 @@ export type NewLeagueInput = {
   ruleSet: {
     name: string;
     innings: number | null;
+    /** Sets in a match; set only when given (ADR 0072). */
+    bestOf?: number;
     timeLimitMinutes: number | null;
   };
 };
@@ -141,6 +153,7 @@ export function parseNewLeague(
       ruleSet: {
         name: v.ruleSetName,
         innings: v.innings,
+        ...(v.bestOf !== null ? { bestOf: v.bestOf } : {}),
         timeLimitMinutes: v.timeLimitMinutes,
       },
     },

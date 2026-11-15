@@ -3,6 +3,7 @@ import { slugify } from "../slug";
 import { type PermitEndRule, permitEndRule } from "../gameday/permit-end";
 import { MAX_NO_NEW_INNING_MINUTES } from "../gameday/game-clock";
 import { MAX_DAYLIGHT_MARGIN_MINUTES } from "../gameday/daylight";
+import { isBestOf, MAX_BEST_OF } from "@/domain/sports/dodgeball";
 
 /**
  * Divisions and rule sets as an admin enters them (ADR 0040). Pure: the
@@ -25,6 +26,8 @@ export function parseDivisionName(
 export type RuleSetInput = {
   name: string;
   innings: number | null;
+  /** Sets in a match, for a sport played in sets (ADR 0072); set only when given. */
+  bestOf?: number;
   timeLimitMinutes: number | null;
   bunting: boolean;
   stealing: boolean;
@@ -51,6 +54,8 @@ function optionalWhole(
 export function parseRuleSet(raw: {
   name: string;
   innings: string;
+  /** Sets in a match: odd, 1 to 9; empty or missing for the sport's default. */
+  bestOf?: string;
   timeLimitMinutes: string;
   bunting: boolean;
   stealing: boolean;
@@ -76,16 +81,20 @@ export function parseRuleSet(raw: {
     0,
     MAX_DAYLIGHT_MARGIN_MINUTES,
   );
+  const bestOf = optionalWhole(raw.bestOf ?? "", 1, MAX_BEST_OF);
   if (
     innings === undefined ||
     timeLimitMinutes === undefined ||
     noNewInningMinutes === undefined ||
-    margin === undefined
+    margin === undefined ||
+    bestOf === undefined ||
+    (bestOf !== null && !isBestOf(bestOf))
   )
     return err("invalid_limits");
   return ok({
     name,
     innings,
+    ...(bestOf !== null ? { bestOf } : {}),
     timeLimitMinutes,
     bunting: raw.bunting,
     stealing: raw.stealing,
@@ -98,6 +107,7 @@ export function parseRuleSet(raw: {
 /** "7 innings · 55 minutes · bunting allowed": a rule set in a line. */
 export function ruleSetSummary(rules: {
   innings: number | null;
+  bestOf?: number | null;
   timeLimitMinutes: number | null;
   options: {
     bunting?: boolean;
@@ -106,6 +116,7 @@ export function ruleSetSummary(rules: {
   };
 }): string {
   return [
+    rules.bestOf == null ? null : `best of ${rules.bestOf} sets`,
     rules.innings === null ? null : `${rules.innings} innings`,
     rules.timeLimitMinutes === null
       ? null

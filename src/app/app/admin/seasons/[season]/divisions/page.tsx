@@ -31,6 +31,8 @@ import {
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeagueId } from "@/lib/league/active";
+import { MAX_BEST_OF } from "@/domain/sports/dodgeball";
+import { sportRules } from "@/domain/sports/sports";
 
 export const metadata: Metadata = { title: "Divisions" };
 
@@ -58,7 +60,7 @@ const ERRORS: Record<string, string> = {
   unknown_season: "That season is gone.",
   rule_invalid_name: "Give the rule set a name.",
   rule_invalid_limits:
-    "Innings are 1 to 15, the time limit 10 to 240 minutes and the minutes before sunset 0 to 60, or leave them empty.",
+    "Innings are 1 to 15, sets in a match an odd number from 1 to 9, the time limit 10 to 240 minutes and the minutes before sunset 0 to 60, or leave them empty.",
   rule_duplicate: "The league already has a rule set with that name.",
 };
 
@@ -93,6 +95,8 @@ async function Divisions({
   if (!season) notFound();
   const screen = await divisionsScreen(db, season.leagueId, season.id);
   const { divisions, ruleSets, teams, settings } = screen;
+  // A rule set asks for what the league's sport plays by (ADR 0072).
+  const rules = sportRules(season.sport);
   const error = query.error ? ERRORS[query.error] : undefined;
   const notice = query.notice ? NOTICES[query.notice]?.(query) : undefined;
   const unassigned =
@@ -378,16 +382,32 @@ async function Divisions({
               className={input}
             />
           </label>
-          <label className="flex flex-col gap-1">
-            Innings
-            <input
-              name="innings"
-              type="number"
-              min={1}
-              max={15}
-              className={`${input} w-24`}
-            />
-          </label>
+          {rules.score.defaultBestOf !== null && (
+            <label className="flex flex-col gap-1">
+              Sets in a match (best of)
+              <input
+                name="bestOf"
+                type="number"
+                min={1}
+                max={MAX_BEST_OF}
+                step={2}
+                placeholder={String(rules.score.defaultBestOf)}
+                className={`${input} w-24`}
+              />
+            </label>
+          )}
+          {rules.score.period && (
+            <label className="flex flex-col gap-1">
+              Innings
+              <input
+                name="innings"
+                type="number"
+                min={1}
+                max={15}
+                className={`${input} w-24`}
+              />
+            </label>
+          )}
           <label className="flex flex-col gap-1">
             Time limit (minutes)
             <input
@@ -398,51 +418,60 @@ async function Divisions({
               className={`${input} w-28`}
             />
           </label>
-          <label className="flex flex-col gap-1">
-            No new inning in the last (minutes)
-            <input
-              name="noNewInningMinutes"
-              type="number"
-              min={0}
-              max={MAX_NO_NEW_INNING_MINUTES}
-              placeholder={String(NO_NEW_INNING_MINUTES)}
-              className={`${input} w-28`}
-            />
-          </label>
-          <label className="flex min-h-11 items-center gap-2">
-            <input name="bunting" type="checkbox" className="size-5" />
-            Bunting
-          </label>
-          <label className="flex min-h-11 items-center gap-2">
-            <input name="stealing" type="checkbox" className="size-5" />
-            Stealing
-          </label>
-          <label className="flex flex-col gap-1">
-            When a game reaches the end of its permit
-            <select
-              name="permitEndRule"
-              defaultValue="call_at_last_complete"
-              className={input}
-            >
-              <option value="call_at_last_complete">
-                {PERMIT_END_RULE_TEXT.call_at_last_complete}
-              </option>
-              <option value="last_inning_to_start">
-                {PERMIT_END_RULE_TEXT.last_inning_to_start}
-              </option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1">
-            Play ends this many minutes before sunset, on fields without lights
-            <input
-              name="daylightMarginMinutes"
-              type="number"
-              min={0}
-              max={MAX_DAYLIGHT_MARGIN_MINUTES}
-              placeholder={String(DEFAULT_DAYLIGHT_MARGIN_MINUTES)}
-              className={`${input} w-28`}
-            />
-          </label>
+          {rules.key === "kickball" && (
+            <>
+              <label className="flex flex-col gap-1">
+                No new inning in the last (minutes)
+                <input
+                  name="noNewInningMinutes"
+                  type="number"
+                  min={0}
+                  max={MAX_NO_NEW_INNING_MINUTES}
+                  placeholder={String(NO_NEW_INNING_MINUTES)}
+                  className={`${input} w-28`}
+                />
+              </label>
+              <label className="flex min-h-11 items-center gap-2">
+                <input name="bunting" type="checkbox" className="size-5" />
+                Bunting
+              </label>
+              <label className="flex min-h-11 items-center gap-2">
+                <input name="stealing" type="checkbox" className="size-5" />
+                Stealing
+              </label>
+              <label className="flex flex-col gap-1">
+                When a game reaches the end of its permit
+                <select
+                  name="permitEndRule"
+                  defaultValue="call_at_last_complete"
+                  className={input}
+                >
+                  <option value="call_at_last_complete">
+                    {PERMIT_END_RULE_TEXT.call_at_last_complete}
+                  </option>
+                  <option value="last_inning_to_start">
+                    {PERMIT_END_RULE_TEXT.last_inning_to_start}
+                  </option>
+                </select>
+              </label>
+            </>
+          )}
+          {rules.place.outdoors && (
+            <>
+              <label className="flex flex-col gap-1">
+                Play ends this many minutes before sunset, on fields without
+                lights
+                <input
+                  name="daylightMarginMinutes"
+                  type="number"
+                  min={0}
+                  max={MAX_DAYLIGHT_MARGIN_MINUTES}
+                  placeholder={String(DEFAULT_DAYLIGHT_MARGIN_MINUTES)}
+                  className={`${input} w-28`}
+                />
+              </label>
+            </>
+          )}
           <SubmitButton className="btn btn-secondary">
             Add rule set
           </SubmitButton>
