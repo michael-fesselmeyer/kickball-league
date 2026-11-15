@@ -56,12 +56,11 @@ const teamB = aliasedTable(team, "team_b");
 const entryA = aliasedTable(teamSeason, "entry_a");
 const entryB = aliasedTable(teamSeason, "entry_b");
 
-const firstRuleSet = aliasedTable(ruleSet, "first_rule_set");
-
 /**
  * A game with its teams and slot, for the score screen, with its league's
  * sport and the match length its rules set (ADR 0072): team A's division's
- * rule set, else the league's first, else null for the sport's default.
+ * rule set, else the league's first rule set that sets one, else null for
+ * the sport's default.
  */
 export async function gameForScoring(db: Db, gameId: GameId) {
   const [found] = await db
@@ -86,7 +85,7 @@ export async function gameForScoring(db: Db, gameId: GameId) {
       sport: league.sport,
       bestOf: sql<
         number | null
-      >`coalesce(${ruleSet.bestOf}, (select ${firstRuleSet.bestOf} from ${firstRuleSet} where ${firstRuleSet.leagueId} = ${season.leagueId} order by ${firstRuleSet.createdAt}, ${firstRuleSet.id} limit 1))`,
+      >`coalesce(${ruleSet.bestOf}, (select first_rule_set.best_of from rule_set first_rule_set where first_rule_set.league_id = ${season.leagueId} and first_rule_set.best_of is not null order by first_rule_set.created_at, first_rule_set.id limit 1))`,
     })
     .from(game)
     .innerJoin(season, eq(game.seasonId, season.id))
