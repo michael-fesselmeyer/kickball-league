@@ -82,6 +82,10 @@ test("an owner adds an expense with a receipt photo, reads the ledger and downlo
   await expect(
     page.getByRole("article", { name: "Permit SAMPLE-0042" }),
   ).toContainText("$1,800.00");
+  // The fall's 40 permitted hours are close to NYC Parks' insurance line.
+  const fees = page.getByRole("region", { name: "Fees and hours" });
+  await expect(fees).toContainText("40.3 of 50");
+  await expect(fees).toContainText("Close to NYC Parks' 50-hour line.");
   await expect(
     page.getByRole("heading", { name: "What to request" }),
   ).toBeVisible();
@@ -89,6 +93,36 @@ test("an owner adds an expense with a receipt photo, reads the ledger and downlo
     page.getByRole("table", { name: /Field bookings to request/ }),
   ).toBeVisible();
   await expectNoAxeViolations(page);
+  await page.context().close();
+});
+
+test("an owner sees next season's permit fees estimated and expected in the books", async ({
+  browser,
+}) => {
+  const page = await pageAs(browser, "Admin");
+  // Spring 2027's permits have no cost entered yet.
+  await page.goto("/app/books/spring-2027/permits");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Permits and insurance",
+  );
+  const fees = page.getByRole("region", { name: "Fees and hours" });
+  await expect(fees).toContainText("Fees due");
+  await expect(fees).toContainText(/Expected fees\s*\$[\d,]+\.\d\d, estimated/);
+  await expect(
+    page
+      .getByRole("article")
+      .first()
+      .getByText(/^Estimate \$/),
+  ).toContainText("of natural grass at $24.00 an hour");
+  await expectNoAxeViolations(page);
+
+  await page.getByRole("link", { name: "Books: Spring 2027" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Books: Spring 2027",
+  );
+  await expect(
+    page.getByText(/^Expected: \$[\d,]+\.\d\d of permit fees/).first(),
+  ).toBeVisible();
   await page.context().close();
 });
 

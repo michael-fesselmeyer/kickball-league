@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import { seasonBooks, storedBytes } from "@/db/queries/books";
+import { seasonPermitPlan } from "@/db/queries/permit-plan";
 import {
   FILE_MESSAGES,
   type FileProblem,
@@ -15,6 +16,7 @@ import {
   money,
 } from "@/domain/books/ledger";
 import { localDate } from "@/domain/books/ledger-csv";
+import { feesDueOn } from "@/domain/permits/fees";
 import { requirePermission } from "@/lib/auth/permission";
 import { FileInput } from "../file-input";
 import { booksSeason } from "../load";
@@ -61,16 +63,18 @@ async function Books({
   await requirePermission("books.manage", { next: page });
   const query = await searchParams;
   const { league, season, seasons } = await booksSeason(slug);
-  const [books, used] = await Promise.all([
+  const now = new Date();
+  const [books, used, plan] = await Promise.all([
     seasonBooks(db, season),
     storedBytes(db, league.id),
+    seasonPermitPlan(db, season.id, league, now),
   ]);
   const { ledger } = books;
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const notice =
     typeof query.notice === "string" ? NOTICES[query.notice] : undefined;
-  const today = localDate(new Date(), league.timeZone);
+  const today = localDate(now, league.timeZone);
   const day = (on: string) =>
     new Intl.DateTimeFormat("en-US", {
       month: "short",
@@ -191,6 +195,21 @@ async function Books({
             </tr>
           </tbody>
         </table>
+        {plan.expectedCents > 0 && (
+          <p className="rounded-lg border border-border p-3">
+            <strong>
+              Expected: {money(plan.expectedCents)} of permit fees
+            </strong>
+            , estimated from NYC Parks&apos; rates for the permits with no cost
+            entered yet, due {day(feesDueOn(season.startsOn))}. With them, the
+            net would be {money(ledger.netCents - plan.expectedCents)}. Enter
+            each permit&apos;s real cost on the{" "}
+            <Link href={`/app/books/${slug}/permits`} className="underline">
+              permits screen
+            </Link>{" "}
+            once Parks bills it.
+          </p>
+        )}
         {ledger.income.creditAppliedCents > 0 && (
           <p className="text-small text-text-muted">
             Players also spent {money(ledger.income.creditAppliedCents)} of
