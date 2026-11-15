@@ -1,6 +1,7 @@
 import { getImageProps } from "next/image";
 import Link from "next/link";
 import type { ApprovedPhoto } from "@/db/queries/member-photos";
+import { photoSrc } from "@/lib/media/photo-src";
 
 /**
  * Photos players shared and the league approved (ADR 0039), as a grid of
@@ -65,7 +66,7 @@ export function MemberPhotos({
 
 function imageProps(photo: ApprovedPhoto, about: string) {
   const { props } = getImageProps({
-    src: `/media/photos/${photo.id}`,
+    src: photoSrc.member(photo.id),
     // A caption is shown beside the photo, so it isn't read twice.
     alt: photo.caption ? "" : `A player's photo from ${about}`,
     fill: true,

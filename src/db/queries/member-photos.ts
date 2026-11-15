@@ -7,6 +7,7 @@ import {
   eq,
   gte,
   inArray,
+  isNotNull,
   isNull,
   lte,
   ne,
@@ -569,6 +570,20 @@ export async function memberPhotoFile(db: Db, photoId: MemberPhotoId) {
     .where(eq(memberPhoto.id, photoId));
   if (!row?.bytes) return null;
   return { ...row, bytes: row.bytes };
+}
+
+/**
+ * Every approved photo with its bytes, in every league: a takedown compares
+ * this before and after to purge the photos that went (ADR 0064).
+ */
+export async function approvedPhotoIds(db: Db): Promise<MemberPhotoId[]> {
+  const rows = await db
+    .select({ id: memberPhoto.id })
+    .from(memberPhoto)
+    .where(
+      and(eq(memberPhoto.status, "approved"), isNotNull(memberPhoto.bytes)),
+    );
+  return rows.map((r) => r.id);
 }
 
 export type ApprovedPhoto = {

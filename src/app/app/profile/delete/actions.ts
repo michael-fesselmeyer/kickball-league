@@ -9,6 +9,7 @@ import { isFreshSession } from "@/lib/auth/config";
 import { requireSelfToChange, sessionSignedInAt } from "@/lib/auth/permission";
 import { demoStatus } from "@/lib/demo/guard";
 import { refreshMemberPhotoPages } from "@/lib/public-cache";
+import { purgingPhotoChanges } from "@/lib/media/optimizer-purge";
 
 const PAGE = "/app/profile/delete";
 
@@ -30,8 +31,8 @@ export async function deleteAccountAction(form: FormData): Promise<void> {
     .toLowerCase();
   if (typed !== me.email.toLowerCase()) redirect(`${PAGE}?error=confirm`);
 
-  const result = await txDb.transaction((tx) =>
-    deleteAccount(tx, subject.userId, new Date()),
+  const result = await purgingPhotoChanges(txDb, () =>
+    txDb.transaction((tx) => deleteAccount(tx, subject.userId, new Date())),
   );
   if (!result.ok) redirect(`${PAGE}?error=${result.error}`);
   // Their photos are gone, so pages that showed one drop it.

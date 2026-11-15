@@ -1,6 +1,7 @@
 import { getImageProps } from "next/image";
 import type { PublicPhoto } from "@/db/queries/social";
 import { altFor } from "@/domain/social/sync-plan";
+import { photoSrc } from "@/lib/media/photo-src";
 
 /**
  * Photos from the league's Instagram (docs/architecture.md, section 17):
@@ -78,7 +79,7 @@ function PhotoLink({
 
 function imageProps(photo: PublicPhoto, sizes: string) {
   const { props } = getImageProps({
-    src: `/media/instagram/${photo.imageId}`,
+    src: photoSrc.instagram(photo.imageId),
     alt: altFor(photo),
     fill: true,
     sizes,

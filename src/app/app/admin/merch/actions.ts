@@ -34,6 +34,7 @@ import { compressPhoto } from "@/lib/social/compress-photo";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
 import { logError } from "@/lib/log-error";
+import { purgingPhotoChanges } from "@/lib/media/optimizer-purge";
 import { activeLeague } from "@/lib/league/active";
 import { requireInLeague } from "@/lib/league/guard";
 
@@ -127,14 +128,16 @@ export async function setHiddenAction(
   const page = pageFor(itemId);
   const { subject, lg } = await adminFor(page);
   await requireInLeague(subject, { merch_item: itemId });
-  const result = await txDb.transaction((tx) =>
-    setItemHidden(tx, {
-      leagueId: lg.id,
-      itemId,
-      hidden,
-      actorId: subject.userId,
-      now: new Date(),
-    }),
+  const result = await purgingPhotoChanges(txDb, () =>
+    txDb.transaction((tx) =>
+      setItemHidden(tx, {
+        leagueId: lg.id,
+        itemId,
+        hidden,
+        actorId: subject.userId,
+        now: new Date(),
+      }),
+    ),
   );
   if (!result.ok) notFound();
   redirect(`${page}?saved=${hidden ? "hidden" : "shown"}`);
@@ -185,13 +188,15 @@ export async function removePhotoAction(
   const page = pageFor(itemId);
   const { subject, lg } = await adminFor(page);
   await requireInLeague(subject, { merch_item: itemId });
-  const result = await txDb.transaction((tx) =>
-    removeMerchPhoto(tx, {
-      leagueId: lg.id,
-      itemId,
-      imageId,
-      actorId: subject.userId,
-    }),
+  const result = await purgingPhotoChanges(txDb, () =>
+    txDb.transaction((tx) =>
+      removeMerchPhoto(tx, {
+        leagueId: lg.id,
+        itemId,
+        imageId,
+        actorId: subject.userId,
+      }),
+    ),
   );
   if (!result.ok) notFound();
   redirect(`${page}?saved=photo_removed#photos`);

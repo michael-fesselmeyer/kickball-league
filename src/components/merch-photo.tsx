@@ -1,4 +1,5 @@
 import { getImageProps } from "next/image";
+import { photoSrc } from "@/lib/media/photo-src";
 
 /**
  * A merch item's photo in a square that holds its shape while it loads.
@@ -19,7 +20,7 @@ export function MerchPhoto({
   admin?: boolean;
   priority?: boolean;
 }) {
-  const src = admin ? `/app/admin/merch/photos/${id}` : `/media/merch/${id}`;
+  const src = admin ? `/app/admin/merch/photos/${id}` : photoSrc.merch(id);
   return (
     <div className="relative aspect-square overflow-hidden rounded-card border-2 border-text bg-surface-2">
       {admin ? (

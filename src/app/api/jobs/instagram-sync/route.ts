@@ -2,6 +2,7 @@ import { txDb } from "@/db/client";
 import { env } from "@/env";
 import { refuseUnlessCron } from "@/lib/jobs";
 import { refuseJobsWhileFrozen } from "@/lib/platform/site";
+import { purgingPhotoChanges } from "@/lib/media/optimizer-purge";
 import { refreshPhotoPagesInBackground } from "@/lib/public-cache";
 import { instagramConfig } from "@/lib/social/instagram-app";
 import { syncAll } from "@/lib/social/sync";
@@ -22,7 +23,9 @@ export async function GET(request: Request): Promise<Response> {
   const config = instagramConfig();
   if (!config) return Response.json({ skipped: "Instagram is not set up" });
   const now = new Date();
-  const outcomes = await syncAll(txDb, config, env.BETTER_AUTH_SECRET, now);
+  const outcomes = await purgingPhotoChanges(txDb, () =>
+    syncAll(txDb, config, env.BETTER_AUTH_SECRET, now),
+  );
   if (outcomes.some((o) => "added" in o && (o.added > 0 || o.removed > 0)))
     refreshPhotoPagesInBackground();
   // A refused token queues a reconnect notice for the admins.
