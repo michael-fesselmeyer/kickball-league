@@ -104,6 +104,13 @@ export const teamSeason = pgTable(
     targetRosterSize: integer(),
     seed: integer(),
     vibe: text(),
+    /**
+     * The team wears its own shirts or jerseys: the league's shirt order and
+     * the late-joiner waiting list skip it, and its roster says so.
+     */
+    ownShirts: boolean().notNull().default(false),
+    /** What the team's shirt looks like this season, for the league history. */
+    shirtDesign: text(),
     /** Null in a season without divisions, or before the admin assigns one. */
     divisionId: uuid().$type<DivisionId>(),
     ...audit(),
@@ -117,6 +124,10 @@ export const teamSeason = pgTable(
       foreignColumns: [division.id, division.seasonId],
     }),
     index("team_season_division_idx").on(t.divisionId),
+    check(
+      "team_season_shirt_design_length",
+      sql`${t.shirtDesign} is null or char_length(${t.shirtDesign}) between 1 and 120`,
+    ),
     index("team_season_season_status_idx").on(t.seasonId, t.status),
     check(
       "team_season_share_non_negative",
