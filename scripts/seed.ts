@@ -58,6 +58,11 @@ import { addSeedChecklist } from "../src/seed/checklist";
 import { addSeedSponsors, removeSeedSponsors } from "../src/seed/sponsors";
 import { addSeedStatAwards } from "../src/seed/stat-awards";
 import { addSeedRules } from "../src/seed/rules";
+import {
+  addDemoConcerns,
+  addDemoGameDay,
+  addDemoShirtOrder,
+} from "../src/seed/demo-recent";
 import { seedPublishedSchedule } from "../src/seed/published-schedule";
 import { insertSeedProfiles } from "../src/seed/roles";
 import { removeSeedPrivateEvents } from "../src/seed/private-events";
@@ -363,6 +368,9 @@ async function main(): Promise<void> {
       await addSeedRefereePool(tx, data);
       await addSeedChecklist(tx, data, new Date());
       await addSeedRules(tx, data, new Date());
+      await addDemoShirtOrder(tx, data, new Date());
+      await addDemoConcerns(tx, data, new Date());
+      await addDemoGameDay(tx, data);
     });
     // After the commit, on the pool: the summary reads its totals in parallel.
     await addSeedMoneySummary(db, data);
