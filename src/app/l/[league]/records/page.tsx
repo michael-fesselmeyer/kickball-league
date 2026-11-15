@@ -16,6 +16,15 @@ import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 import { publicLeague, withCanonical } from "@/lib/league/public";
 
+/**
+ * The page reads its league from the path outside any <Suspense> boundary,
+ * so it has no generic fallback shell: a league the build didn't list, or a
+ * page an admin's change just expired, is rendered in full before it is
+ * served, then kept (as the game page does). Without this, expiring the
+ * route makes its next visit fail (ADR 0048).
+ */
+export const instant = false;
+
 const METADATA: Metadata = {
   title: "League records",
   description:
