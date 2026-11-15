@@ -66,12 +66,13 @@ async function Layout({ params }: PageProps<"/app/fields/[field]/layout">) {
         </a>
       ) : (
         <figure className="flex flex-col gap-2">
-          {/* A private, uncached file: next/image would cache it. */}
+          {/* A private, uncached file: next/image would cache it. Its size
+              isn't stored, so a fixed-ratio box holds its space (#498). */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={file}
             alt={`Layout of ${layout.fieldName}: where the permitted area ends and where each diamond and spectator area goes`}
-            className="w-full rounded-lg border border-border"
+            className="aspect-[4/3] w-full rounded-lg border border-border bg-surface-2 object-contain"
           />
         </figure>
       )}

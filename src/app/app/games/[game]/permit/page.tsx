@@ -103,12 +103,13 @@ async function Permit({ params }: PageProps<"/app/games/[game]/permit">) {
         </a>
       ) : (
         <figure className="flex flex-col gap-2">
-          {/* A private, uncached file: next/image would cache it. */}
+          {/* A private, uncached file: next/image would cache it. Its size
+              isn't stored, so a page-shaped box holds its space (#498). */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={document}
             alt={`The park permit${permit.permitNumber ? ` ${permit.permitNumber}` : ""} for ${permit.fieldName}`}
-            className="w-full rounded-lg border border-border"
+            className="aspect-[3/4] w-full rounded-lg border border-border bg-surface-2 object-contain"
           />
           <figcaption className="text-small text-text-muted">
             Show this to a park officer if asked.
@@ -135,7 +136,7 @@ async function Permit({ params }: PageProps<"/app/games/[game]/permit">) {
                 <img
                   src={`/app/games/${permit.gameId}/permit/layout`}
                   alt={`Layout of ${permit.fieldName}: where the permitted area ends and where each diamond and spectator area goes`}
-                  className="w-full rounded-lg border border-border"
+                  className="aspect-[4/3] w-full rounded-lg border border-border bg-surface-2 object-contain"
                 />
               </figure>
             ))}
