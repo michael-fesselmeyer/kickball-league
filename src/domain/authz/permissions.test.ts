@@ -104,10 +104,19 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     );
   });
 
-  it("lets any signed-in member use the lost and found board", () => {
+  it("lets league members use the lost and found board, not an account with no place in the league", () => {
     expect(allowed("lost_found.use")).toEqual(
       everyone.filter((w) => w !== "visitor"),
     );
+    const outsider = person("x");
+    expect(can(outsider, "lost_found.use", {})).toBe(false);
+    expect(
+      can(
+        person("x", { leagueId: null, globalRole: "admin" }),
+        "lost_found.use",
+        {},
+      ),
+    ).toBe(false);
   });
 
   it("lets team members and admins upload photos, and only the uploader delete theirs", () => {

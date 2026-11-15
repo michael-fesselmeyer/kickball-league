@@ -82,6 +82,19 @@ type Rule = (s: Subject, c: Context) => boolean;
 const signedIn: Rule = (s) => s.userId !== null;
 const isAdmin: Rule = (s) =>
   s.globalRole === "admin" || s.globalRole === "owner";
+/**
+ * Belongs to the league: has a place in it (a team, the ref pool or a
+ * sponsor) or runs it. A signed-in account with none of these is not a
+ * member, whatever role the loader gives it.
+ */
+const inLeague: Rule = (s) =>
+  s.userId !== null &&
+  s.leagueId !== null &&
+  (s.globalRole === "admin" ||
+    s.globalRole === "owner" ||
+    s.roster.length > 0 ||
+    s.isReferee ||
+    s.sponsorIds.length > 0);
 const isOwner: Rule = (s) => s.globalRole === "owner";
 const isOperator: Rule = (s) => s.userId !== null && s.isOperator === true;
 const self: Rule = (s, c) => s.userId !== null && c.targetUserId === s.userId;
@@ -155,8 +168,9 @@ const RULES = {
   // The uploader deletes their own photo at any time.
   "photos.delete_own": self,
   // The lost and found board: post, answer and write in a conversation
-  // (issue #385). Whose conversation it is is checked with the data.
-  "lost_found.use": signedIn,
+  // (issue #385), members only. Whose conversation it is is checked with
+  // the data.
+  "lost_found.use": inLeague,
   // Players on a team
   "rsvp.set": (s, c) => self(s, c) && onTeam(s, c.teamSeasonId),
   "rsvp.view_team": any(isAdmin, (s, c) => onTeam(s, c.teamSeasonId)),
