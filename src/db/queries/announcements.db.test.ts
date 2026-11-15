@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
+import type { AnnouncementId } from "@/domain/ids";
 import { ok } from "@/domain/result";
 import type { Email, EmailSender } from "@/services/email";
 import { rendererFor } from "@/emails/templates";
@@ -10,7 +11,11 @@ import { closePool, inRolledBackDb } from "../test/transaction";
 import {
   announcementsOf,
   audienceOf,
+  cancelScheduledAnnouncement,
   DAILY_LIMIT,
+  editScheduledAnnouncement,
+  releaseDueAnnouncements,
+  scheduledAnnouncements,
   sendAnnouncement,
 } from "./announcements";
 import { saveEmailSettings, emailSettingsOf } from "./notifications";
@@ -171,6 +176,147 @@ describe("sendAnnouncement", () => {
           .from(message)
           .where(eq(message.userId, w.bees.captain.userId)),
       ).toHaveLength(DAILY_LIMIT.captain + 1);
+    });
+  });
+});
+
+describe("scheduled announcements", () => {
+  const SWEEP = new Date("2026-09-16T13:30:00Z");
+
+  async function schedule(db: Parameters<typeof sendAnnouncement>[0]) {
+    const w = await messagingWorld(db);
+    const result = await sendAnnouncement(db, {
+      authorId: w.aces.captain.userId,
+      role: "admin",
+      seasonId: w.season.id,
+      seasonName: w.season.name,
+      seasonSlug: w.season.slug,
+      team: null,
+      from: "League admins",
+      subject: "Picture day",
+      body: "Wear your shirts.",
+      now: NOW,
+      sendAt: SWEEP,
+    });
+    if (!result.ok) throw new Error(result.error);
+    return { w, id: result.value.id };
+  }
+
+  const queuedFor = (
+    db: Parameters<typeof sendAnnouncement>[0],
+    id: AnnouncementId,
+  ) =>
+    db
+      .select({ userId: message.userId, from: message.payload })
+      .from(message)
+      .where(eq(message.announcementId, id));
+
+  it("waits for its sweep, then goes to the audience as it stands", async () => {
+    await inRolledBackDb(async (db) => {
+      const { w, id } = await schedule(db);
+      expect(await queuedFor(db, id)).toEqual([]);
+      expect(await announcementsOf(db, w.season.id)).toEqual([]);
+      expect(await scheduledAnnouncements(db, w.season.id)).toMatchObject([
+        { id, subject: "Picture day", sendAt: SWEEP },
+      ]);
+
+      // Before the sweep, nothing goes.
+      const early = new Date(SWEEP.getTime() - 60_000);
+      expect(await releaseDueAnnouncements(db, early)).toEqual({
+        announcements: 0,
+        messages: 0,
+      });
+
+      expect(await releaseDueAnnouncements(db, SWEEP)).toEqual({
+        announcements: 1,
+        messages: 7,
+      });
+      const queued = await queuedFor(db, id);
+      expect(queued).toHaveLength(7);
+      expect(queued[0]?.from).toMatchObject({
+        subject: "Picture day",
+        from: "League admins",
+        seasonName: w.season.name,
+      });
+      // A second sweep sends nothing more.
+      expect(await releaseDueAnnouncements(db, SWEEP)).toEqual({
+        announcements: 0,
+        messages: 0,
+      });
+      expect(await scheduledAnnouncements(db, w.season.id)).toEqual([]);
+      const [sent] = await announcementsOf(db, w.season.id);
+      expect(sent).toMatchObject({ id, recipientCount: 7 });
+
+      const { sent: emails, send } = recorder();
+      await drainOutbox(db, { send, render, now: SWEEP });
+      expect(emails).toHaveLength(7);
+    });
+  });
+
+  it("can be edited or cancelled until it sends, and not after", async () => {
+    await inRolledBackDb(async (db) => {
+      const { w, id } = await schedule(db);
+      const later = new Date("2026-09-17T13:30:00Z");
+      const edit = (over: Record<string, unknown> = {}) =>
+        editScheduledAnnouncement(db, {
+          id,
+          seasonId: w.season.id,
+          actorId: w.aces.captain.userId,
+          subject: "Picture day moved",
+          body: "Wear your shirts on Thursday.",
+          sendAt: later,
+          ...over,
+        });
+      expect(await edit({ subject: " " })).toEqual({
+        ok: false,
+        error: "empty",
+      });
+      expect(await edit()).toEqual({ ok: true, value: undefined });
+      expect(await scheduledAnnouncements(db, w.season.id)).toMatchObject([
+        { subject: "Picture day moved", sendAt: later },
+      ]);
+      // Its old sweep has no effect now.
+      await releaseDueAnnouncements(db, SWEEP);
+      expect(await queuedFor(db, id)).toEqual([]);
+
+      const cancel = () =>
+        cancelScheduledAnnouncement(db, {
+          id,
+          seasonId: w.season.id,
+          actorId: w.aces.captain.userId,
+          now: NOW,
+        });
+      expect(await cancel()).toEqual({ ok: true, value: undefined });
+      expect(await cancel()).toEqual({ ok: false, error: "already_sent" });
+      expect(await edit()).toEqual({ ok: false, error: "already_sent" });
+      await releaseDueAnnouncements(db, later);
+      expect(await queuedFor(db, id)).toEqual([]);
+      expect(await scheduledAnnouncements(db, w.season.id)).toEqual([]);
+
+      const audit = await db
+        .select({ action: auditLog.action })
+        .from(auditLog)
+        .where(eq(auditLog.entityId, id));
+      expect(audit.map((a) => a.action).sort()).toEqual([
+        "announcement.cancel",
+        "announcement.edit",
+        "announcement.schedule",
+      ]);
+    });
+  });
+
+  it("can't change once it has gone out", async () => {
+    await inRolledBackDb(async (db) => {
+      const { w, id } = await schedule(db);
+      await releaseDueAnnouncements(db, SWEEP);
+      expect(
+        await cancelScheduledAnnouncement(db, {
+          id,
+          seasonId: w.season.id,
+          actorId: w.aces.captain.userId,
+          now: SWEEP,
+        }),
+      ).toEqual({ ok: false, error: "already_sent" });
     });
   });
 });
