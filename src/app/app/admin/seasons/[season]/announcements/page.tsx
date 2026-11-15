@@ -110,10 +110,13 @@ async function Announcements({
       timeZone: tz,
       timeZoneName: "short",
     }).format(next),
-    minDay: next.toISOString().slice(0, 10),
-    maxDay: new Date(now.getTime() + MAX_DAYS_AHEAD * 86_400_000)
-      .toISOString()
-      .slice(0, 10),
+    // Days in the league's time zone; the last day is one short of the
+    // limit, so its sweep is always within it.
+    minDay: localDay(next, tz),
+    maxDay: localDay(
+      new Date(now.getTime() + (MAX_DAYS_AHEAD - 1) * 86_400_000),
+      tz,
+    ),
   };
   const scheduleUrl = absoluteUrl(
     siteOrigin(env.BETTER_AUTH_URL),
@@ -183,6 +186,7 @@ async function Announcements({
                 slug={slug}
                 to={teamName(a.teamSeasonId)}
                 sendsAt={when(a.sendAt)}
+                sendDay={localDay(a.sendAt, tz)}
                 schedule={schedule}
               />
             ))}
@@ -245,12 +249,15 @@ function Scheduled({
   slug,
   to,
   sendsAt,
+  sendDay,
   schedule,
 }: {
   item: ScheduledAnnouncement;
   slug: string;
   to: string;
   sendsAt: string;
+  /** The day it sends, in the league's time zone. */
+  sendDay: string;
   schedule: ScheduleChoice;
 }) {
   return (
@@ -302,7 +309,7 @@ function Scheduled({
               required
               min={schedule.minDay}
               max={schedule.maxDay}
-              defaultValue={item.sendAt.toISOString().slice(0, 10)}
+              defaultValue={sendDay}
               className={field}
             />
           </label>

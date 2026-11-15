@@ -1,4 +1,6 @@
 import { err, ok, type Result } from "../result";
+import { localDay } from "../schedule/public-game";
+import { addDays } from "../season/rollover";
 
 /**
  * When a scheduled announcement goes out (ADR 0052). Scheduled jobs run once
@@ -6,7 +8,7 @@ import { err, ok, type Result } from "../result";
  * the outbox's daily sweep (vercel.json, `/api/jobs/outbox`) on the day the
  * admin picks. Any earlier drain, such as the one after another message is
  * sent, can't release it before that time, so the sweep is the send time.
- * Pure: the caller passes the clock.
+ * Pure: the caller passes the clock and the league's time zone.
  */
 
 /** The outbox sweep's time of day, in UTC; vercel.json's schedule matches. */
@@ -18,20 +20,29 @@ export const MAX_DAYS_AHEAD = 120;
 const DAY_MS = 86_400_000;
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/**
- * The sweep on a calendar day (YYYY-MM-DD). For a league west of UTC, or
- * up to ten hours east, that's the same date in the league's time zone:
- * 8:30 or 9:30 a.m. in New York.
- */
-export function sweepOn(day: string): Date {
-  return new Date(
+const utcSweep = (day: string) =>
+  new Date(
     `${day}T${pad(OUTBOX_SWEEP_UTC.hour)}:${pad(OUTBOX_SWEEP_UTC.minute)}:00Z`,
   );
+
+/**
+ * The sweep that falls on a calendar day (YYYY-MM-DD) in the league's time
+ * zone. The sweep runs at a fixed UTC time, so in New York it is 9:30 a.m.
+ * in summer and 8:30 a.m. in winter, the same date either way. Far east of
+ * UTC (New Zealand, say) the sweep on the UTC date before is the one that
+ * lands on the chosen local day.
+ */
+export function sweepOn(day: string, timeZone: string): Date {
+  for (const d of [day, addDays(day, -1), addDays(day, 1)]) {
+    const at = utcSweep(d);
+    if (localDay(at, timeZone) === day) return at;
+  }
+  return utcSweep(day);
 }
 
 /** The first sweep after `now`. */
 export function nextSweep(now: Date): Date {
-  const today = sweepOn(now.toISOString().slice(0, 10));
+  const today = utcSweep(now.toISOString().slice(0, 10));
   return today > now ? today : new Date(today.getTime() + DAY_MS);
 }
 
@@ -41,11 +52,13 @@ export type SendTimeError =
 
 /**
  * Reads the form's choice: null to send now, or the sweep to send with.
- * A day must still have its sweep ahead, and be within MAX_DAYS_AHEAD.
+ * A day is the league's local date. It must still have its sweep ahead,
+ * and be within MAX_DAYS_AHEAD.
  */
 export function parseSendAt(
   fields: { when?: unknown; day?: unknown },
   now: Date,
+  timeZone: string,
 ): Result<Date | null, SendTimeError> {
   if (
     fields.when === undefined ||
@@ -57,12 +70,13 @@ export function parseSendAt(
   if (fields.when !== "day" || typeof fields.day !== "string")
     return err("bad_send_time");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fields.day)) return err("bad_send_time");
-  const at = sweepOn(fields.day);
+  const check = utcSweep(fields.day);
   if (
-    Number.isNaN(at.getTime()) ||
-    at.toISOString().slice(0, 10) !== fields.day
+    Number.isNaN(check.getTime()) ||
+    check.toISOString().slice(0, 10) !== fields.day
   )
     return err("bad_send_time");
+  const at = sweepOn(fields.day, timeZone);
   if (at <= now) return err("send_day_passed");
   if (at.getTime() - now.getTime() > MAX_DAYS_AHEAD * DAY_MS)
     return err("send_day_far");
