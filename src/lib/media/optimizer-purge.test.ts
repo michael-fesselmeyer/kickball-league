@@ -15,19 +15,8 @@ vi.mock("@/db/queries/member-photos", () => ({
 vi.mock("@/db/queries/merch", () => ({
   shopImageIds: async () => [...ids.merch],
 }));
-const host = vi.hoisted(() => ({
-  dangerouslyDeleteByTag: vi.fn(async () => {}),
-  dangerouslyDeleteBySrcImage: vi.fn(async () => {}),
-}));
-vi.mock("@vercel/functions", () => host);
-
-const {
-  changedSrcs,
-  hostPurger,
-  publicPhotoSrcs,
-  purgePhotoCopies,
-  purgingPhotoChanges,
-} = await import("./optimizer-purge");
+const { changedSrcs, publicPhotoSrcs, purgePhotoCopies, purgingPhotoChanges } =
+  await import("./optimizer-purge");
 
 const db = {} as Db;
 
@@ -51,24 +40,6 @@ beforeEach(() => {
   ids.member = [];
   ids.merch = [];
   vi.clearAllMocks();
-});
-
-describe("hostPurger", () => {
-  it("purges through the host only on Vercel", async () => {
-    expect(hostPurger({})).toBeNull();
-    const purger = hostPurger({ VERCEL: "1" });
-    await purger?.byTag(["/media/photos/a"]);
-    await purger?.bySrcImage(["/media/photos/a"]);
-    // Deleted at once, never served stale once more.
-    expect(host.dangerouslyDeleteByTag).toHaveBeenCalledWith(
-      ["/media/photos/a"],
-      { revalidationDeadlineSeconds: 0 },
-    );
-    expect(host.dangerouslyDeleteBySrcImage).toHaveBeenCalledWith(
-      ["/media/photos/a"],
-      { revalidationDeadlineSeconds: 0 },
-    );
-  });
 });
 
 describe("purgePhotoCopies", () => {

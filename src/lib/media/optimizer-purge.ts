@@ -1,45 +1,12 @@
-import {
-  dangerouslyDeleteBySrcImage,
-  dangerouslyDeleteByTag,
-} from "@vercel/functions";
 import type { Db } from "@/db/queries/schedule";
 import { approvedPhotoIds } from "@/db/queries/member-photos";
 import { shopImageIds } from "@/db/queries/merch";
 import { shownImageIds } from "@/db/queries/social";
 import { logError } from "@/lib/log-error";
+import { hostPurger, type PhotoCachePurger } from "./host-purger";
 import { photoSrc } from "./photo-src";
 
-/**
- * Clears cached copies of photos (ADR 0068). `byTag` clears the CDN's copy
- * of each photo's own address (tagged by `photoCacheHeaders`), `bySrcImage`
- * every resized copy the image optimizer made from it.
- */
-export type PhotoCachePurger = {
-  byTag(tags: string[]): Promise<void>;
-  bySrcImage(srcs: string[]): Promise<void>;
-};
-
-/**
- * Deleted, not marked stale: a stale copy would be served once more while
- * the host fetched the 404 in the background. With no grace period the
- * next request waits for the photo's address, which already answers 404.
- */
-const DELETE_NOW = { revalidationDeadlineSeconds: 0 };
-
-const vercelPurger: PhotoCachePurger = {
-  byTag: (tags) => dangerouslyDeleteByTag(tags, DELETE_NOW),
-  bySrcImage: (srcs) => dangerouslyDeleteBySrcImage(srcs, DELETE_NOW),
-};
-
-/**
- * The host's purge, only on Vercel. Elsewhere optimized copies keep the
- * photo's own five minutes (`optimizedPhotoLifetime`), so nothing needs it.
- */
-export function hostPurger(
-  env: Readonly<Record<string, string | undefined>> = process.env,
-): PhotoCachePurger | null {
-  return env.VERCEL === "1" ? vercelPurger : null;
-}
+export type { PhotoCachePurger };
 
 /** The host's purge API takes at most this many tags or images a call. */
 const PURGE_BATCH = 16;
