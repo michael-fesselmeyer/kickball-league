@@ -176,6 +176,20 @@ export function LiveLine({
         snapshot={snapshot}
         celebrate={celebrate}
       />
+      {/* Live innings never settle a game: the report flow does. */}
+      {result ? (
+        <p className="text-small text-text-muted">
+          Scored live, inning by inning. Thanks to whoever kept score!
+        </p>
+      ) : (
+        !closed && (
+          <p className="text-small text-text-muted">
+            <strong className="text-text">Unofficial until final.</strong> The
+            final score is reported after the game and confirmed by the
+            captains.
+          </p>
+        )
+      )}
     </section>
   );
 }
