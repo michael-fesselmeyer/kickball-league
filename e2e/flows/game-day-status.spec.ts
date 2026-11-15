@@ -49,6 +49,13 @@ test("an admin sets a game day to watching, then off, then on again", async ({
       await expect(
         visitor.getByRole("region", { name: "Game-day status" }),
       ).toContainText(/Updated \d/);
+
+      // The game page is now rendered and kept; the next change must still
+      // show on the first visit after it.
+      await visitor.goto(`/games/${game.gameId}`);
+      await expect(
+        visitor.getByText("Watching the weather: decision by 5:00 PM."),
+      ).toBeVisible();
     });
 
     await test.step("the admin calls the game off for a flooded field", async () => {
@@ -70,6 +77,14 @@ test("an admin sets a game day to watching, then off, then on again", async ({
       await visitor.goto(`/games/${game.gameId}`);
       await expect(visitor.getByText("Off. Field flooded.")).toBeVisible();
       await expectNoAxeViolations(visitor);
+      // The schedule is static HTML refreshed in the background once its
+      // season changes, so a visit just after may still be the old copy.
+      await expect(async () => {
+        await visitor.goto("/seasons/summer-2026/schedule");
+        await expect(
+          visitor.getByRole("region", { name: "Game-day status" }),
+        ).toContainText("All games are off. Field flooded.", { timeout: 1000 });
+      }).toPass({ timeout: 20_000 });
 
       await player.goto("/app");
       const next = player.getByRole("region", { name: "Your next game" });
