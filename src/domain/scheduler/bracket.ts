@@ -16,9 +16,7 @@ export type MatchStage =
  * an earlier match.
  */
 export type BracketSide =
-  | { seed: number; teamId: string }
-  | { winnerOf: string }
-  | { loserOf: string };
+  { seed: number; teamId: string } | { winnerOf: string } | { loserOf: string };
 
 export type BracketMatch = {
   /**
@@ -89,7 +87,9 @@ export function stageRoundName(
   switch (stage) {
     case "main":
       if (format === "single_elimination") return roundName(round, mainRounds);
-      return round === mainRounds ? "Winners' final" : `Winners' round ${round}`;
+      return round === mainRounds
+        ? "Winners' final"
+        : `Winners' round ${round}`;
     case "losers":
       return round === losersRoundCount(mainRounds)
         ? "Losers' final"
@@ -108,7 +108,9 @@ function continues(name: string): string {
   if (/^(Round|Winners' round|Losers' round) /.test(name))
     return `${name} continues`;
   const lower = name.charAt(0).toLowerCase() + name.slice(1);
-  return name.endsWith("s") ? `The ${lower} continue` : `The ${lower} continues`;
+  return name.endsWith("s")
+    ? `The ${lower} continue`
+    : `The ${lower} continues`;
 }
 
 /** "Sun, Aug 8" for a calendar date such as 2027-08-08. */
