@@ -254,6 +254,8 @@ const RULES = {
   // Game-day discipline: the game's ref, a captain of either team or an
   // admin files a report; only admins review it and suspend.
   "incident.log": any(isAdmin, refereesGame, captainsGame),
+  // Eject a player from the live game screen: the game's ref, or an admin.
+  "player.eject": any(isAdmin, refereesGame),
   // Field check-in (ADR 0063): show the game's code and tick players in or
   // out, with each one's waiver status. The game's ref, its captains, admins.
   "attendance.take": any(isAdmin, refereesGame, captainsGame),
