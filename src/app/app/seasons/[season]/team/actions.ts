@@ -31,6 +31,9 @@ import { readEmail, readReason } from "@/domain/keep-off/keep-off";
 import { addKeepOff, removeKeepOff, teamOfSeason } from "@/db/queries/keep-off";
 import { recordPaymentFor } from "../record-payment";
 import { allowAction } from "@/lib/action-limit";
+import { setOwnShirts, setShirtDesign } from "@/db/queries/shirt-late";
+import { parseDesign } from "@/domain/shirts/late";
+import { refreshShirtArchive } from "@/lib/public-cache";
 import { activeLeague } from "@/lib/league/active";
 
 export type InviteState = {
@@ -309,4 +312,74 @@ export async function answerCaptaincyAction(
       result.ok ? (accept ? "accepted" : "declined") : result.error,
     ),
   );
+}
+
+/**
+ * A captain picks "our own shirts or jerseys" for the team, or goes back to
+ * the league's shirt order. Co-captains may too.
+ */
+export async function setOwnShirtsAction(
+  slug: string,
+  form: FormData,
+): Promise<void> {
+  const page = `/app/seasons/${slug}/team`;
+  const subject = await requirePermissionToChange("registration.join", {
+    next: page,
+  });
+  const league = await activeLeague();
+  const season = league
+    ? await seasonForRegistration(db, league.id, slug)
+    : null;
+  if (!season) notFound();
+  const mine = await myRegistration(db, season.id, subject.userId);
+  const teamSeasonId = mine?.team?.teamSeasonId;
+  if (
+    !teamSeasonId ||
+    !can(subject, "roster.manage", { teamSeasonId, targetRole: "player" })
+  )
+    notFound();
+  const own = form.get("own") === "yes";
+  const result = await txDb.transaction((tx) =>
+    setOwnShirts(tx, { teamSeasonId, own, actorId: subject.userId }),
+  );
+  if (!result.ok) notFound();
+  refreshShirtArchive(season.id);
+  redirect(
+    `${page}?shirts=${own ? (result.value.alreadyOrdered > 0 ? "own_after_order" : "own") : "league"}#shirts`,
+  );
+}
+
+/** A captain describes the team's shirt for the league history. */
+export async function setShirtDesignAction(
+  slug: string,
+  form: FormData,
+): Promise<void> {
+  const page = `/app/seasons/${slug}/team`;
+  const subject = await requirePermissionToChange("registration.join", {
+    next: page,
+  });
+  const league = await activeLeague();
+  const season = league
+    ? await seasonForRegistration(db, league.id, slug)
+    : null;
+  if (!season) notFound();
+  const mine = await myRegistration(db, season.id, subject.userId);
+  const teamSeasonId = mine?.team?.teamSeasonId;
+  if (
+    !teamSeasonId ||
+    !can(subject, "roster.manage", { teamSeasonId, targetRole: "player" })
+  )
+    notFound();
+  const raw = form.get("design");
+  const design = parseDesign(typeof raw === "string" ? raw : "");
+  if (!design.ok) redirect(`${page}?shirts=design_too_long#shirts`);
+  await txDb.transaction((tx) =>
+    setShirtDesign(tx, {
+      teamSeasonId,
+      design: design.value,
+      actorId: subject.userId,
+    }),
+  );
+  refreshShirtArchive(season.id);
+  redirect(`${page}?shirts=design_saved#shirts`);
 }
