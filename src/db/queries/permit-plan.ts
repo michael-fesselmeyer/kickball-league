@@ -11,10 +11,10 @@ import {
 import type { PermitAlertPayload } from "@/emails/permit-alert";
 import { field, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
-import { profile } from "../schema/profile";
 import { blackout, permitWindow } from "../schema/schedule";
 import { season } from "../schema/season";
 import { groupKey } from "./books";
+import { leagueUsersWithRole } from "./leagues";
 import { enqueueMessages } from "./outbox";
 import type { Db } from "./schedule";
 
@@ -120,10 +120,8 @@ export async function queuePermitAlerts(
       .select({ name: league.name, timeZone: league.timezone })
       .from(league)
       .where(eq(league.id, leagueId)),
-    db
-      .select({ id: profile.userId })
-      .from(profile)
-      .where(eq(profile.globalRole, "owner")),
+    // This league's owners (ADR 0048).
+    leagueUsersWithRole(db, leagueId, ["owner"]),
   ]);
   if (!about || owners.length === 0 || seasons.length === 0) return 0;
   const plans = await Promise.all(
@@ -164,7 +162,7 @@ export async function queuePermitAlerts(
   return enqueueMessages(
     db,
     alerts.flatMap((a) =>
-      owners.map(({ id }) => ({
+      owners.map((id) => ({
         userId: id,
         topic: "operations" as const,
         template: "permit_alert",

@@ -3,10 +3,10 @@ import { afterAll, describe, expect, it } from "vitest";
 import type { UserId } from "@/domain/ids";
 import { field, slot, venue } from "../schema/game";
 import { message } from "../schema/message";
-import { profile } from "../schema/profile";
 import { blackout, permitWindow } from "../schema/schedule";
 import { season } from "../schema/season";
 import { leagueWorld } from "../test/league-world";
+import { grantRole } from "../test/leagues";
 import { closePool, inRolledBackDb } from "../test/transaction";
 import { queuePermitAlerts, seasonPermitPlan } from "./permit-plan";
 import type { Db } from "./schedule";
@@ -140,10 +140,7 @@ describe("queuePermitAlerts", () => {
   it("tells each owner once about the hours and each window to give back", async () => {
     await inRolledBackDb(async (db) => {
       const w = await permitWorld(db);
-      await db
-        .update(profile)
-        .set({ globalRole: "owner" })
-        .where(eq(profile.userId, w.captain));
+      await grantRole(db, w.captain, "owner", w.leagueId);
       const mine = (userId: UserId) =>
         db
           .select({ key: message.dedupeKey, payload: message.payload })
@@ -202,10 +199,7 @@ describe("queuePermitAlerts", () => {
   it("sends nothing for a season that is over", async () => {
     await inRolledBackDb(async (db) => {
       const w = await permitWorld(db);
-      await db
-        .update(profile)
-        .set({ globalRole: "owner" })
-        .where(eq(profile.userId, w.captain));
+      await grantRole(db, w.captain, "owner", w.leagueId);
       await db
         .update(season)
         .set({ status: "completed" })
