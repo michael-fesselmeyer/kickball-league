@@ -7,6 +7,7 @@ import { HelpLink } from "@/components/help-link";
 import { LineScore } from "@/components/line-score";
 import { db } from "@/db/client";
 import { hasReferee, liveGame, snapshotOf } from "@/db/queries/live-scores";
+import { permitInfoFor } from "@/db/queries/permit-watch";
 import { gameForScoring, scoreHistory } from "@/db/queries/scores";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
@@ -58,12 +59,13 @@ async function Live({
   });
   const gameId = parseId<GameId>(rawId);
   if (!gameId) notFound();
-  const [g, live, refereed, league, history] = await Promise.all([
+  const [g, live, refereed, league, history, permits] = await Promise.all([
     gameForScoring(db, gameId),
     liveGame(db, gameId),
     hasReferee(db, gameId),
     activeLeague(),
     scoreHistory(db, gameId),
+    permitInfoFor(db, [gameId]),
   ]);
   if (!g || !live) notFound();
   const ctx = {
@@ -80,6 +82,18 @@ async function Live({
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const scorePage = `/app/games/${g.id}/score`;
+  // The permit window saved with the game; the screen counts down from it
+  // on the phone's own clock, so it keeps working with no signal.
+  const info = permits.get(g.id);
+  const permit = info
+    ? {
+        permitEndsAt: info.permitEndsAt.toISOString(),
+        startsAt: info.slotStartsAt.toISOString(),
+        timeLimitMinutes: info.timeLimitMinutes,
+        innings: info.innings,
+        rule: info.rule,
+      }
+    : null;
 
   return (
     <>
@@ -152,6 +166,7 @@ async function Live({
           scorePage={scorePage}
           version={scoreVersion(history.reports, history.responses)}
           endKey={randomUUID()}
+          permit={permit}
         />
       )}
 
