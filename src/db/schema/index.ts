@@ -22,6 +22,7 @@ export * from "./field-layout";
 export * from "./field-groups";
 export * from "./free-agent";
 export * from "./friends";
+export * from "./shirt-late";
 export * from "./game";
 export * from "./game-day";
 export * from "./game-day-checklist";
