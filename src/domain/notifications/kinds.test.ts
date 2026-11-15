@@ -28,6 +28,7 @@ describe("MESSAGE_KINDS", () => {
     expect([...NON_URGENT_KINDS].sort()).toEqual([
       "announcement",
       "away_short",
+      "books_nudge",
       "books_reminder",
       "event_news",
       "gear_reminder",
