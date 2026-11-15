@@ -1057,6 +1057,10 @@ erDiagram
   league ||--o{ friend_league : "lists"
   league ||--o{ shirt_maker : "lists"
   league ||--o{ shirt_spare : "keeps spare shirts as"
+  event ||--o| tournament : "can be"
+  friend_league ||--o{ tournament : "partner of"
+  event ||--o{ guest_team : "takes"
+  guest_team ||--o{ guest_waiver_signature : "signed by guests"
   friend_league ||--o| friend_logo : "shown with"
   user ||--o{ member_photo : uploads
   team ||--o{ member_photo : "tagged in"
@@ -1570,6 +1574,15 @@ Friends of the league, as built (`src/db/schema/friends.ts`, `src/db/queries/fri
 - `friend_click` counts clicks out to an entry's site, one row per entry and UTC day. The entry's links on `/friends` and `/events` carry the HTML `ping` attribute, so the browser posts to `/api/friends/[friend]/click` as it follows the link, and that route adds one in a single statement. Nothing about who clicked is read or stored. Crawlers don't ping, and Firefox turns ping off by default, so the counts are a floor. Admins see each entry's clicks in the last 30 days and in all, to show a club what the league's promotion is worth; any cross-promotion or fee is agreed outside the app, and owners record income in the books. The counts go with their entry (`on delete cascade`).
 - `friend_logo` is one small copy of the league's logo, made on the server with sharp (fits in 192 × 192, WebP, metadata dropped) and kept in Postgres like the Instagram photos ([ADR 0023](adr/0023-instagram-photos-stored-in-postgres.md)). Uploads are PNG, JPEG or WebP up to 800 KB. A new upload replaces the row, so its public address changes with the picture. All logos together stay under 5 MB: the save takes a transaction-scoped advisory lock and counts what is stored, minus the logo it replaces.
 - Entries go with the league (`on delete cascade`), so the seed needs no clean-up step for them.
+
+Guest teams and partner tournaments, as built (`src/db/schema/tournament.ts`, `src/db/queries/tournaments.ts`, [ADR 0070](adr/0070-guest-teams-and-partner-tournaments.md)):
+
+- `tournament` is the tournament side of an `event` of kind `tournament` (one row per event, `on delete cascade`). It holds whether guest sign-ups are open, an optional cap (`max_guest_teams`, 1 to 32), the partner league on the Friends page (`partner_friend_league_id`, set null if the entry is removed), the charity (`charity_name` and `charity_url`, https only, set together, and an optional `charity_goal_cents`), `guest_data_days` (1 to 90, default 30), `guest_data_deleted_at` and the `bracket`. The app never holds donated money: the charity is a link and a goal to show.
+- `bracket` is a jsonb document (`TournamentBracket` in `src/domain/tournaments/bracket.ts`): the seeds with the team names copied in, and every match with its sources, teams, winner, scores, field and start time. It reuses the playoff engine (`placeBracket`, `advance`), so byes, advancing and corrections behave as in a season's playoffs. Because the names are copied in, it survives the deletion of the guest teams.
+- `guest_team` is a team a guest captain entered with no account: `name` (unique per event, ignoring case), `captain_name`, `captain_email`, `roster_size` (4 to 30) and `link_token`, the secret in the waiver link. Only the team's name is ever shown publicly.
+- `guest_waiver_signature` is one guest player's signature of the league's newest waiver: the typed name (unique per team, ignoring case), the time and the SHA-256 of the text shown. No IP address or browser is kept for a guest. At most `roster_size` signatures per team.
+- Guest data is deleted `guest_data_days` after the event ends (at once if an admin deleted the event) by the outbox's daily sweep (`purgeGuestData`): the `guest_team` rows go, taking their signatures with them (`on delete cascade`), and `guest_data_deleted_at` is set. The bracket and scores stay: they hold team names and numbers, nothing about people.
+- Neither table points at `user`, so the account-merge rules have nothing to move.
 
 Member photos, as built (`src/db/schema/member-photo.ts`, `src/db/queries/member-photos.ts`, [ADR 0039](adr/0039-member-photos-in-postgres.md)):
 
@@ -2228,6 +2241,9 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `shirt_maker` | unique `(league_id, name)`; check `url` starts with `https://` and is at most 300 characters; checks on name, makes and minimum order | One entry per maker name; only https links reach the page |
 | `shirt_spare` | check `delta` between -1 and 500 and not zero; a positive delta has no registration; note up to 200 characters | Stock is only ever added in batches and handed out one at a time |
 | `friend_league` | unique `(league_id, name)`; check `url` starts with `https://` and is at most 300 characters; checks on name, area and description lengths | One entry per league name; only https links reach the page |
+| `tournament` | checks on the cap (1 to 32), retention (1 to 90 days), charity name and https link set together, goal 100 to 100,000,000 cents and only with a link | A guest tournament can't hold a broken charity link or a retention outside the limits |
+| `guest_team` | unique `(event_id, lower(name))`; unique `link_token`; index `(event_id, created_at)`; checks on name, captain and roster size 4 to 30 | One team name per tournament; the waiver link finds its team in one lookup |
+| `guest_waiver_signature` | unique `(guest_team_id, lower(signed_name))`; check name length and SHA-256 format | A player can't sign twice for one team |
 | `friend_logo` | unique `friend_league_id`; check type is WebP or PNG, `byte_size = octet_length(bytes)` up to 100 KB, and both sides at most 192 px | One small logo per entry; the 5 MB total is enforced by the save |
 | `member_photo` | check type is JPEG; `bytes` and `byte_size` are null exactly when `status = 'rejected'`; `byte_size = octet_length(bytes)` up to 1 MB; width and height 1 to 1440; caption up to 200 and note up to 500 characters; `reviewed_at` is null exactly while pending | One small stored copy per photo, none kept once rejected; the 100 MB total and the daily limit are enforced on upload |
 | `message` | unique `(dedupe_key)`; index `(dedupe_key text_pattern_ops)` | The same notice is never sent twice; a prefix match (a game's score reminders, a day's rain alerts) uses an index under any collation |
