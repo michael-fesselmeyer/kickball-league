@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, avg, count, desc, eq, inArray, lte, sql } from "drizzle-orm";
 import { CATEGORIES } from "@/domain/awards/awards";
 import { seasonChampion } from "@/domain/history/history";
 import type { LeagueId, SeasonCardId, SeasonId, UserId } from "@/domain/ids";
@@ -14,6 +14,7 @@ import {
 } from "@/domain/season-card/card";
 import { awardPoll, awardVote } from "../schema/awards";
 import { user } from "../schema/auth";
+import { sportsmanshipRating } from "../schema/discipline";
 import { game, gamePeriod, gameRsvp, slot } from "../schema/game";
 import { league } from "../schema/league";
 import { gameLineup, gameLineupSpot } from "../schema/lineup";
@@ -143,6 +144,7 @@ async function seasonInputs(
     polls,
     voteCounts,
     votesCast,
+    ratings,
   ] = await Promise.all([
     games,
     db
@@ -155,14 +157,15 @@ async function seasonInputs(
       .innerJoin(game, eq(game.id, gameRsvp.gameId))
       .where(eq(game.seasonId, seasonId)),
     db
-      .select({ gameId: gameLineup.gameId, userId: gameLineupSpot.userId })
+      .select({
+        gameId: gameLineup.gameId,
+        userId: gameLineupSpot.userId,
+        pickup: gameLineupSpot.pickup,
+      })
       .from(gameLineupSpot)
       .innerJoin(gameLineup, eq(gameLineup.id, gameLineupSpot.lineupId))
       .innerJoin(game, eq(game.id, gameLineup.gameId))
-      // A sub kicking for another team is not at their own team's game.
-      .where(
-        and(eq(game.seasonId, seasonId), eq(gameLineupSpot.pickup, false)),
-      ),
+      .where(eq(game.seasonId, seasonId)),
     db
       .select({
         gameId: gamePeriod.gameId,
@@ -218,6 +221,16 @@ async function seasonInputs(
       .innerJoin(awardPoll, eq(awardPoll.id, awardVote.awardPollId))
       .where(eq(awardPoll.seasonId, seasonId))
       .groupBy(awardVote.voterId),
+    db
+      .select({
+        teamSeasonId: sportsmanshipRating.ratedTeamSeasonId,
+        average: avg(sportsmanshipRating.score),
+        ratings: count(),
+      })
+      .from(sportsmanshipRating)
+      .innerJoin(game, eq(game.id, sportsmanshipRating.gameId))
+      .where(eq(game.seasonId, seasonId))
+      .groupBy(sportsmanshipRating.ratedTeamSeasonId),
   ]);
   return {
     finished,
@@ -244,6 +257,12 @@ async function seasonInputs(
         : [];
     }),
     votesCast: new Map(votesCast.map((v) => [v.userId as string, v.votes])),
+    sportsmanship: new Map(
+      ratings.map((r) => [
+        r.teamSeasonId as string,
+        { average: Number(r.average), ratings: r.ratings },
+      ]),
+    ),
   };
 }
 
@@ -285,9 +304,15 @@ export async function seasonCardsFor(
     answered.add(r.userId);
     if (r.status === "in") mark(r.userId, r.gameId);
   }
+  // A sub kicking for another team is not at their own team's game.
+  const subbed = new Map<string, number>();
+  const finishedIds = new Set(data.finished.map((g) => g.id));
   for (const s of data.spots) {
-    answered.add(s.userId);
-    mark(s.userId, s.gameId);
+    if (!s.pickup) {
+      answered.add(s.userId);
+      mark(s.userId, s.gameId);
+    } else if (finishedIds.has(s.gameId))
+      subbed.set(s.userId, (subbed.get(s.userId) ?? 0) + 1);
   }
 
   // The halves each side kicked, from who kicked first.
@@ -322,6 +347,23 @@ export async function seasonCardsFor(
     inningsByTeam.set(teamSeasonId, innings);
   }
 
+  // The league's marks: every team's runs, and the biggest live inning.
+  const teamRuns = new Map<string, number>();
+  let biggestInning = 0;
+  for (const g of data.finished) {
+    if (g.status === "forfeit") continue;
+    teamRuns.set(g.teamA, (teamRuns.get(g.teamA) ?? 0) + (g.scoreA ?? 0));
+    teamRuns.set(g.teamB, (teamRuns.get(g.teamB) ?? 0) + (g.scoreB ?? 0));
+  }
+  for (const p of data.periods)
+    if (finishedIds.has(p.gameId))
+      biggestInning = Math.max(biggestInning, p.runs);
+  const league = {
+    teams: teamRuns.size,
+    mostTeamRuns: Math.max(0, ...teamRuns.values()),
+    biggestInning,
+  };
+
   return players.map((p) => {
     const row = rows.find((r) => r.teamId === p.teamSeasonId);
     return {
@@ -352,6 +394,9 @@ export async function seasonCardsFor(
           teamSeasonId: p.teamSeasonId,
         }),
         votesCast: data.votesCast.get(p.userId) ?? 0,
+        sportsmanship: data.sportsmanship.get(p.teamSeasonId) ?? null,
+        subGames: subbed.get(p.userId) ?? 0,
+        league,
       }),
     };
   });
