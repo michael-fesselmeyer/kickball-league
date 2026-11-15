@@ -16,6 +16,7 @@
  *   never stored (docs/adr/0026-discipline-counted-not-stored.md).
  */
 
+import { PARK_RULES, type ParkRule } from "@/domain/concerns/concerns";
 import { err, ok, type Result } from "../result";
 
 export const INCIDENT_KINDS = {
@@ -89,17 +90,28 @@ export type NewIncident = {
   kind: IncidentKind;
   details: string;
   people: string[];
+  /** What a report about use of the park is about, so a season's can be counted. */
+  parkRule?: ParkRule | null;
 };
 
 export type IncidentFormError =
-  "bad_kind" | "no_details" | "details_too_long" | "unknown_person";
+  | "bad_kind"
+  | "bad_park_rule"
+  | "no_details"
+  | "details_too_long"
+  | "unknown_person";
 
 /**
  * Reads the incident form. `people` are the ids ticked; each must be one of
  * `choices` (the two teams' players), and repeats count once.
  */
 export function parseIncidentForm(
-  values: { kind: string; details: string; people: readonly string[] },
+  values: {
+    kind: string;
+    details: string;
+    people: readonly string[];
+    parkRule?: string;
+  },
   choices: ReadonlySet<string>,
 ): Result<NewIncident, IncidentFormError> {
   if (!isIncidentKind(values.kind)) return err("bad_kind");
@@ -108,7 +120,15 @@ export function parseIncidentForm(
   if (details.length > DETAILS_MAX) return err("details_too_long");
   const people = [...new Set(values.people)];
   if (people.some((p) => !choices.has(p))) return err("unknown_person");
-  return ok({ kind: values.kind, details, people });
+  const rule = values.parkRule?.trim() ?? "";
+  if (rule !== "" && !Object.hasOwn(PARK_RULES, rule))
+    return err("bad_park_rule");
+  return ok({
+    kind: values.kind,
+    details,
+    people,
+    parkRule: rule === "" ? null : (rule as ParkRule),
+  });
 }
 
 export type NoteError = "no_note" | "note_too_long";

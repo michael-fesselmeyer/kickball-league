@@ -97,11 +97,26 @@ describe("the incident form", () => {
         choices,
       ),
     ).toEqual(
-      ok({ kind: "safety", details: "Slid into first.", people: ["a"] }),
+      ok({
+        kind: "safety",
+        details: "Slid into first.",
+        people: ["a"],
+        parkRule: null,
+      }),
     );
     expect(
       parseIncidentForm({ kind: "other", details: "x", people: [] }, choices),
-    ).toEqual(ok({ kind: "other", details: "x", people: [] }));
+    ).toEqual(ok({ kind: "other", details: "x", people: [], parkRule: null }));
+  });
+
+  it("keeps a park rule when it is one of the rules, and refuses any other", () => {
+    const base = { kind: "other", details: "x", people: [] };
+    expect(parseIncidentForm({ ...base, parkRule: "litter" }, choices)).toEqual(
+      ok({ ...base, parkRule: "litter" }),
+    );
+    expect(parseIncidentForm({ ...base, parkRule: "nope" }, choices)).toEqual(
+      err("bad_park_rule"),
+    );
   });
 
   it("refuses an unknown kind, empty or long details, and strangers", () => {
