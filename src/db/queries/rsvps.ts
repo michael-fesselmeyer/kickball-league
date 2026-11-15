@@ -5,7 +5,7 @@ import {
   checkFielding,
   type FieldingCheck,
   type FieldingRules,
-  RULEBOOK,
+  fieldingRulesOf,
 } from "@/domain/rsvp/fielding";
 import { game, gameRsvp } from "../schema/game";
 import { profile } from "../schema/profile";
@@ -92,11 +92,7 @@ export async function rulesFor(db: Db, gameId: GameId): Promise<FieldingRules> {
     .from(game)
     .innerJoin(season, eq(game.seasonId, season.id))
     .where(eq(game.id, gameId));
-  return {
-    maxFielders: found?.rules.maxFielders ?? RULEBOOK.maxFielders,
-    maxPerGender: found?.rules.maxPerGender ?? RULEBOOK.maxPerGender,
-    minimumToPlay: found?.rules.minimumToPlay ?? RULEBOOK.minimumToPlay,
-  };
+  return fieldingRulesOf(found?.rules);
 }
 
 /** A team's answers for each game, with what it can field from those "in". */
@@ -126,7 +122,7 @@ export async function teamsRsvps(
   const allGames = [...new Set([...gamesOf.values()].flat())];
   const [first] = allGames;
   if (first === undefined) return result;
-  const [members, answers, rules] = await Promise.all([
+  const [members, answers, games] = await Promise.all([
     db
       .select({
         teamSeasonId: rosterMembership.teamSeasonId,
@@ -159,8 +155,17 @@ export async function teamsRsvps(
           inArray(gameRsvp.gameId, allGames),
         ),
       ),
-    rulesFor(db, first),
+    db
+      .select({ id: game.id, kind: game.kind, rules: season.fieldingRules })
+      .from(game)
+      .innerJoin(season, eq(game.seasonId, season.id))
+      .where(inArray(game.id, allGames)),
   ]);
+  const rules = fieldingRulesOf(games.find((g) => g.id === first)?.rules);
+  // Pickups can make up a short lineup, except in playoff games.
+  const playoffs = new Set(
+    games.filter((g) => g.kind === "playoff").map((g) => g.id),
+  );
   for (const [teamSeasonId, gameIds] of gamesOf) {
     const roster = members.filter((m) => m.teamSeasonId === teamSeasonId);
     const perGame = new Map<GameId, TeamRsvps>();
@@ -182,7 +187,9 @@ export async function teamsRsvps(
         out: roster.filter((m) => said.get(m.userId) === "out").length,
         noAnswer: roster.filter((m) => !said.has(m.userId)).length,
         coming: counts,
-        fielding: checkFielding(counts, rules),
+        fielding: checkFielding(counts, rules, {
+          pickupsAllowed: !playoffs.has(gameId),
+        }),
       });
     }
     result.set(teamSeasonId, perGame);
