@@ -146,7 +146,7 @@ export function eventShareText({
   place: string | null;
   /** "Sun Kickers and Foul Play, Fall 2026", or null for a public event. */
   audience: string | null;
-  invite: { host: string; url: string } | null;
+  invite: { site: string; url: string } | null;
   url: string;
   cancelled: boolean;
 }): string {
@@ -157,7 +157,7 @@ export function eventShareText({
     when,
     place,
     audience ? `For ${audience}` : null,
-    invite ? `RSVP on ${invite.host}: ${invite.url}` : null,
+    invite ? `RSVP on ${invite.site}: ${invite.url}` : null,
     url,
   ]
     .filter((line) => line !== null)

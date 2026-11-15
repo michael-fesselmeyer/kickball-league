@@ -4,6 +4,7 @@ import { useActionState, useId, useState } from "react";
 import {
   AUDIENCE_KINDS,
   type AudienceChoices,
+  inAppRsvpByDefault,
   MAX_INVITE_URL_LENGTH,
   type ReachForm,
 } from "@/domain/events/audience";
@@ -188,6 +189,10 @@ function AudienceFields({
  * capacity and audience fields hide while it is picked (theme weeks are for
  * everyone). Hidden fields are still sent and ignored, so switching back
  * keeps what was typed.
+ *
+ * An invite link takes the RSVPs: typing one unticks "RSVPs in the app",
+ * and clearing it ticks the box again, until the admin sets the box
+ * themselves (inAppRsvpByDefault).
  */
 export function EventFormFields({
   action,
@@ -195,6 +200,7 @@ export function EventFormFields({
   reach,
   prices,
   choices,
+  hasRsvps = false,
   submitLabel,
   announceLabel,
 }: {
@@ -203,6 +209,8 @@ export function EventFormFields({
   reach: ReachForm;
   prices: TicketPriceForm;
   choices: AudienceChoices;
+  /** People have RSVP'd in the app, so RSVPs there stay on. */
+  hasRsvps?: boolean;
   submitLabel: string;
   announceLabel: string;
 }) {
@@ -216,6 +224,21 @@ export function EventFormFields({
   const v = state.values;
   const [kind, setKind] = useState(v.kind);
   const themeWeek = kind === "theme_week";
+  const [inviteUrl, setInviteUrl] = useState(state.reach.inviteUrl);
+  const [price, setPrice] = useState(state.prices.price);
+  const [inAppRsvp, setInAppRsvp] = useState(state.reach.inAppRsvp === "yes");
+  const [inAppSet, setInAppSet] = useState(false);
+  const inAppHintId = useId();
+  const follow = (next: { inviteUrl: string; price: string }) => {
+    if (!inAppSet)
+      setInAppRsvp(
+        inAppRsvpByDefault({
+          inviteUrl: next.inviteUrl,
+          ticketed: next.price.trim() !== "",
+          hasRsvps,
+        }),
+      );
+  };
   return (
     <form action={formAction} className="flex flex-col gap-4">
       {state.error && (
@@ -363,7 +386,11 @@ export function EventFormFields({
                 name="price"
                 inputMode="decimal"
                 autoComplete="off"
-                defaultValue={state.prices.price}
+                value={price}
+                onChange={(e) => {
+                  setPrice(e.target.value);
+                  follow({ inviteUrl, price: e.target.value });
+                }}
                 className={control}
               />
             )}
@@ -399,7 +426,7 @@ export function EventFormFields({
       </Field>
       <Field
         label="Invite link (optional)"
-        hint="A Partiful invite or any https:// page. It shows as a button and goes in shared messages; the app doesn't read it."
+        hint="A Partiful invite or any https:// page. Players RSVP there, so its guest list is the one that counts. The app shows the link and shares it, and never reads it."
       >
         {(props) => (
           <input
@@ -409,21 +436,37 @@ export function EventFormFields({
             inputMode="url"
             maxLength={MAX_INVITE_URL_LENGTH}
             placeholder="https://"
-            defaultValue={state.reach.inviteUrl}
+            value={inviteUrl}
+            onChange={(e) => {
+              setInviteUrl(e.target.value);
+              follow({ inviteUrl: e.target.value, price });
+            }}
             className={control}
           />
         )}
       </Field>
-      <label className="flex min-h-11 items-center gap-2" hidden={themeWeek}>
-        <input
-          type="checkbox"
-          name="inAppRsvp"
-          value="yes"
-          defaultChecked={state.reach.inAppRsvp === "yes"}
-          className="size-5 accent-brand"
-        />
-        Players RSVP in the app too (untick to use only the invite link)
-      </label>
+      <div className="flex flex-col gap-1" hidden={themeWeek}>
+        <label className="flex min-h-11 items-center gap-2">
+          <input
+            type="checkbox"
+            name="inAppRsvp"
+            value="yes"
+            checked={inAppRsvp}
+            onChange={(e) => {
+              setInAppRsvp(e.target.checked);
+              setInAppSet(true);
+            }}
+            aria-describedby={inAppHintId}
+            className="size-5 accent-brand"
+          />
+          Players RSVP in the app too
+        </label>
+        <p id={inAppHintId} className="text-small text-text-muted">
+          {hasRsvps
+            ? "People have RSVP'd here, so RSVPs in the app stay on."
+            : "Off by default with an invite link, so players have one guest list. Tick it to take RSVPs, a waitlist and RSVP emails here as well. Ticketed events always take RSVPs here."}
+        </p>
+      </div>
       <div hidden={themeWeek}>
         {/* Keyed by the saved values, so a failed save shows what was sent. */}
         <AudienceFields

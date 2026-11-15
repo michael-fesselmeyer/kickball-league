@@ -107,8 +107,16 @@ test("a team event with an invite reaches its teams and no one else", async ({
   await admin.getByLabel("Date", { exact: true }).fill("2027-03-13");
   await admin.getByLabel("Starts at").fill("20:00");
   await admin.getByLabel("Ends at").fill("23:00");
+  // The invite takes the RSVPs: the box unticks itself, and ticks again
+  // when the link is cleared.
+  const inApp = admin.getByLabel("Players RSVP in the app too");
+  await expect(inApp).toBeChecked();
   await admin.getByLabel("Invite link (optional)").fill(invite);
-  await admin.getByLabel(/^Players RSVP in the app too/).uncheck();
+  await expect(inApp).not.toBeChecked();
+  await admin.getByLabel("Invite link (optional)").fill("");
+  await expect(inApp).toBeChecked();
+  await admin.getByLabel("Invite link (optional)").fill(invite);
+  await expect(inApp).not.toBeChecked();
   await admin.getByRole("radio", { name: /^Chosen teams/ }).check();
   // The team picker starts on the season being played.
   await expect(admin.getByLabel("Season").locator("option:checked")).toHaveText(

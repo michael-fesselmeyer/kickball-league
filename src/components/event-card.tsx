@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { inviteHost } from "@/domain/events/audience";
+import { inviteSite } from "@/domain/events/audience";
 import {
   type EventKind,
   KIND_LABELS,
@@ -46,7 +46,7 @@ function roomLine(e: EventCardData, now: Date): string | null {
   if (e.endsAt <= now) return null;
   if (e.kind === "theme_week") return null;
   if (!e.inAppRsvp)
-    return e.inviteUrl ? `RSVP on ${inviteHost(e.inviteUrl)}` : null;
+    return e.inviteUrl ? `RSVP on ${inviteSite(e.inviteUrl)}` : null;
   const left = spotsLeft(e.capacity, e.going);
   if (left === null) return e.going > 0 ? `${e.going} going` : null;
   if (left === 0) return "Full: waitlist open";

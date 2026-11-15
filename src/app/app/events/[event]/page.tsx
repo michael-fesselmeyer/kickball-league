@@ -15,7 +15,7 @@ import { myTicket, spotCounts } from "@/db/queries/event-tickets";
 import { myEventRsvp } from "@/db/queries/events";
 import { giveawayForEvent } from "@/db/queries/giveaways";
 import { can } from "@/domain/authz/permissions";
-import { audienceShareLine, inviteHost } from "@/domain/events/audience";
+import { audienceShareLine, inviteSite } from "@/domain/events/audience";
 import {
   KIND_LABELS,
   nextDay,
@@ -244,7 +244,7 @@ async function EventRsvp({
         ) : window === "invite_only" ? (
           e.inviteUrl ? (
             <>
-              <p>RSVP on the event&apos;s invite.</p>
+              <p>The guest list is on {inviteSite(e.inviteUrl)}.</p>
               <InviteButton url={e.inviteUrl} primary />
             </>
           ) : (
@@ -332,7 +332,7 @@ async function EventRsvp({
               place: e.place,
               audience: audienceShareLine(e.audience, names),
               invite: e.inviteUrl
-                ? { host: inviteHost(e.inviteUrl), url: e.inviteUrl }
+                ? { site: inviteSite(e.inviteUrl), url: e.inviteUrl }
                 : null,
               url,
               cancelled: false,

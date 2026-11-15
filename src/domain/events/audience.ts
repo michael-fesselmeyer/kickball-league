@@ -133,9 +133,32 @@ export function parseInviteUrl(raw: string): Result<string | null, "invite"> {
   return url.href.length > MAX_INVITE_URL_LENGTH ? err("invite") : ok(url.href);
 }
 
-/** The invite's site, for its button: "partiful.com". */
-export function inviteHost(url: string): string {
-  return new URL(url).hostname.replace(/^www\./, "");
+/** Invite sites players know by name, by their host. */
+const INVITE_SITES: Readonly<Record<string, string>> = {
+  "partiful.com": "Partiful",
+};
+
+/**
+ * Where an invite's button sends people: "Partiful" for a Partiful link,
+ * otherwise the site's host ("events.example.test").
+ */
+export function inviteSite(url: string): string {
+  const host = new URL(url).hostname.replace(/^www\./, "");
+  return INVITE_SITES[host] ?? host;
+}
+
+/**
+ * Whether players RSVP in the app unless the admin says otherwise. An
+ * invite link (most often Partiful) takes the RSVPs, so players have one
+ * guest list. An event that sells tickets, or already has RSVPs in the
+ * app, keeps them here.
+ */
+export function inAppRsvpByDefault(e: {
+  inviteUrl: string;
+  ticketed: boolean;
+  hasRsvps: boolean;
+}): boolean {
+  return e.ticketed || e.hasRsvps || e.inviteUrl.trim() === "";
 }
 
 /** What the admin form sends about who an event is for, as strings. */

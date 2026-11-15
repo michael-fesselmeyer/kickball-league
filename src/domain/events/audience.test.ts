@@ -10,7 +10,8 @@ import {
   audienceTag,
   blankReach,
   canSee,
-  inviteHost,
+  inAppRsvpByDefault,
+  inviteSite,
   isTold,
   parseInviteUrl,
   parseReach,
@@ -184,11 +185,45 @@ describe("parseInviteUrl", () => {
   });
 
   it("names the invite's site for its button", () => {
-    expect(inviteHost("https://www.partiful.example.test/e/1")).toBe(
+    expect(inviteSite("https://www.partiful.example.test/e/1")).toBe(
       "partiful.example.test",
     );
-    expect(inviteHost("https://events.example.test/x")).toBe(
+    expect(inviteSite("https://events.example.test/x")).toBe(
       "events.example.test",
+    );
+  });
+
+  it("calls a Partiful invite Partiful", () => {
+    expect(inviteSite("https://partiful.com/e/AbC123")).toBe("Partiful");
+    expect(inviteSite("https://www.partiful.com/e/AbC123")).toBe("Partiful");
+    // Only Partiful's own site, not a page that borrows the name.
+    expect(inviteSite("https://partiful.com.example.test/e/1")).toBe(
+      "partiful.com.example.test",
+    );
+  });
+});
+
+describe("inAppRsvpByDefault", () => {
+  const free = { ticketed: false, hasRsvps: false };
+
+  it("takes RSVPs in the app when there's no invite link", () => {
+    expect(inAppRsvpByDefault({ ...free, inviteUrl: "" })).toBe(true);
+    expect(inAppRsvpByDefault({ ...free, inviteUrl: "   " })).toBe(true);
+  });
+
+  it("leaves the RSVPs to the invite once there is one", () => {
+    expect(
+      inAppRsvpByDefault({ ...free, inviteUrl: "https://partiful.com/e/1" }),
+    ).toBe(false);
+  });
+
+  it("keeps them in the app for tickets or RSVPs already taken", () => {
+    const inviteUrl = "https://partiful.com/e/1";
+    expect(inAppRsvpByDefault({ ...free, inviteUrl, ticketed: true })).toBe(
+      true,
+    );
+    expect(inAppRsvpByDefault({ ...free, inviteUrl, hasRsvps: true })).toBe(
+      true,
     );
   });
 });

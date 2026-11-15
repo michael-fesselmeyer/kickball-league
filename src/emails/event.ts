@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { inviteSite } from "@/domain/events/audience";
 import { defineTemplate } from "./define";
 import { renderEmail } from "./layout";
 
@@ -18,9 +19,6 @@ export const eventNoticePayload = z.object({
 
 export type EventNoticePayload = z.infer<typeof eventNoticePayload>;
 
-/** The invite's site, for its line: "partiful.com". */
-const hostOf = (url: string) => new URL(url).hostname.replace(/^www\./, "");
-
 /**
  * A waitlisted player got a spot, an event they RSVP'd to was called off,
  * or an admin told an event's audience about it or about a change.
@@ -29,7 +27,7 @@ export const eventNoticeEmail = defineTemplate(eventNoticePayload, (p, ctx) => {
   const where = p.place ? `${p.when}, ${p.place}` : p.when;
   if (p.kind === "announced" || p.kind === "updated") {
     const invite = p.inviteUrl
-      ? [`RSVP on ${hostOf(p.inviteUrl)}: ${p.inviteUrl}`]
+      ? [`RSVP on ${inviteSite(p.inviteUrl)}: ${p.inviteUrl}`]
       : [];
     return renderEmail(
       {

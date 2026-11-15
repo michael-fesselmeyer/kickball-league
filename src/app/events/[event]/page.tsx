@@ -21,7 +21,7 @@ import {
   themeWeekDays,
   whenLine,
 } from "@/domain/events/event";
-import { inviteHost } from "@/domain/events/audience";
+import { inviteSite } from "@/domain/events/audience";
 import { priceLine } from "@/domain/events/tickets";
 import { eventShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
@@ -303,7 +303,7 @@ async function EventDetails({ slug }: { slug: string }) {
           {e.inviteUrl ? (
             <>
               <p className="text-small text-text-muted">
-                RSVP on the event&apos;s invite.
+                The guest list is on {inviteSite(e.inviteUrl)}.
               </p>
               <InviteButton url={e.inviteUrl} primary />
             </>
@@ -348,7 +348,7 @@ async function EventDetails({ slug }: { slug: string }) {
               place: e.place,
               audience: null,
               invite: e.inviteUrl
-                ? { host: inviteHost(e.inviteUrl), url: e.inviteUrl }
+                ? { site: inviteSite(e.inviteUrl), url: e.inviteUrl }
                 : null,
               url,
               cancelled: e.cancelledAt !== null,
