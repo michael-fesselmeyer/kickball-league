@@ -289,7 +289,7 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `new_team` | non-urgent | Answers to new-team requests |
 | `private_event` | urgent | Your request for a private league or tournament: received, set up or declined |
 | `payment_reminder` | urgent | Payment deadline reminders |
-| `permit_alert` | non-urgent | For owners: a season near NYC Parks' 50-hour insurance line, or permitted field time to give back |
+| `permit_alert` | non-urgent | For owners: a season near NYC Parks' 50-hour insurance line, permitted field time to give back, or games and events a permit no longer covers |
 | `photo_review` | non-urgent | Whether the league used a photo you uploaded |
 | `rain_alert` | urgent | Rain alerts for admins the day before games |
 | `rain_decision` | urgent | Rain-out decision alerts for owners on game days |
