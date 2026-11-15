@@ -291,6 +291,16 @@ async function Rollover({
                 value={t.teamSeasonId}
               />
             ))}
+            <label className="flex min-h-11 items-center gap-2">
+              <input
+                type="checkbox"
+                name="checklist"
+                value="1"
+                defaultChecked
+                className="size-5"
+              />
+              Start its season checklist from the template
+            </label>
             <SubmitButton className="btn btn-primary" disabled={taken}>
               Create {plan.value.name} as a draft
             </SubmitButton>
