@@ -5,21 +5,32 @@
  *   disputes it. A ref who plays for one of the teams reports for that team,
  *   so the other team answers. An admin's report is final at once.
  * - A report nobody disputes becomes final 24 hours after it was made.
- * - A game called after at least 4 complete innings counts with the score at
- *   the last complete inning. Fewer innings is not a result (it is a
- *   rain-out, handled elsewhere).
- * - A forfeit has no score; the other team wins.
+ * - What counts as a valid result is the sport's rule (ADR 0072): see
+ *   src/domain/sports. A forfeit has no score; the other team wins.
  *
  * Pure: the caller passes the time.
  */
 
-export const OUTCOMES = ["normal", "called", "forfeit_a", "forfeit_b"] as const;
-export type Outcome = (typeof OUTCOMES)[number];
+import type { Outcome } from "@/domain/sports/result";
 
-export const MIN_CALLED_INNINGS = 4;
-export const MAX_RUNS = 99;
+export {
+  CALL_REASONS,
+  type CallReason,
+  OUTCOMES,
+  type Outcome,
+  PLAYOFF_TIE,
+  type ScoreErrors,
+  type ScoreInput,
+} from "@/domain/sports/result";
+// Kickball's checks, the default sport's (ADR 0072). Other sports' checks
+// are in src/domain/sports; `sportRules(sport).score.check` picks one.
+export {
+  checkScore,
+  MAX_RUNS,
+  MIN_CALLED_INNINGS,
+} from "@/domain/sports/kickball";
+
 export const AUTO_FINAL_HOURS = 24;
-export const PLAYOFF_TIE = "Playoff games can't end in a tie. Play it out.";
 
 /** The longest written reason for a ruling. */
 export const REASON_MAX = 300;
@@ -55,56 +66,6 @@ export function rulingKind(
 ): RulingKind {
   if (outcome === "forfeit_a" || outcome === "forfeit_b") return "forfeit";
   return before.status === "forfeit" ? "forfeit_reversed" : "ruling";
-}
-
-export type ScoreInput = {
-  outcome: Outcome;
-  scoreA: number;
-  scoreB: number;
-  inningsPlayed: number | null;
-  /** A called game only: the light ran out, or the field had to be clear (#467). */
-  callReason?: CallReason | null;
-};
-
-export const CALL_REASONS = ["daylight", "field_time"] as const;
-export type CallReason = (typeof CALL_REASONS)[number];
-
-export type ScoreErrors = {
-  scoreA?: string;
-  scoreB?: string;
-  inningsPlayed?: string;
-};
-
-const validRuns = (n: number) => Number.isInteger(n) && n >= 0 && n <= MAX_RUNS;
-
-/**
- * Checks a reported score; forfeits ignore the runs. Playoff games cannot
- * end in a tie (rulebook 3.1.2), so the caller turns ties off for them.
- */
-export function checkScore(
-  input: ScoreInput,
-  { tiesAllowed = true }: { tiesAllowed?: boolean } = {},
-): ScoreErrors {
-  const errors: ScoreErrors = {};
-  if (input.outcome === "forfeit_a" || input.outcome === "forfeit_b")
-    return errors;
-  if (!validRuns(input.scoreA))
-    errors.scoreA = `Enter runs from 0 to ${MAX_RUNS}.`;
-  if (!validRuns(input.scoreB))
-    errors.scoreB = `Enter runs from 0 to ${MAX_RUNS}.`;
-  if (input.outcome === "called") {
-    const innings = input.inningsPlayed;
-    if (
-      innings === null ||
-      !Number.isInteger(innings) ||
-      innings < MIN_CALLED_INNINGS ||
-      innings > 20
-    )
-      errors.inningsPlayed = `A called game counts after ${MIN_CALLED_INNINGS} complete innings or more.`;
-  }
-  if (!tiesAllowed && !errors.scoreB && input.scoreA === input.scoreB)
-    errors.scoreB = PLAYOFF_TIE;
-  return errors;
 }
 
 export type ReporterRole = "referee" | "captain" | "admin";

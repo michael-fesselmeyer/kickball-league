@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { RUN_DIFFERENCE_CAP } from "@/domain/sports/kickball";
 
 /**
  * League standings (product-spec.md, "Game day"; open question 6).
@@ -8,6 +9,9 @@ import { createHash } from "node:crypto";
  *   is computed over the teams still tied, so head-to-head looks only at
  *   games between them.
  * - Run difference is capped at 10 a game, so a blowout cannot decide a tie.
+ *   That cap is kickball's: another sport passes its own, or none for one
+ *   whose scores are already bounded, such as sets (ADR 0072). Every
+ *   "run" here is the sport's scoring unit.
  * - A forfeit is a win for one team and a loss for the other. Its score does
  *   not count toward runs (an assumption until the owners say otherwise).
  * - The coin flip is a hash of the season and the team, so it is random but
@@ -27,7 +31,8 @@ export const DEFAULT_TIEBREAKERS: readonly Tiebreaker[] = [
   "coin_flip",
 ];
 
-export const RUN_DIFFERENCE_CAP = 10;
+// Kickball's cap, kept under its old name for the standings and stats.
+export { RUN_DIFFERENCE_CAP };
 
 export type ResultGame =
   | {
@@ -49,7 +54,7 @@ export type StandingsRow = {
   winPct: number;
   runsFor: number;
   runsAgainst: number;
-  /** Capped at RUN_DIFFERENCE_CAP a game. */
+  /** Capped at the sport's cap a game: RUN_DIFFERENCE_CAP for kickball. */
   runDifference: number;
   /** Latest result first: "W3" is three wins in a row; empty before any game. */
   streak: string;
@@ -74,8 +79,11 @@ type Side = {
   diff: number;
 };
 
+/** The most one game moves the difference; null for no cap. */
+type Cap = number | null;
+
 /** The outcome of one game for each side, with the runs that count. */
-function sides(game: ResultGame): [Side, Side] {
+function sides(game: ResultGame, limit: Cap): [Side, Side] {
   if (game.kind === "forfeit") {
     const aLoses = game.forfeitBy === game.teamA;
     return [
@@ -100,7 +108,7 @@ function sides(game: ResultGame): [Side, Side] {
   const outcomeB: Outcome =
     outcomeA === "W" ? "L" : outcomeA === "L" ? "W" : "T";
   const cap = (n: number) =>
-    Math.max(-RUN_DIFFERENCE_CAP, Math.min(RUN_DIFFERENCE_CAP, n));
+    limit === null ? n : Math.max(-limit, Math.min(limit, n));
   return [
     {
       team: game.teamA,
@@ -131,6 +139,7 @@ function tallyOf(all: Map<string, Tally>, team: string): Tally {
 function totals(
   teamIds: readonly string[],
   games: readonly ResultGame[],
+  limit: Cap,
 ): Map<string, Tally> {
   const byTeam = new Map<string, Tally>(
     teamIds.map((teamId) => [
@@ -152,7 +161,7 @@ function totals(
     ]),
   );
   for (const game of games)
-    for (const side of sides(game)) {
+    for (const side of sides(game, limit)) {
       const t = byTeam.get(side.team);
       if (!t) continue;
       t.played++;
@@ -183,7 +192,8 @@ function headToHead(group: readonly string[], games: readonly ResultGame[]) {
   const among = games.filter(
     (g) => members.has(g.teamA) && members.has(g.teamB),
   );
-  const mini = totals(group, among);
+  // Head-to-head reads win percentage only, which no cap changes.
+  const mini = totals(group, among, null);
   return (team: string) => mini.get(team)?.winPct ?? 0;
 }
 
@@ -259,9 +269,15 @@ export function standings(
   {
     tiebreakers = DEFAULT_TIEBREAKERS,
     seed,
-  }: { tiebreakers?: readonly Tiebreaker[]; seed: string },
+    differenceCap = RUN_DIFFERENCE_CAP,
+  }: {
+    tiebreakers?: readonly Tiebreaker[];
+    seed: string;
+    /** The most one game moves the difference; null for no cap. */
+    differenceCap?: number | null;
+  },
 ): StandingsRow[] {
-  const all = totals(teamIds, games);
+  const all = totals(teamIds, games, differenceCap);
   // Win percentage always leads; the rest follow the season's order.
   const rules: Tiebreaker[] = [
     "win_pct",
@@ -310,6 +326,7 @@ export function divisionStandings(
   }: {
     tiebreakers?: readonly Tiebreaker[];
     seed: string;
+    differenceCap?: number | null;
     crossoversCount?: boolean;
   },
 ): { id: string; rows: StandingsRow[] }[] {

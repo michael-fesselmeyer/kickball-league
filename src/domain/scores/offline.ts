@@ -1,6 +1,7 @@
 import { type Half, type HalfInning, HALVES, ordinal } from "./live";
 import type { OfflineEntry, OfflineHalf } from "./offline-entry";
 import type { ScoreInput } from "./scores";
+import { calledNote } from "@/domain/sports/sports";
 
 /**
  * Score entries made with no signal (product-spec.md, section 6; ADR 0025).
@@ -82,7 +83,7 @@ export function describeScore(names: Names, score: ScoreInput): string {
   if (score.outcome === "forfeit_b") return `${names.B} forfeited`;
   const line = `${names.A} ${score.scoreA}, ${names.B} ${score.scoreB}`;
   return score.outcome === "called"
-    ? `${line} (called after ${score.inningsPlayed} innings)`
+    ? `${line}${calledNote(score.inningsPlayed)}`
     : line;
 }
 
