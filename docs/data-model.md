@@ -1773,7 +1773,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `equipment_report` | check it lists an item or has a note; note length 1 to 500 | A report says what is missing |
 | `team_season` | foreign key `(division_id, season_id)` to `division (id, season_id)` | A team's division is in its own season |
 | `division` | unique `(season_id, slug)`, unique `(season_id, name)`; check slug format | One division per name and public address in a season |
-| `rule_set` | unique `(league_id, name)`; check innings 1 to 15 and time limit 10 to 240 | Rule sets are named once per league, with sane limits |
+| `rule_set` | unique `(league_id, name)`; `options.permitEndRule` (`call_at_last_complete`, the default, or `last_inning_to_start`) says what happens when a game reaches its permit's end (#406); check innings 1 to 15 and time limit 10 to 240 | Rule sets are named once per league, with sane limits |
 | `season` | check `crossover_games between 0 and 10` | A sane crossover count |
 | `bracket` | unique `(season_id, division_id)` nulls not distinct | One season-wide bracket, or one per division |
 | `slot` | unique `(field_id, starts_at)`; check `ends_at > starts_at` | No duplicate slots |
