@@ -1,6 +1,9 @@
 import type { StatGame } from "./games";
 import type { PowerRow } from "./power";
 import { rivalry } from "./rivalry";
+import { fill } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 
 /**
  * The game of the week: the most promising matchup among the next game
@@ -70,17 +73,13 @@ export function gameOfTheWeek(
 }
 
 /** Why this game, in a sentence. */
-export function pickBlurb(reason: PickReason, a: string, b: string): string {
-  switch (reason) {
-    case "top_clash":
-      return `Two of the top three in the power rankings. ${a} and ${b} settle who's really in charge.`;
-    case "close_rematch":
-      return `Their last meeting came down to the wire. ${a} and ${b} run it back.`;
-    case "evenly_matched":
-      return `${a} and ${b} are neck and neck in the power rankings. Bring a lawn chair.`;
-    case "best_available":
-      return `The closest matchup on the card: ${a} against ${b}.`;
-  }
+export function pickBlurb(
+  reason: PickReason,
+  a: string,
+  b: string,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  return fill(messagesFor(locale).stats.blurb[reason], { a, b });
 }
 
 /** The next game day's matchups: every game on the earliest day after `now`. */

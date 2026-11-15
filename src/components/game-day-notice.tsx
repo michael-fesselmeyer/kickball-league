@@ -18,15 +18,25 @@ export async function GameStatusLine({
   date,
   gameId,
   timeZone,
+  locale = DEFAULT_LOCALE,
 }: {
   seasonId: SeasonId;
   date: string;
   gameId: string;
   timeZone: string;
+  /** The page's language (ADR 0094); English unless given. */
+  locale?: Locale;
 }) {
   await connection();
   const day = await cachedDayStatus(seasonId, date);
-  return <GameStatusView day={day} gameId={gameId} timeZone={timeZone} />;
+  return (
+    <GameStatusView
+      day={day}
+      gameId={gameId}
+      timeZone={timeZone}
+      locale={locale}
+    />
+  );
 }
 
 /** The status line for one game from its day's status, or nothing. */
@@ -34,14 +44,17 @@ export function GameStatusView({
   day,
   gameId,
   timeZone,
+  locale = DEFAULT_LOCALE,
 }: {
   day: DayStatus | null;
   gameId: string;
   timeZone: string;
+  /** The page's language (ADR 0094); English unless given. */
+  locale?: Locale;
 }) {
   if (!day) return null;
   const status = gameStatus({ ...day, games: new Map(day.games) }, gameId);
-  const words = gameWords(status, timeZone);
+  const words = gameWords(status, timeZone, locale);
   if (!words) return null;
   return (
     <GameDayNotice
@@ -49,6 +62,7 @@ export function GameStatusView({
       setAt={day.setAt}
       timeZone={timeZone}
       tone={toneOf(status.kind)}
+      locale={locale}
     />
   );
 }

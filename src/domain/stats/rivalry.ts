@@ -5,6 +5,9 @@ import {
   type StatGame,
   winnerOf,
 } from "./games";
+import { fill } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 
 /**
  * The history between two teams, across every season: the series record,
@@ -110,11 +113,20 @@ export function rivalriesOf(
  * "First meeting", "Series tied 2–2", "Kickers lead the series 3–1" or
  * "Kickers lead the series 3–1–1", the last number being ties.
  */
-export function seriesLine(r: Rivalry, name: (team: string) => string) {
-  if (r.meetings === 0) return "First meeting";
+export function seriesLine(
+  r: Rivalry,
+  name: (team: string) => string,
+  locale: Locale = DEFAULT_LOCALE,
+) {
+  const words = messagesFor(locale).stats;
+  if (r.meetings === 0) return words.firstMeeting;
   const ties = r.ties > 0 ? `–${r.ties}` : "";
-  if (r.winsX === r.winsY) return `Series tied ${r.winsX}–${r.winsY}${ties}`;
+  if (r.winsX === r.winsY)
+    return fill(words.seriesTied, { score: `${r.winsX}–${r.winsY}${ties}` });
   const [leader, high, low] =
     r.winsX > r.winsY ? [r.x, r.winsX, r.winsY] : [r.y, r.winsY, r.winsX];
-  return `${name(leader)} lead the series ${high}–${low}${ties}`;
+  return fill(words.seriesLead, {
+    team: name(leader),
+    score: `${high}–${low}${ties}`,
+  });
 }

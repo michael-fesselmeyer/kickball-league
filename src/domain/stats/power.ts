@@ -6,6 +6,9 @@ import {
   type StatGame,
   winPct,
 } from "./games";
+import { plural } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 
 /**
  * Power rankings: who is playing best right now, which the standings alone
@@ -142,17 +145,28 @@ export function powerRankingsWithMovement(
 }
 
 /** "▲2", "▼1", "–" or "New" for screen readers to have a word, see movementWords. */
-export function movementLabel(movement: number | null): string {
-  if (movement === null) return "New";
+export function movementLabel(
+  movement: number | null,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  if (movement === null) return messagesFor(locale).stats.movementNew;
   if (movement > 0) return `▲${movement}`;
   if (movement < 0) return `▼${-movement}`;
   return "–";
 }
 
 /** "Up 2 places", "Down 1 place", "No change" or "New this week". */
-export function movementWords(movement: number | null): string {
-  if (movement === null) return "New this week";
-  if (movement === 0) return "No change";
+export function movementWords(
+  movement: number | null,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  const words = messagesFor(locale).stats;
+  if (movement === null) return words.movementNewWords;
+  if (movement === 0) return words.movementSame;
   const n = Math.abs(movement);
-  return `${movement > 0 ? "Up" : "Down"} ${n} ${n === 1 ? "place" : "places"}`;
+  return plural(
+    locale,
+    movement > 0 ? words.movementUp : words.movementDown,
+    n,
+  );
 }

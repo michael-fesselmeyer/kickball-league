@@ -1,3 +1,7 @@
+import { fill } from "@/i18n/catalog";
+import { formatOrdinal } from "@/i18n/format";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { liveEn, type LiveWords } from "@/i18n/messages/live.en";
 import { MAX_RUNS, MIN_CALLED_INNINGS } from "./scores";
 
 /**
@@ -180,15 +184,23 @@ export function checkHalf(
 
 /** "1st", "2nd", "3rd", "4th", "11th", "21st". */
 export function ordinal(n: number): string {
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 13) return `${n}th`;
-  const suffix = ["th", "st", "nd", "rd"][n % 10] ?? "th";
-  return `${n}${suffix}`;
+  return inningOrdinal(n, DEFAULT_LOCALE);
 }
 
-/** "Top of the 4th". */
-export function positionLabel(p: Position): string {
-  return `${p.half === "top" ? "Top" : "Bottom"} of the ${ordinal(p.inning)}`;
+/** An inning's ordinal in a language: "3rd", "3.ª" (la entrada). */
+export function inningOrdinal(n: number, locale: Locale): string {
+  return formatOrdinal(locale, n, "feminine");
+}
+
+/** "Top of the 4th"; in another language, from the live score's words. */
+export function positionLabel(
+  p: Position,
+  words: Pick<LiveWords, "top" | "bottom"> = liveEn,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  return fill(p.half === "top" ? words.top : words.bottom, {
+    nth: inningOrdinal(p.inning, locale),
+  });
 }
 
 /** Innings in a regulation game (rulebook 3.1); the line score shows them all. */

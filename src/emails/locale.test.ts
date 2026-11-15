@@ -93,9 +93,9 @@ describe("an email in the recipient's language", () => {
       sent("payment_reminder", { ...payment, daysLeft: 1 }, "es", "payment")
         .subject,
     ).toBe("Tu cuota de Fall 2026 vence mañana");
-    expect(sent("payment_reminder", payment, undefined, "payment").subject).toBe(
-      "Your Fall 2026 fee is due in 3 days",
-    );
+    expect(
+      sent("payment_reminder", payment, undefined, "payment").subject,
+    ).toBe("Your Fall 2026 fee is due in 3 days");
   });
 
   it("keeps an admin-only email in English, frame and all", () => {

@@ -1,4 +1,7 @@
 import { type Outcome, sidesOf, type StatGame } from "./games";
+import { fill } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 
 /**
  * Win and loss streaks. A streak is the run of identical results ending
@@ -53,21 +56,40 @@ export function teamStreaks(
 }
 
 /** "W3", the standings' shorthand; empty before any game. */
-export function streakLabel(streak: Streak | null): string {
-  return streak ? `${streak.outcome}${streak.length}` : "";
+export function streakLabel(
+  streak: Streak | null,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  return streak
+    ? `${messagesFor(locale).stats.outcome[streak.outcome]}${streak.length}`
+    : "";
+}
+
+/**
+ * Results written as one letter each ("WWLTW", "W3") in a language's own
+ * letters: in Spanish, G, P and E.
+ */
+export function outcomeLetters(
+  text: string,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  const letters = messagesFor(locale).stats.outcome;
+  return text.replace(/[WLT]/g, (c) => letters[c as Outcome]);
 }
 
 /** A line about a streak worth mentioning, or null for a quiet one. */
-export function streakNote(name: string, streak: Streak | null): string | null {
+export function streakNote(
+  name: string,
+  streak: Streak | null,
+  locale: Locale = DEFAULT_LOCALE,
+): string | null {
   if (!streak || streak.length < 2) return null;
+  const words = messagesFor(locale).stats;
   const n = streak.length;
+  const say = (message: string) => fill(message, { name, n });
   if (streak.outcome === "W")
-    return n >= 4
-      ? `${name} are on fire: ${n} wins in a row.`
-      : `${name} have won ${n} straight.`;
+    return say(n >= 4 ? words.onFire : words.wonStraight);
   if (streak.outcome === "L")
-    return n >= 4
-      ? `${name} have dropped ${n} in a row. The only way is up.`
-      : `${name} have lost ${n} straight and are due.`;
-  return `${name} have tied ${n} in a row. Remarkably balanced.`;
+    return say(n >= 4 ? words.droppedRow : words.lostStraight);
+  return say(words.tiedRow);
 }

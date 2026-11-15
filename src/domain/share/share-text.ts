@@ -1,4 +1,7 @@
 import { dayHeading, kickoff, shortDay } from "../schedule/format";
+import { fill } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 import {
   isCalledOff,
   placeLine,
@@ -16,46 +19,47 @@ import {
 export const bold = (text: string): string =>
   `*${text.replaceAll("*", "").trim()}*`;
 
-/** A wa.me link that opens WhatsApp with the message filled in. */
-export function whatsappHref(text: string): string {
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
-}
+export { whatsappHref } from "./whatsapp";
 
 /** "Sun, Nov 16, 1:00 PM", or null when the game has no time yet. */
-function when(g: PublicGame, timeZone: string): string | null {
+function when(g: PublicGame, timeZone: string, locale: Locale): string | null {
   return g.startsAt
-    ? `${shortDay(g.startsAt, timeZone)}, ${kickoff(g.startsAt, timeZone)}`
+    ? `${shortDay(g.startsAt, timeZone, locale)}, ${kickoff(g.startsAt, timeZone, locale)}`
     : null;
 }
 
 /** A game's result, rain-out or matchup, with its link. */
 export function gameShareText(
   g: PublicGame,
-  { url, timeZone }: { url: string; timeZone: string },
+  {
+    url,
+    timeZone,
+    locale = DEFAULT_LOCALE,
+  }: { url: string; timeZone: string; locale?: Locale },
 ): string {
-  const matchup = `${g.teamA.name} vs ${g.teamB.name}`;
-  const time = when(g, timeZone);
+  const { game: words, stats } = messagesFor(locale);
+  const matchup = bold(fill(stats.vs, { a: g.teamA.name, b: g.teamB.name }));
+  const time = when(g, timeZone, locale);
   const place = placeLine(g);
-  const result = resultLine(g);
+  const result = resultLine(g, locale);
+  const status = statusLabel(g, locale) ?? "";
   let lines: (string | null)[];
   if (result) {
     lines = [
-      `${statusLabel(g)}: ${bold(result)}`,
-      g.startsAt ? shortDay(g.startsAt, timeZone) : null,
+      fill(words.shareResult, { status, result: bold(result) }),
+      g.startsAt ? shortDay(g.startsAt, timeZone, locale) : null,
     ];
   } else if (isCalledOff(g)) {
     lines = [
-      `${statusLabel(g)}: ${bold(matchup)}${time ? ` (${time})` : ""} is off.`,
-      "The makeup goes on the schedule as soon as the league sets it.",
+      time
+        ? fill(words.shareOffAt, { status, matchup, time })
+        : fill(words.shareOff, { status, matchup }),
+      words.shareMakeup,
     ];
   } else if (g.status === "in_progress") {
-    lines = [`Live now: ${bold(matchup)}`, place];
+    lines = [fill(words.shareLive, { matchup }), place];
   } else {
-    lines = [
-      `Game on: ${bold(matchup)}`,
-      time ?? "Time to be announced",
-      place,
-    ];
+    lines = [fill(words.shareOn, { matchup }), time ?? words.tba, place];
   }
   return [...lines.filter(Boolean), url].join("\n");
 }
@@ -68,14 +72,17 @@ export type TeamShare = {
 };
 
 /** A team's season so far, with its link. */
-export function teamShareText(t: TeamShare): string {
+export function teamShareText(
+  t: TeamShare,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
   const record =
     t.record && t.record.wins + t.record.losses + t.record.ties > 0
       ? ` · ${t.record.wins}-${t.record.losses}-${t.record.ties}`
       : "";
   return [
     `${bold(t.name)}${t.seasonName ? ` · ${t.seasonName}` : ""}${record}`,
-    "Schedule, results and a calendar feed:",
+    messagesFor(locale).team.shareText,
     t.url,
   ].join("\n");
 }

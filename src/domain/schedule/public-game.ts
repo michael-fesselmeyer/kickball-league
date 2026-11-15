@@ -1,4 +1,5 @@
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { fill } from "@/i18n/catalog";
 import { messagesFor } from "@/i18n/messages";
 /**
  * A game as the public pages and calendar feeds show it: where the
@@ -86,11 +87,14 @@ export function hasResult(g: PublicGame): boolean {
 }
 
 /** "Sluggers 5, Kickers 3" or "Kickers win by forfeit"; null without a result. */
-export function resultLine(g: PublicGame): string | null {
+export function resultLine(
+  g: PublicGame,
+  locale: Locale = DEFAULT_LOCALE,
+): string | null {
   if (!hasResult(g)) return null;
   if (g.status === "forfeit") {
     const winner = g.forfeitBy === g.teamA.id ? g.teamB : g.teamA;
-    return `${winner.name} win by forfeit`;
+    return fill(messagesFor(locale).game.winByForfeit, { team: winner.name });
   }
   const a = { name: g.teamA.name, runs: g.scoreA as number };
   const b = { name: g.teamB.name, runs: g.scoreB as number };

@@ -11,6 +11,10 @@ import { cachedMeetings, cachedSeasonSchedule } from "@/lib/game-cache";
 import { PUBLIC_PAGE_LIFE } from "@/lib/public-cache";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 import type { LeagueId } from "@/domain/ids";
+import { fill } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
+import { linkIn } from "@/i18n/routing";
 
 const MEETINGS_SHOWN = 5;
 
@@ -24,10 +28,13 @@ export async function GameStats({
   league,
   game,
   timeZone,
+  locale = DEFAULT_LOCALE,
 }: {
   league: LeagueRef & { id: LeagueId };
   game: PublicGame;
   timeZone: string;
+  /** The page's language (ADR 0065); English unless given. */
+  locale?: Locale;
 }) {
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
@@ -35,6 +42,7 @@ export async function GameStats({
     cachedMeetings(league.id, game.teamA.slug, game.teamB.slug),
     cachedSeasonSchedule(game.seasonId as SeasonId),
   ]);
+  const words = messagesFor(locale).stats;
   const a = game.teamA.slug;
   const b = game.teamB.slug;
   const stats = seasonStats(
@@ -49,7 +57,7 @@ export async function GameStats({
   const isPick = stats.pick?.gameId === game.id;
   const form = [game.teamA, game.teamB].map((t) => ({
     team: t,
-    streak: streakLabel(stats.streaks.get(t.slug)?.current ?? null),
+    streak: streakLabel(stats.streaks.get(t.slug)?.current ?? null, locale),
   }));
 
   return (
@@ -60,26 +68,36 @@ export async function GameStats({
           className="flex flex-col gap-2 rounded-card border-2 border-text bg-surface p-4 shadow-sticker"
         >
           <h2 id="pick" className="sticker self-start">
-            Game of the week
+            {words.gameOfTheWeek}
           </h2>
           <p>
-            {pickBlurb(stats.pick.reason, game.teamA.name, game.teamB.name)}
+            {pickBlurb(
+              stats.pick.reason,
+              game.teamA.name,
+              game.teamB.name,
+              locale,
+            )}
           </p>
         </section>
       )}
 
       <section aria-labelledby="head-to-head" className="flex flex-col gap-3">
         <h2 id="head-to-head" className="text-h3">
-          Head to head
+          {words.headToHead}
         </h2>
-        <p className="text-body-lg">{seriesLine(series, name)}</p>
+        <p className="text-body-lg">{seriesLine(series, name, locale)}</p>
         {form.some((f) => f.streak) && (
           <p className="text-small text-text-muted">
-            This season&apos;s streaks:{" "}
-            {form
-              .map((f) => `${f.team.name} ${f.streak || "none yet"}`)
-              .join(", ")}
-            .
+            {fill(words.seasonStreaks, {
+              list: form
+                .map((f) =>
+                  fill(words.teamStreak, {
+                    team: f.team.name,
+                    streak: f.streak || words.noneYet,
+                  }),
+                )
+                .join(", "),
+            })}
           </p>
         )}
         {series.history.length > 0 && (
@@ -90,18 +108,24 @@ export async function GameStats({
                 className="flex flex-wrap items-center justify-between gap-x-3 border-t border-border py-1"
               >
                 <Link
-                  href={leagueHref(league, `/games/${m.gameId}`)}
+                  href={linkIn(
+                    locale,
+                    leagueHref(league, `/games/${m.gameId}`),
+                  )}
                   aria-current={m.gameId === game.id ? "page" : undefined}
                   className="inline-flex min-h-11 items-center underline"
                 >
-                  {shortDay(m.playedAt, timeZone)}
+                  {shortDay(m.playedAt, timeZone, locale)}
                 </Link>
                 <span className="text-small tabular-nums">
                   {m.winner === null
-                    ? `Tied ${m.runsX}–${m.runsY}`
+                    ? fill(words.tiedScore, { score: `${m.runsX}–${m.runsY}` })
                     : m.runsX === null || m.runsY === null
-                      ? `${name(m.winner)} by forfeit`
-                      : `${name(m.winner)} ${Math.max(m.runsX, m.runsY)}–${Math.min(m.runsX, m.runsY)}`}
+                      ? fill(words.byForfeit, { team: name(m.winner) })
+                      : fill(words.wonScore, {
+                          team: name(m.winner),
+                          score: `${Math.max(m.runsX, m.runsY)}–${Math.min(m.runsX, m.runsY)}`,
+                        })}
                 </span>
               </li>
             ))}

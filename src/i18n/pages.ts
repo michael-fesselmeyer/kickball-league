@@ -14,7 +14,16 @@ import { DEFAULT_LOCALE, LOCALES, type Locale } from "./locales";
 export const TRANSLATED_PAGES: Readonly<Record<Locale, readonly string[]>> = {
   // English is the source: every page, whatever this says.
   en: [],
-  es: ["/", "/faq", "/seasons/*/schedule"],
+  es: [
+    "/",
+    "/faq",
+    "/seasons/*/schedule",
+    "/about",
+    "/parks/mccarren-park",
+    "/seasons/*/standings",
+    "/teams/*",
+    "/games/*",
+  ],
 };
 
 const compiled = new Map<string, RegExp>();

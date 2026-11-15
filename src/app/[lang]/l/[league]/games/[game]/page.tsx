@@ -45,6 +45,12 @@ import type { LeagueInfo } from "@/db/queries/leagues";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
 import { cachedLeague, publicLeague } from "@/lib/league/public";
 import { type LeagueParams, publicGameParams } from "@/lib/static-params";
+import { fill } from "@/i18n/catalog";
+import type { Locale } from "@/i18n/locales";
+import { localeOf, messagesFor } from "@/i18n/messages";
+import { languageAlternates, linkIn } from "@/i18n/routing";
+
+type Props = PageProps<"/[lang]/l/[league]/games/[game]">;
 
 /**
  * The page reads its game id outside any <Suspense> boundary, so it has no
@@ -79,33 +85,42 @@ async function load(league: LeagueInfo | null, param: string) {
   return found?.leagueId === league?.id ? found : null;
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps<"/[lang]/l/[league]/games/[game]">): Promise<Metadata> {
-  const { league: segment, game: param } = await params;
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { league: segment, game: param, lang } = await params;
+  const locale = localeOf(lang);
+  const { game: words, stats } = messagesFor(locale);
   const league = await cachedLeague(segment);
   const found = await load(league, param);
-  if (!league || !found) return { title: "Game" };
+  if (!league || !found) return { title: words.title };
   const { game } = found;
-  const title = `${game.teamA.name} vs ${game.teamB.name}`;
+  const title = fill(stats.vs, { a: game.teamA.name, b: game.teamB.name });
+  const result = resultLine(game, locale);
   const description =
-    resultLine(game) ??
+    result ??
     (game.startsAt
-      ? `${game.seasonName}: ${fullWhen(game.startsAt, found.timeZone)}`
-      : `${game.seasonName}: time to be announced`);
+      ? fill(words.seasonWhen, {
+          season: game.seasonName,
+          when: fullWhen(game.startsAt, found.timeZone, locale),
+        })
+      : fill(words.seasonTba, { season: game.seasonName }));
   const card = gameCard(game, found.timeZone);
   const path = leagueHref(league, `/games/${game.id}`);
   return {
     title,
     description,
+    alternates: {
+      canonical: linkIn(locale, path),
+      languages: languageAlternates(path),
+    },
     ...shareMetadata({
-      title: resultLine(game) ?? title,
+      title: result ?? title,
       description,
-      path,
+      path: linkIn(locale, path),
       image: {
         path: `${path}/share.png?v=${cardVersion(card)}`,
         alt: card.alt,
       },
+      locale,
     }),
   };
 }
@@ -119,9 +134,7 @@ export async function generateMetadata({
  * 300 ms later. Only the day's status, the forecast and the photo prompt
  * stream in; the first two keep their space while they load (#495).
  */
-export default function GamePage(
-  props: PageProps<"/[lang]/l/[league]/games/[game]">,
-) {
+export default function GamePage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:px-6">
       <Game {...props} />
@@ -151,9 +164,13 @@ function mapLink(venue: NonNullable<PublicGame["venue"]>) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
-async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
-  const { league: segment, game: param } = await params;
+async function Game({ params }: Props) {
+  const { league: segment, game: param, lang } = await params;
+  const locale: Locale = localeOf(lang);
+  const all = messagesFor(locale);
+  const words = all.game;
   const league = await publicLeague(segment, `/games/${param}`);
+  const href = (path: string) => linkIn(locale, leagueHref(league, path));
   const id = parseId<GameId>(param);
   const [found, snapshot, photos] = await Promise.all([
     load(league, param),
@@ -164,8 +181,12 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
   const { game, timeZone } = found;
   const done = hasResult(game);
   const calledOff = isCalledOff(game);
-  const label = statusLabel(game);
-  const result = resultLine(game);
+  const label = statusLabel(game, locale);
+  const result = resultLine(game, locale);
+  const matchup = fill(all.stats.vs, {
+    a: game.teamA.name,
+    b: game.teamB.name,
+  });
   // The game day's status (issue #383) is read again per request, so it is
   // never stale; the copy kept with this page only holds its space until
   // then, so the page doesn't move when it arrives (#495).
@@ -180,12 +201,12 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
   return (
     <>
       <JsonLd data={gamePageJsonLd(siteOrigin(env.BETTER_AUTH_URL), game)} />
-      <nav aria-label="Breadcrumb" className="text-small">
+      <nav aria-label={words.breadcrumb} className="text-small">
         <Link
-          href={leagueHref(league, `/seasons/${game.seasonSlug}/schedule`)}
+          href={href(`/seasons/${game.seasonSlug}/schedule`)}
           className="inline-flex min-h-11 items-center text-brand underline"
         >
-          {game.seasonName} schedule
+          {fill(all.schedule.seasonTitle, { season: game.seasonName })}
         </Link>
       </nav>
 
@@ -202,13 +223,14 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
           </p>
         )}
         <h1 className="sr-only">
-          {game.teamA.name} vs {game.teamB.name}
+          {matchup}
           {result ? `: ${result}` : ""}
         </h1>
         <Morph name={gameMorph(game.id)}>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 rounded-card border-2 border-text bg-surface p-4 shadow-sticker md:p-8">
             <Side
               league={league}
+              locale={locale}
               team={game.teamA}
               score={game.scoreA}
               show={done && game.status === "final"}
@@ -218,10 +240,11 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
               aria-hidden="true"
               className="font-display text-h3 text-text-muted"
             >
-              vs
+              {words.vs}
             </p>
             <Side
               league={league}
+              locale={locale}
               team={game.teamB}
               score={game.scoreB}
               show={done && game.status === "final"}
@@ -237,6 +260,8 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
           teamA={game.teamA.name}
           teamB={game.teamB.name}
           snapshot={snapshot}
+          words={all.live}
+          locale={locale}
         />
       ) : (
         game.startsAt &&
@@ -248,6 +273,8 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
             teamB={game.teamB.name}
             initial={snapshot}
             {...pollWindow(game.startsAt, game.endsAt)}
+            words={all.live}
+            locale={locale}
           />
         )
       )}
@@ -255,7 +282,7 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
       <dl className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1 rounded-card border border-border bg-surface p-4">
           <dt className="text-micro font-bold tracking-wide text-text-muted uppercase">
-            When
+            {words.when}
           </dt>
           {/* The page's largest text, sent with the first byte: the status
               and forecast below stream in later, so they must stay smaller
@@ -264,18 +291,15 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
             className={`text-h3 font-bold ${calledOff ? "line-through" : ""}`}
           >
             {game.startsAt
-              ? fullWhen(game.startsAt, timeZone)
-              : "Time to be announced"}
+              ? fullWhen(game.startsAt, timeZone, locale)
+              : words.tba}
           </dd>
           {calledOff && (
-            <dd className="text-small text-text-muted">
-              This game is off. The league posts a makeup date here and in the
-              calendar feeds once it is set.
-            </dd>
+            <dd className="text-small text-text-muted">{words.offNote}</dd>
           )}
           {!game.startsAt && (
             <dd className="text-small text-text-muted">
-              This makeup is waiting for an open slot.
+              {words.makeupWaiting}
             </dd>
           )}
           {statusDate && (
@@ -287,6 +311,7 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
                     day={statusWhenKept}
                     gameId={game.id}
                     timeZone={timeZone}
+                    locale={locale}
                   />
                 </dd>
               }
@@ -297,6 +322,7 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
                   date={statusDate}
                   gameId={game.id}
                   timeZone={timeZone}
+                  locale={locale}
                 />
               </dd>
             </Suspense>
@@ -308,19 +334,20 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
             game.venue &&
             game.venue.lat !== null &&
             game.venue.lng !== null && (
-              <Suspense fallback={<ForecastSpace />}>
+              <Suspense fallback={<ForecastSpace locale={locale} />}>
                 <ForecastChip
                   lat={game.venue.lat}
                   lng={game.venue.lng}
                   startsAt={game.startsAt}
                   endsAt={game.endsAt}
+                  locale={locale}
                 />
               </Suspense>
             )}
         </div>
         <div className="flex flex-col gap-1 rounded-card border border-border bg-surface p-4">
           <dt className="text-micro font-bold tracking-wide text-text-muted uppercase">
-            Where
+            {words.where}
           </dt>
           {game.venue ? (
             <>
@@ -340,49 +367,58 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
                   rel="noopener noreferrer"
                   className="inline-flex min-h-11 items-center text-brand underline"
                 >
-                  Open in Maps
-                  <span className="sr-only"> (opens in a new tab)</span>
+                  {words.openMaps}
+                  <span className="sr-only">{words.newTab}</span>
                 </a>
               </dd>
             </>
           ) : (
-            <dd>Field to be announced</dd>
+            <dd>{words.fieldTba}</dd>
           )}
         </div>
       </dl>
 
       <section aria-labelledby="share" className="flex flex-col gap-2">
         <h2 id="share" className="text-h3">
-          {done ? "Tell the group chat" : "Share this game"}
+          {done ? words.tellChat : words.share}
         </h2>
         <ShareButtons
-          title={`${game.teamA.name} vs ${game.teamB.name}`}
+          title={matchup}
           text={gameShareText(game, {
             url: absoluteUrl(
               siteOrigin(env.BETTER_AUTH_URL),
-              `/games/${game.id}`,
+              linkIn(locale, `/games/${game.id}`),
             ),
             timeZone,
+            locale,
           })}
+          words={all.share}
         />
       </section>
 
-      <GameStats league={league} game={game} timeZone={timeZone} />
+      <GameStats
+        league={league}
+        game={game}
+        timeZone={timeZone}
+        locale={locale}
+      />
 
       {photos.length > 0 ? (
         <MemberPhotos
           id="player-photos"
-          about={`${game.teamA.name} vs ${game.teamB.name}`}
+          about={matchup}
           photos={photos}
           shareHref={`/app/photos?game=${game.id}`}
+          locale={locale}
         />
       ) : (
         game.startsAt && (
           <Suspense fallback={null}>
             <PhotoPromptOnceStarted
               startsAt={game.startsAt}
-              about={`${game.teamA.name} vs ${game.teamB.name}`}
+              about={matchup}
               shareHref={`/app/photos?game=${game.id}`}
+              locale={locale}
             />
           </Suspense>
         )
@@ -390,19 +426,17 @@ async function Game({ params }: PageProps<"/[lang]/l/[league]/games/[game]">) {
 
       <section aria-labelledby="follow" className="flex flex-col gap-2">
         <h2 id="follow" className="text-h3">
-          Add it to your calendar
+          {words.calendarTitle}
         </h2>
-        <p className="text-text-muted">
-          Each team page has a calendar feed with every game, kept up to date.
-        </p>
+        <p className="text-text-muted">{words.calendarBody}</p>
         <ul className="flex flex-wrap gap-2">
           {[game.teamA, game.teamB].map((t) => (
             <li key={t.id}>
               <Link
-                href={leagueHref(league, `/teams/${t.slug}`)}
+                href={href(`/teams/${t.slug}`)}
                 className="btn btn-secondary"
               >
-                {t.name} games
+                {fill(words.teamGames, { team: t.name })}
               </Link>
             </li>
           ))}
@@ -421,10 +455,12 @@ async function PhotoPromptOnceStarted({
   startsAt,
   about,
   shareHref,
+  locale,
 }: {
   startsAt: Date;
   about: string;
   shareHref: string;
+  locale: Locale;
 }) {
   await connection();
   if (startsAt > new Date()) return null;
@@ -434,18 +470,21 @@ async function PhotoPromptOnceStarted({
       about={about}
       photos={[]}
       shareHref={shareHref}
+      locale={locale}
     />
   );
 }
 
 function Side({
   league,
+  locale,
   team,
   score,
   show,
   won,
 }: {
   league: LeagueRef;
+  locale: Locale;
   team: PublicTeam;
   score: number | null;
   show: boolean;
@@ -464,7 +503,7 @@ function Side({
         </span>
       </Morph>
       <Link
-        href={leagueHref(league, `/teams/${team.slug}`)}
+        href={linkIn(locale, leagueHref(league, `/teams/${team.slug}`))}
         className={`inline-flex min-h-11 items-center break-words underline ${won ? "font-bold" : ""}`}
       >
         {team.name}

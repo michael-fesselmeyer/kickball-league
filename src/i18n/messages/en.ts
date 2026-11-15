@@ -1,4 +1,7 @@
 import { emailEn } from "./email.en";
+import { liveEn } from "./live.en";
+import { pagesEn } from "./pages.en";
+import { shareEn } from "./share.en";
 
 /**
  * The English messages: the source every other language translates
@@ -281,6 +284,9 @@ export const en = {
       records: "Records",
     },
   },
+  ...pagesEn,
+  live: liveEn,
+  share: shareEn,
   email: emailEn,
 } as const;
 

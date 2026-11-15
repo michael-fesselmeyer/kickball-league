@@ -145,21 +145,22 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
  * admin screens they link to, whatever the recipient's language (ADR 0065).
  * Every other template writes in the recipient's language.
  */
-export const ENGLISH_ONLY_TEMPLATES: ReadonlySet<keyof typeof TEMPLATES> =
-  new Set([
-    "books_nudge",
-    "books_reminder",
-    "checklist_reminder",
-    "email_budget",
-    "game_day_decide",
-    "instagram_reconnect",
-    "instagram_storage_full",
-    "permit_alert",
-    "rain_alert",
-    "rain_decision",
-    "rainout_request",
-    "score_dispute",
-  ]);
+type TemplateName = keyof typeof TEMPLATES;
+
+export const ENGLISH_ONLY_TEMPLATES: ReadonlySet<TemplateName> = new Set([
+  "books_nudge",
+  "books_reminder",
+  "checklist_reminder",
+  "email_budget",
+  "game_day_decide",
+  "instagram_reconnect",
+  "instagram_storage_full",
+  "permit_alert",
+  "rain_alert",
+  "rain_decision",
+  "rainout_request",
+  "score_dispute",
+]);
 
 const isTemplateName = (name: string): name is keyof typeof TEMPLATES =>
   Object.hasOwn(TEMPLATES, name);
@@ -182,7 +183,7 @@ export function rendererFor(
         ? unsubscribeToken(unsubscribeSecret, recipient.userId, recipient.topic)
         : null;
     const locale =
-      recipient?.locale && !ENGLISH_ONLY_TEMPLATES.has(name)
+      recipient?.locale && !ENGLISH_ONLY_TEMPLATES.has(name as TemplateName)
         ? recipient.locale
         : undefined;
     const context = locale ? { ...base, locale } : base;
