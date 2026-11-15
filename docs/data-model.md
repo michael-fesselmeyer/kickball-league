@@ -92,6 +92,7 @@ erDiagram
     text_array disabled_features "features the operator switched off; the default league's row for the whole site"
     smallint minimum_age "18 to 99, default 18"
     boolean pickem_own_games "players may pick their own team's games; default true"
+    boolean admins_confirm_rainouts "admins may confirm rain-outs too; owners only, default false"
   }
   league_member {
     uuid league_id PK, FK
@@ -1670,6 +1671,26 @@ Notes:
 - An accepted request always has its season, payer and invite token (the `private_event_accepted_has_season` check), and an organization that pays always has a price. When the organization pays, the season's team fee is zero and the organizer pays `price_cents` once in a purchase with one `private_event` item; settling it sets `paid_at`. When players pay, the season is priced per player as usual.
 - The organizer's name and email are their account's, not copied here. Deleting the account declines an open request; merging accounts moves the rows. Requests are rate-limited to three a day per person (`rate_limit` key `private-event:<user>`).
 - Audited: `private_event.request`, `private_event.accept`, `private_event.decline`.
+
+### 2.13 Weather readings
+
+The rain-out decision card reads each park's National Weather Service data through the data cache. So it can show the last data while NWS is down, it keeps the last good answer for each part of a park's weather ([ADR 0057](adr/0057-owner-confirmed-rainouts.md)):
+
+```mermaid
+erDiagram
+  weather_snapshot {
+    text place PK "lat,lng at four decimals"
+    enum part PK "forecast, observed, alerts"
+    jsonb data "the parsed answer"
+    timestamptz fetched_at
+  }
+```
+
+Notes:
+- One row per park and part, replaced only by a newer answer (an upsert guarded on `fetched_at`). `forecast` holds the hourly forecast and the grid's rainfall and chance of thunder; `observed` the nearest station and its last two days of reports; `alerts` the alerts in effect.
+- `data` is read back through a schema; a row in an older shape reads as nothing rather than as wrong numbers.
+- Nothing personal is stored; a park's point is public, and every league with a park there shares its readings.
+- Who may confirm a rain-out is `league.admins_confirm_rainouts`: each league's own, off by default, changed only by that league's owners and audited as `rainout.confirm_policy`. A rain-out sent to the owners is an audit row (`rainout.prepare`, with the date) and the owners' messages, not a table of its own.
 
 ## 3. Constraints and indexes
 

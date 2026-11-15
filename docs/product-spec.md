@@ -165,7 +165,9 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Save a card that guarantees the team's balance | — | — | own team | — | — | — | — |
 | Download roster and payment CSV files | — | — | own team | — | — | ✓ (whole season) | ✓ (whole season) |
 | Track shirt sizes and mark shirts received | — | — | — | — | — | ✓ | ✓ |
-| Declare a rain-out | — | — | — | — | — | ✓ | ✓ |
+| Preview a rain-out with the weather card and send it to the owners to confirm | — | — | — | — | — | ✓ | ✓ |
+| Confirm a rain-out ([ADR 0048](adr/0048-owner-confirmed-rainouts.md); the operator too) | — | — | — | — | — | when the owners allow it | ✓ |
+| Let admins confirm rain-outs | — | — | — | — | — | — | ✓ |
 | Place free agents; approve new-team requests | — | — | — | — | — | ✓ | ✓ |
 | Request to start a new team | — | ✓ | ✓ | — | — | — | — |
 | Send an announcement | — | — | own team | — | — | league-wide | league-wide |
