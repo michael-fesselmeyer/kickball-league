@@ -105,7 +105,7 @@ async function Schedule({
       )
     : [];
   // Gaps that are only missing documents can be overridden with a reason
-  // (ADR 0063); anything else must be fixed.
+  // (ADR 0065); anything else must be fixed.
   const onlyDocuments =
     latest !== null &&
     permits !== null &&
