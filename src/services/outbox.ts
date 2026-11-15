@@ -1,6 +1,9 @@
 import { after } from "next/server";
 import { txDb } from "@/db/client";
-import { releaseDueAnnouncements } from "@/db/queries/announcements";
+import {
+  RELEASE_BATCH,
+  releaseDueAnnouncements,
+} from "@/db/queries/announcements";
 import { buildDigests, type DigestResult } from "@/db/queries/digests";
 import {
   DEFAULT_TIME_ZONE,
@@ -70,6 +73,26 @@ const pushSender = pushSenderFrom({
 });
 
 /**
+ * Queues the scheduled announcements that are due (ADR 0052), in batches
+ * until none are left, so a busy day's sweep sends them all at once. A
+ * failure is logged and never stops the drain: the outbox's other messages
+ * still go, and the announcement waits for the next drain.
+ */
+async function releaseScheduled(now: Date): Promise<void> {
+  for (let round = 0; round < 10; round++) {
+    try {
+      const released = await txDb.transaction((tx) =>
+        releaseDueAnnouncements(tx, now),
+      );
+      if (released.announcements < RELEASE_BATCH) return;
+    } catch (error) {
+      console.error("Releasing scheduled announcements failed", error);
+      return;
+    }
+  }
+}
+
+/**
  * Sends everything that is due, in batches, until the outbox is empty or
  * `maxBatches` is reached. Null when neither email nor push is configured.
  * First it queues any scheduled announcement that is due (ADR 0052), so
@@ -79,7 +102,7 @@ export async function drainOutboxNow(
   now: Date = new Date(),
   maxBatches = 10,
 ): Promise<DrainResult | null> {
-  await txDb.transaction((tx) => releaseDueAnnouncements(tx, now));
+  await releaseScheduled(now);
   if (!sender && !pushSender) return null;
   const render = rendererFor({
     siteUrl: env.BETTER_AUTH_URL,

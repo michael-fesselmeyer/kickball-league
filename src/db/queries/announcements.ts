@@ -234,11 +234,16 @@ async function queueAnnouncement(
 /** Scheduled announcements are an admin's, so they're signed as the admins. */
 const SCHEDULED_FROM = "League admins";
 
+/** How many scheduled announcements one release queues. */
+export const RELEASE_BATCH = 20;
+
 /**
- * Queues the messages for every scheduled announcement that is due, for
- * its audience as it stands now, and marks it sent. The outbox sweep runs
- * this before it sends. Rows are claimed with SKIP LOCKED, so two sweeps
- * never send one twice; the dedupe keys would stop it anyway.
+ * Queues the messages for up to RELEASE_BATCH scheduled announcements that
+ * are due, for each audience as it stands now, and marks them sent. The
+ * outbox sweep runs this before it sends, again while a batch comes back
+ * full. Rows are claimed with SKIP LOCKED, so two sweeps never send one
+ * twice; the dedupe keys would stop it anyway. Edits and cancels wait on
+ * the same row lock, then find it sent.
  */
 export async function releaseDueAnnouncements(
   db: Db,
@@ -261,7 +266,7 @@ export async function releaseDueAnnouncements(
       ),
     )
     .orderBy(asc(announcement.sendAt))
-    .limit(20)
+    .limit(RELEASE_BATCH)
     .for("update", { skipLocked: true });
   if (due.length === 0) return { announcements: 0, messages: 0 };
   const seasons = await db

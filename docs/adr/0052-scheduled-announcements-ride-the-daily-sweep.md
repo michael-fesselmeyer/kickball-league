@@ -32,3 +32,7 @@ The site runs on free plans only ([ADR 0021](0021-free-services-only.md)). On th
 - `announcement` gains `send_at`, `sent_at` and `cancelled_at`; existing rows are marked sent at their creation time. A check constraint keeps each row either sent or waiting (or cancelled).
 - A scheduled announcement arrives at about the same time of morning every day, shifting by an hour with daylight saving time. The form shows the time for the chosen day.
 - If the sweep's time in `vercel.json` changes, `OUTBOX_SWEEP_UTC` must change with it; a unit test fails until they match.
+- The day an admin picks is a date in the league's time zone. The send time is that day's sweep, the one that falls on it locally. Far east of UTC, that's the sweep on the UTC date before.
+- Each release queues up to 20 announcements and repeats while a batch comes back full, so a busy day goes out in one sweep. If a release fails, the error is logged and the drain goes on with the rest of the outbox. The announcement waits for the next drain.
+- An edit or a cancel waits on the same row lock as a release. One that arrives as the announcement goes out is refused with "already sent". The messages it queued keep the text they had.
+- An announcement counts toward the admin's daily limit on the day it is written, not the day it sends.
