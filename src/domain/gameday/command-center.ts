@@ -1,4 +1,5 @@
 import { type HalfInning, lineScore, type Side } from "../scores/live";
+import { type PermitEndRule, permitWatch, type Watch } from "./permit-end";
 
 /**
  * The game-day command center (docs/information-architecture.md, "Admin:
@@ -35,6 +36,13 @@ export type CommandRow = {
   /** The latest reported final score, if any. */
   report: { scoreA: number; scoreB: number } | null;
   halves: HalfInning[];
+  /** The permit window saved with the game, with its rule set; null without one. */
+  permit: {
+    permitEndsAt: Date;
+    timeLimitMinutes: number | null;
+    innings: number | null;
+    rule: PermitEndRule;
+  } | null;
 };
 
 /**
@@ -61,6 +69,8 @@ export type CommandGame = {
   /** "Top 3rd" while live. */
   inning: string | null;
   referee: { name: string; state: RefState; checkedInAt: string | null };
+  /** Minutes left in the permit and whether the game will run past it; only for a game being played. */
+  permit: Watch | null;
 };
 
 export type CommandState = {
@@ -76,6 +86,8 @@ export type CommandState = {
     refsAssigned: number;
     live: number;
     missing: number;
+    /** Games still being played after their permit ended. */
+    pastPermit: number;
   };
 };
 
@@ -154,6 +166,18 @@ export function commandState(
         teamA: row.teamA.name,
         teamB: row.teamB.name,
         score,
+        permit:
+          row.permit && (score === "live" || score === "on")
+            ? permitWatch({
+                permitEndsAt: row.permit.permitEndsAt,
+                now,
+                startsAt: row.startsAt,
+                timeLimitMinutes: row.permit.timeLimitMinutes,
+                innings: row.permit.innings,
+                halvesEntered: row.halves.length,
+                rule: row.permit.rule,
+              })
+            : null,
         ...runsOf(row, score),
         referee: {
           name: row.referee?.name ?? "",
@@ -174,6 +198,7 @@ export function commandState(
       refsAssigned: playing.filter((g) => g.referee.state !== "none").length,
       live: games.filter((g) => g.score === "live" || g.score === "on").length,
       missing: games.filter((g) => g.score === "missing").length,
+      pastPermit: games.filter((g) => g.permit?.level === "over").length,
     },
   };
 }

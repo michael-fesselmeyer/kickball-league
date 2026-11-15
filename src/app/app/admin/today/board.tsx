@@ -82,6 +82,26 @@ export function CommandBoard({
           tone={counts.missing > 0 ? "danger" : "success"}
         />
       </dl>
+      {counts.pastPermit > 0 && (
+        <section
+          aria-labelledby="past-permit"
+          role="alert"
+          className="flex flex-col gap-1 rounded-xl border border-danger bg-surface p-3"
+        >
+          <h2 id="past-permit" className="text-h3">
+            Still playing after the permit ended
+          </h2>
+          <ul>
+            {state.games
+              .filter((g) => g.permit?.level === "over")
+              .map((g) => (
+                <li key={g.id}>
+                  {g.fieldName}: {g.teamA} vs {g.teamB}. {g.permit?.message}
+                </li>
+              ))}
+          </ul>
+        </section>
+      )}
       <p className="text-small text-text-muted">
         {stale
           ? "Couldn't refresh. Showing what we had at "
@@ -190,6 +210,23 @@ function GameRow({
         <span>{game.teamB}</span>
         <span className="tabular-nums">{game.runs?.b ?? ""}</span>
       </p>
+      {game.permit && (
+        <p
+          className={`flex items-start gap-1.5 text-small ${
+            game.permit.level === "ok" ? "text-text-muted" : "font-bold"
+          }`}
+        >
+          {game.permit.level !== "ok" && (
+            <span
+              aria-hidden="true"
+              className={`mt-1.5 size-2 shrink-0 rounded-full ${
+                DOT[game.permit.level === "over" ? "danger" : "warning"]
+              }`}
+            />
+          )}
+          {game.permit.message}
+        </p>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2 text-small">
         <span className="flex items-center gap-1.5">
           {ref.tone && (

@@ -25,6 +25,7 @@ import { league } from "../schema/league";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
+import { permitInfoFor } from "./permit-watch";
 import type { Db } from "./schedule";
 
 /**
@@ -144,6 +145,10 @@ export async function commandRows(
       ),
     )
     .orderBy(asc(slot.startsAt), asc(field.name));
+  const permits = await permitInfoFor(
+    db,
+    rows.map((r) => r.id),
+  );
   return rows.map((r) => ({
     id: r.id,
     status: r.status,
@@ -168,6 +173,7 @@ export async function commandRows(
         : null,
     report: r.report,
     halves: r.halves,
+    permit: permits.get(r.id) ?? null,
   }));
 }
 
