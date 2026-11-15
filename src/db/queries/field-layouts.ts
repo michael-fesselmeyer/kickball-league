@@ -1,10 +1,11 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, lt } from "drizzle-orm";
 import type {
   BooksFileId,
   FieldId,
   GameId,
   LeagueId,
   ScheduleVersionId,
+  SeasonId,
   UserId,
 } from "@/domain/ids";
 import type { FileProblem } from "@/domain/books/files";
@@ -15,6 +16,7 @@ import { booksFile } from "../schema/books";
 import { fieldLayout } from "../schema/field-layout";
 import { field, game, slot, venue } from "../schema/game";
 import { gamePlacement } from "../schema/schedule";
+import { volunteerShift, volunteerSignup } from "../schema/volunteer";
 import { recordAudit } from "./audit";
 import { storeFile } from "./books";
 import type { Db } from "./schedule";
@@ -54,8 +56,7 @@ export async function layoutsOf(
     .from(fieldLayout)
     .leftJoin(booksFile, eq(booksFile.id, fieldLayout.fileId))
     .where(inArray(fieldLayout.fieldId, [...fieldIds]));
-  for (const r of rows)
-    out.set(r.fieldId, { ...r, state: layoutState(r) });
+  for (const r of rows) out.set(r.fieldId, { ...r, state: layoutState(r) });
   return out;
 }
 
@@ -248,4 +249,113 @@ export async function fieldInLeague(
     .innerJoin(venue, eq(venue.id, field.venueId))
     .where(and(eq(field.id, fieldId), eq(venue.leagueId, leagueId)));
   return found !== undefined;
+}
+
+/** A field's name, venue and layout, for the page set-up crews open. */
+export async function fieldLayoutPage(
+  db: Db,
+  leagueId: LeagueId,
+  fieldId: FieldId,
+) {
+  const [found] = await db
+    .select({
+      fieldName: field.name,
+      venueName: venue.name,
+      fileId: fieldLayout.fileId,
+      noLayoutNeeded: fieldLayout.noLayoutNeeded,
+      note: fieldLayout.note,
+      contentType: booksFile.contentType,
+    })
+    .from(field)
+    .innerJoin(venue, eq(venue.id, field.venueId))
+    .leftJoin(fieldLayout, eq(fieldLayout.fieldId, field.id))
+    .leftJoin(booksFile, eq(booksFile.id, fieldLayout.fileId))
+    .where(and(eq(field.id, fieldId), eq(venue.leagueId, leagueId)));
+  return found ?? null;
+}
+
+/** A field's layout file, if the field is the league's. */
+export async function fieldLayoutFile(
+  db: Db,
+  leagueId: LeagueId,
+  fieldId: FieldId,
+) {
+  const [found] = await db
+    .select({
+      contentType: booksFile.contentType,
+      bytes: booksFile.bytes,
+      sha256: booksFile.sha256,
+    })
+    .from(fieldLayout)
+    .innerJoin(booksFile, eq(booksFile.id, fieldLayout.fileId))
+    .innerJoin(field, eq(field.id, fieldLayout.fieldId))
+    .innerJoin(venue, eq(venue.id, field.venueId))
+    .where(and(eq(fieldLayout.fieldId, fieldId), eq(venue.leagueId, leagueId)));
+  return found ?? null;
+}
+
+/**
+ * Whether a member holds a set-up shift that has not ended yet, in the
+ * league: the volunteers who may open a field's layout. Admins and the
+ * game's ref and captains are checked by the caller.
+ */
+export async function onSetupShift(
+  db: Db,
+  userId: UserId,
+  leagueId: LeagueId,
+  now: Date,
+): Promise<boolean> {
+  const [found] = await db
+    .select({ id: volunteerSignup.id })
+    .from(volunteerSignup)
+    .innerJoin(volunteerShift, eq(volunteerShift.id, volunteerSignup.shiftId))
+    .where(
+      and(
+        eq(volunteerSignup.userId, userId),
+        eq(volunteerShift.leagueId, leagueId),
+        eq(volunteerShift.role, "setup"),
+        gt(volunteerShift.endsAt, now),
+      ),
+    )
+    .limit(1);
+  return found !== undefined;
+}
+
+/**
+ * The fields a season plays on during a shift, with their layout state:
+ * every field that has a slot starting between the shift's start and its
+ * end plus a day's tail, which is what a set-up crew prepares.
+ */
+export async function setupFields(
+  db: Db,
+  seasonId: SeasonId,
+  from: Date,
+  to: Date,
+) {
+  const used = await db
+    .selectDistinct({
+      id: field.id,
+      name: field.name,
+      venueName: venue.name,
+    })
+    .from(slot)
+    .innerJoin(field, eq(field.id, slot.fieldId))
+    .innerJoin(venue, eq(venue.id, field.venueId))
+    .where(
+      and(
+        eq(slot.seasonId, seasonId),
+        eq(slot.status, "open"),
+        gte(slot.startsAt, from),
+        lt(slot.startsAt, to),
+      ),
+    )
+    .orderBy(asc(venue.name), asc(field.name));
+  const layouts = await layoutsOf(
+    db,
+    used.map((f) => f.id),
+  );
+  return used.map((f) => ({
+    ...f,
+    state: layouts.get(f.id)?.state ?? ("missing" as const),
+  }));
 }

@@ -8,10 +8,12 @@ export const MAX_LAYOUT_NOTE = 280;
 export type LayoutState = "layout" | "none_needed" | "missing";
 
 /** What a field has: a layout, an admin's "no layout needed", or nothing. */
-export function layoutState(row: {
-  fileId: string | null;
-  noLayoutNeeded: boolean;
-} | null): LayoutState {
+export function layoutState(
+  row: {
+    fileId: string | null;
+    noLayoutNeeded: boolean;
+  } | null,
+): LayoutState {
   if (!row) return "missing";
   if (row.fileId !== null) return "layout";
   return row.noLayoutNeeded ? "none_needed" : "missing";

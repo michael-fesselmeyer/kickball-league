@@ -25,6 +25,7 @@ import { league } from "../schema/league";
 import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
+import { layoutsOf } from "./field-layouts";
 import { permitInfoFor } from "./permit-watch";
 import type { Db } from "./schedule";
 
@@ -93,6 +94,7 @@ export async function commandRows(
       startsAt: slot.startsAt,
       endsAt: slot.endsAt,
       fieldName: field.name,
+      fieldId: field.id,
       venueName: venue.name,
       lat: venue.lat,
       lng: venue.lng,
@@ -149,6 +151,7 @@ export async function commandRows(
     db,
     rows.map((r) => r.id),
   );
+  const layouts = await layoutsOf(db, [...new Set(rows.map((r) => r.fieldId))]);
   return rows.map((r) => ({
     id: r.id,
     status: r.status,
@@ -156,6 +159,8 @@ export async function commandRows(
     startsAt: r.startsAt,
     endsAt: r.endsAt,
     fieldName: r.fieldName,
+    fieldId: r.fieldId,
+    layout: layouts.get(r.fieldId)?.state ?? "missing",
     seasonSlug: r.seasonSlug,
     venue:
       r.lat !== null && r.lng !== null

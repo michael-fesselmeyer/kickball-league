@@ -4,7 +4,9 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { db } from "@/db/client";
 import { activeLeague } from "@/lib/league/active";
+import { setupFields } from "@/db/queries/field-layouts";
 import { myShiftIds, upcomingShifts } from "@/db/queries/volunteer";
+import type { SeasonId } from "@/domain/ids";
 import { whenLine } from "@/domain/events/event";
 import {
   CLAIM_REFUSALS,
@@ -67,6 +69,22 @@ async function Shifts({ searchParams }: PageProps<"/app/volunteer">) {
     db,
     subject.userId,
     shifts.map((s) => s.id),
+  );
+  // The fields a crew on a set-up shift prepares, with their layouts (#403).
+  const crewFields = new Map(
+    await Promise.all(
+      shifts
+        .filter((s) => s.role === "setup" && s.seasonId && mine.has(s.id))
+        .map(async (s) => {
+          const fields = await setupFields(
+            db,
+            s.seasonId as SeasonId,
+            s.startsAt,
+            new Date(s.endsAt.getTime() + 12 * 3_600_000),
+          );
+          return [s.id, fields] as const;
+        }),
+    ),
   );
   const timeZone = league?.timeZone ?? "America/New_York";
   const notice =
@@ -165,6 +183,32 @@ async function Shifts({ searchParams }: PageProps<"/app/volunteer">) {
                   </p>
                   <p className="text-text-muted">{ROLE_HINTS[s.role]}</p>
                   {s.notes && <p className="whitespace-pre-line">{s.notes}</p>}
+                  {(crewFields.get(s.id) ?? []).length > 0 && (
+                    <div>
+                      <p className="font-bold">Field layouts</p>
+                      <ul>
+                        {(crewFields.get(s.id) ?? []).map((f) => (
+                          <li key={f.id}>
+                            {f.state === "missing" ? (
+                              <>
+                                {f.venueName}, {f.name}: no layout yet
+                              </>
+                            ) : (
+                              <Link
+                                href={`/app/fields/${f.id}/layout`}
+                                className="inline-flex min-h-11 items-center underline"
+                              >
+                                {f.venueName}, {f.name}
+                                {f.state === "none_needed"
+                                  ? " (no layout needed)"
+                                  : ""}
+                              </Link>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   <p>
                     {on && (
                       <>
