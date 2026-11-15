@@ -28,6 +28,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 │   └── share.png                   Game share image: score on a final, or the matchup and its state
 ├── records                         League records across every season: most runs, biggest win, longest streaks
 ├── rules/                          Searchable rulebook with a link for every rule number
+│   └── search                      JSON for the page's search box: sections that match every word, and the numbered rules in each; answers only for who may read the rulebook (not a page)
 ├── parks/[park]                    Park page: map, fields, directions, nearby home bar
 ├── events/                         Upcoming and recent public events, featured clubs run by our players, and calendar subscribe links (members' and team events never appear here)
 │   ├── calendar.ics                Events calendar feed: every public event, theme weeks as all-day entries
@@ -37,7 +38,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── sponsors/                       Sponsors, home bar first, with the team of the week
 │   └── [sponsor]                   Sponsor page: deals with when they were confirmed, the team of the week, how to check in
 ├── friends                         Friends of the league: clubs run by our players first, then other local leagues grouped by activity, each linking to its own site (clicks counted, never who), and a "Link to us" snippet
-├── rules                           The league's rules by section (anchors such as #lineups), the league's code of conduct (#code-of-conduct), each division's game settings from its rule set, and "What changed": every change newest first with its publish date, start date and the sections it touched; a section changing soon says "New wording from" its date. Static HTML
+├── rules                           The league's rules, only when the owners made them public: a search box (results jump to the rule and highlight the words), a contents list, the sections by number with an anchor on each section and each numbered rule (#lineups, #rule-lineups--1-2), the league's code of conduct (#code-of-conduct), each division's game settings from its rule set, and "What changed": every change newest first with its publish date, start date and the sections it touched; a section changing soon says "New wording from" its date. Static HTML
 ├── fields/[park]                   Who has this field: the fields the league holds at a park under a confirmed permit, by day, with permit number, "Permitted by NYC Parks", today's line worked out in the browser, and short house rules
 ├── help/                           Help center: short how-tos by role and a search box that filters them as you type (every how-to is listed without JavaScript too)
 │   └── [role]                      One role's how-tos (player, captain, ref, admin, owner), each under its own anchor; the matching screens link here with "Help"
@@ -75,6 +76,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 
 /app                                Signed-in home: next game, links to your team and its schedule, RSVP, what you owe, alerts, any giveaway you won, any season survey waiting for my answer, and the league gear you have or bring ("You have Kit A: bring it to McCarren Park, Field 2 by 6:30 PM") with one-tap "I picked it up", "I handed Kit A to Sam", "Got it" or "It's back home", and the league switcher for anyone in more than one league
 ├── league/[league]                 Shows that league in the app, then goes on to ?next= (the switcher, and the way in from a league's public pages)
+├── rules                           The rulebook inside the app, with the same search, contents and rule anchors: for owners while it is owners only, for anyone signed in to the league while it is members only; never cached. Others see that the league hasn't shared it
 ├── referee                         Refs: tick the game times you can work for each season (a time you already ref is fixed), and your games worked, what you've earned, payments and the balance; "Can't make it?" drops a game still to come, with a reason
 │   └── take/[game]                 "Take it": a game with no ref, from the message refs get; the first ref to tap gets it, anyone after sees it's taken
 ├── account                         Profile, weeks you'll miss for each season still to come, email, push and message-limit settings, waivers, payments, league credit and its history, the referral link, and any yellow or red cards a ref gave you, visible only to you (built at /app/profile)
@@ -220,6 +222,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     ├── refs                        Referee pool (add by email, remove) and assignments by email
     │   ├── assign                  Assign refs: the proposal for a game day or the whole season, with why a game has nobody; accept all, accept one, or pick another ref; games each ref would have
     │   └── pay                     Ref pay sheet: the season's per-game fee, each ref's games worked, owed, paid and balance, and "Mark paid" (cash or Venmo) into the books
+    ├── rules/rulebook              Owners and the operator: choose who can read the rulebook (owners only, members only, public), and import it: paste the text, review it split into numbered sections and rules, save as a dated change
     ├── rules                       Edit the rules: every section's title and text, remove a section, add one (with suggested titles), then publish with a one-line summary, a start date and an optional email notice to every player in the active seasons; recent changes. Refused with everything kept if someone else published first
     ├── events/                     Every event with who it's for, going and waitlist counts. A tournament's page adds guest sign-up settings, the charity link and goal, the partner league, each guest team with its captain and waiver count, and the bracket with scores, fields and times
     ├── private-events              Requests for private leagues and tournaments: accept one as an invite-only private season (name, dates, games per day, who pays, amount) or decline it with a reason

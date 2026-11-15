@@ -701,7 +701,7 @@ The repository is public under `michael-fesselmeyer`. The history should show re
 
 Commits are authored with the GitHub no-reply address already set in the global git config, which is what links them to the profile.
 
-Third-party material stays out of the public repository until the league agrees: the rulebook PDF, the real waiver text and any real logo. The rulebook page is built from a file that is ignored by git until then, with a short sample in its place.
+Third-party material stays out of the public repository until the league agrees: the rulebook PDF, the real waiver text and any real logo. The rulebook is entered by an owner in the app and lives only in the database ([ADR 0066](adr/0066-searchable-rulebook-stored-in-the-app.md)); seeds and tests use an invented sample, and the league's own text starts owners only.
 
 ## 12. Observability
 
@@ -863,7 +863,7 @@ The launch decision brief, with each provider's terms re-read on 2026-11-14 and 
 
 ## 16. AI features: not planned
 
-No feature calls an AI provider, because every provider bills per use and the product runs on free services only ([ADR 0021](adr/0021-free-services-only.md)). The rulebook is a searchable page instead ([product-spec.md](product-spec.md), section 6), and the weekly recap is drafted from templates over the week's results, rankings, streaks and records (`src/domain/stats/recap.ts`), for an admin to edit and send.
+No feature calls an AI provider, because every provider bills per use and the product runs on free services only ([ADR 0021](adr/0021-free-services-only.md)). The rulebook is a searchable page instead (Postgres full-text search, no extra service) ([product-spec.md](product-spec.md), section 6), and the weekly recap is drafted from templates over the week's results, rankings, streaks and records (`src/domain/stats/recap.ts`), for an admin to edit and send.
 
 ## 17. Instagram connection (P2) ✔
 

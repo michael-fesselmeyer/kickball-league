@@ -96,6 +96,7 @@ erDiagram
     smallint minimum_age "18 to 99, default 18"
     boolean pickem_own_games "players may pick their own team's games; default true"
     boolean admins_confirm_rainouts "admins may confirm rain-outs too; owners only, default false"
+    text rulebook_visibility "owners (default), members or public; who may read the rulebook"
   }
   league_member {
     uuid league_id PK, FK
@@ -1297,6 +1298,7 @@ erDiagram
     text title "1 to 80"
     text body "plain text, up to 20000"
     smallint position
+    tsvector search "generated: title (weight A) and body (weight B); GIN index"
   }
   rule_change {
     uuid id PK
@@ -1563,6 +1565,7 @@ The rules page, as built (`src/db/schema/rules.ts`, `src/db/queries/rules.ts`, `
 - A publish takes an advisory lock on the league and compares the newest change's id with the version the editor was opened at. One made over someone else's newer change is refused as stale, so two admins never overwrite each other. A form that leaves out a current section, or names one that no longer exists, is stale too.
 - With `notice`, the start date must be at least 3 days after today in the league's time zone. One `rule_change` message (non-urgent, topic `announcement`) is queued for each person registered in a season that is open or under way, with dedupe key `rule_change/<change>/<user>`. A completed season's players and cancelled registrations aren't included.
 - Rules belong to a league (`league_id` on both tables). The page is `/l/[league]/rules`, which the default league serves at `/rules`, and each league's admins edit their own.
+- The searchable rulebook ([ADR 0066](adr/0066-searchable-rulebook-stored-in-the-app.md)) adds two columns. `rule_section.search` is a generated `tsvector` of the title (weight A) and text (weight B) with a GIN index; the app never writes it. `league.rulebook_visibility` is `owners` (the default), `members` or `public`, changed only through `setRulebookVisibility` (`rulebook.manage`: owners and the operator), with a `rules.visibility` audit row. An import is an ordinary publish: its sections are matched to current ones by title, so a kept section keeps its slug. Numbered rules are not rows: a paragraph that starts "3.1" is parsed out of the section text, with the anchor `rule-<slug>--3-1`.
 - The page also lists the division rule sets (innings, time limit, bunting, stealing) of the season under way, or the latest season that isn't a draft. Changing a division refreshes the page through `refreshSeasonPages`.
 
 Friends of the league, as built (`src/db/schema/friends.ts`, `src/db/queries/friends.ts`):

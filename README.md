@@ -136,6 +136,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 **Everyone, signed in or not**
 
 - Public schedule, standings, team, game, event, sponsor and field pages as static HTML that paints fast on a phone, with share images and a calendar feed per team.
+- A searchable rulebook ([ADR 0066](docs/adr/0066-searchable-rulebook-stored-in-the-app.md)): an owner pastes the rulebook text, reviews it split into numbered sections and rules, and saves it as a dated change; the text lives only in the database, never in the repository. Players search it on a phone (Postgres full-text search, results as you type), and a result jumps to the rule and highlights the words. Every section and numbered rule has an anchor, and a table of contents lists the sections. Owners choose who can read it: owners only (the default, so nothing shows until the league decides), members only (in the app at `/app/rules`) or public.
 
 ## Tech stack
 

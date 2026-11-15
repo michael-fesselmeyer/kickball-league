@@ -10,7 +10,7 @@ export const dayLabel = (on: string) =>
   }).format(new Date(`${on}T12:00:00Z`));
 
 /**
- * The rulebook's table of contents and sections (ADR 0065). Each section has
+ * The rulebook's table of contents and sections (ADR 0066). Each section has
  * an anchor from its slug and each numbered rule its own, so a link or a
  * search result can land on one rule. Plain server markup: no client
  * JavaScript, so it can sit in a static page.
