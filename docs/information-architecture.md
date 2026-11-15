@@ -120,6 +120,9 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── owner/                          Owner dashboard: owners and the platform operator only (404 for everyone else); opens on the newest season past draft
 │   └── [season]                    Membership by season (new, returning, retention), money in and out by season, the season's teams (roster against target, waivers, payments), event turnout and sponsor check-ins by week; "Refresh now"
 │       ├── dashboard.csv           The same numbers, one per line: counts and totals only
+│       ├── report                  Season report card (running or finished seasons; others 404): charts of players, games and money for this season and the one before, then People, Money, Games and Community tables with both numbers and the change in words
+│       │   └── share               The version for sponsors: the same without money or anything about one person, to print or save as a PDF
+│       ├── report.csv              The report card's lines: section, measure, unit, both seasons and the change
 │       └── summary                 The season money summary: fold categories into Other, preview exactly what goes public, publish, publish again or take it down
 ├── ref/                            Assignments, availability, earnings
 ├── sponsor/                        The sponsors a person manages (admins: every sponsor, and add one)
@@ -404,6 +407,7 @@ Rules:
 | Pick'em | The "just for bragging rights" note; the coming game day as one card per game with two big team choices (or "Locked at 8:00 PM" and my pick) and one Save picks button; my season record with Hide or Show me; the season leaderboard, then the game day's, top 25 plus me, ties marked T-2nd; links to other scored days | Same, the two team choices side by side |
 | Award results | The winner (or everyone tied) in a highlighted box, then every nominee with place, votes and a bar | Same |
 | Ref home | Today's assignments with accept and decline; "enter score" on each | Same |
+| Season report card (owners) | Three small charts (players, games, money) with each season's numbers beside its bars, then one table per section; each measure's change sits under its name in words, with an arrow, and the season before's column shows from 640px | Same, no wider than 768px; the shareable version drops the money chart and section |
 | Owner dashboard | Four headline numbers per section, then one table per chart: each row's bar sits under its label so nothing scrolls sideways; the week chart with its table in a fold-out | Same, no wider than 896px |
 | Money summary (owners) | What it is and whether it is published, the fold-into-Other checkboxes, the preview in a dashed box, then Publish and Take it down | Same, no wider than 768px |
 | Where the money goes (public) | Collected and spent, a table of categories with a bar and share each, then each fee split into the same lines | Same, no wider than 768px |
