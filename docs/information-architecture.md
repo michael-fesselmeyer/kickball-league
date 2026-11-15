@@ -112,7 +112,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 ├── books/                          Owners and the platform operator only (404 for everyone else); opens on the newest season
 │   ├── [season]                    The ledger (money in, money out by category, net), add an expense with a receipt photo, the season's expenses
 │   │   ├── ledger.csv              Every transaction for taxes, no player names
-│   │   └── permits                 Permits (cost, document, dates), games on lost permits, "What to request" and its copy button, "How NYC Parks permits work", the insurance certificate
+│   │   └── permits                 Permits (cost or fee estimate, document, dates), games on lost permits, fees due and the season's hours against the 50-hour line, field time to give back, "What to request" and its copy button, "How NYC Parks permits work", the insurance certificate
 │   │       ├── capacity            Capacity planner: teams the field time fits, the gap to teams wanting in, options with the teams each adds and links to the request sheet, nearby NYC Parks fields
 │   │       └── request.csv         The request sheet as a CSV, with the screen's choices
 │   ├── permits                     Opens the newest season's permits (where the reminder emails point)
@@ -408,7 +408,7 @@ Rules:
 | Money summary (owners) | What it is and whether it is published, the fold-into-Other checkboxes, the preview in a dashed box, then Publish and Take it down | Same, no wider than 768px |
 | Where the money goes (public) | Collected and spent, a table of categories with a bar and share each, then each fee split into the same lines | Same, no wider than 768px |
 | Books (owners) | The ledger as a two-column table, then "Add an expense" (date, amount, category, note, a receipt photo from the camera or saved photos), then the season's expenses with their receipts | Same, no wider than 768px |
-| Permits (owners) | A red box listing games on a lost permit, with a button to the schedule board; a button to the capacity planner; one card per permit with an Edit fold-out; the request form, sheet and copy button; "How NYC Parks permits work" as fold-outs with links and the last-checked date; the insurance certificate | Same |
+| Permits (owners) | A red box listing games on a lost permit, with a button to the schedule board; a button to the capacity planner; "Fees and hours" (hours against the 50-hour line, fees due, expected fees), bordered amber or red as the line nears or passes; "Give back field time" with each window's office number and the cancellation form's answers to copy; one card per permit with an Edit fold-out; the request form, sheet and copy button; "How NYC Parks permits work" as fold-outs with links and the last-checked date; the insurance certificate | Same |
 | Capacity planner (owners) | Game length, games per team and teams wanting in as a small form; the teams that fit and the gap in a status box; one card per option with its extra teams and a button to the request sheet; nearby fields as a list with distance | Same |
 | Park permit (ref and captains) | The permit number large, the field and hours, then the permit's photo full width (or a button to open its PDF); a saved copy when offline | Same, no wider than a phone |
 | Sponsor report | Three numbers for this week, a weekly bar chart and a table by week, then deals used and the teams that came by most | Same, wider |
