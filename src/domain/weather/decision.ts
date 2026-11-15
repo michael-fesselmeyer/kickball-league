@@ -143,6 +143,8 @@ export type Decision = {
   beforePitchIn: number;
   /** Rain fallen in the last day plus rain due before first pitch. */
   wetIn: number | null;
+  /** What the nearest station measured, when first pitch is near. */
+  observed: ObservedRain | null;
   /** The alerts that bear on play, worst first. */
   hazards: WeatherAlert[];
   /** "Likely unplayable: 0.6 in fell in the last 24 hours and …". */
@@ -294,9 +296,25 @@ export function decide(input: DecisionInput): Decision {
     expectedIn,
     beforePitchIn,
     wetIn,
+    observed,
     hazards,
     summary,
   };
+}
+
+/**
+ * The decision-time alert goes to whoever confirms rain-outs when first
+ * pitch is 2 to 8 hours away. Its job runs at fixed hours (vercel.json):
+ * about 4 to 5 hours before the league's usual afternoon and evening
+ * starts, and this reach catches whichever run comes first.
+ */
+export const DECISION_FROM_MS = 2 * HOUR_MS;
+export const DECISION_UNTIL_MS = 8 * HOUR_MS;
+
+/** Whether a game day starting at `firstPitch` is due its decision alert at `now`. */
+export function dueForDecision(firstPitch: Date, now: Date): boolean {
+  const ahead = firstPitch.getTime() - now.getTime();
+  return ahead >= DECISION_FROM_MS && ahead <= DECISION_UNTIL_MS;
 }
 
 /** How far a field's ground and alerts reach: a day and a half ahead. */

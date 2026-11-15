@@ -184,6 +184,52 @@ describe("rendererFor", () => {
     );
   });
 
+  it("asks for the rain-out call at decision time, with the card's summary", () => {
+    const result = render("rain_decision", {
+      seasonName: "Fall 2026",
+      seasonSlug: "fall-2026",
+      date: "2026-09-15",
+      day: "Tue, Sep 15",
+      firstPitch: "6:00 PM",
+      games: 4,
+      level: "likely",
+      summary:
+        "Likely unplayable: 0.6 in fell in the last 24 hours and 70% chance of storms 6 to 8 pm.",
+    });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe("Rain-out call needed today: Fall 2026");
+    expect(result.value.text).toContain(
+      "Likely unplayable: 0.6 in fell in the last 24 hours and 70% chance of storms 6 to 8 pm.",
+    );
+    expect(result.value.text).toContain(
+      "Nothing is cancelled unless someone confirms the rain-out.",
+    );
+    expect(result.value.text).toContain(
+      "https://league.example.test/app/admin/seasons/fall-2026/rainout?date=2026-09-15",
+    );
+  });
+
+  it("asks the owners to confirm a rain-out an admin sent", () => {
+    const result = render("rainout_request", {
+      seasonName: "Fall 2026",
+      seasonSlug: "fall-2026",
+      date: "2026-09-15",
+      day: "Tue, Sep 15",
+      from: "Jules Park",
+      summary: null,
+    });
+    if (!result.ok) throw new Error(result.error);
+    expect(result.value.subject).toBe(
+      "Confirm the rain-out for Tue, Sep 15? Fall 2026",
+    );
+    expect(result.value.text).toContain(
+      "Nothing is cancelled until you confirm it on the rain-out screen.",
+    );
+    expect(result.value.text).toContain(
+      "Review and confirm: https://league.example.test/app/admin/seasons/fall-2026/rainout?date=2026-09-15",
+    );
+  });
+
   it("alerts admins to rain, linking the rain-out screen with the day chosen", () => {
     const alert = (level: "watch" | "likely", thunder: boolean) => {
       const result = render("rain_alert", {

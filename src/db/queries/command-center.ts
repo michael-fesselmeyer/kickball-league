@@ -71,7 +71,7 @@ export async function commandDate(
 
 export type CommandDayRow = CommandRow & {
   seasonSlug: string;
-  venue: { lat: number; lng: number } | null;
+  venue: { lat: number; lng: number; name: string } | null;
 };
 
 /**
@@ -92,6 +92,7 @@ export async function commandRows(
       startsAt: slot.startsAt,
       endsAt: slot.endsAt,
       fieldName: field.name,
+      venueName: venue.name,
       lat: venue.lat,
       lng: venue.lng,
       seasonSlug: season.slug,
@@ -153,7 +154,7 @@ export async function commandRows(
     seasonSlug: r.seasonSlug,
     venue:
       r.lat !== null && r.lng !== null
-        ? { lat: Number(r.lat), lng: Number(r.lng) }
+        ? { lat: Number(r.lat), lng: Number(r.lng), name: r.venueName }
         : null,
     teamA: { id: r.teamAId, name: r.teamAName },
     teamB: { id: r.teamBId, name: r.teamBName },

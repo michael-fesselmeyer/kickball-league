@@ -35,20 +35,27 @@ export type GameDay = {
   /** YYYY-MM-DD in the league's time zone, as the rain-out screen names it. */
   date: string;
   firstPitch: Date;
-  games: (Window & { lat: number; lng: number })[];
+  games: (Window & { lat: number; lng: number; venue: string })[];
 };
 
 /**
  * Game days whose first game still to play starts within the alert's reach
  * of `now`, from each season's published schedule. Games at a venue with no
- * map pin cannot have a forecast and are left out.
+ * map pin cannot have a forecast and are left out. The decision-time alert
+ * passes its own reach and rule (ADR 0048).
  */
-export async function gameDaysDue(db: Db, now: Date): Promise<GameDay[]> {
+export async function gameDaysDue(
+  db: Db,
+  now: Date,
+  due: (firstPitch: Date, now: Date) => boolean = dueForRainCheck,
+  reachMs: number = ALERT_AHEAD_MS,
+): Promise<GameDay[]> {
   // A whole day past the reach, so a day's later games come along with its
   // first one.
-  const until = new Date(now.getTime() + ALERT_AHEAD_MS + 86_400_000);
+  const until = new Date(now.getTime() + reachMs + 86_400_000);
   const rows = await db
     .select({
+      venue: venue.name,
       seasonId: season.id,
       seasonSlug: season.slug,
       seasonName: season.name,
@@ -102,11 +109,12 @@ export async function gameDaysDue(db: Db, now: Date): Promise<GameDay[]> {
       endsAt: r.endsAt,
       lat: Number(r.lat),
       lng: Number(r.lng),
+      venue: r.venue,
     });
     days.set(key, day);
   }
   return [...days.values()]
-    .filter((d) => dueForRainCheck(d.firstPitch, now))
+    .filter((d) => due(d.firstPitch, now))
     .sort((a, b) => a.firstPitch.getTime() - b.firstPitch.getTime());
 }
 

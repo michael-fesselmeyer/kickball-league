@@ -114,9 +114,17 @@ export const MESSAGE_KINDS = {
     urgency: "urgent",
     label: "Rain alerts for admins the day before games",
   },
+  rain_decision: {
+    urgency: "urgent",
+    label: "Rain-out decision alerts for owners on game days",
+  },
   rainout_notice: {
     urgency: "urgent",
     label: "Rain-outs and makeup times",
+  },
+  rainout_request: {
+    urgency: "urgent",
+    label: "Rain-outs sent to the owners to confirm",
   },
   rebate_credit: {
     urgency: "non_urgent",

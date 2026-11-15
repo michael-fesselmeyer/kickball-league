@@ -3,7 +3,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { HelpLink } from "@/components/help-link";
 import { PageLoading } from "@/components/page-loading";
+import {
+  RainDecisionCard,
+  RainDecisionCardLoading,
+} from "@/components/rain-decision-card";
 import type { CommandDayRow } from "@/db/queries/command-center";
+import type { ParkGames } from "@/db/queries/rainout-decision";
 import { gameForecast, rainRisk } from "@/domain/weather/forecast";
 import { requirePermission } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
@@ -116,6 +121,11 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
           </Link>
         </nav>
       </header>
+      {state.date >= todayDate && (await featureEnabled("weather")) && (
+        <Suspense fallback={<RainDecisionCardLoading />}>
+          <RainDecisionCard parks={dayParks(rows)} timeZone={league.timeZone} />
+        </Suspense>
+      )}
       <CommandBoard initial={state} timeZone={league.timeZone} />
       <Suspense fallback={<p className="min-h-24">Checking the gear…</p>}>
         <DayGear
@@ -126,6 +136,23 @@ async function GameDay({ searchParams }: PageProps<"/app/admin/today">) {
       </Suspense>
     </>
   );
+}
+
+/** The day's games still on, by park, for the rain-out decision card. */
+function dayParks(rows: readonly CommandDayRow[]): ParkGames[] {
+  const parks = new Map<string, ParkGames>();
+  for (const r of rows) {
+    if (!r.venue || r.slotCancelled || r.status === "cancelled") continue;
+    const park = parks.get(r.venue.name) ?? {
+      venue: r.venue.name,
+      lat: r.venue.lat,
+      lng: r.venue.lng,
+      games: [],
+    };
+    park.games.push({ startsAt: r.startsAt, endsAt: r.endsAt });
+    parks.set(r.venue.name, park);
+  }
+  return [...parks.values()];
 }
 
 /**

@@ -3,24 +3,42 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { HelpLink } from "@/components/help-link";
+import {
+  RainDecisionCard,
+  RainDecisionCardLoading,
+} from "@/components/rain-decision-card";
 import { CopyForWhatsApp } from "@/components/share";
 import { db } from "@/db/client";
+import {
+  adminsConfirmRainouts,
+  gameDayParks,
+  rainoutRequests,
+} from "@/db/queries/rainout-decision";
 import { loadVersion } from "@/db/queries/schedule";
 import {
   scheduleLabels,
   seasonBySlug,
   versionsOf,
 } from "@/db/queries/schedule-screen";
+import { can } from "@/domain/authz/permissions";
+import type { SeasonId } from "@/domain/ids";
+import { kickoff, shortDay } from "@/domain/schedule/format";
 import { measure } from "@/domain/scheduler/measure";
 import { reschedule } from "@/domain/scheduler/reschedule";
 import { rainoutShareText } from "@/domain/share/share-text";
 import { env } from "@/env";
 import { requirePermission } from "@/lib/auth/permission";
+import { featureEnabled } from "@/lib/platform/site";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
-import { declareRainout } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
-import { activeLeagueId, activeLeaguePath } from "@/lib/league/active";
+import { activeLeague, activeLeaguePath } from "@/lib/league/active";
+import {
+  declareRainout,
+  sendRainoutAction,
+  setRainoutPolicyAction,
+} from "./actions";
+import { dayLabel, ERRORS, NOTICES } from "./words";
 
 export const metadata: Metadata = { title: "Rain-out" };
 
@@ -36,11 +54,6 @@ export default function RainoutPage(
   );
 }
 
-const ERRORS: Record<string, string> = {
-  no_published: "Publish a schedule before calling a rain-out.",
-  no_games: "There are no slots on that date.",
-};
-
 async function Rainout({
   params,
   searchParams,
@@ -48,9 +61,19 @@ async function Rainout({
   const { season: slug } = await params;
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/rainout`;
-  await requirePermission("rainout.declare", { next: page });
-  const season = await seasonBySlug(db, await activeLeagueId(), slug);
-  if (!season) notFound();
+  const subject = await requirePermission("rainout.prepare", { next: page });
+  const league = await activeLeague();
+  const season = league ? await seasonBySlug(db, league.id, slug) : null;
+  if (!season || !league) notFound();
+  // Who confirms (ADR 0048): the owners and the operator, and admins
+  // when the owners allow it.
+  const adminsConfirm = await adminsConfirmRainouts(db, league.id);
+  const canConfirm = can(subject, "rainout.confirm", {
+    adminsConfirmRainouts: adminsConfirm,
+  });
+  const canSetPolicy = can(subject, "rainout.confirm_policy");
+  const notice =
+    typeof query.notice === "string" ? NOTICES[query.notice] : undefined;
 
   const published = (await versionsOf(db, season.id)).find(
     (v) => v.status === "published",
@@ -91,13 +114,6 @@ async function Rainout({
     typeof query.date === "string" && dates.includes(query.date)
       ? query.date
       : null;
-  const dayLabel = (d: string) =>
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: "UTC",
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    }).format(new Date(`${d}T12:00:00Z`));
   const team = (id: string) => labels.teams.get(id) ?? id;
   const where = (slotId: string | null) => {
     const s = slotId ? labels.slots.get(slotId) : undefined;
@@ -112,6 +128,7 @@ async function Rainout({
     const result = reschedule(version.input, version.schedule, cancelled);
     const before = measure(version.input, version.schedule);
     const games = new Map(version.schedule.games.map((g) => [g.key, g]));
+    const requests = await rainoutRequests(db, season.id, date);
     preview = (
       <section aria-labelledby="preview" className="flex flex-col gap-4">
         <h2 id="preview" className="text-h2">
@@ -192,16 +209,44 @@ async function Rainout({
               {d}
             </p>
           ))}
-        <form action={declareRainout.bind(null, slug, date)}>
-          <SubmitButton className="btn btn-primary">
-            Cancel {dayLabel(date)} and save these makeups as a draft
-          </SubmitButton>
-        </form>
-        <p className="text-text-muted">
-          Nothing is published or sent until you publish the draft on the
-          schedule screen. Publishing emails each player on a moved team their
-          game&apos;s makeup time.
-        </p>
+        {requests.length > 0 && (
+          <p role="status" className="rounded-lg border border-warning p-3">
+            {requests[0]?.by ?? "An admin"} sent this rain-out to the owners to
+            confirm on{" "}
+            {shortDay(requests[0]?.at ?? new Date(), season.timeZone)} at{" "}
+            {kickoff(requests[0]?.at ?? new Date(), season.timeZone)}.
+            {canConfirm
+              ? " Confirm it below if the field can't be played."
+              : " Waiting for an owner to confirm."}
+          </p>
+        )}
+        {canConfirm ? (
+          <>
+            <form action={declareRainout.bind(null, slug, date)}>
+              <SubmitButton className="btn btn-primary">
+                Cancel {dayLabel(date)} and save these makeups as a draft
+              </SubmitButton>
+            </form>
+            <p className="text-text-muted">
+              Nothing is published or sent until you publish the draft on the
+              schedule screen. Publishing emails each player on a moved team
+              their game&apos;s makeup time.
+            </p>
+          </>
+        ) : (
+          <>
+            <form action={sendRainoutAction.bind(null, slug, date)}>
+              <SubmitButton className="btn btn-primary">
+                Send {dayLabel(date)} to the owners to confirm
+              </SubmitButton>
+            </form>
+            <p className="text-text-muted">
+              Only an owner confirms a rain-out. Each owner gets a message with
+              the weather summary and a link back here; nothing is cancelled
+              until one of them confirms.
+            </p>
+          </>
+        )}
         <div className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4">
           <h3 className="text-h3">For the league chat</h3>
           <p className="text-small text-text-muted">
@@ -238,6 +283,11 @@ async function Rainout({
           {error}
         </p>
       )}
+      {notice && (
+        <p role="status" className="rounded-lg border border-success p-3">
+          {notice}
+        </p>
+      )}
       <form method="get" className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
           Date
@@ -255,7 +305,65 @@ async function Rainout({
         </label>
         <SubmitButton className="btn btn-secondary">Preview</SubmitButton>
       </form>
+      {date && (await featureEnabled("weather")) && (
+        <div id="decision" className="flex flex-col gap-3">
+          <Suspense fallback={<RainDecisionCardLoading />}>
+            <DayCard
+              seasonId={season.id}
+              date={date}
+              timeZone={season.timeZone}
+            />
+          </Suspense>
+        </div>
+      )}
       {preview}
+      <section
+        id="who-confirms"
+        aria-labelledby="who-confirms-heading"
+        className="flex flex-col gap-2 border-t border-border pt-6"
+      >
+        <h2 id="who-confirms-heading" className="text-h3">
+          Who confirms rain-outs
+        </h2>
+        <p>
+          {adminsConfirm
+            ? "Owners and admins confirm rain-outs."
+            : "Owners confirm rain-outs. Admins see everything here and send a rain-out to the owners to confirm."}
+        </p>
+        {canSetPolicy && (
+          <form
+            action={setRainoutPolicyAction.bind(null, slug, date)}
+            className="flex flex-col items-start gap-2"
+          >
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                name="adminsConfirm"
+                defaultChecked={adminsConfirm}
+                className="size-5"
+              />
+              Let admins confirm rain-outs too, for days no owner is around
+            </label>
+            <SubmitButton className="btn btn-secondary">
+              Save who confirms
+            </SubmitButton>
+          </form>
+        )}
+      </section>
     </>
   );
+}
+
+/** The decision card for the parks a date's games use. */
+async function DayCard({
+  seasonId,
+  date,
+  timeZone,
+}: {
+  seasonId: SeasonId;
+  date: string;
+  timeZone: string;
+}) {
+  const parks = await gameDayParks(db, seasonId, date, timeZone);
+  return <RainDecisionCard parks={parks} timeZone={timeZone} />;
 }
