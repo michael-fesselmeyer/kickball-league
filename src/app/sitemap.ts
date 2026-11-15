@@ -4,6 +4,7 @@ import { db } from "@/db/client";
 import { publicEventSlugs } from "@/db/queries/events";
 import { allLeagues } from "@/db/queries/leagues";
 import { publishedSummarySeasons } from "@/db/queries/owner-dashboard";
+import { publicParks } from "@/db/queries/park-page";
 import { publicSeasons, publicTeamPages } from "@/db/queries/sitemap";
 import { publicSponsorPages } from "@/db/queries/sponsors";
 import { publishedAwardSeasons } from "@/db/queries/stat-awards";
@@ -27,7 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const leagues = await allLeagues(db);
   const pages = await Promise.all(
     leagues.map(async (league): Promise<DataPage[]> => {
-      const [seasons, teams, events, sponsors, summaries, awards] =
+      const [seasons, teams, events, sponsors, summaries, awards, parks] =
         await Promise.all([
           publicSeasons(db, league.id),
           publicTeamPages(db, league.id),
@@ -35,6 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           publicSponsorPages(db, league.id),
           publishedSummarySeasons(db, league.id),
           publishedAwardSeasons(db, league.id),
+          publicParks(db, league.id),
         ]);
       const sections = league.isDefault
         ? []
@@ -61,6 +63,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           lastModified: s.publishedAt,
         })),
         ...eventPages(events),
+        ...parks.map((p) => ({
+          path: `/fields/${p.slug}`,
+          lastModified: p.updatedAt,
+        })),
         ...sponsors.map((s) => ({
           path: `/sponsors/${s.slug}`,
           lastModified: s.updatedAt,
