@@ -1040,7 +1040,9 @@ export type EarlierEjection = {
 
 /**
  * Each person's ejections before the report being reviewed, newest first,
- * so the admin can weigh a player's history. One query.
+ * so the admin can weigh a player's history. Only the league of the report
+ * under review: a person can play in several leagues, and one league's
+ * admins never see another's reports. One query.
  */
 export async function earlierEjections(
   db: Db,
@@ -1049,6 +1051,15 @@ export async function earlierEjections(
 ): Promise<Map<UserId, EarlierEjection[]>> {
   const out = new Map<UserId, EarlierEjection[]>();
   if (userIds.length === 0) return out;
+  const reviewed = alias(incident, "reviewed_incident");
+  const reviewedGame = alias(game, "reviewed_game");
+  const reviewedSeason = alias(season, "reviewed_season");
+  const leagueOfReport = db
+    .select({ leagueId: reviewedSeason.leagueId })
+    .from(reviewed)
+    .innerJoin(reviewedGame, eq(reviewed.gameId, reviewedGame.id))
+    .innerJoin(reviewedSeason, eq(reviewedGame.seasonId, reviewedSeason.id))
+    .where(eq(reviewed.id, excluding));
   const rows = await db
     .select({
       userId: incidentPerson.userId,
@@ -1066,6 +1077,7 @@ export async function earlierEjections(
         inArray(incidentPerson.userId, [...userIds]),
         eq(incident.kind, "ejection"),
         ne(incident.id, excluding),
+        inArray(season.leagueId, leagueOfReport),
       ),
     )
     .orderBy(desc(incident.reportedAt));
