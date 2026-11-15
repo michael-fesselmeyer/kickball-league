@@ -342,6 +342,30 @@ describe("queueChecklistReminders", () => {
       });
       expect(queued).toBe(sent.length);
 
+      // An owner who is no longer an admin counts as nobody.
+      const gone = await addTask(db, {
+        seasonId: w.seasonId,
+        actorId: w.admin,
+        task: {
+          title: "Pay the bar deposit",
+          notes: "",
+          dueOn: "2027-03-19",
+          ownerId: w.player,
+        },
+      });
+      await queueChecklistReminders(db, { leagueId: w.leagueId, today });
+      const toGone = await db
+        .select({ userId: message.userId, payload: message.payload })
+        .from(message)
+        .where(eq(message.template, "checklist_reminder"));
+      const forGone = toGone.filter((m) =>
+        JSON.stringify(m.payload).includes("Pay the bar deposit"),
+      );
+      expect(forGone.map((m) => m.userId)).toContain(w.owner);
+      expect(forGone.map((m) => m.userId)).not.toContain(w.player);
+      expect(forGone[0]?.payload).toMatchObject({ unassigned: true });
+      expect(gone).toBeTruthy();
+
       // The next day nothing new goes for the same tasks.
       expect(
         await queueChecklistReminders(db, {
@@ -353,7 +377,7 @@ describe("queueChecklistReminders", () => {
         .select({ id: checklistTask.id })
         .from(checklistTask)
         .where(eq(checklistTask.seasonId, w.seasonId));
-      expect(rows).toHaveLength(4);
+      expect(rows).toHaveLength(5);
     });
   });
 });

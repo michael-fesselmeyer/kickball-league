@@ -465,19 +465,19 @@ export async function queueChecklistReminders(
       ),
     );
   if (tasks.length === 0) return 0;
-  const needOwners = tasks.some((t) => t.ownerId === null);
-  const owners = needOwners
-    ? (
-        await db
-          .select({ id: profile.userId })
-          .from(profile)
-          .where(eq(profile.globalRole, "owner"))
-      ).map((r) => r.id)
-    : [];
+  // A task's owner who is no longer an owner or admin counts as nobody,
+  // so the reminder goes to the owners instead of someone who left.
+  const staff = await db
+    .select({ id: profile.userId, role: profile.globalRole })
+    .from(profile)
+    .where(inArray(profile.globalRole, ["admin", "owner"]));
+  const staffIds = new Set<string>(staff.map((s) => s.id));
+  const owners = staff.filter((s) => s.role === "owner").map((s) => s.id);
   const messages: OutboxMessage[] = tasks.flatMap((t) => {
     const kind = reminderFor(t.dueOn, input.today);
     if (!kind) return [];
-    const to = t.ownerId ? [t.ownerId] : owners;
+    const holder = t.ownerId && staffIds.has(t.ownerId) ? t.ownerId : null;
+    const to = holder ? [holder] : owners;
     return to.map((userId) => ({
       userId,
       template: "checklist_reminder" as const,
@@ -490,7 +490,7 @@ export async function queueChecklistReminders(
         seasonSlug: t.seasonSlug,
         due: dueLabel(t.dueOn, input.today),
         dueOn: longDate(t.dueOn),
-        unassigned: t.ownerId === null,
+        unassigned: holder === null,
       },
       dedupeKey: `checklist_reminder/${t.id}/${t.dueOn}/${kind}/${userId}`,
     }));
