@@ -7,7 +7,11 @@ import { HelpLink } from "@/components/help-link";
 import { LineScore } from "@/components/line-score";
 import { db } from "@/db/client";
 import { hasReferee, liveGame, snapshotOf } from "@/db/queries/live-scores";
-import { gameLimitsFor, permitInfoFor } from "@/db/queries/permit-watch";
+import {
+  delayedStarts,
+  gameLimitsFor,
+  permitInfoFor,
+} from "@/db/queries/permit-watch";
 import { gameForScoring, scoreHistory } from "@/db/queries/scores";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
@@ -64,17 +68,27 @@ async function Live({
   });
   const gameId = parseId<GameId>(rawId);
   if (!gameId) notFound();
-  const [g, live, refereed, league, history, permits, limits, discipline] =
-    await Promise.all([
-      gameForScoring(db, gameId),
-      liveGame(db, gameId),
-      hasReferee(db, gameId),
-      activeLeague(),
-      scoreHistory(db, gameId),
-      permitInfoFor(db, [gameId]),
-      gameLimitsFor(db, gameId),
-      featureEnabled("discipline"),
-    ]);
+  const [
+    g,
+    live,
+    refereed,
+    league,
+    history,
+    permits,
+    limits,
+    discipline,
+    delays,
+  ] = await Promise.all([
+    gameForScoring(db, gameId),
+    liveGame(db, gameId),
+    hasReferee(db, gameId),
+    activeLeague(),
+    scoreHistory(db, gameId),
+    permitInfoFor(db, [gameId]),
+    gameLimitsFor(db, gameId),
+    featureEnabled("discipline"),
+    delayedStarts(db, [gameId]),
+  ]);
   if (!g || !live) notFound();
   const ctx = {
     game: {
@@ -98,15 +112,17 @@ async function Live({
   const permit = info
     ? {
         permitEndsAt: info.permitEndsAt.toISOString(),
-        startsAt: info.slotStartsAt.toISOString(),
+        startsAt: info.clockStartsAt.toISOString(),
         timeLimitMinutes: info.timeLimitMinutes,
         innings: info.innings,
         rule: info.rule,
       }
     : null;
-  // The game clock runs from the scheduled start on the phone's own clock.
-  const clock = g.startsAt
-    ? { startsAt: g.startsAt.toISOString(), limits }
+  // The game clock runs from the scheduled start on the phone's own clock,
+  // or from the new start when the day's status delays the game.
+  const clockStart = delays.get(g.id) ?? g.startsAt;
+  const clock = clockStart
+    ? { startsAt: clockStart.toISOString(), limits }
     : null;
 
   return (

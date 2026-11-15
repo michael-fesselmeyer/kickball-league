@@ -43,6 +43,8 @@ export type CommandRow = {
   /** The permit window saved with the game, with its rule set; null without one. */
   permit: {
     permitEndsAt: Date;
+    /** When the game's clock starts: a delayed game's new start, else the slot's. */
+    clockStartsAt: Date;
     timeLimitMinutes: number | null;
     innings: number | null;
     rule: PermitEndRule;
@@ -179,7 +181,7 @@ export function commandState(
             ? permitWatch({
                 permitEndsAt: row.permit.permitEndsAt,
                 now,
-                startsAt: row.startsAt,
+                startsAt: row.permit.clockStartsAt,
                 timeLimitMinutes: row.permit.timeLimitMinutes,
                 innings: row.permit.innings,
                 halvesEntered: row.halves.length,
