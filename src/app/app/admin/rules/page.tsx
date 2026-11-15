@@ -69,7 +69,10 @@ async function Rules({ searchParams }: PageProps<"/app/admin/rules">) {
       </header>
       {isOwner && (
         <p>
-          <Link href="/app/admin/rules/rulebook" className="font-bold underline">
+          <Link
+            href="/app/admin/rules/rulebook"
+            className="font-bold underline"
+          >
             Import the rulebook and choose who can read it
           </Link>
         </p>

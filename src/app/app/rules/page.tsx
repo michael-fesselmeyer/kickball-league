@@ -11,13 +11,14 @@ import { RuleHighlight } from "@/components/rulebook/rule-highlight";
 import { RulebookSearch } from "@/components/rulebook/rulebook-search";
 import { RulebookSections } from "@/components/rulebook/rulebook-sections";
 import { db } from "@/db/client";
-import { changeLog, currentRules, rulebookVisibility } from "@/db/queries/rules";
+import {
+  changeLog,
+  currentRules,
+  rulebookVisibility,
+} from "@/db/queries/rules";
 import { localDate } from "@/domain/books/ledger-csv";
 import { leagueHref } from "@/domain/league/paths";
-import {
-  canReadRulebook,
-  VISIBILITY_LABELS,
-} from "@/domain/rules/rulebook";
+import { canReadRulebook, VISIBILITY_LABELS } from "@/domain/rules/rulebook";
 import { currentSubject } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";
 import { redirect } from "next/navigation";

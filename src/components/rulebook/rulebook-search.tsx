@@ -26,21 +26,26 @@ export function RulebookSearch({
 }) {
   const id = useId();
   const [query, setQuery] = useState("");
-  const [state, setState] = useState<
-    | { status: "idle" }
-    | { status: "loading" }
-    | { status: "failed" }
-    | { status: "done"; results: Result[] }
-  >({ status: "idle" });
+  const [answer, setAnswer] = useState<{
+    key: string;
+    results: Result[] | null;
+  } | null>(null);
   const terms = searchTerms(query);
   const key = terms.join(" ");
+  const searching = key.length >= 2;
+  const state: {
+    status: "idle" | "loading" | "failed" | "done";
+    results: Result[];
+  } = !searching
+    ? { status: "idle", results: [] }
+    : answer?.key !== key
+      ? { status: "loading", results: [] }
+      : answer.results === null
+        ? { status: "failed", results: [] }
+        : { status: "done", results: answer.results };
 
   useEffect(() => {
-    if (key.length < 2) {
-      setState({ status: "idle" });
-      return;
-    }
-    setState({ status: "loading" });
+    if (!searching) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
@@ -49,16 +54,16 @@ export function RulebookSearch({
         });
         if (!res.ok) throw new Error(String(res.status));
         const body = (await res.json()) as { results: Result[] };
-        setState({ status: "done", results: body.results });
-      } catch (error) {
-        if (!controller.signal.aborted) setState({ status: "failed" });
+        setAnswer({ key, results: body.results });
+      } catch {
+        if (!controller.signal.aborted) setAnswer({ key, results: null });
       }
     }, 200);
     return () => {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [key, searchUrl]);
+  }, [key, searching, searchUrl]);
 
   const hrefFor = (target: string) =>
     `${pagePath}?h=${encodeURIComponent(key)}#${target}`;
@@ -90,7 +95,9 @@ export function RulebookSearch({
           <span className="text-text-muted">Searching…</span>
         )}
         {state.status === "failed" && (
-          <span>Search isn&apos;t working right now. Try again in a moment.</span>
+          <span>
+            Search isn&apos;t working right now. Try again in a moment.
+          </span>
         )}
         {state.status === "done" && state.results.length === 0 && (
           <span className="text-text-muted">
@@ -107,7 +114,10 @@ export function RulebookSearch({
       {state.status === "done" && state.results.length > 0 && (
         <ul className="flex flex-col">
           {state.results.map((r) => (
-            <li key={r.slug} className="flex flex-col border-t border-border py-2">
+            <li
+              key={r.slug}
+              className="flex flex-col border-t border-border py-2"
+            >
               <a
                 href={hrefFor(r.slug)}
                 onClick={(e) => go(e, r.slug)}
