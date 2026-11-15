@@ -28,6 +28,9 @@ export const TOPICS = [
   "operations",
   "photos",
   "team_roles",
+  // "We're watching the weather and will decide by 3 pm" (issue #383).
+  // Opt-in: off until a player asks for it.
+  "game_day_watch",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -48,6 +51,7 @@ export const DEFAULT_ENABLED: Readonly<Record<Topic, boolean>> = {
   operations: true,
   photos: true,
   team_roles: true,
+  game_day_watch: false,
 };
 
 /**
@@ -67,7 +71,12 @@ export const SETTINGS_TOPICS: readonly {
   {
     topic: "rainout",
     label: "Rain-outs",
-    hint: "When your game is rained out, with its makeup time. Admins also get rain alerts the day before.",
+    hint: "When your game is rained out, called off, starts late or is back on, with its makeup time. Admins also get rain alerts the day before.",
+  },
+  {
+    topic: "game_day_watch",
+    label: "Weather watches",
+    hint: "When the league is watching the weather before your game and says by when it will decide. Off unless you turn it on.",
   },
   {
     topic: "payment",
@@ -126,7 +135,12 @@ export const PUSH_TOPICS: readonly {
   {
     topic: "rainout",
     label: "Rain-outs",
-    hint: "When your game is rained out.",
+    hint: "When your game is rained out, called off, starts late or is back on.",
+  },
+  {
+    topic: "game_day_watch",
+    label: "Weather watches",
+    hint: "When the league is watching the weather before your game.",
   },
   {
     topic: "sub_request",

@@ -262,6 +262,8 @@ const RULES = {
     isOperator,
     (s, c) => isAdmin(s, c) && c.adminsConfirmRainouts === true,
   ),
+  // Set a game day's status: on, watching, delayed or off (issue #383).
+  "game_day.status": isAdmin,
   "free_agents.place": isAdmin,
   "team.approve_new": isAdmin,
   "event.manage": isAdmin,

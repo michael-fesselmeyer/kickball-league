@@ -69,6 +69,7 @@ const ACTIONS: Record<string, string> = {
   "friend_league.update": "Changed a friend league's entry",
   "free_agents.build_team": "Built a team from the free-agent pool",
   "free_agents.place": "Placed a free agent on a team",
+  "game_day.status": "Set a game day's status",
   "giveaway.create": "Added a giveaway to an event",
   "giveaway.draw": "Drew a giveaway's winners",
   "giveaway.redraw": "Replaced a giveaway winner",
