@@ -37,6 +37,13 @@ async function setRole(operator: Page, email: string, role: string) {
   await expect(operator.getByRole("status")).toHaveText("Role saved.");
 }
 
+/**
+ * The last game day of Fall 2026's published schedule (src/seed/generate.ts).
+ * It is named, not taken as the list's last: other flows add games after it
+ * while they run, such as one today or next week, which then come last.
+ */
+const LAST_DAY = "2026-10-27";
+
 /** Picks Fall 2026's last game day on the rain-out screen and previews it. */
 async function previewLastDay(page: Page): Promise<string> {
   await page.goto(PAGE);
@@ -44,9 +51,11 @@ async function previewLastDay(page: Page): Promise<string> {
     page.getByRole("heading", { name: "Call a rain-out" }),
   ).toBeVisible();
   const date = page.getByLabel("Date");
-  const lastDay = await date.locator("option").last().textContent();
-  if (!lastDay) throw new Error("Fall 2026 has no game days");
-  await date.selectOption({ label: lastDay });
+  const lastDay = await date
+    .locator(`option[value="${LAST_DAY}"]`)
+    .textContent();
+  if (!lastDay) throw new Error("Fall 2026 has no game day on 2026-10-27");
+  await date.selectOption(LAST_DAY);
   await page.getByRole("button", { name: "Preview" }).click();
   await expect(
     page.getByRole("heading", { name: `If ${lastDay} is rained out` }),
