@@ -87,7 +87,7 @@ test("an organizer books a private tournament and invites a team", async ({
   const captain = await pageSignedInAs(browser, `captain.${tag}@example.test`);
   await captain.goto(`/app/private-events/${slug}`);
   await expect(
-    captain.getByRole("heading", { name: "This page could not be found." }),
+    captain.getByRole("heading", { name: "We can't find that page" }),
   ).toBeVisible();
   const standings = await captain.request.get(`/seasons/${slug}/standings`);
   expect(standings.status()).toBe(404);
@@ -97,7 +97,7 @@ test("an organizer books a private tournament and invites a team", async ({
   // Without the invite the registration is hidden; the link opens it.
   await captain.goto(`/app/seasons/${slug}/register`);
   await expect(
-    captain.getByRole("heading", { name: "This page could not be found." }),
+    captain.getByRole("heading", { name: "We can't find that page" }),
   ).toBeVisible();
   await captain.goto(new URL(invite).pathname);
   await expect(captain).toHaveURL(new RegExp(`/app/seasons/${slug}/register`));
