@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:e2e": "tsx scripts/e2e-server.ts",
     "lint": "eslint --max-warnings 0",
     "typecheck": "SKIP_ENV_VALIDATION=true next typegen && tsc --noEmit",
     "format": "prettier --write .",
