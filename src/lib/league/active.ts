@@ -1,13 +1,13 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
-import { db } from "@/db/client";
-import {
-  defaultLeague,
-  type LeagueInfo,
-  leagueBySlug,
-} from "@/db/queries/leagues";
+import type { LeagueInfo } from "@/db/queries/leagues";
 import type { LeagueId } from "@/domain/ids";
-import { isLeagueSlug, leagueHref } from "@/domain/league/paths";
+import {
+  DEFAULT_LEAGUE_SEGMENT,
+  isLeagueSlug,
+  leagueHref,
+} from "@/domain/league/paths";
+import { cachedLeague } from "./public";
 
 /**
  * The cookie that remembers which league the app is showing (ADR 0048). The
@@ -23,14 +23,18 @@ export const LEAGUE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
  * The league the app shows: the one the person last switched to, if it
  * still exists, otherwise the default league. Null only before any league
  * exists. Once per render, like the session.
+ *
+ * Read from the data cache, as public pages read theirs (tag `leagues`,
+ * expired when the operator adds or changes a league), so the screens that
+ * wait for it don't wait on the database.
  */
 export const activeLeague = cache(async (): Promise<LeagueInfo | null> => {
   const chosen = (await cookies()).get(LEAGUE_COOKIE)?.value;
   if (chosen && isLeagueSlug(chosen)) {
-    const found = await leagueBySlug(db, chosen);
+    const found = await cachedLeague(chosen);
     if (found) return found;
   }
-  return defaultLeague(db);
+  return cachedLeague(DEFAULT_LEAGUE_SEGMENT);
 });
 
 /** The id of the league the app is showing, for queries scoped by league. */
