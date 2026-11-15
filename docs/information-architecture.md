@@ -126,6 +126,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
 │       │   └── share               The version for sponsors: the same without money or anything about one person, to print or save as a PDF
 │       ├── report.csv              The report card's lines: section, measure, unit, both seasons and the change
 │       └── summary                 The season money summary: fold categories into Other, preview exactly what goes public, publish, publish again or take it down
+├── demo/checkout/[session]         Local demo only ([ADR 0052](adr/0052-local-demo-runs-offline.md)): what is being paid for and "Pay (demo)", which confirms it through the signed webhook; 404 everywhere else
 ├── ref/                            Assignments, availability, earnings
 ├── sponsor/                        The sponsors a person manages (admins: every sponsor, and add one)
 │   └── [sponsor]/                  Sponsor portal: deals, "still current", details; admins also page address, home bar and people
@@ -188,6 +189,7 @@ Public pages are indexable and need no sign-in. App pages sit behind sign-in and
     ├── money                       Payments, refunds, credit, promo codes
     ├── accounts                    Merge duplicate accounts: look up both by email, preview what moves and how clashes are settled, confirm it's you and merge; recent merges
     ├── audit                       Audit log in plain words, newest first; filter for the platform operator's actions
+    ├── demo-mail                   Demo only: every email the league would have sent, newest first, each opened as the person would get it; 404 outside demo mode
     ├── photos                      Member photos: the review queue (approve, download, or reject with a note only admins see), approved photos to download or take down, recent rejections, and storage used against the cap
     ├── instagram                   Connect, sync, disconnect (keep or remove photos); feature, hide, tag to a team or event, set a cover, describe each post
     │   ├── callback                Where Instagram's sign-in returns; checks the state, saves the token encrypted, runs the first sync

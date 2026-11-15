@@ -439,12 +439,14 @@ No Redis in the MVP. Rate limits that need a counter use a small Postgres table.
 | Local | `next dev` | A personal Neon branch, or a Postgres in Docker | Stripe test mode with the Stripe CLI forwarding webhooks; emails rendered to the console |
 | Preview (every pull request) | Vercel preview deployment | A Neon branch created for the preview through Neon's API ([ADR 0003](adr/0003-free-hosting-and-secrets.md)), migrated and seeded | Stripe test mode; email to a sandbox inbox; scheduled jobs off |
 | Demo | A second Vercel project from the same repository, `DEMO_MODE=true` ([ADR 0004](adr/0004-demo-mode.md)) | Its own Neon database, reseeded nightly | Stripe test mode with test cards; no real email; a banner and one-tap "view as" role switching |
+| Local demo | `npm run demo`: a production build on one laptop, offline, in demo mode ([ADR 0052](adr/0052-local-demo-runs-offline.md), [walkthrough](demo.md)) | A `kb_demo` database in the demo's own Docker container or a local Postgres, reset with a game in progress | stripe-mock and a local checkout page that signs Stripe's webhook; email stays in the outbox, read on the admin-only "Demo mail" page; recorded weather and Instagram |
 | Production | A free hosting plan (section 15, "Hosting and commercial use"), the league's own domain | The production branch on Neon's free plan, with its restore window | Stripe live; Resend's free tier; web push |
 
 - **Until launch, automatic deployments are off** (`git.deploymentEnabled: false` in `vercel.json`): features are built and checked locally and in CI first, and pushes to pull requests or `main` don't build on Vercel. The live address keeps the last build made before that. Turning them back on, with previews for pull requests and `main` to production, is a launch milestone ([roadmap.md](roadmap.md), section 6).
 - Environment variables are validated with a Zod schema at build and at boot; a missing variable fails the build.
 - Migrations are generated with `drizzle-kit generate`, reviewed in the pull request, and applied by `drizzle-kit migrate` in the deploy step before the new code serves traffic. Migrations must be backward compatible with the previous deploy.
-- The demo exists so recruiters and the league owners can click everything without touching real players' data.
+- The demo exists so the league's owners, and anyone thinking of joining, can click everything without touching real players' data.
+- The local demo swaps only what needs a network, each behind a switch that only `npm run demo` sets and that demo mode must also allow: `DEMO_CHECKOUT` (Checkout goes to `/app/demo/checkout/[session]`, which signs a `checkout.session.completed` event with the demo's webhook secret and hands it to the webhook route), `WEATHER_FIXTURE` (`src/services/weather-fixture.ts`: dry tonight, showers over the next game day) and `INSTAGRAM_FIXTURE`. Its processes start from an empty environment with `.env.local` loading switched off, so the league's keys never reach it.
 
 ## 11. Continuous integration
 
