@@ -1,7 +1,8 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { SUBJECT_MAX } from "@/domain/win-back/win-back";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /**
  * The win-back invitation (issue #370): the league's own wording, already
@@ -24,7 +25,7 @@ export const winBackEmail = defineTemplate(winBackPayload, (p, ctx) =>
       heading: p.subject,
       paragraphs: p.paragraphs,
       action: { label: p.actionLabel, path: p.actionPath },
-      reason: `you played in the league before and ${p.seasonName} registration is open`,
+      reason: fill(emailWords(ctx).w.winBack.reason, { season: p.seasonName }),
     },
     ctx,
   ),

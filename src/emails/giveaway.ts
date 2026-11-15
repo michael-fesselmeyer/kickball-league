@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /** The one message a giveaway winner gets: what they won and where. */
 export const giveawayWinPayload = z.object({
@@ -12,21 +13,24 @@ export const giveawayWinPayload = z.object({
 
 export type GiveawayWinPayload = z.infer<typeof giveawayWinPayload>;
 
-export const giveawayWinEmail = defineTemplate(giveawayWinPayload, (p, ctx) =>
-  renderEmail(
+export const giveawayWinEmail = defineTemplate(giveawayWinPayload, (p, ctx) => {
+  const w = emailWords(ctx).w.giveaway;
+  const vars = {
+    event: p.eventTitle,
+    prize: p.prize,
+    donor: p.donatedBy ?? "",
+  };
+  return renderEmail(
     {
-      subject: `You won the ${p.eventTitle} giveaway`,
-      heading: "You won!",
-      paragraphs: [
-        `Your name came up in the giveaway at ${p.eventTitle}: ${p.prize}${p.donatedBy ? `, from ${p.donatedBy}` : ""}.`,
-        "The giveaway's page says how to claim it. The draw was random, from everyone who checked in.",
-      ],
+      subject: fill(w.subject, vars),
+      heading: w.heading,
+      paragraphs: [fill(p.donatedBy ? w.leadFrom : w.lead, vars), w.claim],
       action: {
-        label: "See your prize",
+        label: w.action,
         path: `/app/events/${p.eventSlug}/giveaway`,
       },
-      reason: `you entered the giveaway at ${p.eventTitle}`,
+      reason: fill(w.reason, vars),
     },
     ctx,
-  ),
-);
+  );
+});

@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill, plural } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, publicPath, renderEmail } from "./layout";
 
 /**
  * Tells every player in the active seasons that the league's rules are
@@ -22,23 +23,26 @@ export const ruleChangePayload = z.object({
 
 export type RuleChangePayload = z.infer<typeof ruleChangePayload>;
 
-export const ruleChangeEmail = defineTemplate(ruleChangePayload, (p, ctx) =>
-  renderEmail(
+export const ruleChangeEmail = defineTemplate(ruleChangePayload, (p, ctx) => {
+  const { locale, w: all } = emailWords(ctx);
+  const w = all.ruleChange;
+  const vars = { on: p.effectiveOn, summary: p.summary };
+  const path = p.anchor ? `${p.rulesPath}#${p.anchor}` : p.rulesPath;
+  return renderEmail(
     {
-      subject: `Rule change from ${p.effectiveOn}: ${p.summary}`,
-      heading: "The league's rules are changing",
+      subject: fill(w.subject, vars),
+      heading: w.heading,
       paragraphs: [
         p.summary,
-        `It takes effect on ${p.effectiveOn}.`,
-        `${p.sections.length === 1 ? "Section" : "Sections"} changed: ${p.sections.join(", ")}.`,
-        "Read the new wording on the rules page, and ask your captain or the league if anything is unclear.",
+        fill(w.effective, vars),
+        plural(locale, w.sections, p.sections.length, {
+          sections: p.sections.join(", "),
+        }),
+        w.read,
       ],
-      action: {
-        label: "Read the rules",
-        path: p.anchor ? `${p.rulesPath}#${p.anchor}` : p.rulesPath,
-      },
-      reason: "you play in a season with the league",
+      action: { label: w.action, path: publicPath(ctx, path) },
+      reason: w.reason,
     },
     ctx,
-  ),
-);
+  );
+});

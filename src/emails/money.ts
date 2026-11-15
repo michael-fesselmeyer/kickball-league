@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /**
  * Money emails from roadmap item 13: the captain guarantee's warning and a
@@ -27,25 +28,33 @@ export type GuaranteeWarningPayload = z.infer<typeof guaranteeWarningPayload>;
 
 export const guaranteeWarningEmail = defineTemplate(
   guaranteeWarningPayload,
-  (p, ctx) =>
-    renderEmail(
+  (p, ctx) => {
+    const w = emailWords(ctx).w.money;
+    const vars = {
+      team: p.teamName,
+      season: p.seasonName,
+      balance: p.balance,
+      on: p.chargeOn,
+      card: p.card,
+      charge: p.charge ?? "",
+    };
+    return renderEmail(
       {
-        subject: `${p.teamName} still owes ${p.balance}: your card is charged ${p.chargeOn}`,
-        heading: `Heads up: ${p.balance} left on ${p.teamName}`,
+        subject: fill(w.warningSubject, vars),
+        heading: fill(w.warningHeading, vars),
         paragraphs: [
-          p.charge
-            ? `Your team's ${p.seasonName} fee still has ${p.balance} unpaid. As the team's guarantee, your ${p.card} will be charged ${p.charge} on ${p.chargeOn}: the balance at the card price, which covers the card fee.`
-            : `Your team's ${p.seasonName} fee still has ${p.balance} unpaid. As the team's guarantee, your ${p.card} will be charged that amount on ${p.chargeOn}.`,
-          "Anything your teammates pay before then comes off the charge. Collect the rest from them afterwards, or remove the card if you would rather pay another way.",
+          fill(p.charge ? w.warningLeadCharge : w.warningLead, vars),
+          w.warningMore,
         ],
         action: {
-          label: "See who has paid",
+          label: w.whoPaid,
           path: `/app/seasons/${p.seasonSlug}/team`,
         },
-        reason: `you saved a card to guarantee ${p.teamName}'s fee`,
+        reason: fill(w.guaranteeReason, vars),
       },
       ctx,
-    ),
+    );
+  },
 );
 
 export const guaranteeFailedPayload = z.object({
@@ -58,23 +67,27 @@ export type GuaranteeFailedPayload = z.infer<typeof guaranteeFailedPayload>;
 
 export const guaranteeFailedEmail = defineTemplate(
   guaranteeFailedPayload,
-  (p, ctx) =>
-    renderEmail(
+  (p, ctx) => {
+    const w = emailWords(ctx).w.money;
+    const vars = {
+      team: p.teamName,
+      season: p.seasonName,
+      balance: p.balance,
+    };
+    return renderEmail(
       {
-        subject: `We couldn't charge your card for ${p.teamName}`,
-        heading: "Your card was declined",
-        paragraphs: [
-          `We tried to charge your saved card ${p.balance} for the rest of ${p.teamName}'s ${p.seasonName} fee, and the bank said no.`,
-          "Your team is not confirmed until the fee is paid. Pay the balance from the team page, or save a different card.",
-        ],
+        subject: fill(w.failedSubject, vars),
+        heading: w.failedHeading,
+        paragraphs: [fill(w.failedLead, vars), w.failedMore],
         action: {
-          label: "Pay the balance",
+          label: w.payBalance,
           path: `/app/seasons/${p.seasonSlug}/team`,
         },
-        reason: `you saved a card to guarantee ${p.teamName}'s fee`,
+        reason: fill(w.guaranteeReason, vars),
       },
       ctx,
-    ),
+    );
+  },
 );
 
 export const waitlistOfferPayload = z.object({
@@ -87,23 +100,23 @@ export type WaitlistOfferPayload = z.infer<typeof waitlistOfferPayload>;
 
 export const waitlistOfferEmail = defineTemplate(
   waitlistOfferPayload,
-  (p, ctx) =>
-    renderEmail(
+  (p, ctx) => {
+    const w = emailWords(ctx).w.money;
+    const vars = { season: p.seasonName, expires: p.expires };
+    return renderEmail(
       {
-        subject: `A team spot opened in ${p.seasonName}. It's yours until ${p.expires}`,
-        heading: "You're up! A spot just opened",
-        paragraphs: [
-          `A team spot opened in ${p.seasonName} and you're next on the waitlist. We're holding it for you until ${p.expires}.`,
-          "Register your team before then to take it. After that, it goes to the next team in line.",
-        ],
+        subject: fill(w.waitlistSubject, vars),
+        heading: w.waitlistHeading,
+        paragraphs: [fill(w.waitlistLead, vars), w.waitlistMore],
         action: {
-          label: "Register your team",
+          label: w.registerTeam,
           path: `/app/seasons/${p.seasonSlug}/register`,
         },
-        reason: `you joined the ${p.seasonName} waitlist`,
+        reason: fill(w.waitlistReason, vars),
       },
       ctx,
-    ),
+    );
+  },
 );
 
 export const referralCreditPayload = z.object({
@@ -114,20 +127,21 @@ export type ReferralCreditPayload = z.infer<typeof referralCreditPayload>;
 
 export const referralCreditEmail = defineTemplate(
   referralCreditPayload,
-  (p, ctx) =>
-    renderEmail(
+  (p, ctx) => {
+    const { w: all } = emailWords(ctx);
+    const w = all.money;
+    const vars = { amount: p.amount, season: p.seasonName };
+    return renderEmail(
       {
-        subject: `You earned ${p.amount} in league credit`,
-        heading: "Thanks for bringing a friend",
-        paragraphs: [
-          `Someone you invited just paid for ${p.seasonName}, so ${p.amount} of league credit is in your account.`,
-          "It comes off your next fee automatically when you pay.",
-        ],
-        action: { label: "See your credit", path: "/app/profile#credit" },
-        reason: "someone registered through your referral link",
+        subject: fill(w.referralSubject, vars),
+        heading: w.referralHeading,
+        paragraphs: [fill(w.referralLead, vars), all.common.nextFee],
+        action: { label: all.common.seeCredit, path: "/app/profile#credit" },
+        reason: w.referralReason,
       },
       ctx,
-    ),
+    );
+  },
 );
 
 export const rebateCreditPayload = z.object({
@@ -139,18 +153,27 @@ export const rebateCreditPayload = z.object({
 });
 export type RebateCreditPayload = z.infer<typeof rebateCreditPayload>;
 
-export const rebateCreditEmail = defineTemplate(rebateCreditPayload, (p, ctx) =>
-  renderEmail(
-    {
-      subject: `${p.amount} of league credit for the rained-out games`,
-      heading: "Some of your fee is coming back",
-      paragraphs: [
-        `${p.teamName} lost ${p.gamesLost} of ${p.gamesCount} games in ${p.seasonName} to weather that could not be made up. Your share of the rebate, ${p.amount}, is now league credit.`,
-        "It comes off your next fee automatically when you pay.",
-      ],
-      action: { label: "See your credit", path: "/app/profile#credit" },
-      reason: `you paid toward ${p.teamName}'s ${p.seasonName} fee`,
-    },
-    ctx,
-  ),
+export const rebateCreditEmail = defineTemplate(
+  rebateCreditPayload,
+  (p, ctx) => {
+    const { w: all } = emailWords(ctx);
+    const w = all.money;
+    const vars = {
+      amount: p.amount,
+      season: p.seasonName,
+      team: p.teamName,
+      lost: p.gamesLost,
+      count: p.gamesCount,
+    };
+    return renderEmail(
+      {
+        subject: fill(w.rebateSubject, vars),
+        heading: w.rebateHeading,
+        paragraphs: [fill(w.rebateLead, vars), all.common.nextFee],
+        action: { label: all.common.seeCredit, path: "/app/profile#credit" },
+        reason: fill(w.rebateReason, vars),
+      },
+      ctx,
+    );
+  },
 );

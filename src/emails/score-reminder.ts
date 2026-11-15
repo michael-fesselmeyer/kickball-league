@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /** What a missing-score reminder carries in the outbox. */
 export const scoreReminderPayload = z.object({
@@ -16,26 +17,19 @@ export type ScoreReminderPayload = z.infer<typeof scoreReminderPayload>;
 
 export const scoreReminderEmail = defineTemplate(
   scoreReminderPayload,
-  (p, ctx) =>
-    renderEmail(
+  (p, ctx) => {
+    const w = emailWords(ctx).w.scoreReminder;
+    const vars = { teams: p.teams, when: p.when };
+    const ref = p.role === "referee";
+    return renderEmail(
       {
-        subject: `Score needed: ${p.teams}`,
-        heading: "What was the final score?",
-        paragraphs: [
-          `${p.teams} (${p.when}) has no score yet.`,
-          p.role === "referee"
-            ? "As the ref, enter it now so the standings update tonight. It takes a few seconds."
-            : "Your ref has not entered it. Either captain can, and the other team confirms.",
-        ],
-        action: {
-          label: "Enter the score",
-          path: `/app/games/${p.gameId}/score`,
-        },
-        reason:
-          p.role === "referee"
-            ? "you refereed this game"
-            : "you captain one of the teams in this game",
+        subject: fill(w.subject, vars),
+        heading: w.heading,
+        paragraphs: [fill(w.lead, vars), ref ? w.referee : w.captain],
+        action: { label: w.action, path: `/app/games/${p.gameId}/score` },
+        reason: ref ? w.refereeReason : w.captainReason,
       },
       ctx,
-    ),
+    );
+  },
 );

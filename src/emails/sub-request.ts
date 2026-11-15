@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /** The game a sub notice is about, as the league writes it. */
 const about = {
@@ -25,24 +26,30 @@ export const subRequestPayload = z.object({
 
 export type SubRequestPayload = z.infer<typeof subRequestPayload>;
 
-export const subRequestEmail = defineTemplate(subRequestPayload, (p, ctx) =>
-  renderEmail(
+export const subRequestEmail = defineTemplate(subRequestPayload, (p, ctx) => {
+  const w = emailWords(ctx).w.sub;
+  const vars = {
+    team: p.team,
+    teams: p.teams,
+    when: p.when,
+    spots: p.spots,
+    season: p.seasonName,
+  };
+  return renderEmail(
     {
-      subject: `${p.team} needs ${p.spots}: ${p.when}`,
-      heading: `${p.team} needs a sub`,
+      subject: fill(w.requestSubject, vars),
+      heading: fill(w.requestHeading, vars),
       paragraphs: [
-        `${p.teams}, ${p.when}. ${p.team} is looking for ${p.spots}.`,
-        ...(p.note ? [`From the captain: ${p.note}`] : []),
-        "Tap \"I'm in\" to hold a spot. The captain confirms, and you'll hear back by email.",
+        fill(w.requestLead, vars),
+        ...(p.note ? [fill(w.fromCaptain, { note: p.note })] : []),
+        w.hold,
       ],
-      action: { label: "See sub requests", path: "/app/subs" },
-      reason: p.freeAgent
-        ? `you are a free agent in ${p.seasonName} and free at that time`
-        : `you play in ${p.seasonName} and your team is not playing at that time`,
+      action: { label: w.seeRequests, path: "/app/subs" },
+      reason: fill(p.freeAgent ? w.freeAgentReason : w.playerReason, vars),
     },
     ctx,
-  ),
-);
+  );
+});
 
 /** What happened to a claim, for the captain or for the player. */
 export const subUpdatePayload = z.discriminatedUnion("kind", [
@@ -63,77 +70,80 @@ export type SubUpdatePayload = z.infer<typeof subUpdatePayload>;
 const captainPage = (slug: string) => `/app/seasons/${slug}/team/subs`;
 
 export const subUpdateEmail = defineTemplate(subUpdatePayload, (p, ctx) => {
+  const w = emailWords(ctx).w.sub;
+  const vars = {
+    team: p.team,
+    teams: p.teams,
+    when: p.when,
+    player: "player" in p ? p.player : "",
+  };
+  const captainReason = fill(w.captainReason, vars);
+  const offeredReason = fill(w.offeredReason, vars);
   switch (p.kind) {
     case "claimed":
       return renderEmail(
         {
-          subject: `${p.player} wants to sub: ${p.when}`,
-          heading: `${p.player} can sub`,
-          paragraphs: [
-            `${p.player} is holding a spot for ${p.teams}, ${p.when}.`,
-            "Approve them so they know they're playing, or decline to free the spot.",
-          ],
+          subject: fill(w.claimedSubject, vars),
+          heading: fill(w.claimedHeading, vars),
+          paragraphs: [fill(w.claimedLead, vars), w.claimedMore],
           action: {
-            label: "Approve or decline",
+            label: w.approveOrDecline,
             path: captainPage(p.seasonSlug),
           },
-          reason: `you captain ${p.team}, which asked for subs`,
+          reason: captainReason,
         },
         ctx,
       );
     case "withdrawn":
       return renderEmail(
         {
-          subject: `${p.player} can't sub after all: ${p.when}`,
-          heading: "A sub dropped out",
-          paragraphs: [
-            `${p.player} can no longer play in ${p.teams}, ${p.when}. Their spot is open again.`,
-          ],
+          subject: fill(w.withdrawnSubject, vars),
+          heading: w.withdrawnHeading,
+          paragraphs: [fill(w.withdrawnLead, vars)],
           action: {
-            label: "See your request",
+            label: w.seeYourRequest,
             path: captainPage(p.seasonSlug),
           },
-          reason: `you captain ${p.team}, which asked for subs`,
+          reason: captainReason,
         },
         ctx,
       );
     case "approved":
       return renderEmail(
         {
-          subject: `You're subbing for ${p.team}: ${p.when}`,
-          heading: "You're playing!",
-          paragraphs: [
-            `The captain of ${p.team} said yes. You're in for ${p.teams}, ${p.when}.`,
-            "Wear the team's color if you can. If your plans change, drop out from the sub page so they can find someone else.",
-          ],
-          action: { label: "See the details", path: "/app/subs" },
-          reason: `you offered to sub for ${p.team}`,
+          subject: fill(w.approvedSubject, vars),
+          heading: w.approvedHeading,
+          paragraphs: [fill(w.approvedLead, vars), w.approvedMore],
+          action: { label: w.seeDetails, path: "/app/subs" },
+          reason: offeredReason,
         },
         ctx,
       );
     case "declined":
       return renderEmail(
         {
-          subject: `${p.team} is covered: ${p.when}`,
-          heading: "Thanks for offering",
-          paragraphs: [
-            `The captain of ${p.team} has what they need for ${p.teams}, ${p.when}. Thanks for stepping up.`,
-          ],
-          action: { label: "See other requests", path: "/app/subs" },
-          reason: `you offered to sub for ${p.team}`,
+          subject: fill(w.declinedSubject, vars),
+          heading: w.declinedHeading,
+          paragraphs: [fill(w.declinedLead, vars)],
+          action: {
+            label: emailWords(ctx).w.common.seeOtherRequests,
+            path: "/app/subs",
+          },
+          reason: offeredReason,
         },
         ctx,
       );
     case "cancelled":
       return renderEmail(
         {
-          subject: `${p.team} no longer needs subs: ${p.when}`,
-          heading: "Request taken down",
-          paragraphs: [
-            `${p.team} took down its sub request for ${p.teams}, ${p.when}, so you're not playing in it. Thanks for offering.`,
-          ],
-          action: { label: "See other requests", path: "/app/subs" },
-          reason: `you offered to sub for ${p.team}`,
+          subject: fill(w.cancelledSubject, vars),
+          heading: w.cancelledHeading,
+          paragraphs: [fill(w.cancelledLead, vars)],
+          action: {
+            label: emailWords(ctx).w.common.seeOtherRequests,
+            path: "/app/subs",
+          },
+          reason: offeredReason,
         },
         ctx,
       );

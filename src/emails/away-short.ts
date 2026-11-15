@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /**
  * For a team's captains: a player marked a week away, and the players left
@@ -29,29 +30,35 @@ export const awayShortPayload = z.object({
 
 export type AwayShortPayload = z.infer<typeof awayShortPayload>;
 
-export const awayShortEmail = defineTemplate(awayShortPayload, (p, ctx) =>
-  renderEmail(
+export const awayShortEmail = defineTemplate(awayShortPayload, (p, ctx) => {
+  const w = emailWords(ctx).w.awayShort;
+  const vars = { team: p.team, week: p.week, season: p.seasonName };
+  return renderEmail(
     {
-      subject: `${p.team} may be short the week of ${p.week}`,
-      heading: `Short the week of ${p.week}?`,
+      subject: fill(w.subject, vars),
+      heading: fill(w.heading, vars),
       paragraphs: [
-        `${p.player} will be away that week, so ${p.available} of your players are available for ${p.games.map((g) => `${g.when} vs ${g.opponent}`).join(" and ")}.`,
+        fill(w.lead, {
+          player: p.player,
+          available: p.available,
+          games: p.games
+            .map((g) => fill(w.game, { when: g.when, opponent: g.opponent }))
+            .join(w.and),
+        }),
         p.fielding,
-        p.subsOpen
-          ? "Ask for a sub now and players who are free that night will hear about it."
-          : "Sub requests aren't open for playoff games; check with the league.",
+        p.subsOpen ? w.subsOpen : w.subsClosed,
       ],
       action: p.subsOpen
         ? {
-            label: "Ask for a sub",
+            label: w.askSub,
             path: `/app/seasons/${p.seasonSlug}/team/subs?game=${p.gameId}#ask`,
           }
         : {
-            label: "See your team",
+            label: emailWords(ctx).w.common.seeTeam,
             path: `/app/seasons/${p.seasonSlug}/team#game-${p.gameId}`,
           },
-      reason: `you captain ${p.team} in ${p.seasonName}`,
+      reason: fill(w.reason, vars),
     },
     ctx,
-  ),
-);
+  );
+});

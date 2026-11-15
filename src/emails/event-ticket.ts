@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /**
  * Ticket emails for a ticketed event: the receipt, a refund, and an offer
@@ -27,55 +28,54 @@ export const eventTicketPayload = z.object({
 export type EventTicketPayload = z.infer<typeof eventTicketPayload>;
 
 export const eventTicketEmail = defineTemplate(eventTicketPayload, (p, ctx) => {
+  const { w: all } = emailWords(ctx);
+  const w = all.ticket;
   const where = p.place ? `${p.when}, ${p.place}` : p.when;
+  const vars = { title: p.title, where };
   const page = `/app/events/${p.slug}`;
   switch (p.kind) {
     case "receipt":
       return renderEmail(
         {
-          subject: `Your ticket: ${p.title}`,
-          heading: `You're going to ${p.title}`,
+          subject: fill(w.receiptSubject, vars),
+          heading: fill(w.receiptHeading, vars),
           paragraphs: [
-            `Your ticket for ${p.title} (${where}) is confirmed.`,
-            ...(p.paid ? [`You paid ${p.paid}.`] : []),
-            ...(p.code
-              ? [`Your check-in code is ${p.code}. Show it at the door.`]
-              : []),
+            fill(w.receiptLead, vars),
+            ...(p.paid ? [fill(all.common.youPaid, { paid: p.paid })] : []),
+            ...(p.code ? [fill(w.code, { code: p.code })] : []),
           ],
-          action: { label: "See your ticket", path: page },
-          reason: "you bought a ticket",
+          action: { label: w.seeTicket, path: page },
+          reason: w.boughtReason,
         },
         ctx,
       );
     case "refunded":
       return renderEmail(
         {
-          subject: `Refunded: ${p.title}`,
-          heading: `Your ticket for ${p.title} is refunded`,
+          subject: fill(w.refundedSubject, vars),
+          heading: fill(w.refundedHeading, vars),
           paragraphs: [
-            `The league refunded your ticket for ${p.title} (${where}), so it no longer gets you in.`,
+            fill(w.refundedLead, vars),
             ...(p.returned
-              ? [
-                  `${p.returned}. A card refund usually shows up within 5 to 10 days.`,
-                ]
+              ? [fill(all.common.cardRefund, { returned: p.returned })]
               : []),
           ],
-          action: { label: "See the event", path: page },
-          reason: "you bought a ticket",
+          action: { label: all.common.seeEvent, path: page },
+          reason: w.boughtReason,
         },
         ctx,
       );
     case "offered":
       return renderEmail(
         {
-          subject: `A spot opened: ${p.title}`,
-          heading: `A spot opened up for ${p.title}`,
+          subject: fill(w.offeredSubject, vars),
+          heading: fill(w.offeredHeading, vars),
           paragraphs: [
-            `You were on the waitlist for ${p.title} (${where}), and a spot is now held for you.`,
-            `Buy your ticket${p.expires ? ` by ${p.expires}` : ""}. After that it goes to the next person in line.`,
+            fill(w.offeredLead, vars),
+            p.expires ? fill(w.buyBy, { expires: p.expires }) : w.buy,
           ],
-          action: { label: "Buy your ticket", path: page },
-          reason: "you joined this event's waitlist",
+          action: { label: w.buyAction, path: page },
+          reason: all.event.waitlistReason,
         },
         ctx,
       );

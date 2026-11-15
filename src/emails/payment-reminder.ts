@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill, plural } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /** What a payment reminder carries in the outbox. */
 export const paymentReminderPayload = z.object({
@@ -15,25 +16,30 @@ export const paymentReminderPayload = z.object({
 
 export type PaymentReminderPayload = z.infer<typeof paymentReminderPayload>;
 
-const when = (days: number) =>
-  days === 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
-
 export const paymentReminderEmail = defineTemplate(
   paymentReminderPayload,
-  (p, ctx) =>
-    renderEmail(
+  (p, ctx) => {
+    const { locale, w: all } = emailWords(ctx);
+    const w = all.payment;
+    const when =
+      p.daysLeft === 0
+        ? w.today
+        : p.daysLeft === 1
+          ? w.tomorrow
+          : plural(locale, w.inDays, p.daysLeft);
+    const vars = { season: p.seasonName, deadline: p.deadline, when };
+    return renderEmail(
       {
-        subject: `Your ${p.seasonName} fee is due ${when(p.daysLeft)}`,
-        heading: `Your spot needs paying ${when(p.daysLeft)}`,
+        subject: fill(w.subject, vars),
+        heading: fill(w.heading, vars),
         paragraphs: [
-          `The payment deadline for ${p.seasonName} is ${p.deadline}. Pay before then to keep your spot.`,
-          p.needsWaiver
-            ? "Sign the season waiver first; the payment step comes right after."
-            : "It takes a minute by card. If you already paid your captain in cash or Venmo, ask them to mark it in the app.",
+          fill(w.lead, vars),
+          p.needsWaiver ? w.waiverFirst : w.byCard,
         ],
-        action: { label: "Pay now", path: `/app/seasons/${p.seasonSlug}` },
-        reason: `you registered for ${p.seasonName} and have not paid yet`,
+        action: { label: w.action, path: `/app/seasons/${p.seasonSlug}` },
+        reason: fill(w.reason, vars),
       },
       ctx,
-    ),
+    );
+  },
 );

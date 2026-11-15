@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /**
  * Asks a registered player who has no shirt size the season offers to pick
@@ -14,18 +15,17 @@ export const shirtSizePayload = z.object({
 
 export type ShirtSizePayload = z.infer<typeof shirtSizePayload>;
 
-export const shirtSizeEmail = defineTemplate(shirtSizePayload, (p, ctx) =>
-  renderEmail(
+export const shirtSizeEmail = defineTemplate(shirtSizePayload, (p, ctx) => {
+  const w = emailWords(ctx).w.shirt;
+  const vars = { season: p.seasonName, sizes: p.sizes };
+  return renderEmail(
     {
-      subject: `Your shirt size for ${p.seasonName}`,
-      heading: "What size shirt do you wear?",
-      paragraphs: [
-        `The league is ordering shirts for ${p.seasonName}, and we don't have your size yet.`,
-        `Pick yours on your profile: ${p.sizes}. It takes a few seconds.`,
-      ],
-      action: { label: "Pick my size", path: "/app/profile" },
-      reason: `you're registered for ${p.seasonName}`,
+      subject: fill(w.subject, vars),
+      heading: w.heading,
+      paragraphs: [fill(w.lead, vars), fill(w.pick, vars)],
+      action: { label: w.action, path: "/app/profile" },
+      reason: fill(w.reason, vars),
     },
     ctx,
-  ),
-);
+  );
+});

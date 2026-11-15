@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { bringBy } from "@/domain/equipment/equipment";
 import { kickoff, shortDay } from "@/domain/schedule/format";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 
 /**
  * The evening before a game, for the person bringing a league kit to it
@@ -33,28 +34,28 @@ export type GearReminderPayload = z.infer<typeof gearReminderPayload>;
 export const gearReminderEmail = defineTemplate(
   gearReminderPayload,
   (p, ctx) => {
+    const { locale, w: all } = emailWords(ctx);
+    const w = all.gear;
     const startsAt = new Date(p.startsAt);
-    const day = shortDay(startsAt, p.timeZone);
-    const by = kickoff(bringBy(startsAt), p.timeZone);
+    const day = shortDay(startsAt, p.timeZone, locale);
+    const by = kickoff(bringBy(startsAt), p.timeZone, locale);
+    const kit = { kit: p.kitName };
     const getIt =
       p.from.kind === "holding"
-        ? `You have ${p.kitName}.`
+        ? fill(w.holding, kit)
         : p.from.kind === "on_its_way"
-          ? `${p.kitName} is on its way to you: confirm it in the app when you have it.`
+          ? fill(w.onItsWay, kit)
           : p.from.kind === "with"
-            ? `${p.from.name} has ${p.kitName} right now; get it from them, and confirm in the app when they hand it over.`
-            : `${p.kitName} is at ${p.from.homeLocation}; tap "I picked up ${p.kitName}" in the app when you have it.`;
+            ? fill(w.with, { ...kit, name: p.from.name })
+            : fill(w.atHome, { ...kit, place: p.from.homeLocation });
+    const vars = { ...kit, place: p.place, by, day, teams: p.teams };
     return renderEmail(
       {
-        subject: `Bring ${p.kitName} to ${p.place} by ${by} on ${day}`,
-        heading: `${p.kitName} for ${p.teams}`,
-        paragraphs: [
-          getIt,
-          `Bring it to ${p.place} by ${by} on ${day}, half an hour before ${p.teams} kicks off.`,
-          "If anything is missing from the kit, report it in the app so the league can restock it.",
-        ],
-        action: { label: "Open your gear", path: "/app#gear" },
-        reason: "you're bringing league gear to this game",
+        subject: fill(w.subject, vars),
+        heading: fill(w.heading, vars),
+        paragraphs: [getIt, fill(w.bring, vars), w.missing],
+        action: { label: w.action, path: "/app#gear" },
+        reason: w.reason,
       },
       ctx,
     );

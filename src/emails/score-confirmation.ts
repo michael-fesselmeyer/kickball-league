@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { fill } from "@/i18n/catalog";
 import { defineTemplate } from "./define";
-import { renderEmail } from "./layout";
+import { emailWords, renderEmail } from "./layout";
 import { calledNote } from "@/domain/sports/sports";
 
 /** A reported score waiting for a captain to confirm or dispute it. */
@@ -37,21 +38,23 @@ export function describeScore(
 
 export const scoreConfirmationEmail = defineTemplate(
   scoreConfirmationPayload,
-  (p, ctx) =>
-    renderEmail(
+  (p, ctx) => {
+    const w = emailWords(ctx).w.scoreConfirm;
+    const vars = {
+      result: p.result,
+      reportedBy: p.reportedBy,
+      teams: p.teams,
+      when: p.when,
+    };
+    return renderEmail(
       {
-        subject: `Confirm the score: ${p.result}`,
-        heading: "Is this score right?",
-        paragraphs: [
-          `${p.reportedBy} reported ${p.result} for ${p.teams} (${p.when}).`,
-          "Confirm it, or dispute it if it's wrong. If nobody disputes it, it becomes final after 24 hours.",
-        ],
-        action: {
-          label: "Confirm or dispute",
-          path: `/app/games/${p.gameId}/score`,
-        },
-        reason: "you captain one of the teams in this game",
+        subject: fill(w.subject, vars),
+        heading: w.heading,
+        paragraphs: [fill(w.lead, vars), w.more],
+        action: { label: w.action, path: `/app/games/${p.gameId}/score` },
+        reason: w.reason,
       },
       ctx,
-    ),
+    );
+  },
 );
