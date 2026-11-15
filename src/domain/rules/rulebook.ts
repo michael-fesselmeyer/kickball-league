@@ -23,7 +23,7 @@ export const VISIBILITY_LABELS: Record<
   },
   members: {
     label: "Members only",
-    help: "Anyone signed in to the league can read it in the app.",
+    help: "Anyone with an account can read it in the app.",
   },
   public: {
     label: "Public",

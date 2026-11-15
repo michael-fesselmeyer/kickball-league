@@ -10,11 +10,12 @@ import {
 describe("canReadRulebook", () => {
   it("shows owners only to owners", () => {
     expect(canReadRulebook("owners", "owner")).toBe(true);
+    // The admin rules editor shows the text, so it uses this check too.
     expect(canReadRulebook("owners", "admin")).toBe(false);
     expect(canReadRulebook("owners", "player")).toBe(false);
     expect(canReadRulebook("owners", null)).toBe(false);
   });
-  it("shows members only to anyone signed in to the league", () => {
+  it("shows members only to anyone with an account", () => {
     expect(canReadRulebook("members", "player")).toBe(true);
     expect(canReadRulebook("members", "admin")).toBe(true);
     expect(canReadRulebook("members", null)).toBe(false);
