@@ -118,6 +118,7 @@ describe("push settings", () => {
         devices: 0,
         topics: [
           expect.objectContaining({ topic: "rainout", enabled: false }),
+          expect.objectContaining({ topic: "game_day_watch", enabled: false }),
           expect.objectContaining({ topic: "sub_request", enabled: false }),
           expect.objectContaining({ topic: "score", enabled: false }),
         ],
@@ -128,13 +129,14 @@ describe("push settings", () => {
       expect(settings.devices).toBe(1);
       expect(settings.topics.map((t) => [t.topic, t.enabled])).toEqual([
         ["rainout", true],
+        ["game_day_watch", false],
         ["sub_request", false],
         ["score", true],
       ]);
       await savePushSettings(db, pat, new Set(["sub_request"]));
       expect(
         (await pushSettingsOf(db, pat)).topics.map((t) => t.enabled),
-      ).toEqual([false, true, false]);
+      ).toEqual([false, false, true, false]);
     });
   });
 
