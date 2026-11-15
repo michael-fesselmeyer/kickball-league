@@ -15,6 +15,7 @@ export const booksReminderPayload = z.object({
     "permit_renews",
     "insurance_expires",
     "fees_due",
+    "renewal_opens",
   ]),
   /** Such as "permit PK-1001" or "the insurance certificate from Example Mutual". */
   subject: z.string().min(1),
@@ -52,6 +53,11 @@ const WORDS = {
     subject: (s: string, d: string) => `${capitalize(s)} are due ${d}`,
     advice:
       "NYC Parks wants permit fees 14 days before the season starts. The permits screen shows what each permit should cost; once paid, enter the real cost there so the books match.",
+  },
+  renewal_opens: {
+    subject: (s: string, d: string) => `Renewals for ${s} open ${d}`,
+    advice:
+      "The renewal screen drafts the request from last season's permits: the same fields, days and hours. Ask for anything more as a separate new request, so the league keeps its returning status.",
   },
   insurance_expires: {
     subject: (s: string, d: string) => `${capitalize(s)} expires ${d}`,
