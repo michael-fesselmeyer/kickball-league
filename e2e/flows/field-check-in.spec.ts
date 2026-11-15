@@ -113,8 +113,10 @@ test.describe.serial("field check-in", () => {
   }) => {
     const page = await pageSignedInAs(browser, DANA);
     for (const path of ["attendance", "attendance/code"]) {
-      const response = await page.goto(`/app/games/${today.gameId}/${path}`);
-      expect(response?.status()).toBe(404);
+      await page.goto(`/app/games/${today.gameId}/${path}`);
+      await expect(
+        page.getByRole("heading", { name: "We can't find that page" }),
+      ).toBeVisible();
     }
     await page.context().close();
   });
