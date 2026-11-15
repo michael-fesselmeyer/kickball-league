@@ -1,14 +1,4 @@
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  gt,
-  gte,
-  inArray,
-  lte,
-  ne,
-} from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, lte, ne } from "drizzle-orm";
 import {
   canSeeResults,
   checkVote,
@@ -125,7 +115,10 @@ const liveTeams = (db: Db, seasonId: SeasonId) =>
     .from(teamSeason)
     .innerJoin(team, eq(teamSeason.teamId, team.id))
     .where(
-      and(eq(teamSeason.seasonId, seasonId), ne(teamSeason.status, "withdrawn")),
+      and(
+        eq(teamSeason.seasonId, seasonId),
+        ne(teamSeason.status, "withdrawn"),
+      ),
     )
     .orderBy(asc(team.name));
 
@@ -585,7 +578,9 @@ export async function captainBallots(
   const rows = await polls(db)
     .where(
       and(
-        inArray(captainPoll.seasonId, [...new Set(mine.map((m) => m.seasonId))]),
+        inArray(captainPoll.seasonId, [
+          ...new Set(mine.map((m) => m.seasonId)),
+        ]),
         lte(captainPoll.opensAt, now),
         gte(captainPoll.closesAt, new Date(now.getTime() - CLOSED_KEPT_MS)),
       ),

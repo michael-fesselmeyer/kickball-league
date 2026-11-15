@@ -374,6 +374,7 @@ Times are Eastern. Schedules are written in UTC, so jobs that care about local t
 | Injury retention ✔ | Daily (`/api/jobs/injury-retention`) | Deletes the details of every injury report older than 3 years: the injury, its witnesses, the follow-up notes and the text, leaving the incident; one `injury.delete` audit row each, with no actor ([ADR 0064](adr/0064-injury-reports.md)) |
 | Photo cache purge retries ✔ | Daily (`/api/jobs/photo-purges`) | Tries again every purge of a taken-down photo's cached copies that the host refused twice, recorded as `photo_cache.purge_failed` in the photo's league's audit log, and records `photo_cache.purged` for each one that gets through. Failures older than 31 days are dropped, because the copies have expired by then ([ADR 0069](adr/0069-optimized-photos-kept-a-month-and-purged-at-takedown.md)). Off Vercel there is nothing to purge |
 | Checklist reminders ✔ | Daily (`/api/jobs/checklist-reminders`) | Reminds each open season checklist task's owner 3 days before it is due and once when it is overdue, or every owner of its league while the task has none, for each league (`checklist_reminder`, non-urgent, topic `operations`); each is queued once per task, due date, kind and person ([ADR 0061](adr/0061-season-ops-checklist-from-a-template.md)) |
+| Captains' poll reminders ✔ | Daily (`/api/jobs/captain-poll-reminders`) | Reminds the captains of teams that have not voted in a quick poll closing within a day (`captain_poll`, non-urgent, topic `announcement`); one a day per captain per poll ([ADR 0063](adr/0063-quick-polls-for-captains.md)) |
 | Waitlist offers ✔ | Daily (`/api/jobs/waitlist-offers`) | Marks offers whose 48 hours ran out as expired and offers each free team spot to the next captain in line. Offers stop holding their spot the moment they run out, whether or not this has run. Raising a season's team limit, or an admin's "Offer now", sends offers at once |
 | Sponsor stats rollup (P2) | Daily 3:00 | Aggregates impressions and clicks into `sponsor_stat_daily` |
 | Instagram sync (P2) ✔ | Every 3 hours (`/api/jobs/instagram-sync`; daily on Hobby) | Fetches the 25 newest posts from the connected account, copies new photos and removes posts deleted on Instagram |
@@ -576,6 +577,7 @@ Every sign-in through `e2e/support/sign-in.ts` comes from its own made-up addres
 | `/app/admin/seasons/[season]/rollover` | `rollover` (preview, leave a team out, rename, create the draft) |
 | `…/announcements` | `announcements` (one team) |
 | `…/awards` | `awards`; `stat-awards` (the link to stat awards) |
+| `/app/polls`, `…/captain-polls` | `captain-polls` (ask a question, the captain votes and changes the vote, totals after voting, the admin closes it) |
 | `…/awards/stats`; `/seasons/[season]/awards` | `stat-awards` (take down, reweight, recompute, note, publish; a visitor reads the formulas) |
 | `…/fields` | `season-journey` (venue, field, permits, slots) |
 | `…/free-agents` | `registration` (matcher), `season-journey` (build a team from the pool) |

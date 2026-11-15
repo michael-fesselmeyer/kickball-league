@@ -105,7 +105,10 @@ describe("parsePollForm", () => {
 
   it("reads who votes and when results show, and refuses anything else", () => {
     expect(
-      parsePollForm(form({ voters: "captains_and_co", results: "at_close" }), ctx),
+      parsePollForm(
+        form({ voters: "captains_and_co", results: "at_close" }),
+        ctx,
+      ),
     ).toMatchObject({
       value: { includeCoCaptains: true, results: "at_close" },
     });
@@ -144,7 +147,9 @@ describe("checkVote", () => {
       ok: false,
       error: "not_open",
     });
-    expect(checkVote({ ...base, now: new Date(poll.opensAt.getTime() - 1) })).toEqual({
+    expect(
+      checkVote({ ...base, now: new Date(poll.opensAt.getTime() - 1) }),
+    ).toEqual({
       ok: false,
       error: "not_open",
     });
@@ -212,7 +217,13 @@ describe("optionResults", () => {
   ];
 
   it("keeps the admin's order, ranks, and lists an unpicked option", () => {
-    const r = optionResults(options, new Map([["b", 3], ["a", 1]]));
+    const r = optionResults(
+      options,
+      new Map([
+        ["b", 3],
+        ["a", 1],
+      ]),
+    );
     expect(r.rows.map((x) => [x.label, x.votes, x.rank, x.percent])).toEqual([
       ["Five", 1, 2, 25],
       ["Seven", 3, 1, 75],
@@ -223,7 +234,14 @@ describe("optionResults", () => {
   });
 
   it("shares a rank in a tie, and skips the next", () => {
-    const r = optionResults(options, new Map([["a", 2], ["b", 2], ["c", 1]]));
+    const r = optionResults(
+      options,
+      new Map([
+        ["a", 2],
+        ["b", 2],
+        ["c", 1],
+      ]),
+    );
     expect(r.rows.map((x) => x.rank)).toEqual([1, 1, 3]);
     expect(r.winners).toEqual(["a", "b"]);
   });
