@@ -81,6 +81,12 @@ async function Incidents() {
           Reports from refs, captains and admins. Read each one, add notes,
           suspend a player if it calls for it, and resolve it.
         </p>
+        <Link
+          href="/app/admin/incidents/cards"
+          className="self-start underline"
+        >
+          Cards given by refs
+        </Link>
       </header>
       {concerns && (
         <section aria-labelledby="concerns" className="flex flex-col gap-1">

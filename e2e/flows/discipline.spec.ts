@@ -11,6 +11,8 @@ const DISCIPLINE_PLAYER = {
 };
 const DISCIPLINE_TEAM = "Foul Play";
 const PLAYER = `${DISCIPLINE_PLAYER.firstName} ${DISCIPLINE_PLAYER.lastName}`;
+/** How the card screens name Dana: first name and last initial. */
+const SHORT = `${DISCIPLINE_PLAYER.firstName} ${DISCIPLINE_PLAYER.lastName[0]}.`;
 const GAME = `Grand Slammers vs ${DISCIPLINE_TEAM}`;
 
 /**
@@ -58,6 +60,39 @@ test.describe
     await ref.getByRole("button", { name: "Send the report" }).click();
     await expect(ref.getByRole("status")).toContainText("Report sent");
     await ref.context().close();
+  });
+
+  test("the ref gives Dana a yellow card, and the admin sees it without a suspension", async ({
+    browser,
+  }) => {
+    const ref = await pageAs(browser, "Ref");
+    await ref
+      .getByRole("listitem")
+      .filter({ hasText: GAME })
+      .getByRole("link", { name: "Score", exact: true })
+      .click();
+    const cards = ref.getByRole("region", { name: "Cards" });
+    await expect(cards).toBeVisible();
+    await expectNoAxeViolations(ref);
+    await cards.getByLabel("Player").selectOption({ label: SHORT });
+    await cards.getByLabel("Yellow card (a warning)").check();
+    await cards.getByLabel("Short note (optional)").fill("Arguing the call");
+    await cards.getByRole("button", { name: "Give the card" }).click();
+    await expect(ref.getByRole("status")).toContainText("Card given.");
+    await expect(ref.getByRole("region", { name: "Cards" })).toContainText(
+      "Yellow card",
+    );
+    await expectNoAxeViolations(ref);
+    await ref.context().close();
+
+    const admin = await pageAs(browser, "Admin");
+    await admin.goto("/app/admin/incidents/cards");
+    await expect(
+      admin.getByRole("heading", { name: "Cards", exact: true }),
+    ).toBeVisible();
+    await expect(admin.getByRole("heading", { name: SHORT })).toBeVisible();
+    await expectNoAxeViolations(admin);
+    await admin.context().close();
   });
 
   test("an admin suspends Dana from the ladder's suggestion and resolves the report", async ({

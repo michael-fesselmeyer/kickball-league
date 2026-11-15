@@ -9,8 +9,10 @@ import {
   incidentDetail,
   seasonGameCounts,
 } from "@/db/queries/discipline";
+import { cardsForPlayers } from "@/db/queries/cards";
 import { injuryOf, recordInjuryView } from "@/db/queries/injury";
 import { can } from "@/domain/authz/permissions";
+import { cardName, patternNote } from "@/domain/discipline/cards";
 import {
   describeLength,
   INCIDENT_KINDS,
@@ -195,7 +197,7 @@ async function Incident({
       found.people.flatMap((p) => (p.teamSeasonId ? [p.teamSeasonId] : [])),
     ),
   ] as TeamSeasonId[];
-  const [alcohol, ejections, seasonGames] = await Promise.all([
+  const [alcohol, ejections, seasonGames, cards] = await Promise.all([
     Promise.all(
       toDecide.map(
         async (p) =>
@@ -212,8 +214,21 @@ async function Incident({
       found.id,
     ),
     seasonGameCounts(db, teams),
+    cardsForPlayers(
+      db,
+      found.people.map((p) => p.userId),
+    ),
   ]);
   const history = new Map(alcohol);
+  const cardLines = new Map(
+    found.people.flatMap((p) => {
+      const mine = cards.get(p.userId) ?? [];
+      if (mine.length === 0) return [];
+      const names = mine.map((c) => cardName(c.color)).join(", ");
+      const pattern = patternNote(mine);
+      return [[p.userId, `Cards: ${names}${pattern ? ` · ${pattern}` : ""}`]];
+    }),
+  );
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const notice =
@@ -331,6 +346,11 @@ async function Incident({
                         ))}
                       </ul>
                     </div>
+                  )}
+                  {cardLines.get(p.userId) && (
+                    <span className="block text-small text-text-muted">
+                      {cardLines.get(p.userId)}
+                    </span>
                   )}
                 </li>
               );
