@@ -21,7 +21,9 @@ import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Member photos" };
 
-export default function AdminPhotosPage(props: PageProps<"/[lang]/app/admin/photos">) {
+export default function AdminPhotosPage(
+  props: PageProps<"/[lang]/app/admin/photos">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-1">

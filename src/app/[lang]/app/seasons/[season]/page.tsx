@@ -50,7 +50,9 @@ const PAYMENT_MESSAGES: Record<string, string> = {
     "Your bank transfer is on its way. It takes a few business days; you're marked paid when it arrives.",
 };
 
-export default function SeasonPage(props: PageProps<"/[lang]/app/seasons/[season]">) {
+export default function SeasonPage(
+  props: PageProps<"/[lang]/app/seasons/[season]">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>

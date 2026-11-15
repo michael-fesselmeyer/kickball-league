@@ -49,7 +49,9 @@ import { calledNote, scoreFormRules, sportRules } from "@/domain/sports/sports";
 
 export const metadata: Metadata = { title: "Score" };
 
-export default function ScorePage(props: PageProps<"/[lang]/app/games/[game]/score">) {
+export default function ScorePage(
+  props: PageProps<"/[lang]/app/games/[game]/score">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
       <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>

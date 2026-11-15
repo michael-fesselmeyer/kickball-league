@@ -50,7 +50,9 @@ const MESSAGES: Record<string, { ok: boolean; text: string }> = {
 
 const field = "rounded-md border border-border bg-surface px-2 py-2";
 
-async function TeamLists({ searchParams }: PageProps<"/[lang]/app/admin/team-lists">) {
+async function TeamLists({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/team-lists">) {
   const subject = await requirePermission("keep_off.review", {
     next: "/app/admin/team-lists",
   });

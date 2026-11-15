@@ -85,7 +85,9 @@ const when = (d: Date) =>
 const input =
   "min-h-11 rounded-md border border-border-strong bg-surface px-2 py-1";
 
-async function Instagram({ searchParams }: PageProps<"/[lang]/app/admin/instagram">) {
+async function Instagram({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/instagram">) {
   await requirePermission("photos.manage", { next: PAGE });
   const query = await searchParams;
   const league = await activeLeague();

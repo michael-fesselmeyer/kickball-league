@@ -70,7 +70,9 @@ const TICKET: Record<string, string> = {
   cancelled: "Checkout cancelled. Nothing was charged.",
 };
 
-export default function EventRsvpPage(props: PageProps<"/[lang]/app/events/[event]">) {
+export default function EventRsvpPage(
+  props: PageProps<"/[lang]/app/events/[event]">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading the event…</PageLoading>}>

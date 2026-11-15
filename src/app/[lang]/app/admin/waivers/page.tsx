@@ -17,7 +17,9 @@ import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Waivers" };
 
-export default function WaiversPage(props: PageProps<"/[lang]/app/admin/waivers">) {
+export default function WaiversPage(
+  props: PageProps<"/[lang]/app/admin/waivers">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -39,7 +41,9 @@ const ERRORS: Record<string, string> = {
 const day = (d: Date, timeZone: string) =>
   new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(d);
 
-async function Waivers({ searchParams }: PageProps<"/[lang]/app/admin/waivers">) {
+async function Waivers({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/waivers">) {
   await requirePermission("season.manage", { next: "/app/admin/waivers" });
   const query = await searchParams;
   const league = await activeLeague();

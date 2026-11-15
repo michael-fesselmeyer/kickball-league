@@ -30,7 +30,9 @@ export default function MyPrivateEventsPage(
   );
 }
 
-async function MyEvents({ searchParams }: PageProps<"/[lang]/app/private-events">) {
+async function MyEvents({
+  searchParams,
+}: PageProps<"/[lang]/app/private-events">) {
   const subject = await requirePermission("private_event.request", {
     next: PAGE,
   });

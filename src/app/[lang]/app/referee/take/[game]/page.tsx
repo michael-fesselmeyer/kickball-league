@@ -12,7 +12,9 @@ import { takeGameAction } from "../../actions";
 
 export const metadata: Metadata = { title: "Take a game" };
 
-export default function TakePage(props: PageProps<"/[lang]/app/referee/take/[game]">) {
+export default function TakePage(
+  props: PageProps<"/[lang]/app/referee/take/[game]">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>

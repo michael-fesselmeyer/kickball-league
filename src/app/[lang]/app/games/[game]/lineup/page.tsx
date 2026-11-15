@@ -39,7 +39,9 @@ const whenIn = (timeZone: string, d: Date) =>
  * their own team's captains (and admins) any time, the other captain and
  * the ref from game day, names only. Everyone in an order sees their spot.
  */
-async function Lineups({ params }: PageProps<"/[lang]/app/games/[game]/lineup">) {
+async function Lineups({
+  params,
+}: PageProps<"/[lang]/app/games/[game]/lineup">) {
   const { game: rawGame } = await params;
   const subject = await requirePermission("public.view", {
     next: `/app/games/${rawGame}/lineup`,

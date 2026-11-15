@@ -43,7 +43,9 @@ import { LeagueLink } from "@/components/league-link";
 
 export const metadata: Metadata = { title: "Live score" };
 
-export default function LivePage(props: PageProps<"/[lang]/app/games/[game]/live">) {
+export default function LivePage(
+  props: PageProps<"/[lang]/app/games/[game]/live">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
       <Suspense fallback={<PageLoading>Loading the game…</PageLoading>}>
