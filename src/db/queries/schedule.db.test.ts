@@ -293,6 +293,23 @@ describe("saving and publishing versions", () => {
       if (!reloaded.ok) throw new Error(reloaded.error);
       expect(reloaded.value.slots.map((s) => s.id)).not.toContain(free.id);
       expect(reloaded.value.slots).toHaveLength(input.slots.length - 1);
+      // A round's game in a slot, before any version places it (as the seed
+      // does), is the schedule's: its slot stays on offer.
+      const other = input.slots.find((s) => s.id !== free.id);
+      if (!other) throw new Error("no other slot");
+      await db.insert(game).values({
+        seasonId: w.seasonId,
+        roundNo: 1,
+        teamAId: required(w.entries[2], "team"),
+        teamBId: required(w.entries[3], "team"),
+        slotId: other.id as SlotId,
+      });
+      const withRound = await loadSchedulerInput(db, w.seasonId, options);
+      if (!withRound.ok) throw new Error(withRound.error);
+      expect(withRound.value.slots.map((s) => s.id)).toContain(other.id);
+      await db
+        .delete(game)
+        .where(and(eq(game.seasonId, w.seasonId), eq(game.roundNo, 1)));
       const slotOf = async (id: GameId) =>
         (
           await db
