@@ -456,6 +456,13 @@
       "when": 1794748541767,
       "tag": "0064_scheduled_announcements",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1794749863753,
+      "tag": "0065_easy_books",
+      "breakpoints": true
     }
   ]
 }
