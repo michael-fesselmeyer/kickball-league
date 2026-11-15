@@ -257,7 +257,10 @@ async function Status({
                     <p className="text-small text-text-muted">Now: {words}</p>
                   )}
                   <label className="flex flex-col gap-1">
-                    New start, if delayed
+                    <span>
+                      New start, if delayed
+                      <span className="sr-only">: {g.teams}</span>
+                    </span>
                     <input
                       type="time"
                       name={`start:${g.id}`}
