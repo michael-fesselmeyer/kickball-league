@@ -484,6 +484,13 @@
       "when": 1794756742489,
       "tag": "0068_season_checklist",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1794758136735,
+      "tag": "0069_rules_page",
+      "breakpoints": true
     }
   ]
 }
