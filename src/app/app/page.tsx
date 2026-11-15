@@ -383,6 +383,14 @@ async function Account({ searchParams }: PageProps<"/app">) {
           </ul>
         </section>
       )}
+      {subject.isReferee && (
+        <Link
+          href="/app/referee"
+          className="inline-flex min-h-11 items-center self-start underline"
+        >
+          Reffing: when you can work, and your pay
+        </Link>
+      )}
       {open.map((s) => (
         <Link
           key={s.slug}
