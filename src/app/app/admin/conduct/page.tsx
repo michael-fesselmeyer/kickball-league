@@ -123,7 +123,7 @@ async function Conduct({ searchParams }: PageProps<"/app/admin/conduct">) {
                               {p.name}:{" "}
                               <span
                                 className={
-                                  p.accepted ? "text-success" : "text-warning"
+                                  p.accepted ? "text-success" : "text-text-muted"
                                 }
                               >
                                 {p.accepted ? "Accepted" : "Not yet"}

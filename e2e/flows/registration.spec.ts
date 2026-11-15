@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { completeProfile, pageAs } from "../support/personas";
-import { confirmAge } from "../support/season";
+import { acceptConductIfAsked, confirmAge } from "../support/season";
 import {
   moveDeadline,
   openCheckoutSession,
@@ -114,6 +114,7 @@ test("a captain registers a team with split pay and reaches Checkout", async ({
   await page
     .getByLabel("I have read the whole waiver and I agree to it.")
     .check();
+  await acceptConductIfAsked(page);
   await page.getByLabel("Type your full name to sign").fill("Casey Captain");
   await confirmAge(page);
   await expectNoAxeViolations(page);
@@ -233,6 +234,7 @@ test("the free agent signs, pays with a promo code and is confirmed by Stripe", 
   await page
     .getByLabel("I have read the whole waiver and I agree to it.")
     .check();
+  await acceptConductIfAsked(page);
   await page.getByLabel("Type your full name to sign").fill("Pat Player");
   await confirmAge(page);
   await page.getByRole("button", { name: "Sign the waiver" }).click();

@@ -170,6 +170,22 @@ export const HELP_ROLES: readonly HelpRole[] = [
         ],
       },
       {
+        id: "conduct",
+        title: "Read the code of conduct",
+        summary:
+          "The league's code covers play, the park, alcohol and sound, and conduct online.",
+        steps: [
+          "Read the code on the league's public rules page, under \"Code of conduct\".",
+          "When you sign your season waiver, the code is shown above the box and you tick it to agree.",
+          "You accept each version once. If the league publishes a new one, you accept it at your next registration.",
+        ],
+        notes: [
+          "Joining a team, joining with a team link and joining as a free agent all go through the same waiver step.",
+        ],
+        screen: { href: "/app", label: "Your home, then sign the waiver" },
+        keywords: ["rules", "behavior", "park", "alcohol", "glass", "agree"],
+      },
+      {
         id: "alerts",
         title: "Turn alerts on or off",
         summary:

@@ -87,6 +87,16 @@ export async function confirmAge(scope: Page | Locator) {
   await scope.getByRole("checkbox", { name: /^I'm \d+ or older$/ }).check();
 }
 
+/**
+ * Ticks the code of conduct on the waiver page when the league has one and
+ * the person hasn't accepted this version yet. Once a code is published
+ * (conduct.spec.ts), every later signature needs it.
+ */
+export async function acceptConductIfAsked(page: Page) {
+  const box = page.getByLabel(/I have read the code of conduct/);
+  if (await box.count()) await box.check();
+}
+
 /** Signs a season's waiver from the season page's link. */
 export async function signWaiver(page: Page, slug: string, fullName: string) {
   await page.goto(`/app/seasons/${slug}`);
@@ -94,6 +104,7 @@ export async function signWaiver(page: Page, slug: string, fullName: string) {
   await page
     .getByLabel("I have read the whole waiver and I agree to it.")
     .check();
+  await acceptConductIfAsked(page);
   await page.getByLabel("Type your full name to sign").fill(fullName);
   await confirmAge(page);
   await page.getByRole("button", { name: "Sign the waiver" }).click();

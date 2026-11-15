@@ -37,7 +37,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── sponsors/                       Sponsors, home bar first, with the team of the week
 │   └── [sponsor]                   Sponsor page: deals with when they were confirmed, the team of the week, how to check in
 ├── friends                         Friends of the league: clubs run by our players first, then other local leagues grouped by activity, each linking to its own site (clicks counted, never who), and a "Link to us" snippet
-├── rules                           The league's rules by section (anchors such as #lineups), each division's game settings from its rule set, and "What changed": every change newest first with its publish date, start date and the sections it touched; a section changing soon says "New wording from" its date. Static HTML
+├── rules                           The league's rules by section (anchors such as #lineups), the league's code of conduct (#code-of-conduct), each division's game settings from its rule set, and "What changed": every change newest first with its publish date, start date and the sections it touched; a section changing soon says "New wording from" its date. Static HTML
 ├── fields/[park]                   Who has this field: the fields the league holds at a park under a confirmed permit, by day, with permit number, "Permitted by NYC Parks", today's line worked out in the browser, and short house rules
 ├── help/                           Help center: short how-tos by role and a search box that filters them as you type (every how-to is listed without JavaScript too)
 │   └── [role]                      One role's how-tos (player, captain, ref, admin, owner), each under its own anchor; the matching screens link here with "Help"
@@ -202,6 +202,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   ├── challenge               Team sign-up challenge: start it (prize, deadline) or change it, every team's progress with who needs a nudge, and confirm the winner (pick between teams in a dead heat)
     │   └── playoffs                Seed from standings, place on fields, publish the bracket
     ├── games                       Scores, forfeits, corrections
+    ├── conduct/                    The code of conduct: who on each team has accepted the current version, every version, and a form to publish the next (starting from default sections)
     ├── incidents/                  Concerns and public messages waiting (with the share answered within a day), park users asked to move who refused or complained (last 30 days), then the review queue (open reports oldest first), everyone suspended now, recently resolved
     │   └── [incident]              What happened and who; notes; suspend someone named (the outside-alcohol ladder suggested) or lift a suspension; resolve or reopen. An injury report shows who was hurt, where, the care and the witnesses (each opening audited), a download for the insurance carrier (`/injury.csv`, with the insurance certificate's dates) and a button that deletes the injury details now
     ├── concerns/

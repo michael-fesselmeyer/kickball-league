@@ -26,6 +26,7 @@ describe("the help center's how-tos", () => {
         "rsvp",
         "subs",
         "install",
+        "conduct",
         "alerts",
       ],
       captain: ["invite", "lineup", "scores", "co-captains", "find-subs"],
