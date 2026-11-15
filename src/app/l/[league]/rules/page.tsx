@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
+import {
+  RuleChangeLog,
+  upcomingWording,
+} from "@/components/rulebook/rule-change-log";
+import { RuleHighlight } from "@/components/rulebook/rule-highlight";
+import { RulebookSearch } from "@/components/rulebook/rulebook-search";
+import { RulebookSections } from "@/components/rulebook/rulebook-sections";
 import { db } from "@/db/client";
 import { currentConductCode } from "@/db/queries/conduct";
 import {
@@ -9,12 +16,14 @@ import {
   type GameSettings,
   gameSettings,
   type LogEntry,
+  rulebookVisibility,
   type SectionRow,
 } from "@/db/queries/rules";
 import { localDate } from "@/domain/books/ledger-csv";
 import type { LeagueId } from "@/domain/ids";
 import { WaiverText } from "@/components/waiver-text";
-import { blocksOf } from "@/domain/rules/rules";
+import { leagueHref } from "@/domain/league/paths";
+import type { RulebookVisibility } from "@/domain/rules/rulebook";
 import { ruleSetSummary } from "@/domain/season/divisions";
 import { readUnlessBuildHasNoDatabase } from "@/lib/build-phase";
 import { publicLeague, withCanonical } from "@/lib/league/public";
@@ -44,6 +53,7 @@ export function generateMetadata({
 const CHANGES_SHOWN = 20;
 
 type RulesData = {
+  visibility: RulebookVisibility;
   sections: SectionRow[];
   changes: LogEntry[];
   settings: GameSettings | null;
@@ -64,17 +74,29 @@ async function cachedRules(
   "use cache";
   cacheLife(PUBLIC_PAGE_LIFE);
   cacheTag(RULES_TAG);
-  const found = await readUnlessBuildHasNoDatabase(() =>
-    Promise.all([
-      currentRules(db, leagueId),
-      changeLog(db, leagueId, CHANGES_SHOWN),
+  const found = await readUnlessBuildHasNoDatabase(async () => {
+    const visibility = await rulebookVisibility(db, leagueId);
+    // The rulebook's text and change log are read only when the league made
+    // them public; otherwise nothing of them reaches this cached page.
+    const open = visibility === "public";
+    const [sections, changes, settings] = await Promise.all([
+      open ? currentRules(db, leagueId) : [],
+      open ? changeLog(db, leagueId, CHANGES_SHOWN) : [],
       gameSettings(db, leagueId),
       currentConductCode(db, leagueId),
-    ]),
-  );
-  const [sections, changes, settings, code] = found ?? [[], [], null, null];
+    ]);
+    return { visibility, sections, changes, settings, code };
+  });
+  const { visibility, sections, changes, settings, code } = found ?? {
+    visibility: "owners" as const,
+    sections: [],
+    changes: [],
+    settings: null,
+    code: null,
+  };
   if (settings) cacheTag(seasonTag(settings.seasonId));
   return {
+    visibility,
     sections,
     changes,
     settings,
@@ -83,36 +105,13 @@ async function cachedRules(
   };
 }
 
-const dayLabel = (on: string) =>
-  new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${on}T12:00:00Z`));
-
-const KIND_WORDS = {
-  added: "added",
-  edited: "changed",
-  removed: "removed",
-} as const;
-
 export default async function RulesPage({
   params,
 }: PageProps<"/l/[league]/rules">) {
   const league = await publicLeague((await params).league, "/rules");
-  const { sections, changes, settings, conduct, today } = await cachedRules(
-    league.id,
-    league.timeZone,
-  );
-  const publishedOn = (at: Date) => localDate(at, league.timeZone);
-  // A section changed by a change that hasn't started yet says so.
-  const upcoming = new Map<string, string>();
-  for (const c of [...changes].reverse())
-    for (const s of c.sections)
-      if (c.effectiveOn > today && s.kind !== "removed")
-        upcoming.set(s.slug, c.effectiveOn);
-  const live = new Set(sections.map((s) => s.slug));
+  const { visibility, sections, changes, settings, conduct, today } =
+    await cachedRules(league.id, league.timeZone);
+  const open = visibility === "public";
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10 md:px-6">
@@ -121,64 +120,41 @@ export default async function RulesPage({
           League <span className="swipe">rules</span>
         </h1>
         <p className="max-w-prose text-body-lg text-text-muted">
-          How we play, as the league has written it. When a rule changes, it
-          shows up in{" "}
-          <a href="#changes" className="font-bold text-brand underline">
-            what changed
-          </a>{" "}
-          with the day it starts.
+          {open ? (
+            <>
+              How we play, as the league has written it. When a rule changes, it
+              shows up in{" "}
+              <a href="#changes" className="font-bold text-brand underline">
+                what changed
+              </a>{" "}
+              with the day it starts.
+            </>
+          ) : visibility === "members" ? (
+            "The league's rules are for its members."
+          ) : (
+            "The league hasn't posted its rules here yet."
+          )}
         </p>
-        {sections.length > 1 && (
-          <nav aria-label="Sections">
-            <ul className="flex flex-wrap gap-x-4 gap-y-2">
-              {sections.map((s) => (
-                <li key={s.id}>
-                  <a href={`#${s.slug}`} className="underline">
-                    {s.title}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
+        {!open && visibility === "members" && (
+          <Link href="/app/rules" className="font-bold text-brand underline">
+            Read them in the app
+          </Link>
         )}
       </header>
 
-      {sections.length === 0 ? (
-        <p className="rounded-card border border-border bg-surface p-4 text-text-muted">
-          The league hasn&apos;t posted its rules here yet. Ask your captain for
-          now.
-        </p>
-      ) : (
-        sections.map((s) => (
-          <section
-            key={s.id}
-            id={s.slug}
-            aria-labelledby={`${s.slug}-title`}
-            className="flex scroll-mt-20 flex-col gap-3"
-          >
-            <h2 id={`${s.slug}-title`} className="text-h2">
-              {s.title}
-            </h2>
-            {upcoming.has(s.slug) && (
-              <p className="self-start rounded-full border border-warning px-3 py-1 text-small font-bold">
-                New wording from {dayLabel(upcoming.get(s.slug) ?? today)}
-              </p>
-            )}
-            {blocksOf(s.body).map((b, i) =>
-              b.kind === "list" ? (
-                <ul key={i} className="flex list-disc flex-col gap-1 pl-6">
-                  {b.items.map((item, j) => (
-                    <li key={j}>{item}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p key={i} className="max-w-prose whitespace-pre-line">
-                  {b.text}
-                </p>
-              ),
-            )}
-          </section>
-        ))
+      {open && (
+        <>
+          <RulebookSearch
+            searchUrl={leagueHref(league, "/rules/search")}
+            pagePath={leagueHref(league, "/rules")}
+          />
+          <RuleHighlight />
+          <RulebookSections
+            sections={sections}
+            upcoming={upcomingWording(changes, today)}
+            today={today}
+          />
+        </>
       )}
 
       {conduct && (
@@ -227,56 +203,14 @@ export default async function RulesPage({
         </section>
       )}
 
-      <section
-        id="changes"
-        aria-labelledby="changes-title"
-        className="flex flex-col gap-3"
-      >
-        <h2 id="changes-title" className="text-h2">
-          What changed
-        </h2>
-        {changes.length === 0 ? (
-          <p className="text-text-muted">No changes yet.</p>
-        ) : (
-          <ol className="flex flex-col">
-            {changes.map((c) => (
-              <li
-                key={c.id}
-                className="flex flex-col gap-1 border-t border-border py-3"
-              >
-                <p className="text-small text-text-muted">
-                  <time dateTime={c.createdAt.toISOString()}>
-                    {dayLabel(publishedOn(c.createdAt))}
-                  </time>
-                  {c.effectiveOn !== publishedOn(c.createdAt) && (
-                    <>
-                      {" · "}
-                      {c.effectiveOn > today ? "Starts" : "Started"}{" "}
-                      {dayLabel(c.effectiveOn)}
-                    </>
-                  )}
-                </p>
-                <p className="font-bold">{c.summary}</p>
-                <p className="text-small">
-                  {c.sections.map((s, i) => (
-                    <span key={`${s.slug}-${s.kind}`}>
-                      {i > 0 && ", "}
-                      {live.has(s.slug) && s.kind !== "removed" ? (
-                        <a href={`#${s.slug}`} className="underline">
-                          {s.title}
-                        </a>
-                      ) : (
-                        s.title
-                      )}{" "}
-                      {KIND_WORDS[s.kind]}
-                    </span>
-                  ))}
-                </p>
-              </li>
-            ))}
-          </ol>
-        )}
-      </section>
+      {open && (
+        <RuleChangeLog
+          changes={changes}
+          sections={sections}
+          today={today}
+          timeZone={league.timeZone}
+        />
+      )}
 
       <p className="text-small text-text-muted">
         Questions about a rule? See the{" "}

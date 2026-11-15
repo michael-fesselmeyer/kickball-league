@@ -398,6 +398,8 @@ const RULES = {
   "checklist.manage": isAdmin,
   // The league's rules and their change log (ADR 0062).
   "rules.manage": isAdmin,
+  // Importing the rulebook and choosing who may read it (ADR 0065).
+  "rulebook.manage": isOwner,
   // The owner alone
   "billing.manage": isOwner,
   // The books (expenses, receipts, permit costs and documents, insurance).

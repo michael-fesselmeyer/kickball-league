@@ -112,7 +112,7 @@ export function tsQueryOf(terms: readonly string[]): string | null {
 }
 
 /** A word with its common endings off, so "kicking" finds "kick". */
-function stem(word: string): string {
+export function stem(word: string): string {
   if (word.length <= 4) return word;
   return word.replace(/(ing|ed|es|s)$/, "");
 }
