@@ -9,7 +9,7 @@ import { imageResponse, notFound } from "@/lib/social/image-response";
  * (docs/architecture.md, section 17). A hidden or unfeatured photo answers
  * 404, so hiding one also stops its address working at once: the takedown
  * purges this address's CDN copy and the optimizer's resized copies
- * (ADR 0064), and a copy anywhere else expires within five minutes.
+ * (ADR 0068), and a copy anywhere else expires within five minutes.
  */
 export async function GET(
   _request: Request,

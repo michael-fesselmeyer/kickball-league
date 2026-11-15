@@ -574,7 +574,7 @@ export async function memberPhotoFile(db: Db, photoId: MemberPhotoId) {
 
 /**
  * Every approved photo with its bytes, in every league: a takedown compares
- * this before and after to purge the photos that went (ADR 0064).
+ * this before and after to purge the photos that went (ADR 0068).
  */
 export async function approvedPhotoIds(db: Db): Promise<MemberPhotoId[]> {
   const rows = await db

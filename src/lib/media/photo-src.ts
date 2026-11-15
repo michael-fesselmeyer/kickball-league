@@ -2,7 +2,7 @@ import type { MemberPhotoId, MerchImageId, SocialImageId } from "@/domain/ids";
 
 /**
  * The public addresses of the stored photos that go through the image
- * optimizer (ADR 0064). The pages render these, and a takedown purges the
+ * optimizer (ADR 0068). The pages render these, and a takedown purges the
  * optimizer's copies by the very same string, so the two can never drift
  * apart: the host matches a purge to a source image exactly.
  *
