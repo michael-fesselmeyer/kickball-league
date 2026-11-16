@@ -24,6 +24,7 @@ const PLATFORM_TABLES: Record<string, string> = {
   emergency_contact: "a person's emergency contact, shown per game",
   notification_preference: "a person's email choices",
   alert_setting: "a person's alert limits and quiet hours",
+  alert_card_response: "a person's answers to in-app alert offers",
   push_subscription: "a person's phone",
   calendar_feed: "a person's private calendar link",
   pickem_hidden: "a person's choice to stay off the pick'em leaderboards",
