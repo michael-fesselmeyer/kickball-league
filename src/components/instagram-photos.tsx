@@ -23,7 +23,7 @@ export function InstagramPhotos({
   heading: string;
   cover: PublicPhoto | null;
   photos: PublicPhoto[];
-  /** For screen readers, in the page's language (ADR 0065). */
+  /** For screen readers, in the page's language (ADR 0094). */
   opensPost?: string;
 }) {
   if (!cover && photos.length === 0) return null;

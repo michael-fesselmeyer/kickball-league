@@ -59,7 +59,7 @@ export async function SeasonSchedule({
   slug: string;
   teamSlug?: string | null;
   divisionSlug?: string | null;
-  /** The page's language: each one is cached on its own (ADR 0065). */
+  /** The page's language: each one is cached on its own (ADR 0094). */
   locale?: Locale;
 }) {
   "use cache";

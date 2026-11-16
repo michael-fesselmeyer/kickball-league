@@ -72,7 +72,7 @@ export function GameDayNotice({
   setAt: Date;
   timeZone: string;
   tone: "watch" | "change" | "calm";
-  /** The page's language (ADR 0065); English unless given. */
+  /** The page's language (ADR 0094); English unless given. */
   locale?: Locale;
 }) {
   const border =

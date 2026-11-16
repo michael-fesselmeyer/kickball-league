@@ -13,7 +13,7 @@ type Words = Messages["faq"];
 
 /**
  * The FAQ's sections and questions, in order. The words live in the
- * message catalogs (ADR 0065); this is only their shape and links.
+ * message catalogs (ADR 0094); this is only their shape and links.
  */
 const LAYOUT = [
   {

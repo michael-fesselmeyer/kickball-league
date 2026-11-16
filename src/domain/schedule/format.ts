@@ -3,7 +3,7 @@ import { DEFAULT_LOCALE, LOCALE_TAGS, type Locale } from "@/i18n/locales";
 
 /**
  * Dates and times for the public pages, always in the league's time zone,
- * in the page's language (ADR 0065); English unless a language is given.
+ * in the page's language (ADR 0094); English unless a language is given.
  */
 
 /** "Monday, September 14" from a YYYY-MM-DD local date. */

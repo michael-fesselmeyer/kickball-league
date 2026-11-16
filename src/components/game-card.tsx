@@ -34,7 +34,7 @@ type Props = {
    * second card of the same game on one page, since a name is used once.
    */
   morph?: boolean;
-  /** The page's language (ADR 0065); English unless given. */
+  /** The page's language (ADR 0094); English unless given. */
   locale?: Locale;
 };
 

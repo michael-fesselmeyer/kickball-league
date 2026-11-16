@@ -24,7 +24,7 @@ const PAGES = [
  * The home page of a league other than the default (ADR 0048): its name and
  * sport, a way to sign up, and its public seasons. Static, like every
  * public page, and taken from the path's league alone; cached once per
- * language (ADR 0065).
+ * language (ADR 0094).
  */
 export async function LeagueHome({
   league,
