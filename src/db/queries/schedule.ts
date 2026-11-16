@@ -476,6 +476,19 @@ export type Published = ScheduleDiff & { notified: number };
  * the outbox, in the same transaction. Returns what changed since the
  * previous published version.
  */
+/**
+ * Makes a season's schedule publishes take turns, until the transaction
+ * ends. Taken again by the same transaction, it doesn't wait.
+ */
+export async function lockSchedulePublish(
+  db: Db,
+  seasonId: SeasonId,
+): Promise<void> {
+  await db.execute(
+    sql`select pg_advisory_xact_lock(hashtext(${`schedule_publish:${seasonId}`}))`,
+  );
+}
+
 export async function publishVersion(
   db: Db,
   versionId: ScheduleVersionId,
@@ -489,6 +502,16 @@ export async function publishVersion(
   overrideReason?: string,
 ): Promise<Result<Published, PublishError>> {
   return db.transaction(async (tx) => {
+    // Publishes of one season take turns: two admins publishing different
+    // drafts at once would both supersede the same version and the second
+    // would break the one-published rule. Under the lock the second sees the
+    // first's version as current and diffs against it.
+    const [owner] = await tx
+      .select({ seasonId: scheduleVersion.seasonId })
+      .from(scheduleVersion)
+      .where(eq(scheduleVersion.id, versionId));
+    if (!owner) return err("unknown_version");
+    await lockSchedulePublish(tx, owner.seasonId);
     const [version] = await tx
       .select({
         seasonId: scheduleVersion.seasonId,
