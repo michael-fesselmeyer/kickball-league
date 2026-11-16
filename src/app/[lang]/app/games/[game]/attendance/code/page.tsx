@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { RefreshAt } from "@/app/app/sponsor/[sponsor]/code/refresh";
+import { RefreshAt } from "@/app/[lang]/app/sponsor/[sponsor]/code/refresh";
 import { db } from "@/db/client";
 import { attendanceGame } from "@/db/queries/attendance";
 import {
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-type Props = PageProps<"/app/games/[game]/attendance/code">;
+type Props = PageProps<"/[lang]/app/games/[game]/attendance/code">;
 
 /**
  * The game's rotating check-in code, on the ref's or a captain's phone at

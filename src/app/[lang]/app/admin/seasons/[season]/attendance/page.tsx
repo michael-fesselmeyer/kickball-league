@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { PlayedList } from "@/app/app/seasons/[season]/team/attendance/played-list";
+import { PlayedList } from "@/app/[lang]/app/seasons/[season]/team/attendance/played-list";
 import { db } from "@/db/client";
 import { seasonAttendance } from "@/db/queries/attendance";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
@@ -12,7 +12,7 @@ import { activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Season attendance" };
 
-type Props = PageProps<"/app/admin/seasons/[season]/attendance">;
+type Props = PageProps<"/[lang]/app/admin/seasons/[season]/attendance">;
 
 /**
  * Every team's games played this season (ADR 0063), for admins checking

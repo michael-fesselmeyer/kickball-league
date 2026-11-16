@@ -13,7 +13,7 @@ const SRC = join(process.cwd(), "src");
 const READERS = /db\/(queries|schema)\/field-groups["']/;
 const ALLOWED = [
   /^db\//,
-  /^app\/app\/admin\//,
+  /^app\/\[lang\]\/app\/admin\//,
   // Reads contacts only when told it serves an admin; see its test below.
   /^lib\/gameday\/handovers\.ts$/,
   // The domain module imports nothing from the database.
@@ -48,7 +48,7 @@ describe("the group contact stays admin-only", () => {
   });
 
   it("is never read by the admin pages outside the fields and game-day screens", () => {
-    const admin = files(join(SRC, "app", "app", "admin"))
+    const admin = files(join(SRC, "app", "[lang]", "app", "admin"))
       .map((f) => relative(SRC, f))
       .filter((f) => !f.endsWith(".test.ts") && !f.endsWith(".test.tsx"))
       .filter((f) => READERS.test(readFileSync(join(SRC, f), "utf8")));
@@ -58,7 +58,7 @@ describe("the group contact stays admin-only", () => {
 
 describe("the set-up lead's checklist", () => {
   const page = readFileSync(
-    join(SRC, "app", "app", "games", "[game]", "checklist", "page.tsx"),
+    join(SRC, "app", "[lang]", "app", "games", "[game]", "checklist", "page.tsx"),
     "utf8",
   );
 

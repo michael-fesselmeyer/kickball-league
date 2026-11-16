@@ -13,7 +13,7 @@ import { PostForm } from "./post-form";
 export const metadata: Metadata = { title: "Post to lost and found" };
 
 export default function NewPostPage(
-  props: PageProps<"/app/lost-and-found/new">,
+  props: PageProps<"/[lang]/app/lost-and-found/new">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
@@ -30,7 +30,9 @@ export default function NewPostPage(
   );
 }
 
-async function Form({ searchParams }: PageProps<"/app/lost-and-found/new">) {
+async function Form({
+  searchParams,
+}: PageProps<"/[lang]/app/lost-and-found/new">) {
   await requirePermission("lost_found.use", {
     next: "/app/lost-and-found/new",
   });

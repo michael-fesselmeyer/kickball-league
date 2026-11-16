@@ -19,7 +19,7 @@ const notFound = () =>
  */
 export async function GET(
   _request: Request,
-  ctx: RouteContext<"/app/games/[game]/permit/layout">,
+  ctx: RouteContext<"/[lang]/app/games/[game]/permit/layout">,
 ) {
   const subject = await currentSubject();
   const { game } = await ctx.params;

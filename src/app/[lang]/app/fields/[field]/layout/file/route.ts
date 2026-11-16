@@ -19,7 +19,7 @@ const notFound = () =>
  */
 export async function GET(
   _request: Request,
-  ctx: RouteContext<"/app/fields/[field]/layout/file">,
+  ctx: RouteContext<"/[lang]/app/fields/[field]/layout/file">,
 ) {
   const subject = await currentSubject();
   const fieldId = parseId<FieldId>((await ctx.params).field);

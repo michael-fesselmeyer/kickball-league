@@ -20,7 +20,7 @@ export const metadata: Metadata = {
  * goes on one field (#403), for admins and for members on a set-up shift.
  */
 export default function FieldLayoutPage(
-  props: PageProps<"/app/fields/[field]/layout">,
+  props: PageProps<"/[lang]/app/fields/[field]/layout">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
@@ -31,7 +31,9 @@ export default function FieldLayoutPage(
   );
 }
 
-async function Layout({ params }: PageProps<"/app/fields/[field]/layout">) {
+async function Layout({
+  params,
+}: PageProps<"/[lang]/app/fields/[field]/layout">) {
   const { field: rawId } = await params;
   const subject = await requirePermission("public.view", {
     next: `/app/fields/${rawId}/layout`,

@@ -6,7 +6,7 @@ import { AppNav, NavPlaceholder } from "./app-nav";
  * bar reads who is signed in, so it streams in behind a placeholder of the
  * same size.
  */
-export default function AppLayout({ children }: LayoutProps<"/app">) {
+export default function AppLayout({ children }: LayoutProps<"/[lang]/app">) {
   return (
     <>
       <Suspense fallback={<NavPlaceholder />}>

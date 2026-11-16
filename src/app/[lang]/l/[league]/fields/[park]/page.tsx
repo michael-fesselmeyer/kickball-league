@@ -28,7 +28,7 @@ import {
   type LeagueParams,
 } from "@/lib/static-params";
 
-type Props = PageProps<"/l/[league]/fields/[park]">;
+type Props = PageProps<"/[lang]/l/[league]/fields/[park]">;
 
 /** How many permitted days the page lists. */
 const DAYS_SHOWN = 14;

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-type Props = PageProps<"/app/games/[game]/attendance">;
+type Props = PageProps<"/[lang]/app/games/[game]/attendance">;
 
 /**
  * A game's check-in (ADR 0063), for its captains, its ref and admins: the

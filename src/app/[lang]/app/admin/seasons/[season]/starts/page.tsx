@@ -18,7 +18,7 @@ import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Start times" };
 
-type Props = PageProps<"/app/admin/seasons/[season]/starts">;
+type Props = PageProps<"/[lang]/app/admin/seasons/[season]/starts">;
 
 /**
  * Whether games start on time (issue #467): per team, its recorded starts,

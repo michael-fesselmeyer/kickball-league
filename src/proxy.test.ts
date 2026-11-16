@@ -41,7 +41,9 @@ describe("proxy", () => {
   it("serves another league's pages as they are", async () => {
     const response = await proxy(request("/l/football/records"));
     expect(response.headers.get("location")).toBeNull();
-    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:3000/en/l/football/records",
+    );
   });
 
   it("sends a signed-out visitor to sign-in, remembering where they were going", async () => {

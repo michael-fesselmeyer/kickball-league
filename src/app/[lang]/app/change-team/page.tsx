@@ -73,7 +73,9 @@ const AUDIENCE_LABEL: Record<Audience, string> = {
   both: "league admins, and recruiting captains (as a count, until you say yes)",
 };
 
-export default function ChangeTeamPage(props: PageProps<"/app/change-team">) {
+export default function ChangeTeamPage(
+  props: PageProps<"/[lang]/app/change-team">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -83,7 +85,9 @@ export default function ChangeTeamPage(props: PageProps<"/app/change-team">) {
   );
 }
 
-async function ChangeTeam({ searchParams }: PageProps<"/app/change-team">) {
+async function ChangeTeam({
+  searchParams,
+}: PageProps<"/[lang]/app/change-team">) {
   const subject = await requireSelf("move.set", "/app/change-team");
   const query = await searchParams;
   const league = await activeLeague();

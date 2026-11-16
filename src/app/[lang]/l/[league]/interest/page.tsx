@@ -23,7 +23,7 @@ const METADATA: Metadata = {
 
 export function generateMetadata({
   params,
-}: PageProps<"/l/[league]/interest">): Promise<Metadata> {
+}: PageProps<"/[lang]/l/[league]/interest">): Promise<Metadata> {
   return withCanonical(params, METADATA, "/interest");
 }
 
@@ -41,7 +41,7 @@ async function cachedForm(leagueId: LeagueId): Promise<PublicForm | null> {
 
 export default async function InterestPage({
   params,
-}: PageProps<"/l/[league]/interest">) {
+}: PageProps<"/[lang]/l/[league]/interest">) {
   const league = await publicLeague((await params).league, "/interest");
   const form = await cachedForm(league.id);
   return (

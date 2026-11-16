@@ -40,7 +40,7 @@ const input =
   "min-h-11 rounded-input border-2 border-border-strong bg-surface px-3 py-2 text-body text-text";
 
 export default function InterestAdminPage(
-  props: PageProps<"/app/admin/interest">,
+  props: PageProps<"/[lang]/app/admin/interest">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
@@ -406,7 +406,9 @@ function OpenLeague({
   );
 }
 
-async function Forms({ searchParams }: PageProps<"/app/admin/interest">) {
+async function Forms({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/interest">) {
   const subject = await requirePermission("interest.manage", {
     next: "/app/admin/interest",
   });

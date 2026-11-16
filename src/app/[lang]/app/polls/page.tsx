@@ -10,7 +10,7 @@ import { castPollVoteAction } from "./actions";
 
 export const metadata: Metadata = { title: "Captains' polls" };
 
-export default function PollsPage(props: PageProps<"/app/polls">) {
+export default function PollsPage(props: PageProps<"/[lang]/app/polls">) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading the polls…</PageLoading>}>
@@ -146,7 +146,7 @@ function PollCard({
   );
 }
 
-async function Polls({ searchParams }: PageProps<"/app/polls">) {
+async function Polls({ searchParams }: PageProps<"/[lang]/app/polls">) {
   const query = await searchParams;
   const subject = await requirePermission("captain_polls.vote", {
     next: "/app/polls",
