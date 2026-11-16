@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
 import { saveAwayWeeks } from "@/db/queries/away";
+import { saveTurnDowns, snoozeAlerts } from "@/db/queries/alert-choices";
 import { saveAlertLimits, saveEmailSettings } from "@/db/queries/notifications";
 import {
   countPushDevices,
@@ -115,6 +116,33 @@ export async function saveAlertLimitsAction(form: FormData): Promise<void> {
     }),
   );
   redirect("/app/profile?alerts=saved#alert-limits");
+}
+
+/**
+ * Saves the turn-downs (issue #529): only my team and the weekly roundup,
+ * and starts or ends a two-week snooze when one of those buttons was used.
+ */
+export async function saveTurnDownsAction(form: FormData): Promise<void> {
+  const subject = await requireSelfToChange("profile.edit", "/app/profile");
+  const league = await activeLeague();
+  if (!league) notFound();
+  const now = new Date();
+  const snooze = form.get("snooze");
+  await txDb.transaction(async (tx) => {
+    if (snooze === "start" || snooze === "end") {
+      await snoozeAlerts(tx, subject.userId, {
+        now,
+        timeZone: league.timeZone,
+        end: snooze === "end",
+      });
+      return;
+    }
+    await saveTurnDowns(tx, subject.userId, {
+      teamOnly: form.get("teamOnly") === "on",
+      weeklyNews: form.get("weeklyNews") === "on",
+    });
+  });
+  redirect("/app/profile?turndowns=saved#turn-downs");
 }
 
 export type PushSettingsState = {

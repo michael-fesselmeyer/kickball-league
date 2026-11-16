@@ -270,20 +270,7 @@ export async function turnDown(
     return;
   }
   if (choice === "snooze") {
-    const until = snoozeEnd(now);
-    await saveTurnDowns(db, userId, { snoozedUntil: until });
-    const limits = await alertLimitsOf(db, [userId]);
-    // Anything already held waits for the first digest after the snooze.
-    await db
-      .update(message)
-      .set({
-        sendAfter: nextDigestAt(
-          until,
-          timeZone,
-          limits.get(userId)?.digest ?? "daily",
-        ),
-      })
-      .where(and(eq(message.userId, userId), eq(message.status, "held")));
+    await snoozeAlerts(db, userId, { now, timeZone });
     return;
   }
   if (NEWS_TOPICS.has(topic)) {
@@ -297,6 +284,31 @@ export async function turnDown(
       target: alertSetting.userId,
       set: { dailyCap: 0, digest: "weekly" },
     });
+}
+
+/**
+ * Snoozes non-urgent messages for two weeks, or ends a snooze early
+ * (`end`). Messages already held move to the first digest after the snooze,
+ * or, when it ends, to the next digest.
+ */
+export async function snoozeAlerts(
+  db: Db,
+  userId: UserId,
+  { now, timeZone, end = false }: { now: Date; timeZone: string; end?: boolean },
+): Promise<void> {
+  const until = end ? null : snoozeEnd(now);
+  await saveTurnDowns(db, userId, { snoozedUntil: until });
+  const limits = await alertLimitsOf(db, [userId]);
+  await db
+    .update(message)
+    .set({
+      sendAfter: nextDigestAt(
+        until ?? now,
+        timeZone,
+        limits.get(userId)?.digest ?? "daily",
+      ),
+    })
+    .where(and(eq(message.userId, userId), eq(message.status, "held")));
 }
 
 export type TopicCounts = {
