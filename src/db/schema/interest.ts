@@ -122,6 +122,13 @@ export const interestOption = pgTable(
       .references(() => user.id, { onDelete: "set null" }),
     /** What the admin added to the message, such as when registration opens. */
     goAheadNote: text(),
+    /**
+     * The league opened from this option (ADR 0072), so it is opened once.
+     * Deleting that league leaves the option as if never opened.
+     */
+    openedLeagueId: uuid()
+      .$type<LeagueId>()
+      .references(() => league.id, { onDelete: "set null" }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
