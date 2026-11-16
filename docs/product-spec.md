@@ -292,6 +292,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Final score entry by ref or captain; the other captain confirms, or it auto-confirms after 24 hours | MVP |
 | A ref who plays for one of the game's teams reports for that team, so only the other team can confirm or dispute the score. Assigning such a ref, by email or with "Take it", warns first and needs an explicit override; the assigner never proposes one. A ref on both rosters, or neither, is neutral (either team answers), and an admin's report stays final at once. The assign and score screens say which rule applies | MVP |
 | Forfeits, and games called after 4 innings | MVP |
+| Daylight and field-time clock: each game's end of play is the earlier of the time its field must be clear and sunset at its park less a margin (fields with lights have no daylight end). The ref's and captains' screens count down to first pitch and to that end; the ref records first pitch with one tap and says who held up a late start; captains and the ref of a game with no time to spare get a reminder two hours before; admins see start times by team, and the scheduler warns about slots that run past daylight (#467) | P2 |
 | Missing-score reminders to the ref, then captains, then an admin list | MVP |
 | Game-day RSVPs with a fielding-rule warning for captains | MVP |
 | Inning-by-inning live scoring | P2 |
@@ -391,6 +392,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | A refund does not cancel a registration | A partial refund (a missed week, a shirt not needed) keeps the player on the team; an admin removes someone separately when they leave |
 | A promo code never leaves a charge under 50 cents | Stripe will not take a smaller card payment; such a code charges 50 cents, and one that covers the whole price needs no payment at all |
 | Subs must be registered players with a signed waiver, and sub requests are disabled for playoff games | This is what the rulebook already says |
+| When time runs out, the game ends at the last full inning. Play must end at the earlier of the time the field must be clear and sunset less the rule set's margin (15 minutes unless the rule set says otherwise; none on a field with lights). The ref calls the game with a reason, daylight or field time, and the score stands as of the last complete inning, as for any called game (rulebook 3.1.5). The division's rule set says whether the game is called as soon as time is up or no new inning starts after it ([ADR 0083](adr/0083-daylight-and-field-time-clock.md)) | Late starts used to eat the light in spring and fall, and games cut short ended in arguments about the score. One rule, shown on both teams' screens before first pitch, settles it in advance |
 | The site warns about fielding-rule problems but never blocks a game | Forfeits are a referee's call under the rulebook |
 | WhatsApp is supported by sharing, not replaced | The league already lives there; fighting it would lose |
 | One league per deployment, with a `league` record on every season | Cheap now, and it keeps the door open for the football league later |
