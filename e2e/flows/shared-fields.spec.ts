@@ -61,6 +61,8 @@ const CONTACT = "718-555-0142";
 test("an admin records another group, gets an overlap warning and sees them on game day", async ({
   browser,
 }) => {
+  // Many screens in one flow, each a form round trip.
+  test.slow();
   const game = await addGameKickedOffToday(...TEAMS);
   const fieldId = await fieldOf(game.gameId);
   const ahead = leagueDate(21);
@@ -155,9 +157,9 @@ test("an admin records another group, gets an overlap warning and sees them on g
     ).toHaveAttribute("href", /incident\?parkRule=shared_space$/);
     await expectNoAxeViolations(admin);
   } finally {
-    await admin.context().close();
     await cleanUp(fieldId, ahead);
     await game.remove();
+    await admin.context().close();
   }
 });
 
