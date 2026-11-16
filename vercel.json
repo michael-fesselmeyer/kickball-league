@@ -18,6 +18,7 @@
     { "path": "/api/jobs/missing-scores", "schedule": "0 4 * * *" },
     { "path": "/api/jobs/rain-alerts", "schedule": "0 22 * * *" },
     { "path": "/api/jobs/gear-reminders", "schedule": "30 22 * * *" },
+    { "path": "/api/jobs/start-reminders", "schedule": "45 22 * * *" },
     { "path": "/api/jobs/rain-decision", "schedule": "0 13 * * *" },
     { "path": "/api/jobs/rain-decision", "schedule": "0 18 * * *" },
     { "path": "/api/jobs/lost-found", "schedule": "45 14 * * *" },

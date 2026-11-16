@@ -217,6 +217,11 @@ export const MESSAGE_KINDS = {
     urgency: "non_urgent",
     label: "A reminder to pick your shirt size before the league orders shirts",
   },
+  start_on_time: {
+    urgency: "non_urgent",
+    label:
+      "For captains and refs: two hours before a game with no time to spare, when first pitch is and when play must end",
+  },
   sub_request: {
     urgency: "urgent",
     label: "Teams that need a sub when you're free",

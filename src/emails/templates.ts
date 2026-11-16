@@ -25,6 +25,7 @@ import {
   gameDayWatchEmail,
 } from "./game-day";
 import { gearReminderEmail } from "./gear-reminder";
+import { startOnTimeEmail } from "./start-on-time";
 import { giveawayWinEmail } from "./giveaway";
 import { instagramReconnectEmail } from "./instagram-reconnect";
 import { interestGoAheadEmail } from "./interest-go-ahead";
@@ -90,6 +91,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     game_day_decide: gameDayDecideEmail,
     game_day_watch: gameDayWatchEmail,
     gear_reminder: gearReminderEmail,
+    start_on_time: startOnTimeEmail,
     giveaway_win: giveawayWinEmail,
     guarantee_failed: guaranteeFailedEmail,
     guarantee_warning: guaranteeWarningEmail,

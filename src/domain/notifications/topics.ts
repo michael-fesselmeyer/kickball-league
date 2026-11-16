@@ -100,8 +100,8 @@ export const SETTINGS_TOPICS: readonly {
   },
   {
     topic: "game_reminder",
-    label: "League gear",
-    hint: "The evening before a game you're bringing league gear to: which kit, where to get it, and where it goes.",
+    label: "Game reminders",
+    hint: "The league gear you're bringing to a game, the evening before, and, for captains and refs, a start-on-time reminder two hours before a game with no time to spare.",
   },
   {
     topic: "new_team",

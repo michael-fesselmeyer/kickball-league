@@ -49,6 +49,7 @@ describe("MESSAGE_KINDS", () => {
       "score_reminder",
       "season_card",
       "shirt_size_reminder",
+      "start_on_time",
       "survey_invite",
       "team_role",
       "volunteer_reminder",
