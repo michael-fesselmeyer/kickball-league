@@ -610,6 +610,13 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     expect(can(operator, "rainout.confirm_policy")).toBe(false);
   });
 
+  it("lets only the owners and the operator decide who covers processing fees", () => {
+    expect(allowed("processing_fees.manage")).toEqual(["owner"]);
+    expect(
+      can(person("op", { isOperator: true }), "processing_fees.manage"),
+    ).toBe(true);
+  });
+
   it("opens the books to the operator, never to an admin", () => {
     const operator = person("op", { isOperator: true });
     expect(can(operator, "books.manage")).toBe(true);

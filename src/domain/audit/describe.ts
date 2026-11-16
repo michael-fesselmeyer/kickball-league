@@ -192,6 +192,7 @@ const ACTIONS: Record<string, string> = {
   "books.rule_remove": "Removed a merchant rule",
   "books.import": "Imported expenses from a statement",
   "dashboard.export": "Downloaded the owner dashboard numbers",
+  "processing_fees.update": "Changed who covers processing fees",
   "report_card.export": "Downloaded a season report card",
   "money_summary.publish": "Published a season money summary",
   "money_summary.unpublish": "Took down a season money summary",
