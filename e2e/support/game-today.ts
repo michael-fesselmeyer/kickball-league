@@ -53,6 +53,9 @@ export async function addGameKickedOffToday(
  */
 const JITTER = "make_interval(secs => 1 + random() * 58)";
 
+/** The same offset, picked here, for games that must start together. */
+const jitterSeconds = () => 1 + Math.random() * 58;
+
 async function addFallGame(
   teamA: string,
   teamB: string,
@@ -172,6 +175,9 @@ export async function addGamesNextWeek(
     if (!created) throw new Error("Could not add next week's season");
     const games: string[] = [];
     const slots: string[] = [];
+    // Both games start together, a few seconds past noon. A clash takes a
+    // new offset, so the second game would then start a few seconds apart.
+    let at = jitterSeconds();
     for (const [i, [teamA, teamB]] of pairs.entries()) {
       const { rows } = await slotQuery<{ game: string; slot: string }>(
         db,
@@ -189,7 +195,8 @@ export async function addGamesNextWeek(
            select e.id, t.name from entries e join team t on t.id = e.team_id
          ), noon as (
            select ((($6::date)::timestamp + interval '12 hours')
-                    at time zone l.timezone) + ${JITTER} as starts_at
+                    at time zone l.timezone)
+                    + make_interval(secs => $7::float8) as starts_at
              from league l where l.id = $2
          ), place as (
            select f.id as field_id from field f
@@ -210,7 +217,18 @@ export async function addGamesNextWeek(
                 'exhibition', new_slot.id
            from new_slot
          returning id as game, slot_id as slot`,
-        [created.id, created.league_id, teamA, teamB, i, created.day],
+        (attempt) => {
+          if (attempt > 1) at = jitterSeconds();
+          return [
+            created.id,
+            created.league_id,
+            teamA,
+            teamB,
+            i,
+            created.day,
+            at,
+          ];
+        },
       );
       const [row] = rows;
       if (!row) throw new Error(`Could not add ${teamA} vs ${teamB} next week`);
@@ -678,11 +696,14 @@ async function removePrivateSeason(db: Client, seasonId: string) {
 async function slotQuery<T extends QueryResultRow>(
   db: Client,
   text: string,
-  values: unknown[],
+  values: unknown[] | ((attempt: number) => unknown[]),
 ): Promise<QueryResult<T>> {
   for (let attempt = 1; ; attempt++) {
     try {
-      return await db.query<T>(text, values);
+      return await db.query<T>(
+        text,
+        typeof values === "function" ? values(attempt) : values,
+      );
     } catch (error) {
       const clash =
         error instanceof DatabaseError &&
