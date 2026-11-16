@@ -20,7 +20,7 @@ test.describe.serial("emergency contacts on game day", () => {
     today = await addGameToday(TEAM, "Pitch Please");
   });
   test.afterAll(async () => {
-    await today.remove();
+    await today?.remove();
   });
 
   test("a player saves an emergency contact, told who sees it and when", async ({

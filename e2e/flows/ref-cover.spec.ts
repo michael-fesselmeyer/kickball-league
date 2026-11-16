@@ -18,7 +18,7 @@ test.describe.serial("covering a game with no ref", () => {
     soon = await addRefereedGameSoon("Kickin' Chicken", "Red Rubber Ballers");
   });
   test.afterAll(async () => {
-    await soon.remove();
+    await soon?.remove();
   });
 
   test("a ref drops a game, admins see it needs a ref, and a ref takes it", async ({

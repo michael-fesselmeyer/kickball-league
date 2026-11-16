@@ -33,7 +33,7 @@ test.describe.serial("a ref on one of the teams", () => {
     );
   });
   test.afterAll(async () => {
-    await today.remove();
+    await today?.remove();
   });
 
   test("an admin is warned, then assigns them with the override", async ({
