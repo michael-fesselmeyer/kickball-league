@@ -272,6 +272,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Promo codes for a season: a percentage or an amount off, an optional limit on uses and a last day, entered when paying; the app applies them and Stripe charges the lower price ([ADR 0010](adr/0010-promo-codes-applied-in-app.md)) | MVP |
 | Automatic payment reminders at 7, 3 and 1 days before the deadline | MVP |
 | Admin refunds, full or partial: Stripe payments go back through Stripe and count once Stripe confirms; cash and Venmo handed back are marked refunded with a note; every refund is in the audit log | MVP |
+| Processing fees: an owners' setting, off by default, under which whoever pays a season fee or team balance by card, Apple Pay or Google Pay pays the card price that covers the card fee, a Stripe bank transfer (when offered) covers its smaller fee, and cash, Zelle and check cost the price alone. Every pay screen shows each method's total with the fee as its own line before paying, the guarantee charges the card price, refunds return the fee in proportion, and the books show fees covered and saved. The league confirms the legal side before turning it on ([ADR 0082](adr/0082-payers-cover-processing-fees.md)) | P2 |
 | Waitlist for full seasons, with timed offers when a spot opens | P2 |
 | Captain guarantee: saved card charged for any unpaid balance at the deadline | P2 |
 | League credit ledger (rain-out rebates, referral credit, goodwill), usable at checkout | P2 |
@@ -458,7 +459,7 @@ New goals from the owner of this project. Each row says what it means for the pr
 | Goal | What we will build | Tag |
 |---|---|---|
 | Flexible, easy payment: Apple Pay, cards, PayPal and others | Stripe Checkout with cards, Apple Pay, Google Pay and Link turned on, plus any wallet Stripe offers in the US (PayPal, Cash App Pay) where available. One payment provider keeps refunds, credit and webhooks in one place | MVP |
-| The league fee splits automatically between signed-up players | Already planned as split pay with a fixed share. New: an "off-app payment" a captain or admin records for a member who pays cash or Venmo, with a note and who recorded it, so the team still reaches its total and nobody is chased twice | MVP |
+| The league fee splits automatically between signed-up players | Already planned as split pay with a fixed share. New: an "off-app payment" a captain or admin records for a member who pays cash, Venmo, Zelle or check, with a note and who recorded it, so the team still reaches its total and nobody is chased twice | MVP |
 
 ### Events, content and community
 | Goal | What we will build | Tag |
