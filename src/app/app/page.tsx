@@ -11,14 +11,15 @@ import { fieldPermitForGame } from "@/db/queries/books";
 import { myGiveawayWins } from "@/db/queries/giveaways";
 import { publishedGamesFor } from "@/db/queries/public-schedule";
 import { gamesToReferee } from "@/db/queries/referees";
-import { myCurrentSeasons, openSeasons } from "@/db/queries/registration";
+import { openSeasons } from "@/db/queries/registration";
+import { mySeasons } from "@/lib/nav/my-seasons";
 import { pickupsFor } from "@/db/queries/subs";
 import { surveysWaitingFor } from "@/db/queries/surveys";
 import { AllOutboxStatus } from "@/components/offline-outbox";
 import { Pickups } from "@/components/pickups";
 import { can } from "@/domain/authz/permissions";
 import { isGameDay } from "@/domain/lineup/access";
-import { localDay, newestTeamSeason } from "@/domain/schedule/public-game";
+import { localDay } from "@/domain/schedule/public-game";
 import {
   type GameId,
   type LeagueId,
@@ -37,12 +38,11 @@ import {
 } from "@/domain/pwa/offline";
 import { currentAuthSession, currentSubject } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
-import { signOut } from "./actions";
 import { checkInAsRefereeAction } from "./referee-actions";
 import { InstallPrompt } from "./install-prompt";
 import { cardsVisible } from "@/domain/emergency/emergency";
 import { Gear } from "./gear";
-import { OfflineSync, SignOutForm } from "./offline-sync";
+import { OfflineSync } from "./offline-sync";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeague } from "@/lib/league/active";
@@ -54,7 +54,7 @@ export const metadata: Metadata = { title: "Home" };
 
 export default function AppHome(props: PageProps<"/app">) {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-6 px-4 py-12">
+    <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-8">
       <Suspense fallback={<PageLoading>Loading your account…</PageLoading>}>
         <Account {...props} />
       </Suspense>
@@ -90,8 +90,6 @@ async function Account({ searchParams }: PageProps<"/app">) {
     if (!id || !subject.roster.some((m) => m.role !== "player")) return 0;
     return pollsWaiting(db, id, new Date());
   })();
-  // Whether pick'em is on, started early too.
-  const pickemOn = featureEnabled("pickem");
   // The league on show (ADR 0048): its seasons and cards only.
   const onShow = parseId<LeagueId>(subject.leagueId);
   // League gear this person has or brings to a game (issue #286), early too.
@@ -107,7 +105,7 @@ async function Account({ searchParams }: PageProps<"/app">) {
   // The seasons this person plays in, with their team, started early too.
   const seasons = (async () => {
     const id = parseId<UserId>(subject.userId);
-    return id ? myCurrentSeasons(db, id, onShow) : [];
+    return id ? mySeasons(id, onShow) : [];
   })();
   // Season surveys waiting for this player's answer, started early too.
   const surveys = (async () => {
@@ -159,10 +157,6 @@ async function Account({ searchParams }: PageProps<"/app">) {
       ? [league, ...myLeagues]
       : myLeagues;
   const nextGame = pickNextGame(games, now);
-  const teamSeason = newestTeamSeason(
-    games,
-    subject.roster.map((m) => m.teamSeasonId),
-  );
   // The next game's park permit, for its ref and captains (ADR 0034).
   const nextGameId = parseId<GameId>(nextGame?.id);
   const seesPermit =
@@ -215,7 +209,6 @@ async function Account({ searchParams }: PageProps<"/app">) {
   const ballots = await waiting;
   const polls = await pollsOwed;
   const mine = await seasons;
-  const showPickem = await pickemOn;
   const kits = await gear;
   const query = await searchParams;
   const won = await wins;
@@ -239,26 +232,58 @@ async function Account({ searchParams }: PageProps<"/app">) {
       minute: "2-digit",
       timeZone: league?.timeZone ?? "America/New_York",
     }).format(d);
+  // What's waiting on this person, newest asks first: one short list
+  // instead of a button for every page (the menu has those).
+  const needs: { key: string; href: string; label: string }[] = [
+    ...(ballots > 0
+      ? [
+          {
+            key: "vote",
+            href: "/app/vote",
+            label: `Vote for awards (${ballots} open)`,
+          },
+        ]
+      : []),
+    ...(polls > 0
+      ? [
+          {
+            key: "polls",
+            href: "/app/polls",
+            label: `Captains' poll waiting for your vote (${polls})`,
+          },
+        ]
+      : []),
+    ...surveysOpen.map((sv) => ({
+      key: `survey-${sv.seasonSlug}`,
+      href: `/app/seasons/${sv.seasonSlug}/survey`,
+      label: `How was ${sv.seasonName}? Take the survey`,
+    })),
+    ...open.map((s) => ({
+      key: `open-${s.slug}`,
+      href: `/app/seasons/${s.slug}`,
+      label: `${s.name}: register or check your spot`,
+    })),
+  ];
+  const firstName = (name || "").trim().split(/\s+/)[0] || "there";
+  const nothingYet =
+    !nextGame &&
+    mine.length === 0 &&
+    needs.length === 0 &&
+    refereeing.length === 0 &&
+    won.length === 0;
   return (
     <>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-h1">You&apos;re in!</h1>
+      <header className="flex flex-col gap-1">
+        <h1 className="text-h1">Hi, {firstName}</h1>
         <p className="text-text-muted">
           Signed in as <strong className="text-text">{name || email}</strong>.
         </p>
-        <Link
-          href="/help"
-          prefetch={false}
-          className="inline-flex min-h-11 items-center self-start text-small underline underline-offset-4"
-        >
-          Help center
-        </Link>
-      </div>
+      </header>
       {league && <LeagueSwitcher active={league} leagues={switchable} />}
       {nextGame && (
         <section
           aria-labelledby="next-game"
-          className="flex flex-col gap-1 rounded-card border-2 border-text bg-surface p-4"
+          className="flex flex-col gap-1 rounded-card border-2 border-text bg-surface p-4 shadow-sticker"
         >
           <h2 id="next-game" className="text-h3">
             Your next game
@@ -288,40 +313,62 @@ async function Account({ searchParams }: PageProps<"/app">) {
               tone={toneOf(nextStatus.kind)}
             />
           )}
+          {(emergencyUntil || permitShown) && (
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {emergencyUntil && (
+                <li>
+                  <Link
+                    href={`/app/games/${nextGame.id}/emergency`}
+                    className="btn px-4 text-small btn-secondary"
+                  >
+                    Emergency contacts for today&apos;s game
+                  </Link>
+                </li>
+              )}
+              {emergencyUntil && (
+                <li>
+                  <Link
+                    href={`/app/games/${nextGame.id}/checklist`}
+                    className="btn px-4 text-small btn-secondary"
+                  >
+                    Today&apos;s game-day checklist
+                  </Link>
+                </li>
+              )}
+              {permitShown && (
+                <li>
+                  <Link
+                    href={`/app/games/${nextGame.id}/permit`}
+                    className="btn px-4 text-small btn-secondary"
+                  >
+                    Park permit for your next game
+                  </Link>
+                </li>
+              )}
+            </ul>
+          )}
         </section>
       )}
-      {mine.length > 0 && (
-        <section aria-labelledby="your-season" className="flex flex-col gap-2">
-          <h2 id="your-season" className="text-h3">
-            Your season
+      {needs.length > 0 && (
+        <section aria-labelledby="needs-you" className="flex flex-col gap-2">
+          <h2 id="needs-you" className="text-h3">
+            Needs you
           </h2>
-          <p className="text-small text-text-muted">
-            Your team page has your games, RSVPs and who has paid.
-          </p>
-          <ul className="flex flex-col gap-2">
-            {mine.map((m) => (
-              <li key={`${m.seasonSlug}-${m.teamName ?? "free"}`}>
-                {m.teamName ? (
-                  <Link
-                    href={`/app/seasons/${m.seasonSlug}/team`}
-                    className="btn w-full btn-primary"
-                  >
-                    {m.teamName} · {m.seasonName}
-                  </Link>
-                ) : (
-                  <Link
-                    href={`/app/seasons/${m.seasonSlug}`}
-                    className="btn w-full btn-secondary"
-                  >
-                    {m.seasonName}: free agent, check your spot
-                  </Link>
-                )}
+          <ul className="flex flex-col rounded-card border-2 border-text bg-surface px-4">
+            {needs.map((n) => (
+              <li
+                key={n.key}
+                className="border-b border-border last:border-b-0"
+              >
+                <Link href={n.href} className={ROW}>
+                  {n.label}
+                  <Chevron />
+                </Link>
               </li>
             ))}
           </ul>
         </section>
       )}
-      {offeredInstall(subject) && <AllOutboxStatus />}
       {won.length > 0 && (
         <section
           aria-labelledby="won"
@@ -344,6 +391,53 @@ async function Account({ searchParams }: PageProps<"/app">) {
           </ul>
         </section>
       )}
+      {(mine.length > 0 || latestCard) && (
+        <section aria-labelledby="your-season" className="flex flex-col gap-2">
+          <h2 id="your-season" className="text-h3">
+            Your season
+          </h2>
+          <ul className="flex flex-col rounded-card border-2 border-text bg-surface px-4">
+            {mine.map((m) => (
+              <li
+                key={`${m.seasonSlug}-${m.teamName ?? "free"}`}
+                className="border-b border-border last:border-b-0"
+              >
+                {m.teamName ? (
+                  <Link
+                    href={`/app/seasons/${m.seasonSlug}/team`}
+                    className={ROW}
+                  >
+                    {m.teamName} · {m.seasonName}
+                    <Chevron />
+                  </Link>
+                ) : (
+                  <Link href={`/app/seasons/${m.seasonSlug}`} className={ROW}>
+                    {m.seasonName}: free agent, check your spot
+                    <Chevron />
+                  </Link>
+                )}
+              </li>
+            ))}
+            {latestCard && (
+              <li className="border-b border-border last:border-b-0">
+                <Link
+                  href={`/app/seasons/${latestCard.seasonSlug}/card`}
+                  className={ROW}
+                >
+                  Your {latestCard.seasonName} season in kickball
+                  <Chevron />
+                </Link>
+              </li>
+            )}
+          </ul>
+          {mine.some((m) => m.teamName) && (
+            <p className="text-small text-text-muted">
+              Your team page has your games, RSVPs and who has paid.
+            </p>
+          )}
+        </section>
+      )}
+      {offeredInstall(subject) && <AllOutboxStatus />}
       <Gear
         kits={kits}
         timeZone={timeZone}
@@ -353,214 +447,132 @@ async function Account({ searchParams }: PageProps<"/app">) {
         }
         error={typeof query.gear_error === "string" ? query.gear_error : null}
       />
-      {refereeing.length > 0 && (
+      {subject.isReferee && (
         <section aria-labelledby="refereeing" className="flex flex-col gap-2">
           <h2 id="refereeing" className="text-h3">
             Games you&apos;re refereeing
           </h2>
-          <ul className="flex flex-col">
-            {refereeing.map((g) => (
-              <li
-                key={g.id}
-                className="flex items-center justify-between gap-2 border-t border-border py-2"
-              >
-                <span>
-                  {g.teamAName} vs {g.teamBName}
-                  <span className="block text-small text-text-muted">
-                    {when(g.startsAt)} · {g.fieldName}
+          {refereeing.length === 0 ? (
+            <p className="text-text-muted">No games coming up.</p>
+          ) : (
+            <ul className="flex flex-col">
+              {refereeing.map((g) => (
+                <li
+                  key={g.id}
+                  className="flex items-center justify-between gap-2 border-t border-border py-2"
+                >
+                  <span>
+                    {g.teamAName} vs {g.teamBName}
+                    <span className="block text-small text-text-muted">
+                      {when(g.startsAt)} · {g.fieldName}
+                    </span>
+                    <Pickups
+                      pickups={pickups.get(g.id)}
+                      teams={[
+                        { id: g.teamAId, name: g.teamAName },
+                        { id: g.teamBId, name: g.teamBName },
+                      ]}
+                    />
                   </span>
-                  <Pickups
-                    pickups={pickups.get(g.id)}
-                    teams={[
-                      { id: g.teamAId, name: g.teamAName },
-                      { id: g.teamBId, name: g.teamBName },
-                    ]}
-                  />
-                </span>
-                <span className="flex flex-col items-end gap-1">
-                  {g.startsAt <= now && (
-                    <>
+                  <span className="flex flex-col items-end gap-1">
+                    {g.startsAt <= now && (
+                      <>
+                        <Link
+                          href={`/app/games/${g.id}/score`}
+                          className="btn btn-primary"
+                        >
+                          Score
+                        </Link>
+                        {/* Optional: skipping it changes nothing. */}
+                        <Link
+                          href={`/app/games/${g.id}/live`}
+                          className="btn btn-secondary"
+                        >
+                          Keep score live
+                          <span className="sr-only">
+                            {" "}
+                            for {g.teamAName} vs {g.teamBName}
+                          </span>
+                        </Link>
+                      </>
+                    )}
+                    {isGameDay(g.startsAt, now, timeZone) &&
+                      (g.checkedInAt ? (
+                        <span className="text-small text-success">
+                          Checked in
+                        </span>
+                      ) : g.id === checkInGameId ? (
+                        // One tap checks the ref in for all of the day's
+                        // games, so the button shows once, on the first.
+                        <form action={checkInAsRefereeAction}>
+                          <input type="hidden" name="gameId" value={g.id} />
+                          <SubmitButton className="btn btn-secondary">
+                            I&apos;m at the field
+                          </SubmitButton>
+                          <span className="block text-small text-text-muted">
+                            For all of today&apos;s games
+                          </span>
+                        </form>
+                      ) : null)}
+                    {isGameDay(g.startsAt, now, timeZone) && (
                       <Link
-                        href={`/app/games/${g.id}/score`}
-                        className="btn btn-primary"
+                        href={`/app/games/${g.id}/lineup`}
+                        className="text-small underline"
                       >
-                        Score
-                      </Link>
-                      {/* Optional: skipping it changes nothing. */}
-                      <Link
-                        href={`/app/games/${g.id}/live`}
-                        className="btn btn-secondary"
-                      >
-                        Keep score live
+                        Kicking orders
                         <span className="sr-only">
                           {" "}
                           for {g.teamAName} vs {g.teamBName}
                         </span>
                       </Link>
-                    </>
-                  )}
-                  {isGameDay(g.startsAt, now, timeZone) &&
-                    (g.checkedInAt ? (
-                      <span className="text-small text-success">
-                        Checked in
-                      </span>
-                    ) : g.id === checkInGameId ? (
-                      // One tap checks the ref in for all of the day's
-                      // games, so the button shows once, on the first.
-                      <form action={checkInAsRefereeAction}>
-                        <input type="hidden" name="gameId" value={g.id} />
-                        <SubmitButton className="btn btn-secondary">
-                          I&apos;m at the field
-                        </SubmitButton>
-                        <span className="block text-small text-text-muted">
-                          For all of today&apos;s games
-                        </span>
-                      </form>
-                    ) : null)}
-                  {isGameDay(g.startsAt, now, timeZone) && (
-                    <Link
-                      href={`/app/games/${g.id}/lineup`}
-                      className="text-small underline"
-                    >
-                      Kicking orders
-                      <span className="sr-only">
-                        {" "}
-                        for {g.teamAName} vs {g.teamBName}
-                      </span>
-                    </Link>
-                  )}
-                </span>
-              </li>
-            ))}
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link
+            href="/app/referee"
+            className="inline-flex min-h-11 items-center self-start underline"
+          >
+            Reffing: when you can work, and your pay
+          </Link>
+        </section>
+      )}
+      {isAdmin && (
+        <section
+          aria-labelledby="running-the-league"
+          className="flex flex-col gap-2"
+        >
+          <h2 id="running-the-league" className="text-h3">
+            Running the league
+          </h2>
+          <ul className="flex flex-col rounded-card border-2 border-text bg-surface px-4">
+            <li className="border-b border-border">
+              <Link href="/app/admin" className={ROW}>
+                League admin
+                <Chevron />
+              </Link>
+            </li>
+            <li>
+              <Link href="/app/admin/today" className={ROW}>
+                Game day screen
+                <Chevron />
+              </Link>
+            </li>
           </ul>
         </section>
       )}
-      {subject.isReferee && (
-        <Link
-          href="/app/referee"
-          className="inline-flex min-h-11 items-center self-start underline"
-        >
-          Reffing: when you can work, and your pay
-        </Link>
+      {nothingYet && !isAdmin && !subject.isReferee && (
+        <p className="rounded-card border-2 border-dashed border-border-strong p-4 text-text-muted">
+          Nothing needs you right now. When registration opens or your team has
+          a game, it shows up here.{" "}
+          <Link href="/app/subs" className="font-bold text-text underline">
+            Sub for a team
+          </Link>{" "}
+          in the meantime.
+        </p>
       )}
-      {open.map((s) => (
-        <Link
-          key={s.slug}
-          href={`/app/seasons/${s.slug}`}
-          className="btn btn-primary"
-        >
-          {s.name}: register or check your spot
-        </Link>
-      ))}
-      {emergencyUntil && nextGame && (
-        <Link
-          href={`/app/games/${nextGame.id}/emergency`}
-          className="btn btn-secondary"
-        >
-          Emergency contacts for today&apos;s game
-        </Link>
-      )}
-      {emergencyUntil && nextGame && (
-        <Link
-          href={`/app/games/${nextGame.id}/checklist`}
-          className="btn btn-secondary"
-        >
-          Today&apos;s game-day checklist
-        </Link>
-      )}
-      {permitShown && nextGame && (
-        <Link
-          href={`/app/games/${nextGame.id}/permit`}
-          className="btn btn-secondary"
-        >
-          Park permit for your next game
-        </Link>
-      )}
-      {teamSeason && (
-        <>
-          <Link
-            href={`/app/seasons/${teamSeason}/team`}
-            className="btn btn-secondary"
-          >
-            Your team
-          </Link>
-          <Link
-            href={`/seasons/${teamSeason}/schedule`}
-            className="btn btn-secondary"
-          >
-            Schedule
-          </Link>
-        </>
-      )}
-      {latestCard && (
-        <Link
-          href={`/app/seasons/${latestCard.seasonSlug}/card`}
-          className="btn btn-primary"
-        >
-          Your {latestCard.seasonName} season in kickball
-        </Link>
-      )}
-      {ballots > 0 && (
-        <Link href="/app/vote" className="btn btn-primary">
-          Vote for awards ({ballots} open)
-        </Link>
-      )}
-      {polls > 0 && (
-        <Link href="/app/polls" className="btn btn-primary">
-          Captains&apos; poll waiting for your vote ({polls})
-        </Link>
-      )}
-      {surveysOpen.map((sv) => (
-        <Link
-          key={sv.seasonSlug}
-          href={`/app/seasons/${sv.seasonSlug}/survey`}
-          className="btn btn-primary"
-        >
-          How was {sv.seasonName}? Take the survey
-        </Link>
-      ))}
-      {showPickem && (
-        <Link href="/app/pickem" className="btn btn-secondary">
-          Pick&apos;em
-        </Link>
-      )}
-      <Link href="/app/subs" className="btn btn-secondary">
-        Sub for a team
-      </Link>
-      <Link href="/app/events" className="btn btn-secondary">
-        Events
-      </Link>
-      <Link href="/app/volunteer" className="btn btn-secondary">
-        Volunteer
-      </Link>
-      <Link href="/app/shop" className="btn btn-secondary">
-        League shop
-      </Link>
-      {can(subject, "photos.upload") && (
-        <Link href="/app/photos" className="btn btn-secondary">
-          Share a photo
-        </Link>
-      )}
-      <Link href="/app/concerns" className="btn btn-secondary">
-        Raise a concern
-      </Link>
-      <Link href="/app/lost-and-found" className="btn btn-secondary">
-        Lost and found
-      </Link>
-      <Link href="/app/profile" className="btn btn-secondary">
-        Your profile
-      </Link>
-      {subject.sponsorIds.length > 0 && (
-        <Link href="/app/sponsor" className="btn btn-secondary">
-          Your sponsor page
-        </Link>
-      )}
-      {isAdmin && (
-        <Link href="/app/admin" className="btn btn-primary">
-          League admin
-        </Link>
-      )}
-      <SignOutForm action={signOut} />
       <OfflineSync
         game={
           nextGame
@@ -582,5 +594,26 @@ async function Account({ searchParams }: PageProps<"/app">) {
         </>
       )}
     </>
+  );
+}
+
+/** A row in a list card: the whole row is the link, 48px tall. */
+const ROW =
+  "flex min-h-12 items-center justify-between gap-3 py-2 font-bold hover:underline";
+
+function Chevron() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="size-5 shrink-0 text-text-muted"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m9 6 6 6-6 6" />
+    </svg>
   );
 }
