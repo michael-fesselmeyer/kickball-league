@@ -79,7 +79,7 @@ async function cachedRules(
     // The rulebook's text and change log are read only when the league made
     // them public; otherwise nothing of them reaches this cached page.
     const open = visibility === "public";
-    const [sections, changes, settings] = await Promise.all([
+    const [sections, changes, settings, code] = await Promise.all([
       open ? currentRules(db, leagueId) : [],
       open ? changeLog(db, leagueId, CHANGES_SHOWN) : [],
       gameSettings(db, leagueId),
