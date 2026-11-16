@@ -210,17 +210,26 @@ function statusOf(
   return grantIsActive({ ...r, powers: [] }, now) ? "active" : "upcoming";
 }
 
-/** Players an owner may pick: league members below admin. */
+/**
+ * Players an owner may pick: everyone with a profile who is not an admin or
+ * an owner here. A person with no role row in the league is a player (every
+ * signed-in person is), as `grantActingAdmin` also reads it.
+ */
 export async function handoverCandidates(db: Db, leagueId: LeagueId) {
   return db
-    .select({ userId: leagueMember.userId, name: shortName })
-    .from(leagueMember)
-    .innerJoin(user, eq(leagueMember.userId, user.id))
-    .leftJoin(profile, eq(profile.userId, leagueMember.userId))
+    .select({ userId: profile.userId, name: shortName })
+    .from(profile)
+    .innerJoin(user, eq(profile.userId, user.id))
+    .leftJoin(
+      leagueMember,
+      and(
+        eq(leagueMember.userId, profile.userId),
+        eq(leagueMember.leagueId, leagueId),
+      ),
+    )
     .where(
       and(
-        eq(leagueMember.leagueId, leagueId),
-        eq(leagueMember.role, "player"),
+        sql`coalesce(${leagueMember.role}, 'player') = 'player'`,
         sql`${user.email} not like 'deleted-%@deleted.invalid'`,
       ),
     )

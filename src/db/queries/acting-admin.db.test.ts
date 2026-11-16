@@ -316,6 +316,11 @@ describe("acting admin handovers", () => {
       expect(ids).toContain(w.trusted);
       expect(ids).not.toContain(w.admin);
       expect(ids).not.toContain(w.owner);
+      // A person with a profile and no role row in the league is a player.
+      const newcomer = await w.person("Nell");
+      expect(
+        (await handoverCandidates(db, w.leagueId)).map((c) => c.userId),
+      ).toContain(newcomer);
       // A grant made before someone was promoted adds nothing to their role.
       await grant(db, w);
       await db
