@@ -147,7 +147,7 @@ async function Season({
   ]);
   const owed = amountOwed(season, mine, now);
   // The total for each way to pay, with credit used as the form starts
-  // (ADR 0082). Empty while the league's processing fees are off.
+  // (ADR 0093). Empty while the league's processing fees are off.
   const quotes = owed.ok
     ? methodQuotes(owed.cents - creditToApply(owed.cents, credit), fees, {
         bank: true,

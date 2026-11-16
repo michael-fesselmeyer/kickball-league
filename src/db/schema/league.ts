@@ -99,7 +99,7 @@ export const league = pgTable(
      */
     leadershipQuorumPercent: smallint().notNull().default(60),
     /**
-     * Whether payers cover processing fees, and how (ADR 0082). Read through
+     * Whether payers cover processing fees, and how (ADR 0093). Read through
      * readFeeSettings, which fills in anything missing; off by default until
      * the league confirms the legal side.
      */

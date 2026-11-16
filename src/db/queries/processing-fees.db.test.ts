@@ -44,7 +44,7 @@ import type { Db } from "./schedule";
 import { teamBalances } from "./team-balance";
 
 /**
- * Payers cover processing fees (ADR 0082): every money path with the
+ * Payers cover processing fees (ADR 0093): every money path with the
  * league's setting off and on.
  */
 

@@ -56,7 +56,7 @@ export async function queuePaymentReminders(
         and(
           eq(registration.seasonId, s.id),
           inArray(registration.status, UNPAID),
-          // A bank transfer on its way (ADR 0082) is paying already.
+          // A bank transfer on its way (ADR 0093) is paying already.
           notExists(
             db
               .select({ id: purchaseItem.id })

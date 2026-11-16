@@ -70,7 +70,7 @@ export async function startCheckout(
   await expirePurchases(db, stale.close);
 
   const typed = form.get("promoCode");
-  // Who covers the processing fee, when the league turned that on (ADR 0082).
+  // Who covers the processing fee, when the league turned that on (ADR 0093).
   const fee = feeChoice(
     form.get("payMethod"),
     await feeSettingsOf(db, league.id),

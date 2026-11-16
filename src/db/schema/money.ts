@@ -44,7 +44,7 @@ export const purchaseStatus = pgEnum("purchase_status", [
   "partially_refunded",
 ]);
 
-/** The method a purchase's processing fee was worked out for (ADR 0082). */
+/** The method a purchase's processing fee was worked out for (ADR 0093). */
 export const feeMethod = pgEnum("fee_method", ["card", "bank", "venmo"]);
 
 export const promoKind = pgEnum("promo_kind", ["percent", "amount"]);
@@ -110,7 +110,7 @@ export const purchase = pgTable(
     discountCents: integer().notNull().default(0),
     creditAppliedCents: integer().notNull().default(0),
     /**
-     * The processing fee the payer covers on top of the price (ADR 0082),
+     * The processing fee the payer covers on top of the price (ADR 0093),
      * worked out for `feeMethod`. Zero while the league's setting is off.
      */
     feeCents: integer().notNull().default(0),

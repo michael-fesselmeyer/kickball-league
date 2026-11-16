@@ -9,7 +9,7 @@ import { recordAudit } from "./audit";
 import type { Db } from "./schedule";
 
 /**
- * The league's processing-fee setting (ADR 0082). Off unless the owners
+ * The league's processing-fee setting (ADR 0093). Off unless the owners
  * turned it on; anything missing reads as the defaults.
  */
 export async function feeSettingsOf(

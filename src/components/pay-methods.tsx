@@ -2,7 +2,7 @@ import type { MethodQuote } from "@/domain/money/processing-fee";
 import { formatCents } from "@/domain/registration/pricing";
 
 /**
- * The total for each way to pay, shown before anyone commits (ADR 0082):
+ * The total for each way to pay, shown before anyone commits (ADR 0093):
  * the card price with its fee as its own line, a bank transfer where it is
  * offered, and the lower price for cash, Zelle and check with how to use
  * them. Renders nothing while the league's processing fees are off, so the

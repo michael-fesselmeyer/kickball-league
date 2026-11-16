@@ -7,7 +7,7 @@ import {
 } from "@/domain/money/processing-fee";
 
 /**
- * Stripe Checkout with the payer covering the processing fee (ADR 0082).
+ * Stripe Checkout with the payer covering the processing fee (ADR 0093).
  * While the league's setting is off, every helper here returns what the
  * checkout had before: the same lines and no payment method limit.
  */

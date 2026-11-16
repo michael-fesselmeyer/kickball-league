@@ -76,7 +76,7 @@ export function TeamMoney({
   creditCents: number;
   paymentsOn: boolean;
   notice: string | undefined;
-  /** The league's processing-fee setting (ADR 0082). */
+  /** The league's processing-fee setting (ADR 0093). */
   fees: FeeSettings;
 }) {
   const message = notice ? NOTICES[notice] : undefined;

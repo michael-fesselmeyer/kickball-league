@@ -412,7 +412,7 @@ export async function seasonBooks(db: Db, s: SeasonRef): Promise<SeasonBooks> {
     })),
     creditAppliedCents: [...credit.values()].reduce((a, b) => a + b, 0),
     // Processing fees payers covered, less what refunds gave back, and the
-    // card fees saved by free methods (ADR 0082), once per purchase.
+    // card fees saved by free methods (ADR 0093), once per purchase.
     feesCoveredCents: [
       ...new Map(
         payments.map((p) => [

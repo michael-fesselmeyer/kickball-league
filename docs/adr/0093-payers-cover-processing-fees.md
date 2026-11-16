@@ -1,4 +1,4 @@
-# ADR 0082: Payers cover processing fees with a lower price for free methods
+# ADR 0093: Payers cover processing fees with a lower price for free methods
 
 - Status: accepted
 - Date: 2026-11-15

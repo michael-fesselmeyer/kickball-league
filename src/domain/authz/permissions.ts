@@ -432,7 +432,7 @@ const RULES = {
   "keep_off.export_policy": isOwner,
   // Whether admins may confirm rain-outs too (ADR 0057).
   "rainout.confirm_policy": isOwner,
-  // Whether payers cover processing fees, and the rates (ADR 0082).
+  // Whether payers cover processing fees, and the rates (ADR 0093).
   "processing_fees.manage": any(isOwner, isOperator),
 } satisfies Record<string, Rule>;
 
