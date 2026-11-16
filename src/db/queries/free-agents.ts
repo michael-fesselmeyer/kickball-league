@@ -32,6 +32,7 @@ import {
 import { recordAudit } from "./audit";
 import { anySuspendedRegistration, suspendedAmong } from "./discipline";
 import { keptOffRegistrations } from "./keep-off";
+import { movingOnFor } from "./move";
 import { placeFreeAgent, type PlaceError } from "./registrations-admin";
 import { required } from "./rows";
 import type { Db } from "./schedule";
@@ -265,6 +266,8 @@ export type PoolEntry = PoolPlayer & {
   answers: StoredQuizAnswers | null;
   notes: string | null;
   code: string | null;
+  /** Looking for a change and letting admins see it (ADR 0081). */
+  lookingForChange: boolean;
 };
 
 export type MatcherTeam = MatchTeam & {
@@ -274,13 +277,14 @@ export type MatcherTeam = MatchTeam & {
 };
 
 /**
- * Everything the matcher page needs for a season, in four queries run
+ * Everything the matcher page needs for a season, in five queries run
  * together: the season's limits, its open teams, every placeable
  * registration with profile, quiz, group and team, and who each team's
- * "not on my team" list keeps off.
+ * "not on my team" list keeps off; and who is looking for a change from
+ * which team (ADR 0081), when they let admins see it.
  */
 export async function matcherInput(db: Db, seasonId: SeasonId) {
-  const [limits, entries, people, keepOff] = await Promise.all([
+  const [limits, entries, people, keepOff, moving] = await Promise.all([
     db
       .select({
         leagueId: season.leagueId,
@@ -348,6 +352,7 @@ export async function matcherInput(db: Db, seasonId: SeasonId) {
       )
       .orderBy(registration.createdAt, registration.id),
     keptOffRegistrations(db, seasonId),
+    movingOnFor(db, seasonId, new Date()),
   ]);
   const limit = limits[0];
   if (!limit) return null;
@@ -383,6 +388,7 @@ export async function matcherInput(db: Db, seasonId: SeasonId) {
         answers,
         notes: p.notes,
         code: p.code,
+        lookingForChange: moving.movers.has(p.registrationId),
       } satisfies PoolEntry,
     };
   });
@@ -400,6 +406,7 @@ export async function matcherInput(db: Db, seasonId: SeasonId) {
         .filter((p) => p.teamSeasonId === e.teamSeasonId)
         .map((p) => p.entry),
       keepOff: keepOff.get(e.teamSeasonId) ?? [],
+      movingOn: moving.byTeam.get(e.teamSeasonId) ?? [],
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
   const pool = players
