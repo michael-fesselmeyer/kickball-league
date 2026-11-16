@@ -25,7 +25,8 @@ const ACTIONS: Record<string, string> = {
   "bracket.publish": "Published the playoff bracket",
   "leadership.close": "Closed a team's leadership check-in",
   "leadership.open": "Opened season-end leadership check-ins",
-  "leadership.quorum": "Changed how much of a team must take part in a leadership check-in",
+  "leadership.quorum":
+    "Changed how much of a team must take part in a leadership check-in",
   "leadership.pause": "Paused a team's leadership check-in",
   "leadership.resume": "Resumed a team's leadership check-in",
   "challenge.confirm": "Confirmed the sign-up challenge's winner",

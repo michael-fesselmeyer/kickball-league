@@ -83,8 +83,11 @@ async function world(db: Db) {
     .from(leadershipCheckIn)
     .where(eq(leadershipCheckIn.teamSeasonId, w.aces.id));
   const id = row!.id;
-  const checkIn = (userId: UserId, choice: Parameters<typeof submitCheckIn>[1]["choice"] = nothing, now = NOW) =>
-    submitCheckIn(db, { checkInId: id, userId, choice, now });
+  const checkIn = (
+    userId: UserId,
+    choice: Parameters<typeof submitCheckIn>[1]["choice"] = nothing,
+    now = NOW,
+  ) => submitCheckIn(db, { checkInId: id, userId, choice, now });
   const vote = async (userId: UserId, forUser: UserId, now = day(8)) => {
     const [option] = await db
       .select({ id: leadershipBallotOption.id })
@@ -225,7 +228,10 @@ describe("ballot secrecy", () => {
           await submitCheckIn(tx, {
             checkInId: w.id,
             userId: w.a.userId,
-            choice: { ...nothing, suggest: { userId: w.b.userId, role: "captain" } },
+            choice: {
+              ...nothing,
+              suggest: { userId: w.b.userId, role: "captain" },
+            },
             now: NOW,
           }),
         ).toEqual({ ok: true, value: undefined });
@@ -255,9 +261,9 @@ describe("ballot secrecy", () => {
         [],
       );
       await advanceCheckIns(db, day(1));
-      expect((await leadershipFor(db, w.aces.id, w.b.userId))!.me.asks).toEqual([
-        { role: "captain", volunteered: false, answer: null },
-      ]);
+      expect((await leadershipFor(db, w.aces.id, w.b.userId))!.me.asks).toEqual(
+        [{ role: "captain", volunteered: false, answer: null }],
+      );
       const asked = await messagesTo(db, w.b.userId);
       expect(asked.map((m) => m.payload)).toContainEqual(
         expect.objectContaining({ kind: "suggested", role: "captain" }),
@@ -317,9 +323,9 @@ describe("ballot secrecy", () => {
         expect(
           JSON.stringify(await leadershipFor(db, w.aces.id, who.userId)),
         ).not.toMatch(/votes/);
-      expect(JSON.stringify(await seasonLeadership(db, w.season.id))).not.toMatch(
-        /votes/,
-      );
+      expect(
+        JSON.stringify(await seasonLeadership(db, w.season.id)),
+      ).not.toMatch(/votes/);
       const exported = await myLeadership(db, w.a.userId);
       expect(exported.tookPart.map((t) => t.step)).toEqual([
         "checked in",
@@ -445,7 +451,9 @@ describe("the ballot's result", () => {
       expect(
         (await leadershipFor(db, w.aces.id, w.cap.userId))!.resultForCaptain,
       ).toBe("no_majority");
-      expect((await leadershipFor(db, w.aces.id, w.a.userId))!.outcome).toBeNull();
+      expect(
+        (await leadershipFor(db, w.aces.id, w.a.userId))!.outcome,
+      ).toBeNull();
       expect(
         await captainChooses(db, {
           checkInId: w.id,
@@ -519,7 +527,9 @@ describe("the ballot's result", () => {
         .where(eq(rosterMembership.teamSeasonId, w.aces.id));
       expect(roles).toContainEqual({ userId: w.b.userId, role: "co_captain" });
       expect(roles).toContainEqual({ userId: w.cap.userId, role: "captain" });
-      expect((await messagesTo(db, w.a.userId)).map((m) => m.payload)).toContainEqual(
+      expect(
+        (await messagesTo(db, w.a.userId)).map((m) => m.payload),
+      ).toContainEqual(
         expect.objectContaining({
           kind: "outcome",
           outcome: "new_captain",
@@ -556,7 +566,10 @@ describe("the ballot's result", () => {
         captainChoice: "hand_off_now",
       });
       const [offer] = await db
-        .select({ toUserId: captainHandoff.toUserId, status: captainHandoff.status })
+        .select({
+          toUserId: captainHandoff.toUserId,
+          status: captainHandoff.status,
+        })
         .from(captainHandoff)
         .where(eq(captainHandoff.teamSeasonId, w.aces.id));
       expect(offer).toEqual({ toUserId: w.b.userId, status: "pending" });
@@ -582,7 +595,12 @@ describe("roster changes", () => {
         .update(rosterMembership)
         .set({ status: "removed" })
         .where(eq(rosterMembership.registrationId, w.b.registrationId));
-      expect(await w.checkIn(w.d.userId, { ...nothing, suggest: { userId: w.b.userId, role: "captain" } })).toEqual({
+      expect(
+        await w.checkIn(w.d.userId, {
+          ...nothing,
+          suggest: { userId: w.b.userId, role: "captain" },
+        }),
+      ).toEqual({
         ok: false,
         error: "suggest_not_on_team",
       });
@@ -632,7 +650,11 @@ describe("an admin stepping in", () => {
       const w = await world(db);
       const admin = w.cap.userId;
       expect(
-        await pauseCheckIn(db, { checkInId: w.id, actorId: admin, now: day(2) }),
+        await pauseCheckIn(db, {
+          checkInId: w.id,
+          actorId: admin,
+          now: day(2),
+        }),
       ).toEqual({ ok: true, value: undefined });
       expect(await w.checkIn(w.a.userId, nothing, day(3))).toEqual({
         ok: false,
@@ -677,10 +699,18 @@ describe("the league's quorum", () => {
       const actorId = w.aces.captain.userId;
       expect(await leadershipQuorum(db, w.leagueId)).toBe(60);
       expect(
-        await setLeadershipQuorum(db, { leagueId: w.leagueId, percent: 40, actorId }),
+        await setLeadershipQuorum(db, {
+          leagueId: w.leagueId,
+          percent: 40,
+          actorId,
+        }),
       ).toEqual({ ok: false, error: "bad_quorum" });
       expect(
-        await setLeadershipQuorum(db, { leagueId: w.leagueId, percent: 75, actorId }),
+        await setLeadershipQuorum(db, {
+          leagueId: w.leagueId,
+          percent: 75,
+          actorId,
+        }),
       ).toEqual({ ok: true, value: undefined });
       expect((await leadershipAudit(db)).map((r) => r.action)).toEqual([
         "leadership.quorum",
@@ -689,7 +719,12 @@ describe("the league's quorum", () => {
         .update(season)
         .set({ status: "completed" })
         .where(eq(season.id, w.season.id));
-      await openCheckIns(db, { seasonId: w.season.id, days: 7, actorId, now: NOW });
+      await openCheckIns(db, {
+        seasonId: w.season.id,
+        days: 7,
+        actorId,
+        now: NOW,
+      });
       const [row] = await db
         .select({ quorum: leadershipCheckIn.quorumPercent })
         .from(leadershipCheckIn)

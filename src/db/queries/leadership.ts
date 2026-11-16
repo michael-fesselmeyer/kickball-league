@@ -73,10 +73,7 @@ const shortName = sql<string>`coalesce(${profile.firstName} || coalesce(' ' || l
 type Member = { userId: UserId; name: string; role: RosterRole };
 
 /** A team season's active roster, captain first, then by name. */
-async function rosterOf(
-  db: Db,
-  teamSeasonId: TeamSeasonId,
-): Promise<Member[]> {
+async function rosterOf(db: Db, teamSeasonId: TeamSeasonId): Promise<Member[]> {
   const rows = await db
     .select({
       userId: registration.userId,
@@ -282,11 +279,7 @@ export async function openCheckIns(
 // Taking part, for players
 
 export type CheckInError =
-  | "not_found"
-  | "paused"
-  | "closed"
-  | "already"
-  | ChoiceError;
+  "not_found" | "paused" | "closed" | "already" | ChoiceError;
 
 /**
  * Makes sure every person on the roster has a candidate row for both
@@ -340,7 +333,11 @@ export async function submitCheckIn(
   const choice = allowed.value;
   const [took] = await db
     .insert(leadershipParticipation)
-    .values({ checkInId: input.checkInId, userId: input.userId, part: "check_in" })
+    .values({
+      checkInId: input.checkInId,
+      userId: input.userId,
+      part: "check_in",
+    })
     .onConflictDoNothing()
     .returning({ userId: leadershipParticipation.userId });
   if (!took) return err("already");
@@ -414,7 +411,8 @@ export async function answerSuggestion(
   return ok(undefined);
 }
 
-export type VoteError = "not_found" | "paused" | "closed" | "already" | "not_on_team";
+export type VoteError =
+  "not_found" | "paused" | "closed" | "already" | "not_on_team";
 
 /**
  * A secret ballot: once, final. Writes that they voted, then adds 1 to the
@@ -434,8 +432,7 @@ export async function castVote(
   const open = checkOpen(checkIn, "ballot", input.now);
   if (!open.ok) return open;
   const roster = await rosterOf(db, checkIn.teamSeasonId);
-  if (!roster.some((m) => m.userId === input.userId))
-    return err("not_on_team");
+  if (!roster.some((m) => m.userId === input.userId)) return err("not_on_team");
   const o = leadershipBallotOption;
   const [option] = await db
     .select({ id: o.id })
@@ -444,7 +441,11 @@ export async function castVote(
   if (!option) return err("not_found");
   const [took] = await db
     .insert(leadershipParticipation)
-    .values({ checkInId: input.checkInId, userId: input.userId, part: "ballot" })
+    .values({
+      checkInId: input.checkInId,
+      userId: input.userId,
+      part: "ballot",
+    })
     .onConflictDoNothing()
     .returning({ userId: leadershipParticipation.userId });
   if (!took) return err("already");
@@ -664,7 +665,13 @@ export async function advanceCheckIns(
   results: number;
   electOffers: number;
 }> {
-  const counts = { asked: 0, ballots: 0, closed: 0, results: 0, electOffers: 0 };
+  const counts = {
+    asked: 0,
+    ballots: 0,
+    closed: 0,
+    results: 0,
+    electOffers: 0,
+  };
   counts.asked = await askSuggested(db, now);
 
   const due = await db
@@ -719,7 +726,12 @@ async function askSuggested(db: Db, now: Date): Promise<number> {
   await db
     .update(c)
     .set({ askedAt: now })
-    .where(inArray(c.id, rows.map((r) => r.id)));
+    .where(
+      inArray(
+        c.id,
+        rows.map((r) => r.id),
+      ),
+    );
   const messages: OutboxMessage[] = [];
   for (const checkInId of new Set(rows.map((r) => r.checkInId))) {
     const checkIn = await lockCheckIn(db, checkInId);
@@ -758,7 +770,10 @@ async function advanceOne(
     // Give a teammate suggested late a fair chance to answer.
     if (
       candidates.some(
-        (c) => c.role === "captain" && onRoster.has(c.userId) && stillAnswering(c, now),
+        (c) =>
+          c.role === "captain" &&
+          onRoster.has(c.userId) &&
+          stillAnswering(c, now),
       )
     )
       return "check_in";
@@ -832,7 +847,8 @@ async function advanceOne(
     // Every result waits the captain's private three days, whatever it is,
     // so the wait itself never tells the team which way it went.
     const reviewEndsAt = new Date(now.getTime() + REVIEW_DAYS * DAY_MS);
-    const electedId = result.outcome === "new_captain" ? result.electedId : null;
+    const electedId =
+      result.outcome === "new_captain" ? result.electedId : null;
     await db
       .update(leadershipCheckIn)
       .set({
@@ -1009,7 +1025,13 @@ export async function resumeCheckIn(
     .set({
       pausedAt: null,
       ...(checkIn.step === "check_in"
-        ? { checkInClosesAt: resumedDeadline(checkIn.checkInClosesAt, pausedAt, input.now) }
+        ? {
+            checkInClosesAt: resumedDeadline(
+              checkIn.checkInClosesAt,
+              pausedAt,
+              input.now,
+            ),
+          }
         : checkIn.step === "ballot"
           ? { ballotClosesAt: later(checkIn.ballotClosesAt) }
           : { reviewEndsAt: later(checkIn.reviewEndsAt) }),
@@ -1121,7 +1143,9 @@ export async function leadershipFor(
   ).length;
   const isCaptain = me?.role === "captain";
   const nameOf = (id: UserId | null) =>
-    id ? (roster.find((m) => m.userId === id)?.name ?? "A former teammate") : null;
+    id
+      ? (roster.find((m) => m.userId === id)?.name ?? "A former teammate")
+      : null;
   const captainId = roster.find((m) => m.role === "captain")?.userId;
   return {
     id: checkIn.id,

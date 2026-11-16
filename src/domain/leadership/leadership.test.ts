@@ -73,8 +73,7 @@ describe("who is standing", () => {
 
   it("waits for a suggested teammate for a fair while, then stops waiting", () => {
     const now = new Date("2026-11-10T12:00:00Z");
-    const asked = (days: number) =>
-      new Date(now.getTime() - days * DAY_MS);
+    const asked = (days: number) => new Date(now.getTime() - days * DAY_MS);
     const n = cand({ nominated: true });
     expect(stillAnswering({ ...n, askedAt: null }, now)).toBe(true);
     expect(stillAnswering({ ...n, askedAt: asked(1) }, now)).toBe(true);
@@ -276,9 +275,9 @@ describe("a check-in", () => {
   });
 
   it("lets only the captain say they'd hand over", () => {
-    expect(
-      checkChoice("cap", roster, { ...none, steppingDown: true }).ok,
-    ).toBe(true);
+    expect(checkChoice("cap", roster, { ...none, steppingDown: true }).ok).toBe(
+      true,
+    );
     expect(checkChoice("p", roster, { ...none, steppingDown: true })).toEqual({
       ok: false,
       error: "not_captain",

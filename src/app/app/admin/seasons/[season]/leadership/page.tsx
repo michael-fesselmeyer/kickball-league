@@ -34,9 +34,15 @@ export const metadata: Metadata = { title: "Leadership check-ins" };
 const MESSAGES: Record<string, { ok: boolean; text: string }> = {
   opened: { ok: true, text: "Check-ins opened. Every roster has been told." },
   quorum_saved: { ok: true, text: "Quorum saved for new check-ins." },
-  paused_now: { ok: true, text: "Paused. Nobody can check in or vote until you resume." },
+  paused_now: {
+    ok: true,
+    text: "Paused. Nobody can check in or vote until you resume.",
+  },
   resumed: { ok: true, text: "Resumed, with the deadline moved on." },
-  closed_now: { ok: true, text: "Closed with no change. The team has been told." },
+  closed_now: {
+    ok: true,
+    text: "Closed with no change. The team has been told.",
+  },
   not_season_end: {
     ok: false,
     text: "Check-ins open only once the regular season is over (playoffs or completed).",
@@ -238,7 +244,9 @@ function TeamRow({
           {open &&
             row.step !== "captain_review" &&
             ` · ${row.tookPart} of ${row.roster} took part, ${row.needed} needed`}
-          {open && row.closesAt && ` · until ${dayName(row.closesAt, timeZone)}`}
+          {open &&
+            row.closesAt &&
+            ` · until ${dayName(row.closesAt, timeZone)}`}
         </span>
       </div>
       {open && (

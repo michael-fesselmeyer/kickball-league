@@ -135,7 +135,9 @@ export const leadershipEmail = defineTemplate(leadershipPayload, (p, ctx) => {
               ? p.when === "now"
                 ? `The team chose ${p.elected} as captain, and they're taking over now. Thanks for voting.`
                 : `The team chose ${p.elected} as captain for next season. Until then they help lead as a co-captain. Thanks for voting.`
-              : OUTCOME[p.outcome === "new_captain" ? "no_majority" : p.outcome],
+              : OUTCOME[
+                  p.outcome === "new_captain" ? "no_majority" : p.outcome
+                ],
           ],
           action: { label: "See your team", ...page },
           reason,
