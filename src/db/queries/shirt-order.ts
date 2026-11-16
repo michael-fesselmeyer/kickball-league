@@ -437,7 +437,7 @@ export async function remindMissingSizes(
     db,
     missing.map((p) => ({
       userId: p.userId,
-      topic: "announcement" as const,
+      topic: "payment" as const,
       template: "shirt_size_reminder",
       payload,
       dedupeKey: `shirt-size/${p.registrationId}`,

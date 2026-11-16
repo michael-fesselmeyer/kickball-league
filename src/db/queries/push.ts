@@ -5,6 +5,7 @@ import {
   PUSH_TOPICS,
   wantsPush,
 } from "@/domain/notifications/topics";
+import { changedViaSettings } from "./notifications";
 import type { DeviceSubscription } from "@/domain/notifications/push";
 import { notificationPreference, pushSubscription } from "../schema/message";
 import type { Db } from "./schedule";
@@ -61,14 +62,14 @@ export async function savePushSettings(
     const enabled = enabledTopics.has(topic);
     await db
       .insert(notificationPreference)
-      .values({ userId, topic, channel: "push", enabled })
+      .values({ userId, topic, channel: "push", enabled, changedVia: "settings" })
       .onConflictDoUpdate({
         target: [
           notificationPreference.userId,
           notificationPreference.topic,
           notificationPreference.channel,
         ],
-        set: { enabled },
+        set: { enabled, changedVia: changedViaSettings },
       });
   }
 }

@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { UserId } from "@/domain/ids";
 import { type AlertLimits, nextDigestAt } from "@/domain/notifications/limits";
 import {
@@ -36,6 +36,13 @@ export async function emailSettingsOf(db: Db, userId: UserId) {
   }));
 }
 
+/**
+ * Where a choice saved from the settings page was changed: the settings,
+ * when the save changed it; otherwise where it was changed before, so an
+ * unsubscribe is still counted as one after the page is saved again.
+ */
+export const changedViaSettings = sql`case when excluded.enabled is distinct from ${notificationPreference.enabled} then 'settings'::preference_source else ${notificationPreference.changedVia} end`;
+
 /** Saves a person's choice for every topic the settings page offers. */
 export async function saveEmailSettings(
   db: Db,
@@ -46,14 +53,14 @@ export async function saveEmailSettings(
     const enabled = enabledTopics.has(topic);
     await db
       .insert(notificationPreference)
-      .values({ userId, topic, channel: "email", enabled })
+      .values({ userId, topic, channel: "email", enabled, changedVia: "settings" })
       .onConflictDoUpdate({
         target: [
           notificationPreference.userId,
           notificationPreference.topic,
           notificationPreference.channel,
         ],
-        set: { enabled },
+        set: { enabled, changedVia: changedViaSettings },
       });
   }
 }
@@ -69,14 +76,20 @@ export async function turnOffEmailTopic(
 ): Promise<void> {
   await db
     .insert(notificationPreference)
-    .values({ userId, topic, channel: "email", enabled: false })
+    .values({
+      userId,
+      topic,
+      channel: "email",
+      enabled: false,
+      changedVia: "email_link",
+    })
     .onConflictDoUpdate({
       target: [
         notificationPreference.userId,
         notificationPreference.topic,
         notificationPreference.channel,
       ],
-      set: { enabled: false },
+      set: { enabled: false, changedVia: "email_link" },
     });
 }
 

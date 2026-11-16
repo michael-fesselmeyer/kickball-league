@@ -316,7 +316,7 @@ export async function publishRuleChange(
         players.map((userId) => ({
           userId,
           template: "rule_change" as const,
-          topic: "announcement" as const,
+          topic: "rules" as const,
           payload: {
             summary: publish.value.summary,
             sections: plan.value.changes.map((c) => c.title),

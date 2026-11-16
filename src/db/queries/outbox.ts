@@ -1,5 +1,5 @@
 import { and, count, eq, gte, inArray, lte, or, sql } from "drizzle-orm";
-import type { MessageId, UserId } from "@/domain/ids";
+import type { AnnouncementId, MessageId, UserId } from "@/domain/ids";
 import {
   type EmailBudget,
   emailsLeft,
@@ -22,12 +22,15 @@ import {
   type AlertLimits,
   DEFAULT_LIMITS,
   decide,
+  NO_TURN_DOWNS,
+  type TurnDowns,
   nextDigestAt,
   startOfLocalDay,
 } from "@/domain/notifications/limits";
 import {
   type Choice,
   isPushTopic,
+  NEWS_TOPICS,
   type Topic,
   wantsEmail,
   wantsPush,
@@ -39,6 +42,7 @@ import type { PushSender } from "@/services/push";
 import { user } from "../schema/auth";
 import {
   alertSetting,
+  announcement,
   message,
   type NewMessage,
   notificationPreference,
@@ -195,6 +199,8 @@ export type ClaimedMessage = {
   attempts: number;
   dedupeKey: string;
   sendAfter: Date;
+  /** Set on a copy of an announcement, to tell team news from league news. */
+  announcementId: AnnouncementId | null;
 };
 
 /** Urgent first, then news that can wait and the digest. */
@@ -257,6 +263,7 @@ export async function claimDueMessages(
       attempts: message.attempts,
       dedupeKey: message.dedupeKey,
       sendAfter: message.sendAfter,
+      announcementId: message.announcementId,
     });
 }
 
@@ -311,15 +318,35 @@ export async function alertLimitsOf(
   db: Db,
   userIds: readonly UserId[],
 ): Promise<Map<UserId, AlertLimits>> {
+  return (await alertSettingsOf(db, userIds)).limits;
+}
+
+/**
+ * Each person's alert limits and turn-downs (snooze, only my team, weekly
+ * roundup), from one query; people without a saved row get the defaults.
+ */
+export async function alertSettingsOf(
+  db: Db,
+  userIds: readonly UserId[],
+): Promise<{
+  limits: Map<UserId, AlertLimits>;
+  turnDowns: Map<UserId, TurnDowns>;
+}> {
   const limits = new Map<UserId, AlertLimits>(
     userIds.map((id) => [id, DEFAULT_LIMITS]),
   );
-  if (userIds.length === 0) return limits;
+  const turnDowns = new Map<UserId, TurnDowns>();
+  if (userIds.length === 0) return { limits, turnDowns };
   const rows = await db
     .select()
     .from(alertSetting)
     .where(inArray(alertSetting.userId, [...userIds]));
-  for (const row of rows)
+  for (const row of rows) {
+    turnDowns.set(row.userId, {
+      snoozedUntil: row.snoozedUntil,
+      teamOnly: row.teamOnly,
+      weeklyNews: row.weeklyNews,
+    });
     limits.set(row.userId, {
       dailyCap: row.dailyCap,
       digest: row.digest,
@@ -328,7 +355,38 @@ export async function alertLimitsOf(
           ? null
           : { startHour: row.quietStartHour, endHour: row.quietEndHour },
     });
-  return limits;
+  }
+  return { limits, turnDowns };
+}
+
+/**
+ * The templates that are news for the whole league, which "Only my team"
+ * skips. An announcement counts only when it went to the whole league.
+ */
+const LEAGUE_WIDE_NEWS: ReadonlySet<string> = new Set([
+  "event_news",
+  "win_back",
+]);
+
+/** Of these announcements, the ones sent to the whole league. One query. */
+async function leagueWideAnnouncements(
+  db: Db,
+  claimed: readonly ClaimedMessage[],
+): Promise<Set<AnnouncementId>> {
+  const ids = [
+    ...new Set(claimed.flatMap((m) => (m.announcementId ? [m.announcementId] : []))),
+  ];
+  if (ids.length === 0) return new Set();
+  const rows = await db
+    .select({ id: announcement.id })
+    .from(announcement)
+    .where(
+      and(
+        inArray(announcement.id, ids),
+        sql`${announcement.teamSeasonId} is null`,
+      ),
+    );
+  return new Set(rows.map((r) => r.id));
 }
 
 /**
@@ -466,7 +524,20 @@ export async function drainOutbox(
           .where(inArray(pushSubscription.userId, pushUsers))
       : [];
 
-  const limits = await alertLimitsOf(db, userIds);
+  const { limits, turnDowns } = await alertSettingsOf(db, userIds);
+  const teamOnlyClaimed = claimed.filter(
+    (m) => m.userId && turnDowns.get(m.userId)?.teamOnly,
+  );
+  const leagueWide =
+    teamOnlyClaimed.length > 0
+      ? await leagueWideAnnouncements(db, teamOnlyClaimed)
+      : new Set<AnnouncementId>();
+  /** League-wide news, for a person who asked for only their team's. */
+  const skippedAsLeagueWide = (m: ClaimedMessage): boolean =>
+    m.userId !== null &&
+    (turnDowns.get(m.userId)?.teamOnly ?? false) &&
+    (LEAGUE_WIDE_NEWS.has(m.template) ||
+      (m.announcementId !== null && leagueWide.has(m.announcementId)));
   const sentToday = claimed.some(
     (m) => deliveryClassOf(m.template) === "non_urgent",
   )
@@ -531,6 +602,14 @@ export async function drainOutbox(
       result.suppressed++;
       return;
     }
+    if (skippedAsLeagueWide(m)) {
+      await settle(db, m, {
+        status: "suppressed",
+        suppressReason: "team_only",
+      });
+      result.suppressed++;
+      return;
+    }
     const kind = deliveryClassOf(m.template);
     const counted = `${m.userId ?? m.id}/${channel}`;
     const decision = decide({
@@ -540,6 +619,9 @@ export async function drainOutbox(
       timeZone,
       limits: (m.userId ? limits.get(m.userId) : undefined) ?? DEFAULT_LIMITS,
       sentToday: sentToday.get(counted) ?? 0,
+      turnDowns:
+        (m.userId ? turnDowns.get(m.userId) : undefined) ?? NO_TURN_DOWNS,
+      news: NEWS_TOPICS.has(m.topic),
     });
     if (decision.action !== "send") {
       await settle(db, m, {

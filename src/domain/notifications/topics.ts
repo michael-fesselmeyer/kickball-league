@@ -35,6 +35,9 @@ export const TOPICS = [
   "game_day_watch",
   // Answers and replies on the lost and found board (issue #385).
   "lost_found",
+  // Rule changes, a few days before they take effect (#521). On by
+  // default: it is part of playing in the league, not news.
+  "rules",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -57,7 +60,17 @@ export const DEFAULT_ENABLED: Readonly<Record<Topic, boolean>> = {
   team_roles: true,
   game_day_watch: false,
   lost_found: true,
+  rules: true,
 };
+
+/**
+ * League news: what the "Weekly roundup" holds for one email on Sundays
+ * (alert_setting.weekly_news), and what a new account starts with off.
+ */
+export const NEWS_TOPICS: ReadonlySet<Topic> = new Set<Topic>([
+  "announcement",
+  "marketing",
+]);
 
 /**
  * The topics the settings page offers, in the order it shows them: only
@@ -70,8 +83,13 @@ export const SETTINGS_TOPICS: readonly {
 }[] = [
   {
     topic: "announcement",
-    label: "Announcements",
-    hint: "News from league admins and your captain. Off until you turn it on.",
+    label: "League news",
+    hint: "League news, events and end-of-season surveys from admins, and news from your captain. Off until you turn it on.",
+  },
+  {
+    topic: "rules",
+    label: "Rules and schedule",
+    hint: "A heads-up a few days before a league rule changes. A few times a season at most.",
   },
   {
     topic: "rainout",
@@ -85,8 +103,8 @@ export const SETTINGS_TOPICS: readonly {
   },
   {
     topic: "payment",
-    label: "Payment reminders",
-    hint: "7, 3 and 1 days before the deadline, until you have paid.",
+    label: "Payments and registration",
+    hint: "Payment reminders 7, 3 and 1 days before the deadline, until you have paid, and a reminder to pick your shirt size before the league orders shirts.",
   },
   {
     topic: "sub_request",
