@@ -22,6 +22,8 @@ export const HANDOFF_EXPIRES_IN_SECONDS = 2 * 60;
 export const HANDOFF_FRESH_SECONDS = 10 * 60;
 /** The cookie that ties the sheet's return to the start it came from. */
 export const HANDOFF_START_COOKIE = "kb-app-sign-in";
+/** Sent only to the handoff, where Better Auth's routes live. */
+export const HANDOFF_START_COOKIE_PATH = "/api/auth/app-sign-in";
 
 const BASE64URL_256 = /^[A-Za-z0-9_-]{43}$/;
 

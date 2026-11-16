@@ -13,6 +13,7 @@ import {
   appCallbackUrl,
   HANDOFF_EXPIRES_IN_SECONDS,
   HANDOFF_START_COOKIE,
+  HANDOFF_START_COOKIE_PATH,
   handoffIdentifier,
   isBase64Url256,
   isFreshForHandoff,
@@ -75,7 +76,8 @@ export async function issueSignInCode(
   return code;
 }
 
-const WRONG_CODE = "That code didn't work. Check the newest email and try again.";
+const WRONG_CODE =
+  "That code didn't work. Check the newest email and try again.";
 
 /**
  * The sign-in plugin for codes and the apps (ADR 0075):
@@ -218,7 +220,7 @@ export function leagueSignIn(db: Db, options: { appScheme: string }) {
           );
           deleteSessionCookie(ctx);
           ctx.setCookie(HANDOFF_START_COOKIE, "", {
-            path: "/",
+            path: HANDOFF_START_COOKIE_PATH,
             maxAge: 0,
             httpOnly: true,
             sameSite: "lax",

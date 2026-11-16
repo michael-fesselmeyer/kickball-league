@@ -5,13 +5,15 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { env } from "@/env";
 import { auth } from "@/lib/auth";
+import { requestCodeSignIn } from "@/lib/auth/request-code";
 import { parseSetCookie, requestGoogleSignIn } from "@/lib/auth/request-google";
 import { requestSignInLink } from "@/lib/auth/request-link";
+import { normalizeSignInCode } from "@/lib/auth/sign-in-code";
 import { safeNextPath } from "@/lib/safe-next";
 
 export type SignInState =
   | { status: "idle" }
-  | { status: "sent"; email: string }
+  | { status: "sent"; email: string; codeError?: string }
   | { status: "error"; message: string; email: string };
 
 const input = z.object({ email: z.email(), next: z.unknown() });
@@ -50,6 +52,48 @@ export async function sendSignInLink(
       email,
     };
   return { status: "sent", email: parsed.data.email };
+}
+
+/**
+ * Signs in with the six-digit code from the sign-in email (ADR 0075), for
+ * the apps and for anyone reading their email on another device. Public by
+ * design, like the link; guesses are limited per address and per IP.
+ */
+export async function signInWithCode(
+  _previous: SignInState,
+  form: FormData,
+): Promise<SignInState> {
+  const email = String(form.get("email") ?? "").trim();
+  const parsed = z.email().safeParse(email);
+  if (!parsed.success)
+    return { status: "error", message: "Enter a valid email address.", email };
+  const code = normalizeSignInCode(form.get("code"));
+  if (!code)
+    return {
+      status: "sent",
+      email,
+      codeError: "Enter the 6-digit code from the email.",
+    };
+  const result = await requestCodeSignIn(auth.handler, {
+    baseURL: env.BETTER_AUTH_URL,
+    email: parsed.data,
+    code,
+    headers: await headers(),
+  }).catch(() => ({ outcome: "failed" as const }));
+  if (result.outcome !== "signed-in")
+    return {
+      status: "sent",
+      email,
+      codeError:
+        ("message" in result && result.message) ||
+        "We couldn't check the code just now. Try again, or use the link.",
+    };
+  const jar = await cookies();
+  for (const header of result.setCookies) {
+    const cookie = parseSetCookie(header);
+    if (cookie) jar.set(cookie.name, cookie.value, cookie.options);
+  }
+  redirect(safeNextPath(form.get("next") ?? result.callbackURL));
 }
 
 /**
