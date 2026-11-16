@@ -28,6 +28,10 @@ const NOTICES: Record<string, { text: string; good: boolean }> = {
     text: "That's a lot of payment tries in an hour. Wait a bit, then try again.",
     good: false,
   },
+  in_progress: {
+    text: "Your checkout is still opening. Wait a moment, then tap Pay again.",
+    good: false,
+  },
   failed: {
     text: "Stripe could not start that. Try again in a minute.",
     good: false,

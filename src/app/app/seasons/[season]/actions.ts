@@ -6,7 +6,7 @@ import {
   attachCheckoutSession,
   expirePurchases,
   openCheckoutsFor,
-  startPurchase,
+  startPurchaseFor,
 } from "@/db/queries/payments";
 import { profileOf } from "@/db/queries/profile";
 import {
@@ -66,7 +66,9 @@ export async function startCheckout(
 
   const typed = form.get("promoCode");
   const started = await txDb.transaction((tx) =>
-    startPurchase(tx, {
+    startPurchaseFor(tx, {
+      registrationId,
+      fee: true,
       userId: subject.userId,
       leagueId: league.id,
       seasonId: season.id,

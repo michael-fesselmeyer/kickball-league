@@ -202,6 +202,63 @@ export async function startPurchase(
   });
 }
 
+/** How long a checkout may take to get its Stripe session before it's given up. */
+const OPENING_MS = 2 * 60_000;
+
+/**
+ * Starts a purchase for one registration (its fee, or a team's balance),
+ * one at a time. A double tap on Pay before the page's script has loaded
+ * sends the form twice: without this, the first could spend the player's
+ * credit (or be paid in full by it) while the second, the page the browser
+ * follows, asks Stripe for the whole fee.
+ *
+ * Under the registration's lock: a fee is refused once the registration no
+ * longer waits for payment, and a checkout still getting its Stripe page
+ * makes the second wait ("in_progress"). One that never got a page, because
+ * Stripe failed, is closed after two minutes and its credit given back.
+ */
+export async function startPurchaseFor(
+  db: Db,
+  input: Parameters<typeof startPurchase>[1] & {
+    registrationId: RegistrationId;
+    /** A registration fee, which only a pending registration pays. */
+    fee: boolean;
+  },
+): Promise<
+  Result<StartedPurchase, PromoError | "already_paid" | "in_progress">
+> {
+  await db.execute(
+    sql`select pg_advisory_xact_lock(hashtext(${`registration_checkout:${input.registrationId}`}))`,
+  );
+  if (input.fee) {
+    const [found] = await db
+      .select({ status: registration.status })
+      .from(registration)
+      .where(eq(registration.id, input.registrationId));
+    if (found?.status !== "pending_payment") return err("already_paid");
+  }
+  const opening = await db
+    .selectDistinct({ id: purchase.id, createdAt: purchase.createdAt })
+    .from(purchase)
+    .innerJoin(purchaseItem, eq(purchaseItem.purchaseId, purchase.id))
+    .where(
+      and(
+        eq(purchaseItem.registrationId, input.registrationId),
+        eq(purchase.status, "open"),
+        isNull(purchase.stripeCheckoutSessionId),
+      ),
+    );
+  const cutoff = input.now.getTime() - OPENING_MS;
+  if (opening.some((p) => p.createdAt.getTime() > cutoff))
+    return err("in_progress");
+  await expirePurchases(
+    db,
+    opening.map((p) => p.id),
+    input.now,
+  );
+  return startPurchase(db, input);
+}
+
 export async function attachCheckoutSession(
   db: Db,
   purchaseId: PurchaseId,

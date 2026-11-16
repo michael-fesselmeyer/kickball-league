@@ -11,7 +11,7 @@ import {
   attachCheckoutSession,
   expirePurchases,
   openCheckoutsFor,
-  startPurchase,
+  startPurchaseFor,
 } from "@/db/queries/payments";
 import { profileOf } from "@/db/queries/profile";
 import {
@@ -144,7 +144,9 @@ export async function payBalanceAction(
   const now = new Date();
   const userId = subject.userId;
   const started = await txDb.transaction((tx) =>
-    startPurchase(tx, {
+    startPurchaseFor(tx, {
+      registrationId: mine.id,
+      fee: false,
       userId,
       leagueId: league.id,
       seasonId: season.id,
@@ -154,7 +156,10 @@ export async function payBalanceAction(
       now,
     }),
   );
-  if (!started.ok) redirect(`${page}?guarantee=failed`);
+  if (!started.ok)
+    redirect(
+      `${page}?guarantee=${started.error === "in_progress" ? "in_progress" : "failed"}`,
+    );
   const { purchaseId, totalCents, chargeCents } = started.value;
   if (totalCents === 0) redirect(`${page}?guarantee=covered`);
   const person = await profileOf(db, userId);
