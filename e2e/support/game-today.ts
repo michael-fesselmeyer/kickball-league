@@ -726,7 +726,8 @@ async function withDb<T>(body: (db: Client) => Promise<T>): Promise<T> {
 /**
  * A refereed game that was due to start `minutesAgo` minutes ago, for the
  * daylight and field-time clock (issue #467). It sits in a small private
- * season of its own on a lit field of its own, held by a confirmed permit
+ * season of its own on a lit field of its own (named to sort first, so the
+ * helpers that take the league's last field by name never pick it), held by a confirmed permit
  * for 90 minutes from first pitch, so play ends at the permit whatever the
  * time of day the test runs. Reese Ref refs it. `remove` deletes it all,
  * with its recorded start.
@@ -769,7 +770,7 @@ export async function addRefereedGameStarted(
          returning id
        ), new_field as (
          insert into field (venue_id, name, has_lights)
-         select id, 'Lit field', true from new_venue
+         select id, 'A lit field', true from new_venue
          returning id
        ), first_pitch as (
          select date_trunc('minute', now())
