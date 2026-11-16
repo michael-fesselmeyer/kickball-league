@@ -1,4 +1,5 @@
-import { LazyDemoTool } from "@/components/demo-tools-lazy";
+// Only a build made with DEMO_MODE=true includes the real tools (next.config.ts).
+import { DemoAdminTools, DemoRolePicker } from "@/components/demo-tools";
 import { demoStatus } from "@/lib/demo/guard";
 
 /**
@@ -28,9 +29,9 @@ export function DemoBanner() {
             Everyone here is made up, and it all resets nightly.
           </span>
         </p>
-        <LazyDemoTool tool="rolePicker" />
+        <DemoRolePicker />
       </div>
-      <LazyDemoTool tool="adminTools" />
+      <DemoAdminTools />
     </aside>
   );
 }

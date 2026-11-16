@@ -40,7 +40,7 @@ Two kinds of variable:
 
 | Variable | Kind | Notes |
 |---|---|---|
-| `DEMO_MODE` | Raw | `true` on the demo project only. It takes effect only when the database's name contains `demo`, the production address contains `demo`, and Stripe is not live. **Never set it on the league's project** |
+| `DEMO_MODE` | Raw | `true` on the demo project only. It takes effect only when the database's name contains `demo`, the production address contains `demo`, and Stripe is not live. Set it for builds too: the demo banner's tools are compiled in only then. **Never set it on the league's project** |
 | `OPERATOR_USER_IDS` | Raw | On the demo, the Admin persona's fixed id from the seed (as in `playwright.config.ts`), so volunteers can try the operator console and the owner screens ([acceptance testing](acceptance-testing.md)) |
 | `INSTAGRAM_FIXTURE` | Raw | `true` plays back a recorded Instagram API. Ignored in a production build unless demo mode is on |
 | `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` | Validated pair | **Test-mode** keys only (`sk_test_…`). A live key turns demo mode off |

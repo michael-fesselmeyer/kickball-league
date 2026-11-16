@@ -12,7 +12,7 @@ The first run needs the internet once, to install the packages, download Postgre
 
 1. Finds Postgres: Docker if it is running (the demo keeps its own container, `kb-demo-postgres`), or a local Homebrew Postgres. With neither, it says how to install one.
 2. Creates the `kb_demo` database, migrates it and fills it with the demo league (`npm run demo:reset`). The season is current: tonight's first games are being played right now, the ref is at the field, and the next game day has a rain watch.
-3. Builds the app, or reuses today's build when nothing changed.
+3. Builds the app with `DEMO_MODE=true`, or reuses today's build when nothing changed. The banner's role picker and admin tools are compiled in only when a build has `DEMO_MODE=true` (`next.config.ts`), so the league's own site ships none of their code; a demo deployment needs the variable at build time as well as at run time.
 4. Starts [stripe-mock](https://github.com/stripe/stripe-mock) when it can (the `stripe-mock` binary, or Docker), so paying goes through a demo checkout page. Without it, the payment screen says it is a demo payment.
 5. Starts the app in demo mode on a free port, prints the address and opens the browser.
 

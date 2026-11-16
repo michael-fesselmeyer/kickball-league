@@ -85,6 +85,13 @@ const nextConfig: NextConfig = {
     ];
   },
   turbopack: {
+    // Only the demo deployment shows the demo banner, and it is built with
+    // DEMO_MODE=true (docs/demo.md), so any other build leaves the
+    // banner's client code out of every page.
+    resolveAlias:
+      process.env.DEMO_MODE === "true"
+        ? {}
+        : { "@/components/demo-tools": "./src/components/demo-tools-off.ts" },
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],
