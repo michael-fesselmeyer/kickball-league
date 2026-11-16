@@ -74,7 +74,9 @@ test("an admin records another group, gets an overlap warning and sees them on g
     const groups = admin.getByRole("region", {
       name: "Other groups on our fields",
     });
-    const field = groups.getByLabel("Field", { exact: true }).last();
+    const field = groups
+      .getByRole("combobox", { name: "Field", exact: true })
+      .last();
     await field.selectOption(fieldId);
     await groups.getByLabel("Group name").last().fill("Night Soccer Club");
     await groups.getByLabel("Tuesday").last().check();
@@ -112,7 +114,9 @@ test("an admin records another group, gets an overlap warning and sees them on g
 
     // The league holds the field that day, and so does the other group.
     const permits = admin.getByRole("region", { name: "Permit windows" });
-    await permits.getByLabel("Field", { exact: true }).selectOption(fieldId);
+    await permits
+      .getByRole("combobox", { name: "Field", exact: true })
+      .selectOption(fieldId);
     await permits.getByLabel("First date").fill(ahead);
     await permits.getByRole("button", { name: "Add permit hours" }).click();
     await expect(admin.getByRole("status")).toContainText(
