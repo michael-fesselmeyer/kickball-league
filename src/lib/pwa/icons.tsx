@@ -51,15 +51,40 @@ export const artScale = (icon: AppIcon) => (icon.maskable ? 0.6 : 0.84);
 
 let display: Promise<Buffer> | undefined;
 
-export async function renderAppIcon(icon: AppIcon): Promise<ImageResponse> {
+/** The pennant's colors and what it sits on. */
+export type MarkColors = {
+  /** The square behind the pennant, or null for a transparent one. */
+  background: string | null;
+  brand: string;
+  onBrand: string;
+  accent: string;
+};
+
+const LIGHT_MARK: MarkColors = {
+  background: T.bg,
+  brand: T.brand,
+  onBrand: T.onBrand,
+  accent: T.accent,
+};
+
+/**
+ * Draws the pennant centered in a square `size` pixels wide, spanning
+ * `fraction` of it. The home-screen icons and the native apps' icon and
+ * splash sources (scripts/mobile-assets.tsx) all come from here.
+ */
+export async function renderMark(
+  size: number,
+  fraction: number,
+  colors: MarkColors = LIGHT_MARK,
+  headers?: Record<string, string>,
+): Promise<ImageResponse> {
   display ??= readFile(
     join(
       process.cwd(),
       "assets/fonts/bricolage-grotesque-latin-800-normal.woff",
     ),
   );
-  const { size } = icon;
-  const art = Math.round(size * artScale(icon));
+  const art = Math.round(size * fraction);
   const offset = Math.round((size - art) / 2);
   const unit = art / 100;
   const letters = initials(SITE.name, 3);
@@ -71,36 +96,51 @@ export async function renderAppIcon(icon: AppIcon): Promise<ImageResponse> {
         height: size,
         display: "flex",
         position: "relative",
-        background: T.bg,
+        background: colors.background ?? "transparent",
       }}
     >
-      <svg
-        width={art}
-        height={art}
-        viewBox="0 0 100 100"
-        style={{ position: "absolute", left: offset, top: offset }}
-      >
-        <path d="M8 12 L92 50 L8 88 Z" fill={T.brand} strokeLinejoin="round" />
-        <rect x="4" y="8" width="7" height="88" rx="3" fill={T.accent} />
-      </svg>
-      <div
-        style={{
-          position: "absolute",
-          // The badge centers its initials at (42, 50) in the pennant's box.
-          left: offset,
-          width: 84 * unit,
-          top: offset,
-          height: 100 * unit,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily: "Display",
-          fontSize,
-          color: T.onBrand,
-        }}
-      >
-        {letters}
-      </div>
+      {art > 0 && (
+        <>
+          <svg
+            width={art}
+            height={art}
+            viewBox="0 0 100 100"
+            style={{ position: "absolute", left: offset, top: offset }}
+          >
+            <path
+              d="M8 12 L92 50 L8 88 Z"
+              fill={colors.brand}
+              strokeLinejoin="round"
+            />
+            <rect
+              x="4"
+              y="8"
+              width="7"
+              height="88"
+              rx="3"
+              fill={colors.accent}
+            />
+          </svg>
+          <div
+            style={{
+              position: "absolute",
+              // The badge centers its initials at (42, 50) in the pennant's box.
+              left: offset,
+              width: 84 * unit,
+              top: offset,
+              height: 100 * unit,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontFamily: "Display",
+              fontSize,
+              color: colors.onBrand,
+            }}
+          >
+            {letters}
+          </div>
+        </>
+      )}
     </div>,
     {
       width: size,
@@ -108,7 +148,13 @@ export async function renderAppIcon(icon: AppIcon): Promise<ImageResponse> {
       fonts: [
         { name: "Display", data: await display, weight: 800, style: "normal" },
       ],
-      headers: { "Cache-Control": "public, max-age=86400" },
+      headers,
     },
   );
+}
+
+export function renderAppIcon(icon: AppIcon): Promise<ImageResponse> {
+  return renderMark(icon.size, artScale(icon), LIGHT_MARK, {
+    "Cache-Control": "public, max-age=86400",
+  });
 }
