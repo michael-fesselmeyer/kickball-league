@@ -28,7 +28,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 - Join a team by invite link or as a free agent; a matcher finds the best-fit team and keeps friends together.
 - RSVP, see the kicking order, find and take sub spots, and check in at the field by scanning a rotating QR code.
 - Live scores, standings, power rankings, pick'em for bragging rights, awards votes and an end-of-season card to share.
-- An installable phone app: the next game opens with no signal, and push messages cover rain-outs and sub requests.
+- An installable phone app: the next game opens with no signal, and push messages cover rain-outs and sub requests. iOS and Android apps wrap the same site and build locally ([docs/mobile.md](docs/mobile.md)).
 - Quietly say they're open to a new team next season: their current team never sees it, recruiting captains see only a count, and a name is shared only when the player says yes to an invite.
 - Download everything the league holds, or delete the account.
 - Lost and found: members post a found item (with an optional photo, where it was found, a park or the home bar, and where it is now) or a lost note, newest first on one screen. The owner taps "That's mine" (or the finder taps "I found it" on a lost note) and the two talk inside the app, by first name, without anyone's phone or email shown; the poster marks it handed over, which closes the post and deletes its photo. Posts close after 30 days with a note to the poster, admins can take any post down, and photos share the member-photo limits (shrunk on upload, location removed, daily and storage caps).
@@ -195,6 +195,7 @@ Environment variables are validated with Zod in [`src/lib/env.ts`](src/lib/env.t
 | `npm run demo`               | Run the whole app locally in demo mode, offline, for showing the league ([walkthrough](docs/demo.md))           |
 | `npm run demo:reset`         | Reseed the demo deployment, bring its season up to today and start a game night; refuses unless demo mode is on |
 | `npm run push:keys`          | Add a new VAPID key pair for web push to `.env.local`                                                           |
+| `npm run mobile:ios`         | Run the iOS app in the Simulator; the other app scripts are in [docs/mobile.md](docs/mobile.md#scripts)         |
 | `scripts/backup-drill.sh`    | Back up a database, restore it to a scratch database and compare ([steps](docs/launch/backup-and-restore.md))   |
 
 ## Testing and CI
@@ -225,6 +226,7 @@ A pull request that changes only Markdown or `docs/` skips the heavy jobs and st
 | [Launch kit](docs/launch/README.md)                          | Hosting brief, environment checklist, runbook, backups, acceptance tests, alerts |
 | [Security review](docs/security-review.md)                   | Findings, fixes and follow-ups                                                   |
 | [Demo walkthrough](docs/demo.md)                             | A 10-minute tour from one laptop                                                 |
+| [iOS and Android apps](docs/mobile.md)                       | Local setup, building and running the apps                                       |
 | [Decisions](docs/adr/)                                       | Architecture decision records, one per real trade-off                            |
 
 Decisions worth reading first: [stack and tooling](docs/adr/0001-stack-and-tooling.md), [static public pages](docs/adr/0008-static-public-pages.md), [free services only](docs/adr/0021-free-services-only.md), [captain guarantee and league credit](docs/adr/0022-captain-guarantee-and-league-credit.md), [offline scores](docs/adr/0025-offline-scores-keep-the-servers-version.md) and [several leagues on one deployment](docs/adr/0048-several-leagues-on-one-deployment.md).
