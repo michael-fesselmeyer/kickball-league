@@ -221,11 +221,14 @@ export function generateSeed(seed = 2026) {
     lat: String(HOME_PARK.geo.latitude),
     lng: String(HOME_PARK.geo.longitude),
   };
+  // The home park's fields have lights: its games run 8 to 10 pm, after
+  // sunset all fall, so only the permit ends them (issue #467).
   const fields = FIELD_NAMES.map((name, sortOrder) => ({
     id: id<FieldId>(),
     venueId: venue.id,
     name,
     sortOrder,
+    hasLights: true,
   }));
 
   // People: an admin plus a full roster for every team.

@@ -1,6 +1,12 @@
 import { and, desc, eq } from "drizzle-orm";
+import {
+  daylightMargin,
+  DEFAULT_DAYLIGHT_MARGIN_MINUTES,
+  slotPastDaylight,
+} from "@/domain/gameday/daylight";
 import type { LeagueId, ScheduleVersionId, SeasonId } from "@/domain/ids";
-import { field, slot } from "../schema/game";
+import { division, ruleSet } from "../schema/division";
+import { field, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
 import { scheduleVersion } from "../schema/schedule";
 import { season } from "../schema/season";
@@ -129,4 +135,70 @@ export async function scheduleLabels(
       ]),
     ),
   };
+}
+
+export type DaylightRisk = {
+  /** Minutes the slot runs past the end of daylight. */
+  minutesShort: number;
+  sunsetAt: Date;
+};
+
+/**
+ * The season's open slots on fields without lights that run past the end of
+ * daylight (issue #467), for the scheduler's warning: in spring and fall a
+ * late slot runs into the dark. The margin before sunset is the largest any
+ * of the season's rule sets asks for, so the warning errs on the safe side.
+ * Two queries.
+ */
+export async function slotsPastDaylight(
+  db: Db,
+  seasonId: SeasonId,
+  timeZone: string,
+): Promise<Map<string, DaylightRisk>> {
+  const [slots, rules] = await Promise.all([
+    db
+      .select({
+        id: slot.id,
+        startsAt: slot.startsAt,
+        endsAt: slot.endsAt,
+        hasLights: field.hasLights,
+        lat: venue.lat,
+        lng: venue.lng,
+      })
+      .from(slot)
+      .innerJoin(field, eq(slot.fieldId, field.id))
+      .innerJoin(venue, eq(field.venueId, venue.id))
+      .where(
+        and(
+          eq(slot.seasonId, seasonId),
+          eq(slot.status, "open"),
+          eq(field.hasLights, false),
+        ),
+      ),
+    db
+      .select({ options: ruleSet.options })
+      .from(division)
+      .innerJoin(ruleSet, eq(division.ruleSetId, ruleSet.id))
+      .where(eq(division.seasonId, seasonId)),
+  ]);
+  const marginMinutes =
+    rules.length === 0
+      ? DEFAULT_DAYLIGHT_MARGIN_MINUTES
+      : Math.max(...rules.map((r) => daylightMargin(r.options)));
+  const out = new Map<string, DaylightRisk>();
+  for (const s of slots) {
+    const risk = slotPastDaylight({
+      slotStartsAt: s.startsAt,
+      slotEndsAt: s.endsAt,
+      timeZone,
+      at:
+        s.lat !== null && s.lng !== null
+          ? { lat: Number(s.lat), lng: Number(s.lng) }
+          : null,
+      hasLights: s.hasLights,
+      marginMinutes,
+    });
+    if (risk) out.set(s.id, risk);
+  }
+  return out;
 }

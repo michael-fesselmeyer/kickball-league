@@ -2,6 +2,7 @@ import { err, ok, type Result } from "../result";
 import { slugify } from "../slug";
 import { type PermitEndRule, permitEndRule } from "../gameday/permit-end";
 import { MAX_NO_NEW_INNING_MINUTES } from "../gameday/game-clock";
+import { MAX_DAYLIGHT_MARGIN_MINUTES } from "../gameday/daylight";
 
 /**
  * Divisions and rule sets as an admin enters them (ADR 0040). Pure: the
@@ -31,6 +32,8 @@ export type RuleSetInput = {
   permitEndRule?: PermitEndRule;
   /** Minutes before the time limit when no new inning starts; null for the default. */
   noNewInningMinutes?: number | null;
+  /** Minutes before sunset that play ends on a field without lights (#467); the default when left out. */
+  daylightMarginMinutes?: number;
 };
 
 /** A whole number in range, or null when the field was left empty. */
@@ -55,6 +58,8 @@ export function parseRuleSet(raw: {
   permitEndRule?: string;
   /** Left empty for the default. */
   noNewInningMinutes?: string;
+  /** Whole minutes from 0 to 60, or empty for the default. */
+  daylightMarginMinutes?: string;
 }): Result<RuleSetInput, "invalid_name" | "invalid_limits"> {
   const name = raw.name.trim().replace(/\s+/g, " ");
   if (!slugify(name) || name.length > MAX_DIVISION_NAME)
@@ -66,10 +71,16 @@ export function parseRuleSet(raw: {
     0,
     MAX_NO_NEW_INNING_MINUTES,
   );
+  const margin = optionalWhole(
+    raw.daylightMarginMinutes ?? "",
+    0,
+    MAX_DAYLIGHT_MARGIN_MINUTES,
+  );
   if (
     innings === undefined ||
     timeLimitMinutes === undefined ||
-    noNewInningMinutes === undefined
+    noNewInningMinutes === undefined ||
+    margin === undefined
   )
     return err("invalid_limits");
   return ok({
@@ -80,6 +91,7 @@ export function parseRuleSet(raw: {
     stealing: raw.stealing,
     permitEndRule: permitEndRule({ permitEndRule: raw.permitEndRule }),
     noNewInningMinutes,
+    ...(margin === null ? {} : { daylightMarginMinutes: margin }),
   });
 }
 
@@ -87,7 +99,11 @@ export function parseRuleSet(raw: {
 export function ruleSetSummary(rules: {
   innings: number | null;
   timeLimitMinutes: number | null;
-  options: { bunting?: boolean; stealing?: boolean };
+  options: {
+    bunting?: boolean;
+    stealing?: boolean;
+    daylightMarginMinutes?: number;
+  };
 }): string {
   return [
     rules.innings === null ? null : `${rules.innings} innings`,
@@ -104,6 +120,9 @@ export function ruleSetSummary(rules: {
       : rules.options.stealing
         ? "stealing allowed"
         : "no stealing",
+    rules.options.daylightMarginMinutes === undefined
+      ? null
+      : `play ends ${rules.options.daylightMarginMinutes} minutes before sunset`,
   ]
     .filter((part) => part !== null)
     .join(" · ");

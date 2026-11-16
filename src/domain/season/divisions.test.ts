@@ -52,6 +52,20 @@ describe("rule sets", () => {
     expect(zero.ok && zero.value.noNewInningMinutes).toBe(0);
   });
 
+  it("takes the minutes before sunset that play ends, or leaves the default", () => {
+    const parsed = parseRuleSet({ ...form, daylightMarginMinutes: "25" });
+    expect(parsed.ok && parsed.value.daylightMarginMinutes).toBe(25);
+    const zero = parseRuleSet({ ...form, daylightMarginMinutes: "0" });
+    expect(zero.ok && zero.value.daylightMarginMinutes).toBe(0);
+    const empty = parseRuleSet({ ...form, daylightMarginMinutes: " " });
+    expect(empty.ok && "daylightMarginMinutes" in empty.value).toBe(false);
+    for (const bad of ["61", "-5", "7.5", "soon"])
+      expect(parseRuleSet({ ...form, daylightMarginMinutes: bad })).toEqual({
+        ok: false,
+        error: "invalid_limits",
+      });
+  });
+
   it("takes the league's rule for a game that reaches its permit's end", () => {
     const parsed = parseRuleSet({
       ...form,

@@ -10,6 +10,7 @@ import {
   type PermitStatus,
   removeBlackout,
   removePermitWindow,
+  setFieldLights,
   setPermitStatus,
   syncSlots,
 } from "@/db/queries/fields";
@@ -132,6 +133,7 @@ export async function createField(slug: string, form: FormData) {
         leagueId: season.leagueId,
         venueId,
         name: text(form, "name"),
+        hasLights: form.get("hasLights") === "on",
       },
       actor,
     ),
@@ -139,6 +141,26 @@ export async function createField(slug: string, form: FormData) {
   if (!result.ok) back(page, "venues", { error: `field_${result.error}` });
   refreshParkPages();
   back(page, "venues", { notice: "field_added" });
+}
+
+/** Marks a field lit or dark, which decides whether sunset can end its games. */
+export async function changeFieldLights(
+  slug: string,
+  rawFieldId: string,
+  hasLights: boolean,
+) {
+  const { page, actor, season } = await context(slug);
+  const fieldId = parseId<FieldId>(rawFieldId);
+  if (!fieldId) back(page, "venues", { error: "field_unknown_field" });
+  const result = await txDb.transaction((tx) =>
+    setFieldLights(
+      tx,
+      { leagueId: season.leagueId, fieldId, hasLights },
+      actor,
+    ),
+  );
+  if (!result.ok) back(page, "venues", { error: `field_${result.error}` });
+  back(page, "venues", { notice: "field_lights" });
 }
 
 export async function createPermits(slug: string, form: FormData) {

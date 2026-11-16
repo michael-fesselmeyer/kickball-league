@@ -50,6 +50,7 @@ export async function fieldsScreen(
       venueId: field.venueId,
       name: field.name,
       venueName: venue.name,
+      hasLights: field.hasLights,
     })
     .from(field)
     .innerJoin(venue, eq(field.venueId, venue.id))
@@ -146,7 +147,12 @@ export async function addVenue(
 
 export async function addField(
   db: Db,
-  input: { leagueId: LeagueId; venueId: VenueId; name: string },
+  input: {
+    leagueId: LeagueId;
+    venueId: VenueId;
+    name: string;
+    hasLights?: boolean;
+  },
   actorId: UserId,
 ): Promise<Result<FieldId, "invalid_name" | "unknown_venue" | "duplicate">> {
   const name = input.name.trim();
@@ -170,6 +176,7 @@ export async function addField(
       venueId: input.venueId,
       name,
       sortOrder: siblings.length,
+      hasLights: input.hasLights ?? false,
       createdBy: actorId,
     })
     .returning({ id: field.id });
@@ -179,9 +186,44 @@ export async function addField(
     action: "field.create",
     entityType: "field",
     entityId: id,
-    after: { venueId: input.venueId, name },
+    after: {
+      venueId: input.venueId,
+      name,
+      hasLights: input.hasLights ?? false,
+    },
   });
   return ok(id);
+}
+
+/**
+ * Says whether a field has lights the league can use (issue #467). On a lit
+ * field only the permit ends play; on a dark one sunset can end it first.
+ */
+export async function setFieldLights(
+  db: Db,
+  input: { leagueId: LeagueId; fieldId: FieldId; hasLights: boolean },
+  actorId: UserId,
+): Promise<Result<FieldId, "unknown_field">> {
+  if (!(await fieldInLeague(db, input.leagueId, input.fieldId)))
+    return err("unknown_field");
+  const [before] = await db
+    .select({ hasLights: field.hasLights })
+    .from(field)
+    .where(eq(field.id, input.fieldId));
+  if (before?.hasLights === input.hasLights) return ok(input.fieldId);
+  await db
+    .update(field)
+    .set({ hasLights: input.hasLights })
+    .where(eq(field.id, input.fieldId));
+  await recordAudit(db, {
+    actorId,
+    action: "field.lights",
+    entityType: "field",
+    entityId: input.fieldId,
+    before: { hasLights: before?.hasLights ?? null },
+    after: { hasLights: input.hasLights },
+  });
+  return ok(input.fieldId);
 }
 
 /** Whether a field belongs to the league, so forms cannot reach other leagues. */
