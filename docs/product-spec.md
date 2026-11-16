@@ -106,7 +106,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - Accept or decline assignments and see where I need to be.
 - Enter the final score, or score inning by inning, including with poor signal at the field.
 - Flag forfeits, ejections and incidents. Eject a player from the live game screen, which takes them out of the kicking order for the rest of the game.
-- Give a player a yellow card (a warning) or a red card (asked to sit out the rest of the game) to calm a game down, with an optional short note, and take it back within a few minutes if it was a slip.
+- Give a player a yellow card (a warning) or a red card (asked to sit out the rest of the game) to calm a game down, with an optional short note, and take it back within a few minutes if it was a slip, from kickoff until two days after the game (an admin can record one for an older game).
 - See what I have earned and what has been paid.
 
 ### League admin
@@ -207,6 +207,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Log an incident | — | — | own team's games | assigned | — | ✓ | ✓ |
 | Eject a player during a game (from the live game screen) | — | — | — | assigned | — | ✓ | ✓ |
 | Give a yellow or red card to a player in a game | — | — | — | assigned | — | ✓ | ✓ |
+| Give a card for a game that ended more than two days ago | — | — | — | — | — | ✓ | ✓ |
 | Read cards in a player's conduct record, with a gentle pattern note after several cards across different games | — | — | — | — | — | ✓ | ✓ |
 | See the cards they were given | own | own | own | own | own | — | — |
 | Review incidents, suspend a player or lift a suspension | — | — | — | — | — | ✓ | ✓ |

@@ -729,13 +729,15 @@ async function withDb<T>(body: (db: Client) => Promise<T>): Promise<T> {
  * season of its own on a lit field of its own (named to sort first, so the
  * helpers that take the league's last field by name never pick it), held by a confirmed permit
  * for 90 minutes from first pitch, so play ends at the permit whatever the
- * time of day the test runs. Reese Ref refs it. `remove` deletes it all,
- * with its recorded start.
+ * time of day the test runs. Reese Ref refs it. With `playerEmail`, that
+ * account is also on `teamA`'s roster for the season. `remove` deletes it
+ * all, with its recorded start.
  */
 export async function addRefereedGameStarted(
   teamA: string,
   teamB: string,
   minutesAgo: number,
+  playerEmail?: string,
 ): Promise<{
   gameId: string;
   seasonSlug: string;
@@ -813,6 +815,23 @@ export async function addRefereedGameStarted(
     );
     const [row] = rows;
     if (!row) throw new Error(`Could not add ${teamA} vs ${teamB} started`);
+    if (playerEmail !== undefined) {
+      const reg = await db.query<{ id: string }>(
+        `insert into registration (season_id, user_id, kind, status)
+         select $1, u.id, 'team_member', 'active' from "user" u
+          where lower(u.email) = lower($2)
+         returning id`,
+        [row.season, playerEmail],
+      );
+      if (!reg.rows[0]) throw new Error(`No account for ${playerEmail}`);
+      await db.query(
+        `insert into roster_membership (team_season_id, registration_id, role, status)
+         select ts.id, $2, 'player', 'active'
+           from team_season ts join team t on t.id = ts.team_id
+          where ts.season_id = $1 and t.name = $3`,
+        [row.season, reg.rows[0].id, teamA],
+      );
+    }
     return row;
   });
   return {
@@ -827,6 +846,14 @@ export async function addRefereedGameStarted(
         ]);
         await db.query("delete from field where venue_id = $1", [made.venue]);
         await db.query("delete from venue where id = $1", [made.venue]);
+        await db.query(
+          `delete from roster_membership where team_season_id in
+             (select id from team_season where season_id = $1)`,
+          [made.season],
+        );
+        await db.query("delete from registration where season_id = $1", [
+          made.season,
+        ]);
         await db.query("delete from team_season where season_id = $1", [
           made.season,
         ]);

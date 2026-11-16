@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
+import { addRefereedGameStarted } from "../support/game-today";
 import { pageAs } from "../support/personas";
 import { captainEmail, pageSignedInAs } from "../support/sign-in";
 
@@ -14,6 +15,8 @@ const PLAYER = `${DISCIPLINE_PLAYER.firstName} ${DISCIPLINE_PLAYER.lastName}`;
 /** How the card screens name Dana: first name and last initial. */
 const SHORT = `${DISCIPLINE_PLAYER.firstName} ${DISCIPLINE_PLAYER.lastName[0]}.`;
 const GAME = `Grand Slammers vs ${DISCIPLINE_TEAM}`;
+
+let today: Awaited<ReturnType<typeof addRefereedGameStarted>>;
 
 /**
  * Reese Ref reports Dana Fairplay for outside alcohol at the sponsor bar
@@ -31,6 +34,20 @@ const GAME = `Grand Slammers vs ${DISCIPLINE_TEAM}`;
  */
 test.describe
   .serial("a ref reports, an admin suspends, the player can't RSVP in", () => {
+  // A game under way that Reese refs, with Dana on a roster, so a card is
+  // inside its two days (the seeded game was played weeks ago).
+  test.beforeAll(async () => {
+    today = await addRefereedGameStarted(
+      "Kickin' Chicken",
+      "Sun Kickers",
+      10,
+      DISCIPLINE_PLAYER.email,
+    );
+  });
+  test.afterAll(async () => {
+    await today.remove();
+  });
+
   test("the ref reports Dana for outside alcohol", async ({ browser }) => {
     const ref = await pageAs(browser, "Ref");
     await ref
@@ -62,7 +79,7 @@ test.describe
     await ref.context().close();
   });
 
-  test("the ref's card window has closed for an old game; an admin gives Dana a yellow card, and sees it without a suspension", async ({
+  test("a ref has two days to give a card, and sees why the form is gone for an old game", async ({
     browser,
   }) => {
     // The seeded game was played weeks ago, past the two days a ref has.
@@ -72,28 +89,35 @@ test.describe
       .filter({ hasText: GAME })
       .getByRole("link", { name: "Score", exact: true })
       .click();
-    const refCards = ref.getByRole("region", { name: "Cards" });
-    await expect(refCards).toContainText("until two days after the game");
-    await expect(refCards.getByLabel("Player")).toHaveCount(0);
+    const cards = ref.getByRole("region", { name: "Cards" });
+    await expect(cards).toContainText(
+      "from kickoff until two days after the game",
+    );
+    await expect(cards.getByLabel("Player")).toHaveCount(0);
     await expectNoAxeViolations(ref);
-    const gameUrl = ref.url();
     await ref.context().close();
+  });
 
-    const admin = await pageAs(browser, "Admin");
-    await admin.goto(gameUrl);
-    const cards = admin.getByRole("region", { name: "Cards" });
+  test("the ref gives Dana a yellow card in a game under way, and the admin sees it without a suspension", async ({
+    browser,
+  }) => {
+    const ref = await pageAs(browser, "Ref");
+    await ref.goto(`/app/games/${today.gameId}/score`);
+    const cards = ref.getByRole("region", { name: "Cards" });
     await expect(cards).toBeVisible();
-    await expectNoAxeViolations(admin);
+    await expectNoAxeViolations(ref);
     await cards.getByLabel("Player").selectOption({ label: SHORT });
     await cards.getByLabel("Yellow card (a warning)").check();
     await cards.getByLabel("Short note (optional)").fill("Arguing the call");
     await cards.getByRole("button", { name: "Give the card" }).click();
-    await expect(admin.getByRole("status")).toContainText("Card given.");
-    await expect(admin.getByRole("region", { name: "Cards" })).toContainText(
+    await expect(ref.getByRole("status")).toContainText("Card given.");
+    await expect(ref.getByRole("region", { name: "Cards" })).toContainText(
       "Yellow card",
     );
-    await expectNoAxeViolations(admin);
+    await expectNoAxeViolations(ref);
+    await ref.context().close();
 
+    const admin = await pageAs(browser, "Admin");
     await admin.goto("/app/admin/incidents/cards");
     await expect(
       admin.getByRole("heading", { name: "Cards", exact: true }),
