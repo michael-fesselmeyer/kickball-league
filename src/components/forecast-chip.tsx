@@ -100,7 +100,7 @@ export async function ForecastChip({
     <ForecastLines
       icon="🌤️"
       headline="No forecast yet"
-      note="The National Weather Service forecast covers the coming week."
+      note="Forecasts reach a week ahead."
     />
   );
 }
