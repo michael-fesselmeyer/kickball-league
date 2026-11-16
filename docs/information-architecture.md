@@ -121,6 +121,8 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── seasons/[season]/team (fee)     Split-pay captains: the team fee, what is paid and left, pay the rest, and the card that guarantees it
 ├── seasons/[season]/team (roles)   Captain and co-captains: the captain makes or unmakes co-captains and offers the captaincy to a teammate (withdraw while it waits); a co-captain can step down; the teammate offered it accepts or declines at the top of the page
 ├── seasons/[season]/team (list)    Captains: the team's private "not on my team" list, folded away: add a league member by email with an optional reason, or take them off
+├── seasons/[season]/team (recruiting) Captains of a team entered for a season still open for registration: how many players are quietly open to a new team (never anyone who has played for the team), one invite for all of them with an optional pitch, and the name, email and note of each who said yes
+├── change-team                     Looking for a change: quietly say you're open to a new team next season, pick who can see it (recruiting captains as a count, admins, or both), an optional note, when it clears, take it back; team invites with yes or no, and a heads-up when a captain of the inviting team plays with you (linked from the profile)
 ├── seasons/[season]/survey         The end-of-season survey for a player who was on a roster: five questions (rating 1 to 5, play again, best part, one change, comment), answered once, anonymous; a prompt on the home screen while it waits
 ├── seasons/[season]/quiz           Free agent: the team-fit quiz (five taps: kicking, fielding and running self-ratings, competitive or fun, and game nights; plus an optional note) and a friend code to start, join, switch or leave
 ├── games/[game]/score              Score entry (ref, captain, admin), with each team's pickups; with no signal, saved on the phone and sent later; an admin's forfeit, settled dispute, correction or reversal asks for a written reason, which both captains and the ref see here with the ruling; once final, a captain rates the other team's sportsmanship; a link to report an incident; for the game's ref and admins, a Cards section to give a yellow or red card and undo one within minutes
@@ -217,6 +219,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     │   └── [concern]               A private concern or public contact message: what was said, the sender (an address is shown to admins only and each view is audited), the thread of replies and notes; reply by email, add a note, close with what was done, reopen
     ├── concerns/ (player) Your concerns and the league's replies; /new raises a private concern (category, optional park rule and game link); /[concern] shows one of your own with replies and what was done, never admin notes
     ├── pickem                      Pick'em settings: whether players may pick their own team's games
+    ├── team-changes                Players looking for a change who let admins see it: name, email, note, since when, current teams and teams they said yes to
     ├── team-lists                  Every team's "not on my team" list with reasons and who added each entry; teams listing 5 or more people and anyone on several lists; add or remove an entry; owners choose whether a person's own export lists entries about them
     ├── people                      Players, roles
     ├── refs                        Referee pool (add by email, remove) and assignments by email
@@ -403,6 +406,15 @@ Rules:
 3. The free-agent matcher never suggests the team for them, or for a friend group they are in. An admin placing them by hand on the registrations screen sees a warning naming the team and the person, and can place them anyway; the override is in the audit log.
 4. They never hear about, see or claim the team's sub requests. Every other team's requests, their registration, other teams' links and their RSVPs work as before. Anything unsafe goes through an incident report instead.
 5. Admins and owners see every list on the admin "Not-on-my-team lists" screen, with long lists and people listed by several teams pointed out, and can take an entry off. See [ADR 0036](adr/0036-not-on-my-team-list.md).
+
+### 2.6b Looking for a change (quietly open to a new team)
+
+1. From their profile, a player opens "Looking for a change", picks who can see it (captains recruiting for next season, league admins, or both), adds a note if they like, such as a night that suits them, and saves. The app never asks why.
+2. Their current team never sees it: no team they have played on, in any season, counts it, reads it or hears of it, and nothing public shows it.
+3. A captain or co-captain of a team entered for a season still open for registration sees, on the team page, "3 players open to a new team haven't had an invite from Cats yet", and can invite them all at once with an optional pitch. They never see who. The team's "not on my team" list keeps those people out of the count.
+4. Each player gets the invite by email and on their page, where they say yes or no. A heads-up shows when a captain of the inviting team plays with them this season. A yes shows that team's captains their name, email and note, and emails the captains; a no, or no answer, tells nobody.
+5. Admins see the players who let them on the admin "Looking for a change" screen, and the free-agent matcher suggests a different team for them when one has room.
+6. The flag clears itself when next season's registration closes, and the player can take it back at any time, which withdraws every invite and tells nobody. See [ADR 0081](adr/0081-looking-for-a-change.md).
 
 ### 2.7 Start a new team (P2)
 

@@ -33,6 +33,7 @@ describe("the help center's how-tos", () => {
         "email-choices",
         "season-card",
         "who-has-field",
+        "change-team",
       ],
       captain: [
         "invite",
@@ -43,6 +44,7 @@ describe("the help center's how-tos", () => {
         "game-day-checklist",
         "check-in-players",
         "injury-report",
+        "recruit",
       ],
       ref: [
         "game-day",

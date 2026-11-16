@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { HelpLink } from "@/components/help-link";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
@@ -111,6 +112,11 @@ async function ChangeTeam({ searchParams }: PageProps<"/app/change-team">) {
           Your profile
         </Link>
         <h1 className="text-h1">Looking for a change?</h1>
+        <HelpLink
+          audience="player"
+          article="change-team"
+          topic="looking for a change"
+        />
         <p>
           If you&apos;d like to try a different team next season, say so quietly
           here. You don&apos;t need to give a reason.
