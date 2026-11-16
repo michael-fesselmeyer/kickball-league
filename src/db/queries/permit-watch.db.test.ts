@@ -313,7 +313,13 @@ describe("permit info for a game", () => {
         .insert(gameDayStatusGame)
         .values({ statusId: off.id, gameId: offGame, newStartsAt: null });
       // Delayed on an earlier game day, then moved a week later.
-      await delay(db, w.seasonId, moved, at("01:30", "2026-11-08"), "2026-11-07");
+      await delay(
+        db,
+        w.seasonId,
+        moved,
+        at("01:30", "2026-11-08"),
+        "2026-11-07",
+      );
       expect((await delayedStarts(db, [offGame, moved])).size).toBe(0);
       expect((await delayedStarts(db, [])).size).toBe(0);
     }));
