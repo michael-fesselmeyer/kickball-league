@@ -104,10 +104,7 @@ export async function cardMomentsOf(
 }
 
 /** The cards whose offer is already on, so asking would be noise. */
-async function cardsAlreadyOn(
-  db: Db,
-  userId: UserId,
-): Promise<Set<AlertCard>> {
+async function cardsAlreadyOn(db: Db, userId: UserId): Promise<Set<AlertCard>> {
   const [choices, devices, [setting]] = await Promise.all([
     db
       .select({
@@ -165,7 +162,10 @@ export async function alertCardFor(
 ): Promise<AlertCard | null> {
   const answers = await answersOf(db, userId);
   // Most visits end here: a recent answer keeps every card away.
-  if (nextCard({ moments: ALL_MOMENTS, answers, alreadyOn: new Set(), now }) === null)
+  if (
+    nextCard({ moments: ALL_MOMENTS, answers, alreadyOn: new Set(), now }) ===
+    null
+  )
     return null;
   const [moments, alreadyOn] = await Promise.all([
     cardMomentsOf(db, userId, now),
@@ -217,7 +217,8 @@ export async function answerAlertCard(
     true,
     "card",
   );
-  if (card === "first_game") await saveTurnDowns(db, userId, { weeklyNews: true });
+  if (card === "first_game")
+    await saveTurnDowns(db, userId, { weeklyNews: true });
   return true;
 }
 
@@ -294,7 +295,11 @@ export async function turnDown(
 export async function snoozeAlerts(
   db: Db,
   userId: UserId,
-  { now, timeZone, end = false }: { now: Date; timeZone: string; end?: boolean },
+  {
+    now,
+    timeZone,
+    end = false,
+  }: { now: Date; timeZone: string; end?: boolean },
 ): Promise<void> {
   const until = end ? null : snoozeEnd(now);
   await saveTurnDowns(db, userId, { snoozedUntil: until });

@@ -374,7 +374,9 @@ async function leagueWideAnnouncements(
   claimed: readonly ClaimedMessage[],
 ): Promise<Set<AnnouncementId>> {
   const ids = [
-    ...new Set(claimed.flatMap((m) => (m.announcementId ? [m.announcementId] : []))),
+    ...new Set(
+      claimed.flatMap((m) => (m.announcementId ? [m.announcementId] : [])),
+    ),
   ];
   if (ids.length === 0) return new Set();
   const rows = await db

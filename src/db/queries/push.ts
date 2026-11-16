@@ -62,7 +62,13 @@ export async function savePushSettings(
     const enabled = enabledTopics.has(topic);
     await db
       .insert(notificationPreference)
-      .values({ userId, topic, channel: "push", enabled, changedVia: "settings" })
+      .values({
+        userId,
+        topic,
+        channel: "push",
+        enabled,
+        changedVia: "settings",
+      })
       .onConflictDoUpdate({
         target: [
           notificationPreference.userId,

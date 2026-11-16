@@ -31,12 +31,12 @@ export function AlertCardView({
   publicKey: string | null;
 }) {
   const [asking, setAsking] = useState(false);
-  const [state, answer, pending] = useActionState<
-    AlertCardState,
-    FormData
-  >(answerAlertCardAction, {
-    status: "idle",
-  });
+  const [state, answer, pending] = useActionState<AlertCardState, FormData>(
+    answerAlertCardAction,
+    {
+      status: "idle",
+    },
+  );
 
   const yes = async () => {
     const form = new FormData();

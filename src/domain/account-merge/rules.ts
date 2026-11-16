@@ -102,7 +102,8 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     label: "answers to alert offers",
     by: ["card"],
     resolve: "drop",
-    clash: "Both answered the same alert offer; the kept account's answer stays",
+    clash:
+      "Both answered the same alert offer; the kept account's answer stays",
   },
   "alert_setting.user_id": {
     kind: "special",

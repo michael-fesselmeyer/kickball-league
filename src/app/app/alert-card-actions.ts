@@ -4,7 +4,10 @@ import { headers } from "next/headers";
 import { txDb } from "@/db/client";
 import { answerAlertCard } from "@/db/queries/alert-choices";
 import { savePushSubscription } from "@/db/queries/push";
-import { ALERT_CARDS, type AlertCard } from "@/domain/notifications/alert-cards";
+import {
+  ALERT_CARDS,
+  type AlertCard,
+} from "@/domain/notifications/alert-cards";
 import { parseDeviceSubscription } from "@/domain/notifications/push";
 import { parseId, type UserId } from "@/domain/ids";
 import { requireSelfToChange } from "@/lib/auth/permission";
