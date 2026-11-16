@@ -364,7 +364,7 @@ export type AdminPoll = {
   poll: CaptainPollRow;
   state: PollState;
   options: OptionRow[];
-  winners: CaptainPollOptionId[];
+  winners: string[];
   teams: TeamVote[];
   voted: number;
 };
@@ -411,7 +411,7 @@ export async function adminPoll(
     poll,
     state: pollState(poll, now),
     options: results.rows,
-    winners: results.winners as CaptainPollOptionId[],
+    winners: results.winners,
     teams: rows,
     voted: rows.filter((r) => r.optionId).length,
   };

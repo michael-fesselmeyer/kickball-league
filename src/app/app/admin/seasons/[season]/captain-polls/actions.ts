@@ -43,7 +43,6 @@ export async function openPollAction(
     "results",
     "closesOn",
     "closesTime",
-    ...OPTION_FIELDS,
   ] as const);
   const parsed = parsePollForm(
     {
@@ -105,20 +104,15 @@ export async function remindAction(
   slug: string,
   rawPollId: string,
 ): Promise<void> {
-  const { season, pollId, subject } = await named(slug, rawPollId);
+  const { season, pollId } = await named(slug, rawPollId);
   const now = new Date();
   await txDb.transaction((tx) =>
     queueReminders(tx, {
-      leagueId: required(subject.leagueId),
+      leagueId: season.leagueId,
       now,
       today: localDate(now, season.timeZone),
       pollId,
     }),
   );
   redirect(`${pageOf(slug)}?notice=reminded`);
-}
-
-function required<T>(value: T | null | undefined): T {
-  if (value === null || value === undefined) notFound();
-  return value;
 }
