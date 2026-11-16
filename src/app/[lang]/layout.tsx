@@ -15,6 +15,7 @@ import { appIconPath } from "@/lib/pwa/icons";
 import { THEME_COLORS } from "@/lib/pwa/theme-colors";
 import { isIndexable, SITE, siteOrigin } from "@/lib/site";
 import { applySavedThemeScript } from "@/lib/theme";
+import { themeSwitchScript } from "@/lib/theme-switch-script";
 import "../globals.css";
 import "../motion.css";
 
@@ -117,6 +118,8 @@ export default async function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: applySavedThemeScript }} />
+        {/* The theme button's behavior, with no script file to download. */}
+        <script dangerouslySetInnerHTML={{ __html: themeSwitchScript }} />
         {/* Returns at once outside the iOS and Android apps (docs/mobile.md). */}
         <script dangerouslySetInnerHTML={{ __html: nativeShellScript }} />
         {process.env.NODE_ENV === "production" && (
