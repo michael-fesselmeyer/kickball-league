@@ -30,6 +30,8 @@ import {
 import { demoViewAs } from "./demo-view-as";
 import { accountHooks, accountLinking, socialProviders } from "./google";
 import { deliverMagicLink, withinInboxLimit } from "./magic-link";
+import { issueSignInCode, leagueSignIn } from "./sign-in-plugin";
+import { appScheme } from "@/lib/mobile/app-scheme";
 import {
   followAlias,
   MAGIC_LINK_PATH,
@@ -136,13 +138,15 @@ export const auth = betterAuth({
     magicLink({
       expiresIn: MAGIC_LINK_EXPIRES_IN_SECONDS,
       storeToken: MAGIC_LINK_STORE_TOKEN,
-      sendMagicLink: withinInboxLimit(db, ({ email, url }) =>
+      // Every link comes with a code for the apps and other devices.
+      sendMagicLink: withinInboxLimit(db, async (link, ctx) =>
         deliverMagicLink(
-          { email, url },
+          { ...link, code: await issueSignInCode(ctx, link) },
           { nodeEnv: process.env.NODE_ENV, log: console.info, send },
         ),
       ),
     }),
+    leagueSignIn(db, { appScheme: appScheme(env.MOBILE_APP_ID) }),
     passkey({ ...relyingParty(env.BETTER_AUTH_URL), rpName: SITE.name }),
     demoViewAs(), // refuses everything unless demo mode is on
     nextCookies(), // must stay last

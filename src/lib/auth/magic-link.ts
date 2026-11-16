@@ -12,7 +12,7 @@ import { MAGIC_LINK_EXPIRES_IN_SECONDS } from "./config";
  * deployed site never logs a usable sign-in link.
  */
 export async function deliverMagicLink(
-  { email, url }: { email: string; url: string },
+  { email, url, code }: { email: string; url: string; code: string },
   {
     nodeEnv,
     log,
@@ -26,6 +26,7 @@ export async function deliverMagicLink(
   if (send) {
     const message = renderMagicLinkEmail({
       url,
+      code,
       minutes: MAGIC_LINK_EXPIRES_IN_SECONDS / 60,
     });
     // Keyed by the link itself, so a retried request cannot send it twice.
@@ -42,25 +43,25 @@ export async function deliverMagicLink(
   if (nodeEnv === "production") {
     throw new Error("Email delivery is not configured yet.");
   }
-  log(`\n[auth] Magic link for ${email}:\n${url}\n`);
+  log(`\n[auth] Magic link for ${email} (code ${code}):\n${url}\n`);
 }
 
-type Link = { email: string; url: string };
+type Link = { email: string; url: string; token: string };
 
 /**
  * Wraps the sender so each inbox gets at most a few links per link lifetime
  * (`SIGN_IN_LINKS_PER_INBOX`). It runs after Better Auth's per-IP limit and
  * before any email goes; over the limit, the request answers 429.
  */
-export function withinInboxLimit(
+export function withinInboxLimit<C>(
   db: Db,
-  deliver: (link: Link) => Promise<void>,
-): (link: Link) => Promise<void> {
-  return async (link) => {
+  deliver: (link: Link, ctx: C) => Promise<void>,
+): (link: Link, ctx: C) => Promise<void> {
+  return async (link, ctx) => {
     if (!(await allowSignInLink(db, link.email, new Date())))
       throw new APIError("TOO_MANY_REQUESTS", {
         message: "Too many sign-in links for this address. Try again soon.",
       });
-    await deliver(link);
+    await deliver(link, ctx);
   };
 }
