@@ -56,11 +56,15 @@ test("the home page, FAQ and schedule read in Spanish at /es", async ({
   await expect(
     page.getByRole("link", { name: "Liga de Kickball" }),
   ).toHaveAttribute("href", "/es");
-  // The footer offers the same page in English.
+  // The footer offers the same page in English, through the switch route.
   const languages = page.getByRole("navigation", { name: "Idioma" });
   await expect(
     languages.getByRole("link", { name: "English" }),
-  ).toHaveAttribute("href", "/");
+  ).toHaveAttribute("href", "/language/en");
+  await languages.getByRole("link", { name: "English" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await page.goto("/es");
   await page
     .getByRole("link", { name: "¿Preguntas? Tenemos respuestas" })
     .click();
