@@ -246,7 +246,8 @@ export async function offerCaptaincy(
   input: {
     teamSeasonId: TeamSeasonId;
     toUserId: UserId;
-    actorId: UserId;
+    /** Null when the league's own process makes the offer (ADR 0077). */
+    actorId: UserId | null;
     now: Date;
   },
 ): Promise<Result<CaptainHandoffId, OfferError | "not_found">> {
@@ -463,7 +464,8 @@ export async function setTeamRole(
     teamSeasonId: TeamSeasonId;
     userId: UserId;
     role: "co_captain" | "player";
-    actorId: UserId;
+    /** Null when the league's own process makes the change (ADR 0077). */
+    actorId: UserId | null;
     now: Date;
   },
 ): Promise<Result<void, RoleChangeError | "not_found">> {

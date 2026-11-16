@@ -25,6 +25,7 @@
     { "path": "/api/jobs/instagram-sync", "schedule": "0 11 * * *" },
     { "path": "/api/jobs/injury-retention", "schedule": "30 5 * * *" },
     { "path": "/api/jobs/photo-purges", "schedule": "45 5 * * *" },
+    { "path": "/api/jobs/leadership-check-ins", "schedule": "30 14 * * *" },
     { "path": "/api/jobs/instagram-token", "schedule": "0 12 * * 1" }
   ]
 }
