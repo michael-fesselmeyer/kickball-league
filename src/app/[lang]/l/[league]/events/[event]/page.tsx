@@ -52,6 +52,15 @@ import { languageAlternates, linkIn } from "@/i18n/routing";
 
 type Props = PageProps<"/[lang]/l/[league]/events/[event]">;
 
+/**
+ * The page reads its language from the path outside its <Suspense>
+ * boundary, so its heading and loading words are in that language from the
+ * first paint (ADR 0065). Every league and language is listed at build, so
+ * it is still prerendered; only a navigation into a page the build didn't
+ * list waits for it, as on the rules page.
+ */
+export const instant = false;
+
 /** Every event's page is prerendered at build time. */
 export async function generateStaticParams(props: LeagueParams) {
   return publicEventParams(props);
