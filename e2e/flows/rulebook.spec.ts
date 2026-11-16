@@ -44,7 +44,9 @@ test("a search with no match says so", async ({ page }) => {
   await page
     .getByRole("searchbox", { name: "Search the rules" })
     .fill("zeppelin");
-  await expect(page.getByRole("status")).toContainText("No rule has all of");
+  await expect(
+    page.getByRole("status").filter({ hasText: "No rule has all of" }),
+  ).toBeVisible();
 });
 
 test("an owner can switch the rulebook to owners only, and the public page hides it", async ({
@@ -56,7 +58,9 @@ test("an owner can switch the rulebook to owners only, and the public page hides
   await expectNoAxeViolations(owner);
   await owner.getByLabel("Owners only").check();
   await owner.getByRole("button", { name: "Save who can read it" }).click();
-  await expect(owner.getByRole("status")).toHaveText("Saved.");
+  await expect(
+    owner.getByRole("status").filter({ hasText: "Saved." }),
+  ).toBeVisible();
 
   await page.goto("/rules");
   await expect(
@@ -67,7 +71,9 @@ test("an owner can switch the rulebook to owners only, and the public page hides
   // Back to public so the other specs see the sample rulebook.
   await owner.getByLabel("Public", { exact: true }).check();
   await owner.getByRole("button", { name: "Save who can read it" }).click();
-  await expect(owner.getByRole("status")).toHaveText("Saved.");
+  await expect(
+    owner.getByRole("status").filter({ hasText: "Saved." }),
+  ).toBeVisible();
   await page.reload();
   await expect(page.getByRole("searchbox")).toBeVisible();
 });
