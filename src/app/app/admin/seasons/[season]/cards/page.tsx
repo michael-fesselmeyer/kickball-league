@@ -29,7 +29,7 @@ export default function SeasonCardsAdminPage(props: Props) {
 const ERRORS: Record<string, string> = {
   not_completed:
     "The cards can be built once the season is completed. Mark it completed first.",
-  not_found: "That season is gone.",
+  not_found: "That season no longer exists.",
 };
 
 const count = (n: number, one: string, many = `${one}s`) =>

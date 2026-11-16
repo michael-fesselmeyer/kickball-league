@@ -63,7 +63,7 @@ const ERRORS: Record<string, string> = {
   ...SPONSOR_FORM_ERRORS,
   ...DEAL_FORM_ERRORS,
   slug_taken: "Another sponsor already uses that page address.",
-  not_found: "That sponsor is gone.",
+  not_found: "That sponsor no longer exists.",
   no_account:
     "Nobody has an account with that email. Ask them to sign in once first.",
   already_member: "They can already manage this page.",

@@ -28,7 +28,7 @@ export default function WaiversPage(props: PageProps<"/app/admin/waivers">) {
 }
 
 const ERRORS: Record<string, string> = {
-  unknown_season: "That season is gone.",
+  unknown_season: "That season no longer exists.",
   unknown_waiver: "Pick one of the league's waiver versions.",
   registration_open:
     "That season's registration is open, so it needs a waiver: players sign it before they can pay. Pick another version instead, or close registration first.",

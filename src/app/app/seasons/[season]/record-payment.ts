@@ -19,13 +19,13 @@ export type RecordPaymentError =
   | "no_price";
 
 export const RECORD_PAYMENT_MESSAGES: Record<RecordPaymentError, string> = {
-  unknown_registration: "That registration is gone.",
+  unknown_registration: "That registration no longer exists.",
   not_allowed: "Only an admin or the team's captain can record that payment.",
   bad_method: "Choose cash, Venmo or other.",
   waiver_first: "They need to sign the waiver before they count as paid.",
   already_paid: "They have already paid.",
   captain_pays: "Their captain is paying the whole team fee.",
-  no_price: "The league has not set a price for this yet.",
+  no_price: "The league hasn't set a price yet.",
 };
 
 /**

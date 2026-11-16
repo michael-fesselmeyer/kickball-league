@@ -52,7 +52,7 @@ const ERRORS: Record<string, string> = {
   suspended:
     "That player is suspended, so they can't be placed until it's served.",
   full: "That team's roster is full.",
-  unknown_payment: "That payment is gone.",
+  unknown_payment: "That payment no longer exists.",
   bad_amount:
     "Enter the refund in dollars, such as 20 or 12.50, or leave it blank to refund everything left.",
   too_much: "That is more than is left to refund on this payment.",

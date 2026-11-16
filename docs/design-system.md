@@ -20,7 +20,7 @@ Three directions were considered:
 
 **Personality (updated 2026-11-12, [ADR 0002](adr/0002-playful-brand-personality.md)).** The first build of direction A read as corporate. This is a social league: fun, meeting people, maybe a drink after. The system above stays (tokens, contrast, the league's navy and red); the personality loosens: a friendlier display face, pill buttons, tilted "stickers" on the golden highlight with a hard offset shadow, and highlighter swipes on key words. The dark theme leans into Option B's night-game feel.
 
-**Voice.** Casual, warm, brief. Say what happens next. "Your spot isn't confirmed until you pay your share" is better than "Payment pending". A joke is welcome on happy paths, confirmations and empty states, and never in an error, a payment, a waiver or anything legal. Nothing implies drinking is expected: "a drink (or a seltzer)" is the tone.
+**Voice.** Casual, warm, brief. Say what happens next. "Your spot isn't confirmed until you pay your share" is better than "Payment pending". A joke is welcome on happy paths, confirmations and empty states, and never in an error, a payment, a waiver or anything legal. Nothing implies drinking is expected: "a drink (or a seltzer)" is the tone. The full guide, with before and after examples, is in [voice.md](voice.md).
 
 ## 2. Color
 

@@ -37,7 +37,7 @@ const ERRORS: Record<string, string> = {
   demo: "Account deletion is turned off in the demo.",
   captain:
     "You captain a team in a season that is not over. Nothing was deleted.",
-  last_owner: "You are the league's only owner. Nothing was deleted.",
+  last_owner: "You're the league's only owner, so your account can't be deleted yet. Nothing was deleted.",
   not_found: "We couldn't find your account. Nothing was deleted.",
 };
 

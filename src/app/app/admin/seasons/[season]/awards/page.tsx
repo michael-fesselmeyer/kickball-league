@@ -42,7 +42,7 @@ const ERRORS: Record<string, string> = {
   bad_close: "Enter the date and time voting closes.",
   close_in_past: "Voting has to close in the future.",
   title_too_long: `Keep the title under ${TITLE_MAX} characters.`,
-  not_found: "That poll is gone.",
+  not_found: "That poll no longer exists.",
   not_open: "That poll isn't open, so there is nothing to close.",
 };
 

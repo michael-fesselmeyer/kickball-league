@@ -37,12 +37,12 @@ export default function JoinPage(props: PageProps<"/app/join/[token]">) {
 }
 
 const ERRORS: Record<string, string> = {
-  invalid: "This link does not work. Ask your captain for a new one.",
+  invalid: "This link isn't valid. Ask your captain for a new one.",
   expired: "This link has expired. Ask your captain for a new one.",
   revoked: "Your captain replaced this link. Ask them for the new one.",
   closed: "Registration for this season is closed.",
   full: "This team's roster is full.",
-  already_member: "You are already on this team.",
+  already_member: "You're already on this team.",
   on_another_team:
     "You are already on another team this season. Ask the league to move you.",
   shirt_size: "Pick your shirt size.",

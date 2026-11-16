@@ -22,7 +22,7 @@ const MESSAGES: Record<string, string> = {
   bad_name: "Give the team a name of up to 40 characters.",
   bad_size: "Pick a team size within the season's roster limits.",
   note_too_long: "Keep the note to 500 characters.",
-  closed: "Registration for this season is not open.",
+  closed: "Registration for this season isn't open.",
   captain:
     "You already captain a team this season. Hand it to someone else first.",
   pending: "You already have a request waiting for the league.",

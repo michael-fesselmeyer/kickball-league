@@ -28,7 +28,7 @@ import { activeLeague, activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Shop item" };
 
 const ERRORS: Record<string, string> = {
-  not_found: "That item is gone.",
+  not_found: "That item no longer exists.",
   hidden: "That item isn't for sale any more.",
   closed: "Orders for this item are closed.",
   size: "Pick a size.",

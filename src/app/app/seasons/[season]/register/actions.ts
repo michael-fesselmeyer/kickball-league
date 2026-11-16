@@ -37,9 +37,9 @@ export type RegisterState = {
 };
 
 const MESSAGES: Record<string, string> = {
-  closed: "Registration for this season is not open.",
-  already_registered: "You are already registered for this season.",
-  no_price: "The league has not set a price for this yet.",
+  closed: "Registration for this season isn't open.",
+  already_registered: "You're already registered for this season.",
+  no_price: "The league hasn't set a price yet.",
   season_full:
     "The season is full. Join the waitlist below, or join as a free agent and we will place you.",
   bad_name: "Give your team a name of up to 40 characters.",

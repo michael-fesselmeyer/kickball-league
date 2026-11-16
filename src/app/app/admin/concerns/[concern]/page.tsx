@@ -37,7 +37,7 @@ const ERRORS: Record<string, string> = {
   closed: "This one is closed. Reopen it first.",
   not_closed: "This one is already open.",
   no_reply_to: "There is no address to reply to. Add a note instead.",
-  not_found: "That message is gone.",
+  not_found: "That message no longer exists.",
 };
 const NOTICES: Record<string, string> = {
   reply: "Reply sent.",

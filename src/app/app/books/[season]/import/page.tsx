@@ -34,7 +34,7 @@ export default function ImportPage(
 const ERRORS: Record<string, string> = {
   pattern: `Enter 2 to ${PATTERN_MAX} letters from the description, such as "parks".`,
   category: "Pick a category.",
-  unknown_rule: "That rule is already gone.",
+  unknown_rule: "That rule was already removed.",
   unknown_season: "That season isn't in this league.",
 };
 

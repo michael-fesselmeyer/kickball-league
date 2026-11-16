@@ -59,7 +59,7 @@ const ERRORS: Record<string, string> = {
   too_many_open: `You can have ${MAX_OPEN_PER_TEAM} requests up at once. Take one down first.`,
   not_pending: "Someone already answered that claim.",
   closed: "That request is closed.",
-  not_found: "That request is gone. Reload the page.",
+  not_found: "That request no longer exists. Reload the page.",
 };
 
 const NOTICES: Record<string, string> = {

@@ -37,7 +37,7 @@ const ERRORS: Record<string, string> = {
   category: "Pick a category.",
   cadence: "Pick each season or each game day.",
   date: "Enter the first day it applies.",
-  unknown_cost: "That cost is already gone.",
+  unknown_cost: "That cost was already removed.",
 };
 
 const NOTICES: Record<string, string> = {

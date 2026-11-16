@@ -28,10 +28,10 @@ const ERRORS: Record<string, string> = {
   not_open: "Voting has closed for that award.",
   not_on_roster: "Voting is for players on a team this season.",
   not_a_nominee: "Pick someone from the list.",
-  self_vote: "Nice try! Pick someone other than yourself.",
+  self_vote: "You can't vote for yourself. Pick someone else.",
   own_team: "Pick another team: your own can't get your vote.",
   already_voted: "You've already voted for that award.",
-  not_found: "That poll is gone.",
+  not_found: "That poll no longer exists.",
 };
 
 const field = "rounded-md border border-border bg-surface px-2 py-2";

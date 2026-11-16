@@ -80,7 +80,7 @@ const ERRORS: Record<string, string> = {
     "Check the dates: an application window closes after it opens, and a certificate expires after it starts.",
   no_insurer: "Enter the insurer's name.",
   unknown_permit: "That permit is no longer on this season.",
-  unknown_certificate: "That certificate is already gone.",
+  unknown_certificate: "That certificate was already removed.",
   ...(FILE_MESSAGES satisfies Record<FileProblem, string>),
 };
 
