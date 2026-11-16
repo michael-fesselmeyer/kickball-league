@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./support/axe";
 
 /**
- * More public pages in Spanish (ADR 0065): the standings and the help
+ * More public pages in Spanish (ADR 0094): the standings and the help
  * center, read on a phone (this file runs in the phone project too) and
  * checked with axe. Read-only: it only opens pages the seed already has.
  */

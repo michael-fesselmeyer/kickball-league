@@ -22,10 +22,10 @@ export const emailEs: Translation<typeof emailEn> = {
   topics: {
     rainout: "suspensiones por lluvia",
     schedule_change: "cambios en el calendario",
-    game_reminder: "el equipo de la liga",
-    payment: "recordatorios de pago",
+    game_reminder: "recordatorios de partidos",
+    payment: "pagos e inscripciones",
     sub_request: "pedidos de suplentes",
-    announcement: "anuncios",
+    announcement: "novedades de la liga",
     score: "marcadores",
     events: "eventos",
     marketing: "novedades y ofertas de la liga",
@@ -36,6 +36,8 @@ export const emailEs: Translation<typeof emailEn> = {
     photos: "tus fotos",
     team_roles: "capitanes y cocapitanes",
     game_day_watch: "avisos del clima",
+    lost_found: "objetos perdidos",
+    rules: "reglas y calendario",
   },
   common: {
     seeGame: "Ver el partido",

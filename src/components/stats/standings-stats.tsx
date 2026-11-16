@@ -20,7 +20,7 @@ type Props = {
   season: { id: SeasonId; timeZone: string };
   /** The season's teams, as the standings list them. */
   teams: readonly Pick<PublicTeam, "name" | "slug">[];
-  /** The page's language (ADR 0065); English unless given. */
+  /** The page's language (ADR 0094); English unless given. */
   locale?: Locale;
 };
 

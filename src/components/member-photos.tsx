@@ -27,7 +27,7 @@ export function MemberPhotos({
   photos: ApprovedPhoto[];
   /** The upload page, with this page's team, event or game chosen. */
   shareHref: string;
-  /** The page's language (ADR 0065); English unless given. */
+  /** The page's language (ADR 0094); English unless given. */
   locale?: Locale;
 }) {
   const words = messagesFor(locale).photos;

@@ -1,6 +1,7 @@
 import type { Renderer } from "@/db/queries/outbox";
 import type { DIGEST_KIND, MessageKind } from "@/domain/notifications/kinds";
 import { err } from "@/domain/result";
+import { DEFAULT_LOCALE } from "@/i18n/locales";
 import { messagesFor } from "@/i18n/messages";
 import {
   topicLabel,
@@ -142,7 +143,7 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
 
 /**
  * Emails only league admins and owners get. They stay in English, like the
- * admin screens they link to, whatever the recipient's language (ADR 0065).
+ * admin screens they link to, whatever the recipient's language (ADR 0094).
  * Every other template writes in the recipient's language.
  */
 type TemplateName = keyof typeof TEMPLATES;
@@ -160,6 +161,26 @@ export const ENGLISH_ONLY_TEMPLATES: ReadonlySet<TemplateName> = new Set([
   "rain_decision",
   "rainout_request",
   "score_dispute",
+]);
+
+/**
+ * Player emails added after the Spanish ones were written. Until each is
+ * translated it comes in English, frame and all, so no email mixes two
+ * languages (docs/i18n.md, Emails and push).
+ */
+export const NOT_YET_TRANSLATED: ReadonlySet<TemplateName> = new Set([
+  "acting_admin",
+  "captain_poll",
+  "game_ruling",
+  "incident_filed",
+  "interest_go_ahead",
+  "leadership_check_in",
+  "leadership_result",
+  "lost_found_reply",
+  "lost_found_update",
+  "move_accepted",
+  "move_invite",
+  "start_on_time",
 ]);
 
 const isTemplateName = (name: string): name is keyof typeof TEMPLATES =>
@@ -183,7 +204,9 @@ export function rendererFor(
         ? unsubscribeToken(unsubscribeSecret, recipient.userId, recipient.topic)
         : null;
     const locale =
-      recipient?.locale && !ENGLISH_ONLY_TEMPLATES.has(name as TemplateName)
+      recipient?.locale &&
+      !ENGLISH_ONLY_TEMPLATES.has(name as TemplateName) &&
+      !NOT_YET_TRANSLATED.has(name as TemplateName)
         ? recipient.locale
         : undefined;
     const context = locale ? { ...base, locale } : base;
@@ -195,9 +218,10 @@ export function rendererFor(
             unsubscribe: {
               pageUrl: `${site}${unsubscribePagePath(token)}`,
               oneClickUrl: `${site}${unsubscribePostPath(token)}`,
-              topicLabel: locale
-                ? messagesFor(locale).email.topics[recipient.topic]
-                : topicLabel(recipient.topic),
+              topicLabel:
+                locale && locale !== DEFAULT_LOCALE
+                  ? messagesFor(locale).email.topics[recipient.topic]
+                  : topicLabel(recipient.topic),
             },
           }
         : context,

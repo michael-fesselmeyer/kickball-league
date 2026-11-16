@@ -4,7 +4,6 @@ import { dayHeading, kickoff, shortDay } from "@/domain/schedule/format";
 import { type PublicGame, statusLabel } from "@/domain/schedule/public-game";
 import { whenLine } from "@/domain/events/event";
 import { priceLine } from "@/domain/events/tickets";
-import { roundNameIn, sourceLabel } from "@/domain/playoffs/playoffs";
 import { positionLabel } from "@/domain/scores/live";
 import { dealWhen } from "@/domain/sponsors/deals";
 import { movementWords } from "@/domain/stats/power";
@@ -81,7 +80,7 @@ describe("rule sets", () => {
   });
 });
 
-describe("standings, stats and brackets", () => {
+describe("standings and stats", () => {
   it("write results with Spanish letters and words", () => {
     expect(outcomeLetters("WWLTW", "es")).toBe("GGPEG");
     expect(outcomeLetters("WWLTW")).toBe("WWLTW");
@@ -92,17 +91,6 @@ describe("standings, stats and brackets", () => {
     expect(streakNote("Bees", { outcome: "L", length: 2 }, "es")).toBe(
       "Bees perdió 2 seguidos y ya le toca ganar.",
     );
-  });
-
-  it("name playoff rounds and where a team comes from", () => {
-    expect(roundNameIn(3, 3, "es")).toBe("Final");
-    expect(roundNameIn(2, 3, "es")).toBe("Semifinales");
-    expect(roundNameIn(1, 4, "es")).toBe("Ronda 1");
-    expect(sourceLabel({ seed: 4 }, 3, "es")).toBe("Posición 4");
-    expect(sourceLabel({ winnerOf: "r2m1" }, 3, "es")).toBe(
-      "Ganador de la semifinal 1",
-    );
-    expect(sourceLabel({ winnerOf: "r2m1" }, 3)).toBe("Winner of semifinal 1");
   });
 
   it("count innings and places the Spanish way", () => {

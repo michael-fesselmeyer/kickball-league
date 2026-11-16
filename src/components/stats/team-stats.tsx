@@ -19,7 +19,7 @@ type Props = {
   /** The shown season's published schedule, every team's games. */
   schedule: readonly PublicGame[];
   timeZone: string;
-  /** The page's language (ADR 0065); English unless given. */
+  /** The page's language (ADR 0094); English unless given. */
   locale?: Locale;
 };
 

@@ -22,7 +22,7 @@ export function shareMetadata({
   /** The page's own address, in its language. */
   path: string;
   image: { path: string; alt: string };
-  /** The page's language (ADR 0065); English unless given. */
+  /** The page's language (ADR 0094); English unless given. */
   locale?: Locale;
 }): Pick<Metadata, "openGraph" | "twitter"> {
   return {

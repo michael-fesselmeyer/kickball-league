@@ -10,7 +10,7 @@ import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
 import { liveEn, type LiveWords } from "@/i18n/messages/live.en";
 import { Flip } from "./motion";
 
-/** The page's words and language (ADR 0065); English unless given. */
+/** The page's words and language (ADR 0094); English unless given. */
 type Language = { words?: LiveWords | undefined; locale?: Locale | undefined };
 
 /**

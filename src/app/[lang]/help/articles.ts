@@ -1111,7 +1111,7 @@ export function helpHref(role: HelpRole["slug"], articleId?: string): string {
   return articleId ? `/help/${role}#${articleId}` : `/help/${role}`;
 }
 
-/** The roles whose help is written in each language (ADR 0065). */
+/** The roles whose help is written in each language (ADR 0094). */
 export const TRANSLATED_HELP_ROLES: Readonly<
   Record<Locale, readonly HelpRole["slug"][]>
 > = {

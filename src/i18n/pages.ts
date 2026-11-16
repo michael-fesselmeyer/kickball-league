@@ -24,7 +24,6 @@ export const TRANSLATED_PAGES: Readonly<Record<Locale, readonly string[]>> = {
     "/teams/*",
     "/games/*",
     "/events",
-    "/events/*",
     "/sponsors",
     "/sponsors/*",
     "/help",

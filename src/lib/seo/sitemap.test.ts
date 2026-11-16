@@ -20,7 +20,6 @@ describe("buildSitemap", () => {
       `${ORIGIN}/faq`,
       `${ORIGIN}/es/faq`,
       `${ORIGIN}/rules`,
-      `${ORIGIN}/es/rules`,
       `${ORIGIN}/contact`,
       `${ORIGIN}/nyc-kickball-league`,
       `${ORIGIN}/free-agents`,
@@ -48,7 +47,7 @@ describe("buildSitemap", () => {
       `${ORIGIN}/widget`,
     ]);
     // These content pages are also in Spanish.
-    expect(urls).toHaveLength(CONTENT_PAGES.length + 11);
+    expect(urls).toHaveLength(CONTENT_PAGES.length + 10);
   });
 
   it("adds data pages after the content pages, with when they last changed", () => {

@@ -15,7 +15,7 @@ export function HelpSearch({
   words,
 }: {
   entries: readonly HelpEntry[];
-  /** The page's words, in its language (ADR 0065). */
+  /** The page's words, in its language (ADR 0094). */
   words: Messages["help"]["search"];
 }) {
   const id = useId();

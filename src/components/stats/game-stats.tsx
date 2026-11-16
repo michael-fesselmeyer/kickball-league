@@ -33,7 +33,7 @@ export async function GameStats({
   league: LeagueRef & { id: LeagueId };
   game: PublicGame;
   timeZone: string;
-  /** The page's language (ADR 0065); English unless given. */
+  /** The page's language (ADR 0094); English unless given. */
   locale?: Locale;
 }) {
   "use cache";
