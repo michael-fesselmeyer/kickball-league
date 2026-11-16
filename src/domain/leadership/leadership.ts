@@ -117,15 +117,16 @@ export function ballotFor<Id extends string>(input: {
     .map((c) => c.userId);
   if (challengers.length === 0) return null;
   const keep =
-    input.captainId && !input.captainSteppingDown && input.onRoster.has(input.captainId)
+    input.captainId &&
+    !input.captainSteppingDown &&
+    input.onRoster.has(input.captainId)
       ? [input.captainId]
       : [];
   return [...keep, ...new Set(challengers)];
 }
 
 export type Tally<Id extends string = string> =
-  | { kind: "winner"; userId: Id }
-  | { kind: "no_majority" };
+  { kind: "winner"; userId: Id } | { kind: "no_majority" };
 
 /**
  * A clear majority: one option with more than half the ballots cast. A tie

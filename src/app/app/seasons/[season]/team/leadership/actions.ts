@@ -111,7 +111,10 @@ export async function answerAction(
     }),
   );
   redirect(
-    pageOf(slug, result.ok ? (accept ? "standing" : "not_standing") : result.error),
+    pageOf(
+      slug,
+      result.ok ? (accept ? "standing" : "not_standing") : result.error,
+    ),
   );
 }
 

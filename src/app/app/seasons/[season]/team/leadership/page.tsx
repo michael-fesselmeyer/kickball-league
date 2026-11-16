@@ -25,7 +25,10 @@ export const metadata: Metadata = { title: "Leadership check-in" };
 
 /** Messages by code; an unknown code from the URL finds nothing. */
 const MESSAGES: Record<string, { ok: boolean; text: string }> = {
-  checked_in: { ok: true, text: "Thanks for checking in. Only you know what you said." },
+  checked_in: {
+    ok: true,
+    text: "Thanks for checking in. Only you know what you said.",
+  },
   voted: { ok: true, text: "Your secret vote is in. Thanks!" },
   standing: { ok: true, text: "Great, you're standing." },
   not_standing: { ok: true, text: "No problem. You're not standing." },
@@ -37,13 +40,19 @@ const MESSAGES: Record<string, { ok: boolean; text: string }> = {
     ok: true,
     text: "Done. They're a co-captain now and take over next season. The team has heard.",
   },
-  already: { ok: false, text: "You've already sent yours; it can't be changed." },
+  already: {
+    ok: false,
+    text: "You've already sent yours; it can't be changed.",
+  },
   paused: {
     ok: false,
     text: "The league has paused this check-in for now. Try again once it resumes.",
   },
   closed: { ok: false, text: "This step has closed." },
-  not_on_team: { ok: false, text: "Only people on the team's roster can take part." },
+  not_on_team: {
+    ok: false,
+    text: "Only people on the team's roster can take part.",
+  },
   suggest_self: {
     ok: false,
     text: "To put yourself forward, tick the box above instead.",
@@ -126,8 +135,8 @@ async function Leadership({
         </Link>
         <h1 className="text-h1">Leadership check-in</h1>
         <p className="text-text-muted">
-          Every team gets this quick, private check-in at the end of the
-          season: who&apos;d you like to help lead next season?
+          Every team gets this quick, private check-in at the end of the season:
+          who&apos;d you like to help lead next season?
         </p>
       </header>
 
@@ -142,9 +151,8 @@ async function Leadership({
 
       {view.paused && view.step !== "closed" && (
         <p className="rounded-lg border border-warning p-3">
-          The league has paused this check-in for now. Nothing can be sent
-          until it resumes, and its deadline moves on by the time it was
-          paused.
+          The league has paused this check-in for now. Nothing can be sent until
+          it resumes, and its deadline moves on by the time it was paused.
         </p>
       )}
 
@@ -172,23 +180,39 @@ async function Leadership({
                     {ask.volunteered
                       ? `You put yourself forward as ${ROLE[ask.role]}.`
                       : `A teammate suggested you as ${ROLE[ask.role]}. Would you like to stand? Saying no is completely fine, and only you see this.`}
-                    {ask.answer === "accepted" && !ask.volunteered && " You said yes."}
+                    {ask.answer === "accepted" &&
+                      !ask.volunteered &&
+                      " You said yes."}
                     {ask.answer === "declined" && " You're not standing."}
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {ask.answer !== "accepted" &&
                       !(ask.volunteered && ask.answer === null) && (
                         <form
-                          action={answerAction.bind(null, slug, id, ask.role, true)}
+                          action={answerAction.bind(
+                            null,
+                            slug,
+                            id,
+                            ask.role,
+                            true,
+                          )}
                         >
                           <SubmitButton className="btn btn-primary">
-                            {ask.volunteered ? "Stand again" : "Yes, I'll stand"}
+                            {ask.volunteered
+                              ? "Stand again"
+                              : "Yes, I'll stand"}
                           </SubmitButton>
                         </form>
                       )}
                     {ask.answer !== "declined" && (
                       <form
-                        action={answerAction.bind(null, slug, id, ask.role, false)}
+                        action={answerAction.bind(
+                          null,
+                          slug,
+                          id,
+                          ask.role,
+                          false,
+                        )}
                       >
                         <SubmitButton className="btn btn-secondary">
                           {ask.volunteered ? "Withdraw" : "No thanks"}
@@ -215,7 +239,11 @@ async function Leadership({
                     <legend className="text-h3">Put yourself forward</legend>
                     {view.me.role === "player" && (
                       <label className="flex min-h-11 items-center gap-2">
-                        <input type="checkbox" name="volunteer" value="co_captain" />
+                        <input
+                          type="checkbox"
+                          name="volunteer"
+                          value="co_captain"
+                        />
                         I&apos;d like to help as a co-captain
                       </label>
                     )}
@@ -229,7 +257,12 @@ async function Leadership({
                   <fieldset className="flex flex-col gap-2">
                     <legend className="text-h3">Suggest a teammate</legend>
                     <label htmlFor="suggest">Teammate</label>
-                    <select id="suggest" name="suggest" className={field} defaultValue="">
+                    <select
+                      id="suggest"
+                      name="suggest"
+                      className={field}
+                      defaultValue=""
+                    >
                       <option value="">Nobody this time</option>
                       {view.teammates.map((m) => (
                         <option key={m.userId} value={m.userId}>
@@ -266,8 +299,7 @@ async function Leadership({
                 <p className="text-small text-text-muted">
                   Leave everything blank to say things are good as they are.
                   Nobody sees your answer: not your captain, teammates or the
-                  league. You check in once, and it can&apos;t be changed
-                  after.
+                  league. You check in once, and it can&apos;t be changed after.
                 </p>
                 <SubmitButton className="btn self-start btn-primary">
                   Check in
@@ -307,8 +339,15 @@ async function Leadership({
                       key={option.id}
                       className="flex min-h-11 items-center gap-2"
                     >
-                      <input type="radio" name="option" value={option.id} required />
-                      {option.isCaptain ? `Keep ${option.name} as captain` : option.name}
+                      <input
+                        type="radio"
+                        name="option"
+                        value={option.id}
+                        required
+                      />
+                      {option.isCaptain
+                        ? `Keep ${option.name} as captain`
+                        : option.name}
                     </label>
                   ))}
                 </fieldset>
@@ -336,12 +375,13 @@ async function Leadership({
             <h2 id="result" className="text-h2">
               Your team&apos;s result, just for you
             </h2>
-            {view.resultForCaptain === "new_captain" && view.electedForCaptain ? (
+            {view.resultForCaptain === "new_captain" &&
+            view.electedForCaptain ? (
               <>
                 <p>
                   The team&apos;s secret ballot chose {view.electedForCaptain}{" "}
-                  to captain next season. You&apos;re hearing it first; the
-                  team hears once you choose
+                  to captain next season. You&apos;re hearing it first; the team
+                  hears once you choose
                   {view.reviewEndsAt
                     ? `, or on ${dayName(view.reviewEndsAt, tz)}`
                     : ""}
@@ -349,13 +389,22 @@ async function Leadership({
                 </p>
                 {!view.paused && (
                   <div className="flex flex-col gap-3">
-                    <form action={chooseAction.bind(null, slug, id, "captain_elect")}>
+                    <form
+                      action={chooseAction.bind(
+                        null,
+                        slug,
+                        id,
+                        "captain_elect",
+                      )}
+                    >
                       <SubmitButton className="btn btn-primary">
                         Stay on this season, with {view.electedForCaptain} as
                         co-captain taking over next season
                       </SubmitButton>
                     </form>
-                    <form action={chooseAction.bind(null, slug, id, "hand_off_now")}>
+                    <form
+                      action={chooseAction.bind(null, slug, id, "hand_off_now")}
+                    >
                       <SubmitButton className="btn btn-secondary">
                         Hand over to {view.electedForCaptain} now
                       </SubmitButton>
@@ -366,15 +415,20 @@ async function Leadership({
             ) : (
               <p>
                 {OUTCOME[view.resultForCaptain]} The team hears
-                {view.reviewEndsAt ? ` on ${dayName(view.reviewEndsAt, tz)}` : " soon"}.
+                {view.reviewEndsAt
+                  ? ` on ${dayName(view.reviewEndsAt, tz)}`
+                  : " soon"}
+                .
               </p>
             )}
           </section>
         ) : (
           <p className="rounded-lg border border-border p-3">
             Voting has closed. The team hears the outcome
-            {view.reviewEndsAt ? ` by ${dayName(view.reviewEndsAt, tz)}` : " soon"}.
-            Thanks for taking part.
+            {view.reviewEndsAt
+              ? ` by ${dayName(view.reviewEndsAt, tz)}`
+              : " soon"}
+            . Thanks for taking part.
           </p>
         ))}
 
@@ -394,9 +448,8 @@ async function Leadership({
             <div className="rounded-lg border border-border p-3">
               <p>
                 Just for you: {view.helpers.join(", ")}{" "}
-                {view.helpers.length === 1 ? "would" : "would each"} be happy
-                to help as a co-captain. You can add co-captains on your team
-                page.
+                {view.helpers.length === 1 ? "would" : "would each"} be happy to
+                help as a co-captain. You can add co-captains on your team page.
               </p>
             </div>
           )}
@@ -404,8 +457,10 @@ async function Leadership({
       )}
 
       <p className="text-small text-text-muted">
-        Captains can always hand the team over on their own, from the team
-        page. <Link href="/help/player#leadership-check-in" className="underline">How the check-in works</Link>
+        Captains can always hand the team over on their own, from the team page.{" "}
+        <Link href="/help/player#leadership-check-in" className="underline">
+          How the check-in works
+        </Link>
       </p>
     </>
   );

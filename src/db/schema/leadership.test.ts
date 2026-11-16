@@ -19,9 +19,11 @@ const references = (table: Parameters<typeof getTableConfig>[0]) =>
 
 describe("leadership check-in secrecy (ADR 0077)", () => {
   it("keeps who took part to a person, a check-in and a step: no time, no choice", () => {
-    expect(columns(leadershipParticipation).map((c) => c.name).sort()).toEqual(
-      ["checkInId", "part", "userId"],
-    );
+    expect(
+      columns(leadershipParticipation)
+        .map((c) => c.name)
+        .sort(),
+    ).toEqual(["checkInId", "part", "userId"]);
     expect(references(leadershipParticipation).sort()).toEqual([
       "leadership_check_in",
       "user",
@@ -29,12 +31,11 @@ describe("leadership check-in secrecy (ADR 0077)", () => {
   });
 
   it("keeps ballot counts with no voter and no time", () => {
-    expect(columns(leadershipBallotOption).map((c) => c.name).sort()).toEqual([
-      "checkInId",
-      "id",
-      "userId",
-      "votes",
-    ]);
+    expect(
+      columns(leadershipBallotOption)
+        .map((c) => c.name)
+        .sort(),
+    ).toEqual(["checkInId", "id", "userId", "votes"]);
   });
 
   it("gives a candidate row no time a suggester could be matched to", () => {
