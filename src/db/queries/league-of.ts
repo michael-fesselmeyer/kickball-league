@@ -104,8 +104,7 @@ export const LEAGUE_OF = {
     sql`select league_id from interest_form where id = ${id}`,
   interest_option: (id) =>
     sql`select f.league_id from interest_option o join interest_form f on f.id = o.form_id where o.id = ${id}`,
-  actingAdmin: (id) =>
-    sql`select league_id from acting_admin where id = ${id}`,
+  actingAdmin: (id) => sql`select league_id from acting_admin where id = ${id}`,
   purchase: (id) => sql`select league_id from purchase where id = ${id}`,
 } satisfies Record<string, (id: string) => SQL>;
 
