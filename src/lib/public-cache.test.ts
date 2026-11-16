@@ -1,8 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  updateTag: vi.fn(),
+}));
+// The work a refresh leaves for after the response, run by each test.
+const afterResponse: (() => Promise<unknown>)[] = [];
+vi.mock("next/server", () => ({
+  after: (task: () => Promise<unknown>) => afterResponse.push(task),
+}));
 
-const { revalidatePath, updateTag } = await import("next/cache");
+const { revalidatePath, revalidateTag, updateTag } = await import("next/cache");
 const {
   EVENTS_TAG,
   FRIENDS_TAG,
@@ -23,6 +32,7 @@ const {
   refreshSeasonCards,
   refreshSiteNotice,
   refreshSponsorPages,
+  SECOND_EXPIRY_MS,
   seasonCardsTag,
   seasonCardTag,
   seasonTag,
@@ -30,7 +40,9 @@ const {
 
 beforeEach(() => {
   vi.mocked(revalidatePath).mockClear();
+  vi.mocked(revalidateTag).mockClear();
   vi.mocked(updateTag).mockClear();
+  afterResponse.length = 0;
 });
 
 // A page whose tag expired is answered from its route's shell, so the shells,
@@ -54,6 +66,34 @@ describe("refreshSeasonPages", () => {
       ["/embed/schedule", "layout"],
       ["/l/[league]/rules", "layout"],
     ]);
+  });
+
+  it("expires the season's tag and pages again a moment after the response", async () => {
+    vi.useFakeTimers();
+    try {
+      refreshSeasonPages("season-1");
+      vi.mocked(revalidatePath).mockClear();
+      expect(afterResponse).toHaveLength(1);
+
+      const done = afterResponse[0]!();
+      await vi.advanceTimersByTimeAsync(SECOND_EXPIRY_MS - 1);
+      expect(revalidateTag).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      await done;
+
+      expect(vi.mocked(revalidateTag).mock.calls).toEqual([
+        [seasonTag("season-1"), { expire: 0 }],
+      ]);
+      expect(vi.mocked(revalidatePath).mock.calls).toEqual([
+        ["/l/[league]/seasons/[season]", "layout"],
+        ["/l/[league]/teams/[team]", "layout"],
+        ["/l/[league]/games/[game]", "layout"],
+        ["/embed/schedule", "layout"],
+        ["/l/[league]/rules", "layout"],
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
