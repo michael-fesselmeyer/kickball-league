@@ -3,7 +3,6 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Client } from "pg";
 import { afterAll, describe, expect, it } from "vitest";
 import { generate } from "@/domain/scheduler/generate";
-import type { LeagueId, SeasonId, UserId } from "@/domain/ids";
 import * as schema from "../schema";
 import { user } from "../schema/auth";
 import { field, slot, venue } from "../schema/game";
@@ -105,9 +104,9 @@ async function world(db: Db) {
     .insert(teamSeason)
     .values(teams.map((t) => ({ teamId: t.id, seasonId: sn!.id })));
   return {
-    leagueId: lg!.id as LeagueId,
-    seasonId: sn!.id as SeasonId,
-    admins: admins.map((a) => a.id as UserId) as [UserId, UserId],
+    leagueId: lg!.id,
+    seasonId: sn!.id,
+    admins: admins.map((a) => a.id) as [UserId, UserId],
   };
 }
 
