@@ -7,6 +7,8 @@ import {
   MIN_SLOWDOWN,
   medianOf,
   slowdownFor,
+  TARGET_DEVICE_INDEX,
+  tooSlowToMeasure,
   waitForUrl,
   withRetries,
   withSlowdown,
@@ -144,5 +146,21 @@ describe("waitForUrl", () => {
     ).rejects.toThrow(
       "http://127.0.0.1:9222/json/version did not answer within 300 ms (connect ECONNREFUSED)",
     );
+  });
+});
+
+describe("tooSlowToMeasure", () => {
+  it("stops a runner slower than the target phone", () => {
+    // The degraded runner that ran a shard out of time.
+    expect(tooSlowToMeasure(306)).toBe(true);
+    expect(tooSlowToMeasure(TARGET_DEVICE_INDEX - 1)).toBe(true);
+  });
+
+  it("measures every runner the phone can be reproduced on", () => {
+    expect(tooSlowToMeasure(TARGET_DEVICE_INDEX)).toBe(false);
+    // Below the 2x limit but still faster than the phone: measured at 2x.
+    expect(tooSlowToMeasure(1200)).toBe(false);
+    expect(slowdownFor(1200)).toBe(MIN_SLOWDOWN);
+    expect(tooSlowToMeasure(ANCHOR_BENCHMARK_INDEX)).toBe(false);
   });
 });

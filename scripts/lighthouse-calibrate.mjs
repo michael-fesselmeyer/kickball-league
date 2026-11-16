@@ -18,6 +18,8 @@ import {
   MIN_SLOWDOWN,
   medianOf,
   slowdownFor,
+  TARGET_DEVICE_INDEX,
+  tooSlowToMeasure,
   waitForUrl,
   withRetries,
   withSlowdown,
@@ -82,6 +84,15 @@ async function main() {
     process.exit(1);
   }
   const index = medianOf(indexes);
+  console.log(`Benchmark index samples: ${indexes.map(Math.round).join(", ")}`);
+  if (tooSlowToMeasure(index)) {
+    // Slower than the phone itself: no slowdown can reproduce it, and the
+    // audit would run out the job's time limit (ADR 0079).
+    console.error(
+      `Runner too slow, rerun this job: its benchmark index is ${Math.round(index)}, below the target phone's ${TARGET_DEVICE_INDEX}, so no CPU slowdown can measure that phone here.`,
+    );
+    process.exit(1);
+  }
   const slowdown = slowdownFor(index);
   const config = JSON.parse(readFileSync(path, "utf8"));
   const was = config.ci.collect.settings.throttling.cpuSlowdownMultiplier;
@@ -90,7 +101,6 @@ async function main() {
     `${JSON.stringify(withSlowdown(config, slowdown), null, 2)}\n`,
   );
 
-  console.log(`Benchmark index samples: ${indexes.map(Math.round).join(", ")}`);
   console.log(
     `Benchmark index (median): ${Math.round(index)}; the budgets' phone is ${ANCHOR_SLOWDOWN}x at ${ANCHOR_BENCHMARK_INDEX}.`,
   );
