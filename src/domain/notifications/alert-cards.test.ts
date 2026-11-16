@@ -145,9 +145,10 @@ describe("CARD_COPY", () => {
   });
 
   it("asks for push only for rain-outs and sub requests", () => {
-    expect(
-      ALERT_CARDS.filter((c) => CARD_COPY[c].channel === "push"),
-    ).toEqual(["first_rsvp", "joined_team"]);
+    expect(ALERT_CARDS.filter((c) => CARD_COPY[c].channel === "push")).toEqual([
+      "first_rsvp",
+      "joined_team",
+    ]);
   });
 
   it("maps topics back to the cards that offer them", () => {

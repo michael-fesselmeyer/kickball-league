@@ -53,7 +53,13 @@ export async function saveEmailSettings(
     const enabled = enabledTopics.has(topic);
     await db
       .insert(notificationPreference)
-      .values({ userId, topic, channel: "email", enabled, changedVia: "settings" })
+      .values({
+        userId,
+        topic,
+        channel: "email",
+        enabled,
+        changedVia: "settings",
+      })
       .onConflictDoUpdate({
         target: [
           notificationPreference.userId,
