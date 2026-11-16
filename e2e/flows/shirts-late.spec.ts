@@ -101,7 +101,9 @@ test("a captain who opts out sees the shirt makers, and the history shows the te
     await entry
       .getByRole("button", { name: "Remove from the directory" })
       .click();
-    await expect(admin.getByRole("alert")).toContainText("Tick the box");
+    await expect(
+      admin.getByRole("alert").filter({ hasText: "Tick the box" }),
+    ).toBeVisible();
     await admin
       .locator("details")
       .filter({ hasText: MAKER })
@@ -154,5 +156,7 @@ test("an admin logs spare shirts on the late-joiner screen", async ({
   await expect(admin.getByText(/In stock:.*3 XL/)).toBeVisible();
   await admin.getByLabel("How many").fill("0");
   await admin.getByRole("button", { name: "Log spares" }).click();
-  await expect(admin.getByRole("alert")).toContainText("Enter how many spares");
+  await expect(
+    admin.getByRole("alert").filter({ hasText: "Enter how many spares" }),
+  ).toBeVisible();
 });
