@@ -24,7 +24,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 
 **Players**
 
-- Sign up with an email link, Google or a passkey; sign the waiver and accept the league's code of conduct (written in the app, versioned, asked once per version), confirm the age check and pay by full or split pay through Stripe, with promo codes and league credit applied.
+- Sign up with an email link or its 6-digit code, Google or a passkey (the code and Google also work inside the phone apps); sign the waiver and accept the league's code of conduct (written in the app, versioned, asked once per version), confirm the age check and pay by full or split pay through Stripe, with promo codes and league credit applied.
 - Join a team by invite link or as a free agent; a matcher finds the best-fit team and keeps friends together.
 - RSVP, see the kicking order, find and take sub spots, and check in at the field by scanning a rotating QR code.
 - Live scores, standings, power rankings, pick'em for bragging rights, awards votes and an end-of-season card to share.
