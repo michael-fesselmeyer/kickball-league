@@ -21,7 +21,7 @@ export type RecordPaymentError =
 export const RECORD_PAYMENT_MESSAGES: Record<RecordPaymentError, string> = {
   unknown_registration: "That registration no longer exists.",
   not_allowed: "Only an admin or the team's captain can record that payment.",
-  bad_method: "Choose cash, Venmo or other.",
+  bad_method: "Choose cash, Venmo, Zelle, check or other.",
   waiver_first: "They need to sign the waiver before they count as paid.",
   already_paid: "They have already paid.",
   captain_pays: "Their captain is paying the whole team fee.",
@@ -29,7 +29,7 @@ export const RECORD_PAYMENT_MESSAGES: Record<RecordPaymentError, string> = {
 };
 
 /**
- * Records a cash, Venmo or other payment made outside the app, for an admin
+ * Records a cash, Venmo, Zelle, check or other payment made outside the app, for an admin
  * or the player's captain (payment.record_offline). The amount is what the
  * player owes at checkout, so the books match what Stripe would have taken.
  */
