@@ -1,12 +1,10 @@
-import { viewAs } from "@/app/demo/actions";
 import { DemoAdminTools } from "@/components/demo-admin-tools";
 import { demoStatus } from "@/lib/demo/guard";
-import { PERSONA_KEYS, PERSONAS } from "@/lib/demo/personas";
-import { SubmitButton } from "@/components/submit-button";
+import { DemoRolePicker } from "@/components/demo-role-picker";
 
 /**
  * Shown on every page of the demo deployment, and nowhere else: says the
- * league is invented and lets anyone view it as each role in one tap.
+ * league is invented and lets anyone view it as each role from one picker.
  */
 export function DemoBanner() {
   const status = demoStatus(process.env);
@@ -21,27 +19,17 @@ export function DemoBanner() {
       aria-label="Demo"
       className="border-b-2 border-text bg-highlight text-on-highlight print:hidden"
     >
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-2 md:flex-row md:items-center md:justify-between md:gap-4 md:px-6">
-        <p id="demo-view-as" className="text-small">
-          <strong className="font-bold">Demo league.</strong> Everyone here is
-          made up, and it all resets nightly. Tap around as a:
+      <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-1.5 md:px-6">
+        <p className="text-small">
+          <strong className="font-bold">
+            Demo<span className="hidden sm:inline"> league.</span>
+          </strong>
+          <span className="hidden sm:inline">
+            {" "}
+            Everyone here is made up, and it all resets nightly.
+          </span>
         </p>
-        <form
-          action={viewAs}
-          aria-labelledby="demo-view-as"
-          className="grid grid-cols-4 gap-2 md:flex md:shrink-0"
-        >
-          {PERSONA_KEYS.map((key) => (
-            <SubmitButton
-              key={key}
-              name="persona"
-              value={key}
-              className="btn min-h-11 px-2 text-small btn-secondary md:px-4"
-            >
-              {PERSONAS[key].label}
-            </SubmitButton>
-          ))}
-        </form>
+        <DemoRolePicker />
       </div>
       <DemoAdminTools />
     </aside>
