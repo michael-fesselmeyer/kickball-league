@@ -34,6 +34,10 @@ const SCREENS: [Persona, string, string | RegExp][] = [
   ["Captain", "/app/seasons/fall-2026/team/subs", "Find subs"],
   ["Player", "/app/subs", "Sub for a team"],
   ["Player", "/app/events", "Events"],
+  ["Player", "/app/concerns", "Your concerns"],
+  ["Player", "/app/setup-lead", "Set-up lead"],
+  ["Admin", "/app/admin/team-lists", "Not-on-my-team lists"],
+  ["Admin", "/app/admin/demo-mail", "Demo mail"],
   // A check-in page without a code, as from an old bookmark.
   ["Player", "/app/check-in/the-corner-pocket", "The Corner Pocket"],
 ];

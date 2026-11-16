@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { permitAnnouncement } from "@/domain/gameday/announce";
 import { type PermitEndRule, permitWatch } from "@/domain/gameday/permit-end";
 
 /** The permit window and rule set saved with the game's screen, as JSON. */
@@ -47,20 +48,25 @@ export function PermitWatchNote({
     rule: permit.rule,
   });
   if (!watch) return null;
-  if (watch.level === "ok")
-    return (
-      <p role="status" className="text-small text-text-muted">
-        {watch.message}
-      </p>
-    );
+  // The visible lines count down every half minute, so they are silent; a
+  // hidden status changes only when the phase or a 30, 15 or 5 minute mark
+  // does, and that is what a screen reader hears.
   return (
-    <p
-      role="alert"
-      className={`rounded-lg border p-3 font-bold ${
-        watch.level === "over" ? "border-danger" : "border-warning"
-      }`}
-    >
-      {watch.message}
-    </p>
+    <>
+      {watch.level === "ok" ? (
+        <p className="text-small text-text-muted">{watch.message}</p>
+      ) : (
+        <p
+          className={`rounded-lg border p-3 font-bold ${
+            watch.level === "over" ? "border-danger" : "border-warning"
+          }`}
+        >
+          {watch.message}
+        </p>
+      )}
+      <p role="status" className="sr-only">
+        {permitAnnouncement(watch)}
+      </p>
+    </>
   );
 }
