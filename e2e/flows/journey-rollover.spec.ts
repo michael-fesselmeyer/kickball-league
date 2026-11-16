@@ -57,6 +57,18 @@ test("an admin rolls a season over, schedules it and publishes", async ({
     await expect(
       admin.getByRole("region", { name: "Permit windows" }),
     ).toContainText("Field 1, McCarren Park");
+    // A schedule is published only when its fields have a layout, or an
+    // admin's word that they need none.
+    const layouts = admin.getByRole("region", { name: "Field layouts" });
+    const missing = layouts
+      .getByRole("listitem")
+      .filter({ hasText: "No layout yet." });
+    while ((await missing.count()) > 0) {
+      const field = missing.first();
+      await field.getByLabel("This field needs no layout").check();
+      await field.getByRole("button", { name: /Save layout/ }).click();
+      await expect(admin.getByRole("status")).toHaveText("Layout saved.");
+    }
     await admin.getByLabel("Minutes per slot").fill("60");
     await admin.getByRole("button", { name: "Cut slots from permits" }).click();
     await expect(admin.getByRole("status")).toContainText("slots added");
@@ -70,7 +82,16 @@ test("an admin rolls a season over, schedules it and publishes", async ({
       admin.getByRole("heading", { name: "Version 1 (draft)" }),
     ).toBeVisible();
     await expectNoAxeViolations(admin);
-    await admin.getByRole("button", { name: "Publish version 1" }).click();
+    // Permit numbers and documents aren't copied, and the owners haven't
+    // uploaded the new ones yet, so the admin says why they publish first.
+    await admin
+      .getByLabel("Why publish before the documents are uploaded?")
+      .fill(
+        "The league holds these permits; owners upload the documents next.",
+      );
+    await admin
+      .getByRole("button", { name: "Publish version 1 anyway" })
+      .click();
     await expect(
       admin.getByRole("status").filter({ hasText: "Published." }),
     ).toBeVisible();
