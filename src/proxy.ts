@@ -59,7 +59,7 @@ export async function proxy(request: NextRequest) {
 
 /** Route handlers at the top of src/app, outside the language tree. */
 const OUTSIDE_LANGUAGES =
-  /^\/(?:api|r|icons|media|embed|events\/personal)(?:\/|$)/;
+  /^\/(?:api|r|icons|media|embed|events\/personal|language)(?:\/|$)/;
 
 const passesThrough = (pathname: string) => OUTSIDE_LANGUAGES.test(pathname);
 
@@ -161,6 +161,10 @@ export const config = {
   // which are rewritten like them.
   matcher: [
     "/((?!api/|_next/|.*\\..*).*)",
+    // Files served from the language tree: the app's CSV, JSON and text
+    // downloads, and another league's calendar feeds and share images.
+    "/app/:path*",
+    "/l/:path*",
     "/teams/:team/calendar.ics",
     "/teams/:team/share.png",
     "/games/:game/share.png",
