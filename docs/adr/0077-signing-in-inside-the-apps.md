@@ -5,7 +5,7 @@
 
 ## Context
 
-The iOS and Android apps are a native shell whose web view opens the site (ADR 0074). None of the site's sign-in methods finished there:
+The iOS and Android apps are a native shell whose web view opens the site (ADR 0090). None of the site's sign-in methods finished there:
 
 - **Google** refuses sign-in inside an embedded web view.
 - **A magic link** opens in the phone's browser or mail app, not the app, so the session lands in the wrong place.
