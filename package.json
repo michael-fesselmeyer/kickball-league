@@ -27,7 +27,8 @@
     "test:e2e": "playwright test",
     "test:e2e:site-wide": "E2E_SITE_WIDE=true playwright test",
     "lighthouse": "lhci autorun",
-    "check:route-js": "node scripts/check-route-js.mjs"
+    "check:route-js": "node scripts/check-route-js.mjs",
+    "mobile:sign-in": "tsx scripts/mobile-sign-in-native.ts"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.21",
