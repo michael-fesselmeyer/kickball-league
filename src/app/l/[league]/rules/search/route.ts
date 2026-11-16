@@ -22,7 +22,7 @@ const json = (body: unknown, status = 200) =>
   });
 
 /**
- * The rulebook's search (ADR 0066): Postgres full-text search over the
+ * The rulebook's search (ADR 0086): Postgres full-text search over the
  * league's sections, then the rules in each that hold the words. Answers
  * only for who may read the rulebook right now, so a league that turns it
  * back to owners only stops answering at once. The page itself is static;

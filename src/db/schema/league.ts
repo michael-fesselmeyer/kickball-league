@@ -85,7 +85,7 @@ export const league = pgTable(
      */
     adminsConfirmRainouts: boolean().notNull().default(false),
     /**
-     * Who may read the rulebook text (ADR 0066): the owners only, anyone
+     * Who may read the rulebook text (ADR 0086): the owners only, anyone
      * signed in, or everyone. Owners only until the league decides.
      */
     rulebookVisibility: text()

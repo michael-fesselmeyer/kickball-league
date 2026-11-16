@@ -8,7 +8,7 @@ import {
 
 /**
  * Splits pasted rulebook text into sections and rules for an owner to review
- * before saving (ADR 0066). Pure: it never reads or keeps the text. The
+ * before saving (ADR 0086). Pure: it never reads or keeps the text. The
  * result is a suggestion; the review step lets the owner fix it.
  */
 

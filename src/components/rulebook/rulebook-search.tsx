@@ -11,7 +11,7 @@ type Result = {
 };
 
 /**
- * Search box for the rulebook (ADR 0066): asks the server's full-text search
+ * Search box for the rulebook (ADR 0086): asks the server's full-text search
  * as the person types, lists the sections and the rules that matched, and a
  * tap moves to the rule and highlights the words, without reloading the page.
  */

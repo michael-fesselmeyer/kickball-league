@@ -174,7 +174,7 @@ describe("gapSentence", () => {
   });
 });
 
-describe("overriding missing documents (ADR 0066)", () => {
+describe("overriding missing documents (ADR 0065)", () => {
   it("counts windows without their document, never lost ones", () => {
     const windows = waiveDocuments([
       window(18, 20, { hasDocument: false }),

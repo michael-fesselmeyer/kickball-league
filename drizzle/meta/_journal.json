@@ -624,6 +624,13 @@
       "when": 1794849732736,
       "tag": "0088_guest_tournaments",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1794857493392,
+      "tag": "0089_searchable_rulebook",
+      "breakpoints": true
     }
   ]
 }

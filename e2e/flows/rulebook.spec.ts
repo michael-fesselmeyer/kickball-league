@@ -5,7 +5,7 @@ import { pageAs } from "../support/personas";
 /**
  * The seeded rulebook is an invented sample, public in the demo. The page
  * is static; searching asks the server's full-text search, and a result
- * moves to the rule and highlights the words (ADR 0066). Runs at phone
+ * moves to the rule and highlights the words (ADR 0086). Runs at phone
  * width like every flow.
  */
 // The visibility test below flips a league-wide switch, so this file's tests
