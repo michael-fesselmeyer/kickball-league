@@ -120,6 +120,8 @@ const ACTIONS: Record<string, string> = {
   "interest.option_remove": "Removed an option from an interest form",
   "interest.go_ahead": "Decided an option from an interest form is going ahead",
   "interest.answer_remove": "Deleted an interest form answer",
+  "card.give": "Gave a player a yellow or red card",
+  "card.undo": "Took back a yellow or red card",
   "incident.file": "Filed an incident report",
   "incident.note": "Added a note to an incident report",
   "incident.reopen": "Reopened an incident report",

@@ -1,4 +1,4 @@
-# ADR 0064: Cards are a calm-down tool and never suspend anyone
+# ADR 0084: Cards are a calm-down tool and never suspend anyone
 
 - Status: accepted
 - Date: 2026-11-15

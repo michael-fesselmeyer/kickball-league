@@ -466,6 +466,10 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     resolve: "drop",
     clash: "Both witnessed the same injury once",
   },
+  // Cards (ADR 0084): a card a person was given moves with them; the ref who
+  // gave it is an actor.
+  "game_card.user_id": { kind: "move", label: "cards they were given" },
+  "game_card.given_by": actor("cards given"),
   "concern.sender_id": actor("concerns sent"),
   "concern.closed_by": actor("concerns closed"),
   "concern_message.author_id": actor("concern replies and notes"),
