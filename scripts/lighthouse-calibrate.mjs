@@ -1,5 +1,5 @@
 // Sets a Lighthouse CI shard's CPU slowdown from this runner's speed, so every
-// run measures the same target phone (docs/adr/0077-calibrated-cpu-throttle.md).
+// run measures the same target phone (docs/adr/0079-calibrated-cpu-throttle.md).
 //
 //   node scripts/lighthouse-calibrate.mjs .lighthouseci/shard.json
 //
@@ -18,11 +18,19 @@ import {
   MIN_SLOWDOWN,
   medianOf,
   slowdownFor,
+  waitForUrl,
+  withRetries,
   withSlowdown,
 } from "./lighthouse-calibration.mjs";
 
 /** Samples taken; each runs for about a second. */
 const SAMPLES = 5;
+
+/** Whole measurements tried, each in a fresh Chrome, before giving up. */
+const TRIES = 3;
+
+/** How long Chrome's debugging port may take to open. */
+const PORT_TIMEOUT_MS = 15_000;
 
 /** Lighthouse's benchmark index, measured in Chrome as Lighthouse does. */
 async function measureIndexes() {
@@ -30,6 +38,10 @@ async function measureIndexes() {
     chromeFlags: ["--headless=new", "--no-sandbox"],
   });
   try {
+    // Chrome can still be opening its debugging port here.
+    await waitForUrl(`http://127.0.0.1:${chrome.port}/json/version`, {
+      timeoutMs: PORT_TIMEOUT_MS,
+    });
     const browser = await puppeteer.connect({
       browserURL: `http://127.0.0.1:${chrome.port}`,
     });
@@ -51,7 +63,24 @@ async function main() {
     console.error("Usage: node scripts/lighthouse-calibrate.mjs <config>");
     process.exit(2);
   }
-  const indexes = await measureIndexes();
+  let indexes;
+  try {
+    indexes = await withRetries(measureIndexes, {
+      tries: TRIES,
+      delayMs: 2_000,
+      onRetry: (error, n) =>
+        console.log(
+          `Benchmark try ${n} of ${TRIES} failed (${error instanceof Error ? error.message : error}); trying again in a fresh Chrome.`,
+        ),
+    });
+  } catch (error) {
+    // Measuring at the config's fixed slowdown would quietly change what the
+    // budgets mean, so this shard stops instead.
+    console.error(
+      `Could not measure this runner's benchmark index: ${error instanceof Error ? error.message : error}. Lighthouse will not run uncalibrated; rerun the job.`,
+    );
+    process.exit(1);
+  }
   const index = medianOf(indexes);
   const slowdown = slowdownFor(index);
   const config = JSON.parse(readFileSync(path, "utf8"));
