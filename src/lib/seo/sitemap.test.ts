@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildRobots,
-  buildSitemap,
-  eventPages,
-} from "./sitemap";
+import { buildRobots, buildSitemap, eventPages } from "./sitemap";
 
 const ORIGIN = "https://league.example.test";
 
