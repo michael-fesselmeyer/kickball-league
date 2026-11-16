@@ -45,6 +45,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 
 - See assigned games, take an uncovered game with one tap, enter the final score or keep score live inning by inning, with offline entry that syncs when the signal returns.
 - Report incidents, eject a player from the live game screen (after confirming), and see the permit for the field they are at.
+- Start on time and finish before dark: the live-scoring and score screens show when play must end, the earlier of the field's permit and sunset at the park less a margin (computed on the server, no outside service; lit fields have no daylight end), and count down to first pitch and then to that end on the phone's own clock. One tap records first pitch and who held up a late start, a called game says whether daylight or field time ran out, and the captains and ref of a game with no time to spare get a reminder two hours before. Admins see start times by team and a schedule warning for slots that run past daylight.
 
 **Admins**
 

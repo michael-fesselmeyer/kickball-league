@@ -340,6 +340,7 @@ erDiagram
   game ||--o{ score_report : receives
   game ||--o{ score_confirmation : needs
   game ||--o{ game_period : "scored by"
+  game ||--o| game_start : "first pitch"
   game ||--o{ offline_receipt : "sent offline"
   game ||--o{ game_rsvp : collects
   game ||--o{ game_attendance : "played in"
@@ -368,6 +369,7 @@ erDiagram
     text name
     int sort_order
     text notes
+    bool has_lights "sunset does not end play here"
   }
   field_group {
     uuid id PK
@@ -524,6 +526,7 @@ erDiagram
     int innings_played
     enum outcome "normal, forfeit_a, forfeit_b, called"
     text reason "an admin's written reason for a ruling, 1 to 300 characters; admin reports only"
+    enum call_reason "daylight, field_time; called games only"
     text client_id UK "idempotency key from the device"
     timestamptz reported_at
   }
@@ -534,6 +537,13 @@ erDiagram
     uuid user_id FK
     enum status "confirmed, disputed"
     text note
+  }
+  game_start {
+    uuid game_id PK "and FK"
+    timestamptz started_at "first pitch, tapped at the field"
+    enum held_up_by "team_a, team_b, both, neither"
+    uuid recorded_by FK
+    timestamptz recorded_at
   }
   game_period {
     uuid id PK
@@ -667,6 +677,7 @@ Notes:
 - The game-day checklist (issue #409): `game_checklist_item` holds a season's short "before" and "after" lists, which captains tick per team per game in `game_checklist_tick`. A season with no items gets the defaults written on first read; the unique text per season and phase keeps two first reads from writing them twice. An admin's edit keeps the rows (and ticks) of items whose words stay and deletes the rest, ticks included. `season.move_script` is the set-up lead's script for asking park users to move, null for the default. `move_request` logs each group the day's set-up lead asked to move and how it went; anything but `fine` shows on the incidents screen. `field_check` is one field's set-up (by the set-up lead) or end-of-day "left clean" check (by its last game's ref or captains, the set-up lead or an admin) per day, replaced in place under a lock on the season; a problem needs a note, and the end-of-day photo is a `books_file` of kind `field_photo`, deleted when a new photo replaces it. Who leads set-up is a claimed `volunteer_shift` of role `setup_lead` on the season's game day. `ticked_by`, `asked_by` and `confirmed_by` move to the kept account in a merge.
 - A **ruling** is an admin's `score_report` with a `reason`: a forfeit, a settled dispute, or a correction or reversal of a final result. It is required for any of those, and optional for an admin's first score on a game nobody reported. `settle_game` sets `game.ruled_at` to the ruling's report time when the settling report is a ruling, and clears it otherwise. The reason is shown only to the game's captains, its ref and admins; the public pages read `ruled_at` alone ([ADR 0068](adr/0068-written-rulings.md)).
 - `game_period` is named for periods, not innings, so a second sport can reuse it. It holds live scoring ([ADR 0011](adr/0011-live-scores-by-polling.md)): one row per half-inning, entered in order and corrected in place. The line score and the score at the last complete inning are worked out from these rows, never stored. Which team kicks in the top half is on the game (`kicks_first`, one of its two teams), set when live scoring starts. The final score still comes from a `score_report`, so a game scored live is confirmed like any other.
+- The daylight and field-time clock ([ADR 0083](adr/0083-daylight-and-field-time-clock.md), issue #467) stores only what happens at the field: `game_start` holds a game's first pitch, recorded with one tap by the ref (or a captain or admin, whoever may score it live), and who held up a late one (`team_a` and `team_b` are the game's own teams; `neither` is the field, the ref or the weather). A second tap keeps the first time; undoing deletes the row. When play must end is not stored: it is worked out on each read from the permit window (the time the field must be clear), `field.has_lights`, sunset at the venue's coordinates on the game's local day, and the rule set's `options.daylightMarginMinutes`. First pitch is due at the slot's start, or at a Delayed game day's new start (`game_day_status_game.new_starts_at`); a game on a day called Off shows no clock and gets no start-on-time nudge. `score_report.call_reason` says why a called game ended, daylight or field time, and is null otherwise.
 - Kicking orders ([ADR 0030](adr/0030-kicking-order-sides.md)): a team has at most one `game_lineup` per game, and saving again replaces its `game_lineup_spot` rows in one transaction. Only players who said they're in, and approved pickups, can be saved into it. Players' lineup genders are never copied into it; they are read from `profile` (or `sub_claim` for a pickup) when the team's captains open the builder. `run_breaks` records how many runs of more than two of one side the order had when saved, so the ref and the other captain see that the order breaks the rule without seeing anyone's side. A saved order is never blocked for breaking the rule.
 - `offline_receipt` holds one row per score entry made on a phone with no signal and sent later ([ADR 0025](adr/0025-offline-scores-keep-the-servers-version.md)): a final score (`score`), a half-inning (`half`) or ending a live-scored game (`end`). It is written before the entry is applied, in the same transaction, and keeps the answer the phone got, so a resend of the same key gets that answer again and changes nothing. A final score from the phone also uses the key as its report's `client_id`. Rows go with their game, and deleting an account deletes its rows, since an answer can name the other captain.
 - Standings are computed from `game` rows on demand and cached (see [architecture.md](architecture.md)). There is no standings table to drift out of date.
@@ -2107,7 +2118,7 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `equipment_report` | check it lists an item or has a note; note length 1 to 500 | A report says what is missing |
 | `team_season` | foreign key `(division_id, season_id)` to `division (id, season_id)` | A team's division is in its own season |
 | `division` | unique `(season_id, slug)`, unique `(season_id, name)`; check slug format | One division per name and public address in a season |
-| `rule_set` | unique `(league_id, name)`; `options.permitEndRule` (`call_at_last_complete`, the default, or `last_inning_to_start`) says what happens when a game reaches its permit's end (#406); `options.noNewInningMinutes` (0 to 60, 10 when unset) is how long before the time limit no new inning starts; check innings 1 to 15 and time limit 10 to 240 | Rule sets are named once per league, with sane limits |
+| `rule_set` | unique `(league_id, name)`; `options.permitEndRule` (`call_at_last_complete`, the default, or `last_inning_to_start`) says what happens when a game reaches its permit's end or loses the light (#406, #467); `options.noNewInningMinutes` (0 to 60, 10 when unset) is how long before the time limit no new inning starts; `options.daylightMarginMinutes` (0 to 60, 15 when unset) is how long before sunset play ends on a field without lights; check innings 1 to 15 and time limit 10 to 240 | Rule sets are named once per league, with sane limits |
 | `season` | check `crossover_games between 0 and 10` | A sane crossover count |
 | `bracket` | unique `(season_id, division_id, tier)` nulls not distinct | One season-wide bracket per tier, or one per division |
 | `bracket_match` | unique `(bracket_id, game_no)` | Game numbers name each game once in a bracket |
@@ -2133,6 +2144,8 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `conduct_acceptance` | unique `(code_id, user_id)`; `(user_id)`; `body_sha256` is 64 hex characters | A person accepts a version once |
 | `score_report` | unique `(client_id)` | Retried offline submissions are ignored |
 | `score_report` | check `reason` is null, or an admin's and 1 to 300 characters | Only an admin's ruling carries a reason |
+| `score_report` | check `call_reason` is null or `outcome` is `called` | Only a called game has a reason it was called |
+| `game_start` | primary key `game_id` | One first pitch per game |
 | `score_confirmation` | unique `(game_id, team_season_id)` | One answer per team |
 | `game_rsvp` | unique `(game_id, user_id)` | One RSVP per game |
 | `game_attendance` | primary key `(game_id, user_id)` | One check-in per player per game, so a second scan changes nothing |
