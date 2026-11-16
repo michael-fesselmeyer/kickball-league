@@ -97,7 +97,9 @@ describe("looking for a change", () => {
     const now = at("2026-10-01T00:00:00Z");
     expect(isRecruiting("registration_open", null, now)).toBe(true);
     expect(isRecruiting("draft", at("2027-01-01T00:00:00Z"), now)).toBe(true);
-    expect(isRecruiting("registration_open", at("2026-09-01T00:00:00Z"), now)).toBe(false);
+    expect(
+      isRecruiting("registration_open", at("2026-09-01T00:00:00Z"), now),
+    ).toBe(false);
     expect(isRecruiting("in_progress", null, now)).toBe(false);
   });
 });

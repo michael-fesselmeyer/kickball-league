@@ -33,6 +33,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
 import { RECORD_PAYMENT_MESSAGES } from "../record-payment";
 import { teamKeepOffList } from "@/db/queries/keep-off";
+import { recruitingSummary, recruitingTeam } from "@/db/queries/move";
 import { offerFor, teamCaptaincy } from "@/db/queries/captaincy";
 import {
   addKeepOffAction,
@@ -51,6 +52,8 @@ import { InviteLink } from "./invite-link";
 import { KeepOffSection } from "./keep-off";
 import { teamShirtInfo } from "@/db/queries/shirt-late";
 import { ShirtSection } from "./shirts";
+import { inviteOpenPlayersAction } from "./recruit-actions";
+import { RecruitingSection } from "./recruiting";
 import { type GuaranteeView, TeamMoney } from "./team-money";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
@@ -205,6 +208,10 @@ async function Team({
   // sees it and can step down; a teammate offered the captaincy answers.
   const leads = can(subject, "captaincy.manage", { teamSeasonId });
   const coCaptain = mine.team.role === "co_captain";
+  // Players quietly open to a new team (ADR 0081), for the team's captains
+  // while this season is recruiting: a count, and names of those who said
+  // yes. The queries never count anyone who has played for this team.
+  const recruits = can(subject, "move.recruit", { teamSeasonId });
 
   // Everything that needs only the team, read at once.
   const [
@@ -217,6 +224,7 @@ async function Team({
     keepOff,
     myOffer,
     shirtInfo,
+    recruiting,
   ] = await Promise.all([
     rosterBoard(db, teamSeasonId),
     teamGames(db, teamSeasonId),
@@ -239,6 +247,7 @@ async function Team({
     keepsOff ? teamKeepOffList(db, teamSeasonId) : [],
     offerFor(db, teamSeasonId, subject.userId),
     teamShirtInfo(db, teamSeasonId),
+    recruits ? recruitingTeam(db, teamSeasonId, now) : null,
   ]);
   // Answers are for games still to come.
   const upcoming = games
@@ -268,6 +277,7 @@ async function Team({
     availability,
     suspended,
     captaincy,
+    recruitingNow,
   ] = await Promise.all([
     teamRsvps(db, teamSeasonId, upcoming),
     pickupsFor(db, upcoming),
@@ -289,6 +299,7 @@ async function Team({
       now,
     ),
     leads || coCaptain || myOffer ? teamCaptaincy(db, teamSeasonId) : null,
+    recruiting ? recruitingSummary(db, recruiting, now) : null,
   ]);
   const mySuspension = suspended.get(subject.userId);
   const day = (d: Date) =>
@@ -640,6 +651,15 @@ async function Team({
           leagueId={league.id}
           info={shirtInfo}
           notice={typeof query.shirts === "string" ? query.shirts : undefined}
+        />
+      )}
+
+      {recruiting && recruitingNow && (
+        <RecruitingSection
+          team={recruiting.teamName}
+          summary={recruitingNow}
+          notice={typeof query.recruit === "string" ? query.recruit : undefined}
+          invite={inviteOpenPlayersAction.bind(null, slug)}
         />
       )}
 

@@ -196,6 +196,20 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
         referralCents={REFERRAL_CREDIT_CENTS}
         referrals={referrals}
       />
+      <section aria-labelledby="next-season" className="flex flex-col gap-3">
+        <h2 id="next-season" className="text-h2">
+          Next season
+        </h2>
+        <p>
+          Open to a new team? Say so quietly. Your current team never sees it,
+          and you don&apos;t need to give a reason.
+        </p>
+        <p>
+          <Link href="/app/change-team" className="underline">
+            Looking for a change
+          </Link>
+        </p>
+      </section>
       <section aria-labelledby="your-data" className="flex flex-col gap-3">
         <h2 id="your-data" className="text-h2">
           Your data
