@@ -47,7 +47,10 @@ export async function POST(
       ? answer({ ok: false, message: "Sign in to save it." }, 401)
       : allowed.error === "frozen"
         ? answer({ ok: false, message: "The league is paused right now." }, 423)
-        : answer({ ok: false, message: "Only the team's captains can tick items." });
+        : answer({
+            ok: false,
+            message: "Only the team's captains can tick items.",
+          });
   const now = new Date();
   // From the game's day on: a tick kept offline may arrive after midnight.
   if (localDay(now, g.timeZone) < g.date)
@@ -62,5 +65,8 @@ export async function POST(
   });
   return saved === "saved"
     ? answer({ ok: true })
-    : answer({ ok: false, message: "The checklist changed. Reload the page to see the latest." });
+    : answer({
+        ok: false,
+        message: "The checklist changed. Reload the page to see the latest.",
+      });
 }

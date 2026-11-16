@@ -164,7 +164,9 @@ describe("the email budget", () => {
         e.subject.startsWith("Urgent emails are on hold"),
       );
       expect(notices).toHaveLength(1);
-      expect(notices[0]?.text).toContain("3 urgent emails could not go today");
+      expect(notices[0]?.text).toContain(
+        "3 urgent emails couldn't go out today",
+      );
       expect(
         (await emailRows(db, "email_budget")).map((r) => r.userId),
       ).toEqual([boss]);
