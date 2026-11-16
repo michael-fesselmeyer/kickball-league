@@ -1,10 +1,23 @@
-/** The theme choice stored per device. "system" means: follow the OS setting. */
-export type ThemeChoice = "system" | "light" | "dark";
+/** The theme a visitor picked, stored per device. With nothing stored, the OS setting decides. */
+export type Theme = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "theme";
 
-export const isThemeChoice = (value: unknown): value is ThemeChoice =>
-  value === "system" || value === "light" || value === "dark";
+export const isTheme = (value: unknown): value is Theme =>
+  value === "light" || value === "dark";
+
+/**
+ * The stored theme, or null when none is saved. Values from earlier versions
+ * (such as "system") and anything unexpected count as nothing saved.
+ */
+export function readSavedTheme(): Theme | null {
+  try {
+    const saved = localStorage.getItem(THEME_STORAGE_KEY);
+    return isTheme(saved) ? saved : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Runs in <head> before first paint, so a saved theme never flashes the other
