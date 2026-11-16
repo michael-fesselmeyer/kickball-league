@@ -40,6 +40,8 @@ describe("MESSAGE_KINDS", () => {
       "interest_go_ahead",
       "lost_found_update",
       "merch_update",
+      "move_accepted",
+      "move_invite",
       "new_team",
       "permit_alert",
       "photo_review",

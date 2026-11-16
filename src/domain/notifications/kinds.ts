@@ -133,6 +133,16 @@ export const MESSAGE_KINDS = {
     urgency: "non_urgent",
     label: "Your league shop order is ready, or was refunded",
   },
+  move_accepted: {
+    urgency: "non_urgent",
+    label:
+      "For captains: a player who said yes to your team's invite for next season",
+  },
+  move_invite: {
+    urgency: "non_urgent",
+    label:
+      "A team's invite for next season, when you said you're open to a new team",
+  },
   new_team: {
     urgency: "non_urgent",
     label: "Answers to new-team requests",

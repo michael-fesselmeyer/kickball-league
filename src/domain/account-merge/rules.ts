@@ -160,6 +160,16 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     clash: "Both are on the same team's keep-off list once",
   },
   "team_keep_off.added_by": actor("keep-off entries added"),
+  // Looking for a change (ADR 0081): one per person per league.
+  "move_interest.user_id": {
+    kind: "dedupe",
+    label: "looking for a change",
+    by: ["league_id"],
+    resolve: "drop",
+    clash:
+      "Both are open to a new team in the same league; the kept account's stays",
+  },
+  "move_invite.sent_by": actor("team invites sent to players open to a move"),
   // A captaincy offer joins two people on one team season, and two accounts
   // on the same team in the same season block a merge (both_registered), so
   // moving these never makes an offer from someone to themselves.
