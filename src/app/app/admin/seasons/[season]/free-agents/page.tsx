@@ -315,6 +315,11 @@ async function FreeAgents({
                   >
                     <td className="py-2">
                       {p.name}
+                      {p.lookingForChange && (
+                        <span className="block text-small">
+                          Looking for a change
+                        </span>
+                      )}
                       {p.notes && (
                         <span className="block text-small text-text-muted">
                           “{p.notes}”

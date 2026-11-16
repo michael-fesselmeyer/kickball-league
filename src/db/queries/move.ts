@@ -588,7 +588,8 @@ export type AdminMoveRow = {
   since: Date;
   /** Their teams in seasons not over yet. */
   teams: string[];
-  invites: { team: string; status: InviteStatus }[];
+  /** Teams whose invite they said yes to; never who they said no to. */
+  saidYesTo: string[];
 };
 
 /** Everyone open to a move who lets admins see it, oldest first. */
@@ -640,17 +641,16 @@ export async function moveInterestsForAdmins(
         ),
       ),
     db
-      .select({
-        interestId: moveInvite.interestId,
-        team: team.name,
-        status: moveInvite.status,
-      })
+      .select({ interestId: moveInvite.interestId, team: team.name })
       .from(moveInvite)
       .innerJoin(team, eq(moveInvite.teamId, team.id))
       .where(
-        inArray(
-          moveInvite.interestId,
-          rows.map((r) => r.id),
+        and(
+          inArray(
+            moveInvite.interestId,
+            rows.map((r) => r.id),
+          ),
+          eq(moveInvite.status, "accepted"),
         ),
       )
       .orderBy(asc(team.name)),
@@ -661,9 +661,7 @@ export async function moveInterestsForAdmins(
       .filter((t) => t.userId === r.userId)
       .map((t) => t.team)
       .sort(),
-    invites: invites
-      .filter((i) => i.interestId === id)
-      .map(({ team: name, status }) => ({ team: name, status })),
+    saidYesTo: invites.filter((i) => i.interestId === id).map((i) => i.team),
   }));
 }
 

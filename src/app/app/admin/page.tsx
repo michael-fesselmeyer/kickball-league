@@ -226,6 +226,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
               ["/app/admin/shirt-makers", "Shirt makers"],
               ["/app/admin/incidents", "Incidents"],
               ["/app/admin/team-lists", "Not-on-my-team lists"],
+              ["/app/admin/team-changes", "Looking for a change"],
               ["/app/admin/seasons", "All seasons"],
               ["/app/admin/instagram", "Instagram"],
               ["/app/admin/friends", "Friends of the league"],

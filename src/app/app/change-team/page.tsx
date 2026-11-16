@@ -146,20 +146,27 @@ async function ChangeTeam({ searchParams }: PageProps<"/app/change-team">) {
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-1 text-h2">Who can see it</legend>
           {AUDIENCE_OPTIONS.map((o) => (
-            <label key={o.value} className="flex min-h-11 items-start gap-3">
+            <div key={o.value} className="flex min-h-11 items-start gap-3">
               <input
+                id={`audience-${o.value}`}
                 type="radio"
                 name="audience"
                 value={o.value}
                 required
                 defaultChecked={(mine?.audience ?? "both") === o.value}
-                className="mt-1 size-5"
+                aria-describedby={`audience-${o.value}-hint`}
+                className="mt-1 size-6"
               />
-              <span className="flex flex-col">
-                <span>{o.label}</span>
-                <span className="text-small text-text-muted">{o.hint}</span>
-              </span>
-            </label>
+              <div className="flex flex-col">
+                <label htmlFor={`audience-${o.value}`}>{o.label}</label>
+                <span
+                  id={`audience-${o.value}-hint`}
+                  className="text-small text-text-muted"
+                >
+                  {o.hint}
+                </span>
+              </div>
+            </div>
           ))}
         </fieldset>
         <label htmlFor="note" className="flex flex-col gap-1">
