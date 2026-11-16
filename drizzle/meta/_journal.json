@@ -582,6 +582,13 @@
       "when": 1794833624802,
       "tag": "0082_field_groups",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1794834041965,
+      "tag": "0083_captain_polls",
+      "breakpoints": true
     }
   ]
 }
