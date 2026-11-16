@@ -24,6 +24,7 @@ export const SITE_PAGE_ROOTS = [
   "contact",
   "faq",
   "free-agents",
+  "guest",
   "help",
   "news",
   "nyc-kickball-league",

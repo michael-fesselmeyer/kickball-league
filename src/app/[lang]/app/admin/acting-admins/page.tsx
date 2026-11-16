@@ -35,7 +35,7 @@ const input =
   "min-h-11 rounded-input border-2 border-border-strong bg-surface px-3 py-2 text-body text-text";
 
 export default function ActingAdminsPage(
-  props: PageProps<"/app/admin/acting-admins">,
+  props: PageProps<"/[lang]/app/admin/acting-admins">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -48,7 +48,7 @@ export default function ActingAdminsPage(
 
 async function ActingAdmins({
   searchParams,
-}: PageProps<"/app/admin/acting-admins">) {
+}: PageProps<"/[lang]/app/admin/acting-admins">) {
   await requirePermission("admins.manage", {
     next: "/app/admin/acting-admins",
   });

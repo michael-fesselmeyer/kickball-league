@@ -24,7 +24,7 @@ import { fileInjuryAction } from "./actions";
 export const metadata: Metadata = { title: "Report an injury" };
 
 export default function InjuryPage(
-  props: PageProps<"/app/games/[game]/incident/injury">,
+  props: PageProps<"/[lang]/app/games/[game]/incident/injury">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
@@ -54,7 +54,7 @@ const field = "rounded-md border border-border bg-surface px-2 py-2";
 async function Report({
   params,
   searchParams,
-}: PageProps<"/app/games/[game]/incident/injury">) {
+}: PageProps<"/[lang]/app/games/[game]/incident/injury">) {
   await requireFeature("discipline");
   const { game: rawId } = await params;
   const query = await searchParams;

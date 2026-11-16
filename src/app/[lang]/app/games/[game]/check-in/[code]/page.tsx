@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-type Props = PageProps<"/app/games/[game]/check-in/[code]">;
+type Props = PageProps<"/[lang]/app/games/[game]/check-in/[code]">;
 
 /**
  * Where the code at the field lands (ADR 0063): one tap records that the

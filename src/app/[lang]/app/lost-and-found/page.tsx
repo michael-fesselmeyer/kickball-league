@@ -11,7 +11,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Lost and found" };
 
 export default function LostAndFoundPage(
-  props: PageProps<"/app/lost-and-found">,
+  props: PageProps<"/[lang]/app/lost-and-found">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
@@ -55,7 +55,9 @@ const DONE: Record<string, string> = {
   removed: "Post taken down.",
 };
 
-async function Board({ searchParams }: PageProps<"/app/lost-and-found">) {
+async function Board({
+  searchParams,
+}: PageProps<"/[lang]/app/lost-and-found">) {
   const subject = await requirePermission("lost_found.use", {
     next: "/app/lost-and-found",
   });

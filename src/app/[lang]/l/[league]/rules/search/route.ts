@@ -30,7 +30,7 @@ const json = (body: unknown, status = 200) =>
  */
 export async function GET(
   request: Request,
-  ctx: RouteContext<"/l/[league]/rules/search">,
+  ctx: RouteContext<"/[lang]/l/[league]/rules/search">,
 ): Promise<Response> {
   const league = await cachedLeague((await ctx.params).league);
   if (!league) return json({ results: [] }, 404);

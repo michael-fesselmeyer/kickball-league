@@ -32,7 +32,7 @@ import {
 export const metadata: Metadata = { title: "Lost and found post" };
 
 export default function ItemPage(
-  props: PageProps<"/app/lost-and-found/[item]">,
+  props: PageProps<"/[lang]/app/lost-and-found/[item]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
@@ -63,7 +63,7 @@ const field =
 async function Item({
   params,
   searchParams,
-}: PageProps<"/app/lost-and-found/[item]">) {
+}: PageProps<"/[lang]/app/lost-and-found/[item]">) {
   const id = parseId<LostFoundItemId>((await params).item);
   const subject = await requirePermission("lost_found.use", {
     next: `/app/lost-and-found/${(await params).item}`,

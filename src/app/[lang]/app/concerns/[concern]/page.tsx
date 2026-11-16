@@ -13,7 +13,7 @@ import { activeLeague } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Your concern" };
 
 export default function ConcernPage(
-  props: PageProps<"/app/concerns/[concern]">,
+  props: PageProps<"/[lang]/app/concerns/[concern]">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-10">
@@ -27,7 +27,7 @@ export default function ConcernPage(
 async function Concern({
   params,
   searchParams,
-}: PageProps<"/app/concerns/[concern]">) {
+}: PageProps<"/[lang]/app/concerns/[concern]">) {
   const { concern: rawId } = await params;
   const { notice } = await searchParams;
   const subject = await requirePermission("concern.send", {

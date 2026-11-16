@@ -16,7 +16,7 @@ import { PlayedList } from "./played-list";
 
 export const metadata: Metadata = { title: "Team attendance" };
 
-type Props = PageProps<"/app/seasons/[season]/team/attendance">;
+type Props = PageProps<"/[lang]/app/seasons/[season]/team/attendance">;
 
 /**
  * A team's attendance (ADR 0063), for its captains: who played in each

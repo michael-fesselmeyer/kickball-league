@@ -19,7 +19,7 @@ const gone = () =>
  */
 export async function GET(
   request: Request,
-  ctx: RouteContext<"/app/lost-and-found/[item]/photo">,
+  ctx: RouteContext<"/[lang]/app/lost-and-found/[item]/photo">,
 ): Promise<Response> {
   const id = parseId<LostFoundItemId>((await ctx.params).item);
   const size =

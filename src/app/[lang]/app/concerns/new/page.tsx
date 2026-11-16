@@ -15,7 +15,9 @@ import { sendConcernAction } from "../actions";
 
 export const metadata: Metadata = { title: "Raise a concern" };
 
-export default function NewConcernPage(props: PageProps<"/app/concerns/new">) {
+export default function NewConcernPage(
+  props: PageProps<"/[lang]/app/concerns/new">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-xl flex-col gap-6 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -32,7 +34,9 @@ const EXTRA: Record<string, string> = {
 };
 const field = "rounded-md border border-border bg-surface px-2 py-2";
 
-async function NewConcern({ searchParams }: PageProps<"/app/concerns/new">) {
+async function NewConcern({
+  searchParams,
+}: PageProps<"/[lang]/app/concerns/new">) {
   await requirePermission("concern.send", { next: "/app/concerns/new" });
   const { error } = await searchParams;
   const message =

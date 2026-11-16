@@ -42,7 +42,7 @@ const control =
   "min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body";
 
 export default function ShirtMakersPage(
-  props: PageProps<"/app/admin/shirt-makers">,
+  props: PageProps<"/[lang]/app/admin/shirt-makers">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
@@ -120,7 +120,7 @@ function MakerFields({
 
 async function ShirtMakers({
   searchParams,
-}: PageProps<"/app/admin/shirt-makers">) {
+}: PageProps<"/[lang]/app/admin/shirt-makers">) {
   await requirePermission("shirts.manage", { next: PAGE });
   const query = await searchParams;
   const league = await activeLeague();

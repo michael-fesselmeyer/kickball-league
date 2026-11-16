@@ -36,7 +36,7 @@ export const metadata: Metadata = {
  * game, and ticks made without signal send when it is back.
  */
 export default function ChecklistPage(
-  props: PageProps<"/app/games/[game]/checklist">,
+  props: PageProps<"/[lang]/app/games/[game]/checklist">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
@@ -50,7 +50,7 @@ export default function ChecklistPage(
 async function Checklist({
   params,
   searchParams,
-}: PageProps<"/app/games/[game]/checklist">) {
+}: PageProps<"/[lang]/app/games/[game]/checklist">) {
   const { game: rawId } = await params;
   const query = await searchParams;
   const subject = await requirePermission("public.view", {

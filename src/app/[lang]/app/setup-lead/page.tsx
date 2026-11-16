@@ -35,7 +35,9 @@ export const metadata: Metadata = {
  * the admins' script for asking park users to move, a one-tap note of how
  * that went, and the set-up and "left clean" checks.
  */
-export default function SetupLeadPage(props: PageProps<"/app/setup-lead">) {
+export default function SetupLeadPage(
+  props: PageProps<"/[lang]/app/setup-lead">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
       <h1 className="text-h1">Set-up lead</h1>
@@ -50,7 +52,9 @@ export default function SetupLeadPage(props: PageProps<"/app/setup-lead">) {
 
 const field = "rounded-md border border-border bg-surface px-2 py-2";
 
-async function SetupLead({ searchParams }: PageProps<"/app/setup-lead">) {
+async function SetupLead({
+  searchParams,
+}: PageProps<"/[lang]/app/setup-lead">) {
   const subject = await requirePermission("public.view", {
     next: "/app/setup-lead",
   });

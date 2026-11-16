@@ -25,7 +25,7 @@ const text = (body: string, status: number) =>
  */
 export async function GET(
   _request: Request,
-  ctx: RouteContext<"/app/admin/incidents/[incident]/injury.csv">,
+  ctx: RouteContext<"/[lang]/app/admin/incidents/[incident]/injury.csv">,
 ): Promise<Response> {
   const subject = await currentSubject();
   const actorId = parseId<UserId>(subject.userId);

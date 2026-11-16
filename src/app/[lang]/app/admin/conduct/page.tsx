@@ -21,7 +21,9 @@ import { ConductDraftForm } from "./draft-form";
 
 export const metadata: Metadata = { title: "Code of conduct" };
 
-export default function ConductPage(props: PageProps<"/app/admin/conduct">) {
+export default function ConductPage(
+  props: PageProps<"/[lang]/app/admin/conduct">,
+) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
       <Suspense fallback={<PageLoading>Loading…</PageLoading>}>
@@ -34,7 +36,9 @@ export default function ConductPage(props: PageProps<"/app/admin/conduct">) {
 const day = (d: Date, timeZone: string) =>
   new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeZone }).format(d);
 
-async function Conduct({ searchParams }: PageProps<"/app/admin/conduct">) {
+async function Conduct({
+  searchParams,
+}: PageProps<"/[lang]/app/admin/conduct">) {
   await requirePermission("season.manage", { next: "/app/admin/conduct" });
   const query = await searchParams;
   const league = await activeLeague();

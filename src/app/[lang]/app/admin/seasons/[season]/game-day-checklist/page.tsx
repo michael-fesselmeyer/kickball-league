@@ -33,7 +33,7 @@ const ERRORS: Record<string, string> = {
  * set-up lead's script for asking park users to move.
  */
 export default function GameDayChecklistPage(
-  props: PageProps<"/app/admin/seasons/[season]/game-day-checklist">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/game-day-checklist">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8">
@@ -49,7 +49,7 @@ const FIELD = "rounded-md border border-border bg-surface px-2 py-2 text-text";
 async function Editor({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/game-day-checklist">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/game-day-checklist">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const page = `/app/admin/seasons/${slug}/game-day-checklist`;

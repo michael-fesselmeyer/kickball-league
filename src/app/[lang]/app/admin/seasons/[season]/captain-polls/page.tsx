@@ -30,7 +30,7 @@ import {
 export const metadata: Metadata = { title: "Manage captains' polls" };
 
 export default function CaptainPollsAdminPage(
-  props: PageProps<"/app/admin/seasons/[season]/captain-polls">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/captain-polls">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -160,7 +160,7 @@ function PollCard({ found, slug }: { found: AdminPoll; slug: string }) {
 async function CaptainPolls({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/captain-polls">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/captain-polls">) {
   const { season: slug } = await params;
   const query = await searchParams;
   await requirePermission("captain_polls.manage", {

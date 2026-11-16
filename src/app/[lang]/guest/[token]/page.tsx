@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type Props = PageProps<"/guest/[token]">;
+type Props = PageProps<"/[lang]/guest/[token]">;
 
 /**
  * The waiver link a guest captain shares with their team. The secret in the

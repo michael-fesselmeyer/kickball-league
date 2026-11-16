@@ -18,7 +18,7 @@ const notFound = () =>
  */
 export async function GET(
   _request: Request,
-  ctx: RouteContext<"/app/admin/today/photo/[file]">,
+  ctx: RouteContext<"/[lang]/app/admin/today/photo/[file]">,
 ) {
   const subject = await currentSubject();
   if (!can(subject, "season.manage")) return notFound();

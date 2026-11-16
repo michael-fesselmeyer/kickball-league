@@ -23,7 +23,7 @@ import { RulebookImport } from "./rulebook-import";
 export const metadata: Metadata = { title: "Rulebook" };
 
 export default function RulebookAdminPage(
-  props: PageProps<"/app/admin/rules/rulebook">,
+  props: PageProps<"/[lang]/app/admin/rules/rulebook">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -36,7 +36,7 @@ export default function RulebookAdminPage(
 
 async function Rulebook({
   searchParams,
-}: PageProps<"/app/admin/rules/rulebook">) {
+}: PageProps<"/[lang]/app/admin/rules/rulebook">) {
   const query = await searchParams;
   await requirePermission("rulebook.manage", {
     next: "/app/admin/rules/rulebook",
