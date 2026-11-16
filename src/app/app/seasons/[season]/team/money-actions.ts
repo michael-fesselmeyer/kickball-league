@@ -11,8 +11,10 @@ import {
   attachCheckoutSession,
   expirePurchases,
   openCheckoutsFor,
+  processingPaymentFor,
   startPurchaseFor,
 } from "@/db/queries/payments";
+import { feeSettingsOf } from "@/db/queries/processing-fees";
 import { profileOf } from "@/db/queries/profile";
 import {
   myRegistration,
@@ -22,6 +24,7 @@ import { teamBalances } from "@/db/queries/team-balance";
 import { can } from "@/domain/authz/permissions";
 import { env } from "@/env";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { checkoutLines, checkoutMethods, feeChoice } from "@/lib/checkout-fees";
 import { checkoutPage } from "@/lib/demo/checkout";
 import { stripeClient } from "@/services/stripe";
 import { closableCheckouts } from "@/services/stale-checkouts";
@@ -122,6 +125,9 @@ export async function payBalanceAction(
   if (!(await allowAction("checkout", subject.userId)))
     redirect(`${page}?guarantee=too_many`);
 
+  // A bank transfer on its way is a payment: don't take a second one.
+  if (await processingPaymentFor(db, mine.id))
+    redirect(`${page}?guarantee=processing`);
   // Only checkouts Stripe has expired are closed: one paid in another tab
   // stays, so its payment counts and nobody is charged twice.
   const stale = await closableCheckouts(
@@ -143,6 +149,10 @@ export async function payBalanceAction(
   ];
   const now = new Date();
   const userId = subject.userId;
+  // Who covers the processing fee, when the league turned that on (ADR 0082).
+  const fee = feeChoice(form.get("payMethod"), await feeSettingsOf(db, league.id), {
+    bank: true,
+  });
   const started = await txDb.transaction((tx) =>
     startPurchaseFor(tx, {
       registrationId: mine.id,
@@ -153,6 +163,7 @@ export async function payBalanceAction(
       items,
       promoCode: null,
       useCredit: form.get("useCredit") === "on",
+      processingFee: fee,
       now,
     }),
   );
@@ -160,7 +171,8 @@ export async function payBalanceAction(
     redirect(
       `${page}?guarantee=${started.error === "in_progress" ? "in_progress" : "failed"}`,
     );
-  const { purchaseId, totalCents, chargeCents } = started.value;
+  const { purchaseId, totalCents, chargeCents, feeCents, feeMethod } =
+    started.value;
   if (totalCents === 0) redirect(`${page}?guarantee=covered`);
   const person = await profileOf(db, userId);
   const session = await stripe.checkout.sessions.create(
@@ -169,14 +181,14 @@ export async function payBalanceAction(
       client_reference_id: purchaseId,
       metadata: { purchaseId },
       ...(person?.email ? { customer_email: person.email } : {}),
-      line_items: items.map((i, n) => ({
-        quantity: 1,
-        price_data: {
-          currency: "usd",
-          unit_amount: chargeCents[n] ?? i.amountCents,
-          product_data: { name: i.description },
-        },
-      })),
+      line_items: checkoutLines(
+        items.map((i, n) => ({
+          name: i.description,
+          cents: chargeCents[n] ?? i.amountCents,
+        })),
+        { cents: feeCents, method: feeMethod },
+      ),
+      ...checkoutMethods(feeMethod),
       success_url: `${env.BETTER_AUTH_URL}${page}?guarantee=balance_paid`,
       cancel_url: `${env.BETTER_AUTH_URL}${page}?guarantee=cancelled`,
     },

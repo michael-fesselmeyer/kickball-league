@@ -18,6 +18,8 @@ import {
   requirePermissionToChange,
   requireSelfToChange,
 } from "@/lib/auth/permission";
+import { feeSettingsOf } from "@/db/queries/processing-fees";
+import { checkoutLines, checkoutMethods, feeChoice } from "@/lib/checkout-fees";
 import { checkoutPage } from "@/lib/demo/checkout";
 import { refreshEventPages } from "@/lib/public-cache";
 import { sendQueuedSoon } from "@/services/outbox";
@@ -90,6 +92,10 @@ export async function buyTicketAction(
   if (!(await allowAction("checkout", subject.userId)))
     redirect(`${page}?error=too_many`);
   const viewer = await viewerOf(db, e.leagueId, subject.userId, staff);
+  // Who covers the processing fee, when the league turned that on.
+  const fee = feeChoice("card", await feeSettingsOf(db, e.leagueId), {
+    bank: false,
+  });
   const buy = () =>
     txDb.transaction((tx) =>
       buyTicket(tx, {
@@ -97,6 +103,8 @@ export async function buyTicketAction(
         userId: subject.userId,
         member: viewer.member,
         useCredit: form.get("useCredit") === "on",
+        // Card only here: the checkout holds its spot or stock for an hour.
+        fee,
         now: new Date(),
       }),
     );
@@ -150,16 +158,16 @@ async function openCheckout(
               eventId: context.eventId,
             },
             ...(person?.email ? { customer_email: person.email } : {}),
-            line_items: [
-              {
-                quantity: 1,
-                price_data: {
-                  currency: "usd",
-                  unit_amount: outcome.totalCents,
-                  product_data: { name: outcome.description },
+            line_items: checkoutLines(
+              [
+                {
+                  name: outcome.description,
+                  cents: outcome.totalCents - outcome.feeCents,
                 },
-              },
-            ],
+              ],
+              { cents: outcome.feeCents, method: outcome.feeMethod },
+            ),
+            ...checkoutMethods(outcome.feeMethod),
             expires_at: Math.floor(outcome.expiresAt.getTime() / 1000),
             success_url: paidPage(context.page),
             cancel_url: `${env.BETTER_AUTH_URL}${context.page}?ticket=cancelled`,

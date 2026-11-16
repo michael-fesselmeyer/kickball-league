@@ -14,6 +14,8 @@ import { can } from "@/domain/authz/permissions";
 import { type MerchItemId, parseId, type TeamSeasonId } from "@/domain/ids";
 import { env } from "@/env";
 import { requirePermissionToChange } from "@/lib/auth/permission";
+import { feeSettingsOf } from "@/db/queries/processing-fees";
+import { checkoutLines, checkoutMethods, feeChoice } from "@/lib/checkout-fees";
 import { checkoutPage } from "@/lib/demo/checkout";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
@@ -50,6 +52,10 @@ export async function orderMerchAction(
     can(subject, "merch.manage", {}),
   );
   const team = form.get("team");
+  // Who covers the processing fee, when the league turned that on.
+  const fee = feeChoice("card", await feeSettingsOf(db, lg.id), {
+    bank: false,
+  });
   const place = () =>
     txDb.transaction((tx) =>
       placeMerchOrder(tx, {
@@ -61,6 +67,8 @@ export async function orderMerchAction(
         quantity: form.get("quantity"),
         teamSeasonId: parseId<TeamSeasonId>(team),
         useCredit: form.get("useCredit") === "on",
+        // Card only here: the checkout holds its spot or stock for an hour.
+        fee,
         now: new Date(),
       }),
     );
@@ -106,16 +114,16 @@ async function openCheckout(
               merchOrderId: outcome.orderId,
             },
             ...(person?.email ? { customer_email: person.email } : {}),
-            line_items: [
-              {
-                quantity: 1,
-                price_data: {
-                  currency: "usd",
-                  unit_amount: outcome.totalCents,
-                  product_data: { name: outcome.description },
+            line_items: checkoutLines(
+              [
+                {
+                  name: outcome.description,
+                  cents: outcome.totalCents - outcome.feeCents,
                 },
-              },
-            ],
+              ],
+              { cents: outcome.feeCents, method: outcome.feeMethod },
+            ),
+            ...checkoutMethods(outcome.feeMethod),
             expires_at: Math.floor(outcome.expiresAt.getTime() / 1000),
             success_url: paidPage(),
             cancel_url: `${env.BETTER_AUTH_URL}${context.page}?order=cancelled`,

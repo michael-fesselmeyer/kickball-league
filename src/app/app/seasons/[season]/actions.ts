@@ -6,8 +6,10 @@ import {
   attachCheckoutSession,
   expirePurchases,
   openCheckoutsFor,
+  processingPaymentFor,
   startPurchaseFor,
 } from "@/db/queries/payments";
+import { feeSettingsOf } from "@/db/queries/processing-fees";
 import { profileOf } from "@/db/queries/profile";
 import {
   myRegistration,
@@ -17,6 +19,7 @@ import { hasSignedSeasonWaiver } from "@/db/queries/waivers";
 import { checkoutItems } from "@/domain/registration/checkout";
 import { env } from "@/env";
 import { requireSelfToChange } from "@/lib/auth/permission";
+import { checkoutLines, checkoutMethods, feeChoice } from "@/lib/checkout-fees";
 import { checkoutPage } from "@/lib/demo/checkout";
 import { stripeClient } from "@/services/stripe";
 import { closableCheckouts } from "@/services/stale-checkouts";
@@ -52,8 +55,10 @@ export async function startCheckout(
   if (!(await allowAction("checkout", subject.userId)))
     redirect(`${page}?payment=too_many`);
 
-  // A second "Pay" expires the first checkout, so nobody can pay twice.
   const registrationId = mine.id;
+  // A bank transfer on its way is a payment: don't take a second one.
+  if (await processingPaymentFor(db, registrationId))
+    redirect(`${page}?payment=processing`);
   // Only checkouts Stripe has expired are closed: one paid in another tab
   // stays, so its payment counts and nobody is charged twice.
   const stale = await closableCheckouts(
@@ -65,6 +70,10 @@ export async function startCheckout(
   await expirePurchases(db, stale.close);
 
   const typed = form.get("promoCode");
+  // Who covers the processing fee, when the league turned that on (ADR 0082).
+  const fee = feeChoice(form.get("payMethod"), await feeSettingsOf(db, league.id), {
+    bank: true,
+  });
   const started = await txDb.transaction((tx) =>
     startPurchaseFor(tx, {
       registrationId,
@@ -75,11 +84,13 @@ export async function startCheckout(
       items: items.items,
       promoCode: typeof typed === "string" ? typed : null,
       useCredit: form.get("useCredit") === "on",
+      processingFee: fee,
       now,
     }),
   );
   if (!started.ok) redirect(`${page}?payment=${started.error}`);
-  const { purchaseId, totalCents, chargeCents } = started.value;
+  const { purchaseId, totalCents, chargeCents, feeCents, feeMethod } =
+    started.value;
   if (totalCents === 0) redirect(`${page}?payment=covered`);
   const person = await profileOf(db, subject.userId);
   const session = await stripe.checkout.sessions.create(
@@ -88,14 +99,14 @@ export async function startCheckout(
       client_reference_id: purchaseId,
       metadata: { purchaseId },
       ...(person?.email ? { customer_email: person.email } : {}),
-      line_items: items.items.map((i, n) => ({
-        quantity: 1,
-        price_data: {
-          currency: "usd",
-          unit_amount: chargeCents[n] ?? i.amountCents,
-          product_data: { name: i.description },
-        },
-      })),
+      line_items: checkoutLines(
+        items.items.map((i, n) => ({
+          name: i.description,
+          cents: chargeCents[n] ?? i.amountCents,
+        })),
+        { cents: feeCents, method: feeMethod },
+      ),
+      ...checkoutMethods(feeMethod),
       success_url: `${env.BETTER_AUTH_URL}${page}?paid=1`,
       cancel_url: `${env.BETTER_AUTH_URL}${page}?payment=cancelled`,
     },
