@@ -136,12 +136,20 @@ const leadershipAudit = (db: Db) =>
 
 /** The transactions that last wrote each row: one, for every row alike. */
 const writers = async (db: Db, table: "candidate" | "option", id: string) => {
-  const rows = await db.execute<{ xmin: string }>(
+  const xmin = sql<string>`xmin::text`;
+  const rows =
     table === "candidate"
-      ? sql`select distinct xmin::text as xmin from leadership_candidate where check_in_id = ${id}`
-      : sql`select distinct xmin::text as xmin from leadership_ballot_option where check_in_id = ${id}`,
-  );
-  return rows.rows.length;
+      ? await db
+          .select({ xmin })
+          .from(leadershipCandidate)
+          .where(eq(leadershipCandidate.checkInId, id as LeadershipCheckInId))
+      : await db
+          .select({ xmin })
+          .from(leadershipBallotOption)
+          .where(
+            eq(leadershipBallotOption.checkInId, id as LeadershipCheckInId),
+          );
+  return new Set(rows.map((r) => r.xmin)).size;
 };
 
 /** Everyone but the captain checks in; `b` volunteers for captain. */
