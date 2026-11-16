@@ -148,10 +148,10 @@ describe("proxy", () => {
   });
 
   it("sends a page not yet translated to its English page", async () => {
-    const response = await proxy(request("/es/seasons/fall-2026/standings"));
+    const response = await proxy(request("/es/seasons/fall-2026/money"));
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "http://localhost:3000/seasons/fall-2026/standings",
+      "http://localhost:3000/seasons/fall-2026/money",
     );
   });
 
@@ -164,6 +164,20 @@ describe("proxy", () => {
         "/es/l/_default/seasons/fall-2026/schedule/the-big-kicks",
       ],
       ["/es/l/flag-football", "/es/l/flag-football"],
+      [
+        "/es/seasons/fall-2026/standings",
+        "/es/l/_default/seasons/fall-2026/standings",
+      ],
+      [
+        "/es/seasons/fall-2026/bracket?view=list",
+        "/es/l/_default/seasons/fall-2026/bracket/list",
+      ],
+      [
+        "/es/teams/the-big-kicks?season=summer-2026",
+        "/es/l/_default/teams/the-big-kicks/summer-2026",
+      ],
+      ["/es/about", "/es/about"],
+      ["/es/help/ref", "/es/help/ref"],
     ] as const) {
       const response = await proxy(request(path));
       expect(response.headers.get("location"), path).toBeNull();
