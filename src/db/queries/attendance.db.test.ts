@@ -152,10 +152,12 @@ describe("a rained-out game", () => {
       const w = await world(db);
       expect(w.g.slotCancelled).toBe(false);
       expect(scanOpen(w.g, DURING).ok).toBe(true);
-      const { slotId } = (await db
-        .select({ slotId: game.slotId })
-        .from(game)
-        .where(eq(game.id, w.gameId)))[0]!;
+      const { slotId } = (
+        await db
+          .select({ slotId: game.slotId })
+          .from(game)
+          .where(eq(game.id, w.gameId))
+      )[0]!;
       await db
         .update(slot)
         .set({ status: "cancelled" })

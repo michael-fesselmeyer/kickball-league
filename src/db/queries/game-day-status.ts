@@ -436,9 +436,15 @@ export async function settleDayOnRainout(
   await db
     .delete(gameDayStatusGame)
     .where(eq(gameDayStatusGame.statusId, row.id));
-  await db.insert(gameDayStatusGame).values(
-    [...off].map((gameId) => ({ statusId: row.id, gameId, newStartsAt: null })),
-  );
+  await db
+    .insert(gameDayStatusGame)
+    .values(
+      [...off].map((gameId) => ({
+        statusId: row.id,
+        gameId,
+        newStartsAt: null,
+      })),
+    );
   await recordAudit(db, {
     actorId: input.actorId,
     action: "game_day.status",
