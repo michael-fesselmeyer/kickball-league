@@ -1,4 +1,4 @@
-# ADR 0064: Interest sign-ups with unverified addresses
+# ADR 0075: Interest sign-ups with unverified addresses
 
 - Status: accepted
 - Date: 2026-11-15
