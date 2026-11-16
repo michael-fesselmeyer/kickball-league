@@ -38,6 +38,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 - Send blackout dates and time preferences before the schedule is made; build kicking orders that check the league's gender-run rule.
 - Ask for subs, answer score confirmations, see availability by week and hand the team to a co-captain.
 - Keep a private "not on my team" list and download the team's roster and payments.
+- Vote in the league's quick captains' polls: one vote for the team (co-captains too, when a poll says so), changeable until it closes, with the totals once the team has voted or at close, as the admin chose; a reminder comes once a day while the team hasn't voted.
 
 **Refs**
 
@@ -48,6 +49,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 
 - Generate a season schedule, see why any game could not be placed, edit on a drag-and-drop board, publish versions with a diff and run playoffs: single or double elimination, a third-place game, and tiers of the standings on their own days.
 - Written rulings: recording or reversing a forfeit, settling a disputed score or correcting a final one asks for a short reason. Both captains and the ref see the ruling and reason and are messaged, the public game page says only "Forfeit" or "Ruling", and each one is in the audit log.
+- Captains' polls: ask a season's captains a quick question with two to five options and a closing time, choosing whether co-captains vote and whether captains see results after their team votes or at close. Each team has one vote and the last answer counts. Watch live totals and each team's answer, remind teams that haven't voted (counted against the daily limit for non-urgent messages), close early or remove ([ADR 0063](docs/adr/0063-quick-polls-for-captains.md)).
 - Call a rain-out with a weather decision card, a preview of makeups and notices to only the players affected.
 - A game-day command center, a ref assigner and pay sheet, rule changes with a dated change log, sub, concern and incident queues, and an audit log.
 - Divisions with crossover games, season rollover, events with tickets and giveaways, sponsors, and photo review.
