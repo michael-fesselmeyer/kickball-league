@@ -36,6 +36,20 @@ export type EmailParts = {
   settings?: { label: string; path: string };
 };
 
+/**
+ * Ways to turn emails down instead of off (issue #529), next to the
+ * unsubscribe link. Each opens the unsubscribe page with that choice ready;
+ * only its button changes anything.
+ */
+export const TURN_DOWN_LINKS = [
+  { choice: "team", label: "Only my team" },
+  { choice: "weekly", label: "Weekly digest instead" },
+  { choice: "snooze", label: "Snooze for 2 weeks" },
+] as const;
+
+const turnDownUrl = (pageUrl: string, choice: string) =>
+  `${pageUrl}?do=${choice}`;
+
 /** Where every email's footer points unless it names its own setting. */
 export const EMAIL_SETTINGS = {
   label: "Choose which emails you get and when",
@@ -84,6 +98,7 @@ ${body}
 ${list}
 ${button}
 <p style="${muted};margin-top:32px">You got this email because ${escapeHtml(reason)}. <a href="${escapeHtml(settingsUrl)}" style="color:#5c5650">${escapeHtml(settings.label)}</a>.${unsubscribe ? ` <a href="${escapeHtml(unsubscribe.pageUrl)}" style="color:#5c5650">Stop emails about ${escapeHtml(unsubscribe.topicLabel.toLowerCase())}</a>.` : ""}</p>
+${unsubscribe ? `<p style="${muted}">Fewer emails instead? ${TURN_DOWN_LINKS.map((t) => `<a href="${escapeHtml(turnDownUrl(unsubscribe.pageUrl, t.choice))}" style="color:#5c5650">${t.label}</a>`).join(" · ")}</p>` : ""}
 </td></tr></tbody></table>
 </body></html>`;
   const text = [
@@ -102,6 +117,9 @@ ${button}
     ...(unsubscribe
       ? [
           `Stop emails about ${unsubscribe.topicLabel.toLowerCase()}: ${unsubscribe.pageUrl}`,
+          ...TURN_DOWN_LINKS.map(
+            (t) => `${t.label}: ${turnDownUrl(unsubscribe.pageUrl, t.choice)}`,
+          ),
         ]
       : []),
   ].join("\n");
