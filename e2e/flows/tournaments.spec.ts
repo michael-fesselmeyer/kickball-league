@@ -72,7 +72,7 @@ test("a guest team signs up, its players sign the waiver and the bracket plays o
   await expect(panel.getByText(TEAM, { exact: true })).toBeVisible();
   await expect(panel.getByText("jo@example.test")).toBeVisible();
   await expect(
-    panel.getByText("1 of 6 players have signed the waiver."),
+    panel.getByText("1 of 6 players has signed the waiver."),
   ).toBeVisible();
   await expectNoAxeViolations(admin);
 
