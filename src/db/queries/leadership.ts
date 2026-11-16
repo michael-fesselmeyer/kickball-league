@@ -828,23 +828,22 @@ async function advanceOne(
       captainId,
       onRoster: new Set(roster.map((m) => m.userId)),
     });
-    if (result.outcome !== "new_captain") {
-      await closeWith(db, checkIn, result.outcome, now);
-      return "closed";
-    }
+    // Every result waits the captain's private three days, whatever it is,
+    // so the wait itself never tells the team which way it went.
     const reviewEndsAt = new Date(now.getTime() + REVIEW_DAYS * DAY_MS);
+    const electedId = result.outcome === "new_captain" ? result.electedId : null;
     await db
       .update(leadershipCheckIn)
       .set({
         step: "captain_review",
-        electedUserId: result.electedId,
+        outcome: result.outcome,
+        electedUserId: electedId,
         reviewEndsAt,
       })
       .where(eq(leadershipCheckIn.id, checkIn.id));
-    if (captainId) {
+    if (captainId && electedId) {
       const elected =
-        roster.find((m) => m.userId === result.electedId)?.name ??
-        "A teammate";
+        roster.find((m) => m.userId === electedId)?.name ?? "A teammate";
       await enqueueMessages(db, [
         notice(
           captainId,
@@ -867,13 +866,15 @@ async function advanceOne(
   if (checkIn.step === "captain_review") {
     if (!checkIn.reviewEndsAt || now < checkIn.reviewEndsAt)
       return "captain_review";
-    await applyNewCaptain(
-      db,
-      { ...checkIn, electedUserId: checkIn.electedUserId },
-      defaultChoice(checkIn.captainSteppingDown),
-      null,
-      now,
-    );
+    if (checkIn.outcome === "new_captain")
+      await applyNewCaptain(
+        db,
+        checkIn,
+        defaultChoice(checkIn.captainSteppingDown),
+        null,
+        now,
+      );
+    else await closeWith(db, checkIn, checkIn.outcome ?? "no_majority", now);
     return "closed";
   }
   return checkIn.step;
@@ -953,7 +954,8 @@ export async function captainChooses(
 ): Promise<Result<void, ChooseError>> {
   const checkIn = await lockCheckIn(db, input.checkInId);
   if (!checkIn) return err("not_found");
-  if (checkIn.step !== "captain_review") return err("closed");
+  if (checkIn.step !== "captain_review" || checkIn.outcome !== "new_captain")
+    return err("closed");
   if (checkIn.pausedAt) return err("paused");
   const roster = await rosterOf(db, checkIn.teamSeasonId);
   if (roster.find((m) => m.role === "captain")?.userId !== input.userId)
@@ -1065,6 +1067,8 @@ export type LeadershipView = {
   teammates: { userId: UserId; name: string; role: RosterRole }[];
   /** The ballot's choices, by name, while it is open. */
   ballot: { id: LeadershipOptionId; name: string; isCaptain: boolean }[];
+  /** For the captain alone, in their private time: the ballot's result. */
+  resultForCaptain: Outcome | null;
   /** For the captain alone, in their private time: who the team chose. */
   electedForCaptain: string | null;
   /** The teammate chosen, once the team has heard. */
@@ -1121,7 +1125,8 @@ export async function leadershipFor(
   return {
     id: checkIn.id,
     step: checkIn.step,
-    outcome: checkIn.outcome,
+    // The team hears the outcome only once it is closed.
+    outcome: checkIn.step === "closed" ? checkIn.outcome : null,
     paused: checkIn.pausedAt !== null,
     checkInClosesAt: checkIn.checkInClosesAt,
     ballotClosesAt: checkIn.ballotClosesAt,
@@ -1158,6 +1163,8 @@ export async function leadershipFor(
       name: nameOf(o.userId) ?? "A teammate",
       isCaptain: o.userId === captainId,
     })),
+    resultForCaptain:
+      checkIn.step === "captain_review" && isCaptain ? checkIn.outcome : null,
     electedForCaptain:
       checkIn.step === "captain_review" && isCaptain
         ? nameOf(checkIn.electedUserId)
@@ -1195,7 +1202,11 @@ export async function checkInStep(
     .from(leadershipCheckIn)
     .where(eq(leadershipCheckIn.teamSeasonId, teamSeasonId));
   return row
-    ? { step: row.step, outcome: row.outcome, paused: row.pausedAt !== null }
+    ? {
+        step: row.step,
+        outcome: row.step === "closed" ? row.outcome : null,
+        paused: row.pausedAt !== null,
+      }
     : null;
 }
 
@@ -1242,7 +1253,8 @@ export async function seasonLeadership(
     checkInId: r.checkInId,
     team: r.team,
     step: r.step,
-    outcome: r.outcome,
+    // Admins hear the outcome with the team, after the captain.
+    outcome: r.step === "closed" ? r.outcome : null,
     paused: r.pausedAt !== null,
     closesAt:
       r.step === "check_in"

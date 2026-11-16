@@ -88,7 +88,11 @@ export const leadershipCheckIn = pgTable(
       .references(() => teamSeason.id, { onDelete: "cascade" })
       .unique(),
     step: leadershipStep().notNull().default("check_in"),
-    /** Set when the step is `closed`; what the team is told. */
+    /**
+     * What the team is told. A ballot's result is set when it closes and
+     * kept for the captain's private three days; the team hears it when
+     * the step is `closed`.
+     */
     outcome: leadershipOutcome(),
     /** The league's quorum when it opened, as a percentage of the roster. */
     quorumPercent: smallint().notNull(),
@@ -96,7 +100,7 @@ export const leadershipCheckIn = pgTable(
     captainSteppingDown: boolean().notNull().default(false),
     checkInClosesAt: timestamp({ withTimezone: true }).notNull(),
     ballotClosesAt: timestamp({ withTimezone: true }),
-    /** End of the captain's private three days with the result. */
+    /** End of the captain's private three days with a ballot's result. */
     reviewEndsAt: timestamp({ withTimezone: true }),
     /** The ballot's winner, when it isn't the current captain. */
     electedUserId: uuid()
@@ -117,7 +121,7 @@ export const leadershipCheckIn = pgTable(
     index("leadership_check_in_step_idx").on(t.step),
     check(
       "leadership_check_in_closed",
-      sql`(${t.step} = 'closed') = (${t.closedAt} is not null and ${t.outcome} is not null)`,
+      sql`(${t.step} = 'closed') = (${t.closedAt} is not null) and (${t.step} <> 'closed' or ${t.outcome} is not null)`,
     ),
     check(
       "leadership_check_in_quorum",
@@ -125,7 +129,11 @@ export const leadershipCheckIn = pgTable(
     ),
     check(
       "leadership_check_in_review",
-      sql`${t.step} <> 'captain_review' or (${t.reviewEndsAt} is not null and ${t.electedUserId} is not null)`,
+      sql`${t.step} <> 'captain_review' or (${t.reviewEndsAt} is not null and ${t.outcome} is not null)`,
+    ),
+    check(
+      "leadership_check_in_elected",
+      sql`${t.outcome} is distinct from 'new_captain' or ${t.electedUserId} is not null`,
     ),
     check(
       "leadership_check_in_ballot",
