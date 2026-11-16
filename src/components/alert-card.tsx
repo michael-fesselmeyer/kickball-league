@@ -5,7 +5,7 @@ import { startTransition, useActionState, useState } from "react";
 import {
   type AlertCardState,
   answerAlertCardAction,
-} from "@/app/app/alert-card-actions";
+} from "@/app/[lang]/app/alert-card-actions";
 import type { CardCopy } from "@/domain/notifications/alert-cards";
 import { browserPushGlobals, subscribeDevice } from "@/lib/pwa/push-client";
 

@@ -78,7 +78,7 @@ const OUTCOME: Record<Outcome, string> = {
 const field = "rounded-md border border-border bg-surface px-2 py-2";
 
 export default function LeadershipAdminPage(
-  props: PageProps<"/app/admin/seasons/[season]/leadership">,
+  props: PageProps<"/[lang]/app/admin/seasons/[season]/leadership">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -92,7 +92,7 @@ export default function LeadershipAdminPage(
 async function LeadershipAdmin({
   params,
   searchParams,
-}: PageProps<"/app/admin/seasons/[season]/leadership">) {
+}: PageProps<"/[lang]/app/admin/seasons/[season]/leadership">) {
   const { season: slug } = await params;
   const query = await searchParams;
   await requirePermission("leadership.manage", {

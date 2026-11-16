@@ -58,7 +58,16 @@ describe("the group contact stays admin-only", () => {
 
 describe("the set-up lead's checklist", () => {
   const page = readFileSync(
-    join(SRC, "app", "[lang]", "app", "games", "[game]", "checklist", "page.tsx"),
+    join(
+      SRC,
+      "app",
+      "[lang]",
+      "app",
+      "games",
+      "[game]",
+      "checklist",
+      "page.tsx",
+    ),
     "utf8",
   );
 
