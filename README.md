@@ -42,6 +42,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 - Register a team, share the invite link and see who has joined, signed and paid; a card on file guarantees a split-pay team's balance.
 - Send blackout dates and time preferences before the schedule is made; build kicking orders that check the league's gender-run rule.
 - Ask for subs, answer score confirmations, see availability by week and hand the team to a co-captain.
+- A calm season-end leadership check-in: players privately volunteer or suggest a teammate, a secret ballot opens only with enough support, and the captain hears the result first and chooses how to hand over.
 - Keep a private "not on my team" list and download the team's roster and payments.
 - Choose your team's own shirts or jerseys instead of the league's, and see local shirt makers.
 - Vote in the league's quick captains' polls: one vote for the team (co-captains too, when a poll says so), changeable until it closes, with the totals once the team has voted or at close, as the admin chose; a reminder comes once a day while the team hasn't voted.

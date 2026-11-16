@@ -34,6 +34,7 @@ describe("the help center's how-tos", () => {
         "season-card",
         "who-has-field",
         "change-team",
+        "leadership-check-in",
       ],
       captain: [
         "invite",
@@ -67,6 +68,7 @@ describe("the help center's how-tos", () => {
         "ref-assigner",
         "league-inbox",
         "injury-reports",
+        "leadership-check-ins",
       ],
       owner: [
         "books",

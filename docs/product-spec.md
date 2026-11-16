@@ -102,6 +102,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - Message my team and copy any update into our WhatsApp chat.
 - Give the league scheduling conflicts before the schedule is made.
 - While next season is open for registration, see how many players are open to a new team and invite them, then hear from those who say yes.
+- Hear my team's season-end leadership check-in result privately first, and choose whether to hand over now or keep the chosen teammate as co-captain until next season.
 
 ### Referee
 - Set which game days and time slots I can work.
@@ -155,6 +156,9 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | See team RSVPs | — | own team | own team | — | — | ✓ | ✓ |
 | Hand the team to a teammate, who must accept; make or unmake co-captains ([ADR 0042](adr/0042-captain-handoff-and-co-captains.md)) | — | — | own (captain only, not co-captains) | — | — | ✓ | ✓ |
 | Accept or decline the captaincy offered to you; step down as a co-captain | — | own | own | — | — | own | own |
+| Check in privately and vote secretly in the team's season-end leadership check-in ([ADR 0077](adr/0077-leadership-check-in-with-a-secret-ballot.md)) | — | own team | own team | — | — | own team | own team |
+| Hear the ballot's result first and choose how to hand over | — | — | own (captain only, not co-captains) | — | — | — | — |
+| Open, pause, resume and close leadership check-ins; set the league's quorum (never sees a choice) | — | — | — | — | — | ✓ | ✓ |
 | Post a sub request | — | — | own | — | — | ✓ | ✓ |
 | Claim a sub request | — | ✓ (registered, waiver signed, not suspended) | ✓ | ✓ if also a player | — | — | — |
 | Approve or decline sub claims; take a request down | — | — | own | — | — | ✓ | ✓ |
@@ -303,11 +307,8 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Final score entry by ref or captain; the other captain confirms, or it auto-confirms after 24 hours | MVP |
 | A ref who plays for one of the game's teams reports for that team, so only the other team can confirm or dispute the score. Assigning such a ref, by email or with "Take it", warns first and needs an explicit override; the assigner never proposes one. A ref on both rosters, or neither, is neutral (either team answers), and an admin's report stays final at once. The assign and score screens say which rule applies | MVP |
 | Forfeits, and games called after 4 innings | MVP |
-<<<<<<< HEAD
 | Daylight and field-time clock: each game's end of play is the earlier of the time its field must be clear and sunset at its park less a margin (fields with lights have no daylight end). The ref's and captains' screens count down to first pitch and to that end; the ref records first pitch with one tap and says who held up a late start; captains and the ref of a game with no time to spare get a reminder two hours before; admins see start times by team, and the scheduler warns about slots that run past daylight (#467) | P2 |
-=======
 | Other sports: each league plays one sport with its own scoring rules; dodgeball is played in best-of-N sets (ADR 0087) | P2 |
->>>>>>> 895891bc (docs: describe sport rules, dodgeball and the match length)
 | Missing-score reminders to the ref, then captains, then an admin list | MVP |
 | Game-day RSVPs with a fielding-rule warning for captains | MVP |
 | Inning-by-inning live scoring | P2 |
@@ -332,6 +333,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Build a new team from free agents with volunteer captains | P2 |
 | "Start a new team" request with league approval and captain notice | P2 |
 | "Looking for a change": a player quietly open to a new team next season, never visible to their current team; recruiting captains see a count and invite, and a name is revealed only on the player's yes ([ADR 0089](adr/0089-looking-for-a-change.md)) | P2 |
+| Season-end leadership check-in: each player privately volunteers, suggests a teammate or says things are good; a secret ballot only with the league's quorum and a teammate standing; over half the votes for a change; the captain hears first and hands over now or keeps the new captain-elect as co-captain until next season; admins can pause or close one; once per team per season ([ADR 0077](adr/0077-leadership-check-in-with-a-secret-ballot.md)) | P3 |
 
 ### Weather and rain-outs
 | Feature | Tag |
