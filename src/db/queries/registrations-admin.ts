@@ -38,6 +38,8 @@ export type BoardPayment = {
   refundedCents: number;
   /** Refunds asked for here, including any Stripe has not confirmed yet. */
   requestedCents: number;
+  /** The processing fee inside the amount (ADR 0082); zero for most. */
+  feeCents: number;
 };
 
 export type BoardPerson = {
@@ -121,6 +123,7 @@ export async function registrationsBoard(
       method: payment.method,
       amountCents: payment.amountCents,
       refundedCents: payment.refundedCents,
+      feeCents: purchase.feeCents,
       requestedCents:
         sql<number>`(select coalesce(sum(${refund.amountCents}), 0) from ${refund} where ${refund.paymentId} = ${payment.id})`.mapWith(
           Number,
@@ -171,6 +174,7 @@ export async function registrationsBoard(
       amountCents: p.amountCents,
       refundedCents: p.refundedCents,
       requestedCents: p.requestedCents,
+      feeCents: p.feeCents,
     });
     paymentsOf.set(p.registrationId, list);
   }
