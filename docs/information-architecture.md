@@ -74,7 +74,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 
 /operator                           Platform operator console (404 for everyone else): leagues (list and start one: name, sport, address, colors, time zone, minimum age, first rule set), owners and admins per league, site status, feature switches, league export
 
-/app                                Signed-in home: next game, links to your team and its schedule, RSVP, what you owe, alerts, any giveaway you won, any season survey waiting for my answer, and the league gear you have or bring ("You have Kit A: bring it to McCarren Park, Field 2 by 6:30 PM") with one-tap "I picked it up", "I handed Kit A to Sam", "Got it" or "It's back home", and the league switcher for anyone in more than one league
+/app                                Signed-in home, a dashboard of cards rather than a list of links: the next game (with today's emergency contacts, checklist and permit when they apply), "Needs you" (award votes, captains' polls, season surveys, open registration), your team for each current season and your season card, any giveaway you won, the games you referee, and the league gear you have or bring ("You have Kit A: bring it to McCarren Park, Field 2 by 6:30 PM") with one-tap "I picked it up", "I handed Kit A to Sam", "Got it" or "It's back home", and the league switcher for anyone in more than one league
 ├── league/[league]                 Shows that league in the app, then goes on to ?next= (the switcher, and the way in from a league's public pages)
 ├── rules                           The rulebook inside the app, with the same search, contents and rule anchors: for owners while it is owners only, for anyone with an account while it is members only; never cached. Others see that the league hasn't shared it
 ├── referee                         Refs: tick the game times you can work for each season (a time you already ref is fixed), and your games worked, what you've earned, payments and the balance; "Can't make it?" drops a game still to come, with a reason
@@ -264,8 +264,10 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ### Navigation
 
 - **Phone, public:** top bar with the league badge and a Join button; a menu sheet for the rest.
-- **Phone, signed in:** bottom tab bar with four tabs: Home, Schedule, Team, More. Captains, refs and admins see their tools on Home and under More, not as extra tabs.
-- **Desktop:** top navigation for public pages; a left sidebar inside `/app/admin`.
+- **Phone, signed in:** a bottom tab bar on every `/app` screen: Home, Schedule, Team and Menu, clear of the home indicator, with room left below the page so it never covers anything. Someone with no team gets Admin (admins) or Reffing (refs) in Team's place, or no third tab. Menu opens a sheet from the bottom with grouped links: My season (your team, schedule, standings, your stats), Game day (pick'em, award votes, sub for a team), League life (events, volunteer, shop, photos), Help (help center, league rules, raise a concern, lost and found) and Account (profile, sponsor page, sign out).
+- **Roles add groups, never views:** a captain also sees Captain (roster and payments, message your team, attendance, find subs, scheduling requests), a ref sees Referee, admins see League admin and owners see Owner. Someone with several roles sees each group; an admin or ref with no team sees no player groups. Every link is one the person's role may open (`src/domain/nav/app-nav.ts`).
+- **The menu is a native popover:** a non-modal dialog that Escape, a tap outside, Close or following a link closes. No script opens it.
+- **Desktop:** top navigation for public pages; inside `/app`, the same tabs sit in a bar under the header and Menu opens a panel from the right. League admin's home keeps its six everyday tools in sight and folds the rest into "All admin tools", grouped by job.
 
 ## 2. Primary flows
 
@@ -467,7 +469,7 @@ Rules:
 | Team page | Badge, record, next game card, results list, power rank and streaks, rivalries, roster | Two columns: results and stats left, roster right |
 | Game page | Teams and score large; time, field, map link, weather; share button | Same, with the inning line score across the full width |
 | Rulebook | Search box at top; collapsible sections; each rule has a copy-link button | Section list in a sticky side column |
-| Signed-in Home | Next game card with RSVP buttons; "you owe" card; alerts; quick links by role | Dashboard grid of the same cards |
+| Signed-in Home | "Hi, name"; next game card; "Needs you" list; your season list; gear; games you referee; Running the league for admins. Everything else is in the tab bar and Menu | Same cards, one column no wider than 576px |
 | Team (captain) | Tabs: Roster, RSVPs, Payments, Subs. Remind and invite buttons pinned to the bottom | All four as panels on one screen |
 | Score entry | One screen; two large counters; inning stepper (P2); submit pinned to the bottom | Same layout, centered, no wider than a phone |
 | Incident report | Kind, a checkbox list of each team's players, what happened, one send button | Same, no wider than a phone |
