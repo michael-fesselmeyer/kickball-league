@@ -253,14 +253,11 @@ describe("publishing a rain-out", () => {
         ok: false,
         error: "not_draft",
       });
-      // The duplicate draft moves nothing further, so it sends nothing.
-      const again = await publishVersion(
-        db,
-        second.draft,
-        w.aces.captain.userId,
-        NOW,
-      );
-      expect(again.ok && again.value.notified).toBe(0);
+      // The duplicate draft was made before the first went out, so it is
+      // refused as stale and sends nothing.
+      expect(
+        await publishVersion(db, second.draft, w.aces.captain.userId, NOW),
+      ).toEqual({ ok: false, error: "stale" });
       // Writing the same notices again, as a retried request would, adds none.
       const v1 = required(await loadVersion(db, w.v1), "v1");
       const d1 = required(await loadVersion(db, first.draft), "draft");

@@ -57,6 +57,8 @@ const ERRORS: Record<string, string> = {
   missing_layout:
     "A field this schedule uses has no layout yet. Add one, or confirm none is needed, on the Fields and permits screen.",
   not_draft: "Only a draft can be published.",
+  stale:
+    "Another version was published after this draft was made, so publishing it would undo that one. Make a new draft from the published schedule.",
   unknown_version: "That version no longer exists.",
   missing_documents:
     "Only permit documents are missing. If the league holds these permits, publish anyway with a reason.",

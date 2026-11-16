@@ -416,6 +416,8 @@ export type PublishError =
   | "unknown_version"
   | "not_draft"
   | "has_violations"
+  /** Another version was published since this draft was made from it. */
+  | "stale"
   /** Only permit documents are missing: an owner or admin may override. */
   | "missing_documents";
 
@@ -489,6 +491,45 @@ export async function lockSchedulePublish(
   );
 }
 
+/**
+ * Whether a version is the season's published one or descends from it,
+ * following parents. True when nothing is published yet.
+ */
+async function buildsOnPublished(
+  db: Db,
+  versionId: ScheduleVersionId,
+  seasonId: SeasonId,
+): Promise<boolean> {
+  const [published] = await db
+    .select({ id: scheduleVersion.id })
+    .from(scheduleVersion)
+    .where(
+      and(
+        eq(scheduleVersion.seasonId, seasonId),
+        eq(scheduleVersion.status, "published"),
+      ),
+    );
+  if (!published) return true;
+  const [found] = await db
+    .select({ id: scheduleVersion.id })
+    .from(scheduleVersion)
+    .where(
+      and(
+        eq(scheduleVersion.id, published.id),
+        sql`${scheduleVersion.id} in (
+          with recursive line as (
+            select id, parent_version_id from schedule_version
+            where id = ${versionId}
+            union
+            select v.id, v.parent_version_id
+            from schedule_version v join line on v.id = line.parent_version_id
+          )
+          select id from line)`,
+      ),
+    );
+  return found !== undefined;
+}
+
 export async function publishVersion(
   db: Db,
   versionId: ScheduleVersionId,
@@ -523,6 +564,11 @@ export async function publishVersion(
       .for("update");
     if (!version) return err("unknown_version");
     if (version.status !== "draft") return err("not_draft");
+    // A draft must come from the schedule now published (or a draft of it).
+    // One made before another version went out, such as a rain-out's
+    // makeups, would quietly undo that version.
+    if (!(await buildsOnPublished(tx, versionId, version.seasonId)))
+      return err("stale");
     const stored = version.violations;
     // Permit gaps (H12) are judged again below; any other rule blocks.
     if (

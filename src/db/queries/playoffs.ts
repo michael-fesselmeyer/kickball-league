@@ -729,6 +729,9 @@ async function scheduleGame(
   slotId: SlotId | null,
   now: Date,
 ) {
+  // Two results recorded at once each add their game to the published
+  // schedule: they take turns, so the second builds on the first's.
+  await lockSchedulePublish(db, seasonId);
   const publishedId = await publishedVersionId(db, seasonId);
   if (!publishedId) return;
   const published = required(
