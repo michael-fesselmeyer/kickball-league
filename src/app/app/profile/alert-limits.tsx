@@ -67,7 +67,7 @@ export function AlertLimitsSettings({
           <select
             name="dailyCap"
             defaultValue={String(limits.dailyCap)}
-            className="self-start rounded-lg border border-text px-3 py-2"
+            className="max-w-full self-start rounded-lg border border-text px-3 py-2"
           >
             {CAPS.map((n) => (
               <option key={n} value={n}>
