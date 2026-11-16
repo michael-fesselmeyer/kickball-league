@@ -39,6 +39,15 @@ export async function addGameKickedOffToday(
   return addFallGame(teamA, teamB, 0, 0, true);
 }
 
+/**
+ * A kickoff a random part of a minute (1 to 59 seconds) after the whole
+ * minute asked for. Slots are unique by field and start, and the seed, the
+ * schedule screens and parallel flows all start games on the minute, so a
+ * flow's own game can't collide with any of them, while every screen still
+ * shows the same minute and day.
+ */
+const JITTER = "make_interval(secs => 1 + random() * 58)";
+
 async function addFallGame(
   teamA: string,
   teamB: string,
@@ -65,7 +74,7 @@ async function addFallGame(
                   else (date_trunc('day', now() at time zone timezone)
                           + make_interval(days => $3::int, hours => $4::int))
                          at time zone timezone
-                end as starts_at,
+                end + ${JITTER} as starts_at,
                 season_id, league_id
            from teams limit 1
        ), place as (
@@ -173,7 +182,7 @@ export async function addGamesNextWeek(
            select e.id, t.name from entries e join team t on t.id = e.team_id
          ), noon as (
            select ((($6::date)::timestamp + interval '12 hours')
-                    at time zone l.timezone) as starts_at
+                    at time zone l.timezone) + ${JITTER} as starts_at
              from league l where l.id = $2
          ), place as (
            select f.id as field_id from field f
@@ -261,9 +270,10 @@ export async function addRefereedGameSoon(
        ), new_slot as (
          insert into slot (season_id, field_id, starts_at, ends_at, time_index)
          select new_season.id, (select field_id from place),
-                date_trunc('hour', now()) + interval '3 hours',
-                date_trunc('hour', now()) + interval '4 hours', 0
-           from new_season
+                soon.starts_at, soon.starts_at + interval '1 hour', 0
+           from new_season,
+                (select date_trunc('hour', now()) + interval '3 hours'
+                          + ${JITTER} as starts_at) soon
          returning id, season_id
        ), new_game as (
          insert into game (season_id, team_a_id, team_b_id, kind, slot_id)
@@ -341,9 +351,10 @@ export async function addStartedGame(
        ), new_slot as (
          insert into slot (season_id, field_id, starts_at, ends_at, time_index)
          select new_season.id, (select field_id from place),
-                date_trunc('minute', now()) - interval '60 minutes',
-                date_trunc('minute', now()), 0
-           from new_season
+                kickoff.starts_at, kickoff.starts_at + interval '1 hour', 0
+           from new_season,
+                (select date_trunc('minute', now()) - interval '60 minutes'
+                          + ${JITTER} as starts_at) kickoff
          returning id, season_id
        ), new_game as (
          insert into game (season_id, team_a_id, team_b_id, kind, slot_id)
@@ -423,8 +434,9 @@ export async function addGameTodayWithPlayer(
           where t.league_id = new_season.league_id and t.name in ($1, $2)
          returning id, team_id
        ), noon as (
-         select (date_trunc('day', now() at time zone l.timezone)
-                   + interval '12 hours') at time zone l.timezone as starts_at
+         select ((date_trunc('day', now() at time zone l.timezone)
+                   + interval '12 hours') at time zone l.timezone) + ${JITTER}
+                  as starts_at
            from new_season join league l on l.id = new_season.league_id
        ), place as (
          select f.id as field_id from field f
@@ -454,44 +466,31 @@ export async function addGameTodayWithPlayer(
     );
     const [row] = rows;
     if (!row) throw new Error(`Could not add ${teamA} vs ${teamB} today`);
-    const reg = await db.query<{ id: string }>(
-      `insert into registration (season_id, user_id, kind, status)
-       select $1, u.id, 'team_member', 'active' from "user" u
-        where lower(u.email) = lower($2)
-       returning id`,
-      [row.season, email],
-    );
-    if (!reg.rows[0]) throw new Error(`No account for ${email}`);
-    await db.query(
-      `insert into roster_membership (team_season_id, registration_id, role, status)
-       values ($1, $2, 'player', 'active')`,
-      [row.team, reg.rows[0].id],
-    );
+    try {
+      const reg = await db.query<{ id: string }>(
+        `insert into registration (season_id, user_id, kind, status)
+         select $1, u.id, 'team_member', 'active' from "user" u
+          where lower(u.email) = lower($2)
+         returning id`,
+        [row.season, email],
+      );
+      if (!reg.rows[0]) throw new Error(`No account for ${email}`);
+      await db.query(
+        `insert into roster_membership (team_season_id, registration_id, role, status)
+         values ($1, $2, 'player', 'active')`,
+        [row.team, reg.rows[0].id],
+      );
+    } catch (error) {
+      // Take back the half-made season so a failed setup leaves nothing.
+      await removePrivateSeason(db, row.season);
+      throw error;
+    }
     return row;
   });
   return {
     gameId: made.game,
     slug,
-    remove: () =>
-      withDb(async (db) => {
-        await db.query("delete from referee_assignment where game_id = $1", [
-          made.game,
-        ]);
-        await db.query("delete from game where season_id = $1", [made.season]);
-        await db.query("delete from slot where season_id = $1", [made.season]);
-        await db.query(
-          `delete from roster_membership where team_season_id in
-             (select id from team_season where season_id = $1)`,
-          [made.season],
-        );
-        await db.query("delete from registration where season_id = $1", [
-          made.season,
-        ]);
-        await db.query("delete from team_season where season_id = $1", [
-          made.season,
-        ]);
-        await db.query("delete from season where id = $1", [made.season]);
-      }),
+    remove: () => withDb((db) => removePrivateSeason(db, made.season)),
   };
 }
 
@@ -564,9 +563,10 @@ export async function addGameUnderWayWithOrder(
     );
     const [row] = rows;
     if (!row) throw new Error(`Could not add ${teamA} vs ${teamB} under way`);
-    // Three of team A's fall players, on its roster in the new season.
-    const players = await db.query<{ user_id: string; name: string }>(
-      `select r.user_id,
+    try {
+      // Three of team A's fall players, on its roster in the new season.
+      const players = await db.query<{ user_id: string; name: string }>(
+        `select r.user_id,
               coalesce(p.first_name || coalesce(' ' || left(p.last_name, 1) || '.', ''),
                        nullif(u.name, ''), 'A player') as name
          from roster_membership rm
@@ -579,62 +579,84 @@ export async function addGameUnderWayWithOrder(
         where t.name = $1 and rm.status = 'active' and rm.role = 'player'
         order by r.user_id
         limit 3`,
-      [teamA],
-    );
-    if (players.rows.length < 3)
-      throw new Error(`${teamA} has too few players`);
-    const team = await db.query<{ id: string }>(
-      `select ts.id from team_season ts join team t on t.id = ts.team_id
+        [teamA],
+      );
+      if (players.rows.length < 3)
+        throw new Error(`${teamA} has too few players`);
+      const team = await db.query<{ id: string }>(
+        `select ts.id from team_season ts join team t on t.id = ts.team_id
         where ts.season_id = $1 and t.name = $2`,
-      [row.season, teamA],
-    );
-    const teamSeasonId = team.rows[0]?.id;
-    for (const p of players.rows) {
-      const reg = await db.query<{ id: string }>(
-        `insert into registration (season_id, user_id, kind, status)
+        [row.season, teamA],
+      );
+      const teamSeasonId = team.rows[0]?.id;
+      for (const p of players.rows) {
+        const reg = await db.query<{ id: string }>(
+          `insert into registration (season_id, user_id, kind, status)
          values ($1, $2, 'team_member', 'active') returning id`,
-        [row.season, p.user_id],
-      );
-      await db.query(
-        `insert into roster_membership (team_season_id, registration_id, role, status)
+          [row.season, p.user_id],
+        );
+        await db.query(
+          `insert into roster_membership (team_season_id, registration_id, role, status)
          values ($1, $2, 'player', 'active')`,
-        [teamSeasonId, reg.rows[0]?.id],
-      );
-    }
-    const lineup = await db.query<{ id: string }>(
-      `insert into game_lineup (game_id, team_season_id, run_breaks)
+          [teamSeasonId, reg.rows[0]?.id],
+        );
+      }
+      const lineup = await db.query<{ id: string }>(
+        `insert into game_lineup (game_id, team_season_id, run_breaks)
        values ($1, $2, 0) returning id`,
-      [row.game, teamSeasonId],
-    );
-    for (const [i, p] of players.rows.entries())
-      await db.query(
-        `insert into game_lineup_spot (lineup_id, position, user_id)
-         values ($1, $2, $3)`,
-        [lineup.rows[0]?.id, i + 1, p.user_id],
+        [row.game, teamSeasonId],
       );
-    return { ...row, order: players.rows.map((p) => p.name) };
+      for (const [i, p] of players.rows.entries())
+        await db.query(
+          `insert into game_lineup_spot (lineup_id, position, user_id)
+         values ($1, $2, $3)`,
+          [lineup.rows[0]?.id, i + 1, p.user_id],
+        );
+      return { ...row, order: players.rows.map((p) => p.name) };
+    } catch (error) {
+      // Take back the half-made season so a failed setup leaves nothing.
+      await removePrivateSeason(db, row.season);
+      throw error;
+    }
   });
   return {
     gameId: made.game,
     order: made.order,
-    remove: () =>
-      withDb(async (db) => {
-        await db.query("delete from game where season_id = $1", [made.season]);
-        await db.query("delete from slot where season_id = $1", [made.season]);
-        await db.query(
-          `delete from roster_membership where team_season_id in
-             (select id from team_season where season_id = $1)`,
-          [made.season],
-        );
-        await db.query("delete from registration where season_id = $1", [
-          made.season,
-        ]);
-        await db.query("delete from team_season where season_id = $1", [
-          made.season,
-        ]);
-        await db.query("delete from season where id = $1", [made.season]);
-      }),
+    remove: () => withDb((db) => removePrivateSeason(db, made.season)),
   };
+}
+
+/**
+ * Deletes a private season a helper made and everything in it: its games
+ * (with any refs, scores, line-ups or ejection reports flows left on them),
+ * slots, rosters, registrations and team entries.
+ */
+async function removePrivateSeason(db: Client, seasonId: string) {
+  const games = "(select id from game where season_id = $1)";
+  await db.query(
+    `delete from score_response where score_report_id in
+       (select id from score_report where game_id in ${games})`,
+    [seasonId],
+  );
+  for (const table of [
+    "score_report",
+    "game_period",
+    "offline_receipt",
+    "referee_assignment",
+  ])
+    await db.query(`delete from ${table} where game_id in ${games}`, [
+      seasonId,
+    ]);
+  await db.query("delete from game where season_id = $1", [seasonId]);
+  await db.query("delete from slot where season_id = $1", [seasonId]);
+  await db.query(
+    `delete from roster_membership where team_season_id in
+       (select id from team_season where season_id = $1)`,
+    [seasonId],
+  );
+  await db.query("delete from registration where season_id = $1", [seasonId]);
+  await db.query("delete from team_season where season_id = $1", [seasonId]);
+  await db.query("delete from season where id = $1", [seasonId]);
 }
 
 async function withDb<T>(body: (db: Client) => Promise<T>): Promise<T> {
