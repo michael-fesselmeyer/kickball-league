@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
+import { goViaMenu } from "../support/app-nav";
 import { pageAs } from "../support/personas";
 
 /** Players mostly use the board from their phones. */
@@ -18,7 +19,7 @@ test("a player posts a found item, the owner answers, and it is handed over", as
 
   const finder = await pageAs(browser, "Player");
   await finder.setViewportSize(PHONE);
-  await finder.getByRole("link", { name: "Lost and found" }).click();
+  await goViaMenu(finder, "Lost and found");
   await expect(
     finder.getByRole("heading", { name: "Lost and found", level: 1 }),
   ).toBeVisible();

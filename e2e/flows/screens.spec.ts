@@ -34,6 +34,9 @@ const SCREENS: [Persona, string, string | RegExp][] = [
   ["Admin", "/app/admin/seasons/fall-2026/playoffs", "Playoffs"],
   ["Captain", "/app/seasons/fall-2026/team/requests", "Scheduling requests"],
   ["Captain", "/app/seasons/fall-2026/team/subs", "Find subs"],
+  // The signed-in home and its tab bar (issue #581).
+  ["Player", "/app", /^Hi, /],
+  ["Admin", "/app", /^Hi, /],
   ["Player", "/app/subs", "Sub for a team"],
   ["Player", "/app/events", "Events"],
   ["Player", "/app/concerns", "Your concerns"],
