@@ -314,6 +314,21 @@ export const HELP_ROLES: readonly HelpRole[] = [
           "nyc parks",
         ],
       },
+      {
+        id: "change-team",
+        title: "Look for a new team, quietly",
+        summary:
+          "Open to a different team next season? Say so privately. Your current team never sees it.",
+        steps: [
+          'Open your profile and tap "Looking for a change".',
+          "Choose who can see it: captains recruiting for next season, league admins, or both. Add a short note if you like, such as a night that suits you. You don't need to give a reason.",
+          'Tap "I\'m open to a new team". Your current captain, co-captains and teammates never see it, and nothing public shows it.',
+          'Recruiting teams see only how many players are open. When one sends an invite, you get an email: tap "Yes, share my name and email" or "No thanks". A no tells nobody.',
+          'It clears on its own when next season\'s registration closes. "Take it back" removes it and any invites at any time.',
+        ],
+        screen: { href: "/app/change-team", label: "Looking for a change" },
+        keywords: ["switch teams", "new team", "transfer", "move", "change"],
+      },
     ],
   },
   {
@@ -462,6 +477,26 @@ export const HELP_ROLES: readonly HelpRole[] = [
           "accident",
           "first aid",
           "safety",
+        ],
+      },
+      {
+        id: "recruit",
+        title: "Invite players looking for a change",
+        summary:
+          "While next season is open for registration, invite players who are quietly open to a new team.",
+        steps: [
+          'On your team page for next season, find "Players looking for a change". It shows how many players are open and haven\'t heard from you yet.',
+          'Add a short pitch if you like (your night, your vibe) and tap "Invite" (it shows how many). Everyone gets the same words, and you never see who they are.',
+          'A player who says yes appears under "Said yes" with their name, email and note, and you get an email. Send them your team link.',
+        ],
+        notes: [
+          "A player who says no, or doesn't answer, stays anonymous. The count never includes anyone who has played for your team.",
+        ],
+        keywords: [
+          "recruit",
+          "new players",
+          "free agents",
+          "looking for a change",
         ],
       },
     ],

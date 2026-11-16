@@ -85,6 +85,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - Vote for weekly and season awards.
 - Pick the winners of each game day's games, for bragging rights only, and see where I rank.
 - Ask the league to let me start a new team, with my current captain kept informed.
+- Quietly say I'm open to a new team next season, without my current team ever knowing or being asked why, and choose who hears it: recruiting captains, admins, or both. My name goes to a team only when I say yes to its invite.
 
 ### Free agent
 - Register alone or with a friend, take a short skill and vibe quiz, and get placed on a team.
@@ -100,6 +101,7 @@ The rulebook I was given describes one rule set. The old site describes Fun and 
 - Enter or confirm the final score when the ref has not.
 - Message my team and copy any update into our WhatsApp chat.
 - Give the league scheduling conflicts before the schedule is made.
+- While next season is open for registration, see how many players are open to a new team and invite them, then hear from those who say yes.
 
 ### Referee
 - Set which game days and time slots I can work.
@@ -329,6 +331,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Matcher that suggests placements with reasons; admin confirms | P2 |
 | Build a new team from free agents with volunteer captains | P2 |
 | "Start a new team" request with league approval and captain notice | P2 |
+| "Looking for a change": a player quietly open to a new team next season, never visible to their current team; recruiting captains see a count and invite, and a name is revealed only on the player's yes ([ADR 0081](adr/0081-looking-for-a-change.md)) | P2 |
 
 ### Weather and rain-outs
 | Feature | Tag |
