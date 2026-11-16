@@ -14,7 +14,7 @@ A ref (or an admin) can give a player a yellow card (a warning) or a red card (a
 - A card never creates, suggests or counts toward a suspension. No code path turns cards into a suspension, and the pattern note says so. Suspensions stay a manual admin decision, kept for serious conduct: hurting someone, sexual misconduct, or repeated behavior that makes someone deeply uncomfortable.
 - Admins read cards beside incident reports. A gentle pattern note appears only from three cards across three different games, so one rough night is never a pattern.
 - A red card is a request to sit out, not a lock: the app does not block the player from the field or from RSVPing.
-- A card can be given from kickoff until two days after, so a ref can record one after the game, and not for a called-off game. The ref can take back their own card for five minutes; an admin can at any time. Both are audited.
+- A card can be given from kickoff until two days after, so a ref can record one after the game, and not for a called-off game. An admin can still record one for an older game. The ref can take back their own card for five minutes; an admin can at any time. Both are audited.
 - A player sees their own cards on their profile and in their data export. Cards never appear on a public page or to captains or other players.
 
 ## Consequences

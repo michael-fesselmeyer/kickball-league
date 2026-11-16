@@ -83,6 +83,14 @@ describe("canGiveCard", () => {
       err("too_late"),
     );
   });
+  it("lets an admin give one for an older game", () => {
+    const old = game("final", T0);
+    const late = after(CARD_WINDOW_MS + 1);
+    expect(canGiveCard(old, late, { isAdmin: true })).toEqual(ok(undefined));
+    expect(canGiveCard(game("cancelled", T0), late, { isAdmin: true })).toEqual(
+      err("called_off"),
+    );
+  });
 });
 
 describe("canUndoCard", () => {
