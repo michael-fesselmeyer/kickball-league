@@ -1,5 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { err, ok, type Result } from "@/domain/result";
+import { MAX_ROSTER, MIN_ROSTER } from "./roster-limits";
+
+export { MAX_ROSTER, MIN_ROSTER };
 
 /**
  * Guest teams and partner tournaments (ADR 0064): the sign-up a guest
@@ -8,8 +11,6 @@ import { err, ok, type Result } from "@/domain/result";
  * a charity is a name, a link and a goal to show.
  */
 
-export const MIN_ROSTER = 4;
-export const MAX_ROSTER = 30;
 export const MAX_TEAM_NAME = 60;
 export const MAX_PERSON_NAME = 80;
 export const MIN_SIGNATURE = 3;

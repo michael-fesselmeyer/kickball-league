@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { CopySnippet } from "@/components/copy-snippet";
 import { type GuestSignupState, signUpGuestTeam } from "@/app/guest/actions";
-import { MAX_ROSTER, MIN_ROSTER } from "@/domain/tournaments/tournament";
+import { MAX_ROSTER, MIN_ROSTER } from "@/domain/tournaments/roster-limits";
 
 const initial: GuestSignupState = { status: "idle" };
 const input =
