@@ -152,9 +152,9 @@ export async function acceptConduct(
       ),
     );
   if (already) return ok(undefined);
+  if (!input.accepted) return err("conduct_not_accepted");
   // The page showed a version that has since been replaced.
   if (input.shownSha256 !== code.bodySha256) return err("conduct_changed");
-  if (!input.accepted) return err("conduct_not_accepted");
   await db
     .insert(conductAcceptance)
     .values({
