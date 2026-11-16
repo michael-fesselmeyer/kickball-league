@@ -19,7 +19,7 @@ export const guaranteeWarningPayload = z.object({
   card: z.string().min(1),
   /**
    * The card price of the balance, when the league's processing fees are on
-   * (ADR 0082): what the card will be charged, fee included.
+   * (ADR 0093): what the card will be charged, fee included.
    */
   charge: z.string().min(1).optional(),
 });

@@ -163,7 +163,7 @@ async function paidByTeam(db: Db, teamIds: readonly TeamSeasonId[]) {
       (i.registrationId ? teamOfRegistration.get(i.registrationId) : null);
     if (!teamId || i.subtotalCents === 0) continue;
     // A refund gives back part of the processing fee with the price
-    // (ADR 0082); only the price's part lowers what was paid for the team.
+    // (ADR 0093); only the price's part lowers what was paid for the team.
     const refunded = refundedOf.get(i.purchaseId) ?? 0;
     const refundedPrice =
       refunded - feeShareOfRefund(refunded, i.totalCents, i.feeCents);

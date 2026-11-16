@@ -1,7 +1,7 @@
 import { err, ok, type Result } from "../result";
 
 /**
- * Processing fees (ADR 0082, product-spec.md "Processing fees"). When a
+ * Processing fees (ADR 0093, product-spec.md "Processing fees"). When a
  * league turns the setting on, whoever pays with a method that costs the
  * league a fee covers it, worked out so the league nets its price, and
  * cash, Zelle and check cost the price alone. Pure: the caller passes the
@@ -14,7 +14,7 @@ import { err, ok, type Result } from "../result";
  * paying a cent more.
  */
 
-/** "off" changes nothing. "non_card_discount" is two-tier pricing (ADR 0082). */
+/** "off" changes nothing. "non_card_discount" is two-tier pricing (ADR 0093). */
 export const FEE_MODES = ["off", "non_card_discount"] as const;
 export type FeeMode = (typeof FEE_MODES)[number];
 

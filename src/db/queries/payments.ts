@@ -89,9 +89,9 @@ export async function createPurchase(
     items: readonly PurchaseLine[];
     promo?: { id: PromoCodeId; discountCents: number };
     creditCents?: number;
-    /** The processing fee the payer covers, and its method (ADR 0082). */
+    /** The processing fee the payer covers, and its method (ADR 0093). */
     fee?: { cents: number; method: FeeMethod | "venmo" };
-    /** The card fee a payer saved with a free method (ADR 0082). */
+    /** The card fee a payer saved with a free method (ADR 0093). */
     feeSavedCents?: number;
   },
 ): Promise<PurchaseId> {
@@ -147,7 +147,7 @@ export type StartedPurchase = {
 
 /**
  * How the payer chose to pay online, when the league's fee setting is on
- * (ADR 0082). Null while it is off: amounts and Checkout stay as before.
+ * (ADR 0093). Null while it is off: amounts and Checkout stay as before.
  */
 export type FeeChoice = { method: FeeMethod; settings: FeeSettings } | null;
 
@@ -785,7 +785,7 @@ export async function refreshRefundStatus(
 
 /**
  * A bank transfer's Checkout completed but the money takes a few business
- * days (ADR 0082). The purchase stays open and is marked, so a second "Pay"
+ * days (ADR 0093). The purchase stays open and is marked, so a second "Pay"
  * leaves it alone and the guarantee's deadline charge waits for it.
  */
 async function markProcessing(db: Db, id: PurchaseId, now: Date) {
@@ -1097,7 +1097,7 @@ export async function recordOffAppPayment(
 
 /**
  * What a payment made outside the app adds or saves when the league's
- * processing fees are on (ADR 0082): a Venmo business profile's fee is the
+ * processing fees are on (ADR 0093): a Venmo business profile's fee is the
  * payer's, and cash, Zelle, check and personal Venmo save the card fee.
  * Nothing either way while the setting is off, or for "other".
  */

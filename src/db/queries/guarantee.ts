@@ -194,7 +194,7 @@ export async function planGuarantees(
   const plan: GuaranteePlan = { warned: 0, charges: 0 };
   for (const r of rows) {
     const balanceCents = balances.get(r.teamSeasonId)?.balanceCents ?? 0;
-    // The card price when the league's processing fees are on (ADR 0082).
+    // The card price when the league's processing fees are on (ADR 0093).
     const feeCents = feeFor("card", balanceCents, readFeeSettings(r.fees));
     const step = guaranteeStep(
       {
@@ -276,7 +276,7 @@ export async function planGuarantees(
 
 /**
  * Teams with a payment toward their fee on its way: a bank transfer whose
- * Checkout completed and has not cleared or failed yet (ADR 0082).
+ * Checkout completed and has not cleared or failed yet (ADR 0093).
  */
 async function teamsWithPaymentOnTheWay(
   db: Db,

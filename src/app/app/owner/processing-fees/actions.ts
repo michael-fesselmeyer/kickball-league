@@ -13,7 +13,7 @@ import { activeLeague } from "@/lib/league/active";
 const PAGE = "/app/owner/processing-fees";
 
 /**
- * Saves who covers processing fees (ADR 0082). Changing it needs a sign-in
+ * Saves who covers processing fees (ADR 0093). Changing it needs a sign-in
  * from the last few minutes, like other payment settings, and turning it on
  * needs the owner's tick that the league has done what the ADR lists.
  */

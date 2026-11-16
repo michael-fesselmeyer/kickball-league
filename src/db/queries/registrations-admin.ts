@@ -38,7 +38,7 @@ export type BoardPayment = {
   refundedCents: number;
   /** Refunds asked for here, including any Stripe has not confirmed yet. */
   requestedCents: number;
-  /** The processing fee inside the amount (ADR 0082); zero for most. */
+  /** The processing fee inside the amount (ADR 0093); zero for most. */
   feeCents: number;
 };
 

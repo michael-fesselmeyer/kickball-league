@@ -51,9 +51,9 @@ export type LedgerInput = {
   payments: readonly LedgerPayment[];
   /** League credit spent on this season's paid purchases. */
   creditAppliedCents: number;
-  /** Processing fees payers covered, already inside the income (ADR 0082). */
+  /** Processing fees payers covered, already inside the income (ADR 0093). */
   feesCoveredCents?: number;
-  /** Card fees payers saved by paying with a free method (ADR 0082). */
+  /** Card fees payers saved by paying with a free method (ADR 0093). */
   feesSavedCents?: number;
   expenses: readonly LedgerExpense[];
   /** The permit windows' cost shares for the season. */
