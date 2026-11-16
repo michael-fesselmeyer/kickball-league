@@ -27,7 +27,9 @@ import {
   openCheckIns,
   pauseCheckIn,
   resumeCheckIn,
+  leadershipQuorum,
   seasonLeadership,
+  setLeadershipQuorum,
   submitCheckIn,
 } from "./leadership";
 import type { Db } from "./schedule";
@@ -664,6 +666,35 @@ describe("an admin stepping in", () => {
         outcome: "closed_by_league",
         tookPart: 1,
       });
+    });
+  });
+});
+
+describe("the league's quorum", () => {
+  it("is set between 50% and 100%, audited, and copied onto check-ins when they open", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await messagingWorld(db);
+      const actorId = w.aces.captain.userId;
+      expect(await leadershipQuorum(db, w.leagueId)).toBe(60);
+      expect(
+        await setLeadershipQuorum(db, { leagueId: w.leagueId, percent: 40, actorId }),
+      ).toEqual({ ok: false, error: "bad_quorum" });
+      expect(
+        await setLeadershipQuorum(db, { leagueId: w.leagueId, percent: 75, actorId }),
+      ).toEqual({ ok: true, value: undefined });
+      expect((await leadershipAudit(db)).map((r) => r.action)).toEqual([
+        "leadership.quorum",
+      ]);
+      await db
+        .update(season)
+        .set({ status: "completed" })
+        .where(eq(season.id, w.season.id));
+      await openCheckIns(db, { seasonId: w.season.id, days: 7, actorId, now: NOW });
+      const [row] = await db
+        .select({ quorum: leadershipCheckIn.quorumPercent })
+        .from(leadershipCheckIn)
+        .where(eq(leadershipCheckIn.teamSeasonId, w.aces.id));
+      expect(row!.quorum).toBe(75);
     });
   });
 });

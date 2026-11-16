@@ -203,6 +203,12 @@ async function Season({
             Sign-up challenge
           </Link>
           <Link
+            href={`/app/admin/seasons/${slug}/leadership`}
+            className="underline"
+          >
+            Leadership check-ins
+          </Link>
+          <Link
             href={`/app/admin/seasons/${slug}/rollover`}
             className="underline"
           >
