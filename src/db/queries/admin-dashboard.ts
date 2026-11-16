@@ -233,10 +233,14 @@ export async function registrationSummary(
 }
 
 /** Every season but the one shown, for switching. */
-export async function otherSeasons(db: Db, shownId: SeasonId) {
+export async function otherSeasons(
+  db: Db,
+  leagueId: LeagueId,
+  shownId: SeasonId,
+) {
   return db
     .select({ name: season.name, slug: season.slug, status: season.status })
     .from(season)
-    .where(ne(season.id, shownId))
+    .where(and(eq(season.leagueId, leagueId), ne(season.id, shownId)))
     .orderBy(desc(season.startsOn));
 }

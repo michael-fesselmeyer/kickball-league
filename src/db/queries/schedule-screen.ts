@@ -35,7 +35,8 @@ export async function seasonBySlug(
   return found ?? null;
 }
 
-export async function seasonsForAdmin(db: Db) {
+/** One league's seasons, newest first, for its admins. */
+export async function seasonsForAdmin(db: Db, leagueId: LeagueId) {
   return db
     .select({
       name: season.name,
@@ -44,6 +45,7 @@ export async function seasonsForAdmin(db: Db) {
       visibility: season.visibility,
     })
     .from(season)
+    .where(eq(season.leagueId, leagueId))
     .orderBy(desc(season.startsOn));
 }
 

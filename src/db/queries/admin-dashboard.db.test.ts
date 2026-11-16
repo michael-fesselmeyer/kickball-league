@@ -31,6 +31,7 @@ import {
 import { required } from "./rows";
 import type { Db } from "./schedule";
 import { newestLeague } from "../test/leagues";
+import { seasonsForAdmin } from "./schedule-screen";
 
 afterAll(closePool);
 
@@ -263,9 +264,41 @@ describe("admin dashboard", () => {
           )
         )?.slug,
       ).toBe(sn.slug);
-      expect((await otherSeasons(db, sn.id)).map((s) => s.slug)).toContain(
+      const own = await newestLeague(db);
+      expect((await otherSeasons(db, own, sn.id)).map((s) => s.slug)).toContain(
         draft.slug,
       );
+    });
+  });
+
+  it("lists only the admin's own league's seasons, never a partner league's", async () => {
+    await inRolledBackDb(async (db) => {
+      const { sn } = await build(db);
+      const own = await newestLeague(db);
+      const tag = Math.random().toString(36).slice(2, 8);
+      const [partner] = await db
+        .insert(league)
+        .values({ name: "Partner", slug: `partner-${tag}` })
+        .returning({ id: league.id });
+      await db.insert(season).values({
+        leagueId: required(partner, "league").id,
+        name: "Partner Fall",
+        slug: `partner-fall-${tag}`,
+        startsOn: "2099-09-01",
+        endsOn: "2099-11-01",
+        feeModel: "per_team",
+        teamFeeCents: 100_00,
+        rosterMin: 10,
+        rosterMax: 20,
+      });
+      const slugs = (s: { slug: string }[]) => s.map((x) => x.slug);
+      expect(slugs(await otherSeasons(db, own, sn.id))).not.toContain(
+        `partner-fall-${tag}`,
+      );
+      expect(slugs(await seasonsForAdmin(db, own))).not.toContain(
+        `partner-fall-${tag}`,
+      );
+      expect(slugs(await seasonsForAdmin(db, own))).toContain(sn.slug);
     });
   });
 
