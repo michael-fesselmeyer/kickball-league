@@ -50,8 +50,8 @@ test.describe.serial("a team's season-end leadership check-in", () => {
       const {
         rows: [season],
       } = await db.query<{ id: string; league_id: string }>(
-        `insert into season (league_id, name, slug, status, visibility, starts_on, ends_on, fee_model, roster_min, roster_max)
-         select id, $1, $2, 'completed', 'private', current_date - 70, current_date - 7, 'per_player', 1, 20
+        `insert into season (league_id, name, slug, status, visibility, starts_on, ends_on, fee_model, player_fee_cents, roster_min, roster_max)
+         select id, $1, $2, 'completed', 'private', current_date - 70, current_date - 7, 'per_player', 5000, 1, 20
            from league where is_default
          returning id, league_id`,
         [`Check-in Season ${tag}`, SLUG],
