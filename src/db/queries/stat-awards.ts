@@ -794,7 +794,12 @@ export type MyAward = {
 };
 
 /** The published stat awards a person won, newest season first. */
-export async function awardsWonBy(db: Db, userId: UserId): Promise<MyAward[]> {
+export async function awardsWonBy(
+  db: Db,
+  userId: UserId,
+  /** The league being looked at: a player's awards are per league. */
+  leagueId: LeagueId,
+): Promise<MyAward[]> {
   return db
     .select({
       seasonId: season.id,
@@ -809,6 +814,7 @@ export async function awardsWonBy(db: Db, userId: UserId): Promise<MyAward[]> {
     .where(
       and(
         eq(statAwardPlace.userId, userId),
+        eq(season.leagueId, leagueId),
         eq(statAwardPlace.place, 1),
         isNotNull(statAwardSet.publishedAt),
       ),
@@ -873,6 +879,8 @@ export type MySeason = {
 export async function seasonsPlayedBy(
   db: Db,
   userId: UserId,
+  /** The league being looked at: career stats are per league. */
+  leagueId: LeagueId,
 ): Promise<MySeason[]> {
   return db
     .select({
@@ -893,6 +901,7 @@ export async function seasonsPlayedBy(
     .where(
       and(
         eq(registration.userId, userId),
+        eq(season.leagueId, leagueId),
         eq(rosterMembership.status, "active"),
         lt(season.startsOn, sql`current_date + 1`),
       ),

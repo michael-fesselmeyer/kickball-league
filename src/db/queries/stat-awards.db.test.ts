@@ -8,6 +8,7 @@ import { sportsmanshipRating } from "../schema/discipline";
 import { game, gamePeriod, gameRsvp } from "../schema/game";
 import { gameLineup, gameLineupSpot } from "../schema/lineup";
 import { profile } from "../schema/profile";
+import { registration, rosterMembership } from "../schema/team";
 import { leaderboardOptOut } from "../schema/stat-awards";
 import { subClaim, subRequest } from "../schema/subs";
 import { messagingWorld, type Player } from "../test/messaging-world";
@@ -26,6 +27,7 @@ import {
   saveStatAwardNote,
   setLeaderboardOptOut,
   setStatAwardsPublished,
+  seasonsPlayedBy,
   suggestedNominees,
 } from "./stat-awards";
 import type { Db } from "./schedule";
@@ -250,7 +252,9 @@ describe("computing and publishing", () => {
         seasonId: w.season.id,
         board: null,
       });
-      expect(await awardsWonBy(db, w.aces.captain.userId)).toEqual([]);
+      expect(await awardsWonBy(db, w.aces.captain.userId, w.leagueId)).toEqual(
+        [],
+      );
 
       expect(
         (
@@ -275,7 +279,9 @@ describe("computing and publishing", () => {
       expect(mvp).toMatchObject({ name: "Robin E.", teamName: "Aces" });
       expect(mvp?.detail).toMatchObject({ recorded: 4, of: 4 });
       expect(
-        (await awardsWonBy(db, w.aces.captain.userId)).map((a) => a.award),
+        (await awardsWonBy(db, w.aces.captain.userId, w.leagueId)).map(
+          (a) => a.award,
+        ),
       ).toEqual(
         expect.arrayContaining(["season_mvp", "golden_boot", "iron_kicker"]),
       );
@@ -370,6 +376,55 @@ describe("computing and publishing", () => {
       expect(board.found && board.board?.notes).toEqual({
         season_mvp: "A runaway season.",
       });
+    });
+  });
+});
+
+describe("a player in two leagues", () => {
+  it("reads their seasons and awards in the league they're looking at only", async () => {
+    await inRolledBackDb(async (db) => {
+      const { w: main } = await statsWorld(db);
+      const robin = main.aces.captain.userId;
+      // The same person also plays in a partner league's Fall 2026.
+      const partner = await messagingWorld(db);
+      const [reg] = await db
+        .insert(registration)
+        .values({
+          seasonId: partner.season.id,
+          userId: robin,
+          kind: "team_member",
+          status: "active",
+        })
+        .returning({ id: registration.id });
+      await db.insert(rosterMembership).values({
+        teamSeasonId: partner.aces.id,
+        registrationId: reg!.id,
+        role: "player",
+        status: "active",
+      });
+      await computeStatAwards(db, {
+        seasonId: main.season.id,
+        weights: DEFAULT_MVP_WEIGHTS,
+        actorId: ADMIN(main),
+        now: NOW,
+      });
+      await setStatAwardsPublished(db, {
+        seasonId: main.season.id,
+        publish: true,
+        actorId: ADMIN(main),
+        now: NOW,
+      });
+
+      const seasons = (leagueId: typeof main.leagueId) =>
+        seasonsPlayedBy(db, robin, leagueId).then((r) =>
+          r.map((x) => x.seasonId),
+        );
+      expect(await seasons(main.leagueId)).toEqual([main.season.id]);
+      expect(await seasons(partner.leagueId)).toEqual([partner.season.id]);
+      expect(
+        (await awardsWonBy(db, robin, main.leagueId)).length,
+      ).toBeGreaterThan(0);
+      expect(await awardsWonBy(db, robin, partner.leagueId)).toEqual([]);
     });
   });
 });
