@@ -16,7 +16,7 @@ import { requirePermissionToChange } from "@/lib/auth/permission";
 import { activeLeagueId } from "@/lib/league/active";
 
 /**
- * Admins run the season-end leadership check-in (ADR 0077): open it for
+ * Admins run the season-end leadership check-in (ADR 0090): open it for
  * every team, set the league's quorum, and pause, resume or close one
  * team's. None of these sees or changes a choice.
  */

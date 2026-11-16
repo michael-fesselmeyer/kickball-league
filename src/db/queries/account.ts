@@ -685,7 +685,7 @@ export async function personalData(
     // Captaincy offered by or to the person (ADR 0042).
     captaincyOffers: await myHandoffs(db, userId),
     // Leadership check-ins and ballots they took part in, and what they
-    // stood for (ADR 0077). Never what they chose: it isn't linked to them.
+    // stood for (ADR 0090). Never what they chose: it isn't linked to them.
     leadershipCheckIns: await myLeadership(db, userId),
     // League gear they have, bring to games, handed on or reported (#286).
     leagueGear: await myGearRecords(db, userId),

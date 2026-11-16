@@ -57,7 +57,7 @@ import { enqueueMessages, type OutboxMessage } from "./outbox";
 import type { Db } from "./schedule";
 
 /**
- * The season-end leadership check-in (ADR 0077). The rules are in
+ * The season-end leadership check-in (ADR 0090). The rules are in
  * src/domain/leadership; this file reads and writes the rows.
  *
  * Secrecy: a check-in or a vote writes a participation row and then one
