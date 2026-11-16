@@ -1,4 +1,4 @@
-# ADR 0070: Guest teams and partner tournaments are an event's extra row, not a season
+# ADR 0085: Guest teams and partner tournaments are an event's extra row, not a season
 
 - Status: accepted
 - Date: 2026-11-15
