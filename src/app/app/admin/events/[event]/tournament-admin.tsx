@@ -7,10 +7,7 @@ import { roundName } from "@/domain/playoffs/playoffs";
 import { localDay } from "@/domain/schedule/public-game";
 import { localTime } from "@/domain/time/zoned";
 import { nameOf } from "@/domain/tournaments/bracket";
-import {
-  guestDataDeleteAt,
-  signedLine,
-} from "@/domain/tournaments/tournament";
+import { guestDataDeleteAt, signedLine } from "@/domain/tournaments/tournament";
 import { absoluteUrl } from "@/lib/site";
 import {
   drawBracketAction,
@@ -94,7 +91,9 @@ export async function TournamentAdmin({
         </label>
         <label className="flex flex-col gap-1 font-medium">
           Most guest teams{" "}
-          <span className="font-normal text-text-muted">(blank for no cap)</span>
+          <span className="font-normal text-text-muted">
+            (blank for no cap)
+          </span>
           <input
             name="maxGuestTeams"
             inputMode="numeric"
@@ -171,7 +170,7 @@ export async function TournamentAdmin({
             className={input}
           />
         </label>
-        <SubmitButton className="btn btn-primary self-start">
+        <SubmitButton className="btn self-start btn-primary">
           Save tournament settings
         </SubmitButton>
       </form>
@@ -202,9 +201,7 @@ export async function TournamentAdmin({
                   <p className="text-small break-all text-text-muted">
                     Waiver link: {absoluteUrl(origin, `/guest/${g.linkToken}`)}
                   </p>
-                  <form
-                    action={removeGuestTeamAction.bind(null, e.slug, g.id)}
-                  >
+                  <form action={removeGuestTeamAction.bind(null, e.slug, g.id)}>
                     <SubmitButton className="btn btn-secondary">
                       Remove {g.name}
                     </SubmitButton>
@@ -253,7 +250,9 @@ export async function TournamentAdmin({
                 {bracket.matches.map((m) => {
                   const a = nameOf(bracket, m.teamA);
                   const b = nameOf(bracket, m.teamB);
-                  const rounds = Math.max(...bracket.matches.map((x) => x.round));
+                  const rounds = Math.max(
+                    ...bracket.matches.map((x) => x.round),
+                  );
                   const at = m.startsAt ? new Date(m.startsAt) : null;
                   return (
                     <li

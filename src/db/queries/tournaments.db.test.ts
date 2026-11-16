@@ -7,7 +7,11 @@ import type { TournamentSettings } from "@/domain/tournaments/tournament";
 import { auditLog } from "../schema/audit";
 import { event } from "../schema/event";
 import { friendLeague } from "../schema/friends";
-import { guestTeam,guestWaiverSignature, tournament } from "../schema/tournament";
+import {
+  guestTeam,
+  guestWaiverSignature,
+  tournament,
+} from "../schema/tournament";
 import { waiver } from "../schema/waiver";
 import { leagueWorld } from "../test/league-world";
 import { closePool, inRolledBackDb } from "../test/transaction";
@@ -117,7 +121,10 @@ describe("saving a tournament", () => {
         }),
       ).toEqual({ ok: false, error: "not_a_tournament" });
       const actions = (
-        await db.select({ a: auditLog.action }).from(auditLog).where(eq(auditLog.entityId, eventId))
+        await db
+          .select({ a: auditLog.action })
+          .from(auditLog)
+          .where(eq(auditLog.entityId, eventId))
       ).map((r) => r.a);
       expect(actions).toContain("tournament.create");
     });
@@ -152,7 +159,11 @@ describe("guest sign-up", () => {
       });
       expect(again).toEqual({ ok: false, error: "name_taken" });
       await enter(db, eventId, 2);
-      const third = await registerGuestTeam(db, { eventId, signup: guest(3), now: BEFORE });
+      const third = await registerGuestTeam(db, {
+        eventId,
+        signup: guest(3),
+        now: BEFORE,
+      });
       expect(third).toEqual({ ok: false, error: "full" });
     });
   });
@@ -177,7 +188,10 @@ describe("guest sign-up", () => {
       expect(
         await registerGuestTeam(db, { eventId, signup: guest(4), now: BEFORE }),
       ).toEqual({ ok: false, error: "closed" });
-      await db.update(tournament).set({ bracket: null, guestSignupsOpen: false }).where(eq(tournament.eventId, eventId));
+      await db
+        .update(tournament)
+        .set({ bracket: null, guestSignupsOpen: false })
+        .where(eq(tournament.eventId, eventId));
       expect(
         await registerGuestTeam(db, { eventId, signup: guest(5), now: BEFORE }),
       ).toEqual({ ok: false, error: "closed" });
@@ -187,10 +201,18 @@ describe("guest sign-up", () => {
   it("shows the public page team names only", async () => {
     await inRolledBackDb(async (db) => {
       const { eventId } = await setUp(db, {
-        charity: { name: "Test Food Pantry", url: "https://pantry.example.test/give", goalCents: 250000 },
+        charity: {
+          name: "Test Food Pantry",
+          url: "https://pantry.example.test/give",
+          goalCents: 250000,
+        },
       });
       await enter(db, eventId, 1);
-      const pub = await publicTournament(db, { id: eventId, endsAt: ENDS, cancelledAt: null }, BEFORE);
+      const pub = await publicTournament(
+        db,
+        { id: eventId, endsAt: ENDS, cancelledAt: null },
+        BEFORE,
+      );
       expect(pub?.guestTeams).toEqual(["Guest Team 1"]);
       expect(pub?.charity?.goalCents).toBe(250000);
       expect(JSON.stringify(pub)).not.toContain("captain1@example.test");
@@ -203,11 +225,17 @@ describe("an event that stops being a tournament", () => {
   it("takes no more guest teams, and a purged tournament takes none either", async () => {
     await inRolledBackDb(async (db) => {
       const { eventId } = await setUp(db);
-      await db.update(event).set({ kind: "social" }).where(eq(event.id, eventId));
+      await db
+        .update(event)
+        .set({ kind: "social" })
+        .where(eq(event.id, eventId));
       expect(
         await registerGuestTeam(db, { eventId, signup: guest(1), now: BEFORE }),
       ).toEqual({ ok: false, error: "not_a_tournament" });
-      await db.update(event).set({ kind: "tournament" }).where(eq(event.id, eventId));
+      await db
+        .update(event)
+        .set({ kind: "tournament" })
+        .where(eq(event.id, eventId));
       await db
         .update(tournament)
         .set({ guestDataDeletedAt: BEFORE })
@@ -227,9 +255,17 @@ describe("waiver by link", () => {
       const team = await guestTeamByToken(db, linkToken);
       expect(team?.waiver?.bodySha256).toBe(sha);
       const sign = (signedName: string, shownSha256 = sha) =>
-        signGuestWaiver(db, { token: linkToken, signedName, shownSha256, now: BEFORE });
+        signGuestWaiver(db, {
+          token: linkToken,
+          signedName,
+          shownSha256,
+          now: BEFORE,
+        });
       expect((await sign("Pat Example")).ok).toBe(true);
-      expect(await sign("pat example")).toEqual({ ok: false, error: "already_signed" });
+      expect(await sign("pat example")).toEqual({
+        ok: false,
+        error: "already_signed",
+      });
       for (const n of ["B One", "C Two", "D Three", "E Four", "F Five"]) {
         expect((await sign(n)).ok).toBe(true);
       }
@@ -243,13 +279,28 @@ describe("waiver by link", () => {
       const { eventId, sha } = await setUp(db);
       const { linkToken } = await enter(db, eventId, 1);
       expect(
-        await signGuestWaiver(db, { token: linkToken, signedName: "Pat Example", shownSha256: "0".repeat(64), now: BEFORE }),
+        await signGuestWaiver(db, {
+          token: linkToken,
+          signedName: "Pat Example",
+          shownSha256: "0".repeat(64),
+          now: BEFORE,
+        }),
       ).toEqual({ ok: false, error: "changed" });
       expect(
-        await signGuestWaiver(db, { token: "x".repeat(32), signedName: "Pat Example", shownSha256: sha, now: BEFORE }),
+        await signGuestWaiver(db, {
+          token: "x".repeat(32),
+          signedName: "Pat Example",
+          shownSha256: sha,
+          now: BEFORE,
+        }),
       ).toEqual({ ok: false, error: "no_team" });
       expect(
-        await signGuestWaiver(db, { token: linkToken, signedName: "Pat Example", shownSha256: sha, now: ENDS }),
+        await signGuestWaiver(db, {
+          token: linkToken,
+          signedName: "Pat Example",
+          shownSha256: sha,
+          now: ENDS,
+        }),
       ).toEqual({ ok: false, error: "over" });
     });
   });
@@ -270,14 +321,26 @@ describe("guest teams in the bracket", () => {
       if (!drawn.ok) throw new Error(drawn.error);
       expect(drawn.value.seeds).toHaveLength(3);
       expect(
-        await drawBracket(db, { leagueId: w.leagueId, eventId, order: (t) => t, actorId: w.admin }),
+        await drawBracket(db, {
+          leagueId: w.leagueId,
+          eventId,
+          order: (t) => t,
+          actorId: w.admin,
+        }),
       ).toEqual({ ok: false, error: "already_drawn" });
       expect(
-        await removeGuestTeam(db, { leagueId: w.leagueId, eventId, teamId: ids[0]!, actorId: w.admin }),
+        await removeGuestTeam(db, {
+          leagueId: w.leagueId,
+          eventId,
+          teamId: ids[0]!,
+          actorId: w.admin,
+        }),
       ).toEqual({ ok: false, error: "in_bracket" });
       let bracket = drawn.value;
       for (let i = 0; i < 4 && !bracket.champion; i++) {
-        const game = bracket.matches.find((m) => m.teamA && m.teamB && !m.winner);
+        const game = bracket.matches.find(
+          (m) => m.teamA && m.teamB && !m.winner,
+        );
         if (!game) break;
         const r = await updateBracketGame(db, {
           leagueId: w.leagueId,
@@ -291,9 +354,21 @@ describe("guest teams in the bracket", () => {
       }
       expect(bracket.champion).not.toBeNull();
       expect(
-        await resetBracket(db, { leagueId: w.leagueId, eventId, actorId: w.admin }),
+        await resetBracket(db, {
+          leagueId: w.leagueId,
+          eventId,
+          actorId: w.admin,
+        }),
       ).toEqual({ ok: false, error: "has_results" });
-      expect((await publicTournament(db, { id: eventId, endsAt: ENDS, cancelledAt: null }, BEFORE))?.bracket?.champion).toBe(bracket.champion);
+      expect(
+        (
+          await publicTournament(
+            db,
+            { id: eventId, endsAt: ENDS, cancelledAt: null },
+            BEFORE,
+          )
+        )?.bracket?.champion,
+      ).toBe(bracket.champion);
     });
   });
 
@@ -302,10 +377,30 @@ describe("guest teams in the bracket", () => {
       const { w, eventId } = await setUp(db);
       const a = await enter(db, eventId, 1);
       await enter(db, eventId, 2);
-      await drawBracket(db, { leagueId: w.leagueId, eventId, order: (t) => t, actorId: w.admin });
-      expect((await resetBracket(db, { leagueId: w.leagueId, eventId, actorId: w.admin })).ok).toBe(true);
+      await drawBracket(db, {
+        leagueId: w.leagueId,
+        eventId,
+        order: (t) => t,
+        actorId: w.admin,
+      });
       expect(
-        (await removeGuestTeam(db, { leagueId: w.leagueId, eventId, teamId: a.id, actorId: w.admin })).ok,
+        (
+          await resetBracket(db, {
+            leagueId: w.leagueId,
+            eventId,
+            actorId: w.admin,
+          })
+        ).ok,
+      ).toBe(true);
+      expect(
+        (
+          await removeGuestTeam(db, {
+            leagueId: w.leagueId,
+            eventId,
+            teamId: a.id,
+            actorId: w.admin,
+          })
+        ).ok,
       ).toBe(true);
       expect(await adminGuestTeams(db, eventId)).toHaveLength(1);
     });
@@ -316,7 +411,12 @@ describe("guest teams in the bracket", () => {
       const { w, eventId } = await setUp(db);
       await enter(db, eventId, 1);
       expect(
-        await drawBracket(db, { leagueId: w.leagueId, eventId, order: (t) => t, actorId: w.admin }),
+        await drawBracket(db, {
+          leagueId: w.leagueId,
+          eventId,
+          order: (t) => t,
+          actorId: w.admin,
+        }),
       ).toEqual({ ok: false, error: "too_few" });
     });
   });
@@ -328,16 +428,32 @@ describe("deleting guest data", () => {
       const { w, eventId, sha } = await setUp(db, { guestDataDays: 10 });
       const { linkToken } = await enter(db, eventId, 1);
       await enter(db, eventId, 2);
-      await signGuestWaiver(db, { token: linkToken, signedName: "Pat Example", shownSha256: sha, now: BEFORE });
-      await drawBracket(db, { leagueId: w.leagueId, eventId, order: (t) => t, actorId: w.admin });
+      await signGuestWaiver(db, {
+        token: linkToken,
+        signedName: "Pat Example",
+        shownSha256: sha,
+        now: BEFORE,
+      });
+      await drawBracket(db, {
+        leagueId: w.leagueId,
+        eventId,
+        order: (t) => t,
+        actorId: w.admin,
+      });
 
       const day = 86_400_000;
-      expect(await purgeGuestData(db, new Date(ENDS.getTime() + 9 * day))).toEqual([]);
+      expect(
+        await purgeGuestData(db, new Date(ENDS.getTime() + 9 * day)),
+      ).toEqual([]);
       expect(await adminGuestTeams(db, eventId)).toHaveLength(2);
 
-      expect(await purgeGuestData(db, new Date(ENDS.getTime() + 10 * day))).toHaveLength(1);
+      expect(
+        await purgeGuestData(db, new Date(ENDS.getTime() + 10 * day)),
+      ).toHaveLength(1);
       expect(await adminGuestTeams(db, eventId)).toHaveLength(0);
-      expect(await db.select().from(guestTeam).where(eq(guestTeam.eventId, eventId))).toEqual([]);
+      expect(
+        await db.select().from(guestTeam).where(eq(guestTeam.eventId, eventId)),
+      ).toEqual([]);
       const left = await db.select().from(guestWaiverSignature);
       expect(left.filter((s) => s.signedName === "Pat Example")).toEqual([]);
       const t = await tournamentOf(db, eventId);
@@ -345,7 +461,9 @@ describe("deleting guest data", () => {
       expect(t?.bracket?.seeds).toHaveLength(2);
       // The waiver link no longer works, and a second sweep does nothing.
       expect(await guestTeamByToken(db, linkToken)).toBeNull();
-      expect(await purgeGuestData(db, new Date(ENDS.getTime() + 11 * day))).toEqual([]);
+      expect(
+        await purgeGuestData(db, new Date(ENDS.getTime() + 11 * day)),
+      ).toEqual([]);
     });
   });
 
@@ -353,7 +471,10 @@ describe("deleting guest data", () => {
     await inRolledBackDb(async (db) => {
       const { eventId } = await setUp(db);
       await enter(db, eventId, 1);
-      await db.update(event).set({ deletedAt: BEFORE }).where(eq(event.id, eventId));
+      await db
+        .update(event)
+        .set({ deletedAt: BEFORE })
+        .where(eq(event.id, eventId));
       expect(await purgeGuestData(db, BEFORE)).toHaveLength(1);
       expect(await adminGuestTeams(db, eventId)).toHaveLength(0);
     });
@@ -385,7 +506,13 @@ describe("partner cards", () => {
       expect(cards).toHaveLength(1);
       expect(cards[0]?.friendLeagueId).toBe(friend?.id);
       expect(
-        (await publicTournament(db, { id: eventId, endsAt: ENDS, cancelledAt: null }, BEFORE))?.partner?.name,
+        (
+          await publicTournament(
+            db,
+            { id: eventId, endsAt: ENDS, cancelledAt: null },
+            BEFORE,
+          )
+        )?.partner?.name,
       ).toBe("Test Other Kickball League");
       // Once it is over the card goes.
       expect(await partnerTournaments(db, w.leagueId, ENDS)).toEqual([]);
@@ -393,7 +520,10 @@ describe("partner cards", () => {
       const stranger = await saveTournament(db, {
         leagueId: w.leagueId,
         eventId,
-        settings: { ...settings, partnerFriendLeagueId: "00000000-0000-4000-8000-000000000000" },
+        settings: {
+          ...settings,
+          partnerFriendLeagueId: "00000000-0000-4000-8000-000000000000",
+        },
         actorId: w.admin,
       });
       expect(stranger).toEqual({ ok: false, error: "partner_unknown" });

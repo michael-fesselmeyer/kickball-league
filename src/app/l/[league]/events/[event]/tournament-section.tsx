@@ -53,8 +53,8 @@ export function TournamentSection({
             <span className="sr-only"> (another site, opens in a new tab)</span>
           </a>
           <p className="text-small text-text-muted">
-            The link goes to the charity&apos;s own page. The league never
-            takes or holds donations.
+            The link goes to the charity&apos;s own page. The league never takes
+            or holds donations.
           </p>
         </section>
       )}

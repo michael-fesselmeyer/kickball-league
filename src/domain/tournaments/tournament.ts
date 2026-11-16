@@ -102,11 +102,7 @@ export type TournamentSettings = {
 };
 
 export type SettingsError =
-  | "max_teams"
-  | "charity_name"
-  | "charity_url"
-  | "charity_goal"
-  | "data_days";
+  "max_teams" | "charity_name" | "charity_url" | "charity_goal" | "data_days";
 
 export const SETTINGS_ERRORS: Readonly<Record<SettingsError, string>> = {
   max_teams: "The most guest teams is a whole number from 1 to 32, or blank.",
@@ -135,9 +131,9 @@ export function parseSettings(
   }
   const days = clean(fields.guestDataDays) || String(DEFAULT_GUEST_DATA_DAYS);
   const guestDataDays = /^\d{1,3}$/.test(days) ? Number(days) : NaN;
-  if (
-    !(guestDataDays >= MIN_GUEST_DATA_DAYS && guestDataDays <= MAX_GUEST_DATA_DAYS)
-  )
+  if (!(
+    guestDataDays >= MIN_GUEST_DATA_DAYS && guestDataDays <= MAX_GUEST_DATA_DAYS
+  ))
     return err("data_days");
 
   const name = clean(fields.charityName);
@@ -187,8 +183,7 @@ export function moneyLine(cents: number): string {
 
 /* ---------- sign-up window and retention ---------- */
 
-export type SignupState =
-  "open" | "closed" | "full" | "over" | "cancelled";
+export type SignupState = "open" | "closed" | "full" | "over" | "cancelled";
 
 /** Whether a guest team can sign up now. */
 export function signupState(

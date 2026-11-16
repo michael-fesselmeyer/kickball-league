@@ -11,7 +11,13 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-import type { EventId, FriendLeagueId, GuestTeamId, LeagueId, UserId } from "@/domain/ids";
+import type {
+  EventId,
+  FriendLeagueId,
+  GuestTeamId,
+  LeagueId,
+  UserId,
+} from "@/domain/ids";
 import { hashWaiverBody } from "@/domain/waiver/waiver";
 import { err, ok, type Result } from "@/domain/result";
 import {
@@ -87,7 +93,8 @@ async function lockTournament(db: Db, eventId: EventId) {
   return found ?? null;
 }
 
-export type SettingsSaveError = "not_a_tournament" | "partner_unknown" | "under_cap";
+export type SettingsSaveError =
+  "not_a_tournament" | "partner_unknown" | "under_cap";
 
 /**
  * Turns an event of kind "tournament" into one that takes guest teams, or
@@ -104,11 +111,20 @@ export async function saveTournament(
   },
 ): Promise<Result<void, SettingsSaveError>> {
   const [e] = await db
-    .select({ kind: event.kind, leagueId: event.leagueId, deletedAt: event.deletedAt })
+    .select({
+      kind: event.kind,
+      leagueId: event.leagueId,
+      deletedAt: event.deletedAt,
+    })
     .from(event)
     .where(eq(event.id, input.eventId))
     .for("update");
-  if (!e || e.leagueId !== input.leagueId || e.deletedAt || e.kind !== "tournament")
+  if (
+    !e ||
+    e.leagueId !== input.leagueId ||
+    e.deletedAt ||
+    e.kind !== "tournament"
+  )
     return err("not_a_tournament");
   const partner = input.settings.partnerFriendLeagueId;
   if (partner) {
@@ -189,7 +205,10 @@ export async function publicTournament(
       partnerUrl: friendLeague.url,
     })
     .from(tournament)
-    .leftJoin(friendLeague, eq(friendLeague.id, tournament.partnerFriendLeagueId))
+    .leftJoin(
+      friendLeague,
+      eq(friendLeague.id, tournament.partnerFriendLeagueId),
+    )
     .where(eq(tournament.eventId, e.id));
   if (!found) return null;
   const teams = await db
@@ -203,7 +222,11 @@ export async function publicTournament(
     maxGuestTeams: t.maxGuestTeams,
     charity:
       t.charityName && t.charityUrl
-        ? { name: t.charityName, url: t.charityUrl, goalCents: t.charityGoalCents }
+        ? {
+            name: t.charityName,
+            url: t.charityUrl,
+            goalCents: t.charityGoalCents,
+          }
         : null,
     partner:
       found.partnerName && found.partnerUrl
@@ -211,16 +234,16 @@ export async function publicTournament(
         : null,
     guestTeams: teams.map((x) => x.name),
     bracket: t.bracket,
-    signup: signupState(
-      { ...t, guestTeams: teams.length },
-      e,
-      now,
-    ),
+    signup: signupState({ ...t, guestTeams: teams.length }, e, now),
   };
 }
 
 /** The partner-league cards for the Friends page: tournaments still to come. */
-export async function partnerTournaments(db: Db, leagueId: LeagueId, now: Date) {
+export async function partnerTournaments(
+  db: Db,
+  leagueId: LeagueId,
+  now: Date,
+) {
   const rows = await db
     .select({
       friendLeagueId: tournament.partnerFriendLeagueId,
@@ -249,7 +272,8 @@ export async function partnerTournaments(db: Db, leagueId: LeagueId, now: Date) 
 
 /* ---------- guest sign-up ---------- */
 
-export type GuestSignupError = Exclude<SignupState, "open"> | "name_taken" | "not_a_tournament";
+export type GuestSignupError =
+  Exclude<SignupState, "open"> | "name_taken" | "not_a_tournament";
 
 /** Enters a guest team, if the tournament still has room. */
 export async function registerGuestTeam(
@@ -442,7 +466,12 @@ export type TeamRemoveError = "no_team" | "in_bracket";
 /** Removes a guest team and its signatures, unless the bracket has it. */
 export async function removeGuestTeam(
   db: Db,
-  input: { leagueId: LeagueId; eventId: EventId; teamId: GuestTeamId; actorId: UserId },
+  input: {
+    leagueId: LeagueId;
+    eventId: EventId;
+    teamId: GuestTeamId;
+    actorId: UserId;
+  },
 ): Promise<Result<void, TeamRemoveError>> {
   const locked = await lockTournament(db, input.eventId);
   if (!locked) return err("no_team");
@@ -450,7 +479,9 @@ export async function removeGuestTeam(
     return err("in_bracket");
   const [gone] = await db
     .delete(guestTeam)
-    .where(and(eq(guestTeam.id, input.teamId), eq(guestTeam.eventId, input.eventId)))
+    .where(
+      and(eq(guestTeam.id, input.teamId), eq(guestTeam.eventId, input.eventId)),
+    )
     .returning({ name: guestTeam.name });
   if (!gone) return err("no_team");
   await recordAudit(db, {
@@ -478,7 +509,9 @@ export async function drawBracket(
     leagueId: LeagueId;
     eventId: EventId;
     /** Applied to the sign-up order, so a draw can be shuffled. */
-    order: (teams: { id: string; name: string }[]) => { id: string; name: string }[];
+    order: (
+      teams: { id: string; name: string }[],
+    ) => { id: string; name: string }[];
     actorId: UserId;
   },
 ): Promise<Result<TournamentBracket, BracketSaveError>> {
@@ -549,7 +582,12 @@ export async function updateBracketGame(
   if (!bracket) return err("not_drawn");
   const next =
     input.change.kind === "score"
-      ? recordScore(bracket, input.code, input.change.scoreA, input.change.scoreB)
+      ? recordScore(
+          bracket,
+          input.code,
+          input.change.scoreA,
+          input.change.scoreB,
+        )
       : setSchedule(
           bracket,
           input.code,

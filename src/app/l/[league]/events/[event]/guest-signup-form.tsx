@@ -2,10 +2,7 @@
 
 import { useActionState } from "react";
 import { CopySnippet } from "@/components/copy-snippet";
-import {
-  type GuestSignupState,
-  signUpGuestTeam,
-} from "@/app/guest/actions";
+import { type GuestSignupState, signUpGuestTeam } from "@/app/guest/actions";
 import { MAX_ROSTER, MIN_ROSTER } from "@/domain/tournaments/tournament";
 
 const initial: GuestSignupState = { status: "idle" };
@@ -33,9 +30,9 @@ export function GuestSignupForm({ slug }: { slug: string }) {
         </p>
         <p>
           {state.teamName} is entered. Send this link to every player on your
-          team: each one signs the waiver on their own phone, no account
-          needed. Save it now; we can&apos;t show it again, though the
-          league&apos;s admins can send it to you.
+          team: each one signs the waiver on their own phone, no account needed.
+          Save it now; we can&apos;t show it again, though the league&apos;s
+          admins can send it to you.
         </p>
         <CopySnippet
           label="Waiver link for your team"
@@ -100,7 +97,7 @@ export function GuestSignupForm({ slug }: { slug: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="btn btn-primary self-start disabled:opacity-60"
+        className="btn self-start btn-primary disabled:opacity-60"
       >
         {pending ? "Entering…" : "Enter our team"}
       </button>

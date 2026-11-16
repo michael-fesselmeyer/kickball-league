@@ -100,7 +100,10 @@ export default async function FriendsPage({
       </header>
 
       {partners.length > 0 && (
-        <section aria-labelledby="partner-events" className="flex flex-col gap-3">
+        <section
+          aria-labelledby="partner-events"
+          className="flex flex-col gap-3"
+        >
           <h2 id="partner-events" className="text-h2">
             Playing together
           </h2>

@@ -269,11 +269,7 @@ async function EventDetails({
       )}
 
       {tourney && (
-        <TournamentSection
-          slug={e.slug}
-          t={tourney}
-          timeZone={e.timeZone}
-        />
+        <TournamentSection slug={e.slug} t={tourney} timeZone={e.timeZone} />
       )}
 
       {themeWeek && (

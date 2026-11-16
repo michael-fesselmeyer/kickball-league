@@ -36,7 +36,13 @@ export type TournamentBracket = {
 };
 
 export type BracketError =
-  "too_few" | "too_many" | "no_such_match" | "not_ready" | "tie" | "bad_score" | "later_played";
+  | "too_few"
+  | "too_many"
+  | "no_such_match"
+  | "not_ready"
+  | "tie"
+  | "bad_score"
+  | "later_played";
 
 export const BRACKET_ERRORS: Readonly<Record<BracketError, string>> = {
   too_few: `A bracket needs at least ${MIN_BRACKET_TEAMS} teams.`,
@@ -154,7 +160,11 @@ export function setSchedule(
     ...bracket,
     matches: bracket.matches.map((m) =>
       m.code === code
-        ? { ...m, place: clean || null, startsAt: startsAt?.toISOString() ?? null }
+        ? {
+            ...m,
+            place: clean || null,
+            startsAt: startsAt?.toISOString() ?? null,
+          }
         : m,
     ),
   });
