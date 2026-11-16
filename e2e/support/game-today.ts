@@ -1,4 +1,9 @@
-import { Client } from "pg";
+import {
+  Client,
+  DatabaseError,
+  type QueryResult,
+  type QueryResultRow,
+} from "pg";
 
 /**
  * An exhibition game at noon today, league time, between two fall teams,
@@ -56,7 +61,8 @@ async function addFallGame(
   kickedOff: boolean,
 ): Promise<{ gameId: string; remove: () => Promise<void> }> {
   const ids = await withDb(async (db) => {
-    const { rows } = await db.query<{ game: string; slot: string }>(
+    const { rows } = await slotQuery<{ game: string; slot: string }>(
+      db,
       `with teams as (
          select ts.id, t.name, s.id as season_id, l.timezone, l.id as league_id
            from team_season ts
@@ -167,7 +173,8 @@ export async function addGamesNextWeek(
     const games: string[] = [];
     const slots: string[] = [];
     for (const [i, [teamA, teamB]] of pairs.entries()) {
-      const { rows } = await db.query<{ game: string; slot: string }>(
+      const { rows } = await slotQuery<{ game: string; slot: string }>(
+        db,
         `with entries as (
            insert into team_season (team_id, season_id)
            select t.id, $1 from team t
@@ -246,7 +253,8 @@ export async function addRefereedGameSoon(
 ): Promise<{ gameId: string; remove: () => Promise<void> }> {
   const tag = Math.random().toString(36).slice(2, 8);
   const made = await withDb(async (db) => {
-    const { rows } = await db.query<{ season: string; game: string }>(
+    const { rows } = await slotQuery<{ season: string; game: string }>(
+      db,
       `with new_season as (
          insert into season (league_id, name, slug, status, visibility,
                              starts_on, ends_on, fee_model, player_fee_cents,
@@ -327,7 +335,8 @@ export async function addStartedGame(
 ): Promise<{ gameId: string; remove: () => Promise<void> }> {
   const tag = Math.random().toString(36).slice(2, 8);
   const made = await withDb(async (db) => {
-    const { rows } = await db.query<{ season: string; game: string }>(
+    const { rows } = await slotQuery<{ season: string; game: string }>(
+      db,
       `with new_season as (
          insert into season (league_id, name, slug, status, visibility,
                              starts_on, ends_on, fee_model, player_fee_cents,
@@ -413,11 +422,12 @@ export async function addGameTodayWithPlayer(
   const tag = Math.random().toString(36).slice(2, 8);
   const slug = `own-team-${tag}`;
   const made = await withDb(async (db) => {
-    const { rows } = await db.query<{
+    const { rows } = await slotQuery<{
       season: string;
       game: string;
       team: string;
     }>(
+      db,
       `with new_season as (
          insert into season (league_id, name, slug, status, visibility,
                              starts_on, ends_on, fee_model, player_fee_cents,
@@ -512,7 +522,8 @@ export async function addGameUnderWayWithOrder(
 }> {
   const tag = Math.random().toString(36).slice(2, 8);
   const made = await withDb(async (db) => {
-    const { rows } = await db.query<{ season: string; game: string }>(
+    const { rows } = await slotQuery<{ season: string; game: string }>(
+      db,
       `with new_season as (
          insert into season (league_id, name, slug, status, visibility,
                              starts_on, ends_on, fee_model, player_fee_cents,
@@ -657,6 +668,28 @@ async function removePrivateSeason(db: Client, seasonId: string) {
   await db.query("delete from registration where season_id = $1", [seasonId]);
   await db.query("delete from team_season where season_id = $1", [seasonId]);
   await db.query("delete from season where id = $1", [seasonId]);
+}
+
+/**
+ * Runs a statement that inserts a slot, again with a fresh kickoff offset
+ * if another game took the same field and start (`slot_field_start_unique`).
+ * The statement is all or nothing, so a refused attempt leaves no rows.
+ */
+async function slotQuery<T extends QueryResultRow>(
+  db: Client,
+  text: string,
+  values: unknown[],
+): Promise<QueryResult<T>> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await db.query<T>(text, values);
+    } catch (error) {
+      const clash =
+        error instanceof DatabaseError &&
+        error.constraint === "slot_field_start_unique";
+      if (!clash || attempt === 5) throw error;
+    }
+  }
 }
 
 async function withDb<T>(body: (db: Client) => Promise<T>): Promise<T> {
