@@ -233,6 +233,13 @@ const RULES = {
   // Accept or decline the captaincy offered to you, or step down as a
   // co-captain: only the person themselves.
   "captaincy.respond": self,
+  // The season-end leadership check-in (ADR 0077): everyone on the team
+  // checks in and votes; only the captain hears the result first and
+  // chooses how to hand over; admins open, pause, resume and close it, and
+  // never see a choice.
+  "leadership.take_part": (s, c) => onTeam(s, c.teamSeasonId),
+  "leadership.choose": (s, c) => leads(s, c.teamSeasonId),
+  "leadership.manage": isAdmin,
   "sub_request.post": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
   // Approve or decline claims, or take the request down.
   "sub_request.decide": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),

@@ -35,6 +35,7 @@ import { RECORD_PAYMENT_MESSAGES } from "../record-payment";
 import { teamKeepOffList } from "@/db/queries/keep-off";
 import { recruitingSummary, recruitingTeam } from "@/db/queries/move";
 import { offerFor, teamCaptaincy } from "@/db/queries/captaincy";
+import { checkInStep } from "@/db/queries/leadership";
 import {
   addKeepOffAction,
   answerCaptaincyAction,
@@ -225,6 +226,7 @@ async function Team({
     myOffer,
     shirtInfo,
     recruiting,
+    leadership,
   ] = await Promise.all([
     rosterBoard(db, teamSeasonId),
     teamGames(db, teamSeasonId),
@@ -248,6 +250,8 @@ async function Team({
     offerFor(db, teamSeasonId, subject.userId),
     teamShirtInfo(db, teamSeasonId),
     recruits ? recruitingTeam(db, teamSeasonId, now) : null,
+    // The season-end leadership check-in (ADR 0077), once one is open.
+    checkInStep(db, teamSeasonId),
   ]);
   // Answers are for games still to come.
   const upcoming = games
@@ -376,6 +380,25 @@ async function Team({
           accept={answerCaptaincyAction.bind(null, slug, myOffer, true)}
           decline={answerCaptaincyAction.bind(null, slug, myOffer, false)}
         />
+      )}
+      {leadership && leadership.step !== "closed" && (
+        <Link
+          href={`/app/seasons/${slug}/team/leadership`}
+          className="flex flex-col gap-1 rounded-lg border border-border p-3"
+        >
+          <span className="font-semibold underline">
+            {leadership.step === "check_in"
+              ? "Leadership check-in: who'd you like to help lead next season?"
+              : leadership.step === "ballot"
+                ? "Leadership check-in: the secret ballot is open"
+                : "Leadership check-in: voting has closed"}
+          </span>
+          <span className="text-small text-text-muted">
+            {leadership.paused
+              ? "Paused by the league for now."
+              : "Private: nobody sees your answer."}
+          </span>
+        </Link>
       )}
       {mySuspension && (
         <p className="rounded-lg border border-warning p-3">
