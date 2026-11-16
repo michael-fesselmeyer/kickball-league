@@ -1,6 +1,6 @@
 /**
  * Registers the apps' own URL scheme in the native projects, so the system
- * browser returns to the app after Google sign-in (ADR 0075):
+ * browser returns to the app after Google sign-in (ADR 0077):
  *
  * - Android: an intent filter on the main activity, so the Custom Tab's
  *   redirect to `<scheme>:/sign-in?code=…` opens the app.

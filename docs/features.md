@@ -194,5 +194,5 @@ The complete list of what works on `main`, by area. The [README](../README.md#fe
 ## Sign-in
 
 - Email links and, when configured, Google.
-- A six-digit code in every sign-in email, next to the link: type it where you asked, such as in the app or on a laptop when the email is open on a phone. Phones offer it from Mail or the notification. Link and code work once between them and expire in 15 minutes, and guesses are limited per address ([ADR 0075](adr/0075-signing-in-inside-the-apps.md)).
+- A six-digit code in every sign-in email, next to the link: type it where you asked, such as in the app or on a laptop when the email is open on a phone. Phones offer it from Mail or the notification. Link and code work once between them and expire in 15 minutes, and guesses are limited per address ([ADR 0077](adr/0077-signing-in-inside-the-apps.md)).
 - In the iOS and Android apps, Google sign-in opens in the phone's own sign-in sheet and comes back to the app signed in. Sessions last 90 days and renew with use, so people rarely sign in at all.

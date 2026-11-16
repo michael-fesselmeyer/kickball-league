@@ -55,7 +55,7 @@ export async function sendSignInLink(
 }
 
 /**
- * Signs in with the six-digit code from the sign-in email (ADR 0075), for
+ * Signs in with the six-digit code from the sign-in email (ADR 0077), for
  * the apps and for anyone reading their email on another device. Public by
  * design, like the link; guesses are limited per address and per IP.
  */

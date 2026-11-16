@@ -12,7 +12,7 @@ const noop = () => () => {};
 export function PasskeySignIn({ next }: { next: string }) {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
-  // Passkeys for this site don't reach an app's web view yet (ADR 0075),
+  // Passkeys for this site don't reach an app's web view yet (ADR 0077),
   // so the iOS and Android apps don't offer them.
   const inApp = useSyncExternalStore(
     noop,

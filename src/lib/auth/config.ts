@@ -39,7 +39,7 @@ export const SIGN_IN_LINKS_PER_INBOX = {
 } as const;
 
 /**
- * Guesses at the code that comes with a sign-in link (ADR 0075), per
+ * Guesses at the code that comes with a sign-in link (ADR 0077), per
  * address: 5 for each link lifetime and 10 a day, so a stranger guessing
  * a six-digit code has about a 1 in 100,000 chance a day. Past either
  * limit, the link in the email still works.

@@ -2,7 +2,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 /**
  * Hands a sign-in made in the system browser sheet to the iOS or Android
- * app (ADR 0075). Google refuses sign-in inside an app's web view, so the
+ * app (ADR 0077). Google refuses sign-in inside an app's web view, so the
  * app opens the sheet (ASWebAuthenticationSession on iOS, a Custom Tab on
  * Android), the person signs in there, and the site sends the sheet back to
  * the app's own address with a one-time code. The app trades the code for

@@ -15,7 +15,7 @@ const escape = (value: string) =>
 /**
  * The code goes first, in the subject too, so a phone can offer it from a
  * notification and iOS can fill it into the code field from Mail (ADR
- * 0075). The link still works on its own.
+ * 0077). The link still works on its own.
  */
 export function renderMagicLinkEmail({
   url,

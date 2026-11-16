@@ -12,7 +12,7 @@ import { isGoogleEnabled } from "@/lib/auth/google";
 import { parseSetCookie, requestGoogleSignIn } from "@/lib/auth/request-google";
 
 /**
- * Starts Google sign-in for the iOS and Android apps (ADR 0075). The app
+ * Starts Google sign-in for the iOS and Android apps (ADR 0077). The app
  * opens this address in the system browser sheet with the challenge for a
  * verifier it keeps. The sheet goes to Google, back to Better Auth's
  * callback, and on to `/api/auth/app-sign-in/handoff`, which sends it back

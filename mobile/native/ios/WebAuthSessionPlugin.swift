@@ -3,7 +3,7 @@ import Capacitor
 
 /// Google sign-in for the iOS app through the system sign-in sheet
 /// (ASWebAuthenticationSession), never the app's own web view, which Google
-/// refuses (ADR 0075). The page calls `Capacitor.Plugins.WebAuthSession
+/// refuses (ADR 0077). The page calls `Capacitor.Plugins.WebAuthSession
 /// .start({ url, callbackScheme })` and gets back the address the sheet
 /// ended on, which carries a one-time code for this app only.
 ///

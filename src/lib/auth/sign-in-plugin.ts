@@ -82,7 +82,7 @@ const WRONG_CODE =
   "That code didn't work. Check the newest email and try again.";
 
 /**
- * The sign-in plugin for codes and the apps (ADR 0075):
+ * The sign-in plugin for codes and the apps (ADR 0077):
  *
  * - `POST /sign-in/code` signs in with the code from the email, and uses
  *   up the link it came with.

@@ -1,4 +1,4 @@
-# ADR 0075: Signing in inside the iOS and Android apps
+# ADR 0077: Signing in inside the iOS and Android apps
 
 - Status: accepted
 - Date: 2026-11-15
