@@ -428,6 +428,19 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     expect(allowed("keep_off.export_policy")).toEqual(["owner"]);
   });
 
+  it("keeps looking for a change to the player, recruiting captains and admins", () => {
+    // Only the person sets, answers or withdraws it; admins can't for them.
+    expect(allowed("move.set", { targetUserId: "p" })).toEqual(["player"]);
+    expect(allowed("move.set", { targetUserId: "c" })).toEqual(["captain"]);
+    // A team's captains recruit for it; admins don't recruit for teams.
+    expect(allowed("move.recruit", { teamSeasonId: "A" })).toEqual([
+      "captain",
+      "coCaptain",
+    ]);
+    expect(allowed("move.recruit", { teamSeasonId: "B" })).toEqual([]);
+    expect(allowed("move.review")).toEqual(["admin", "owner"]);
+  });
+
   it("keeps the captaincy and co-captains to the team's captain and admins", () => {
     expect(allowed("captaincy.manage", { teamSeasonId: "A" })).toEqual([
       "captain",

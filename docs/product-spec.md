@@ -214,6 +214,9 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | Read, export or delete an injury report (filing one is "Log an incident") | — | — | — | — | — | ✓ | ✓ |
 | Keep a person off the team with a private "not on my team" list ([ADR 0036](adr/0036-not-on-my-team-list.md)) | — | — | own team | — | — | ✓ (any team) | ✓ (any team) |
 | See every team's "not on my team" list and reasons | — | — | — | — | — | ✓ | ✓ |
+| Quietly say they're open to a new team next season, answer team invites, withdraw it ([ADR 0081](adr/0081-looking-for-a-change.md)) | — | own | own | own | — | own | own |
+| See how many players are open to a move and invite them; see names only of those who accept | — | — | own team, if recruiting for next season and never their own players | — | — | — | — |
+| See who is looking for a change, with notes, when they let admins see it | — | — | — | — | — | ✓ | ✓ |
 | Choose whether a person's own data export lists entries about them | — | — | — | — | — | — | ✓ |
 | Rate the other team's sportsmanship after a final score | — | — | own team's games | — | — | — | — |
 | See sportsmanship averages | — | — | own team, in blocks of 3 ratings | — | — | ✓ (every team, with notes) | ✓ (every team, with notes) |

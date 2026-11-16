@@ -159,6 +159,9 @@ const RULES = {
   "waiver.sign": self,
   "payment.pay_own": self,
   "data.export_or_delete": any(self, isOwner),
+  // Quietly say you're open to a new team next season, answer the invites
+  // it gets, or withdraw it (ADR 0081). Only the person themselves.
+  "move.set": self,
   // Any signed-in person
   "registration.join": signedIn,
   "team.register": signedIn,
@@ -311,6 +314,11 @@ const RULES = {
   // A private "not on my team" list (ADR 0036): a team's captains for their
   // own team, admins for any team. The person listed never sees it.
   "keep_off.manage": any(isAdmin, (s, c) => captains(s, c.teamSeasonId)),
+  // Looking for a change (ADR 0081): invite every player open to a move,
+  // unseen, to a team recruiting for next season. A team's captains only,
+  // never admins on its behalf; who they see is decided by the queries,
+  // which never count a team's own players.
+  "move.recruit": (s, c) => captains(s, c.teamSeasonId),
   // League gear (issue #286): picking up, handing on, returning and
   // reporting a kit, by the person themselves. Whether they have the kit
   // or bring it to a game is checked against the kit (src/domain/equipment).
@@ -368,6 +376,8 @@ const RULES = {
   "sportsmanship.view": isAdmin,
   // Every team's list and reasons, to catch misuse.
   "keep_off.review": isAdmin,
+  // Who is looking for a change, with notes, when they let admins see it.
+  "move.review": isAdmin,
   "refund.issue": isAdmin,
   // Merge a duplicate account into another (ADR 0041).
   "accounts.merge": isAdmin,
