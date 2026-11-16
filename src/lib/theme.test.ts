@@ -1,17 +1,43 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   applySavedThemeScript,
-  isThemeChoice,
+  isTheme,
+  readSavedTheme,
   THEME_STORAGE_KEY,
 } from "./theme";
 
-describe("isThemeChoice", () => {
-  it.each(["system", "light", "dark"])("accepts %s", (v) =>
-    expect(isThemeChoice(v)).toBe(true),
+describe("isTheme", () => {
+  it.each(["light", "dark"])("accepts %s", (v) =>
+    expect(isTheme(v)).toBe(true),
   );
-  it.each(["", "blue", null, undefined, 1])("rejects %s", (v) =>
-    expect(isThemeChoice(v)).toBe(false),
+  it.each(["system", "", "blue", null, undefined, 1])("rejects %s", (v) =>
+    expect(isTheme(v)).toBe(false),
   );
+});
+
+describe("readSavedTheme", () => {
+  const stub = (stored: string | null, throws = false) =>
+    vi.stubGlobal("localStorage", {
+      getItem: () => {
+        if (throws) throw new Error("blocked");
+        return stored;
+      },
+    });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("returns a saved light or dark theme", () => {
+    stub("dark");
+    expect(readSavedTheme()).toBe("dark");
+  });
+
+  it("treats old, unknown or blocked storage as nothing saved", () => {
+    stub("system");
+    expect(readSavedTheme()).toBeNull();
+    stub(null);
+    expect(readSavedTheme()).toBeNull();
+    stub("dark", true);
+    expect(readSavedTheme()).toBeNull();
+  });
 });
 
 describe("applySavedThemeScript", () => {
