@@ -205,5 +205,29 @@ describe("proxy", () => {
     // The default league's files are listed one by one, to be rewritten.
     expect(config.matcher).toContain("/teams/:team/calendar.ics");
     expect(config.matcher).toContain("/events/calendar.ics");
+    // Downloads and other leagues' files live in the language tree too.
+    expect(config.matcher).toContain("/app/:path*");
+    expect(config.matcher).toContain("/l/:path*");
+  });
+
+  it("leaves the footer's language links to their route handler", async () => {
+    const response = await proxy(request("/language/es"));
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+  });
+
+  it("serves the app's downloads and another league's files from the language tree", async () => {
+    const download = await proxy(
+      request(
+        "/app/books/fall-2026/ledger.csv",
+        "better-auth.session_token=abc.def",
+      ),
+    );
+    expect(download.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:3000/en/app/books/fall-2026/ledger.csv",
+    );
+    const feed = await proxy(request("/l/flag-football/events/calendar.ics"));
+    expect(feed.headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:3000/en/l/flag-football/events/calendar.ics",
+    );
   });
 });
