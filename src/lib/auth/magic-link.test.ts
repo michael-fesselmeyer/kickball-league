@@ -6,6 +6,7 @@ import { deliverMagicLink } from "./magic-link";
 const link = {
   email: "player@example.test",
   url: "http://localhost:3000/api/auth/magic-link/verify?token=t",
+  code: "042137",
 };
 
 describe("deliverMagicLink", () => {
@@ -14,6 +15,7 @@ describe("deliverMagicLink", () => {
     await deliverMagicLink(link, { nodeEnv: "development", log });
     expect(log).toHaveBeenCalledOnce();
     expect(log.mock.calls[0]?.[0]).toContain(link.url);
+    expect(log.mock.calls[0]?.[0]).toContain("code 042137");
   });
 
   it("refuses in production instead of logging a usable link", async () => {
@@ -32,6 +34,7 @@ describe("deliverMagicLink", () => {
     const sent = send.mock.calls[0]?.[0] as Email;
     expect(sent.to).toBe(link.email);
     expect(sent.text).toContain(link.url);
+    expect(sent.subject).toBe("042137 is your sign-in code");
     expect(sent.idempotencyKey).toMatch(/^magic-link\/[0-9a-f]{64}$/);
     // The key is derived from the link but does not contain it.
     expect(sent.idempotencyKey).not.toContain("token");

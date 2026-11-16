@@ -39,6 +39,23 @@ export const SIGN_IN_LINKS_PER_INBOX = {
 } as const;
 
 /**
+ * Guesses at the code that comes with a sign-in link (ADR 0075), per
+ * address: 5 for each link lifetime and 10 a day, so a stranger guessing
+ * a six-digit code has about a 1 in 100,000 chance a day. Past either
+ * limit, the link in the email still works.
+ */
+export const SIGN_IN_CODE_GUESSES = {
+  perLink: { windowSeconds: MAGIC_LINK_EXPIRES_IN_SECONDS, max: 5 },
+  perDay: { windowSeconds: DAY, max: 10 },
+} as const;
+
+/** Code attempts from one IP address: 10 every 10 minutes. */
+export const SIGN_IN_CODES_PER_IP = { window: 10 * MINUTE, max: 10 } as const;
+
+/** The apps' sign-in handoff from one IP address: 10 a minute. */
+export const APP_HANDOFF_RATE = { window: MINUTE, max: 10 } as const;
+
+/**
  * Rate-limit counts live in Postgres (the `rate_limit` table), so the limits
  * apply to the whole site, not to each server instance. The rules are
  * Better Auth's own, apart from sign-in links (above): 5 sign-in link checks

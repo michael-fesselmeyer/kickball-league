@@ -30,6 +30,15 @@ export const envSchema = z.object({
   // Optional until Google sign-in lands (issue #8).
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+  /**
+   * The iOS and Android apps' id, which is also their URL scheme for
+   * returning from the browser sheet after Google sign-in (ADR 0075).
+   * Defaults to a placeholder in a reserved domain.
+   */
+  MOBILE_APP_ID: z
+    .string()
+    .regex(/^[a-z][a-z0-9]*(\.[a-z][a-z0-9_]*)+$/)
+    .optional(),
   // Optional until email is set up: without them, sign-in links are printed
   // in development and refused in production.
   RESEND_API_KEY: z

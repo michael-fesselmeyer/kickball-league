@@ -96,21 +96,36 @@ describe("auth instance", () => {
     const plugin = auth.options.plugins?.find((p) => p.id === "magic-link") as
       | {
           options: {
-            sendMagicLink: (data: {
-              email: string;
-              url: string;
-            }) => Promise<void>;
+            sendMagicLink: (
+              data: { email: string; url: string; token: string },
+              ctx: unknown,
+            ) => Promise<void>;
           };
         }
       | undefined;
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    await plugin!.options.sendMagicLink({
-      email: "player@example.com",
-      url: "http://x/verify",
-    });
-    expect(info).toHaveBeenCalledWith(
-      expect.stringContaining("http://x/verify"),
+    const stored: { identifier: string; value: string }[] = [];
+    await plugin!.options.sendMagicLink(
+      {
+        email: "player@example.com",
+        url: "http://x/verify?token=t&callbackURL=%2Fapp",
+        token: "t",
+      },
+      fakeCtx(stored),
     );
+    // The link and its code go out together, and only the code's hash is kept.
+    const printed = String(info.mock.calls[0]?.[0]);
+    expect(printed).toContain("http://x/verify");
+    const code = /code (\d{6})/.exec(printed)?.[1];
+    expect(code).toMatch(/^\d{6}$/);
+    expect(stored).toHaveLength(1);
+    expect(stored[0]!.identifier).toMatch(/^sign-in-code:[0-9a-f]{64}$/);
+    expect(stored[0]!.value).not.toContain(code!);
+    expect(JSON.parse(stored[0]!.value)).toMatchObject({
+      type: "sign-in-code",
+      email: "player@example.com",
+      callbackURL: "/app",
+    });
     info.mockRestore();
   });
 
@@ -118,22 +133,40 @@ describe("auth instance", () => {
     const plugin = auth.options.plugins?.find((p) => p.id === "magic-link") as
       | {
           options: {
-            sendMagicLink: (data: {
-              email: string;
-              url: string;
-            }) => Promise<void>;
+            sendMagicLink: (
+              data: { email: string; url: string; token: string },
+              ctx: unknown,
+            ) => Promise<void>;
           };
         }
       | undefined;
     vi.mocked(allowSignInLink).mockResolvedValueOnce(false);
     const info = vi.spyOn(console, "info").mockImplementation(() => {});
     await expect(
-      plugin!.options.sendMagicLink({
-        email: "player@example.test",
-        url: "http://x/verify",
-      }),
+      plugin!.options.sendMagicLink(
+        { email: "player@example.test", url: "http://x/verify", token: "t" },
+        fakeCtx([]),
+      ),
     ).rejects.toMatchObject({ statusCode: 429 });
     expect(info).not.toHaveBeenCalled();
     info.mockRestore();
   });
 });
+
+/** The parts of a Better Auth endpoint context that issuing a code uses. */
+function fakeCtx(stored: { identifier: string; value: string }[]) {
+  return {
+    context: {
+      secret: "x".repeat(32),
+      internalAdapter: {
+        deleteVerificationByIdentifier: async () => {},
+        createVerificationValue: async (row: {
+          identifier: string;
+          value: string;
+        }) => {
+          stored.push(row);
+        },
+      },
+    },
+  };
+}
