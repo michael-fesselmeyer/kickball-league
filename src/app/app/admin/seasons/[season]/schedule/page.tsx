@@ -10,8 +10,10 @@ import { loadVersion } from "@/db/queries/schedule";
 import {
   scheduleLabels,
   seasonBySlug,
+  slotsPastDaylight,
   versionsOf,
 } from "@/db/queries/schedule-screen";
+import { kickoff } from "@/domain/schedule/format";
 import { measure, type Status } from "@/domain/scheduler/measure";
 import { validate } from "@/domain/scheduler/validate";
 import {
@@ -89,9 +91,10 @@ async function Schedule({
   const season = await seasonBySlug(db, await activeLeagueId(), slug);
   if (!season) notFound();
 
-  const [versions, divided] = await Promise.all([
+  const [versions, divided, dark] = await Promise.all([
     versionsOf(db, season.id),
     divisionsScreen(db, season.leagueId, season.id),
+    slotsPastDaylight(db, season.id, season.timeZone),
   ]);
   const latest = versions[0] ? await loadVersion(db, versions[0].id) : null;
   const labels = await scheduleLabels(db, season.id, season.timeZone);
@@ -153,6 +156,13 @@ async function Schedule({
   });
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
+  // Games in slots that run into the dark on fields without lights (#467):
+  // in spring and fall, late slots lose the light.
+  const risky = (latest?.schedule.games ?? []).flatMap((g) => {
+    const risk = g.slotId ? dark.get(g.slotId) : undefined;
+    const where = g.slotId ? labels.slots.get(g.slotId) : undefined;
+    return risk && where ? [{ g, risk, where }] : [];
+  });
 
   return (
     <>
@@ -355,6 +365,35 @@ async function Schedule({
                 <li key={d}>{readable(d, labels.teams)}</li>
               ))}
             </ul>
+          )}
+
+          {risky.length > 0 && (
+            <section
+              aria-labelledby="daylight"
+              className="flex flex-col gap-2 rounded-lg border border-warning p-3"
+            >
+              <h3 id="daylight" className="text-h3">
+                {risky.length === 1
+                  ? "1 game runs past daylight"
+                  : `${risky.length} games run past daylight`}
+              </h3>
+              <p className="text-small text-text-muted">
+                These slots end after play must stop on a field without lights.
+                Move them earlier or to a lit field, or mark the field as lit on
+                the fields screen if it has lights.
+              </p>
+              <ul className="flex list-disc flex-col gap-1 pl-5">
+                {risky.map(({ g, risk, where }) => (
+                  <li key={g.key}>
+                    {where.day} {where.time}, {where.field}:{" "}
+                    {labels.teams.get(g.teamA) ?? "?"} vs{" "}
+                    {labels.teams.get(g.teamB) ?? "?"}, {risk.minutesShort}{" "}
+                    minute{risk.minutesShort === 1 ? "" : "s"} past daylight
+                    (sunset {kickoff(risk.sunsetAt, season.timeZone)})
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
 
           {violations.length > 0 && (

@@ -383,6 +383,9 @@ export async function addRuleSet(
         ...(input.noNewInningMinutes != null
           ? { noNewInningMinutes: input.noNewInningMinutes }
           : {}),
+        ...(input.daylightMarginMinutes === undefined
+          ? {}
+          : { daylightMarginMinutes: input.daylightMarginMinutes }),
       },
       createdBy: actorId,
     })

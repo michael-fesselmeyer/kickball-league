@@ -15,6 +15,7 @@ import { localDate } from "@/domain/scheduler/slots";
 import { localTime } from "@/domain/time/zoned";
 import { requirePermission } from "@/lib/auth/permission";
 import {
+  changeFieldLights,
   changePermitStatus,
   createBlackout,
   createField,
@@ -51,6 +52,7 @@ const ERRORS: Record<string, string> = {
   field_invalid_name: "Give the field a name.",
   field_unknown_venue: "Pick one of the league's venues.",
   field_duplicate: "That venue already has a field with that name.",
+  field_unknown_field: "That field is gone.",
   permit_bad_input:
     "Check the permit: a first date, 1 to 26 weeks, start and end times, and a status.",
   permit_unknown_field: "Pick one of the league's fields.",
@@ -89,6 +91,8 @@ const NOTICES: Record<string, (q: Record<string, string>) => string> = {
   venue_added: () => "Venue added.",
   field_added: () => "Field added.",
   layout_saved: () => "Layout saved.",
+  field_lights: () =>
+    "Saved. Games on a field without lights end before dark; on a lit field only the permit ends them.",
   permits_added: (q) =>
     `${plural(Number(q.count), "permit window")} added. Cut slots to use them.`,
   permit_updated: () => "Permit updated. Cut slots again to apply it.",
@@ -272,11 +276,42 @@ async function Fields({
                 {v.address && (
                   <span className="text-text-muted"> · {v.address}</span>
                 )}
-                <p>
-                  {v.fields.length === 0
-                    ? "No fields yet."
-                    : v.fields.map((f) => f.name).join(", ")}
-                </p>
+                {v.fields.length === 0 ? (
+                  <p>No fields yet.</p>
+                ) : (
+                  <ul className="flex flex-col">
+                    {v.fields.map((f) => (
+                      <li
+                        key={f.id}
+                        className="flex flex-wrap items-center gap-x-3"
+                      >
+                        <span>
+                          {f.name}
+                          <span className="text-text-muted">
+                            {f.hasLights
+                              ? " · has lights"
+                              : " · no lights: games end before dark"}
+                          </span>
+                        </span>
+                        <form
+                          action={changeFieldLights.bind(
+                            null,
+                            slug,
+                            f.id,
+                            !f.hasLights,
+                          )}
+                        >
+                          <SubmitButton
+                            className="inline-flex min-h-11 items-center text-small underline"
+                            aria-label={`${f.hasLights ? "Mark as unlit" : "Mark as lit"}: ${f.name} at ${v.name}`}
+                          >
+                            {f.hasLights ? "Mark as unlit" : "Mark as lit"}
+                          </SubmitButton>
+                        </form>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
@@ -329,6 +364,10 @@ async function Fields({
                 maxLength={80}
                 className={input}
               />
+            </label>
+            <label className="flex min-h-11 items-center gap-2">
+              <input name="hasLights" type="checkbox" className="size-5" />
+              Has lights
             </label>
             <SubmitButton className="btn btn-secondary">Add field</SubmitButton>
           </form>

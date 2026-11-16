@@ -185,6 +185,12 @@ async function Season({
             Attendance
           </Link>
           <Link
+            href={`/app/admin/seasons/${slug}/starts`}
+            className="underline"
+          >
+            Start times
+          </Link>
+          <Link
             href={`/app/admin/seasons/${slug}/sportsmanship`}
             className="underline"
           >

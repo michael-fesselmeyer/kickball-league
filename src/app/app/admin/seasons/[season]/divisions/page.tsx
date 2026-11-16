@@ -24,6 +24,10 @@ import {
   MAX_NO_NEW_INNING_MINUTES,
   NO_NEW_INNING_MINUTES,
 } from "@/domain/gameday/game-clock";
+import {
+  DEFAULT_DAYLIGHT_MARGIN_MINUTES,
+  MAX_DAYLIGHT_MARGIN_MINUTES,
+} from "@/domain/gameday/daylight";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeagueId } from "@/lib/league/active";
@@ -54,7 +58,7 @@ const ERRORS: Record<string, string> = {
   unknown_season: "That season is gone.",
   rule_invalid_name: "Give the rule set a name.",
   rule_invalid_limits:
-    "Innings are 1 to 15 and the time limit 10 to 240 minutes, or leave them empty.",
+    "Innings are 1 to 15, the time limit 10 to 240 minutes and the minutes before sunset 0 to 60, or leave them empty.",
   rule_duplicate: "The league already has a rule set with that name.",
 };
 
@@ -427,6 +431,17 @@ async function Divisions({
                 {PERMIT_END_RULE_TEXT.last_inning_to_start}
               </option>
             </select>
+          </label>
+          <label className="flex flex-col gap-1">
+            Play ends this many minutes before sunset, on fields without lights
+            <input
+              name="daylightMarginMinutes"
+              type="number"
+              min={0}
+              max={MAX_DAYLIGHT_MARGIN_MINUTES}
+              placeholder={String(DEFAULT_DAYLIGHT_MARGIN_MINUTES)}
+              className={`${input} w-28`}
+            />
           </label>
           <SubmitButton className="btn btn-secondary">
             Add rule set
