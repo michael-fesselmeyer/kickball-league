@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { env } from "@/env";
 import { isGoogleEnabled } from "@/lib/auth/google";
+import { appScheme } from "@/lib/mobile/app-scheme";
 import { safeNextPath } from "@/lib/safe-next";
 import { signInWithGoogle } from "./actions";
+import { GoogleSignIn } from "./google-sign-in";
 import { PasskeySignIn } from "./passkey-sign-in";
 import { SignInForm } from "./sign-in-form";
-import { SubmitButton } from "@/components/submit-button";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -17,7 +18,7 @@ export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
         <h1 className="text-h1">Let&apos;s get you in</h1>
         <p>
           No password to forget. Pop in your email and we&apos;ll send you a
-          link that signs you in, or use a passkey you&apos;ve added.
+          link and a code that sign you in, or use a passkey you&apos;ve added.
         </p>
       </div>
       {/* The destination comes from the request, so it renders at request time. */}
@@ -31,14 +32,18 @@ export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
 async function FormForRequest({
   searchParams,
 }: Pick<PageProps<"/sign-in">, "searchParams">) {
-  const { next, google } = await searchParams;
+  const { next, google, app } = await searchParams;
+  // `app` comes back from the apps' browser sheet (ADR 0075).
+  const problem = google ?? app;
   return (
     <SignInOptions
       next={safeNextPath(next)}
       google={isGoogleEnabled(env)}
       googleError={
-        google === "rate_limited" || google === "failed"
-          ? GOOGLE_ERRORS[google]
+        problem === "rate_limited" ||
+        problem === "failed" ||
+        problem === "expired"
+          ? GOOGLE_ERRORS[problem]
           : undefined
       }
     />
@@ -49,6 +54,8 @@ const GOOGLE_ERRORS = {
   rate_limited:
     "That's a lot of sign-ins at once. Wait a few seconds, then try again.",
   failed: "We couldn't reach Google just now. Try again, or use an email link.",
+  expired:
+    "That sign-in took too long or was started somewhere else. Go back to the app and try again.",
 } as const;
 
 function SignInOptions({
@@ -64,30 +71,14 @@ function SignInOptions({
     <>
       <SignInForm next={next} />
       <PasskeySignIn next={next} />
-      {google && <GoogleSignIn next={next} error={googleError} />}
-    </>
-  );
-}
-
-/** A plain form posting to a Server Action: works before JavaScript loads. */
-function GoogleSignIn({
-  next,
-  error,
-}: {
-  next: string;
-  error?: string | undefined;
-}) {
-  return (
-    <form action={signInWithGoogle} className="flex flex-col gap-3">
-      <input type="hidden" name="next" value={next} />
-      <SubmitButton className="btn btn-secondary">
-        Continue with Google
-      </SubmitButton>
-      {error && (
-        <p role="alert" className="text-small text-danger">
-          {error}
-        </p>
+      {google && (
+        <GoogleSignIn
+          action={signInWithGoogle}
+          next={next}
+          appScheme={appScheme(env.MOBILE_APP_ID)}
+          error={googleError}
+        />
       )}
-    </form>
+    </>
   );
 }
