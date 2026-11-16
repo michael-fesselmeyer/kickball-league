@@ -8,8 +8,10 @@ import {
 import type { Slot } from "@/domain/scheduler/types";
 import {
   advance,
+  boardColumns,
   championOf,
   decidesTitle,
+  gameNumbers,
   isReady,
   losersColumns,
   matchesFrom,
@@ -447,3 +449,63 @@ describe("bracket properties", () => {
     );
   });
 });
+
+describe("drawing and numbering", () => {
+  const eight = () =>
+    matchesFrom(
+      placeBracket(teams(8), days(SUNDAYS, 2, 8), {
+        format: "double_elimination",
+      }),
+    );
+
+  it("lists the losers' side round by round, each in bracket order", () => {
+    const columns = losersColumns(eight());
+    expect(columns.map((c) => c.round)).toEqual([1, 2, 3, 4]);
+    expect(columns.map((c) => c.matches.map((m) => m.position))).toEqual([
+      [1, 2],
+      [1, 2],
+      [1],
+      [1],
+    ]);
+  });
+
+  it("numbers a bracket saved before game numbers round by round", () => {
+    const old = [
+      { code: "r2m1", round: 2, position: 1, gameNo: null },
+      { code: "r1m2", round: 1, position: 2, gameNo: null },
+      { code: "r1m1", round: 1, position: 1, gameNo: null },
+    ];
+    expect([...gameNumbers(old)]).toEqual([
+      ["r1m1", 1],
+      ["r1m2", 2],
+      ["r2m1", 3],
+    ]);
+    // Stored numbers win once every game has one.
+    expect(
+      gameNumbers(old.map((m, i) => ({ ...m, gameNo: 10 + i }))).get("r2m1"),
+    ).toBe(10);
+  });
+
+  it("draws the main side of a bracket whose matches carry no stage", () => {
+    const rows = bracketFor4().map((m) => ({
+      round: m.round,
+      position: m.position,
+      code: m.code,
+    }));
+    const columns = boardColumns(4, rows);
+    expect(columns.map((c) => c.cells.map((x) => x.kind))).toEqual([
+      ["match", "match"],
+      ["match"],
+    ]);
+  });
+
+  it("has no champion while the grand final waits", () => {
+    expect(championOf(eight())).toBeNull();
+    // Nor with no "if necessary" game to wait for.
+    expect(championOf(eight().filter((m) => m.stage !== "reset"))).toBeNull();
+  });
+});
+
+function bracketFor4() {
+  return matchesFrom(placeBracket(teams(4), days(SUNDAYS, 2, 4)));
+}
