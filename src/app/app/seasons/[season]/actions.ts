@@ -19,6 +19,7 @@ import { env } from "@/env";
 import { requireSelfToChange } from "@/lib/auth/permission";
 import { checkoutPage } from "@/lib/demo/checkout";
 import { stripeClient } from "@/services/stripe";
+import { closableCheckouts } from "@/services/stale-checkouts";
 import { allowAction } from "@/lib/action-limit";
 import { activeLeague } from "@/lib/league/active";
 
@@ -53,14 +54,15 @@ export async function startCheckout(
 
   // A second "Pay" expires the first checkout, so nobody can pay twice.
   const registrationId = mine.id;
-  const stale = await openCheckoutsFor(db, registrationId);
-  for (const s of stale)
-    if (s.sessionId)
-      await stripe.checkout.sessions.expire(s.sessionId).catch(() => null);
-  await expirePurchases(
-    db,
-    stale.map((s) => s.id),
+  // Only checkouts Stripe has expired are closed: one paid in another tab
+  // stays, so its payment counts and nobody is charged twice.
+  const stale = await closableCheckouts(
+    stripe.checkout.sessions,
+    await openCheckoutsFor(db, registrationId),
   );
+  if (stale.state === "paid") redirect(`${page}?paid=1`);
+  if (stale.state === "unknown") redirect(`${page}?payment=failed`);
+  await expirePurchases(db, stale.close);
 
   const typed = form.get("promoCode");
   const started = await txDb.transaction((tx) =>

@@ -24,6 +24,7 @@ import { env } from "@/env";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { checkoutPage } from "@/lib/demo/checkout";
 import { stripeClient } from "@/services/stripe";
+import { closableCheckouts } from "@/services/stale-checkouts";
 import { ensureCustomer } from "@/services/stripe-guarantee";
 import { allowAction } from "@/lib/action-limit";
 import { activeLeague } from "@/lib/league/active";
@@ -121,14 +122,15 @@ export async function payBalanceAction(
   if (!(await allowAction("checkout", subject.userId)))
     redirect(`${page}?guarantee=too_many`);
 
-  const stale = await openCheckoutsFor(db, mine.id);
-  for (const s of stale)
-    if (s.sessionId)
-      await stripe.checkout.sessions.expire(s.sessionId).catch(() => null);
-  await expirePurchases(
-    db,
-    stale.map((s) => s.id),
+  // Only checkouts Stripe has expired are closed: one paid in another tab
+  // stays, so its payment counts and nobody is charged twice.
+  const stale = await closableCheckouts(
+    stripe.checkout.sessions,
+    await openCheckoutsFor(db, mine.id),
   );
+  if (stale.state === "paid") redirect(`${page}?guarantee=balance_paid`);
+  if (stale.state === "unknown") redirect(`${page}?guarantee=failed`);
+  await expirePurchases(db, stale.close);
 
   const items = [
     {
