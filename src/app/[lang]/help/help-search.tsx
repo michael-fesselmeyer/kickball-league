@@ -3,12 +3,21 @@
 import Link from "next/link";
 import { useId, useState } from "react";
 import { type HelpEntry, searchHelp } from "@/domain/help/search";
+import { fill } from "@/i18n/catalog";
+import type { Messages } from "@/i18n/messages";
 
 /**
  * Filters the how-tos as you type. Every article is also listed below it in
  * the server HTML, so the page works the same without this script.
  */
-export function HelpSearch({ entries }: { entries: readonly HelpEntry[] }) {
+export function HelpSearch({
+  entries,
+  words,
+}: {
+  entries: readonly HelpEntry[];
+  /** The page's words, in its language (ADR 0065). */
+  words: Messages["help"]["search"];
+}) {
   const id = useId();
   const [query, setQuery] = useState("");
   const searching = query.trim() !== "";
@@ -17,14 +26,14 @@ export function HelpSearch({ entries }: { entries: readonly HelpEntry[] }) {
   return (
     <div role="search" className="flex flex-col gap-3">
       <label htmlFor={id} className="font-bold">
-        Search the help center
+        {words.label}
       </label>
       <input
         id={id}
         type="search"
         value={query}
         onChange={(e) => setQuery(e.currentTarget.value)}
-        placeholder="Try “pay”, “rain-out” or “kicking order”"
+        placeholder={words.placeholder}
         autoComplete="off"
         enterKeyHint="search"
         className="min-h-11 rounded-input border border-border-strong bg-surface px-3 py-2"
@@ -33,11 +42,13 @@ export function HelpSearch({ entries }: { entries: readonly HelpEntry[] }) {
         {!searching
           ? ""
           : results.length === 0
-            ? "Nothing matches that. Try another word, or browse the topics below."
-            : `${results.length} ${results.length === 1 ? "how-to" : "how-tos"} found.`}
+            ? words.none
+            : fill(results.length === 1 ? words.found : words.foundMany, {
+                n: results.length,
+              })}
       </p>
       {results.length > 0 && (
-        <ul aria-label="Search results" className="flex flex-col gap-2">
+        <ul aria-label={words.results} className="flex flex-col gap-2">
           {results.map((r) => (
             <li
               key={r.href}

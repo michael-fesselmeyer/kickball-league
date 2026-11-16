@@ -4,75 +4,74 @@ import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { DealList } from "@/components/sponsors/deal-list";
 import { TeamOfWeekCard } from "@/components/sponsors/team-of-week";
-import type { PublicSponsor } from "@/db/queries/sponsors";
 import { cachedSponsorDirectory } from "./directory";
 import { leagueHref } from "@/domain/league/paths";
-import { publicLeague, withCanonical } from "@/lib/league/public";
+import { cachedLeague, publicLeague } from "@/lib/league/public";
+import { plural } from "@/i18n/catalog";
+import { localeOf, messagesFor } from "@/i18n/messages";
+import { languageAlternates, linkIn } from "@/i18n/routing";
 
-const METADATA: Metadata = {
-  title: "Sponsors and the home bar",
-  description:
-    "The businesses behind the league, where everyone heads after games, this week's deals and the team of the week.",
-};
+type Props = PageProps<"/[lang]/l/[league]/sponsors">;
 
-export function generateMetadata({
-  params,
-}: PageProps<"/[lang]/l/[league]/sponsors">): Promise<Metadata> {
-  return withCanonical(params, METADATA, "/sponsors");
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { lang, league: segment } = await params;
+  const locale = localeOf(lang);
+  const { title, description } = messagesFor(locale).sponsors;
+  const league = await cachedLeague(segment);
+  const path = league ? leagueHref(league, "/sponsors") : "/sponsors";
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: linkIn(locale, path),
+      languages: languageAlternates(path),
+    },
+  };
 }
 
-export default function SponsorsPage({
-  params,
-}: PageProps<"/[lang]/l/[league]/sponsors">) {
+export default async function SponsorsPage({ params }: Props) {
+  const words = messagesFor(localeOf((await params).lang)).sponsors;
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-4 py-10 md:px-6">
       <header className="flex flex-col gap-3">
         <h1 className="text-h1">
-          Our <span className="swipe">sponsors</span>
+          {words.headingStart}{" "}
+          <span className="swipe">{words.headingSwipe}</span>
         </h1>
-        <p className="text-body-lg text-text-muted">
-          The local spots that keep the league going. After the last out,
-          everyone heads to the home bar. Check in when you get there, and use a
-          deal if one suits you. Deals are a bonus, never a requirement.
-        </p>
+        <p className="text-body-lg text-text-muted">{words.intro}</p>
       </header>
-      <Suspense fallback={<PageLoading>Loading the sponsors…</PageLoading>}>
+      <Suspense fallback={<PageLoading>{words.loading}</PageLoading>}>
         <Sponsors params={params} />
       </Suspense>
     </main>
   );
 }
 
-const KIND: Record<PublicSponsor["kind"], string> = {
-  bar: "Bar",
-  restaurant: "Restaurant",
-  brand: "Brand",
-  other: "Sponsor",
-};
-
-async function Sponsors({
-  params,
-}: {
-  params: PageProps<"/[lang]/l/[league]/sponsors">["params"];
-}) {
-  const league = await publicLeague((await params).league, "/sponsors");
+async function Sponsors({ params }: { params: Props["params"] }) {
+  const { lang, league: segment } = await params;
+  const locale = localeOf(lang);
+  const words = messagesFor(locale).sponsors;
+  const league = await publicLeague(segment, "/sponsors");
+  const href = (path: string) => linkIn(locale, leagueHref(league, path));
   const { sponsors, teamOfWeek } = await cachedSponsorDirectory(league.id);
   const home = sponsors.find((s) => s.isHomeBar);
   const others = sponsors.filter((s) => !s.isHomeBar);
   return (
     <>
-      {teamOfWeek && <TeamOfWeekCard league={league} honor={teamOfWeek} />}
+      {teamOfWeek && (
+        <TeamOfWeekCard league={league} honor={teamOfWeek} locale={locale} />
+      )}
       {home && (
         <section
           aria-labelledby="home-bar"
           className="flex flex-col gap-4 rounded-card border border-border bg-surface p-5 shadow-card"
         >
           <p>
-            <span className="sticker">Home base after games</span>
+            <span className="sticker">{words.homeBase}</span>
           </p>
           <h2 id="home-bar" className="font-display text-h2">
             <Link
-              href={leagueHref(league, `/sponsors/${home.slug}`)}
+              href={href(`/sponsors/${home.slug}`)}
               className="inline-flex min-h-6 items-center underline"
             >
               {home.name}
@@ -84,13 +83,13 @@ async function Sponsors({
               {home.address}
             </address>
           )}
-          <DealList deals={home.deals} />
+          <DealList deals={home.deals} locale={locale} />
         </section>
       )}
       {others.length > 0 && (
         <section aria-labelledby="also" className="flex flex-col gap-4">
           <h2 id="also" className="text-h2">
-            {home ? "Also backing the league" : "Backing the league"}
+            {home ? words.also : words.backing}
           </h2>
           <ul className="grid gap-4 sm:grid-cols-2">
             {others.map((s) => (
@@ -99,11 +98,11 @@ async function Sponsors({
                 className="flex flex-col gap-2 rounded-card border border-border bg-surface p-4 shadow-card"
               >
                 <p className="text-micro font-bold tracking-wide text-text-muted uppercase">
-                  {KIND[s.kind]}
+                  {words.kinds[s.kind]}
                 </p>
                 <h3 className="font-display text-h3">
                   <Link
-                    href={leagueHref(league, `/sponsors/${s.slug}`)}
+                    href={href(`/sponsors/${s.slug}`)}
                     className="inline-flex min-h-6 items-center underline"
                   >
                     {s.name}
@@ -112,9 +111,7 @@ async function Sponsors({
                 {s.blurb && <p className="text-small">{s.blurb}</p>}
                 {s.deals.length > 0 && (
                   <p className="text-small text-text-muted">
-                    {s.deals.length === 1
-                      ? "1 deal for players"
-                      : `${s.deals.length} deals for players`}
+                    {plural(locale, words.deals, s.deals.length)}
                   </p>
                 )}
               </li>
@@ -124,9 +121,9 @@ async function Sponsors({
       )}
       {sponsors.length === 0 && (
         <p className="text-text-muted">
-          Sponsors are on their way. Own a spot near the park?{" "}
-          <Link href="/about" className="underline">
-            Get in touch
+          {words.onTheWay}{" "}
+          <Link href={linkIn(locale, "/about")} className="underline">
+            {words.getInTouch}
           </Link>
           .
         </p>

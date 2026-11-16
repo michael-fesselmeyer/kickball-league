@@ -2,7 +2,15 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CONTENT_PAGES } from "@/lib/seo/sitemap";
-import { HELP_ROLES, helpEntries, roleBySlug } from "./articles";
+import { searchHelp } from "@/domain/help/search";
+import {
+  HELP_ROLES,
+  helpEntries,
+  helpRolesFor,
+  roleBySlug,
+  TRANSLATED_HELP_ROLES,
+} from "./articles";
+import { HELP_ES, type SpanishRole } from "./articles.es";
 
 /** Every .tsx file under src/app, for the screens' Help links. */
 function screens(dir = join(process.cwd(), "src/app")): string[] {
@@ -130,5 +138,38 @@ describe("the help center's how-tos", () => {
         roleBySlug(role ?? "")?.articles.some((a) => a.id === article),
         `${file}: /help/${role}#${article}`,
       ).toBe(true);
+  });
+});
+
+describe("the how-tos in Spanish", () => {
+  const spanish = helpRolesFor("es");
+
+  it("covers players, captains and refs, with English's articles and screens", () => {
+    expect(spanish.map((r) => r.slug)).toEqual(TRANSLATED_HELP_ROLES.es);
+    for (const role of spanish) {
+      const english = HELP_ROLES.find((r) => r.slug === role.slug);
+      expect(Object.keys(HELP_ES[role.slug as SpanishRole].articles)).toEqual(
+        english?.articles.map((a) => a.id),
+      );
+      for (const [i, a] of role.articles.entries()) {
+        const source = english?.articles[i];
+        expect(a.id).toBe(source?.id);
+        expect(a.title, a.id).not.toBe(source?.title);
+        expect(a.steps.length, a.id).toBe(source?.steps.length);
+        expect(a.screen?.href, a.id).toBe(source?.screen?.href);
+        if (source?.screen)
+          expect(a.screen?.label, a.id).not.toBe(source.screen.label);
+        expect(a.summary.length, a.id).toBeLessThanOrEqual(160);
+      }
+    }
+  });
+
+  it("searches in Spanish, linking the Spanish pages", () => {
+    const entries = helpEntries("es");
+    expect(entries[0]).toMatchObject({
+      href: "/es/help/player#sign-up",
+      role: "Jugadores",
+    });
+    expect(searchHelp(entries, "pagar")[0]?.href).toBe("/es/help/player#pay");
   });
 });

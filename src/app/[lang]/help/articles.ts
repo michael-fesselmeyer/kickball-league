@@ -1,4 +1,7 @@
 import type { HelpEntry } from "@/domain/help/search";
+import type { Locale } from "@/i18n/locales";
+import { linkIn } from "@/i18n/routing";
+import { HELP_ES, type SpanishRole } from "./articles.es";
 
 /**
  * The help center's how-tos, one list per role. Each is written from what
@@ -1108,11 +1111,57 @@ export function helpHref(role: HelpRole["slug"], articleId?: string): string {
   return articleId ? `/help/${role}#${articleId}` : `/help/${role}`;
 }
 
+/** The roles whose help is written in each language (ADR 0065). */
+export const TRANSLATED_HELP_ROLES: Readonly<
+  Record<Locale, readonly HelpRole["slug"][]>
+> = {
+  en: HELP_ROLES.map((r) => r.slug),
+  es: ["player", "captain", "ref"],
+};
+
+/**
+ * The how-tos in a language: each translated role's articles in it, with
+ * the same ids and screens as the English ones. Roles not translated are
+ * left out; their pages are in English.
+ */
+export function helpRolesFor(locale: Locale): readonly HelpRole[] {
+  if (locale === "en") return HELP_ROLES;
+  return HELP_ROLES.flatMap((role) => {
+    if (!isSpanishRole(role.slug)) return [];
+    const words = HELP_ES[role.slug];
+    return [
+      {
+        ...role,
+        title: words.title,
+        intro: words.intro,
+        articles: role.articles.map((a) => {
+          const own = words.articles[a.id];
+          if (!own) return a;
+          return {
+            ...a,
+            title: own.title,
+            summary: own.summary,
+            steps: own.steps,
+            ...(own.notes ? { notes: own.notes } : {}),
+            ...(a.screen && own.screenLabel
+              ? { screen: { href: a.screen.href, label: own.screenLabel } }
+              : {}),
+            keywords: [...(own.keywords ?? []), ...(a.keywords ?? [])],
+          };
+        }),
+      },
+    ];
+  });
+}
+
+const isSpanishRole = (slug: HelpRole["slug"]): slug is SpanishRole =>
+  Object.hasOwn(HELP_ES, slug);
+
 /** Every how-to as the search box and the sitemap see it. */
-export function helpEntries(): HelpEntry[] {
-  return HELP_ROLES.flatMap((role) =>
+export function helpEntries(locale: Locale = "en"): HelpEntry[] {
+  return helpRolesFor(locale).flatMap((role) =>
     role.articles.map((a) => ({
-      href: helpHref(role.slug, a.id),
+      href: linkIn(locale, helpHref(role.slug, a.id)),
       title: a.title,
       summary: a.summary,
       role: role.title,
