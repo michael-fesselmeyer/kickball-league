@@ -80,11 +80,11 @@ test("a published code of conduct is read on the rules page and accepted with th
     await player.getByLabel("Type your full name to sign").fill("Reese Ref");
     await confirmAge(player);
     await expectNoAxeViolations(player);
-    await player.getByRole("button", { name: "Sign the waiver" }).click();
-    await expect(player.getByRole("alert")).toContainText(
-      "Tick the box to agree to the code of conduct.",
-    );
-    await player.getByLabel(/I have read the code of conduct/).check();
+    // The browser refuses to submit until the box is ticked (the server
+    // refuses too, which the database tests cover).
+    const agree = player.getByLabel(/I have read the code of conduct/);
+    await expect(agree).toBeRequired();
+    await agree.check();
     await player.getByRole("button", { name: "Sign the waiver" }).click();
     await expect(player.getByRole("status")).toContainText("Signed.");
   });
