@@ -11,10 +11,13 @@ import {
   decide,
   hourLabel,
   inQuietHours,
+  isSnoozed,
   nextDigestAt,
+  NO_TURN_DOWNS,
   type QuietHours,
   quietHoursEnd,
   startOfLocalDay,
+  snoozeEnd,
   startOfLocalHour,
 } from "./limits";
 
@@ -370,6 +373,103 @@ describe("decide", () => {
     expect(decide({ ...base, class: "digest", now: midnight }).action).toBe(
       "wait",
     );
+  });
+
+  describe("turned down instead of off (#529)", () => {
+    const snoozed = {
+      ...NO_TURN_DOWNS,
+      // Snoozed until Wednesday July 15, noon in New York.
+      snoozedUntil: new Date("2026-07-15T16:00:00Z"),
+    };
+
+    it("holds non-urgent messages for the first digest after a snooze", () => {
+      expect(
+        decide({ ...base, class: "non_urgent", now: noon, turnDowns: snoozed }),
+      ).toEqual({ action: "hold", until: new Date("2026-07-15T22:00:00Z") });
+      // A weekly digest waits for the Sunday after the snooze.
+      expect(
+        decide({
+          ...base,
+          limits: { ...DEFAULT_LIMITS, digest: "weekly" },
+          class: "non_urgent",
+          now: noon,
+          turnDowns: snoozed,
+        }),
+      ).toEqual({ action: "hold", until: new Date("2026-07-19T22:00:00Z") });
+    });
+
+    it("keeps the digest itself until the snooze ends", () => {
+      expect(
+        decide({ ...base, class: "digest", now: noon, turnDowns: snoozed }),
+      ).toEqual({ action: "wait", until: snoozed.snoozedUntil });
+    });
+
+    it("still sends urgent messages while snoozed", () => {
+      expect(
+        decide({ ...base, class: "urgent", now: noon, turnDowns: snoozed }),
+      ).toEqual({ action: "send", silent: false });
+    });
+
+    it("ignores a snooze that has ended", () => {
+      expect(
+        decide({
+          ...base,
+          class: "non_urgent",
+          now: new Date("2026-07-16T16:00:00Z"),
+          turnDowns: snoozed,
+        }),
+      ).toEqual({ action: "send", silent: false });
+    });
+
+    it("holds league news for Sunday's roundup, and only news", () => {
+      const weekly = { ...NO_TURN_DOWNS, weeklyNews: true };
+      expect(
+        decide({
+          ...base,
+          class: "non_urgent",
+          now: noon,
+          turnDowns: weekly,
+          news: true,
+        }),
+      ).toEqual({ action: "hold", until: new Date("2026-07-05T22:00:00Z") });
+      expect(
+        decide({
+          ...base,
+          class: "non_urgent",
+          now: noon,
+          turnDowns: weekly,
+          news: false,
+        }),
+      ).toEqual({ action: "send", silent: false });
+      expect(
+        decide({
+          ...base,
+          class: "urgent",
+          now: noon,
+          turnDowns: weekly,
+          news: true,
+        }),
+      ).toEqual({ action: "send", silent: false });
+    });
+
+    it("waits out quiet hours before holding weekly news", () => {
+      expect(
+        decide({
+          ...base,
+          class: "non_urgent",
+          now: midnight,
+          turnDowns: { ...NO_TURN_DOWNS, weeklyNews: true },
+          news: true,
+        }).action,
+      ).toBe("wait");
+    });
+
+    it("snoozes for two weeks", () => {
+      expect(snoozeEnd(noon)).toEqual(new Date("2026-07-15T16:00:00Z"));
+      expect(isSnoozed(snoozed, noon)).toBe(true);
+      expect(isSnoozed(snoozed, new Date("2026-07-15T16:00:00Z"))).toBe(false);
+      expect(isSnoozed(NO_TURN_DOWNS, noon)).toBe(false);
+    });
   });
 
   it("never delays or drops an urgent message", () => {
