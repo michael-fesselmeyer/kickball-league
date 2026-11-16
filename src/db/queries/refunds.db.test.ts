@@ -479,6 +479,7 @@ describe("refunds", () => {
           amountCents: 8500,
           refundedCents: 8500,
           requestedCents: 8500,
+          feeCents: 0,
         },
       ]);
       expect(person?.paidBy).toBe("stripe");
