@@ -29,6 +29,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 - RSVP, see the kicking order, find and take sub spots, and check in at the field by scanning a rotating QR code.
 - Live scores, standings, power rankings, pick'em for bragging rights, awards votes and an end-of-season card to share.
 - An installable phone app: the next game opens with no signal, and push messages cover rain-outs and sub requests.
+- Quietly say they're open to a new team next season: their current team never sees it, recruiting captains see only a count, and a name is shared only when the player says yes to an invite.
 - Download everything the league holds, or delete the account.
 - Lost and found: members post a found item (with an optional photo, where it was found, a park or the home bar, and where it is now) or a lost note, newest first on one screen. The owner taps "That's mine" (or the finder taps "I found it" on a lost note) and the two talk inside the app, by first name, without anyone's phone or email shown; the poster marks it handed over, which closes the post and deletes its photo. Posts close after 30 days with a note to the poster, admins can take any post down, and photos share the member-photo limits (shrunk on upload, location removed, daily and storage caps).
 
@@ -40,6 +41,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 - Keep a private "not on my team" list and download the team's roster and payments.
 - Choose your team's own shirts or jerseys instead of the league's, and see local shirt makers.
 - Vote in the league's quick captains' polls: one vote for the team (co-captains too, when a poll says so), changeable until it closes, with the totals once the team has voted or at close, as the admin chose; a reminder comes once a day while the team hasn't voted.
+- While next season is open for registration, invite players who are quietly looking for a change, without knowing who, and hear from those who say yes.
 
 **Refs**
 
