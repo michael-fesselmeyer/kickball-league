@@ -638,6 +638,13 @@
       "when": 1794858337554,
       "tag": "0090_sport_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1794861442257,
+      "tag": "0091_open_to_move",
+      "breakpoints": true
     }
   ]
 }

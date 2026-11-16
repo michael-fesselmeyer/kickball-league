@@ -36,6 +36,7 @@ export * from "./lost-found";
 export * from "./member-photo";
 export * from "./merch";
 export * from "./message";
+export * from "./move";
 export * from "./money";
 export * from "./money-summary";
 export * from "./pickem";
