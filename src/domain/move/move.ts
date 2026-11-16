@@ -1,6 +1,6 @@
 /**
  * "Looking for a change": a player quietly open to a new team next season
- * (product-spec.md, section 5; ADR 0081). Pure rules; src/db/queries/move.ts
+ * (product-spec.md, section 5; ADR 0089). Pure rules; src/db/queries/move.ts
  * reads and writes the rows.
  *
  * - Private from every team the player has played on: their captains,

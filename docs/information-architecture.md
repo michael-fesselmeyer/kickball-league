@@ -414,7 +414,7 @@ Rules:
 3. A captain or co-captain of a team entered for a season still open for registration sees, on the team page, "3 players open to a new team haven't had an invite from Cats yet", and can invite them all at once with an optional pitch. They never see who. The team's "not on my team" list keeps those people out of the count.
 4. Each player gets the invite by email and on their page, where they say yes or no. A heads-up shows when a captain of the inviting team plays with them this season. A yes shows that team's captains their name, email and note, and emails the captains; a no, or no answer, tells nobody.
 5. Admins see the players who let them on the admin "Looking for a change" screen, and the free-agent matcher suggests a different team for them when one has room.
-6. The flag clears itself when next season's registration closes, and the player can take it back at any time, which withdraws every invite and tells nobody. See [ADR 0081](adr/0081-looking-for-a-change.md).
+6. The flag clears itself when next season's registration closes, and the player can take it back at any time, which withdraws every invite and tells nobody. See [ADR 0089](adr/0089-looking-for-a-change.md).
 
 ### 2.7 Start a new team (P2)
 

@@ -22,7 +22,7 @@ import { league } from "./league";
 import { season } from "./season";
 import { team } from "./team";
 
-/** Who may see that a player is looking for a change (ADR 0081). */
+/** Who may see that a player is looking for a change (ADR 0089). */
 export const moveAudience = pgEnum("move_audience", [
   "admins",
   "captains",
@@ -31,7 +31,7 @@ export const moveAudience = pgEnum("move_audience", [
 
 /**
  * A player quietly open to a new team next season (docs/data-model.md,
- * section 2.1; ADR 0081). One row per person per league. Never shown to
+ * section 2.1; ADR 0089). One row per person per league. Never shown to
  * any team the person has played on, nor on a public page; a recruiting
  * captain sees only a count until the person accepts their invite. It
  * stops counting once a league season's registration closes after it was
@@ -77,7 +77,7 @@ export const moveInviteStatus = pgEnum("move_invite_status", [
 
 /**
  * A recruiting team's invite to one person looking for a change, sent
- * without the team knowing who (ADR 0081). The team learns the name only
+ * without the team knowing who (ADR 0089). The team learns the name only
  * when the status is `accepted`. Belongs to the interest, so withdrawing
  * or expiry deletes it.
  */

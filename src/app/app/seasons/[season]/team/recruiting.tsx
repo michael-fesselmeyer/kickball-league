@@ -24,7 +24,7 @@ const players = (n: number) => (n === 1 ? "1 player" : `${n} players`);
 /**
  * For a team's captains while next season's registration is open: how many
  * players are quietly open to a new team, an invite for all of them, and
- * the names of those who said yes (ADR 0081). Never who said no.
+ * the names of those who said yes (ADR 0089). Never who said no.
  */
 export function RecruitingSection({
   team,

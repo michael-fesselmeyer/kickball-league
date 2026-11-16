@@ -22,7 +22,7 @@ export default function TeamChangesPage() {
 
 /**
  * Players quietly open to a new team next season who let admins see it
- * (ADR 0081), with their note, current teams and the teams whose invite they said
+ * (ADR 0089), with their note, current teams and the teams whose invite they said
  * yes to (never a "no"). Players
  * who chose "captains only" are not here. Never shared with captains.
  */

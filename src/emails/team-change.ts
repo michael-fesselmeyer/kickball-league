@@ -9,7 +9,7 @@ const about = {
 };
 
 /**
- * "Looking for a change" (ADR 0081). `move_invite` goes to the player only:
+ * "Looking for a change" (ADR 0089). `move_invite` goes to the player only:
  * a recruiting team's invite, which never names the player to the team.
  * `move_accepted` goes to that team's captains once the player says yes,
  * and is the first time the team learns who they are. A "no", or no

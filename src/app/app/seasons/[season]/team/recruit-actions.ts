@@ -15,7 +15,7 @@ import { sendQueuedSoon } from "@/services/outbox";
 
 /**
  * A recruiting captain invites every player open to a move that their team
- * may invite (ADR 0081), without learning who. The queries leave out
+ * may invite (ADR 0089), without learning who. The queries leave out
  * anyone who has played for the team and anyone it keeps off. Each player
  * gets at most one invite from a team, so pressing again only reaches
  * players who opened up since.
