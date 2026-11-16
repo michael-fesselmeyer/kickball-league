@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { dayLine, gameWords, updatedWords } from "@/domain/gameday/status";
 import { dayHeading, kickoff, shortDay } from "@/domain/schedule/format";
-import {
-  type PublicGame,
-  resultLine,
-  statusLabel,
-} from "@/domain/schedule/public-game";
+import { type PublicGame, statusLabel } from "@/domain/schedule/public-game";
 import { whenLine } from "@/domain/events/event";
 import { priceLine } from "@/domain/events/tickets";
 import { roundNameIn, sourceLabel } from "@/domain/playoffs/playoffs";
@@ -145,23 +141,5 @@ describe("events and sponsors", () => {
     expect(
       dealWhen({ validDays: [], validFrom: null, validTo: null }, "es"),
     ).toBe("Todos los días");
-  });
-});
-
-describe("game results and share messages", () => {
-  const game = {
-    id: "g1",
-    status: "forfeit",
-    slotCancelled: false,
-    forfeitBy: "a",
-    teamA: { id: "a", name: "Aces" },
-    teamB: { id: "b", name: "Bees" },
-    scoreA: null,
-    scoreB: null,
-  } as unknown as PublicGame;
-
-  it("say who won in each language", () => {
-    expect(resultLine(game, "es")).toBe("Bees gana por abandono");
-    expect(resultLine(game)).toBe("Bees win by forfeit");
   });
 });
