@@ -30,7 +30,7 @@ describe("app handoff", () => {
     expect(verifierMatches(undefined, challenge)).toBe(false);
   });
 
-  it("is base64url SHA-256 with no padding (SHA-256 of \"abc\")", () => {
+  it('is base64url SHA-256 with no padding (SHA-256 of "abc")', () => {
     expect(challengeFor("abc")).toBe(
       "ungWv48Bz-pBQUDeXa4iI7ADYaOWF3qctBD_YfIAFa0",
     );

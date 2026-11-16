@@ -42,9 +42,9 @@ describe("sign-in codes", () => {
     expect(
       signInCodeMatches(SECRET, "player@example.test", "042138", hash),
     ).toBe(false);
-    expect(signInCodeMatches(SECRET, "other@example.test", "042137", hash)).toBe(
-      false,
-    );
+    expect(
+      signInCodeMatches(SECRET, "other@example.test", "042137", hash),
+    ).toBe(false);
     expect(
       signInCodeMatches("y".repeat(32), "player@example.test", "042137", hash),
     ).toBe(false);

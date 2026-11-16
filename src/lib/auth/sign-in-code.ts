@@ -1,4 +1,9 @@
-import { createHash, createHmac, randomInt, timingSafeEqual } from "node:crypto";
+import {
+  createHash,
+  createHmac,
+  randomInt,
+  timingSafeEqual,
+} from "node:crypto";
 
 /**
  * The six-digit code that comes with every sign-in link (ADR 0075). It
@@ -40,9 +45,7 @@ export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
 /** One pending code per address; the address itself is stored hashed. */
 export function signInCodeIdentifier(email: string): string {
-  const hash = createHash("sha256")
-    .update(normalizeEmail(email))
-    .digest("hex");
+  const hash = createHash("sha256").update(normalizeEmail(email)).digest("hex");
   return `sign-in-code:${hash}`;
 }
 
