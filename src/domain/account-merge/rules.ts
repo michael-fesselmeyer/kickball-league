@@ -414,6 +414,10 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
   },
   "sponsor.created_by": actor("sponsors added"),
   "team_of_week.created_by": actor("teams of the week named"),
+  // A handover (ADR 0076) is the same person's, so it follows them; both
+  // accounts' handovers add up, as overlapping ones do.
+  "acting_admin.user_id": { kind: "move", label: "acting admin handovers" },
+  "acting_admin.granted_by": actor("acting admin handovers granted"),
   "lost_found_item.poster_id": { kind: "move", label: "lost and found posts" },
   "lost_found_item.removed_by": actor("lost and found posts taken down"),
   "lost_found_claim.responder_id": {
