@@ -195,56 +195,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
             </>
           )}
         </p>
-        <nav aria-label="Admin tools">
-          <ul className="flex flex-wrap gap-2">
-            {[
-              ["/app/admin/today", "Game day screen"],
-              ["/app/admin/today/print", "Print game-day pack"],
-              ["/app/admin/equipment", "League gear"],
-              [base, "Season setup"],
-              [`${base}/schedule`, "Schedule"],
-              [`${base}/registrations`, "Registrations"],
-              ["/app/admin/waivers", "Waivers"],
-              ["/app/admin/conduct", "Code of conduct"],
-              ["/app/admin/events", "Events"],
-              ["/app/admin/rules", "League rules"],
-              ["/app/admin/volunteer", "Volunteer shifts"],
-              ["/app/admin/interest", "Interest sign-ups"],
-              [`${base}/checklist`, "Season checklist"],
-              [`${base}/survey`, "Season survey"],
-              ["/app/admin/private-events", "Private leagues and tournaments"],
-              [`${base}/referees`, "Referees"],
-              [`${base}/scores`, "Scores"],
-              [`${base}/rainout`, "Rain-out"],
-              [`${base}/team-of-the-week`, "Team of the week"],
-              ["/app/admin/pickem", "Pick'em"],
-              ["/app/sponsor", "Sponsors"],
-              [`${base}/rebates`, "Rebates"],
-              ["/app/admin/credit", "League credit"],
-              ["/app/admin/merch", "Merch"],
-              ["/app/admin/shirt-waiting", "Late-joiner shirts"],
-              ["/app/admin/shirt-makers", "Shirt makers"],
-              ["/app/admin/incidents", "Incidents"],
-              ["/app/admin/team-lists", "Not-on-my-team lists"],
-              ["/app/admin/team-changes", "Looking for a change"],
-              ["/app/admin/seasons", "All seasons"],
-              ["/app/admin/instagram", "Instagram"],
-              ["/app/admin/friends", "Friends of the league"],
-              ["/app/admin/photos", "Member photos"],
-              ["/app/admin/accounts", "Merge accounts"],
-              ...(isOwner
-                ? [["/app/admin/acting-admins", "Acting admins"]]
-                : []),
-              ["/app/admin/audit", "Audit log"],
-            ].map(([href, label]) => (
-              <li key={label}>
-                <Link href={href as string} className="btn btn-secondary">
-                  {label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <AdminTools base={base} isOwner={isOwner} />
         {instagram && (
           <p role="status" className="rounded-lg border border-warning p-3">
             Instagram stopped accepting the connection to @{instagram.username},
@@ -651,5 +602,132 @@ function Count({ done, of }: { done: number; of: number }) {
       {done}
       <span className="text-text-muted"> of {of}</span>
     </span>
+  );
+}
+
+type Tool = readonly [href: string, label: string];
+
+/**
+ * Every admin tool, grouped by the job it's for. The few used every game
+ * day stay in sight; the rest fold away so the dashboard comes first.
+ */
+function AdminTools({ base, isOwner }: { base: string; isOwner: boolean }) {
+  const everyday: Tool[] = [
+    ["/app/admin/today", "Game day screen"],
+    [base, "Season setup"],
+    [`${base}/schedule`, "Schedule"],
+    [`${base}/registrations`, "Registrations"],
+    [`${base}/scores`, "Scores"],
+    [`${base}/rainout`, "Rain-out"],
+  ];
+  const groups: { title: string; tools: Tool[] }[] = [
+    {
+      title: "Game day",
+      tools: [
+        ["/app/admin/today/print", "Print game-day pack"],
+        ["/app/admin/equipment", "League gear"],
+        [`${base}/referees`, "Referees"],
+        [`${base}/team-of-the-week`, "Team of the week"],
+      ],
+    },
+    {
+      title: "Season",
+      tools: [
+        [`${base}/checklist`, "Season checklist"],
+        [`${base}/survey`, "Season survey"],
+        ["/app/admin/interest", "Interest sign-ups"],
+        ["/app/admin/seasons", "All seasons"],
+      ],
+    },
+    {
+      title: "Players and safety",
+      tools: [
+        ["/app/admin/waivers", "Waivers"],
+        ["/app/admin/conduct", "Code of conduct"],
+        ["/app/admin/incidents", "Incidents"],
+        ["/app/admin/team-lists", "Not-on-my-team lists"],
+        ["/app/admin/team-changes", "Looking for a change"],
+        ["/app/admin/accounts", "Merge accounts"],
+      ],
+    },
+    {
+      title: "League life",
+      tools: [
+        ["/app/admin/events", "Events"],
+        ["/app/admin/volunteer", "Volunteer shifts"],
+        ["/app/admin/rules", "League rules"],
+        ["/app/admin/pickem", "Pick'em"],
+        ["/app/admin/private-events", "Private leagues and tournaments"],
+        ["/app/admin/friends", "Friends of the league"],
+        ["/app/admin/photos", "Member photos"],
+        ["/app/admin/instagram", "Instagram"],
+      ],
+    },
+    {
+      title: "Money and merch",
+      tools: [
+        ["/app/sponsor", "Sponsors"],
+        [`${base}/rebates`, "Rebates"],
+        ["/app/admin/credit", "League credit"],
+        ["/app/admin/merch", "Merch"],
+        ["/app/admin/shirt-waiting", "Late-joiner shirts"],
+        ["/app/admin/shirt-makers", "Shirt makers"],
+      ],
+    },
+    {
+      title: "Records and access",
+      tools: [
+        ...(isOwner
+          ? ([["/app/admin/acting-admins", "Acting admins"]] as Tool[])
+          : []),
+        ["/app/admin/audit", "Audit log"],
+      ],
+    },
+  ];
+  return (
+    <nav aria-label="Admin tools" className="flex flex-col gap-3">
+      <ul className="flex flex-wrap gap-2">
+        {everyday.map(([href, label]) => (
+          <li key={label}>
+            <Link href={href} className="btn btn-secondary">
+              {label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <details className="group rounded-card border-2 border-text bg-surface">
+        <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3 px-4 font-bold">
+          All admin tools
+          <span
+            aria-hidden="true"
+            className="text-text-muted transition-transform group-open:rotate-180"
+          >
+            ▾
+          </span>
+        </summary>
+        <div className="grid gap-x-8 gap-y-5 border-t border-border p-4 sm:grid-cols-2 lg:grid-cols-3">
+          {groups.map((group) => (
+            <section key={group.title} className="flex flex-col">
+              <h2 className="text-micro font-bold tracking-widest text-text-muted uppercase">
+                {group.title}
+              </h2>
+              <ul className="flex flex-col">
+                {group.tools.map(([href, label]) => (
+                  <li key={label}>
+                    <Link
+                      href={href}
+                      prefetch={false}
+                      className="flex min-h-11 items-center border-b border-border hover:underline"
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      </details>
+    </nav>
   );
 }
