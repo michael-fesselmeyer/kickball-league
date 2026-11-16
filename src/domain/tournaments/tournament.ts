@@ -86,10 +86,13 @@ export function parseGuestSignature(
   return ok({ signedName });
 }
 
-/** "3 of 10 players have signed", for the captain and the admin. */
+/**
+ * "3 of 10 players have signed the waiver.", for the captain and the admin.
+ * The verb follows the count: "1 of 6 players has signed".
+ */
 export function signedLine(signed: number, rosterSize: number): string {
-  const who = signed === 1 ? "player has" : "players have";
-  return `${signed} of ${rosterSize} ${who} signed the waiver.`;
+  const verb = signed === 1 ? "has" : "have";
+  return `${signed} of ${rosterSize} players ${verb} signed the waiver.`;
 }
 
 /* ---------- settings ---------- */

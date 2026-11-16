@@ -8,6 +8,7 @@ import {
   parseGuestSignature,
   parseGuestSignup,
   parseSettings,
+  signedLine,
   signupState,
 } from "./tournament";
 
@@ -140,5 +141,13 @@ describe("sign-up window and deletion date", () => {
         new Date("2028-01-01"),
       ),
     ).toBe(false);
+  });
+});
+
+describe("signedLine", () => {
+  it("keeps the noun plural and matches the verb to the count", () => {
+    expect(signedLine(0, 6)).toBe("0 of 6 players have signed the waiver.");
+    expect(signedLine(1, 6)).toBe("1 of 6 players has signed the waiver.");
+    expect(signedLine(3, 10)).toBe("3 of 10 players have signed the waiver.");
   });
 });
