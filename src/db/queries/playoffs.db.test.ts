@@ -1,7 +1,10 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Client } from "pg";
 import { afterAll, describe, expect, it } from "vitest";
 import type { GameId } from "@/domain/ids";
 import { generate } from "@/domain/scheduler/generate";
+import * as schema from "../schema";
 import { user } from "../schema/auth";
 import { field, game, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
@@ -514,5 +517,112 @@ describe("advancing winners", () => {
       expect(
         await bracketView(db, w.seasonId, { includeDraft: true }),
       ).toBeNull();
+    }));
+});
+
+describe("two results at the same moment", () => {
+  // Two refs finishing their games together, on separate connections, so
+  // the transactions really overlap. Each test commits its own league and
+  // deletes it afterwards.
+  const clients: Client[] = [];
+  const connect = async () => {
+    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    await client.connect();
+    clients.push(client);
+    return drizzle({ client, schema, casing: "snake_case" });
+  };
+  afterAll(() => Promise.all(clients.map((c) => c.end())));
+
+  async function removeWorld(db: Db, w: World) {
+    const s = w.seasonId;
+    const [owner] = await db
+      .select({ leagueId: season.leagueId })
+      .from(season)
+      .where(eq(season.id, s));
+    const leagueId = required(owner, "season").leagueId;
+    const games = sql`(select id from game where season_id = ${s})`;
+    for (const statement of [
+      sql`delete from bracket_match where bracket_id in (select id from bracket where season_id = ${s})`,
+      sql`delete from bracket where season_id = ${s}`,
+      sql`delete from score_response where score_report_id in (select id from score_report where game_id in ${games})`,
+      sql`delete from score_report where game_id in ${games}`,
+      sql`delete from game_placement where schedule_version_id in (select id from schedule_version where season_id = ${s})`,
+      sql`delete from game where season_id = ${s}`,
+      sql`delete from schedule_version where season_id = ${s}`,
+      sql`delete from permit_window where season_id = ${s}`,
+      sql`delete from slot where season_id = ${s}`,
+      sql`delete from books_file where league_id = ${leagueId}`,
+      sql`delete from team_season where season_id = ${s}`,
+      sql`delete from team where league_id = ${leagueId}`,
+      sql`delete from field where venue_id in (select id from venue where league_id = ${leagueId})`,
+      sql`delete from venue where league_id = ${leagueId}`,
+      sql`delete from audit_log where actor_id = ${w.adminId}`,
+      sql`delete from season where id = ${s}`,
+      sql`delete from league where id = ${leagueId}`,
+    ])
+      await db.execute(statement);
+    await db.delete(user).where(eq(user.id, w.adminId));
+  }
+
+  async function withWorld(body: (db: Db, w: World) => Promise<void>) {
+    const setup = await connect();
+    const w = await setup.transaction((tx) => world(tx));
+    try {
+      await setup.transaction(async (tx) => {
+        await makeBracket(tx, w);
+        await publishBracket(tx, w.seasonId, w.adminId);
+      });
+      await body(setup, w);
+    } finally {
+      await removeWorld(setup, w);
+    }
+  }
+
+  const finishTogether = async (w: World, a: GameId, b: GameId) => {
+    const [one, two] = [await connect(), await connect()];
+    await Promise.all([
+      one.transaction((tx) => play(tx, w, a, 6, 2)),
+      two.transaction((tx) => play(tx, w, b, 1, 4)),
+    ]);
+  };
+
+  it("fills the semifinal when both quarterfinals feeding it end together", () =>
+    withWorld(async (db, w) => {
+      const m = await matches(db, w);
+      await finishTogether(
+        w,
+        required(m.get("r1m1")?.gameId, "r1m1"),
+        required(m.get("r1m2")?.gameId, "r1m2"),
+      );
+      const semi = required((await matches(db, w)).get("r2m1"), "r2m1");
+      expect(semi.teamA).not.toBeNull();
+      expect(semi.teamB).not.toBeNull();
+      expect(semi.gameId).not.toBeNull();
+    }));
+
+  it("keeps both semifinals on the schedule when they're made at once", () =>
+    withWorld(async (db, w) => {
+      let m = await matches(db, w);
+      await db.transaction((tx) =>
+        play(tx, w, required(m.get("r1m1")?.gameId, "r1m1"), 6, 2),
+      );
+      await db.transaction((tx) =>
+        play(tx, w, required(m.get("r1m3")?.gameId, "r1m3"), 6, 2),
+      );
+      await finishTogether(
+        w,
+        required(m.get("r1m2")?.gameId, "r1m2"),
+        required(m.get("r1m4")?.gameId, "r1m4"),
+      );
+      m = await matches(db, w);
+      const semis = [m.get("r2m1"), m.get("r2m2")].map((x) =>
+        required(x?.gameId, "semifinal game"),
+      );
+      const placed = await db
+        .select({ id: game.id, slotId: game.slotId })
+        .from(game)
+        .where(eq(game.seasonId, w.seasonId));
+      for (const id of semis)
+        expect(placed.find((g) => g.id === id)?.slotId).not.toBeNull();
     }));
 });

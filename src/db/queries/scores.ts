@@ -41,7 +41,7 @@ import {
   queueRulingNotices,
   queueScoreConfirmations,
 } from "./score-confirmations";
-import type { Db } from "./schedule";
+import { type Db, lockSchedulePublish } from "./schedule";
 
 /**
  * Score entry and confirmation (roadmap week 5). Reports and responses are
@@ -200,11 +200,32 @@ function stateOf(
  * Writes the result to the game row when its score has become final, and
  * leaves it open otherwise. Safe to call any number of times.
  */
+/**
+ * Locks a game for a change to its score, until the transaction ends. A
+ * playoff game first takes its season's publish lock, since its result can
+ * publish the next round's game: always in that order, so two results
+ * landing together take turns instead of deadlocking, and the second sees
+ * the first's winner when it fills the next match.
+ */
+async function lockGameForScore(db: Db, gameId: GameId): Promise<void> {
+  const [found] = await db
+    .select({ seasonId: game.seasonId, kind: game.kind })
+    .from(game)
+    .where(eq(game.id, gameId));
+  if (found?.kind === "playoff") await lockSchedulePublish(db, found.seasonId);
+  await db
+    .select({ id: game.id })
+    .from(game)
+    .where(eq(game.id, gameId))
+    .for("update");
+}
+
 export async function settleGame(
   db: Db,
   gameId: GameId,
   now: Date,
 ): Promise<ScoreState> {
+  await lockGameForScore(db, gameId);
   const g = required(await gameForScoring(db, gameId), "game");
   const { state, history } = await currentScoreState(db, g, now);
   if (state.state !== "final") return state;
@@ -326,11 +347,7 @@ export async function reportScore(
   // One change to a game's score at a time, online, offline or an answer:
   // a report waits for a confirmation landing at the same moment, then
   // sees the game final.
-  await db
-    .select({ id: game.id })
-    .from(game)
-    .where(eq(game.id, input.gameId))
-    .for("update");
+  await lockGameForScore(db, input.gameId);
   const g = await gameForScoring(db, input.gameId);
   if (!g || (g.startsAt && g.startsAt > input.now)) return err("not_started");
   // Once final, only an admin may correct a score.
@@ -462,11 +479,7 @@ export async function respondToScore(
       ),
     );
   if (!report) return err("unknown_report");
-  await db
-    .select({ id: game.id })
-    .from(game)
-    .where(eq(game.id, input.gameId))
-    .for("update");
+  await lockGameForScore(db, input.gameId);
   const g = required(await gameForScoring(db, input.gameId), "game");
   const { state } = await currentScoreState(db, g, input.now);
   if (state.state === "final") return err("already_final");

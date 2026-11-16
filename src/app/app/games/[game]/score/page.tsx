@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { HelpLink } from "@/components/help-link";
-import { db } from "@/db/client";
+import { db, txDb } from "@/db/client";
 import {
   currentScoreState,
   gameForScoring,
@@ -108,7 +108,7 @@ async function Score({
   // already marked final is not settled again on every visit.
   let g = found;
   if (needsSettling(found.status, state)) {
-    await settleGame(db, found.id, now);
+    await txDb.transaction((tx) => settleGame(tx, found.id, now));
     g = (await gameForScoring(db, found.id)) ?? found;
   }
   const ctx = {
