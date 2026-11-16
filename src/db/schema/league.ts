@@ -98,6 +98,12 @@ export const league = pgTable(
      * percentage (ADR 0091). Admins decide; 60 by default.
      */
     leadershipQuorumPercent: smallint().notNull().default(60),
+    /**
+     * Whether payers cover processing fees, and how (ADR 0082). Read through
+     * readFeeSettings, which fills in anything missing; off by default until
+     * the league confirms the legal side.
+     */
+    processingFees: jsonb().notNull().default({ mode: "off" }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()

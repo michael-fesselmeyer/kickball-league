@@ -44,6 +44,9 @@ export const purchaseStatus = pgEnum("purchase_status", [
   "partially_refunded",
 ]);
 
+/** The method a purchase's processing fee was worked out for (ADR 0082). */
+export const feeMethod = pgEnum("fee_method", ["card", "bank", "venmo"]);
+
 export const promoKind = pgEnum("promo_kind", ["percent", "amount"]);
 
 /**
@@ -106,6 +109,17 @@ export const purchase = pgTable(
     subtotalCents: integer().notNull(),
     discountCents: integer().notNull().default(0),
     creditAppliedCents: integer().notNull().default(0),
+    /**
+     * The processing fee the payer covers on top of the price (ADR 0082),
+     * worked out for `feeMethod`. Zero while the league's setting is off.
+     */
+    feeCents: integer().notNull().default(0),
+    feeMethod: feeMethod(),
+    /**
+     * The card fee a payer saved by paying with cash, Zelle or check while
+     * fees were on, for the owners' books. Never part of the total.
+     */
+    feeSavedCents: integer().notNull().default(0),
     totalCents: integer().notNull(),
     promoCodeId: uuid()
       .$type<PromoCodeId>()
@@ -116,6 +130,12 @@ export const purchase = pgTable(
      * deadline charge: the PaymentIntent whose webhook settles it.
      */
     stripePaymentIntentId: text(),
+    /**
+     * When a bank transfer's Checkout completed and the money is on its way
+     * (a few business days). A second "Pay" leaves it alone, and the
+     * guarantee's deadline charge waits for it.
+     */
+    processingSince: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -130,7 +150,11 @@ export const purchase = pgTable(
     index("purchase_promo_code_idx").on(t.promoCodeId),
     check(
       "purchase_amounts",
-      sql`${t.subtotalCents} >= 0 and ${t.discountCents} >= 0 and ${t.creditAppliedCents} >= 0 and ${t.totalCents} = ${t.subtotalCents} - ${t.discountCents} - ${t.creditAppliedCents} and ${t.totalCents} >= 0`,
+      sql`${t.subtotalCents} >= 0 and ${t.discountCents} >= 0 and ${t.creditAppliedCents} >= 0 and ${t.feeCents} >= 0 and ${t.feeSavedCents} >= 0 and ${t.totalCents} = ${t.subtotalCents} - ${t.discountCents} - ${t.creditAppliedCents} + ${t.feeCents} and ${t.totalCents} >= 0`,
+    ),
+    check(
+      "purchase_fee_method",
+      sql`${t.feeCents} = 0 or ${t.feeMethod} is not null`,
     ),
   ],
 );
@@ -182,11 +206,13 @@ export const paymentMethod = pgEnum("payment_method", [
   "cash",
   "venmo",
   "other",
+  "zelle",
+  "check",
 ]);
 
 /**
  * Money that arrived for a purchase. Stripe payments carry their
- * PaymentIntent; cash, Venmo and other payments made outside the app carry a
+ * PaymentIntent; cash, Venmo, Zelle, check and other payments made outside the app carry a
  * note and who recorded them, so the team still reaches its total.
  */
 export const payment = pgTable(
