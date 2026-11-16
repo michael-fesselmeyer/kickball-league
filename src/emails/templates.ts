@@ -65,6 +65,7 @@ import { winBackEmail } from "./win-back";
 import { concernUpdateEmail } from "./concern-update";
 import { suspensionEmail } from "./suspension";
 import { teamRoleEmail } from "./team-role";
+import { leadershipEmail } from "./leadership";
 import { volunteerReminderEmail } from "./volunteer-reminder";
 
 /**
@@ -99,6 +100,8 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     instagram_reconnect: instagramReconnectEmail,
     instagram_storage_full: instagramStorageFullEmail,
     interest_go_ahead: interestGoAheadEmail,
+    leadership_check_in: leadershipEmail,
+    leadership_result: leadershipEmail,
     merch_receipt: merchEmail,
     merch_update: merchEmail,
     move_accepted: moveAcceptedEmail,

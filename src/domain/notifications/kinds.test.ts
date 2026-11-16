@@ -38,6 +38,7 @@ describe("MESSAGE_KINDS", () => {
       "instagram_reconnect",
       "instagram_storage_full",
       "interest_go_ahead",
+      "leadership_check_in",
       "lost_found_update",
       "merch_update",
       "move_accepted",
