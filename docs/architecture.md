@@ -701,7 +701,7 @@ The repository is public under `michael-fesselmeyer`. The history should show re
 
 Commits are authored with the GitHub no-reply address already set in the global git config, which is what links them to the profile.
 
-Third-party material stays out of the public repository until the league agrees: the rulebook PDF, the real waiver text and any real logo. The rulebook is entered by an owner in the app and lives only in the database ([ADR 0066](adr/0066-searchable-rulebook-stored-in-the-app.md)); seeds and tests use an invented sample, and the league's own text starts owners only.
+Third-party material stays out of the public repository until the league agrees: the rulebook PDF, the real waiver text and any real logo. The rulebook is entered by an owner in the app and lives only in the database ([ADR 0086](adr/0086-searchable-rulebook-stored-in-the-app.md)); seeds and tests use an invented sample, and the league's own text starts owners only.
 
 ## 12. Observability
 

@@ -26,7 +26,7 @@ import { redirect } from "next/navigation";
 export const metadata: Metadata = { title: "League rules" };
 
 /**
- * The rulebook inside the app (ADR 0066): for the owners while it is owners
+ * The rulebook inside the app (ADR 0086): for the owners while it is owners
  * only, and for everyone signed in while it is members only. Read when
  * asked, never cached, so turning the switch back takes effect at once.
  */

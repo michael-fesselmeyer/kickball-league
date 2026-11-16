@@ -1,4 +1,4 @@
-# ADR 0066: A searchable rulebook stored in the app
+# ADR 0086: A searchable rulebook stored in the app
 
 - Status: accepted
 - Date: 2026-11-15

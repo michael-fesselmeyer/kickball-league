@@ -48,7 +48,7 @@ export const ruleSection = pgTable(
     position: smallint().notNull(),
     /**
      * What the rulebook search matches: the title weighs more than the text
-     * (ADR 0066). Kept by Postgres, never written by the app.
+     * (ADR 0086). Kept by Postgres, never written by the app.
      */
     search: tsvector().generatedAlwaysAs(
       sql`setweight(to_tsvector('english', title), 'A') || setweight(to_tsvector('english', body), 'B')`,

@@ -9,7 +9,7 @@ import { PERSONAS } from "@/lib/demo/personas";
 import type { SeedData } from "./generate";
 
 /**
- * The demo league's rulebook (ADRs 0062 and 0066): the invented sample
+ * The demo league's rulebook (ADRs 0062 and 0086): the invented sample
  * rulebook, imported the way an owner would and made public, so the demo,
  * the end-to-end tests and the performance run have rules to read and
  * search. A real league starts owners only, writes its own rules in the app,

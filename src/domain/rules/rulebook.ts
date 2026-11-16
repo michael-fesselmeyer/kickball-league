@@ -2,7 +2,7 @@ import type { GlobalRole } from "@/domain/authz/permissions";
 import { type Block, blocksOf } from "./rules";
 
 /**
- * The searchable rulebook (ADR 0066): who may read the league's rules, how a
+ * The searchable rulebook (ADR 0086): who may read the league's rules, how a
  * section's text becomes numbered rules with anchors, and how a search is
  * turned into a Postgres query and into the rules that matched. Pure.
  */
