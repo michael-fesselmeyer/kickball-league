@@ -117,22 +117,30 @@ describe("weekly recap", () => {
 
   it("stays within the announcement limits and never prints a blank", () => {
     fc.assert(
-      fc.property(gamesArb(), fc.string({ maxLength: 300 }), (all, label) => {
-        const recap = weeklyRecap({
-          seasonName: "Spring 2027",
-          dayLabel: label,
-          games: all.slice(-12),
-          name,
-          power: powerRankingsWithMovement(TEAMS, all, dayOf),
-          streaks: teamStreaks(TEAMS, all),
-          records: leagueRecords(all),
-          nextUp: null,
-          link: null,
-        });
-        expect(recap.subject.length).toBeLessThanOrEqual(RECAP_SUBJECT_MAX);
-        expect(recap.body.length).toBeLessThanOrEqual(RECAP_BODY_MAX);
-        expect(recap.body).not.toMatch(/undefined|NaN|\[object/);
-      }),
+      fc.property(
+        gamesArb(),
+        // A label that is itself one of the words checked for would fail
+        // the check below for a reason that is not the recap's.
+        fc
+          .string({ maxLength: 300 })
+          .filter((label) => !/undefined|NaN|\[object/.test(label)),
+        (all, label) => {
+          const recap = weeklyRecap({
+            seasonName: "Spring 2027",
+            dayLabel: label,
+            games: all.slice(-12),
+            name,
+            power: powerRankingsWithMovement(TEAMS, all, dayOf),
+            streaks: teamStreaks(TEAMS, all),
+            records: leagueRecords(all),
+            nextUp: null,
+            link: null,
+          });
+          expect(recap.subject.length).toBeLessThanOrEqual(RECAP_SUBJECT_MAX);
+          expect(recap.body.length).toBeLessThanOrEqual(RECAP_BODY_MAX);
+          expect(recap.body).not.toMatch(/undefined|NaN|\[object/);
+        },
+      ),
     );
   });
 });
