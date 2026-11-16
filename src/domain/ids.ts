@@ -121,10 +121,7 @@ export type ShirtMakerId = Brand<string, "ShirtMakerId">;
 export type ShirtSpareId = Brand<string, "ShirtSpareId">;
 export type FriendLogoId = Brand<string, "FriendLogoId">;
 export type GuestTeamId = Brand<string, "GuestTeamId">;
-export type GuestWaiverSignatureId = Brand<
-  string,
-  "GuestWaiverSignatureId"
->;
+export type GuestWaiverSignatureId = Brand<string, "GuestWaiverSignatureId">;
 export type AccountMergeId = Brand<string, "AccountMergeId">;
 export type CaptainHandoffId = Brand<string, "CaptainHandoffId">;
 export type PickemPickId = Brand<string, "PickemPickId">;

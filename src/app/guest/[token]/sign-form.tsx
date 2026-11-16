@@ -1,10 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import {
-  type GuestSignState,
-  signGuestWaiverAction,
-} from "../actions";
+import { type GuestSignState, signGuestWaiverAction } from "../actions";
 
 const initial: GuestSignState = { status: "idle" };
 const input =
@@ -63,7 +60,7 @@ export function GuestSignForm({
       <button
         type="submit"
         disabled={pending}
-        className="btn btn-primary self-start disabled:opacity-60"
+        className="btn self-start btn-primary disabled:opacity-60"
       >
         {pending ? "Signing…" : "Sign the waiver"}
       </button>

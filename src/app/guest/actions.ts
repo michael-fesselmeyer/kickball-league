@@ -3,10 +3,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { headers } from "next/headers";
 import { db, txDb } from "@/db/client";
-import {
-  registerGuestTeam,
-  signGuestWaiver,
-} from "@/db/queries/tournaments";
+import { registerGuestTeam, signGuestWaiver } from "@/db/queries/tournaments";
 import { event } from "@/db/schema/event";
 import { canWrite } from "@/domain/platform/operator";
 import {
@@ -75,7 +72,9 @@ export async function signUpGuestTeam(
   if (!parsed.ok)
     return { status: "error", message: GUEST_SIGNUP_ERRORS[parsed.error] };
   const now = new Date();
-  if (!(await allowGuestSignup(await networkOf(), parsed.value.captainEmail, now)))
+  if (
+    !(await allowGuestSignup(await networkOf(), parsed.value.captainEmail, now))
+  )
     return {
       status: "error",
       message: "That's a lot of sign-ups. Try again tomorrow.",
@@ -126,7 +125,9 @@ export async function signGuestWaiverAction(
   const site = await currentSite();
   if (site && !canWrite(site.status, false))
     return { status: "error", message: PAUSED };
-  const parsed = parseGuestSignature(formStrings(form, ["signedName", "agree"] as const));
+  const parsed = parseGuestSignature(
+    formStrings(form, ["signedName", "agree"] as const),
+  );
   if (!parsed.ok)
     return {
       status: "error",
@@ -137,7 +138,10 @@ export async function signGuestWaiverAction(
     };
   const now = new Date();
   if (!(await allowGuestSignature(await networkOf(), token, now)))
-    return { status: "error", message: "That's a lot of tries. Come back later." };
+    return {
+      status: "error",
+      message: "That's a lot of tries. Come back later.",
+    };
   const result = await txDb.transaction((tx) =>
     signGuestWaiver(tx, {
       token,

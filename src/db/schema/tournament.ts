@@ -112,7 +112,10 @@ export const guestTeam = pgTable(
     uniqueIndex("guest_team_name_unique").on(t.eventId, sql`lower(${t.name})`),
     uniqueIndex("guest_team_token_unique").on(t.linkToken),
     index("guest_team_event_idx").on(t.eventId, t.createdAt),
-    check("guest_team_name_length", sql`char_length(${t.name}) between 1 and 60`),
+    check(
+      "guest_team_name_length",
+      sql`char_length(${t.name}) between 1 and 60`,
+    ),
     check(
       "guest_team_captain_length",
       sql`char_length(${t.captainName}) between 1 and 80 and char_length(${t.captainEmail}) between 3 and 254`,
