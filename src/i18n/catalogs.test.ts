@@ -13,7 +13,7 @@ import { CATALOGS, messagesFor } from "./messages";
 import { en } from "./messages/en";
 
 /**
- * Every catalog against the English one (ADR 0065). These run in CI, so a
+ * Every catalog against the English one (ADR 0094). These run in CI, so a
  * message added in English and not yet translated fails the build with the
  * list of keys to translate, instead of shipping English by surprise.
  */

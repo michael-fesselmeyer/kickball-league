@@ -38,7 +38,7 @@ export async function profileOf(db: Db, userId: UserId) {
 }
 
 /**
- * Saves the language a person reads the league in (ADR 0065). Emails and
+ * Saves the language a person reads the league in (ADR 0094). Emails and
  * push follow it from their next message, queued ones included.
  */
 export async function saveLanguage(

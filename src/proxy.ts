@@ -20,7 +20,7 @@ import { siteForProxy } from "@/lib/platform/site";
 import { viewRewrite } from "@/lib/view-rewrite";
 
 /**
- * Every page lives under `src/app/[lang]` (ADR 0065). An English address
+ * Every page lives under `src/app/[lang]` (ADR 0094). An English address
  * has no language prefix (`/faq` is served from `/en/faq`); another
  * language's starts with its code (`/es/faq`). Route handlers at the top of
  * src/app (feeds, media, short links, the schedule widget's files) are

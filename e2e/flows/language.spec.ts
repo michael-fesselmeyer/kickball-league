@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { pageAs } from "../support/personas";
 
 /**
- * Language support (ADR 0065). Every page is served from its language's
+ * Language support (ADR 0094). Every page is served from its language's
  * route tree; English keeps the site's own addresses. Until a page is
  * translated, its other-language address goes to the English page.
  */

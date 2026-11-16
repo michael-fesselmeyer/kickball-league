@@ -7,7 +7,7 @@ import { localesOf } from "@/i18n/pages";
 import { publicPathOf, switchLanguagePath } from "@/i18n/routing";
 
 /**
- * The footer's language links (ADR 0065): the page you're on, in each
+ * The footer's language links (ADR 0094): the page you're on, in each
  * language it is translated into; nothing for a page in English only. On a
  * signed-in page, the language comes from the profile, so the links go
  * there instead.

@@ -49,7 +49,7 @@ export type DataPage = { path: string; lastModified: Date };
 type Entry = MetadataRoute.Sitemap[number];
 
 /**
- * A page's entries: one per language it is translated into (ADR 0065),
+ * A page's entries: one per language it is translated into (ADR 0094),
  * each listing the others as `hreflang` alternates. English only: one
  * entry, as before.
  */

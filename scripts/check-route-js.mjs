@@ -87,7 +87,7 @@ function routes() {
         for (const [key, manifest] of Object.entries(
           globalThis.__RSC_MANIFEST,
         )) {
-          // Every page lives under [lang] (ADR 0065); budgets are per page,
+          // Every page lives under [lang] (ADR 0094); budgets are per page,
           // whatever its language, so the segment is left out of its name.
           const route =
             key.replace(/\/page$/, "").replace(/^\/\[lang\]/, "") || "/";

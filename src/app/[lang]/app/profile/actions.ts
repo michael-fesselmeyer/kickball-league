@@ -87,7 +87,7 @@ export async function saveProfileAction(
 }
 
 /**
- * Saves the language the signed-in person reads the league in (ADR 0065),
+ * Saves the language the signed-in person reads the league in (ADR 0094),
  * and mirrors it in a cookie so the proxy can serve their pages in it.
  */
 export async function saveLanguageAction(form: FormData): Promise<void> {

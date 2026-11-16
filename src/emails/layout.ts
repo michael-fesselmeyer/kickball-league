@@ -18,7 +18,7 @@ export type RenderContext = {
   /** The site's address, such as https://league.example.test, for links. */
   siteUrl: string;
   /**
-   * The recipient's language (ADR 0065). Templates write in it as they are
+   * The recipient's language (ADR 0094). Templates write in it as they are
    * translated; until then they stay in English.
    */
   locale?: Locale;

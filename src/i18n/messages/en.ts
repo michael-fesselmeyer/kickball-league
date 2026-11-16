@@ -1,6 +1,6 @@
 /**
  * The English messages: the source every other language translates
- * (ADR 0065). Add a message here first; `npm test` then lists it as
+ * (ADR 0094). Add a message here first; `npm test` then lists it as
  * missing from each other catalog until it is translated there.
  *
  * Write for a phone: short, plain words. A message with a count is a

@@ -5,7 +5,7 @@ import { messagesFor } from "@/i18n/messages";
 import { saveLanguageAction } from "./actions";
 
 /**
- * The language a person reads the league in (ADR 0065). Its words are in
+ * The language a person reads the league in (ADR 0094). Its words are in
  * the language chosen, so someone who picked Spanish by mistake can still
  * find their way back. A plain form: it works before any JavaScript loads.
  */

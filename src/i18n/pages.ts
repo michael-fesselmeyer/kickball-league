@@ -1,7 +1,7 @@
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "./locales";
 
 /**
- * Which public pages each language is served for (ADR 0065). A page joins
+ * Which public pages each language is served for (ADR 0094). A page joins
  * a language once all its words are translated, so a visitor never lands
  * on a half-translated page: `/es/x` for a page not listed here goes to
  * the English page, and only listed pages get `hreflang` links and

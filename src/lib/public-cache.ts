@@ -10,7 +10,7 @@ import { LOCALES } from "@/i18n/locales";
 /**
  * An internal page path (`/l/_default/friends`) in every language's route
  * tree (`/en/...`, `/es/...`): each language's copy is cached on its own
- * (ADR 0065), so a change expires them all.
+ * (ADR 0094), so a change expires them all.
  */
 export const everyLanguage = (path: string): string[] =>
   LOCALES.map((lang) => `/${lang}${path}`);

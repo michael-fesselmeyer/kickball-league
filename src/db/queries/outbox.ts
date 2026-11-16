@@ -202,7 +202,7 @@ export type ClaimedMessage = {
   sendAfter: Date;
   /** Set on a copy of an announcement, to tell team news from league news. */
   announcementId: AnnouncementId | null;
-  /** The recipient's language (ADR 0065); English with no account. */
+  /** The recipient's language (ADR 0094); English with no account. */
   locale: Locale;
 };
 
