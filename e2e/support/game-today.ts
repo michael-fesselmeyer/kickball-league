@@ -345,6 +345,115 @@ export async function addStartedGame(
 }
 
 /**
+ * A game at noon today, league time, with no ref, between two fall teams,
+ * and the account with `email` on `teamA`'s roster for it, for a flow that
+ * assigns a ref who plays in the game. It sits in a small private season of
+ * its own, so no seeded person joins a team or becomes a ref while other
+ * flows look at them; nobody but admins sees a private season. Returns the
+ * season's slug, and `remove` deletes it all.
+ */
+export async function addGameTodayWithPlayer(
+  teamA: string,
+  teamB: string,
+  email: string,
+): Promise<{ gameId: string; slug: string; remove: () => Promise<void> }> {
+  const tag = Math.random().toString(36).slice(2, 8);
+  const slug = `own-team-${tag}`;
+  const made = await withDb(async (db) => {
+    const { rows } = await db.query<{
+      season: string;
+      game: string;
+      team: string;
+    }>(
+      `with new_season as (
+         insert into season (league_id, name, slug, status, visibility,
+                             starts_on, ends_on, fee_model, player_fee_cents,
+                             roster_min, roster_max)
+         select s.league_id, $3, $4, 'in_progress', 'private',
+                current_date - 1, current_date + 7,
+                s.fee_model, s.player_fee_cents, s.roster_min, s.roster_max
+           from season s where s.slug = 'fall-2026'
+            and s.league_id = (select id from league where is_default)
+         returning id, league_id
+       ), entries as (
+         insert into team_season (team_id, season_id)
+         select t.id, new_season.id from team t, new_season
+          where t.league_id = new_season.league_id and t.name in ($1, $2)
+         returning id, team_id
+       ), noon as (
+         select (date_trunc('day', now() at time zone l.timezone)
+                   + interval '12 hours') at time zone l.timezone as starts_at
+           from new_season join league l on l.id = new_season.league_id
+       ), place as (
+         select f.id as field_id from field f
+           join venue v on v.id = f.venue_id
+          where v.league_id = (select league_id from new_season)
+          order by f.name desc limit 1
+       ), new_slot as (
+         insert into slot (season_id, field_id, starts_at, ends_at, time_index)
+         select new_season.id, (select field_id from place), noon.starts_at,
+                noon.starts_at + interval '1 hour', 0
+           from new_season, noon
+         returning id, season_id
+       ), new_game as (
+         insert into game (season_id, team_a_id, team_b_id, kind, slot_id)
+         select new_slot.season_id,
+                (select e.id from entries e join team t on t.id = e.team_id
+                  where t.name = $1),
+                (select e.id from entries e join team t on t.id = e.team_id
+                  where t.name = $2),
+                'exhibition', new_slot.id
+           from new_slot
+         returning id, season_id, team_a_id
+       )
+       select season_id as season, id as game, team_a_id as team
+         from new_game`,
+      [teamA, teamB, `Own team ${tag}`, slug],
+    );
+    const [row] = rows;
+    if (!row) throw new Error(`Could not add ${teamA} vs ${teamB} today`);
+    const reg = await db.query<{ id: string }>(
+      `insert into registration (season_id, user_id, kind, status)
+       select $1, u.id, 'team_member', 'active' from "user" u
+        where lower(u.email) = lower($2)
+       returning id`,
+      [row.season, email],
+    );
+    if (!reg.rows[0]) throw new Error(`No account for ${email}`);
+    await db.query(
+      `insert into roster_membership (team_season_id, registration_id, role, status)
+       values ($1, $2, 'player', 'active')`,
+      [row.team, reg.rows[0].id],
+    );
+    return row;
+  });
+  return {
+    gameId: made.game,
+    slug,
+    remove: () =>
+      withDb(async (db) => {
+        await db.query("delete from referee_assignment where game_id = $1", [
+          made.game,
+        ]);
+        await db.query("delete from game where season_id = $1", [made.season]);
+        await db.query("delete from slot where season_id = $1", [made.season]);
+        await db.query(
+          `delete from roster_membership where team_season_id in
+             (select id from team_season where season_id = $1)`,
+          [made.season],
+        );
+        await db.query("delete from registration where season_id = $1", [
+          made.season,
+        ]);
+        await db.query("delete from team_season where season_id = $1", [
+          made.season,
+        ]);
+        await db.query("delete from season where id = $1", [made.season]);
+      }),
+  };
+}
+
+/**
  * A game under way (it kicked off 30 minutes ago) that Reese Ref referees,
  * with a kicking order saved for `teamA`: three of its fall players,
  * registered in a small private season of their own so nothing else they

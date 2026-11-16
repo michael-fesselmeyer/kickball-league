@@ -1,21 +1,36 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
-import { addGameToday } from "../support/game-today";
+import { addGameTodayWithPlayer } from "../support/game-today";
+import { type Member, memberPage } from "../support/people";
 import { pageAs } from "../support/personas";
 
 /**
  * Assigning a ref who plays in the game (issue #296), at phone width: the
- * admin is warned first and assigns Casey Captain, who plays for The Big
- * Kicks, to a Big Kicks game only by ticking the override, then takes the
- * ref off again so Casey is not a ref for the other flows.
+ * admin is warned first and assigns a player on The Big Kicks to a Big
+ * Kicks game only by ticking the override, then takes the ref off again.
+ * The player and the game belong to this flow alone (a private season of
+ * its own), so no seeded person is a ref while other flows check who has a
+ * ref page.
  */
 test.use({ viewport: { width: 390, height: 844 } });
 
-let today: Awaited<ReturnType<typeof addGameToday>>;
+const player: Member = {
+  first: "Rory",
+  last: "Twoway",
+  email: "rory.twoway@example.test",
+};
+
+let today: Awaited<ReturnType<typeof addGameTodayWithPlayer>>;
 
 test.describe.serial("a ref on one of the teams", () => {
-  test.beforeAll(async () => {
-    today = await addGameToday("The Big Kicks", "Red Rubber Ballers");
+  test.beforeAll(async ({ browser }) => {
+    const page = await memberPage(browser, player);
+    await page.context().close();
+    today = await addGameTodayWithPlayer(
+      "The Big Kicks",
+      "Red Rubber Ballers",
+      player.email,
+    );
   });
   test.afterAll(async () => {
     await today.remove();
@@ -25,11 +40,9 @@ test.describe.serial("a ref on one of the teams", () => {
     browser,
   }) => {
     const admin = await pageAs(browser, "Admin");
-    await admin.goto("/app/admin/seasons/fall-2026/referees");
+    await admin.goto(`/app/admin/seasons/${today.slug}/referees`);
     const game = admin.locator(`#game-${today.gameId}`);
-    await game
-      .getByLabel(/^Referee's email for/)
-      .fill("casey.captain@example.test");
+    await game.getByLabel(/^Referee's email for/).fill(player.email);
     await game.getByRole("button", { name: "Assign" }).click();
     // Next's empty route announcer is an alert too, so pick ours by its text.
     await expect(
@@ -42,14 +55,12 @@ test.describe.serial("a ref on one of the teams", () => {
     await expect(override).not.toBeChecked();
     await expectNoAxeViolations(admin);
 
-    await again
-      .getByLabel(/^Referee's email for/)
-      .fill("casey.captain@example.test");
+    await again.getByLabel(/^Referee's email for/).fill(player.email);
     await override.check();
     await again.getByRole("button", { name: "Assign" }).click();
     await expect(admin.getByRole("status")).toContainText("Referee assigned");
     await expect(admin.locator(`#game-${today.gameId}`)).toContainText(
-      "Casey Captain",
+      `${player.first} ${player.last}`,
     );
     await admin
       .locator(`#game-${today.gameId}`)
