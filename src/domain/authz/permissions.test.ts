@@ -457,6 +457,18 @@ describe("the permissions matrix (product-spec.md, section 5)", () => {
     ]);
   });
 
+  it("lets the whole team take part in a leadership check-in, the captain choose, and admins run it", () => {
+    expect(allowed("leadership.take_part", { teamSeasonId: "A" })).toEqual([
+      "player",
+      "captain",
+      "coCaptain",
+    ]);
+    expect(allowed("leadership.choose", { teamSeasonId: "A" })).toEqual([
+      "captain",
+    ]);
+    expect(allowed("leadership.manage")).toEqual(["admin", "owner"]);
+  });
+
   it("gives co-captains every captain's team tool except the captaincy", () => {
     const tools = [
       "lineup.edit",
