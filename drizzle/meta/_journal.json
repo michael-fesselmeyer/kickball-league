@@ -666,6 +666,13 @@
       "when": 1794867510054,
       "tag": "0094_processing_fees",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1794868289421,
+      "tag": "0095_language_support",
+      "breakpoints": true
     }
   ]
 }
