@@ -57,7 +57,9 @@ test("an admin records another group, gets an overlap warning and sees them on g
   await groups.getByLabel("Group name").last().fill("Half a schedule");
   await groups.getByLabel("Usually from").last().fill("20:00");
   await groups.getByRole("button", { name: "Add group" }).click();
-  await expect(admin.getByRole("alert")).toContainText("Pick the days");
+  await expect(
+    admin.getByRole("alert").filter({ hasText: "Pick the days" }),
+  ).toBeVisible();
 
   // The league holds the field that day, and so does the other group.
   const permits = admin.getByRole("region", { name: "Permit windows" });

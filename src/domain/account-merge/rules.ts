@@ -180,6 +180,8 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     kind: "move",
     label: "checklist template tasks owned",
   },
+  "field_group.created_by": actor("other groups on fields recorded"),
+  "field_overlap.created_by": actor("field overlaps recorded"),
   "friend_group.created_by": actor("friend groups started"),
   "invite.created_by": actor("invites created"),
   "roster_membership.created_by": actor("roster changes"),
