@@ -821,6 +821,10 @@ Build it the way Next.js documents ✔: `app/manifest.ts`, a small hand-written 
 
 Revisit Expo only if, after a season, captains or refs report missed notifications, or the league wants a store presence.
 
+### iOS and Android apps
+
+A Capacitor shell around the site, built locally and never published to a store ([ADR 0074](adr/0074-ios-and-android-apps-as-a-shell-around-the-site.md), setup in [mobile.md](mobile.md)). Each app's web view opens the site at `MOBILE_APP_URL`, read when the native projects are synced, so there is one copy of every screen. The site never imports Capacitor: an inline script in the root layout (`nativeShellScript`, `src/lib/mobile/native-shell.ts`) returns at once in a browser, and in the apps marks `<html data-shell="app">`, opens other sites in the system browser, handles Android's back button and follows links that open the app. The layout pads itself clear of the notch and home indicator (`viewport-fit=cover`, `pt-safe`, `pb-safe`, `px-safe`). The service worker runs in both apps (on iOS through `WKAppBoundDomains`), so offline behavior matches the browser. The apps offer no push yet and say so; the install offer is hidden inside them. Sign-in inside the apps needs a typed sign-in code, tracked separately.
+
 ## 15. Free-tier budget
 
 The product costs nothing to run ([ADR 0021](adr/0021-free-services-only.md)). No service has a payment method on file, so a free limit can stop a service but never bill it. This section lists each service's free limit, from the provider's own page as read on 2026-11-13, what the app does as it nears that limit, and the expected use at three league sizes.
