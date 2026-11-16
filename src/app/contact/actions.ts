@@ -69,7 +69,10 @@ export async function sendContact(
       field: parsed.error,
     };
   if (looksLikeSpam(parsed.value.body))
-    return { status: "error", message: "Leave the links out and send it again." };
+    return {
+      status: "error",
+      message: "Leave the links out and send it again.",
+    };
   const h = await headers();
   const network =
     h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -82,7 +85,10 @@ export async function sendContact(
     };
   const league = await defaultLeague(db);
   if (!league)
-    return { status: "error", message: "Messages aren't going through right now. Try again later." };
+    return {
+      status: "error",
+      message: "Messages aren't going through right now. Try again later.",
+    };
   await submitConcern(db, {
     leagueId: league.id,
     leagueName: league.name,
