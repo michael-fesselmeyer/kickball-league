@@ -53,3 +53,14 @@ export function isTranslated(locale: Locale, path: string): boolean {
 export function localesOf(path: string): Locale[] {
   return LOCALES.filter((locale) => isTranslated(locale, path));
 }
+
+/**
+ * The languages the footer offers: English, and each language with at least
+ * one translated page. Fewer than two, and the footer offers none.
+ */
+export function offeredLocales(): Locale[] {
+  return LOCALES.filter(
+    (locale) =>
+      locale === DEFAULT_LOCALE || TRANSLATED_PAGES[locale].length > 0,
+  );
+}

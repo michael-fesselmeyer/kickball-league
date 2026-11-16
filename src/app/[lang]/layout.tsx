@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import Link from "next/link";
-import { Suspense } from "react";
 import { DemoBanner } from "@/components/demo-banner";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Kickball } from "@/components/kickball";
@@ -173,10 +172,7 @@ export default async function RootLayout({
             ))}
           </nav>
           <div className="mx-auto w-full max-w-5xl px-4 pb-4 md:px-6">
-            {/* The path is request data on a dynamic page (Cache Components). */}
-            <Suspense fallback={null}>
-              <LanguageSwitcher current={locale} label={shell.language.group} />
-            </Suspense>
+            <LanguageSwitcher current={locale} label={shell.language.group} />
           </div>
         </footer>
       </body>
