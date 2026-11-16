@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+
+const noop = () => () => {};
 
 /**
  * "Sign in with a passkey": Face ID, Touch ID or the device PIN. The WebAuthn
@@ -10,6 +12,13 @@ import { useState } from "react";
 export function PasskeySignIn({ next }: { next: string }) {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
+  // Passkeys for this site don't reach an app's web view yet (ADR 0075),
+  // so the iOS and Android apps don't offer them.
+  const inApp = useSyncExternalStore(
+    noop,
+    () => "Capacitor" in window,
+    () => false,
+  );
 
   async function signIn() {
     setPending(true);
@@ -23,6 +32,8 @@ export function PasskeySignIn({ next }: { next: string }) {
     setPending(false);
     setMessage(outcome.message);
   }
+
+  if (inApp) return null;
 
   return (
     <div className="flex flex-col gap-3">

@@ -53,9 +53,10 @@ const storedLinkToken = (token: string) =>
  * replaces the address's code; its older links still work.
  */
 export async function issueSignInCode(
-  ctx: Ctx,
+  ctx: Ctx | undefined,
   link: { email: string; url: string; token: string },
 ): Promise<string> {
+  if (!ctx) throw new Error("A sign-in code needs the request's context.");
   const code = generateSignInCode();
   const identifier = signInCodeIdentifier(link.email);
   const callbackURL = new URL(link.url).searchParams.get("callbackURL") ?? "/";
@@ -160,11 +161,11 @@ export function leagueSignIn(db: Db, options: { appScheme: string }) {
             });
           let user = (await adapter.findUserByEmail(email))?.user;
           if (!user)
-            user = await adapter.createUser({
-              email,
-              emailVerified: true,
-              name: "",
-            });
+            // The code is the link's other half, so it signs up the same way.
+            user = await adapter.createUser(
+              { email, emailVerified: true, name: "" },
+              { method: "magic-link" },
+            );
           // Only Google and sign-in links make accounts, and both prove the
           // address; anything else is for the link's own checks.
           if (!user?.emailVerified)

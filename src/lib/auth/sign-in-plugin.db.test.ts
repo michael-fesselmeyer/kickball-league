@@ -39,7 +39,7 @@ const instance = (db: Db, mail: Mail[]) =>
       magicLink({
         storeToken: MAGIC_LINK_STORE_TOKEN,
         sendMagicLink: async (link, ctx) => {
-          const code = await issueSignInCode(ctx!, link);
+          const code = await issueSignInCode(ctx, link);
           mail.push({ email: link.email, token: link.token, code });
         },
       }),
