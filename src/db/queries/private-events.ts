@@ -1,4 +1,3 @@
-import { type FeeMethod, feeFor } from "@/domain/money/processing-fee";
 import { randomBytes } from "node:crypto";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type {
@@ -22,7 +21,7 @@ import { season } from "../schema/season";
 import { rosterMembership, team, teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
-import { createPurchase, type FeeChoice } from "./payments";
+import { createPurchase } from "./payments";
 import { consumeRateLimit } from "./rate-limit";
 import { required } from "./rows";
 import type { Db } from "./schedule";
@@ -447,18 +446,8 @@ export async function inviteMatches(
  */
 export async function organizerPurchase(
   db: Db,
-  input: {
-    eventId: PrivateEventId;
-    userId: UserId;
-    /** Who covers the processing fee, when the league turned that on. */
-    fee?: FeeChoice;
-  },
-): Promise<{
-  purchaseId: PurchaseId;
-  totalCents: number;
-  feeCents: number;
-  feeMethod: FeeMethod | null;
-} | null> {
+  input: { eventId: PrivateEventId; userId: UserId },
+): Promise<{ purchaseId: PurchaseId; totalCents: number } | null> {
   const [event] = await db
     .select({
       payer: privateEvent.payer,
@@ -479,10 +468,6 @@ export async function organizerPurchase(
     !event.priceCents
   )
     return null;
-  const fee = input.fee
-    ? feeFor(input.fee.method, event.priceCents, input.fee.settings)
-    : 0;
-  const feeMethod = fee > 0 && input.fee ? input.fee.method : null;
   const purchaseId = await createPurchase(db, {
     userId: input.userId,
     leagueId: event.leagueId,
@@ -496,12 +481,6 @@ export async function organizerPurchase(
         teamSeasonId: null,
       },
     ],
-    ...(feeMethod ? { fee: { cents: fee, method: feeMethod } } : {}),
   });
-  return {
-    purchaseId,
-    totalCents: event.priceCents + fee,
-    feeCents: fee,
-    feeMethod,
-  };
+  return { purchaseId, totalCents: event.priceCents };
 }

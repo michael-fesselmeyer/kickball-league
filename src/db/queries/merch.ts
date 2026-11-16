@@ -1,4 +1,3 @@
-import type { FeeMethod } from "@/domain/money/processing-fee";
 import { createHash } from "node:crypto";
 import {
   and,
@@ -62,7 +61,7 @@ import {
 import { recordAudit } from "./audit";
 import { returnSpentCredit } from "./credit";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
-import { closePurchases, type FeeChoice, startPurchase } from "./payments";
+import { closePurchases, startPurchase } from "./payments";
 import {
   confirmStripeRefund,
   type RefundStartError,
@@ -534,9 +533,6 @@ export type PlaceOutcome =
       orderId: MerchOrderId;
       purchaseId: PurchaseId;
       totalCents: number;
-      /** The processing fee inside the total (ADR 0082); zero while off. */
-      feeCents: number;
-      feeMethod: FeeMethod | null;
       creditCents: number;
       description: string;
       expiresAt: Date;
@@ -564,8 +560,6 @@ export async function placeMerchOrder(
     quantity: unknown;
     teamSeasonId: TeamSeasonId | null;
     useCredit: boolean;
-    /** Who covers the processing fee, when the league turned that on. */
-    fee?: FeeChoice;
     now: Date;
   },
 ): Promise<Result<PlaceOutcome, MerchOrderError>> {
@@ -646,7 +640,6 @@ export async function placeMerchOrder(
     ],
     promoCode: null,
     useCredit: input.useCredit,
-    ...(input.fee ? { fee: input.fee } : {}),
     now: input.now,
     attach: async (purchaseId) => {
       const [created] = await db
@@ -677,8 +670,6 @@ export async function placeMerchOrder(
     orderId,
     purchaseId: started.value.purchaseId,
     totalCents: started.value.totalCents,
-    feeCents: started.value.feeCents,
-    feeMethod: started.value.feeMethod,
     creditCents: started.value.creditCents,
     description,
     expiresAt: checkoutExpiry(input.now),
