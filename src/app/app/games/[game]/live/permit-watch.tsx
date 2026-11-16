@@ -6,7 +6,9 @@ import { type PermitEndRule, permitWatch } from "@/domain/gameday/permit-end";
 
 /** The permit window and rule set saved with the game's screen, as JSON. */
 export type PermitProps = {
+  /** When play must end: the permit's end, or the end of daylight (#467). */
   permitEndsAt: string;
+  endReason: "field_time" | "daylight";
   startsAt: string;
   timeLimitMinutes: number | null;
   innings: number | null;
@@ -22,8 +24,9 @@ const minute = () => Math.floor(Date.now() / 30_000) * 30_000;
 const onServer = () => 0;
 
 /**
- * The minutes left in the field's permit, and a warning when the game would
- * run past it, with the league's rule for that case. It works from the
+ * A warning when the game would run past the end of play (the permit's end,
+ * or dark), with the league's rule for that case. The game clock above it
+ * counts the minutes left, so this says nothing while all is well. It works from the
  * permit window the page was loaded with and the phone's clock, so it keeps
  * counting with no signal and needs no realtime service.
  */
@@ -46,16 +49,16 @@ export function PermitWatchNote({
     innings: permit.innings,
     halvesEntered,
     rule: permit.rule,
+    endReason: permit.endReason,
   });
   if (!watch) return null;
-  // The visible lines count down every half minute, so they are silent; a
-  // hidden status changes only when the phase or a 30, 15 or 5 minute mark
-  // does, and that is what a screen reader hears.
+  // The end-of-play clock above shows the time left, so only a warning
+  // shows here. The visible lines count down every half minute, so they
+  // are silent; a hidden status changes only when the phase or a 30, 15 or
+  // 5 minute mark does, and that is what a screen reader hears.
   return (
     <>
-      {watch.level === "ok" ? (
-        <p className="text-small text-text-muted">{watch.message}</p>
-      ) : (
+      {watch.level !== "ok" && (
         <p
           className={`rounded-lg border p-3 font-bold ${
             watch.level === "over" ? "border-danger" : "border-warning"
@@ -65,7 +68,7 @@ export function PermitWatchNote({
         </p>
       )}
       <p role="status" className="sr-only">
-        {permitAnnouncement(watch)}
+        {permitAnnouncement(watch, permit.endReason)}
       </p>
     </>
   );

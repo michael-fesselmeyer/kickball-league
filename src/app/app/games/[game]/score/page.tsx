@@ -13,6 +13,9 @@ import {
 import { Pickups } from "@/components/pickups";
 import { pickupsFor } from "@/db/queries/subs";
 import { hasReferee, liveGame } from "@/db/queries/live-scores";
+import { permitInfoFor } from "@/db/queries/permit-watch";
+import { GameClock } from "@/components/game-clock";
+import { kickoff } from "@/domain/schedule/format";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
 import { lineFinal } from "@/domain/scores/live";
@@ -95,13 +98,14 @@ async function Score({
   const found = gameId ? await gameForScoring(db, gameId) : null;
   if (!found) notFound();
   const now = new Date();
-  const [{ state, history }, refereed, league, discipline, live] =
+  const [{ state, history }, refereed, league, discipline, live, clocks] =
     await Promise.all([
       currentScoreState(db, found, now),
       hasReferee(db, found.id),
       activeLeague(),
       featureEnabled("discipline"),
       liveGame(db, found.id),
+      permitInfoFor(db, [found.id]),
     ]);
   // An undisputed score past its 24 hours is settled on the way in. Settling
   // writes only a final score, so the game is read again only then; a game
@@ -128,6 +132,23 @@ async function Score({
   const latest = history.reports[0];
   const tz = league?.timeZone ?? "America/New_York";
   const when = whenIn(tz);
+  // The countdown to first pitch and to the end of play (#467), until a
+  // score is in.
+  const info = clocks.get(g.id);
+  const clock =
+    info &&
+    !info.dayOff &&
+    !latest &&
+    (g.status === "scheduled" || g.status === "in_progress")
+      ? {
+          firstPitchAt: info.clockStartsAt.toISOString(),
+          startedAt: info.startedAt?.toISOString() ?? null,
+          endsAt: info.end.endsAt.toISOString(),
+          endReason: info.end.reason,
+          endLabel: kickoff(info.end.endsAt, tz),
+          sunsetLabel: info.sunsetAt ? kickoff(info.sunsetAt, tz) : null,
+        }
+      : null;
   const myTeam = [g.teamAId, g.teamBId].find((t) =>
     subject.roster.some(
       (m) =>
@@ -255,6 +276,7 @@ async function Score({
         )}
       </header>
       <GameOutbox gameId={g.id} />
+      {clock && <GameClock clock={clock} />}
       {error && (
         <p role="alert" className="rounded-lg border border-danger p-3">
           {error}

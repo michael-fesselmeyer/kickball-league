@@ -89,7 +89,7 @@ export function CommandBoard({
           className="flex flex-col gap-1 rounded-xl border border-danger bg-surface p-3"
         >
           <h2 id="past-permit" className="text-h3">
-            Still playing after the permit ended
+            Still playing after time ran out
           </h2>
           <ul>
             {state.games

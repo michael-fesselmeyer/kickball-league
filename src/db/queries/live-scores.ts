@@ -12,6 +12,7 @@ import {
   type Side,
 } from "@/domain/scores/live";
 import type {
+  CallReason,
   ReporterRole,
   ScoreErrors,
   ScoreState,
@@ -296,6 +297,8 @@ export async function reportFromInnings(
     role: ReporterRole;
     teamSeasonId: TeamSeasonId | null;
     ending: "normal" | "called";
+    /** Why a called game ended: daylight or field time (#467); null for neither. */
+    callReason?: CallReason | null;
     clientId: string;
     now: Date;
   },
@@ -308,7 +311,11 @@ export async function reportFromInnings(
   if (input.ending === "called") {
     const called = calledScore(live.halves, live.kicksFirst);
     if (!called) return err("too_few_innings");
-    score = { outcome: "called" as const, ...called };
+    score = {
+      outcome: "called" as const,
+      ...called,
+      callReason: input.callReason ?? null,
+    };
   } else {
     const { totalA, totalB } = lineScore(live.halves, live.kicksFirst);
     score = {

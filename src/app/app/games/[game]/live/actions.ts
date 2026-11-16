@@ -10,6 +10,7 @@ import {
   undoLastHalf,
 } from "@/db/queries/live-scores";
 import { ejectPlayer } from "@/db/queries/discipline";
+import { recordStart, setHeldUpBy, undoStart } from "@/db/queries/game-start";
 import { gameForScoring } from "@/db/queries/scores";
 import { ejectionDetails } from "@/domain/discipline/discipline";
 import { requireFeature } from "@/lib/platform/site";
@@ -17,7 +18,8 @@ import { can } from "@/domain/authz/permissions";
 import { isOneOf } from "@/domain/guards";
 import { type GameId, parseId, type UserId } from "@/domain/ids";
 import { HALVES } from "@/domain/scores/live";
-import { PLAYOFF_TIE, reportingTeam } from "@/domain/scores/scores";
+import { CALL_REASONS, PLAYOFF_TIE, reportingTeam } from "@/domain/scores/scores";
+import { HELD_UP_BY } from "@/domain/gameday/daylight";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";
 import { refreshGamePage, refreshSeasonPages } from "@/lib/public-cache";
@@ -119,6 +121,8 @@ export async function endGameAction(
   const ending = form.get("ending");
   if (ending !== "normal" && ending !== "called")
     redirect(`${page}?error=invalid`);
+  const reason = form.get("callReason");
+  const callReason = isOneOf(CALL_REASONS, reason) ? reason : null;
   const role = can(subject, "score.override")
     ? "admin"
     : subject.refereeGameIds.includes(g.id)
@@ -131,6 +135,7 @@ export async function endGameAction(
       role,
       teamSeasonId: reportingTeam(role, subject.roster, [g.teamAId, g.teamBId]),
       ending,
+      callReason: ending === "called" ? callReason : null,
       clientId: clientId.slice(0, 64),
       now: new Date(),
     }),
@@ -179,4 +184,44 @@ export async function ejectAction(
   });
   if (!result.ok) redirect(`${page}?error=${result.error}#eject`);
   redirect(`${page}?notice=ejected#eject`);
+}
+
+/** First pitch, with one tap: the clock counts down to the end of play from here (#467). */
+export async function startAction(rawGameId: string): Promise<void> {
+  const { page, subject, g } = await context(rawGameId);
+  const result = await txDb.transaction((tx) =>
+    recordStart(tx, { gameId: g.id, userId: subject.userId, now: new Date() }),
+  );
+  if (!result.ok) redirect(`${page}?error=start_${result.error}`);
+  redirect(page);
+}
+
+/** Takes back a first pitch tapped by mistake. */
+export async function undoStartAction(rawGameId: string): Promise<void> {
+  const { page, g } = await context(rawGameId);
+  const result = await txDb.transaction((tx) =>
+    undoStart(tx, { gameId: g.id, now: new Date() }),
+  );
+  if (!result.ok) redirect(`${page}?error=start_${result.error}`);
+  redirect(page);
+}
+
+/** Who held up a late start, for the punctuality log. */
+export async function heldUpAction(
+  rawGameId: string,
+  form: FormData,
+): Promise<void> {
+  const { page, subject, g } = await context(rawGameId);
+  const heldUpBy = form.get("heldUpBy");
+  if (!isOneOf(HELD_UP_BY, heldUpBy)) redirect(`${page}?error=invalid`);
+  const result = await txDb.transaction((tx) =>
+    setHeldUpBy(tx, {
+      gameId: g.id,
+      heldUpBy,
+      userId: subject.userId,
+      now: new Date(),
+    }),
+  );
+  if (!result.ok) redirect(`${page}?error=start_${result.error}`);
+  redirect(page);
 }

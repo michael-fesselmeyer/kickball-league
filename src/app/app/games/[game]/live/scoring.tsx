@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { LineScore } from "@/components/line-score";
 import { OutboxStatus, useOutbox } from "@/components/offline-outbox";
 import { isOneOf } from "@/domain/guards";
@@ -15,7 +15,11 @@ import {
   sideFor,
 } from "@/domain/scores/live";
 import { withWaiting } from "@/domain/scores/offline";
-import { MIN_CALLED_INNINGS } from "@/domain/scores/scores";
+import {
+  CALL_REASONS,
+  type CallReason,
+  MIN_CALLED_INNINGS,
+} from "@/domain/scores/scores";
 import {
   addRun,
   runsSoFar,
@@ -53,6 +57,20 @@ function UndoButton({
   );
 }
 
+/** The phone's clock to the minute; 0 on the server and first paint. */
+function subscribeMinute(tick: () => void) {
+  const timer = setInterval(tick, 30_000);
+  return () => clearInterval(timer);
+}
+const minuteNow = () => Math.floor(Date.now() / 30_000) * 30_000;
+const noClock = () => 0;
+
+const CALL_REASON_LABEL: Record<CallReason | "", string> = {
+  daylight: "Daylight: too dark to play",
+  field_time: "Field time: the field must be clear",
+  "": "Something else, such as rain or an injury",
+};
+
 /** A whole number from a form field, or NaN. */
 const integer = (value: unknown) =>
   typeof value === "string" && /^\d{1,3}$/.test(value.trim())
@@ -78,6 +96,7 @@ export function Scoring({
   endKey,
   permit,
   clock,
+  endOfPlay,
 }: {
   gameId: string;
   userId: string;
@@ -93,7 +112,20 @@ export function Scoring({
   permit: PermitProps | null;
   /** The game's start and its innings and time limit, when it has a start. */
   clock: ClockProps | null;
+  /** When play must end and why (#467), to say why a called game ended. */
+  endOfPlay: { endsAt: string; endReason: CallReason } | null;
 }) {
+  const stamp = useSyncExternalStore(subscribeMinute, minuteNow, noClock);
+  const timeUp =
+    endOfPlay !== null &&
+    stamp !== 0 &&
+    stamp >= new Date(endOfPlay.endsAt).getTime();
+  // Until the ref picks, a game called once time is up was called for the
+  // end of play's reason; before that, for something else.
+  const [pickedReason, setPickedReason] = useState<CallReason | "" | null>(
+    null,
+  );
+  const callReason = pickedReason ?? (timeUp && endOfPlay ? endOfPlay.endReason : "");
   const outbox = useOutbox(gameId);
   const [stored, setTally] = useTally(gameId);
   const [notice, setNotice] = useState<string | null>(null);
@@ -172,6 +204,10 @@ export function Scoring({
         enteredAt: new Date().toISOString(),
         version,
         ending,
+        callReason:
+          ending === "called" && isOneOf(CALL_REASONS, callReason)
+            ? callReason
+            : null,
         summary: `Game over, ${result}`,
       });
     }
@@ -360,6 +396,29 @@ export function Scoring({
             screen as usual.
           </p>
           <form action={end} className="flex flex-col gap-2">
+            {called && (
+              <fieldset className="flex flex-col gap-1 rounded-lg border border-border p-3">
+                <legend className="px-1 text-small font-bold">
+                  If you call it, why?
+                </legend>
+                {(["daylight", "field_time", ""] as const).map((value) => (
+                  <label
+                    key={value || "other"}
+                    className="flex min-h-11 items-center gap-2"
+                  >
+                    <input
+                      type="radio"
+                      name="callReason"
+                      value={value}
+                      checked={callReason === value}
+                      onChange={() => setPickedReason(value)}
+                      className="size-5"
+                    />
+                    {CALL_REASON_LABEL[value]}
+                  </label>
+                ))}
+              </fieldset>
+            )}
             <SubmitButton
               name="ending"
               value="normal"
