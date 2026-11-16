@@ -1,6 +1,6 @@
 /**
  * Registers the apps' URL scheme (MOBILE_APP_ID) in the native projects so
- * the system browser returns to the app after Google sign-in (ADR 0075):
+ * the system browser returns to the app after Google sign-in (ADR 0077):
  * an intent filter in android/app/src/main/AndroidManifest.xml and a URL
  * type in ios/App/App/Info.plist. Skips a project that hasn't been
  * generated yet; safe to run again. PlistBuddy ships with macOS.

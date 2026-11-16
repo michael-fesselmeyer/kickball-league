@@ -33,7 +33,7 @@ async function FormForRequest({
   searchParams,
 }: Pick<PageProps<"/sign-in">, "searchParams">) {
   const { next, google, app } = await searchParams;
-  // `app` comes back from the apps' browser sheet (ADR 0075).
+  // `app` comes back from the apps' browser sheet (ADR 0077).
   const problem = google ?? app;
   return (
     <SignInOptions

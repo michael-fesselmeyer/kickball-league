@@ -1,5 +1,5 @@
 /**
- * Google sign-in inside the iOS and Android apps (ADR 0075), the app's
+ * Google sign-in inside the iOS and Android apps (ADR 0077), the app's
  * side. Google refuses sign-in in an app's web view, so this opens the
  * system browser sheet instead: ASWebAuthenticationSession on iOS (the
  * shell's WebAuthSession plugin, mobile/native/ios), or a Custom Tab on

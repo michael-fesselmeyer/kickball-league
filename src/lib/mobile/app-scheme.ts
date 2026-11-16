@@ -1,6 +1,6 @@
 /**
  * The iOS and Android apps' own URL scheme, which the system browser sheet
- * returns to after Google sign-in (ADR 0075). It is the app id
+ * returns to after Google sign-in (ADR 0077). It is the app id
  * (MOBILE_APP_ID, a reverse domain such as `com.example.kickball`), as both
  * platforms recommend, so it can't collide with another app's scheme by
  * accident. The site and the native projects read the same setting.

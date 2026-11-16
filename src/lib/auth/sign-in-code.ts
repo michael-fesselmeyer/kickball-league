@@ -6,7 +6,7 @@ import {
 } from "node:crypto";
 
 /**
- * The six-digit code that comes with every sign-in link (ADR 0075). It
+ * The six-digit code that comes with every sign-in link (ADR 0077). It
  * signs in the same as the link, on whatever device the person typed their
  * email into: the iOS and Android apps, whose web view a link can't reach,
  * or a laptop when the email is read on a phone. Link and code are one

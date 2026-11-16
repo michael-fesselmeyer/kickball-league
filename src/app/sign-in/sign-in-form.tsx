@@ -21,7 +21,7 @@ export function SignInForm({ next }: { next: string }) {
   async function offerPasskeys() {
     if (autofillStarted.current) return;
     autofillStarted.current = true;
-    // An app's web view has no passkeys for this site (ADR 0075).
+    // An app's web view has no passkeys for this site (ADR 0077).
     if ("Capacitor" in window) return;
     const supported =
       typeof PublicKeyCredential !== "undefined" &&

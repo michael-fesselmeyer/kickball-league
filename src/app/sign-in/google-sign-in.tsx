@@ -8,7 +8,7 @@ import { SubmitButton } from "@/components/submit-button";
  * Server Action, so it works before JavaScript loads. Inside the iOS and
  * Android apps, where Google refuses an embedded web view, it opens the
  * system browser sheet instead and brings the sign-in back to the app
- * (ADR 0075); that code loads only on the tap.
+ * (ADR 0077); that code loads only on the tap.
  */
 export function GoogleSignIn({
   action,

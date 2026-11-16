@@ -32,7 +32,7 @@ export const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   /**
    * The iOS and Android apps' id, which is also their URL scheme for
-   * returning from the browser sheet after Google sign-in (ADR 0075).
+   * returning from the browser sheet after Google sign-in (ADR 0077).
    * Defaults to a placeholder in a reserved domain.
    */
   MOBILE_APP_ID: z
