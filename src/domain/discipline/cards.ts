@@ -72,15 +72,19 @@ export type CardBlock = "not_started" | "called_off" | "too_late";
 /**
  * Whether a card can be given for `game` at `now`: once play started and
  * not called off, through the game and a day or so after it for a late
- * entry. A game that ended still takes a card.
+ * entry. A game that ended still takes a card. An admin may also give one
+ * for a game further back.
  */
 export function canGiveCard(
   game: GameFacts,
   now: Date,
+  { isAdmin = false }: { isAdmin?: boolean } = {},
 ): Result<void, CardBlock> {
   const open = canFileFor(game, now);
   if (!open.ok) return open;
+  // An admin can still record one for an older game, say after a report.
   if (
+    !isAdmin &&
     game.startsAt !== null &&
     now.getTime() - game.startsAt.getTime() > CARD_WINDOW_MS
   )

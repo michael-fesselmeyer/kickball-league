@@ -84,6 +84,11 @@ export function CardsSection({
           ))}
         </ul>
       )}
+      {!canGive && (
+        <p className="text-small text-text-muted">
+          A ref can give cards from kickoff until two days after the game.
+        </p>
+      )}
       {canGive && (
         <form
           action={giveCardAction.bind(null, gameId)}

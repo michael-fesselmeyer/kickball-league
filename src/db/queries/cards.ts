@@ -33,12 +33,21 @@ export type GiveError = CardBlock | "not_found" | "not_in_game";
 /** Gives a player a card in a game. The player must be on one of its rosters. */
 export async function giveCard(
   db: Db,
-  input: { gameId: GameId; givenBy: UserId; card: NewCard; now: Date },
+  input: {
+    gameId: GameId;
+    givenBy: UserId;
+    card: NewCard;
+    now: Date;
+    /** A real admin may give a card for a game past the usual window. */
+    isAdmin?: boolean;
+  },
 ): Promise<Result<GameCardId, GiveError>> {
   return db.transaction(async (tx) => {
     const g = await gameForScoring(tx, input.gameId);
     if (!g) return err("not_found");
-    const open = canGiveCard(g, input.now);
+    const open = canGiveCard(g, input.now, {
+      isAdmin: input.isAdmin ?? false,
+    });
     if (!open.ok) return open;
     const onTeam = (await gamePeople(tx, g)).some(
       (p) =>

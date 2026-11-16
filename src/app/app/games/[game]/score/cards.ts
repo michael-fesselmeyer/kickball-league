@@ -44,6 +44,7 @@ export async function giveCardAction(
     givenBy: subject.userId,
     card: parsed.value,
     now: new Date(),
+    isAdmin: hasAdminRole(subject),
   });
   if (!given.ok) redirect(`${page}?error=${given.error}#cards`);
   redirect(`${page}?carded=1#cards`);

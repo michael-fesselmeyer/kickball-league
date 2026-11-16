@@ -62,30 +62,38 @@ test.describe
     await ref.context().close();
   });
 
-  test("the ref gives Dana a yellow card, and the admin sees it without a suspension", async ({
+  test("the ref's card window has closed for an old game; an admin gives Dana a yellow card, and sees it without a suspension", async ({
     browser,
   }) => {
+    // The seeded game was played weeks ago, past the two days a ref has.
     const ref = await pageAs(browser, "Ref");
     await ref
       .getByRole("listitem")
       .filter({ hasText: GAME })
       .getByRole("link", { name: "Score", exact: true })
       .click();
-    const cards = ref.getByRole("region", { name: "Cards" });
-    await expect(cards).toBeVisible();
+    const refCards = ref.getByRole("region", { name: "Cards" });
+    await expect(refCards).toContainText("until two days after the game");
+    await expect(refCards.getByLabel("Player")).toHaveCount(0);
     await expectNoAxeViolations(ref);
+    const gameUrl = ref.url();
+    await ref.context().close();
+
+    const admin = await pageAs(browser, "Admin");
+    await admin.goto(gameUrl);
+    const cards = admin.getByRole("region", { name: "Cards" });
+    await expect(cards).toBeVisible();
+    await expectNoAxeViolations(admin);
     await cards.getByLabel("Player").selectOption({ label: SHORT });
     await cards.getByLabel("Yellow card (a warning)").check();
     await cards.getByLabel("Short note (optional)").fill("Arguing the call");
     await cards.getByRole("button", { name: "Give the card" }).click();
-    await expect(ref.getByRole("status")).toContainText("Card given.");
-    await expect(ref.getByRole("region", { name: "Cards" })).toContainText(
+    await expect(admin.getByRole("status")).toContainText("Card given.");
+    await expect(admin.getByRole("region", { name: "Cards" })).toContainText(
       "Yellow card",
     );
-    await expectNoAxeViolations(ref);
-    await ref.context().close();
+    await expectNoAxeViolations(admin);
 
-    const admin = await pageAs(browser, "Admin");
     await admin.goto("/app/admin/incidents/cards");
     await expect(
       admin.getByRole("heading", { name: "Cards", exact: true }),

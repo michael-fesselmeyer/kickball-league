@@ -187,6 +187,24 @@ describe("giving cards", () => {
       expect(await w.card(p.userId, w.aces.id, "yellow", hours(60))).toEqual(
         err("too_late"),
       );
+      const parsed = parseCardForm(
+        {
+          color: "yellow",
+          note: "",
+          person: cardChoice(w.aces.id, p.userId),
+        },
+        new Set([cardChoice(w.aces.id, p.userId)]),
+      );
+      if (!parsed.ok) throw new Error("bad card");
+      given(
+        await giveCard(db, {
+          gameId: w.played.gameId,
+          givenBy: w.admin.userId,
+          card: parsed.value,
+          now: hours(60),
+          isAdmin: true,
+        }),
+      );
       await db
         .update(game)
         .set({ status: "cancelled" })

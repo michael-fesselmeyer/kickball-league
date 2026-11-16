@@ -234,7 +234,8 @@ async function Score({
   const [cardList, cardPeople] = showsCards
     ? await Promise.all([gameCards(db, g.id), gamePeople(db, g)])
     : [[], []];
-  const mayGiveCard = showsCards && canGiveCard(g, now).ok;
+  const mayGiveCard =
+    showsCards && canGiveCard(g, now, { isAdmin: hasAdminRole(subject) }).ok;
   // From game day, who played (ADR 0063).
   const takesAttendance =
     can(subject, "attendance.take", ctx) &&
