@@ -20,6 +20,8 @@ import {
 } from "@/db/queries/registration";
 import { pickupsFor } from "@/db/queries/subs";
 import { creditBalance } from "@/db/queries/credit";
+import { feeSettingsOf } from "@/db/queries/processing-fees";
+import { DEFAULT_FEE_SETTINGS } from "@/domain/money/processing-fee";
 import { describeCard, teamGuarantee } from "@/db/queries/guarantee";
 import { teamBalances } from "@/db/queries/team-balance";
 import { formatMoment } from "@/domain/money/credit";
@@ -225,7 +227,7 @@ async function Team({
     link,
     challenge,
     ownRatings,
-    [balance, guarantee, credit],
+    [balance, guarantee, credit, fees],
     keepOff,
     myOffer,
     shirtInfo,
@@ -248,8 +250,9 @@ async function Team({
           teamBalances(db, [teamSeasonId]).then((m) => m.get(teamSeasonId)),
           teamGuarantee(db, teamSeasonId),
           creditBalance(db, subject.userId, league?.id ?? null),
+          league ? feeSettingsOf(db, league.id) : DEFAULT_FEE_SETTINGS,
         ])
-      : ([undefined, null, 0] as const),
+      : ([undefined, null, 0, DEFAULT_FEE_SETTINGS] as const),
     keepsOff ? teamKeepOffList(db, teamSeasonId) : [],
     offerFor(db, teamSeasonId, subject.userId),
     teamShirtInfo(db, teamSeasonId),
@@ -504,6 +507,7 @@ async function Team({
           }
           guarantee={guaranteeView}
           creditCents={credit}
+          fees={fees}
           paymentsOn={stripeClient() !== null}
           notice={
             typeof query.guarantee === "string" ? query.guarantee : undefined

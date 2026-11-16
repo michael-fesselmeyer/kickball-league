@@ -5,6 +5,11 @@ import { Suspense } from "react";
 import { HelpLink } from "@/components/help-link";
 import { db } from "@/db/client";
 import { creditBalance } from "@/db/queries/credit";
+import { processingPaymentFor } from "@/db/queries/payments";
+import { feeSettingsOf } from "@/db/queries/processing-fees";
+import { creditToApply } from "@/domain/money/credit";
+import { methodQuotes } from "@/domain/money/processing-fee";
+import { PayMethods } from "@/components/pay-methods";
 import { myQuiz } from "@/db/queries/free-agents";
 import { friendsSentence } from "@/domain/matcher/friend-code";
 import {
@@ -41,6 +46,8 @@ const PAYMENT_MESSAGES: Record<string, string> = {
   used_up: "That promo code has been used as many times as it allows.",
   too_many:
     "That's a lot of payment tries in an hour. Wait a bit, then try again.",
+  processing:
+    "Your bank transfer is on its way. It takes a few business days; you're marked paid when it arrives.",
 };
 
 export default function SeasonPage(props: PageProps<"/app/seasons/[season]">) {
@@ -131,12 +138,22 @@ async function Season({
   }
 
   const inPool = mine.kind === "free_agent" && !mine.team;
-  const [signed, quiz, credit] = await Promise.all([
+  const [signed, quiz, credit, fees, onTheWay] = await Promise.all([
     hasSignedSeasonWaiver(db, subject.userId, season.id),
     inPool ? myQuiz(db, season.id, subject.userId) : null,
     creditBalance(db, subject.userId, await activeLeagueId()),
+    feeSettingsOf(db, league.id),
+    processingPaymentFor(db, mine.id),
   ]);
   const owed = amountOwed(season, mine, now);
+  // The total for each way to pay, with credit used as the form starts
+  // (ADR 0082). Empty while the league's processing fees are off.
+  const quotes = owed.ok
+    ? methodQuotes(owed.cents - creditToApply(owed.cents, credit), fees, {
+        bank: true,
+        offApp: true,
+      })
+    : [];
   const deadline = season.paymentDeadlineAt
     ? new Intl.DateTimeFormat("en-US", {
         dateStyle: "long",
@@ -250,6 +267,11 @@ async function Season({
             <p className="text-text-muted">
               Your captain is paying the team fee.
             </p>
+          ) : onTheWay ? (
+            <p className="text-text-muted">
+              Your bank transfer is on its way. It takes a few business days;
+              you&apos;re marked paid when it arrives.
+            </p>
           ) : !paymentsOn ? (
             <p className="text-text-muted">
               {demoStatus(process.env).on
@@ -278,12 +300,18 @@ async function Season({
                   Use my {formatCents(credit)} league credit
                 </label>
               )}
+              <PayMethods
+                quotes={quotes}
+                freeMethodsNote={fees.freeMethodsNote}
+                adjusted
+              />
               <SubmitButton className="btn self-start btn-primary">
-                Pay {owed.ok && credit === 0 ? formatCents(owed.cents) : ""}{" "}
-                securely with Stripe
+                {quotes.length > 0
+                  ? "Pay online with Stripe"
+                  : `Pay ${owed.ok && credit === 0 ? formatCents(owed.cents) : ""} securely with Stripe`}
               </SubmitButton>
               <span className="text-small text-text-muted">
-                Card, Apple Pay or Google Pay.
+                {quotes.length === 0 && "Card, Apple Pay or Google Pay."}
                 {deadline && ` Pay by ${deadline}.`}
               </span>
             </form>
