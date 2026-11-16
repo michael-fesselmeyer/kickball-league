@@ -1,4 +1,11 @@
 import type { TeamBalance } from "@/db/queries/team-balance";
+import { PayMethods } from "@/components/pay-methods";
+import { creditToApply } from "@/domain/money/credit";
+import {
+  type FeeSettings,
+  feeFor,
+  methodQuotes,
+} from "@/domain/money/processing-fee";
 import { formatCents } from "@/domain/registration/pricing";
 import {
   payBalanceAction,
@@ -36,6 +43,10 @@ const NOTICES: Record<string, { text: string; good: boolean }> = {
     text: "Stripe couldn't start that. Try again in a minute.",
     good: false,
   },
+  processing: {
+    text: "Your bank transfer is on its way. It takes a few business days; the balance updates when it arrives.",
+    good: true,
+  },
 };
 
 export type GuaranteeView = {
@@ -56,6 +67,7 @@ export function TeamMoney({
   creditCents,
   paymentsOn,
   notice,
+  fees,
 }: {
   slug: string;
   balance: TeamBalance;
@@ -64,6 +76,8 @@ export function TeamMoney({
   creditCents: number;
   paymentsOn: boolean;
   notice: string | undefined;
+  /** The league's processing-fee setting (ADR 0082). */
+  fees: FeeSettings;
 }) {
   const message = notice ? NOTICES[notice] : undefined;
   const paidPct = Math.min(
@@ -71,6 +85,13 @@ export function TeamMoney({
     Math.round((balance.paidCents * 100) / Math.max(1, balance.feeCents)),
   );
   const left = balance.balanceCents;
+  // Totals for each way to pay what's left, credit used as the form starts.
+  const quotes = methodQuotes(left - creditToApply(left, creditCents), fees, {
+    bank: true,
+    offApp: false,
+  });
+  // The guarantee's deadline charge is a card payment at the card price.
+  const guaranteeFee = feeFor("card", left, fees);
   return (
     <section aria-labelledby="team-fee" className="flex flex-col gap-3">
       <h2 id="team-fee" className="text-h2">
@@ -118,8 +139,15 @@ export function TeamMoney({
               Use my {formatCents(creditCents)} league credit
             </label>
           )}
+          <PayMethods
+            quotes={quotes}
+            freeMethodsNote={fees.freeMethodsNote}
+            adjusted={creditCents > 0}
+          />
           <SubmitButton className="btn self-start btn-secondary">
-            Pay the remaining {formatCents(left)}
+            {quotes.length > 0
+              ? "Pay the rest online with Stripe"
+              : `Pay the remaining ${formatCents(left)}`}
           </SubmitButton>
         </form>
       )}
@@ -135,6 +163,8 @@ export function TeamMoney({
                 ? `It will be charged for whatever is still unpaid on ${guarantee.chargeOn}.`
                 : "We'll email you 72 hours before the deadline, then charge it for whatever is still unpaid."}{" "}
               Anything your teammates pay first comes off the charge.
+              {guaranteeFee > 0 &&
+                ` The charge is at the card price: today that's ${formatCents(left + guaranteeFee)}, including a ${formatCents(guaranteeFee)} card processing fee.`}
             </p>
           )}
           {guarantee.charge === "pending" && (
@@ -166,7 +196,8 @@ export function TeamMoney({
             <p>
               <strong>Stop chasing payments.</strong> Save a card to guarantee
               the balance. Nothing is charged now. 72 hours before the deadline
-              we email you what&apos;s left, then charge only that.
+              we email you what&apos;s left, then charge only that
+              {guaranteeFee > 0 ? ", plus the card processing fee" : ""}.
             </p>
             <form action={startGuaranteeSetup.bind(null, slug)}>
               <SubmitButton className="btn btn-secondary">
