@@ -30,18 +30,28 @@ export function clockAnnouncement(clock: Clock): string {
   return mark === null ? "" : `${orLess(mark)} on the game clock.`;
 }
 
-/** The sentence for the field's permit; empty while there is nothing to say. */
-export function permitAnnouncement(watch: Watch): string {
-  if (watch.level === "over") return "The permit has ended.";
+/**
+ * The sentence for the end of play; empty while there is nothing to say.
+ * It names the permit, or the daylight when sunset ends play first (#467).
+ */
+export function permitAnnouncement(
+  watch: Watch,
+  endReason: "field_time" | "daylight" = "field_time",
+): string {
+  const end = endReason === "daylight" ? "the daylight" : "the permit";
+  if (watch.level === "over")
+    return endReason === "daylight"
+      ? "The daylight has run out."
+      : "The permit has ended.";
   const mark = markReached(watch.minutesLeft);
   if (watch.level === "watch") {
     const why =
       watch.reason === "time_limit"
-        ? "the time limit would run past the permit"
-        : "at this pace the game would run past the permit";
+        ? `the time limit would run past ${end}`
+        : `at this pace the game would run past ${end}`;
     return mark === null
       ? `Heads up: ${why}.`
-      : `Heads up: ${why}. ${orLess(mark)} on the permit.`;
+      : `Heads up: ${why}. ${orLess(mark)} on ${end}.`;
   }
-  return mark === null ? "" : `${orLess(mark)} in the permit.`;
+  return mark === null ? "" : `${orLess(mark)} in ${end}.`;
 }

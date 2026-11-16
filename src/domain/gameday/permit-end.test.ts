@@ -155,3 +155,39 @@ describe("permitWatch", () => {
     expect(watch?.message).toBe("1 minute left in the permit.");
   });
 });
+
+describe("permitWatch when daylight ends play first (#467)", () => {
+  const dark = { ...base, endReason: "daylight" as const };
+
+  it("counts daylight left to play", () => {
+    expect(
+      permitWatch({ ...dark, timeLimitMinutes: null, innings: null })?.message,
+    ).toBe("180 minutes of daylight left to play.");
+  });
+
+  it("warns that the time limit runs past dark", () => {
+    const watch = permitWatch({
+      ...dark,
+      permitEndsAt: at("23:30"),
+      timeLimitMinutes: 120,
+    });
+    expect(watch?.level).toBe("watch");
+    expect(watch?.message).toMatch(
+      /^The time limit would run past dark: play must end in 30 minutes\./,
+    );
+  });
+
+  it("says play had to end before dark once it is over", () => {
+    const watch = permitWatch({ ...dark, now: at("02:10", "2026-11-18") });
+    expect(watch?.level).toBe("over");
+    expect(watch?.message).toMatch(
+      /^Play had to end 10 minutes ago to finish before dark\./,
+    );
+  });
+
+  it("keeps the permit wording when no reason is given", () => {
+    expect(
+      permitWatch({ ...base, timeLimitMinutes: null, innings: null })?.message,
+    ).toBe("180 minutes left in the permit.");
+  });
+});
