@@ -15,6 +15,8 @@ import { type GameId, parseId } from "@/domain/ids";
 import { fullWhen } from "@/domain/schedule/format";
 import { localDay } from "@/domain/schedule/public-game";
 import { requirePermission } from "@/lib/auth/permission";
+import { HandoversCard } from "@/components/handovers-card";
+import { loadHandovers } from "@/lib/gameday/handovers";
 import { leadsSetupOn } from "@/lib/gameday/setup-lead";
 import { FieldCheckForm, gameDayError } from "@/components/field-check-form";
 import { PageLoading } from "@/components/page-loading";
@@ -74,7 +76,8 @@ async function Checklist({
   // that the page exists.
   if (mine.length === 0 && !mayClose) notFound();
 
-  const today = localDay(new Date(), g.timeZone);
+  const now = new Date();
+  const today = localDay(now, g.timeZone);
   const header = (
     <header className="flex flex-col gap-1">
       <p className="text-text-muted">
@@ -104,6 +107,29 @@ async function Checklist({
     ),
     g.lastOnField ? fieldChecksOn(db, g.seasonId, g.date) : null,
   ]);
+  // The set-up lead and admins see who uses the field next (issue #408).
+  // Never the groups' contacts: those stay on the admin game-day screen.
+  const handovers =
+    setupLead || can(subject, "season.manage", { leagueId: g.leagueId })
+      ? await loadHandovers({
+          leagueId: g.leagueId,
+          date: g.date,
+          timeZone: g.timeZone,
+          now,
+          rows: [
+            {
+              id: g.id,
+              fieldId: g.fieldId,
+              fieldName: g.fieldName,
+              venue: null,
+              startsAt: g.startsAt,
+              slotCancelled: false,
+              status: "scheduled",
+            },
+          ],
+          forAdmin: false,
+        })
+      : [];
   const phases = CHECKLIST_PHASES.map((p) => ({
     label: PHASE_LABELS[p],
     items: list.items[p],
@@ -115,6 +141,13 @@ async function Checklist({
   return (
     <>
       {header}
+      {handovers.length > 0 && (
+        <HandoversCard
+          fields={handovers}
+          renderedAt={now.toISOString()}
+          timeZone={g.timeZone}
+        />
+      )}
       {mine.map((t) => (
         <ChecklistTicks
           key={t.id}

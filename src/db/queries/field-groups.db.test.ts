@@ -341,6 +341,7 @@ describe("handoverInputs", () => {
     date = MONDAY,
   ) => ({
     leagueId: w.leagueId,
+    withContact: true,
     fieldIds: [w.fieldId],
     date,
     timeZone: NY,
@@ -356,6 +357,19 @@ describe("handoverInputs", () => {
         start: at(MONDAY, "20:00"),
         end: at(MONDAY, "22:00"),
       });
+    });
+  });
+
+  it("does not read the contact for a screen that isn't admin-only", async () => {
+    await inRolledBackDb(async (db) => {
+      const w = await withGroup(db);
+      const [found] = await handoverInputs(db, {
+        ...input(w),
+        withContact: false,
+      });
+      expect(found?.groups[0]?.name).toBe("Evening Softball");
+      expect(found?.groups[0]?.contact).toBeNull();
+      expect(JSON.stringify(found)).not.toContain("555-0100");
     });
   });
 
