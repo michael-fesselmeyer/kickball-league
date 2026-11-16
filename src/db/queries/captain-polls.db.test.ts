@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import type { NewCaptainPoll } from "@/domain/captain-polls/captain-polls";
-import type { CaptainPollId } from "@/domain/ids";
+import type { CaptainPollId, CaptainPollOptionId } from "@/domain/ids";
 import { auditLog } from "../schema/audit";
 import { captainPollVote } from "../schema/captain-poll";
 import { message } from "../schema/message";
@@ -56,7 +56,7 @@ async function world(db: Db) {
 
 async function optionIds(db: Db, id: CaptainPollId) {
   const found = await adminPoll(db, id, NOW);
-  return found!.options.map((o) => o.id);
+  return found!.options.map((o) => o.id as CaptainPollOptionId);
 }
 
 describe("opening a poll", () => {
