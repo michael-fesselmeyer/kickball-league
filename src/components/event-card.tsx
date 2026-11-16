@@ -113,7 +113,7 @@ export function EventCard({
   event: EventCardData;
   timeZone: string;
   now: Date;
-  /** The page's language (ADR 0065); English unless given. */
+  /** The page's language (ADR 0094); English unless given. */
   locale?: Locale;
   href?: string;
   /** A line about the viewer, such as "You're going". */

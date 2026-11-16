@@ -1,6 +1,6 @@
 /**
  * The words of the emails players, captains and refs get, and of the push
- * notifications made from them (ADR 0065). Part of the English catalog
+ * notifications made from them (ADR 0094). Part of the English catalog
  * (`en.email`). Values the league writes into a message when it is queued,
  * such as a game's teams, day and time, arrive as `{slots}`.
  *
@@ -24,10 +24,10 @@ export const emailEn = {
   topics: {
     rainout: "rain-outs",
     schedule_change: "schedule changes",
-    game_reminder: "league gear",
-    payment: "payment reminders",
+    game_reminder: "game reminders",
+    payment: "payments and registration",
     sub_request: "sub requests",
-    announcement: "announcements",
+    announcement: "league news",
     score: "scores",
     events: "events",
     marketing: "league news and offers",
@@ -38,6 +38,8 @@ export const emailEn = {
     photos: "your photos",
     team_roles: "captain and co-captains",
     game_day_watch: "weather watches",
+    lost_found: "lost and found",
+    rules: "rules and schedule",
   },
   common: {
     seeGame: "See the game",

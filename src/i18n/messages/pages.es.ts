@@ -361,6 +361,8 @@ export const pagesEs: Translation<
     tournament: "Torneo",
     theme_week: "Semana temática",
     party: "Fiesta",
+    pickup: "Partido informal",
+    practice: "Práctica",
   },
   eventCard: {
     calledOff: "Cancelado",

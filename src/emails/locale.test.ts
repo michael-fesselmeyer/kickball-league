@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { Rendered } from "@/db/queries/outbox";
 import type { UserId } from "@/domain/ids";
-import { ENGLISH_ONLY_TEMPLATES, rendererFor } from "./templates";
+import {
+  ENGLISH_ONLY_TEMPLATES,
+  NOT_YET_TRANSLATED,
+  rendererFor,
+} from "./templates";
 
 /**
- * Each email is written in its recipient's language (ADR 0065): the
+ * Each email is written in its recipient's language (ADR 0094): the
  * outbox reads it from their profile as the message is sent, and passes it
  * to the renderer. English is the fallback, and admin-only emails stay in
  * English.
@@ -143,5 +147,21 @@ describe("an email in the recipient's language", () => {
     expect(email.text).toContain(
       "eres agente libre en Fall 2026 y estás libre a esa hora",
     );
+  });
+
+  it("keeps an email not translated yet in English, frame and all", () => {
+    for (const name of NOT_YET_TRANSLATED)
+      expect(ENGLISH_ONLY_TEMPLATES.has(name), name).toBe(false);
+    const render = rendererFor({ siteUrl: "https://league.example.test" });
+    for (const name of NOT_YET_TRANSLATED) {
+      // An empty payload fails its schema, so this only checks the choice of
+      // language never reaches a template that has no Spanish words.
+      const result = render(
+        name,
+        {},
+        { userId, topic: "rainout", locale: "es" },
+      );
+      expect(result.ok, name).toBe(false);
+    }
   });
 });

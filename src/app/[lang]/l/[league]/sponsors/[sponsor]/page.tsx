@@ -27,7 +27,7 @@ type Props = PageProps<"/[lang]/l/[league]/sponsors/[sponsor]">;
 /**
  * The page reads its language from the path outside its <Suspense>
  * boundary, so its heading and loading words are in that language from the
- * first paint (ADR 0065). Every league and language is listed at build, so
+ * first paint (ADR 0094). Every league and language is listed at build, so
  * it is still prerendered; only a navigation into a page the build didn't
  * list waits for it, as on the rules page.
  */

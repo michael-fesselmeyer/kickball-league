@@ -89,7 +89,7 @@ export function ShareButtons({
   /** The whole message, link included. */
   text: string;
   title: string;
-  /** The page's words (ADR 0065); English unless given. */
+  /** The page's words (ADR 0094); English unless given. */
   words?: ShareWords;
 }) {
   // False on the server and during hydration, so the markup matches.

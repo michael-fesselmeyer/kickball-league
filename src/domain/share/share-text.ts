@@ -192,7 +192,7 @@ export function eventShareText({
   invite: { site: string; url: string } | null;
   url: string;
   cancelled: boolean;
-  /** The message's language (ADR 0065); English unless given. */
+  /** The message's language (ADR 0094); English unless given. */
   locale?: Locale;
 }): string {
   const words = messagesFor(locale);

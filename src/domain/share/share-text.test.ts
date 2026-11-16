@@ -268,7 +268,7 @@ describe("gameDayShareText", () => {
   });
 });
 
-describe("in Spanish (ADR 0065)", () => {
+describe("in Spanish (ADR 0094)", () => {
   const url = "https://league.example.test/es/games/g1";
   const timeZone = "America/New_York";
 

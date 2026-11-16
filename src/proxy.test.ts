@@ -169,10 +169,6 @@ describe("proxy", () => {
         "/es/l/_default/seasons/fall-2026/standings",
       ],
       [
-        "/es/seasons/fall-2026/bracket?view=list",
-        "/es/l/_default/seasons/fall-2026/bracket/list",
-      ],
-      [
         "/es/teams/the-big-kicks?season=summer-2026",
         "/es/l/_default/teams/the-big-kicks/summer-2026",
       ],

@@ -39,7 +39,7 @@ export function LiveScore({
   /** ISO times: the game's window, from shortly before it starts. */
   pollFrom: string;
   pollUntil: string;
-  /** The page's words and language (ADR 0065); English unless given. */
+  /** The page's words and language (ADR 0094); English unless given. */
   words?: LiveWords;
   locale?: Locale;
 }) {

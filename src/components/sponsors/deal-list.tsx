@@ -11,7 +11,7 @@ export function DealList({
 }: {
   deals: readonly PublicDeal[];
   headingLevel?: 3 | 4;
-  /** The page's language (ADR 0065); English unless given. */
+  /** The page's language (ADR 0094); English unless given. */
   locale?: Locale;
 }) {
   if (deals.length === 0)

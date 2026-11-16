@@ -1,5 +1,5 @@
 /**
- * The words of the public pages beyond home, FAQ and schedule (ADR 0065),
+ * The words of the public pages beyond home, FAQ and schedule (ADR 0094),
  * spread into the English catalog. Each top-level key is one page or a
  * family of pages.
  */
@@ -318,6 +318,8 @@ export const pagesEn = {
     tournament: "Tournament",
     theme_week: "Theme week",
     party: "Party",
+    pickup: "Pickup game",
+    practice: "Practice",
   },
   eventCard: {
     calledOff: "Called off",

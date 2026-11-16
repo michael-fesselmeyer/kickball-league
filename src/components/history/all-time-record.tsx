@@ -13,7 +13,7 @@ type Props = {
   /** The league whose public pages the links open (ADR 0048). */
   league: LeagueRef;
   team: { id: TeamId; slug: string; name: string };
-  /** The page's language (ADR 0065); English unless given. */
+  /** The page's language (ADR 0094); English unless given. */
   locale?: Locale;
 };
 

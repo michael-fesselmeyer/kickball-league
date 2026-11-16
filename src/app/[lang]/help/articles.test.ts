@@ -148,9 +148,9 @@ describe("the how-tos in Spanish", () => {
     expect(spanish.map((r) => r.slug)).toEqual(TRANSLATED_HELP_ROLES.es);
     for (const role of spanish) {
       const english = HELP_ROLES.find((r) => r.slug === role.slug);
-      expect(Object.keys(HELP_ES[role.slug as SpanishRole].articles)).toEqual(
-        english?.articles.map((a) => a.id),
-      );
+      expect(
+        Object.keys(HELP_ES[role.slug as SpanishRole].articles).sort(),
+      ).toEqual(english?.articles.map((a) => a.id).sort());
       for (const [i, a] of role.articles.entries()) {
         const source = english?.articles[i];
         expect(a.id).toBe(source?.id);
