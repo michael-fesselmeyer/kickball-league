@@ -92,6 +92,12 @@ export const league = pgTable(
       .$type<"owners" | "members" | "public">()
       .notNull()
       .default("owners"),
+    /**
+     * How much of a team's roster must take part before a leadership
+     * check-in can go to a secret ballot, and for the ballot to count, as a
+     * percentage (ADR 0077). Admins decide; 60 by default.
+     */
+    leadershipQuorumPercent: smallint().notNull().default(60),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -111,6 +117,10 @@ export const league = pgTable(
       sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`,
     ),
     check("league_minimum_age", sql`${table.minimumAge} between 18 and 99`),
+    check(
+      "league_leadership_quorum",
+      sql`${table.leadershipQuorumPercent} between 50 and 100`,
+    ),
     uniqueIndex("league_one_default")
       .on(table.isDefault)
       .where(sql`${table.isDefault}`),

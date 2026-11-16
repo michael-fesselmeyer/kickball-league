@@ -179,6 +179,34 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     label: "captaincy offered to them",
   },
   "captain_handoff.created_by": actor("captaincy offers made"),
+  // Leadership check-ins (ADR 0077). Where both accounts took part in the
+  // same step, or stand for the same role, the kept account's row stands.
+  "leadership_check_in.elected_user_id": {
+    kind: "move",
+    label: "leadership check-ins won",
+  },
+  "leadership_check_in.opened_by": actor("leadership check-ins opened"),
+  "leadership_candidate.user_id": {
+    kind: "dedupe",
+    label: "leadership check-in candidacies",
+    by: ["check_in_id", "role"],
+    resolve: "drop",
+    clash: "Both accounts stood for the same role; the kept account's stands",
+  },
+  "leadership_ballot_option.user_id": {
+    kind: "dedupe",
+    label: "leadership ballot choices naming them",
+    by: ["check_in_id"],
+    resolve: "leave",
+    clash: "Both accounts were on the same ballot; both stay as they were",
+  },
+  "leadership_participation.user_id": {
+    kind: "dedupe",
+    label: "leadership check-ins and ballots taken part in",
+    by: ["check_in_id", "part"],
+    resolve: "drop",
+    clash: "Both accounts took part in the same check-in; it counts once",
+  },
   "game_day_status.set_by": actor("game-day statuses set"),
   "game_checklist_tick.ticked_by": actor("game-day checklist items ticked"),
   "move_request.asked_by": actor("park users asked to move"),
