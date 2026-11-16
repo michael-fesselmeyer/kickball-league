@@ -109,17 +109,36 @@ export function embedHeaders({
     );
 }
 
+/** Next's built files: scripts, styles, fonts and images, never a page. */
+export const STATIC_PREFIX = "/_next/static/";
+
+/**
+ * A built file's headers. A policy, framing rule, referrer or permissions
+ * header only ever applies to a document (or a worker, and the service
+ * worker has its own rule in next.config.ts), so on a script they are bytes
+ * every page load pays for nothing: about 750 per file, on every one of a
+ * page's 15 or so scripts. HTTPS and nosniff still apply to every file.
+ */
+export function staticHeaders(): { key: string; value: string }[] {
+  return securityHeaders({ dev: false }).filter(
+    (h) =>
+      h.key === "Strict-Transport-Security" ||
+      h.key === "X-Content-Type-Options",
+  );
+}
+
 /**
  * The header rules for next.config.ts: the first matches every path except
- * the embed routes (a path-to-regexp source with a negative lookahead), so
- * no page ever sends both policies.
+ * the embed routes and the built files (a path-to-regexp source with a
+ * negative lookahead), so no response ever sends two policies.
  */
 export function securityHeaderRules({ dev }: { dev: boolean }) {
   return [
     {
-      source: `/((?!${EMBED_PREFIX.slice(1)}).*)`,
+      source: `/((?!${EMBED_PREFIX.slice(1)}|${STATIC_PREFIX.slice(1)}).*)`,
       headers: securityHeaders({ dev }),
     },
     { source: `${EMBED_PREFIX}:path+`, headers: embedHeaders({ dev }) },
+    { source: `${STATIC_PREFIX}:path+`, headers: staticHeaders() },
   ];
 }
