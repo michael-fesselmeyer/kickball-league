@@ -187,3 +187,141 @@ Roles: **visitor** (signed out), **player** (Pat Player), **captain** (Casey Cap
 | F-19 | Pick'em | player, admin | Pick'em: pick winners for the next game day; leaderboard | Picks saved and locked at kickoff; scored when games go final; admin setting for picking one's own games |
 | F-20 | Capacity planner | owner | Owners' capacity planner for a season | How many teams the season's field time fits; nearby NYC Parks fields suggested |
 | F-21 | Error page | visitor | A page that fails to load | A league error page with a way back, not a blank screen |
+
+## Added for run 2
+
+Features and fixes merged after run 1, and those still waiting in pull requests, as tasks for each role. Phone size (375 × 812) unless the row says desktop. **Status** says whether the row can run on `main` or waits for a pull request; a waiting row runs once its pull request merges.
+
+### Visitor
+
+| ID | Area | Role | Steps | Expected | Status |
+|---|---|---|---|---|---|
+| R2-V1 | Seasons page | visitor | Home, then the Seasons link (header or footer) | Every public season listed with its dates; each opens its schedule and standings | on main |
+| R2-V2 | Help center | visitor | `/help`, type "rain" in the search box; open the captain how-tos | List filters as you type; each role page has numbered how-tos with anchors | on main |
+| R2-V3 | Schedule widget | visitor | `/widget` | The league's next games in a small embeddable page with a link back to the full schedule; no horizontal scroll | on main |
+| R2-V4 | Rules page | visitor | `/rules` | Rules by section with anchors, each division's game settings and a dated "What changed" list | on main |
+| R2-V5 | Park page | visitor | A park page from the footer or `/fields/<park>` | The next permitted days with each field's hours and permit number, "Permitted by NYC Parks" and the house rules | on main |
+| R2-V6 | Contact the league | visitor | `/contact`: pick a category, write a message, give a reply email, send | Thank-you message; the admin sees it in the concerns queue; no earlier submissions shown | on main |
+| R2-V7 | Private events | visitor, new | `/private-events`, then "Request a booking" signed in: organization, date, head count | Booking page is public; the request is saved and listed for the organizer and the admins | on main |
+| R2-V8 | Game-day status | visitor | Public schedule and a game page after an admin marks a game day | A status line per game day; "Starts late" or "Off" on affected games | on main |
+| R2-V9 | Rulings in public | visitor | Public game page of a game an admin forfeited with a reason | Says "Forfeit" or "Ruling"; the reason is not shown | on main |
+| R2-V10 | Clubs run by players | visitor | `/friends` and `/events` | "Run by our players" group first; a featured club card on the events page | on main |
+| R2-V11 | Default league address | visitor | Open `/l/<default league slug>/schedule`-style addresses | Redirects to the plain address | on main |
+| R2-V12 | Security headers | visitor | Response headers of `/` and `/app` | Content security policy, frame, referrer and content-type headers present | on main |
+| R2-V13 | Interest sign-ups | visitor | `/interest`: answer an open interest form without an account | Answer saved; totals toward the target show for admins | waiting for #463 |
+| R2-V14 | Languages | visitor | Switch to Spanish (and the other offered languages) on home, FAQ and schedule | Pages, dates and numbers in that language; English fallback where untranslated | waiting for #447, #448, #526, #533 |
+| R2-V15 | Guest teams | visitor | A tournament's public page: sign up a guest team with no account | Guest team listed under the cap; charity link shown | waiting for #479 |
+| R2-V16 | Searchable rulebook | visitor | `/rules`, search a word from the rulebook | Matching rules with links to their sections | waiting for #490 |
+| R2-V17 | Email code sign-in | visitor | Sign-in: ask for a link, type the 6-digit code instead | Signed in with the code; the link still works | waiting for #530 |
+
+### Player
+
+| ID | Area | Role | Steps | Expected | Status |
+|---|---|---|---|---|---|
+| R2-P1 | Free-agent quiz | player | Season, "Find me a team" quiz | Five one-tap questions (three self-ratings, competitive or fun, nights) and an optional note | on main |
+| R2-P2 | Shirt size at sign-up | new | Register for an open season | Sign-up asks for a shirt size from the season's list and saves it on the profile | on main |
+| R2-P3 | Volunteer shifts | player | `/app/volunteer`: claim a spot, then drop it | Spot count goes down and back up; can't claim a full shift | on main |
+| R2-P4 | Season survey | player | Survey for a finished season | Questions answered once; thank-you message | on main |
+| R2-P5 | Season card | player | Home, "Your season in kickball"; share it | Card with games, runs, superlatives earned and sub games; sharing makes a public card page | on main |
+| R2-P6 | Player stats | player | `/app/stats` | Games played, attendance, wins and runs per season and career, each with how many games it is based on | on main |
+| R2-P7 | Raise a concern | player | Home, "Raise a concern": category and message; then "Your concerns" | Saved and listed with its status; admin notes not shown | on main |
+| R2-P8 | Field check-in | player | On game day, open the game's check-in code from the ref's or captain's phone, tap Check in | "Checked in"; the captain's attendance shows it | on main |
+| R2-P9 | Partiful event | player | An event whose invite is on Partiful | "RSVP on Partiful" button; no in-app RSVP or waitlist | on main |
+| R2-P10 | Short-handed team | player | RSVP "Out" until the team has fewer than 6 of its own players | Team page says it's a forfeit below 6 and that pickups don't count toward it | on main |
+| R2-P11 | Open to a new team | player | Profile, "Looking for a change": choose who sees it, then take it back | Saved quietly; recruiting captains see it; no reason asked | waiting for #537 |
+| R2-P12 | Choose alerts | player | Profile alerts with the lean defaults and the helper | Defaults match the plan; the helper explains each topic | waiting for #536 |
+| R2-P13 | Lost and found | player | Post a found item; another member taps "That's mine" | Both talk in the app; first names only | waiting for #457 |
+| R2-P14 | Code of conduct | new | Sign the season waiver | Code of conduct accepted with the waiver; version stored | waiting for #458 |
+| R2-P15 | Leadership check-in | player | Season-end check-in: volunteer, suggest or "good as is" | Answer private; a ballot opens only at quorum with a candidate | waiting for #538 |
+| R2-P16 | Phone apps | player | iOS and Android shells around the site | Same sign-in, push and pages as the site | waiting for #525 |
+
+### Captain
+
+| ID | Area | Role | Steps | Expected | Status |
+|---|---|---|---|---|---|
+| R2-C1 | Game-day checklist | captain | On game day, the game's checklist: tick before and after items | Ticks saved per team; the other team's ticks separate | on main |
+| R2-C2 | Attendance | captain | Game's attendance: show the code, tick a player in by hand; team attendance page | Ticks audited; games played counted per player; unsigned waiver flagged | on main |
+| R2-C3 | Ruling on our game | captain | Game page after an admin forfeits or rules on it with a reason | The captain sees the ruling and its reason and has a message about it | on main |
+| R2-C4 | Injury report | captain | Game's incident page, injury form: who, body area, care, what happened | "Report sent"; the captain can't open it again | on main |
+| R2-C5 | Permit time on live | captain | Live game screen near the permit's end | Minutes left in the permit, and a warning when the game would run past it | on main |
+| R2-C6 | Captain polls | captain | Answer a captains' poll for the team; change the answer | One vote per team; the last answer counts | waiting for #454 |
+| R2-C7 | Shirt opt-out | captain | Team opts out of league shirts | Team left out of the order; late joiners listed for a reorder | waiting for #475 |
+
+### Ref
+
+| ID | Area | Role | Steps | Expected | Status |
+|---|---|---|---|---|---|
+| R2-R1 | Ref availability | ref | Ref page: tick game times you can work | Saved; times already reffed shown fixed | on main |
+| R2-R2 | Drop a game | ref | "Can't make it?" on a coming game with a reason; another ref opens "Take it" | Game is open; pool refs get one message each; the first to take it is assigned | on main |
+| R2-R3 | Quick live scoring | ref | Live game: "+1 run", "End half", "Undo" | Runs counted on the phone and saved once per half; Undo takes back the last run or reopens the half | on main |
+| R2-R4 | Eject a player | ref | Live game, "Eject a player" after confirming | Ejection report filed; the player leaves the kicking order and shows as ejected | on main |
+| R2-R5 | Permit and layout | ref | Game's permit page on game day | Permit number, hours and the field's layout image or "no layout needed" | on main |
+| R2-R6 | Ref who also plays | ref | A ref playing in the game opens its score screen | Reports for their own team, not as the game's ref | on main |
+| R2-R7 | Cards | ref | Score screen: yellow card, red card, take one back | Card recorded; admin sees it beside incidents | waiting for #478 |
+| R2-R8 | Daylight clock | ref | Live screen near sunset or the permit end | End of play is the earlier of the field-clear time and sunset less the margin | waiting for #476 |
+| R2-R9 | Delayed game clock | ref | Live screen of a delayed game | Time limit counts from the delayed start | waiting for #522 |
+
+### Admin
+
+Desktop size unless said.
+
+| ID | Area | Role | Steps | Expected | Status |
+|---|---|---|---|---|---|
+| R2-A1 | Game-day status | admin (phone) | Season, game-day status: Watching with a decision time, then Delayed for one game | Saved and audited; shown on the command center and public pages | on main |
+| R2-A2 | Game-day pack | admin | Today, "Print game-day pack", with rosters | One sheet per field: permit line, games with blank line scores, check-in sheets | on main |
+| R2-A3 | Scheduled announcement | admin | Announcement for a later day; edit, then cancel it | Listed under Scheduled with the send time in the league's time zone; edits and cancel audited | on main |
+| R2-A4 | Game day for WhatsApp | admin | Announcements: copy a game day for WhatsApp | Games, times and fields as plain text | on main |
+| R2-A5 | Rain-out to the owners | admin | Rain-out screen: "Send to the owners to confirm" | Owners messaged; the screen shows who sent it; admins can't confirm unless allowed | on main |
+| R2-A6 | Ref assigner and pay | admin | Referees: add a ref to the pool; assign refs for a game day; pay sheet | Proposals respect availability and never the ref's own team; pay sheet per ref | on main |
+| R2-A7 | Season checklist | admin | Season checklist: mark a task done, add one | Open tasks by due date with "Due in" words; changes saved | on main |
+| R2-A8 | Win-back list | admin | Win-back list for a season open for registration; email one | Earlier players who haven't signed up, most loyal first; one email each | on main |
+| R2-A9 | Rules editor | admin | Edit a rules section, publish with a start date | New "What changed" entry on `/rules`; a later start says "New wording from" | on main |
+| R2-A10 | Shirt order | admin | Season shirt order: counts by size and team, who has no size, mark ordered | Counts match the sign-ups; status saved; expense in the books | on main |
+| R2-A11 | Concerns queue | admin | Incidents screen: reply to a concern, add a note, close it | Reply emailed; the player sees the reply but not the note; time to first reply counted | on main |
+| R2-A12 | Injury reports | admin | Open an injury report; export it | Views and the export are audited | on main |
+| R2-A13 | Permit coverage | admin | Draft with a game past a permit's end; publish | Publish refused with the gap in words ("permitted until …; this game ends at …") | on main |
+| R2-A14 | Field layouts | admin | Fields and permits: upload a layout or mark "no layout needed" | A schedule can't publish while a field has neither | on main |
+| R2-A15 | Written rulings | admin | Record a forfeit with a reason; reverse it | Reason required; captains and ref messaged; audited | on main |
+| R2-A16 | Volunteer shifts | admin | Post a shift (including Set-up lead), see who signed up | Shift listed for members; the set-up lead's page shows that day's fields and permits | on main |
+| R2-A17 | League gear | admin | Add a kit, assign it to a game | Where each kit is and its next game; handoff logged | on main |
+| R2-A18 | Stat awards | admin | Season awards, stats page | Six stat awards with the numbers behind them; MVP weighting explained | on main |
+| R2-A19 | Season cards | admin | Build the cards for a finished season; build again | Cards built; rebuilding sends nothing twice | on main |
+| R2-A20 | Survey results | admin | Season survey results | Averages and answer counts | on main |
+| R2-A21 | Private event requests | admin | Private events queue: set up or decline a request | Organizer messaged; a private season made on setup | on main |
+| R2-A22 | Clubs | admin | Friends: mark an entry run by a player, feature it | Shown first and on the events page; click counts listed | on main |
+| R2-A23 | Suspension history | admin | Incident report naming a player with an earlier ejection | Earlier ejections and suspensions shown beside the report | on main |
+| R2-A24 | Command center order | admin (phone) | Today | Fields in start-time order; a game past its permit flagged | on main |
+| R2-A25 | Season attendance | admin | Season attendance | Games played per player for every team | on main |
+| R2-A26 | Hand-added game kept | admin | Add a game by hand on the board, publish | Game keeps its slot after publishing | on main |
+| R2-A27 | Shared fields | admin | Record another group's usual hours on a field | Next handover with a countdown on the game-day screen | waiting for #460 |
+| R2-A28 | Playoff formats | admin | Double elimination bracket with a third-place game | Losers' side, grand final and "if necessary" slot | waiting for #459 |
+| R2-A29 | Tournaments | admin | Tournament that takes guest teams | Cap, partner league and charity saved | waiting for #479 |
+| R2-A30 | Interest forms | admin | Open an interest form with options and a target | Totals per option toward the target | waiting for #463 |
+| R2-A31 | Code of conduct editor | admin | Edit and publish a new version | New version required at the next waiver | waiting for #458 |
+| R2-A32 | Captain polls | admin | Ask the captains a question with a close time | Live totals; results per the chosen rule | waiting for #454 |
+| R2-A33 | Late-joiner shirts | admin | Shirt waiting list; hand out a spare; batch reorder | Waiting players by team and size | waiting for #475 |
+| R2-A34 | Sport types | admin | League with dodgeball | Scoring, periods and standings per the sport | waiting for #488 |
+| R2-A35 | Demo data | admin | Fresh demo: shirt order, concerns, checklist ticks and attendance | Each screen has data to show | waiting for #508 |
+| R2-A36 | Fixes between features | admin | Rain-out of a delayed day; check-in notices | Each fix's case behaves as its issue says | waiting for #522 |
+
+### Owner
+
+| ID | Area | Role | Steps | Expected | Status |
+|---|---|---|---|---|---|
+| R2-O1 | Confirm a rain-out | owner | Rain-out decision card: confirm; change "admins can confirm" | Rain-out published; setting audited and owners-only | on main |
+| R2-O2 | Books, quicker | owner (phone) | Quick add an expense in three taps; expected costs; a reimbursement; import a statement CSV | Expense saved with the last category; expected costs listed; import matched or added | on main |
+| R2-O3 | Permit fees | owner | Season permits | Fee estimate where no cost is entered, the 50-hour insurance line and "give back" time | on main |
+| R2-O4 | Permit renewal | owner | Renewal draft and application packet | Windows moved 52 weeks on into the same period; packet printable | on main |
+| R2-O5 | Season report card | owner | Owner dashboard, season report card | People, money, games and community beside the season before; share view | on main |
+| R2-O6 | Checklist template | owner | Checklist template: add a task due before the first day | New seasons start with it | on main |
+| R2-O7 | Acting admin | owner | Name a player acting admin for set dates with chosen powers | Powers only between the dates; money and roles never | waiting for #477 |
+| R2-O8 | Paste the rulebook | owner | Paste the rulebook, review sections, save | Lands in the change log; anchors kept | waiting for #490 |
+
+### Repository
+
+| ID | Area | Role | Steps | Expected | Status |
+|---|---|---|---|---|---|
+| R2-X1 | Build and migrations | repo | Fresh database, `npm run db:migrate`, `npm run build` on the latest `main` | Every migration applies; the build passes | on main |
+| R2-X2 | Demo reset | repo | `npm run demo:reset` | League moved to the current week, a live game and waiting mail | on main |
+| R2-X3 | CI | repo | Latest `main` CI run | Every required check green | on main |
+| R2-X4 | More than one league | repo, visitor | A second league's `/l/<slug>` pages | Each league's data stays its own | on main |
