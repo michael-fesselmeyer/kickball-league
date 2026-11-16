@@ -7,6 +7,7 @@ import { DemoBanner } from "./demo-banner";
 vi.mock("@/app/demo/actions", () => ({
   viewAs: vi.fn(),
   demoTools: vi.fn(() => Promise.resolve({ mail: false, reset: false })),
+  demoPersona: vi.fn(() => Promise.resolve(null)),
   resetDemo: vi.fn(),
 }));
 
@@ -34,20 +35,24 @@ describe("DemoBanner", () => {
     warn.mockRestore();
   });
 
-  it("offers one tap to view as each role in demo mode", () => {
+  it("offers one picker to view as each role in demo mode", () => {
     vi.stubEnv("DEMO_MODE", "true");
     vi.stubEnv("DATABASE_URL", "postgresql://ci:ci@localhost:5432/kb_demo");
     render(<DemoBanner />);
     expect(screen.getByRole("complementary", { name: "Demo" })).toBeTruthy();
-    const buttons = screen.getAllByRole("button");
+    const picker = screen.getByRole("combobox", { name: "Viewing as" });
+    expect(picker.getAttribute("name")).toBe("persona");
     expect(
-      buttons.map((b) => [b.textContent, b.getAttribute("value")]),
+      Array.from(picker.querySelectorAll("option:not([disabled])")).map((o) => [
+        o.textContent,
+        o.getAttribute("value"),
+      ]),
     ).toEqual([
       ["Player", "player"],
       ["Captain", "captain"],
       ["Ref", "ref"],
       ["Admin", "admin"],
     ]);
-    for (const b of buttons) expect(b.getAttribute("name")).toBe("persona");
+    expect(screen.getByRole("button", { name: "Go" })).toBeTruthy();
   });
 });

@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/permission";
 import { demoStatus } from "@/lib/demo/guard";
 import { localResetAvailable, runLocalReset } from "@/lib/demo/local-reset";
+import { PERSONA_KEYS, PERSONAS, type PersonaKey } from "@/lib/demo/personas";
 
 /**
  * One tap from the demo banner: sign in as a seeded persona. With demo mode
@@ -58,4 +59,17 @@ export async function resetDemo(): Promise<void> {
   const reset = await runLocalReset();
   revalidatePath("/", "layout");
   redirect(reset ? "/" : "/app/admin/demo-mail?reset=failed");
+}
+
+/**
+ * Which persona this browser is viewing as, for the banner's picker; null
+ * when signed out or signed in as anyone else. Asked from the browser, like
+ * demoTools, because the banner is part of static pages.
+ */
+export async function demoPersona(): Promise<PersonaKey | null> {
+  if (!demoStatus(process.env).on) return null;
+  const session = await auth.api.getSession({ headers: await headers() });
+  const email = session?.user.email?.toLowerCase();
+  if (!email) return null;
+  return PERSONA_KEYS.find((key) => PERSONAS[key].email === email) ?? null;
 }
