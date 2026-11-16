@@ -28,6 +28,7 @@ import {
   CaptaincyPanel,
 } from "@/app/app/seasons/[season]/team/captaincy";
 import { PageLoading } from "@/components/page-loading";
+import { refundForPrice } from "@/domain/money/processing-fee";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeagueId } from "@/lib/league/active";
 
@@ -196,6 +197,22 @@ function Refund({ slug, person }: { slug: string; person: BoardPerson }) {
           {p.method === "stripe" ? "Refund through Stripe" : "Mark refunded"}
           <span className="sr-only"> for {person.name}</span>
         </SubmitButton>
+        {p.feeCents > 0 && (
+          <p className="basis-full text-small text-text-muted">
+            The {formatCents(p.amountCents)} paid includes a{" "}
+            {formatCents(p.feeCents)} processing fee. A full refund returns
+            it; a partial refund should return the same share of it, so
+            refunding half the price means{" "}
+            {formatCents(
+              refundForPrice(
+                Math.floor((p.amountCents - p.feeCents) / 2),
+                p.amountCents,
+                p.feeCents,
+              ),
+            )}
+            .
+          </p>
+        )}
       </form>
     </details>
   ));
