@@ -374,7 +374,7 @@ button[data-pending] {
   color: MarkText;
 }
 
-/* The signed-in app's tab bar and menu (src/app/app/app-nav.tsx). On a phone
+/* The signed-in app's tab bar and menu (src/app/[lang]/app/app-nav.tsx). On a phone
    the bar sits at the bottom, clear of the home indicator, and the page gets
    room below so the bar never covers its end. On a wider screen it is a bar
    under the header. The menu is a native popover: a sheet from the bottom on

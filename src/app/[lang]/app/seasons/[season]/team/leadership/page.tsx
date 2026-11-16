@@ -88,7 +88,7 @@ const OUTCOME: Record<Outcome, string> = {
 const field = "rounded-md border border-border bg-surface px-2 py-2";
 
 export default function LeadershipPage(
-  props: PageProps<"/app/seasons/[season]/team/leadership">,
+  props: PageProps<"/[lang]/app/seasons/[season]/team/leadership">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
@@ -102,7 +102,7 @@ export default function LeadershipPage(
 async function Leadership({
   params,
   searchParams,
-}: PageProps<"/app/seasons/[season]/team/leadership">) {
+}: PageProps<"/[lang]/app/seasons/[season]/team/leadership">) {
   const { season: slug } = await params;
   const query = await searchParams;
   const subject = await requirePermission("registration.join", {

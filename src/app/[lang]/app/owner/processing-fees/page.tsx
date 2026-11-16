@@ -20,7 +20,7 @@ export const metadata: Metadata = { title: "Processing fees" };
 const PAGE = "/app/owner/processing-fees";
 
 export default function ProcessingFeesPage(
-  props: PageProps<"/app/owner/processing-fees">,
+  props: PageProps<"/[lang]/app/owner/processing-fees">,
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
@@ -52,7 +52,7 @@ const EXAMPLE_CENTS = 6000;
 
 async function ProcessingFees({
   searchParams,
-}: PageProps<"/app/owner/processing-fees">) {
+}: PageProps<"/[lang]/app/owner/processing-fees">) {
   const subject = await requirePermission("processing_fees.manage", {
     next: PAGE,
   });
