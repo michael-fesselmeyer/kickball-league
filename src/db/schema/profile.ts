@@ -61,7 +61,7 @@ export const profile = pgTable(
     birthDate: date({ mode: "string" }),
     /**
      * The language emails, push and (once translated) the app's screens use
-     * for this person (ADR 0065). One of LOCALES; English until they pick.
+     * for this person (ADR 0094). One of LOCALES; English until they pick.
      */
     language: text().notNull().default("en"),
     stripeCustomerId: text(),
@@ -75,7 +75,7 @@ export const profile = pgTable(
       .references(() => user.id, { onDelete: "set null" }),
   },
   (t) => [
-    // A new language widens this with its catalog (ADR 0065).
+    // A new language widens this with its catalog (ADR 0094).
     check(
       "profile_language_known",
       sql`${t.language} in (${sql.raw(LOCALES.map((l) => `'${l}'`).join(", "))})`,

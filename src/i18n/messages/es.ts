@@ -2,7 +2,7 @@ import type { Translation } from "../catalog";
 import type { EnglishMessages } from "./en";
 
 /**
- * Spanish (ADR 0065). Written without a paid translation service; a
+ * Spanish (ADR 0094). Written without a paid translation service; a
  * native-speaking player reviews it before launch (docs/i18n.md). Use the
  * informal "tú", as the league talks to its players.
  */

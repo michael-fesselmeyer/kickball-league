@@ -1,5 +1,5 @@
 /**
- * The languages the site is written in (ADR 0065). English is the source:
+ * The languages the site is written in (ADR 0094). English is the source:
  * every message is written in English first, and a language that lacks a
  * message falls back to it. Each page's language comes from the first
  * segment of its route, `src/app/[lang]`: public addresses carry it in the

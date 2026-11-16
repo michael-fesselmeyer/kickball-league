@@ -35,7 +35,7 @@ const bricolage = Bricolage_Grotesque({
 });
 
 /**
- * Every page lives under `[lang]` (ADR 0065), so the root layout knows the
+ * Every page lives under `[lang]` (ADR 0094), so the root layout knows the
  * page's language from the path and stays static. The proxy only ever
  * serves a known language's tree; any other first segment is a page path
  * and lands on the not-found page.

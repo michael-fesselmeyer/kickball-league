@@ -7,7 +7,7 @@ import {
 import { localesOf } from "./pages";
 
 /**
- * How addresses carry a language (ADR 0065). Every page lives under
+ * How addresses carry a language (ADR 0094). Every page lives under
  * `src/app/[lang]`; the proxy maps an address onto it from the path alone,
  * so public pages stay static: `/faq` is `/en/faq`, `/es/faq` is itself.
  */

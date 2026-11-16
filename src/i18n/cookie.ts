@@ -1,6 +1,6 @@
 /**
  * The signed-in person's language, mirrored in a cookie so the proxy can
- * serve their pages in it without reading the database (ADR 0065). The
+ * serve their pages in it without reading the database (ADR 0094). The
  * profile's `language` is the truth, and what emails and push use; the
  * cookie is written whenever that setting is saved or read at sign-in.
  */

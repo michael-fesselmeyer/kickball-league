@@ -82,7 +82,7 @@ erDiagram
     enum lineup_gender "woman, man: which side of the fielding rule the player counts toward"
     enum shirt_size "xs, s, m, l, xl, xxl, xxxl"
     date birth_date
-    text language "en or es: emails, push and (once translated) app screens; ADR 0065"
+    text language "en or es: emails, push and (once translated) app screens; ADR 0094"
     text stripe_customer_id
     uuid avatar_asset_id FK
   }

@@ -1,7 +1,7 @@
 import { LOCALE_TAGS, type Locale } from "./locales";
 
 /**
- * Message catalogs (ADR 0065). Each language's messages are a plain object
+ * Message catalogs (ADR 0094). Each language's messages are a plain object
  * committed to the repo, shaped like the English one, and read on the
  * server. No library and nothing sent to the browser but the text a page
  * renders.

@@ -3,7 +3,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { readSavedTheme, THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
 
-/** The switch's words, in the page's language (ADR 0065). */
+/** The switch's words, in the page's language (ADR 0094). */
 export type ThemeLabels = {
   toLight: string;
   toDark: string;

@@ -2,7 +2,7 @@ import { dateTimeFormat } from "@/domain/time/format-cache";
 import { LOCALE_TAGS, type Locale } from "./locales";
 
 /**
- * Dates, times, numbers and money in a language's own style (ADR 0065):
+ * Dates, times, numbers and money in a language's own style (ADR 0094):
  * "Saturday, March 20" in English, "sábado, 20 de marzo" in Spanish. Times
  * are always shown in the league's time zone, which the caller passes.
  */

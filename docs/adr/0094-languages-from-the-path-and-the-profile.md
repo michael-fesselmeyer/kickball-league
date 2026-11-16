@@ -1,4 +1,4 @@
-# ADR 0065: Languages come from the path on public pages and from the profile everywhere else
+# ADR 0094: Languages come from the path on public pages and from the profile everywhere else
 
 - Status: accepted
 - Date: 2026-11-15
