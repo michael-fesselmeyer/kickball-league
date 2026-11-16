@@ -68,9 +68,17 @@ test("an owner can switch the rulebook to owners only, and the public page hides
   ).toBeVisible();
   await expect(page.getByRole("searchbox")).toHaveCount(0);
 
-  // Back to public so the other specs see the sample rulebook.
+  // Back to public so the other specs see the sample rulebook. The first
+  // save's "Saved." is still on screen, so wait for this save's own answer
+  // before reloading the public page.
   await owner.getByLabel("Public", { exact: true }).check();
+  const saved = owner.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().includes("/app/admin/rules/rulebook"),
+  );
   await owner.getByRole("button", { name: "Save who can read it" }).click();
+  await saved;
   await expect(
     owner.getByRole("status").filter({ hasText: "Saved." }),
   ).toBeVisible();
