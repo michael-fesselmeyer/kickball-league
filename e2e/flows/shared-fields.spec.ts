@@ -49,9 +49,21 @@ test("an admin records another group, gets an overlap warning and sees them on g
   ).toBeVisible();
 
   // A group with no usual hours is fine too.
-  await groups.getByLabel("Group name").last().fill("Pickup Frisbee");
-  await groups.getByRole("button", { name: "Add group" }).click();
-  await expect(groups.getByText("No usual hours on file")).toBeVisible();
+  // Added to every field, so whichever fields host the game day names it.
+  const fieldIds = await groups
+    .getByLabel("Field")
+    .last()
+    .locator("option")
+    .evaluateAll((o) => o.map((x) => (x as HTMLOptionElement).value));
+  for (const id of fieldIds) {
+    await groups.getByLabel("Field").last().selectOption(id);
+    await groups.getByLabel("Group name").last().fill("Pickup Frisbee");
+    await groups.getByRole("button", { name: "Add group" }).click();
+    await expect(admin.getByRole("status")).toHaveText("Group added.");
+  }
+  await expect(
+    groups.getByText("No usual hours on file").first(),
+  ).toBeVisible();
 
   // Hours that run the wrong way are refused, with a reason.
   await groups.getByLabel("Group name").last().fill("Half a schedule");
@@ -94,7 +106,7 @@ test("an admin records another group, gets an overlap warning and sees them on g
   await admin.goto(`/app/admin/today?date=${DAY}`);
   const day = admin.getByRole("region", { name: "Other groups on the fields" });
   await expect(
-    day.getByText(/Pickup Frisbee also uses this field/),
+    day.getByText(/Pickup Frisbee also uses this field/).first(),
   ).toBeVisible();
   await expect(
     day
