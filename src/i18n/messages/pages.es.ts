@@ -461,4 +461,110 @@ export const pagesEs: Translation<
     shareCalledOff: "Cancelado: {title} ({when})",
     shareFor: "Para {audience}",
   },
+  sponsors: {
+    title: "Patrocinadores y el bar de la liga",
+    description:
+      "Los negocios que apoyan a la liga, adónde va todo el mundo después de los partidos, las ofertas de la semana y el equipo de la semana.",
+    headingStart: "Nuestros",
+    headingSwipe: "patrocinadores",
+    intro:
+      "Los lugares del barrio que mantienen viva la liga. Después del último out, todos van al bar de la liga. Haz check-in al llegar y usa una oferta si te sirve. Las ofertas son un extra, nunca una obligación.",
+    loading: "Cargando los patrocinadores…",
+    kinds: {
+      bar: "Bar",
+      restaurant: "Restaurante",
+      brand: "Marca",
+      other: "Patrocinador",
+    },
+    homeBase: "Nuestro punto de encuentro después de los partidos",
+    also: "También apoyan a la liga",
+    backing: "Apoyan a la liga",
+    deals: {
+      $plural: {
+        one: "{n} oferta para jugadores",
+        other: "{n} ofertas para jugadores",
+      },
+    },
+    onTheWay:
+      "Los patrocinadores vienen en camino. ¿Tienes un local cerca del parque?",
+    getInTouch: "Escríbenos",
+  },
+  sponsor: {
+    title: "Patrocinador",
+    homeBarTitle: "{name}, el bar de la liga",
+    description:
+      "{name} apoya a la liga. Ofertas para jugadores y cómo hacer check-in.",
+    loading: "Cargando el patrocinador…",
+    home: "Inicio",
+    sponsors: "Patrocinadores",
+    homeBar: "El bar de la liga",
+    map: "Mapa",
+    website: "Sitio web",
+    deals: "Ofertas para jugadores",
+    checkInTitle: "Haz check-in al llegar",
+    stepCode:
+      "Busca el código de la liga en la pantalla junto a la puerta o la caja. Cambia cada pocos minutos.",
+    stepScan: "Escanéalo con la cámara de tu teléfono y toca Check in.",
+    stepDeal:
+      "Elige una oferta si quieres y muéstrale la pantalla a quien te atienda.",
+    checkInNote:
+      "Los check-ins le muestran a {name} cuántos de nosotros pasamos, y así siguen las ofertas. Cuenta uno por día, y nunca tienes que pedir nada.",
+  },
+  deals: {
+    none: "No hay ofertas publicadas por ahora. Ven por la compañía.",
+    everyDay: "Todos los días",
+    weekdays: "Entre semana",
+    weekends: "Fines de semana",
+    days: {
+      1: "Los lunes",
+      2: "Los martes",
+      3: "Los miércoles",
+      4: "Los jueves",
+      5: "Los viernes",
+      6: "Los sábados",
+      7: "Los domingos",
+    },
+    between: "{days}, de {from} a {to}",
+    midnight: "medianoche",
+    noon: "mediodía",
+    confirmed: "Confirmada el {date}",
+  },
+  teamOfWeek: {
+    label: "Equipo de la semana · {day}",
+    tab: "Tienen una cuenta de {amount} en {sponsor}, invita la casa.",
+  },
+  help: {
+    title: "Centro de ayuda",
+    description:
+      "Guías cortas para jugadores, capitanes y árbitros: inscribirte, pagar, avisar si vienes, suplentes, orden de pateo, marcadores y más.",
+    home: "Inicio",
+    headingStart: "¿Cómo",
+    headingSwipe: "hago…?",
+    introStart:
+      "Guías cortas de todo lo que hace la app, según tu rol en la liga. La app todavía está en inglés, así que citamos los botones tal como aparecen en pantalla. ¿Eres nuevo? Las",
+    faq: "preguntas frecuentes",
+    introMid: "cubren lo básico, y las",
+    rules: "reglas de la liga",
+    introEnd: "explican cómo jugamos, con qué cambió y cuándo.",
+    widgetTitle: "¿Tienes un bar o el sitio de un equipo?",
+    widgetBody:
+      "Muestra los próximos partidos en tu propio sitio con una línea de HTML.",
+    widgetLink: "Obtener el widget del calendario",
+    roleTitle: "Ayuda para {role}",
+    roleDescription: "{intro} Guías cortas: {list}.",
+    onThisPage: "En esta página",
+    inApp: "En la app:",
+    others: "Ayuda para otros",
+    inEnglishTitle: "Administradores y dueños",
+    inEnglishBody:
+      "Sus guías están en inglés, igual que las pantallas que usan.",
+    search: {
+      label: "Buscar en el centro de ayuda",
+      placeholder: "Prueba con “pagar”, “lluvia” u “orden de pateo”",
+      none: "No hay resultados. Prueba con otra palabra, o mira los temas de abajo.",
+      found: "{n} guía encontrada.",
+      foundMany: "{n} guías encontradas.",
+      results: "Resultados de la búsqueda",
+    },
+  },
 };

@@ -1,4 +1,9 @@
 import { err, ok, type Result } from "@/domain/result";
+import { dateTimeFormat } from "@/domain/time/format-cache";
+import { fill } from "@/i18n/catalog";
+import { formatList } from "@/i18n/format";
+import { DEFAULT_LOCALE, LOCALE_TAGS, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 
 /**
  * A sponsor's deals: when each one applies, how to say so, and reading the
@@ -66,8 +71,18 @@ export function dealOnDay(
   );
 }
 
-function clock(time: string): string {
+function clock(time: string, locale: Locale): string {
   const [h = 0, m = 0] = hhmm(time).split(":").map(Number);
+  if (locale !== DEFAULT_LOCALE) {
+    const words = messagesFor(locale).deals;
+    if (h === 0 && m === 0) return words.midnight;
+    if (h === 12 && m === 0) return words.noon;
+    return dateTimeFormat(LOCALE_TAGS[locale], {
+      timeZone: "UTC",
+      hour: "numeric",
+      ...(m === 0 ? {} : { minute: "2-digit" }),
+    }).format(new Date(Date.UTC(2000, 0, 1, h, m)));
+  }
   const suffix = h < 12 ? "AM" : "PM";
   const hour = h % 12 === 0 ? 12 : h % 12;
   if (h === 0 && m === 0) return "midnight";
@@ -77,7 +92,17 @@ function clock(time: string): string {
     : `${hour}:${String(m).padStart(2, "0")} ${suffix}`;
 }
 
-function dayList(days: readonly number[]): string {
+function dayList(days: readonly number[], locale: Locale): string {
+  if (locale !== DEFAULT_LOCALE) {
+    const names = messagesFor(locale).deals.days;
+    // "Los martes y los jueves": only the first is capitalized.
+    return formatList(
+      locale,
+      WEEKDAYS.filter(([d]) => days.includes(d)).map(([d], i) =>
+        i === 0 ? names[d] : names[d].toLowerCase(),
+      ),
+    );
+  }
   const names = WEEKDAYS.filter(([d]) => days.includes(d)).map(
     ([, name]) => `${name}s`,
   );
@@ -88,18 +113,24 @@ function dayList(days: readonly number[]): string {
 /** "Every day", "Tuesdays and Thursdays, 6 PM to 10 PM", "Every day, after 9 PM". */
 export function dealWhen(
   deal: Pick<DealTerms, "validDays" | "validFrom" | "validTo">,
+  locale: Locale = DEFAULT_LOCALE,
 ): string {
+  const words = messagesFor(locale).deals;
   const unique = [...new Set(deal.validDays)];
   const days =
     unique.length === 0 || unique.length === 7
-      ? "Every day"
+      ? words.everyDay
       : unique.length === 5 && unique.every((d) => d <= 5)
-        ? "Weekdays"
+        ? words.weekdays
         : unique.length === 2 && unique.every((d) => d >= 6)
-          ? "Weekends"
-          : dayList(unique);
+          ? words.weekends
+          : dayList(unique, locale);
   if (deal.validFrom === null || deal.validTo === null) return days;
-  return `${days}, ${clock(deal.validFrom)} to ${clock(deal.validTo)}`;
+  return fill(words.between, {
+    days,
+    from: clock(deal.validFrom, locale),
+    to: clock(deal.validTo, locale),
+  });
 }
 
 export type DealFormError =
@@ -160,10 +191,15 @@ export const DEAL_FORM_ERRORS: Record<DealFormError, string> = {
  * When the sponsor last said a deal is current, for the public page:
  * "Confirmed Nov 10". A date, not "3 days ago", so a cached page stays true.
  */
-export function confirmedLabel(confirmedOn: string): string {
-  return `Confirmed ${new Intl.DateTimeFormat("en-US", {
-    timeZone: "UTC",
-    month: "short",
-    day: "numeric",
-  }).format(new Date(`${confirmedOn}T12:00:00Z`))}`;
+export function confirmedLabel(
+  confirmedOn: string,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  return fill(messagesFor(locale).deals.confirmed, {
+    date: dateTimeFormat(LOCALE_TAGS[locale], {
+      timeZone: "UTC",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(`${confirmedOn}T12:00:00Z`)),
+  });
 }

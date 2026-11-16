@@ -5,7 +5,10 @@ import { JsonLd } from "@/components/json-ld";
 import { env } from "@/env";
 import { breadcrumbJsonLd } from "@/lib/seo/structured-data";
 import { absoluteUrl, siteOrigin } from "@/lib/site";
-import { HELP_ROLES, helpHref, roleBySlug } from "../articles";
+import { fill } from "@/i18n/catalog";
+import { localeOf, messagesFor } from "@/i18n/messages";
+import { languageAlternates, linkIn } from "@/i18n/routing";
+import { HELP_ROLES, helpHref, helpRolesFor } from "../articles";
 
 type Props = PageProps<"/[lang]/help/[role]">;
 
@@ -14,43 +17,61 @@ export function generateStaticParams() {
   return HELP_ROLES.map((r) => ({ role: r.slug }));
 }
 
+/** A role's how-tos in the page's language, if they are written in it. */
+async function load(params: Props["params"]) {
+  const { lang, role: slug } = await params;
+  const locale = localeOf(lang);
+  const roles = helpRolesFor(locale);
+  return { locale, roles, role: roles.find((r) => r.slug === slug) };
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const role = roleBySlug((await params).role);
-  if (!role) return { title: "Help center" };
+  const { locale, role } = await load(params);
+  const words = messagesFor(locale).help;
+  if (!role) return { title: words.title };
+  const path = helpHref(role.slug);
   return {
-    title: `Help for ${role.title.toLowerCase()}`,
-    description: `${role.intro} Short how-tos: ${role.articles
-      .map((a) => a.title.toLowerCase())
-      .join(", ")}.`,
-    alternates: { canonical: helpHref(role.slug) },
+    title: fill(words.roleTitle, { role: role.title.toLowerCase() }),
+    description: fill(words.roleDescription, {
+      intro: role.intro,
+      list: role.articles.map((a) => a.title.toLowerCase()).join(", "),
+    }),
+    alternates: {
+      canonical: linkIn(locale, path),
+      languages: languageAlternates(path),
+    },
   };
 }
 
 export default async function HelpRolePage({ params }: Props) {
-  const role = roleBySlug((await params).role);
+  const { locale, roles, role } = await load(params);
   if (!role) notFound();
+  const words = messagesFor(locale).help;
+  const href = (path: string) => linkIn(locale, path);
   const origin = siteOrigin(env.BETTER_AUTH_URL);
-  const others = HELP_ROLES.filter((r) => r.slug !== role.slug);
+  const others = roles.filter((r) => r.slug !== role.slug);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 py-12 md:px-6">
       <JsonLd
         data={breadcrumbJsonLd([
-          { name: "Home", url: absoluteUrl(origin, "/") },
-          { name: "Help center", url: absoluteUrl(origin, "/help") },
+          { name: words.home, url: absoluteUrl(origin, href("/")) },
+          { name: words.title, url: absoluteUrl(origin, href("/help")) },
           {
             name: role.title,
-            url: absoluteUrl(origin, helpHref(role.slug)),
+            url: absoluteUrl(origin, href(helpHref(role.slug))),
           },
         ])}
       />
       <header className="flex flex-col gap-4">
-        <Link href="/help" className="self-start py-2 underline">
-          Help center
+        <Link href={href("/help")} className="self-start py-2 underline">
+          {words.title}
         </Link>
-        <h1 className="text-h1">Help for {role.title.toLowerCase()}</h1>
+        <h1 className="text-h1">
+          {fill(words.roleTitle, { role: role.title.toLowerCase() })}
+        </h1>
         <p className="text-body-lg text-text-muted">{role.intro}</p>
-        <nav aria-label="On this page">
+        <nav aria-label={words.onThisPage}>
           <ul className="flex flex-wrap gap-2">
             {role.articles.map((a) => (
               <li key={a.id}>
@@ -91,7 +112,7 @@ export default async function HelpRolePage({ params }: Props) {
           )}
           {a.screen && (
             <p>
-              In the app:{" "}
+              {words.inApp}{" "}
               <Link
                 href={a.screen.href}
                 prefetch={false}
@@ -106,13 +127,13 @@ export default async function HelpRolePage({ params }: Props) {
 
       <nav aria-labelledby="other-roles" className="flex flex-col gap-3">
         <h2 id="other-roles" className="text-h3">
-          Help for others
+          {words.others}
         </h2>
         <ul className="flex flex-wrap gap-2">
           {others.map((r) => (
             <li key={r.slug}>
               <Link
-                href={helpHref(r.slug)}
+                href={href(helpHref(r.slug))}
                 className="inline-flex min-h-11 items-center rounded-full border border-border bg-surface px-4"
               >
                 {r.title}
