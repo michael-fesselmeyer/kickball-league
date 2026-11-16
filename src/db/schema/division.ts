@@ -40,6 +40,11 @@ export type RuleSetOptions = {
   permitEndRule?: "call_at_last_complete" | "last_inning_to_start";
   /** Minutes before the time limit after which no new inning starts; 10 when unset. */
   noNewInningMinutes?: number;
+  /**
+   * Minutes before sunset that play must end on a field without lights
+   * (#467). Unset means the default in src/domain/gameday/daylight.ts.
+   */
+  daylightMarginMinutes?: number;
 };
 
 /**

@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   index,
   integer,
@@ -81,6 +82,11 @@ export const field = pgTable(
     name: text().notNull(),
     sortOrder: integer().notNull().default(0),
     notes: text(),
+    /**
+     * The field has lights the league can use, so sunset does not end a
+     * game on it; only the permit does (issue #467).
+     */
+    hasLights: boolean().notNull().default(false),
     ...audit(),
   },
   (t) => [unique("field_venue_name_unique").on(t.venueId, t.name)],
@@ -225,6 +231,12 @@ export const scoreOutcome = pgEnum("score_report_outcome", [
   "called",
 ]);
 
+/** Why a called game ended early when time ran out (issue #467). */
+export const callReason = pgEnum("score_report_call_reason", [
+  "daylight",
+  "field_time",
+]);
+
 /**
  * A score as entered from someone's phone. Append-only: reports are history;
  * the game row holds the result. client_id makes a retried submit a no-op.
@@ -256,6 +268,8 @@ export const scoreReport = pgTable(
      * everything else. Only the game's captains, ref and admins see it.
      */
     reason: text(),
+    /** For a called game: the light ran out, or the field had to be clear. */
+    callReason: callReason(),
     clientId: text().notNull(),
     reportedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
@@ -269,6 +283,10 @@ export const scoreReport = pgTable(
     check(
       "score_report_scores_non_negative",
       sql`${t.scoreA} >= 0 and ${t.scoreB} >= 0`,
+    ),
+    check(
+      "score_report_call_reason_called",
+      sql`${t.callReason} is null or ${t.outcome} = 'called'`,
     ),
   ],
 );
@@ -336,6 +354,33 @@ export const gamePeriod = pgTable(
     check("game_period_runs_range", sql`${t.runs} between 0 and 99`),
   ],
 );
+
+export const startHeldUpBy = pgEnum("game_start_held_up_by", [
+  "team_a",
+  "team_b",
+  "both",
+  "neither",
+]);
+
+/**
+ * When a game's first pitch was thrown, recorded with one tap by the ref (or
+ * a captain or admin), and who held it up when it started late (issue
+ * #467). One row per game; a second tap corrects it. team_a and team_b are
+ * the game's own teams.
+ */
+export const gameStart = pgTable("game_start", {
+  gameId: uuid()
+    .primaryKey()
+    .$type<GameId>()
+    .references(() => game.id, { onDelete: "cascade" }),
+  startedAt: timestamp({ withTimezone: true }).notNull(),
+  /** Null until someone says, and for a start that was on time. */
+  heldUpBy: startHeldUpBy(),
+  recordedBy: uuid()
+    .$type<UserId>()
+    .references(() => user.id, { onDelete: "set null" }),
+  recordedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
 
 export const refereeAssignmentStatus = pgEnum("referee_assignment_status", [
   "offered",
@@ -419,6 +464,7 @@ export type Slot = typeof slot.$inferSelect;
 export type Game = typeof game.$inferSelect;
 export type ScoreReport = typeof scoreReport.$inferSelect;
 export type GamePeriod = typeof gamePeriod.$inferSelect;
+export type GameStart = typeof gameStart.$inferSelect;
 
 export const offlineEntryKind = pgEnum("offline_entry_kind", [
   "score",
