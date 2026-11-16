@@ -120,8 +120,14 @@ export function planChange(
 ): Result<RulePlan, RuleFormError> {
   const byId = new Map(current.map((s) => [s.id, s]));
   const seenIds = new Set<string>();
+  // Browsers send a textarea's line breaks as CRLF; stored text uses LF, so
+  // an untouched section must not read as edited.
   const rows = submitted
-    .map((s) => ({ ...s, title: s.title.trim(), body: s.body.trim() }))
+    .map((s) => ({
+      ...s,
+      title: s.title.trim(),
+      body: lineBreaks(s.body).trim(),
+    }))
     .filter((s) => s.id !== null || s.remove || s.title || s.body);
   for (const row of rows) {
     if (row.id === null) continue;
@@ -184,7 +190,7 @@ export function planChange(
       body: row.body,
       position,
     });
-    if (was.title !== row.title || was.body !== row.body)
+    if (was.title !== row.title || lineBreaks(was.body) !== row.body)
       changes.push({
         slug: was.slug,
         kind: "edited",
@@ -257,8 +263,7 @@ export type Block =
  * text only; nothing an admin types is read as HTML.
  */
 export function blocksOf(body: string): Block[] {
-  return body
-    .replace(/\r\n?/g, "\n")
+  return lineBreaks(body)
     .split(/\n\s*\n/)
     .map((chunk) => chunk.trim())
     .filter(Boolean)
@@ -268,4 +273,9 @@ export function blocksOf(body: string): Block[] {
         ? { kind: "list", items: lines.map((l) => l.replace(/^[-*]\s+/, "")) }
         : { kind: "paragraph", text: lines.join("\n") };
     });
+}
+
+/** Text with every line break as LF, whichever way it was typed. */
+function lineBreaks(text: string): string {
+  return text.replace(/\r\n?/g, "\n");
 }
