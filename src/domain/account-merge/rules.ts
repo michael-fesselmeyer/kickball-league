@@ -277,6 +277,7 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
   "game_lineup.created_by": actor("lineups made"),
   "game_lineup.updated_by": actor("lineups changed"),
   "game_period.entered_by": actor("innings entered"),
+  "game_start.recorded_by": actor("first pitches recorded"),
   "game.created_by": actor("games created"),
   "score_report.reported_by": { kind: "move", label: "scores reported" },
   "score_response.user_id": { kind: "move", label: "score confirmations" },
