@@ -40,7 +40,7 @@ The plugins are reached through `Capacitor.Plugins`, so the site needs no packag
 
 ## Consequences
 
-- **Sign-in inside the apps is the main gap.** Google refuses sign-in inside an embedded web view, a magic link opens in the phone's browser rather than the app, and passkeys in a web view need Associated Domains (iOS) or extra web view setup (Android). Until the site offers a sign-in code that can be typed into the app, the apps show the public pages and signed-in screens need the browser or the installed web app. This is tracked in issue #524.
+- **Sign-in inside the apps is the main gap.** Google refuses sign-in inside an embedded web view, a magic link opens in the phone's browser rather than the app, and passkeys in a web view need Associated Domains (iOS) or extra web view setup (Android). Until the site offers a sign-in code that can be typed into the app, the apps show the public pages and signed-in screens need the browser or the installed web app. This is tracked in issue #524, since resolved by [ADR 0077](0077-signing-in-inside-the-apps.md).
 - Payments go through Stripe Checkout, which is another site, so checkout opens in the system browser and the purchase shows as paid in the app once Stripe's webhook arrives. This keeps card entry out of a web view, which is where it should be.
 - Capacitor documents `server.url` as meant for live reload. For local builds it is the point; a store release would need its own review of Apple's minimum-functionality guideline and is not planned.
 - The apps load the site over the network, so they are exactly as fast as the site on that phone, and the site's budgets apply to them unchanged. The inline script adds about 1 kB of HTML to each page and does nothing in a browser.
