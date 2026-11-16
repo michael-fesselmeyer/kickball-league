@@ -417,7 +417,8 @@ export async function seasonBooks(db: Db, s: SeasonRef): Promise<SeasonBooks> {
       ...new Map(
         payments.map((p) => [
           p.purchaseId,
-          p.feeCents - feeShareOfRefund(p.refundedCents, p.amountCents, p.feeCents),
+          p.feeCents -
+            feeShareOfRefund(p.refundedCents, p.amountCents, p.feeCents),
         ]),
       ).values(),
     ].reduce((a, b) => a + b, 0),

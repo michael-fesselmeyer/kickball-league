@@ -41,16 +41,14 @@ export function PayMethods({
               value={q.method}
               defaultChecked={n === 0}
             />
-            <span className="flex flex-col">
-              <span>
-                {q.label}: <strong>{formatCents(q.totalCents)}</strong>
-              </span>
-              <span className="text-small text-text-muted">
+            <span>
+              {q.label}: <strong>{formatCents(q.totalCents)}</strong>
+              <span className="block text-small text-text-muted">
                 {formatCents(q.totalCents - q.feeCents)} plus a{" "}
                 {formatCents(q.feeCents)}{" "}
                 {q.method === "card" ? "card processing fee" : "transfer fee"}
                 {q.method === "bank" &&
-                  ". Takes a few business days to arrive"}
+                  ". Takes a few business days to arrive."}
               </span>
             </span>
           </label>
@@ -65,8 +63,8 @@ export function PayMethods({
           </p>
           {venmo && venmo.feeCents > 0 && (
             <p className="text-small text-text-muted">
-              Venmo: {formatCents(venmo.totalCents)}, which covers
-              Venmo&apos;s {formatCents(venmo.feeCents)} fee.
+              Venmo: {formatCents(venmo.totalCents)}, which covers Venmo&apos;s{" "}
+              {formatCents(venmo.feeCents)} fee.
             </p>
           )}
           {freeMethodsNote && <p className="text-small">{freeMethodsNote}</p>}

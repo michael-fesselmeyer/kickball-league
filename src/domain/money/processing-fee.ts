@@ -269,10 +269,7 @@ export function refundForPrice(
 }
 
 export type FeeSettingsError =
-  | "bad_mode"
-  | "bad_card_rate"
-  | "bad_bank_rate"
-  | "bad_venmo_rate";
+  "bad_mode" | "bad_card_rate" | "bad_bank_rate" | "bad_venmo_rate";
 
 /** "2.9" or "2.90" percent to basis points; null if not a percent. */
 function percentToBps(raw: unknown): number | null {

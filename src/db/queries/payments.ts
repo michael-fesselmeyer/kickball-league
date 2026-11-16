@@ -1057,7 +1057,11 @@ export async function recordOffAppPayment(
     .where(eq(season.id, input.seasonId));
   if (!owner) throw new Error("No such season.");
   const priceCents = input.items.reduce((sum, i) => sum + i.amountCents, 0);
-  const fees = offAppFees(input.method, priceCents, readFeeSettings(owner.fees));
+  const fees = offAppFees(
+    input.method,
+    priceCents,
+    readFeeSettings(owner.fees),
+  );
   const purchaseId = await createPurchase(db, {
     userId: input.userId,
     leagueId: owner.leagueId,

@@ -92,7 +92,14 @@ describe("Venmo fee", () => {
 
 describe("feeFor", () => {
   it("is nothing for every method while the setting is off", () => {
-    for (const method of ["card", "bank", "venmo", "cash", "zelle", "check"] as const)
+    for (const method of [
+      "card",
+      "bank",
+      "venmo",
+      "cash",
+      "zelle",
+      "check",
+    ] as const)
       expect(
         feeFor(method, 75_000, {
           ...DEFAULT_FEE_SETTINGS,
