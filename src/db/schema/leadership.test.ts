@@ -20,7 +20,7 @@ const references = (table: Parameters<typeof getTableConfig>[0]) =>
 describe("leadership check-in secrecy (ADR 0077)", () => {
   it("keeps who took part to a person, a check-in and a step: no time, no choice", () => {
     expect(columns(leadershipParticipation).map((c) => c.name).sort()).toEqual(
-      ["check_in_id", "part", "user_id"],
+      ["checkInId", "part", "userId"],
     );
     expect(references(leadershipParticipation).sort()).toEqual([
       "leadership_check_in",
@@ -30,21 +30,21 @@ describe("leadership check-in secrecy (ADR 0077)", () => {
 
   it("keeps ballot counts with no voter and no time", () => {
     expect(columns(leadershipBallotOption).map((c) => c.name).sort()).toEqual([
-      "check_in_id",
+      "checkInId",
       "id",
-      "user_id",
+      "userId",
       "votes",
     ]);
   });
 
   it("gives a candidate row no time a suggester could be matched to", () => {
-    // asked_at is set by the daily job in a batch, and answered_at is the
+    // askedAt is set by the daily job in a batch, and answeredAt is the
     // candidate's own answer; neither is written by a teammate's check-in.
     const times = columns(leadershipCandidate)
       .filter((c) => c.type.startsWith("timestamp"))
       .map((c) => c.name)
       .sort();
-    expect(times).toEqual(["answered_at", "asked_at"]);
+    expect(times).toEqual(["answeredAt", "askedAt"]);
     expect(references(leadershipCandidate)).not.toContain(
       "leadership_participation",
     );
