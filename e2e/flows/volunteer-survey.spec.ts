@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { expect, type Page, test } from "@playwright/test";
 import { Client } from "pg";
+import { goViaMenu } from "../support/app-nav";
 import { expectNoAxeViolations } from "../support/axe";
 import { memberPage, type Member } from "../support/people";
 import { pageAs } from "../support/personas";
@@ -63,7 +64,7 @@ test("members claim and drop a volunteer shift, never past its spots", async ({
 
   const player = await pageAs(browser, "Player");
   await test.step("Pat signs up from the app", async () => {
-    await player.getByRole("link", { name: "Volunteer" }).click();
+    await goViaMenu(player, "Volunteer");
     await expect(player.getByRole("heading", { level: 1 })).toHaveText(
       "Volunteer",
     );
