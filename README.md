@@ -30,6 +30,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 - Live scores, standings, power rankings, pick'em for bragging rights, awards votes and an end-of-season card to share.
 - An installable phone app: the next game opens with no signal, and push messages cover rain-outs and sub requests.
 - Download everything the league holds, or delete the account.
+- Lost and found: members post a found item (with an optional photo, where it was found, a park or the home bar, and where it is now) or a lost note, newest first on one screen. The owner taps "That's mine" (or the finder taps "I found it" on a lost note) and the two talk inside the app, by first name, without anyone's phone or email shown; the poster marks it handed over, which closes the post and deletes its photo. Posts close after 30 days with a note to the poster, admins can take any post down, and photos share the member-photo limits (shrunk on upload, location removed, daily and storage caps).
 
 **Captains**
 
@@ -42,7 +43,6 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 
 - See assigned games, take an uncovered game with one tap, enter the final score or keep score live inning by inning, with offline entry that syncs when the signal returns.
 - Report incidents, eject a player from the live game screen (after confirming), and see the permit for the field they are at.
-- Lost and found: members post a found item (with an optional photo, where it was found, a park or the home bar, and where it is now) or a lost note, newest first on one screen. The owner taps "That's mine" (or the finder taps "I found it" on a lost note) and the two talk inside the app, by first name, without anyone's phone or email shown; the poster marks it handed over, which closes the post and deletes its photo. Posts close after 30 days with a note to the poster, admins can take any post down, and photos share the member-photo limits (shrunk on upload, location removed, daily and storage caps).
 
 **Admins**
 
