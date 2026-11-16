@@ -105,5 +105,5 @@ test("a visitor answers the interest form and an admin sends the go-ahead", asyn
 test("the form refuses an answer with no email address", async ({ page }) => {
   await page.goto("/interest");
   await page.getByRole("button", { name: "Send my answer" }).click();
-  await expect(page.getByRole("alert")).toContainText("email address");
+  await expect(page.getByText(/Add the email address/)).toBeVisible();
 });
