@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { type Locale, localizedPath } from "@/i18n/locales";
+import { LANG_ATTRIBUTES, type Locale, localizedPath } from "@/i18n/locales";
 import { localesOf } from "@/i18n/pages";
 import { absoluteUrl } from "../site";
 
@@ -66,7 +66,9 @@ function inEachLanguage(
     locales.length > 1
       ? {
           alternates: {
-            languages: Object.fromEntries(locales.map((l) => [l, url(l)])),
+            languages: Object.fromEntries(
+              locales.map((l) => [LANG_ATTRIBUTES[l], url(l)]),
+            ),
           },
         }
       : {};

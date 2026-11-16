@@ -1,4 +1,4 @@
-import { LOCALE_NAMES, type Locale } from "@/i18n/locales";
+import { LANG_ATTRIBUTES, LOCALE_NAMES, type Locale } from "@/i18n/locales";
 import { offeredLocales } from "@/i18n/pages";
 
 /**
@@ -25,8 +25,8 @@ export function LanguageSwitcher({
             {/* A plain link: the target is a redirect, not a page to prefetch. */}
             <a
               href={`/language/${locale}`}
-              hrefLang={locale}
-              lang={locale}
+              hrefLang={LANG_ATTRIBUTES[locale]}
+              lang={LANG_ATTRIBUTES[locale]}
               rel="nofollow"
               aria-current={locale === current ? "true" : undefined}
               className="inline-flex min-h-11 items-center font-bold text-text underline-offset-4 hover:underline aria-[current=true]:underline"
