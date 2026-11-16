@@ -23,7 +23,7 @@ Measure warm, pin the profile, and assert each metric's own median. Every budget
 - **Each metric's median of five runs.** The performance and accessibility scores, LCP, CLS and total blocking time use `"aggregationMethod": "median"`: the middle of the five values for that metric. One odd run out of five can't fail a page, and three slow runs out of five still do.
 - **A warm server.** `scripts/lighthouse-server.mjs` starts `next start` and requests every listed page twice, the routes those pages link to (as their link prefetches will) and the static files they load. Only then does it print the line Lighthouse CI waits for. A production server is warm after its first few visitors, so this measures what nearly every visitor gets.
 - **A pinned profile.** `lighthouserc.json` sets the form factor, screen and simulated throttling (150 ms round trip, 1.6 Mbps, 4× CPU slowdown) to the values Lighthouse 13 uses by default, so a Lighthouse upgrade can't change the phone being measured without a visible change to this file.
-- **No CPU adjustment.** The data shows no link between the runner's speed and the results, so `cpuSlowdownMultiplier` stays fixed rather than tuned to the benchmark index.
+- **No CPU adjustment.** The data shows no link between the runner's speed and the results, so `cpuSlowdownMultiplier` stays fixed rather than tuned to the benchmark index. (For LCP, which this studied, that held; total blocking time does depend on the runner, and [ADR 0079](0079-calibrated-cpu-throttle.md) calibrates the multiplier for it.)
 
 ## Alternatives considered
 
