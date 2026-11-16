@@ -171,6 +171,31 @@ describe("signing in with the code from the email", () => {
     });
   });
 
+  it("takes the code under a merged-away address, for the account it joined", async () => {
+    await inRolledBackDb(async (db) => {
+      const mail: Mail[] = [];
+      const auth = instance(db, mail);
+      const [kept, merged] = await db
+        .insert(schema.user)
+        .values([
+          { name: "Kept", email: "kept@example.test", emailVerified: true },
+          { name: "Old", email: "old-gone@example.test", emailVerified: true },
+        ])
+        .returning({ id: schema.user.id });
+      await db.insert(schema.accountMerge).values({
+        keptUserId: kept!.id,
+        mergedUserId: merged!.id,
+        mergedEmail: "old@example.test",
+      });
+      // The site's hook sends the link and code to the kept address.
+      await ask(auth, "kept@example.test");
+      const [sent] = mail;
+      expect(await enter(auth, "Old@example.test", sent!.code)).toMatchObject({
+        outcome: "signed-in",
+      });
+    });
+  });
+
   it("stores only a keyed hash of the code", async () => {
     await inRolledBackDb(async (db) => {
       const mail: Mail[] = [];

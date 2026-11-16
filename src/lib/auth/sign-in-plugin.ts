@@ -7,6 +7,7 @@ import {
 } from "better-auth/api";
 import { deleteSessionCookie, setSessionCookie } from "better-auth/cookies";
 import { z } from "zod";
+import { canonicalEmail } from "@/db/queries/account-merge";
 import { consumeRateLimit } from "@/db/queries/rate-limit";
 import type { Db } from "@/db/queries/schedule";
 import {
@@ -106,7 +107,11 @@ export function leagueSignIn(db: Db, options: { appScheme: string }) {
           body: z.object({ email: z.email(), code: z.string().max(20) }),
         },
         async (ctx) => {
-          const email = normalizeEmail(ctx.body.email);
+          // A merged-away address's email went to the account it joined
+          // (merged-alias.ts), and so did its code.
+          const email = normalizeEmail(
+            (await canonicalEmail(db, ctx.body.email)) ?? ctx.body.email,
+          );
           const code = normalizeSignInCode(ctx.body.code);
           const now = new Date();
           const guessKey = signInCodeIdentifier(email).replace(
