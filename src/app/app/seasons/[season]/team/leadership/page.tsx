@@ -405,7 +405,7 @@ async function Leadership({
 
       <p className="text-small text-text-muted">
         Captains can always hand the team over on their own, from the team
-        page. <Link href="/help" className="underline">How the check-in works</Link>
+        page. <Link href="/help/player#leadership-check-in" className="underline">How the check-in works</Link>
       </p>
     </>
   );

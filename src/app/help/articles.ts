@@ -329,6 +329,25 @@ export const HELP_ROLES: readonly HelpRole[] = [
         screen: { href: "/app/change-team", label: "Looking for a change" },
         keywords: ["switch teams", "new team", "transfer", "move", "change"],
       },
+      {
+        id: "leadership-check-in",
+        title: "The season-end leadership check-in",
+        summary:
+          "Privately say who you'd like to help lead next season; a secret ballot follows only if enough of the team takes part.",
+        steps: [
+          'When the season ends, your team page shows "Leadership check-in". Open it.',
+          'Tick "I\'d like to help as a co-captain" or "I\'d like to captain next season", suggest a teammate, or leave it all blank to say things are good. Tap "Check in". It\'s once, and nobody sees your answer.',
+          "Suggested by a teammate? Within a day you're asked whether you'd like to stand. Saying no is fine, and you're never told who suggested you.",
+          'If enough of the roster checked in and a teammate stands for captain, a secret ballot opens. Pick one and tap "Cast my secret vote".',
+          "Your captain hears the result first; the team hears the outcome a few days later. A change needs over half the votes.",
+        ],
+        notes: [
+          "Nobody sees how anyone voted or who suggested whom: not the captain, teammates or the league.",
+          "Captains can still hand the team over any time from the team page.",
+        ],
+        screen: { href: "/app", label: "Your home, then your team" },
+        keywords: ["captain", "vote", "ballot", "election", "co-captain", "nominate"],
+      },
     ],
   },
   {
@@ -878,6 +897,22 @@ export const HELP_ROLES: readonly HelpRole[] = [
         ],
         screen: { href: "/app/admin/incidents", label: "Incidents" },
         keywords: ["injury", "insurance", "privacy", "delete", "export"],
+      },
+      {
+        id: "leadership-check-ins",
+        title: "Run the season-end leadership check-ins",
+        summary:
+          "Open every team's private leadership check-in once the regular season ends, and pause or close one if it's disputed.",
+        steps: [
+          'Open the season, then "Leadership check-ins". It works once the season is in playoffs or completed.',
+          'Choose how many days to check in (3 to 14) and tap "Open check-ins". Every roster is told.',
+          'Set "Quorum": the share of a roster that must take part before a ballot, 60% unless you change it.',
+          'Each team shows its step, how many took part and its deadline. "Pause" stops everything if it\'s disputed; "Resume" moves the deadline on; "Close with no change" ends it.',
+        ],
+        notes: [
+          "You never see who suggested or voted for whom, or any vote count; only the outcome, once the team hears it.",
+        ],
+        keywords: ["captain", "vote", "ballot", "election", "leadership"],
       },
     ],
   },

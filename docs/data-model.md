@@ -66,6 +66,10 @@ erDiagram
   move_interest ||--o{ move_invite : "invited"
   team ||--o{ move_invite : "invites"
   team_season ||--o{ captain_handoff : "offers captaincy"
+  team_season ||--o| leadership_check_in : "season-end check-in"
+  leadership_check_in ||--o{ leadership_candidate : "standing or suggested"
+  leadership_check_in ||--o{ leadership_ballot_option : "ballot choices"
+  leadership_check_in ||--o{ leadership_participation : "who took part"
   season ||--o| season_shirts : "orders shirts as"
 
   profile {
@@ -101,6 +105,7 @@ erDiagram
     boolean pickem_own_games "players may pick their own team's games; default true"
     boolean admins_confirm_rainouts "admins may confirm rain-outs too; owners only, default false"
     text rulebook_visibility "owners (default), members or public; who may read the rulebook"
+    smallint leadership_quorum_percent "share of a roster that must take part in a leadership check-in; 50 to 100, default 60"
   }
   league_member {
     uuid league_id PK, FK
@@ -276,6 +281,46 @@ erDiagram
     timestamptz created_at
     timestamptz decided_at
   }
+  leadership_check_in {
+    uuid id PK
+    uuid team_season_id FK "unique: once per team per season"
+    enum step "check_in, ballot, captain_review, closed"
+    enum outcome "set when the ballot closes or the step is closed"
+    smallint quorum_percent "the league's, when it opened"
+    boolean captain_stepping_down
+    timestamptz check_in_closes_at
+    timestamptz ballot_closes_at
+    timestamptz review_ends_at "end of the captain's private three days"
+    uuid elected_user_id FK "the teammate chosen, for new_captain"
+    enum captain_choice "hand_off_now, captain_elect"
+    timestamptz elect_offered_at
+    timestamptz paused_at
+    uuid opened_by FK
+    timestamptz created_at
+    timestamptz closed_at
+  }
+  leadership_candidate {
+    uuid id PK
+    uuid check_in_id FK
+    uuid user_id FK
+    enum role "captain, co_captain"
+    boolean volunteered
+    boolean nominated "somebody suggested them; never who"
+    timestamptz asked_at "set by the daily job, in a batch"
+    enum answer "accepted, declined"
+    timestamptz answered_at
+  }
+  leadership_ballot_option {
+    uuid id PK
+    uuid check_in_id FK
+    uuid user_id FK "the teammate; the captain to keep them"
+    int votes "no voter, no time"
+  }
+  leadership_participation {
+    uuid check_in_id PK
+    uuid user_id PK
+    enum part "check_in, ballot; no time, no choice"
+  }
   team_keep_off {
     uuid id PK
     uuid team_id FK
@@ -332,6 +377,7 @@ Notes:
 - Players on a team built from the free-agent pool keep `registration.kind = free_agent` and pay the free-agent fee; per team, the new team's fixed share is that fee, for anyone the captain invites later ([ADR 0012](adr/0012-free-agent-matching.md)).
 - A team has one main captain, who makes final decisions and handles payment, and commonly one to three co-captains (`role = co_captain`, no limit in the schema). The captain, or an admin, makes a teammate a co-captain or a player again; a co-captain can step down. Co-captains have the captain's team tools (kicking orders, sub requests, scores, the payments view, the private list) but can't hand the team over, change co-captains or change the captain's role. Paying the team fee and withdrawing the team stay with the main captain ([ADR 0042](adr/0042-captain-handoff-and-co-captains.md)).
 - `captain_handoff` is a captain's offer of the captaincy to a teammate. The captain keeps the role until the teammate accepts; then, in one transaction, the old captain becomes a co-captain and the teammate the captain (the `roster_membership_one_captain` index never sees two). One offer waits per team season (unique where `status = 'pending'`); a new one cancels the last, withdrawing is quiet, and an offer whose captain has changed or whose teammate has left is closed when answered. No offer is made or accepted while a team-fee checkout is open. Deleting either account cancels a waiting offer.
+- `leadership_check_in` is a team's season-end leadership check-in ([ADR 0077](adr/0077-leadership-check-in-with-a-secret-ballot.md)): once per team season, opened by an admin for the whole season once the regular season is over. Who took part (`leadership_participation`, no time) is stored apart from what they chose: `leadership_candidate.nominated` says only that somebody suggested a teammate, and `leadership_ballot_option.votes` is a count with no voter. Candidate rows exist for everyone on the roster and both roles before any choice is written, and a check-in or vote rewrites every candidate or option row of its check-in in one statement, so no row's last writer marks a choice. No audit row, log line or message is written for a check-in or a vote; suggested teammates are asked by the daily job in a batch. A ballot's result is set on `outcome` when it closes and waits three days with the captain (`captain_review`) before the team and admins see it. Opening, pausing, resuming, closing and the league's quorum are audited as `leadership.*`.
 - `team_keep_off` is a team's private "not on my team" list ([ADR 0036](adr/0036-not-on-my-team-list.md)). It hangs off the lasting `team`, so it carries over from season to season; one row per person per team (unique `(team_id, user_id)` and `(team_id, email)`). A captain or admin adds an email address, and the list answers and shows it the same way whether or not the address has an account, so it never tells a captain who is a league member: an address with no account yet is kept with `user_id` null, and the account created for it later takes it on at sign-up. The team's own list shows each entry as the address typed, never a name; admins also see the account's name when there is one. A person on it sees the team's invite link as expired, is never suggested for the team by the matcher (an admin placing them anyway is warned and the override audited), and never hears of or sees the team's sub requests. Nothing else reads it. `league.export_keep_off_entries` (off by default, owners only) decides whether a person's own export lists the rows about them. The audit log records who added or removed whom, never the reason.
 - `move_interest` is a player quietly "looking for a change": open to a new team next season ([ADR 0089](adr/0089-looking-for-a-change.md)). One row per person per league, with who may see it (`audience`: admins, recruiting captains, or both) and an optional note. It never reaches a team the person has played on, in any season: its captains, co-captains and teammates never count, read or hear of it, and nothing public shows it. A recruiting team (a team entered in a league season that is a draft or open for registration, before its close) sees only how many players it may invite; that count leaves out anyone who has been on the team's roster and anyone on its "not on my team" list. Admins see the name and note when the audience includes them, and the free-agent matcher steers the person to another team. A flag counts until the first registration close of a league season after `created_at` (a season with no closing date closes as it starts); reads ignore it after that, and the daily retention job deletes it. Setting it again after it cleared starts a new one. Withdrawing deletes the row. Nothing about it goes in the audit log, which admins read whatever the audience.
 - `move_invite` is one recruiting team's invite to one such person, sent to everyone the team may invite at once, with the same optional pitch. Unique `(interest_id, team_id)`, so a team invites a person once. The team learns who the person is only when `status` is `accepted` and the audience still includes captains; a decline reads to the team exactly like no answer. It belongs to the interest, so withdrawing or expiry deletes it.
@@ -2164,6 +2210,10 @@ Integrity rules the database enforces, so application bugs cannot break them:
 | `league`, `season` | check `minimum_age` between 18 and 99 (the season's may be null) | A minimum age that makes sense |
 | `registration`, `waiver_signature` | check `age_confirmed_min` and `age_confirmed_at` are set together, the age between 18 and 99 | An age confirmation always says when |
 | `captain_handoff` | unique `(team_season_id)` where `status = 'pending'`; check `from_user_id <> to_user_id`; check `decided_at` set exactly when not pending | One waiting offer per team; nobody offers it to themselves |
+| `leadership_check_in` | unique `(team_season_id)`; checks: `closed_at` set exactly when closed, an outcome when closed or with the captain, `review_ends_at` with the captain, `elected_user_id` for `new_captain`, `ballot_closes_at` from the ballot on, quorum 50 to 100 | Once per team per season; the steps happen in order |
+| `leadership_candidate` | unique `(check_in_id, user_id, role)`; `answered_at` set exactly with `answer` | One row per person and role |
+| `leadership_ballot_option` | unique `(check_in_id, user_id)`; `votes >= 0` | One choice per teammate |
+| `leadership_participation` | primary key `(check_in_id, user_id, part)` | A person checks in once and votes once |
 | `season_shirts` | primary key `season_id`; unique `expense_id`; check at least one size, `cost_cents` 1 to 10,000,000, `vendor` up to 80 characters, and `placed_at` and `received_at` set to match `status` | One order per season, booked at most once, never received before it is placed |
 | `lost_found_item` | checks: closed exactly when not open; `where_now` set exactly for found items; photo columns set together and only while open; text lengths | A closed post keeps no photo; a lost note has no "where it is now" |
 | `lost_found_claim` | unique `(item_id, responder_id)`; unique `(item_id)` where `status = 'handed_over'`; check closed exactly when not open | One answer per person; one hand-over per post |
@@ -2369,6 +2419,7 @@ Indexes for the common reads:
 | Sub claims | `sub_claim` | The player, the asking team's captains and admins. Approved subs appear as first name and last initial to both captains and the game's ref |
 | New-team requests, with the player's note | `team_formation_request` | The player and admins |
 | Private league and tournament requests, with the organizer's note | `private_event` | The organizer and admins. The organizer's contact details stay on their account |
+| Leadership check-ins | `leadership_check_in`, `leadership_candidate`, `leadership_ballot_option`, `leadership_participation` | Everyone on the team sees the step, how many took part and, once closed, the outcome; the captain sees a ballot's result three days before the team. A person sees only their own check-in and vote were sent, and suggestions they were asked about. Nobody, admins included, sees who suggested or voted for whom or a vote count: neither is linked to a person anywhere. A person's export lists what they took part in and stood for, never what they chose |
 | Captaincy offers | `captain_handoff` | The captain who offered, the teammate offered it, and admins; both people find the offers in their own export |
 | "Not on my team" entries, with the private reason | `team_keep_off` | The team's captains and admins. The person listed never sees them anywhere; their own export lists them only if the owners turn on `league.export_keep_off_entries`. The captain or admin who added an entry finds it in their own export |
 | Looking for a change, with the note, and the invites it got | `move_interest`, `move_invite` | The player. Admins, with the name and note, if the player lets them. A recruiting team's captains see only a count, and the name and email of a player who accepted their invite. Never any team the player has played on, never public. The player's own export holds their flag and every invite with its answer; a captain's export holds the pitches they sent and to how many players, never to whom |
