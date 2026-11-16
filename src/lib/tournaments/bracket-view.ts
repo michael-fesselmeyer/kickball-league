@@ -1,6 +1,6 @@
 import type { BracketView } from "@/db/queries/playoffs";
 import type { BracketId, TeamSeasonId } from "@/domain/ids";
-import { roundCount } from "@/domain/playoffs/playoffs";
+import { gameNumbers, roundCount } from "@/domain/playoffs/playoffs";
 import type { TournamentBracket } from "@/domain/tournaments/bracket";
 
 /**
@@ -24,9 +24,15 @@ export function bracketViewOf(
       seed: s?.seed ?? null,
     };
   };
+  const numbers = gameNumbers(b.matches.map((m) => ({ ...m, gameNo: null })));
   return {
     id: "tournament" as BracketId,
     division: null,
+    tier: 1,
+    format: "single_elimination" as const,
+    thirdPlace: false,
+    earlyInnings: null,
+    finalInnings: null,
     status: b.champion ? "complete" : "published",
     size: b.seeds.length,
     rounds: roundCount(b.seeds.length),
@@ -36,6 +42,10 @@ export function bracketViewOf(
     seeds: b.seeds.map((s) => ({ seed: s.seed, team: side(s.teamId) })),
     matches: b.matches.map((m) => ({
       code: m.code,
+      stage: "main" as const,
+      gameNo: numbers.get(m.code) ?? 0,
+      skipped: false,
+      innings: null,
       round: m.round,
       position: m.position,
       sourceA: m.sourceA,
