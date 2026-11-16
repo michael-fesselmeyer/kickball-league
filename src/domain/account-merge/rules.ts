@@ -97,6 +97,13 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     resolve: "drop",
     clash: "Both chose a setting for the same notice; the kept account's stays",
   },
+  "alert_card_response.user_id": {
+    kind: "dedupe",
+    label: "answers to alert offers",
+    by: ["card"],
+    resolve: "drop",
+    clash: "Both answered the same alert offer; the kept account's answer stays",
+  },
   "alert_setting.user_id": {
     kind: "special",
     label: "alert settings",
