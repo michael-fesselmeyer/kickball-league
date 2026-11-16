@@ -60,3 +60,16 @@ docs/BKC_Rulebook_2023.pdf
 # Database backups hold personal data; they never belong in the repository
 *.dump
 /backups/
+
+# The native apps' generated pages (npm run mobile:web) and build output
+/mobile/www/
+/ios/App/App/public/
+/ios/App/App/capacitor.config.json
+/ios/App/App/config.xml
+/android/app/src/main/assets/public/
+/android/app/src/main/assets/capacitor.config.json
+/android/app/src/main/assets/capacitor.plugins.json
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties

@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { isNativeShell } from "@/lib/mobile/native-shell";
 import {
   DISMISSED_KEY,
   INSTALLABLE_EVENT,
@@ -50,7 +51,9 @@ function currentOffer(): InstallOffer {
     dismissed: stored(DISMISSED_KEY) !== null,
     standalone:
       window.matchMedia("(display-mode: standalone)").matches ||
-      ("standalone" in navigator && navigator.standalone === true),
+      ("standalone" in navigator && navigator.standalone === true) ||
+      // Already the iOS or Android app.
+      isNativeShell(),
     canPrompt: window.__kbInstallPrompt !== undefined,
     ios: isIos(navigator.userAgent, navigator.maxTouchPoints),
   });
