@@ -179,7 +179,7 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     label: "captaincy offered to them",
   },
   "captain_handoff.created_by": actor("captaincy offers made"),
-  // Leadership check-ins (ADR 0090). Where both accounts took part in the
+  // Leadership check-ins (ADR 0091). Where both accounts took part in the
   // same step, or stand for the same role, the kept account's row stands.
   "leadership_check_in.elected_user_id": {
     kind: "move",

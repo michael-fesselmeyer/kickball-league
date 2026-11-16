@@ -95,7 +95,7 @@ export const league = pgTable(
     /**
      * How much of a team's roster must take part before a leadership
      * check-in can go to a secret ballot, and for the ballot to count, as a
-     * percentage (ADR 0090). Admins decide; 60 by default.
+     * percentage (ADR 0091). Admins decide; 60 by default.
      */
     leadershipQuorumPercent: smallint().notNull().default(60),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

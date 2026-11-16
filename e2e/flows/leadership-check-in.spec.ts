@@ -5,7 +5,7 @@ import { type Member, memberPage } from "../support/people";
 import { pageAs } from "../support/personas";
 
 /**
- * The season-end leadership check-in (ADR 0090), at phone width. The flow
+ * The season-end leadership check-in (ADR 0091), at phone width. The flow
  * makes its own finished private season with one team of two made-up
  * people, so no other flow meets it: an admin opens check-ins, a player
  * checks in privately and puts themselves forward, and the admin sees only

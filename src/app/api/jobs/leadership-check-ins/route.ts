@@ -6,7 +6,7 @@ import { refuseJobsWhileFrozen } from "@/lib/platform/site";
 import { drainOutboxNow } from "@/services/outbox";
 
 /**
- * Daily job: moves season-end leadership check-ins along (ADR 0090). Asks
+ * Daily job: moves season-end leadership check-ins along (ADR 0091). Asks
  * newly suggested teammates in one batch, closes check-ins and ballots that
  * are due, ends a captain's private time with a result, and offers
  * captains-elect the captaincy once their next season starts. Paused

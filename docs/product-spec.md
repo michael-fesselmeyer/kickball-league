@@ -156,7 +156,7 @@ Legend: ✓ allowed. **own** = only their own record, team or sponsor. **assigne
 | See team RSVPs | — | own team | own team | — | — | ✓ | ✓ |
 | Hand the team to a teammate, who must accept; make or unmake co-captains ([ADR 0042](adr/0042-captain-handoff-and-co-captains.md)) | — | — | own (captain only, not co-captains) | — | — | ✓ | ✓ |
 | Accept or decline the captaincy offered to you; step down as a co-captain | — | own | own | — | — | own | own |
-| Check in privately and vote secretly in the team's season-end leadership check-in ([ADR 0090](adr/0090-leadership-check-in-with-a-secret-ballot.md)) | — | own team | own team | — | — | own team | own team |
+| Check in privately and vote secretly in the team's season-end leadership check-in ([ADR 0091](adr/0091-leadership-check-in-with-a-secret-ballot.md)) | — | own team | own team | — | — | own team | own team |
 | Hear the ballot's result first and choose how to hand over | — | — | own (captain only, not co-captains) | — | — | — | — |
 | Open, pause, resume and close leadership check-ins; set the league's quorum (never sees a choice) | — | — | — | — | — | ✓ | ✓ |
 | Post a sub request | — | — | own | — | — | ✓ | ✓ |
@@ -333,7 +333,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | Build a new team from free agents with volunteer captains | P2 |
 | "Start a new team" request with league approval and captain notice | P2 |
 | "Looking for a change": a player quietly open to a new team next season, never visible to their current team; recruiting captains see a count and invite, and a name is revealed only on the player's yes ([ADR 0089](adr/0089-looking-for-a-change.md)) | P2 |
-| Season-end leadership check-in: each player privately volunteers, suggests a teammate or says things are good; a secret ballot only with the league's quorum and a teammate standing; over half the votes for a change; the captain hears first and hands over now or keeps the new captain-elect as co-captain until next season; admins can pause or close one; once per team per season ([ADR 0090](adr/0090-leadership-check-in-with-a-secret-ballot.md)) | P3 |
+| Season-end leadership check-in: each player privately volunteers, suggests a teammate or says things are good; a secret ballot only with the league's quorum and a teammate standing; over half the votes for a change; the captain hears first and hands over now or keeps the new captain-elect as co-captain until next season; admins can pause or close one; once per team per season ([ADR 0091](adr/0091-leadership-check-in-with-a-secret-ballot.md)) | P3 |
 
 ### Weather and rain-outs
 | Feature | Tag |
