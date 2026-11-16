@@ -5,7 +5,7 @@ import { sportRules } from "@/domain/sports/sports";
 import { type ResultGame, standings } from "./standings";
 
 /**
- * Standings for a sport scored in sets (ADR 0072): the same table and
+ * Standings for a sport scored in sets (ADR 0087): the same table and
  * tiebreakers, with sets for runs and no cap on the set difference.
  */
 

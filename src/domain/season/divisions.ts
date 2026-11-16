@@ -26,7 +26,7 @@ export function parseDivisionName(
 export type RuleSetInput = {
   name: string;
   innings: number | null;
-  /** Sets in a match, for a sport played in sets (ADR 0072); set only when given. */
+  /** Sets in a match, for a sport played in sets (ADR 0087); set only when given. */
   bestOf?: number;
   timeLimitMinutes: number | null;
   bunting: boolean;

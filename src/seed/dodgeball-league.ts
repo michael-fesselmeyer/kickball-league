@@ -32,7 +32,7 @@ import { newYorkTime, roundRobin, SEED_EMAIL_DOMAIN } from "./generate";
 import { seedPublishedSchedule } from "./published-schedule";
 
 /**
- * A dodgeball league on the same deployment (ADR 0072), the first sport
+ * A dodgeball league on the same deployment (ADR 0087), the first sport
  * with rules of its own after kickball: best-of-five matches on the
  * courts of a gym, with its own admin, four teams and a season two weeks
  * in. Everything is invented.

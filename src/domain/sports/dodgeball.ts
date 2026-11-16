@@ -7,7 +7,7 @@ import {
 } from "./result";
 
 /**
- * Dodgeball's score rules (ADR 0072). A match is best of N sets, N odd.
+ * Dodgeball's score rules (ADR 0087). A match is best of N sets, N odd.
  *
  * - Played to the end: the winner has won a majority of the sets (3 of 5)
  *   and the loser fewer.

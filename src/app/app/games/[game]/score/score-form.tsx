@@ -82,7 +82,7 @@ export function ScoreForm({
   reasonRequired?: boolean;
   /** The runs kept live, to start the form from; null when none were. */
   filled?: { scoreA: number; scoreB: number } | null;
-  /** The sport's words and limits (ADR 0072); kickball's by default. */
+  /** The sport's words and limits (ADR 0087); kickball's by default. */
   rules?: ScoreFormRules;
 }) {
   const [key, setKey] = useState(clientId);

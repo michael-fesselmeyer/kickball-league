@@ -121,7 +121,7 @@ src/
   components/          UI components (design system)
   domain/              pure TypeScript, no imports from app/, db/ or next/*
     scheduler/  standings/  pricing/  authz/  matching/  weather/  fielding/
-    sports/            each sport's rules: kickball (the default), dodgeball (ADR 0072)
+    sports/            each sport's rules: kickball (the default), dodgeball (ADR 0087)
   db/                  Drizzle schema, migrations, query functions
   services/            I/O adapters: stripe, email, weather, blob, push
   jobs/                job handlers called by route handlers
@@ -131,7 +131,7 @@ tests/  e2e/  scripts/seed.ts
 
 The rule that makes this testable: `domain/` never imports from anywhere else in `src/`. An ESLint boundary rule enforces it. Everything interesting (the scheduler, tiebreakers, who-can-do-what, price calculation, fielding-rule checks) is a pure function with fast tests.
 
-What varies by sport lives in `src/domain/sports/` ([ADR 0072](adr/0072-sport-rules-per-league.md)). A screen or query that depends on the rules asks `sportRules(league.sport)` for them (the score unit and its words, the score check, periods and live scoring, the standings' difference cap, where it is played) instead of assuming kickball, and everything else (registration, payments, messaging, events, the schedule, score confirmation, standings order, brackets) stays shared.
+What varies by sport lives in `src/domain/sports/` ([ADR 0087](adr/0087-sport-rules-per-league.md)). A screen or query that depends on the rules asks `sportRules(league.sport)` for them (the score unit and its words, the score check, periods and live scoring, the standings' difference cap, where it is played) instead of assuming kickball, and everything else (registration, payments, messaging, events, the schedule, score confirmation, standings order, brackets) stays shared.
 
 One Next.js app in one repository. A monorepo would add tooling without adding anything this project needs.
 

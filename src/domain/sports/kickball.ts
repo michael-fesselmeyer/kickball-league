@@ -8,7 +8,7 @@ import {
 
 /**
  * Kickball's score rules (product-spec.md, "Game day"; rulebook 3.1.5),
- * the league's first sport and the default (ADR 0072).
+ * the league's first sport and the default (ADR 0087).
  *
  * - Scores are runs, 0 to 99 a team.
  * - A game called after at least 4 complete innings counts with the score

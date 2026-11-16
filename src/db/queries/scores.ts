@@ -58,7 +58,7 @@ const entryB = aliasedTable(teamSeason, "entry_b");
 
 /**
  * A game with its teams and slot, for the score screen, with its league's
- * sport and the match length its rules set (ADR 0072): team A's division's
+ * sport and the match length its rules set (ADR 0087): team A's division's
  * rule set, else the league's first rule set that sets one, else null for
  * the sport's default.
  */

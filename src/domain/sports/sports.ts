@@ -14,7 +14,7 @@ import {
 import type { CheckOptions, ScoreErrors, ScoreInput } from "./result";
 
 /**
- * What varies by sport (ADR 0072). A league plays one sport; every screen
+ * What varies by sport (ADR 0087). A league plays one sport; every screen
  * and query that depends on the rules asks this module instead of assuming
  * kickball. Sports without a module of their own play by kickball's rules,
  * as every league did before sports had rules.

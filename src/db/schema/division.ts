@@ -65,7 +65,7 @@ export const ruleSet = pgTable(
     innings: integer(),
     /**
      * Sets in a match, for a sport played in sets such as dodgeball (ADR
-     * 0072): best of this many. Null uses the sport's default.
+     * 0087): best of this many. Null uses the sport's default.
      */
     bestOf: smallint(),
     timeLimitMinutes: integer(),

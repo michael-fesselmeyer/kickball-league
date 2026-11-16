@@ -84,7 +84,7 @@ async function SeasonStandings({
   cacheTag(seasonTag(season.id));
   const { tables, teams, crossoversCount, sport } =
     await seasonDivisionStandings(db, season.id);
-  // The sport names the units and tiebreakers (ADR 0072).
+  // The sport names the units and tiebreakers (ADR 0087).
   const rules = sportRules(sport);
   const units = rules.score.unit.many;
   const cap = rules.score.differenceCap;

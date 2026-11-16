@@ -95,7 +95,7 @@ async function Divisions({
   if (!season) notFound();
   const screen = await divisionsScreen(db, season.leagueId, season.id);
   const { divisions, ruleSets, teams, settings } = screen;
-  // A rule set asks for what the league's sport plays by (ADR 0072).
+  // A rule set asks for what the league's sport plays by (ADR 0087).
   const rules = sportRules(season.sport);
   const error = query.error ? ERRORS[query.error] : undefined;
   const notice = query.notice ? NOTICES[query.notice]?.(query) : undefined;

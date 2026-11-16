@@ -113,7 +113,7 @@ export async function applyOfflineEntry(
     .where(eq(game.id, input.g.id))
     .for("update");
   // Halves and an ending from them are live scoring, which only a sport
-  // with innings has (ADR 0072).
+  // with innings has (ADR 0087).
   const live = entry.kind === "half" || entry.kind === "end";
   const applied =
     live && !sportRules(input.g.sport).score.liveScoring

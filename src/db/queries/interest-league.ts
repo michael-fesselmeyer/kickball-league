@@ -11,7 +11,7 @@ import { createLeague } from "./leagues";
 import type { Db } from "./schedule";
 
 /**
- * Opening a league from an interest option (ADR 0072): one step from "this
+ * Opening a league from an interest option (ADR 0087): one step from "this
  * option has enough interest" to a new league with a draft season, which
  * the operator then gives owners and the admins finish before registration
  * opens. Only the operator starts leagues (ADR 0048), so only the operator

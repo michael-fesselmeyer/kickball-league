@@ -123,7 +123,7 @@ export const interestOption = pgTable(
     /** What the admin added to the message, such as when registration opens. */
     goAheadNote: text(),
     /**
-     * The league opened from this option (ADR 0072), so it is opened once.
+     * The league opened from this option (ADR 0087), so it is opened once.
      * Deleting that league leaves the option as if never opened.
      */
     openedLeagueId: uuid()

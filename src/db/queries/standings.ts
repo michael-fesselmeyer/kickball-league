@@ -90,7 +90,7 @@ async function standingsData(db: Db, seasonId: SeasonId) {
     ];
   });
   // The sport's cap on a game's difference: 10 runs for kickball, none for
-  // sets (ADR 0072).
+  // sets (ADR 0087).
   const sport = settings?.sport ?? "kickball";
   const options = {
     seed: seasonId,
@@ -150,7 +150,7 @@ export async function seasonDivisionStandings(
   tables: DivisionTable[];
   teams: Map<string, StandingsTeam>;
   crossoversCount: boolean;
-  /** The league's sport, whose words the table uses (ADR 0072). */
+  /** The league's sport, whose words the table uses (ADR 0087). */
   sport: string;
 }> {
   const [data, divisions] = await Promise.all([

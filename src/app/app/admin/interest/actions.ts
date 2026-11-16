@@ -228,7 +228,7 @@ export async function removeAnswerAction(
 }
 
 /**
- * Opens a new league with a draft season from an option (ADR 0072). Only
+ * Opens a new league with a draft season from an option (ADR 0087). Only
  * the operator starts leagues (ADR 0048); anyone else gets a 404.
  */
 export async function openLeagueAction(

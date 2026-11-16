@@ -109,7 +109,7 @@ async function Live({
     delayedStarts(db, [gameId]),
     startOf(db, gameId),
   ]);
-  // Live scoring counts half-innings: only a sport that has it (ADR 0072).
+  // Live scoring counts half-innings: only a sport that has it (ADR 0087).
   if (!g || !live || !sportRules(g.sport).score.liveScoring) notFound();
   const ctx = {
     game: {

@@ -130,7 +130,7 @@ async function Score({
     game: { id: g.id, teamSeasonIds: [g.teamAId, g.teamBId] as const },
   };
   const mayEnter = can(subject, "score.enter", ctx);
-  // The sport's rules (ADR 0072): words, limits, and whether it scores live.
+  // The sport's rules (ADR 0087): words, limits, and whether it scores live.
   const rules = sportRules(g.sport);
   const formRules = scoreFormRules(rules, g.bestOf);
   const mayScoreLive =

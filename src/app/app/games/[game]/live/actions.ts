@@ -40,7 +40,7 @@ async function context(rawGameId: string) {
     next: page,
   });
   const g = gameId ? await gameForScoring(db, gameId) : null;
-  // Live scoring counts half-innings: only a sport that has it (ADR 0072).
+  // Live scoring counts half-innings: only a sport that has it (ADR 0087).
   if (!g || !sportRules(g.sport).score.liveScoring) notFound();
   const game = {
     id: g.id,
