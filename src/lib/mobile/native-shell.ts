@@ -1,6 +1,6 @@
 /**
  * What the site does differently inside the iOS and Android apps
- * (docs/mobile.md, ADR 0074). The apps are a Capacitor shell around the
+ * (docs/mobile.md, ADR 0090). The apps are a Capacitor shell around the
  * site, which puts a `Capacitor` object on the page before any of the
  * site's own scripts run. In a browser there is no such object and none of
  * this does anything.

@@ -1,6 +1,6 @@
 # iOS and Android apps
 
-The league's iOS and Android apps are a native shell around the site ([ADR 0074](adr/0074-ios-and-android-apps-as-a-shell-around-the-site.md)). Each opens the site in a web view and adds an app icon, Android's back button, outside links in the system browser and edge-to-edge layout. They are built and run **locally only**: in the iOS Simulator and Android emulator, or on your own phone. Nothing here needs an Apple or Google developer account, and nothing is published to a store.
+The league's iOS and Android apps are a native shell around the site ([ADR 0090](adr/0090-ios-and-android-apps-as-a-shell-around-the-site.md)). Each opens the site in a web view and adds an app icon, Android's back button, outside links in the system browser and edge-to-edge layout. They are built and run **locally only**: in the iOS Simulator and Android emulator, or on your own phone. Nothing here needs an Apple or Google developer account, and nothing is published to a store.
 
 ## One-time setup
 

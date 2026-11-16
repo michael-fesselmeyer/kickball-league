@@ -1,4 +1,4 @@
-# ADR 0074: iOS and Android apps as a native shell around the site, built locally
+# ADR 0090: iOS and Android apps as a native shell around the site, built locally
 
 - Status: accepted
 - Date: 2026-11-15

@@ -33,7 +33,7 @@ const NOT_SUBSCRIBED: Record<"unsupported" | "blocked" | "failed", string> = {
 
 /**
  * The iOS and Android apps have no web push, and native push is not built
- * yet (ADR 0074), so the app says where push does work.
+ * yet (ADR 0090), so the app says where push does work.
  */
 const IN_APP =
   "The app can't show notifications yet, so league news comes by email as set above. To get push on this phone, open this page in your phone's browser (on iPhone, from the site added to your Home Screen).";

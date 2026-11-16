@@ -1,6 +1,6 @@
 /**
  * Where the iOS and Android apps load the league from (docs/mobile.md,
- * ADR 0074). The apps are a native shell around the site itself, so the
+ * ADR 0090). The apps are a native shell around the site itself, so the
  * only thing they need to know is its address. It comes from
  * MOBILE_APP_URL when the native projects are synced, never from the code,
  * so the same shell points at a dev server on the laptop or at the

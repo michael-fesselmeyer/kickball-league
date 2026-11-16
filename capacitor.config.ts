@@ -1,5 +1,5 @@
 /**
- * The iOS and Android shells (docs/mobile.md, ADR 0074). Each app is a
+ * The iOS and Android shells (docs/mobile.md, ADR 0090). Each app is a
  * native web view that opens the league's site, so there is no second copy
  * of the pages to build or keep in step. The site's address comes from
  * MOBILE_APP_URL (in .env.local or the shell's environment) when
