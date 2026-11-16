@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { clockAnnouncement } from "@/domain/gameday/announce";
 import { type GameLimits, gameClock } from "@/domain/gameday/game-clock";
 import type { Position } from "@/domain/scores/live";
 
@@ -35,18 +36,25 @@ export function GameClockNote({
     next,
   });
   if (!state) return null;
-  // A plain line while the game runs: it changes every minute, too often
-  // to announce. The last inning and the end are announced.
-  if (state.level === "running")
-    return <p className="text-small text-text-muted">{state.message}</p>;
+  // The visible line counts down every half minute, too often to read
+  // out, so it is silent. A hidden status carries the sentence that changes
+  // only at the last inning, the end and the 30, 15 and 5 minute marks.
   return (
-    <p
-      role="alert"
-      className={`rounded-lg border p-3 font-bold ${
-        state.level === "over" ? "border-danger" : "border-warning"
-      }`}
-    >
-      {state.message}
-    </p>
+    <>
+      {state.level === "running" ? (
+        <p className="text-small text-text-muted">{state.message}</p>
+      ) : (
+        <p
+          className={`rounded-lg border p-3 font-bold ${
+            state.level === "over" ? "border-danger" : "border-warning"
+          }`}
+        >
+          {state.message}
+        </p>
+      )}
+      <p role="status" className="sr-only">
+        {clockAnnouncement(state)}
+      </p>
+    </>
   );
 }
