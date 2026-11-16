@@ -3,7 +3,8 @@ import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 
 const EVENT = "/events/harbor-cup-charity-tournament-2027-06-12";
-const ADMIN_EVENT = "/app/admin/events/harbor-cup-charity-tournament-2027-06-12";
+const ADMIN_EVENT =
+  "/app/admin/events/harbor-cup-charity-tournament-2027-06-12";
 const TEAM = "Southside Sluggers";
 
 /**
@@ -26,7 +27,9 @@ test("a guest team signs up, its players sign the waiver and the bracket plays o
   await expect(
     visitor.getByRole("link", { name: /Give at pantry\.example\.test/ }),
   ).toBeVisible();
-  await expect(visitor.getByText("never takes or holds donations")).toBeVisible();
+  await expect(
+    visitor.getByText("never takes or holds donations"),
+  ).toBeVisible();
   await expect(visitor.getByText("Borough Bases Blue")).toBeVisible();
   // The public page names teams and nothing about their captains.
   await expect(visitor.getByText("sam@example.test")).toHaveCount(0);
@@ -37,21 +40,30 @@ test("a guest team signs up, its players sign the waiver and the bracket plays o
   await visitor.getByLabel("Captain's email").fill("jo@example.test");
   await visitor.getByLabel("How many players?").fill("6");
   await visitor.getByRole("button", { name: "Enter our team" }).click();
-  await expect(visitor.getByRole("status")).toContainText("You're in!");
-  const link = await visitor.getByLabel("Waiver link for your team").inputValue();
+  await expect(
+    visitor.getByRole("status").filter({ hasText: "You're in!" }),
+  ).toBeVisible();
+  const link = await visitor
+    .getByLabel("Waiver link for your team")
+    .inputValue();
   expect(link).toContain("/guest/");
 
   const player = await visitorContext.newPage();
   await player.goto(link);
   await expect(
-    player.getByRole("heading", { level: 1, name: "Harbor Cup charity tournament" }),
+    player.getByRole("heading", {
+      level: 1,
+      name: "Harbor Cup charity tournament",
+    }),
   ).toBeVisible();
   await expect(player.getByText("0 of 6 players have signed")).toBeVisible();
   await expectNoAxeViolations(player);
   await player.getByLabel("Your full name").fill("Pat Guest");
   await player.getByLabel("I have read the waiver").check();
   await player.getByRole("button", { name: "Sign the waiver" }).click();
-  await expect(player.getByRole("status")).toContainText("Signed!");
+  await expect(
+    player.getByRole("status").filter({ hasText: "Signed!" }),
+  ).toBeVisible();
   await visitorContext.close();
 
   const admin = await pageAs(browser, "Admin");
@@ -65,19 +77,29 @@ test("a guest team signs up, its players sign the waiver and the bracket plays o
   await expectNoAxeViolations(admin);
 
   await panel.getByRole("button", { name: "Draw the bracket" }).click();
-  await expect(admin.getByRole("status").first()).toContainText("Bracket drawn");
+  await expect(
+    admin.getByRole("status").filter({ hasText: "Bracket drawn" }),
+  ).toBeVisible();
 
-  const semi = admin.getByRole("listitem").filter({ hasText: "Semifinals, game 1:" });
+  const semi = admin
+    .getByRole("listitem")
+    .filter({ hasText: "Semifinals, game 1:" });
   await semi.getByLabel(`${TEAM} runs`).fill("2");
   await semi.getByLabel("Borough Bases Gold runs").fill("5");
   await semi.getByRole("button", { name: "Save score" }).click();
-  await expect(admin.getByRole("status").first()).toContainText("Score saved");
+  await expect(
+    admin.getByRole("status").filter({ hasText: "Score saved" }),
+  ).toBeVisible();
 
-  const final = admin.getByRole("listitem").filter({ hasText: "Final, game 1:" });
+  const final = admin
+    .getByRole("listitem")
+    .filter({ hasText: "Final, game 1:" });
   await final.getByLabel("Borough Bases Blue runs").fill("7");
   await final.getByLabel("Borough Bases Gold runs").fill("3");
   await final.getByRole("button", { name: "Save score" }).click();
-  await expect(admin.getByRole("status").first()).toContainText("Score saved");
+  await expect(
+    admin.getByRole("status").filter({ hasText: "Score saved" }),
+  ).toBeVisible();
   await admin.context().close();
 
   const after = await (await browser.newContext()).newPage();
