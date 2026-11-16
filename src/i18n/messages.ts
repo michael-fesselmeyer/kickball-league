@@ -1,11 +1,17 @@
 import { type Complete, type Translation, withFallback } from "./catalog";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "./locales";
 import { type EnglishMessages, en } from "./messages/en";
+import { bn } from "./messages/bn";
 import { es } from "./messages/es";
+import { ht } from "./messages/ht";
+import { ko } from "./messages/ko";
+import { pl } from "./messages/pl";
+import { ru } from "./messages/ru";
+import { zh } from "./messages/zh";
 
 /** Every language's catalog; English is complete by definition. */
 export const CATALOGS: Readonly<Record<Locale, Translation<EnglishMessages>>> =
-  { en, es };
+  { en, es, zh, ru, pl, bn, ko, ht };
 
 export type Messages = Complete<EnglishMessages>;
 
