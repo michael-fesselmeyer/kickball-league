@@ -93,7 +93,8 @@ describe("ForecastSpace", () => {
     const lines = [...container.querySelectorAll("dd")];
     expect(lines).toHaveLength(2);
     for (const line of lines) {
-      expect(line.className).toContain("invisible");
+      // A class list, not a substring: "text-mutedinvisible" hides nothing.
+      expect(line.classList.contains("invisible")).toBe(true);
       expect(line.getAttribute("aria-hidden")).toBe("true");
     }
   });

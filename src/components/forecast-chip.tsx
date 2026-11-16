@@ -39,7 +39,7 @@ function ForecastLines({
       </dd>
       <dd
         {...hide}
-        className={`text-small text-text-muted${hidden ? "invisible" : ""}`}
+        className={`text-small text-text-muted ${hidden ? "invisible" : ""}`}
       >
         {note}
       </dd>
