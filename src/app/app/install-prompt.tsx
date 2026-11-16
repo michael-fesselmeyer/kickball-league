@@ -91,7 +91,7 @@ export function InstallPrompt() {
   return (
     <aside
       aria-labelledby="install-title"
-      className="fixed inset-x-4 bottom-4 z-10 mx-auto flex max-w-sm flex-col gap-3 rounded-card border-2 border-text bg-surface p-4 shadow-sticker"
+      className="fixed inset-x-4 bottom-[calc(var(--app-tabbar)+env(safe-area-inset-bottom)+1rem)] z-10 mx-auto flex max-w-sm flex-col gap-3 rounded-card border-2 border-text bg-surface p-4 shadow-sticker md:bottom-4"
     >
       <h2 id="install-title" className="text-h3">
         Put the league on your home screen
