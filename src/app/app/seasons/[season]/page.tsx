@@ -31,6 +31,8 @@ const PAYMENT_MESSAGES: Record<string, string> = {
   failed: "Stripe could not start the payment. Try again in a minute.",
   waiver_first: "Sign the waiver before paying.",
   already_paid: "You have already paid.",
+  in_progress:
+    "Your checkout is still opening. Wait a moment, then tap Pay again.",
   captain_pays: "Your captain is paying the team fee.",
   no_price: "The league has not set a price for this yet.",
   unknown_code:
