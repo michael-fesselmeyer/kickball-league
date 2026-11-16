@@ -82,7 +82,12 @@ test("a captain reports a score, the other confirms, standings move and an incid
       away.getByRole("region", { name: "Final score" }),
     ).toContainText(`${HOME} 5, ${AWAY} 2`);
 
-    expect(await wins(browser)).toBe(before + 1);
+    // A standings render already under way when the score was confirmed
+    // can save the old count; the second expiry a few seconds later
+    // (SECOND_EXPIRY_MS) drops it (docs/architecture.md, section 3).
+    await expect
+      .poll(() => wins(browser), { timeout: 20_000 })
+      .toBe(before + 1);
     const visitor = await (await browser.newContext()).newPage();
     await visitor.goto("/teams/sun-kickers");
     await expect(visitor.getByRole("main")).toContainText(AWAY);
