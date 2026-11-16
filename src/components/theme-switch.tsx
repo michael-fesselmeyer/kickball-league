@@ -9,11 +9,6 @@ export type ThemeLabels = {
   toDark: string;
 };
 
-const ENGLISH: ThemeLabels = {
-  toLight: "Switch to light mode",
-  toDark: "Switch to dark mode",
-};
-
 const listeners = new Set<() => void>();
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
@@ -82,7 +77,7 @@ const iconProps = {
  * The visible box is a snug 36px around the 20px icon; an invisible ::after
  * keeps the tap target at 44 × 44 without widening it.
  */
-export function ThemeSwitch({ labels = ENGLISH }: { labels?: ThemeLabels }) {
+export function ThemeSwitch({ labels }: { labels: ThemeLabels }) {
   const theme = useSyncExternalStore(subscribe, read, () => "light");
   useEffect(keepSavedTheme, []);
   const dark = theme === "dark";

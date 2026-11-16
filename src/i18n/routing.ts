@@ -4,7 +4,7 @@ import {
   type Locale,
   localizedPath,
 } from "./locales";
-import { localesOf } from "./pages";
+import { isTranslated, localesOf } from "./pages";
 
 /**
  * How addresses carry a language (ADR 0094). Every page lives under
@@ -75,6 +75,35 @@ export function publicPathOf(pathname: string): string {
 export function switchLanguagePath(pathname: string, target: Locale): string {
   return localizedPath(target, splitLocale(pathname).rest);
 }
+
+/**
+ * Where the footer's link to `target` goes (src/app/language): the page the
+ * visitor came from, in that language, when it is translated; else that
+ * language's home page, or the English one. Signed-in pages follow the
+ * profile's setting, so their link goes there. `referer` is trusted only
+ * from this site, and only its path and query are used.
+ */
+export function languageSwitchTarget(
+  referer: string | null,
+  origin: string,
+  target: Locale,
+): string {
+  let from: URL | null = null;
+  try {
+    from = referer ? new URL(referer) : null;
+  } catch {
+    from = null;
+  }
+  const local = from?.origin === origin ? from : null;
+  const path = local ? splitLocale(local.pathname).rest : "/";
+  if (path === "/app" || path.startsWith("/app/")) return PROFILE_LANGUAGE;
+  if (isTranslated(target, path))
+    return `${localizedPath(target, path)}${local?.search ?? ""}`;
+  return isTranslated(target, "/") ? localizedPath(target, "/") : "/";
+}
+
+/** The profile's language setting, where signed-in pages pick a language. */
+export const PROFILE_LANGUAGE = "/app/profile#language";
 
 /**
  * The `hreflang` alternates of a public page (`path` without a language

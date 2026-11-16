@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isTranslated, localesOf, matchesPage } from "./pages";
+import { isTranslated, localesOf, matchesPage, offeredLocales } from "./pages";
 
 describe("matchesPage", () => {
   it("matches a page exactly, with * for one segment", () => {
@@ -38,5 +38,12 @@ describe("isTranslated", () => {
   it("serves every page in English", () => {
     expect(isTranslated("en", "/anything/at/all")).toBe(true);
     expect(localesOf("/about")[0]).toBe("en");
+  });
+});
+
+describe("offeredLocales", () => {
+  it("offers English and each language with a translated page", () => {
+    // No Spanish page yet, so the footer offers no other language.
+    expect(offeredLocales()).toEqual(["en"]);
   });
 });

@@ -6,6 +6,8 @@ import { formatDay, formatList, formatMoney, formatNumber } from "./format";
 import { localizedPath } from "./locales";
 import {
   languageAlternates,
+  languageSwitchTarget,
+  PROFILE_LANGUAGE,
   publicPathOf,
   SITE_PAGE_ROOTS,
   splitLocale,
@@ -59,6 +61,43 @@ describe("addresses in each language", () => {
       "/es/seasons/fall-2026/schedule",
     );
     expect(switchLanguagePath("/es/faq", "en")).toBe("/faq");
+  });
+
+  describe("languageSwitchTarget", () => {
+    const ORIGIN = "https://league.example.test";
+
+    it("goes back to the page the visitor came from, with its query", () => {
+      expect(
+        languageSwitchTarget(
+          `${ORIGIN}/es/seasons/fall-2026?team=a`,
+          ORIGIN,
+          "en",
+        ),
+      ).toBe("/seasons/fall-2026?team=a");
+    });
+
+    it("goes to the language's home, or English, for a page not translated", () => {
+      // No Spanish page yet, so not even the home page.
+      expect(languageSwitchTarget(`${ORIGIN}/faq`, ORIGIN, "es")).toBe("/");
+    });
+
+    it("sends signed-in pages to the profile's language setting", () => {
+      expect(languageSwitchTarget(`${ORIGIN}/app/teams`, ORIGIN, "es")).toBe(
+        PROFILE_LANGUAGE,
+      );
+    });
+
+    it("trusts only this site's own pages as where the visitor came from", () => {
+      expect(
+        languageSwitchTarget(
+          "https://elsewhere.example.test/es/faq",
+          ORIGIN,
+          "en",
+        ),
+      ).toBe("/");
+      expect(languageSwitchTarget("not a url", ORIGIN, "en")).toBe("/");
+      expect(languageSwitchTarget(null, ORIGIN, "en")).toBe("/");
+    });
   });
 
   it("lists no alternates while English is the only public language", () => {
