@@ -2,52 +2,50 @@ import { describe, expect, it } from "vitest";
 import {
   buildRobots,
   buildSitemap,
-  CONTENT_PAGES,
   eventPages,
 } from "./sitemap";
 
 const ORIGIN = "https://league.example.test";
 
+/** Each language's address prefix, in LOCALES order. */
+const PREFIXES = ["", "/es", "/zh", "/ru", "/pl", "/bn", "/ko", "/ht"];
+
+/** A page translated into every language: its address in each. */
+const everyLanguage = (path: string) =>
+  PREFIXES.map((prefix) => `${ORIGIN}${prefix}${path}`);
+
+/** A page in English and Spanish only, such as the help center. */
+const englishAndSpanish = (path: string) =>
+  ["", "/es"].map((prefix) => `${ORIGIN}${prefix}${path}`);
+
 describe("buildSitemap", () => {
   it("lists the content pages with absolute URLs and no trailing slash", () => {
     const urls = buildSitemap(ORIGIN).map((entry) => entry.url);
     expect(urls).toEqual([
-      ORIGIN,
-      `${ORIGIN}/es`,
-      `${ORIGIN}/parks/mccarren-park`,
-      `${ORIGIN}/es/parks/mccarren-park`,
+      ...everyLanguage(""),
+      ...everyLanguage("/parks/mccarren-park"),
       `${ORIGIN}/seasons`,
-      `${ORIGIN}/faq`,
-      `${ORIGIN}/es/faq`,
+      ...everyLanguage("/faq"),
       `${ORIGIN}/rules`,
       `${ORIGIN}/contact`,
       `${ORIGIN}/nyc-kickball-league`,
       `${ORIGIN}/free-agents`,
       `${ORIGIN}/news/how-to-play-kickball`,
-      `${ORIGIN}/about`,
-      `${ORIGIN}/es/about`,
-      `${ORIGIN}/events`,
-      `${ORIGIN}/es/events`,
-      `${ORIGIN}/sponsors`,
-      `${ORIGIN}/es/sponsors`,
+      ...everyLanguage("/about"),
+      ...everyLanguage("/events"),
+      ...everyLanguage("/sponsors"),
       `${ORIGIN}/private-events`,
       `${ORIGIN}/friends`,
       `${ORIGIN}/records`,
       `${ORIGIN}/history`,
-      `${ORIGIN}/help`,
-      `${ORIGIN}/es/help`,
-      `${ORIGIN}/help/player`,
-      `${ORIGIN}/es/help/player`,
-      `${ORIGIN}/help/captain`,
-      `${ORIGIN}/es/help/captain`,
-      `${ORIGIN}/help/ref`,
-      `${ORIGIN}/es/help/ref`,
+      ...englishAndSpanish("/help"),
+      ...englishAndSpanish("/help/player"),
+      ...englishAndSpanish("/help/captain"),
+      ...englishAndSpanish("/help/ref"),
       `${ORIGIN}/help/admin`,
       `${ORIGIN}/help/owner`,
       `${ORIGIN}/widget`,
     ]);
-    // These content pages are also in Spanish.
-    expect(urls).toHaveLength(CONTENT_PAGES.length + 10);
   });
 
   it("adds data pages after the content pages, with when they last changed", () => {
@@ -55,13 +53,16 @@ describe("buildSitemap", () => {
     const sitemap = buildSitemap(ORIGIN, [
       { path: "/seasons/summer-2027/standings", lastModified: changed },
     ]);
-    const languages = {
-      en: `${ORIGIN}/seasons/summer-2027/standings`,
-      es: `${ORIGIN}/es/seasons/summer-2027/standings`,
-    };
-    // Standings are in Spanish too: one entry per language, each listing both.
-    expect(sitemap.slice(-2)).toEqual(
-      [languages.en, languages.es].map((url) => ({
+    const urls = everyLanguage("/seasons/summer-2027/standings");
+    const languages = Object.fromEntries(
+      ["en", "es", "zh-Hans", "ru", "pl", "bn", "ko", "ht"].map((tag, i) => [
+        tag,
+        urls[i],
+      ]),
+    );
+    // Standings are in every language: one entry each, each listing all.
+    expect(sitemap.slice(-urls.length)).toEqual(
+      urls.map((url) => ({
         url,
         lastModified: changed,
         changeFrequency: "daily",
@@ -81,11 +82,12 @@ describe("buildSitemap", () => {
   });
 
   it("ranks the home page first, in each language", () => {
-    const [home, inSpanish, ...rest] = buildSitemap(ORIGIN);
-    expect(home?.priority).toBe(1);
-    expect(inSpanish?.url).toBe(`${ORIGIN}/es`);
-    expect(inSpanish?.priority).toBe(1);
-    for (const entry of rest) expect(entry.priority).toBeLessThan(1);
+    const sitemap = buildSitemap(ORIGIN);
+    const homes = sitemap.slice(0, PREFIXES.length);
+    expect(homes.map((e) => e.url)).toEqual(everyLanguage(""));
+    for (const entry of homes) expect(entry.priority).toBe(1);
+    for (const entry of sitemap.slice(PREFIXES.length))
+      expect(entry.priority).toBeLessThan(1);
   });
 });
 

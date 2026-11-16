@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { LOCALES } from "@/i18n/locales";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
@@ -37,6 +38,10 @@ const {
   seasonCardTag,
   seasonTag,
 } = await import("./public-cache");
+
+/** One revalidatePath call per language's copy of a page. */
+const inEveryLanguage = (path: string) =>
+  LOCALES.map((lang) => [`/${lang}${path}`]);
 
 beforeEach(() => {
   vi.mocked(revalidatePath).mockClear();
@@ -119,10 +124,8 @@ describe("refreshGamePage", () => {
     ]);
     // Each page at its league's route (ADR 0048).
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/en/l/_default/games/game-1"],
-      ["/es/l/_default/games/game-1"],
-      ["/en/l/flag-football/games/game-2"],
-      ["/es/l/flag-football/games/game-2"],
+      ...inEveryLanguage("/l/_default/games/game-1"),
+      ...inEveryLanguage("/l/flag-football/games/game-2"),
     ]);
   });
 });
@@ -199,17 +202,13 @@ describe("refreshFriendPages", () => {
       [FRIENDS_TAG],
     ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/en/l/flag-football/friends"],
-      ["/es/l/flag-football/friends"],
+      ...inEveryLanguage("/l/flag-football/friends"),
       ["/[lang]/l/[league]/friends", "page"],
-      ["/en/l/flag-football/events"],
-      ["/es/l/flag-football/events"],
+      ...inEveryLanguage("/l/flag-football/events"),
       ["/[lang]/l/[league]/events", "page"],
-      ["/en/l/_default/friends"],
-      ["/es/l/_default/friends"],
+      ...inEveryLanguage("/l/_default/friends"),
       ["/[lang]/l/[league]/friends", "page"],
-      ["/en/l/_default/events"],
-      ["/es/l/_default/events"],
+      ...inEveryLanguage("/l/_default/events"),
       ["/[lang]/l/[league]/events", "page"],
     ]);
   });

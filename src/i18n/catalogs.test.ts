@@ -19,6 +19,9 @@ import { en } from "./messages/en";
  */
 const english = keysOf(en);
 
+/** Languages whose "many" form covers everyday counts, such as 5 to 20. */
+const MANY_IS_COMMON = new Set<string>(["ru", "pl"]);
+
 describe.each(LOCALES.filter((l) => l !== "en"))("the %s catalog", (locale) => {
   const catalog = CATALOGS[locale] as MessageTree;
   const keys = keysOf(catalog);
@@ -51,7 +54,8 @@ describe.each(LOCALES.filter((l) => l !== "en"))("the %s catalog", (locale) => {
       for (const category of categories)
         // "other" covers a category a language rarely uses, such as
         // Spanish "many" for a million; anything else must be written.
-        if (category !== "many")
+        // Russian and Polish use "many" for most counts ("5 команд").
+        if (category !== "many" || MANY_IS_COMMON.has(locale))
           expect(own.$plural[category], `${key}.${category}`).toBeDefined();
     }
   });

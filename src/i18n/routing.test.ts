@@ -108,7 +108,19 @@ describe("addresses in each language", () => {
     expect(languageAlternates("/faq")).toEqual({
       en: "/faq",
       es: "/es/faq",
+      "zh-Hans": "/zh/faq",
+      ru: "/ru/faq",
+      pl: "/pl/faq",
+      bn: "/bn/faq",
+      ko: "/ko/faq",
+      ht: "/ht/faq",
       "x-default": "/faq",
+    });
+    // The help center is in Spanish only so far.
+    expect(languageAlternates("/help/player")).toEqual({
+      en: "/help/player",
+      es: "/es/help/player",
+      "x-default": "/help/player",
     });
     expect(languageAlternates("/records")).toEqual({});
   });
