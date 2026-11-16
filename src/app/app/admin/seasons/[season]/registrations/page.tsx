@@ -79,6 +79,8 @@ const PAID_BY: Record<string, string> = {
   stripe: "Paid online",
   cash: "Paid cash",
   venmo: "Paid by Venmo",
+  zelle: "Paid by Zelle",
+  check: "Paid by check",
   other: "Paid (other)",
 };
 
@@ -96,7 +98,7 @@ function Mark({ yes, label }: { yes: boolean; label: string }) {
   );
 }
 
-/** Cash, Venmo or other, with a note, for someone signed and not yet paid. */
+/** Cash, Venmo, Zelle, check or other, with a note, for someone signed and not yet paid. */
 function RecordPayment({
   slug,
   person,
@@ -118,6 +120,8 @@ function RecordPayment({
       >
         <option value="cash">Cash</option>
         <option value="venmo">Venmo</option>
+        <option value="zelle">Zelle</option>
+        <option value="check">Check</option>
         <option value="other">Other</option>
       </select>
       <input

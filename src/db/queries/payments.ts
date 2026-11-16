@@ -23,6 +23,8 @@ import {
   type FeeMethod,
   type FeeSettings,
   feeFor,
+  feesOn,
+  readFeeSettings,
 } from "@/domain/money/processing-fee";
 import { statusAfterRefunds } from "@/domain/registration/refund";
 import { err, ok, type Result } from "@/domain/result";
@@ -39,6 +41,7 @@ import { failCharge, saveGuarantee } from "./guarantee";
 import { promoForCheckout } from "./promo-codes";
 import { creditReferrals } from "./referrals";
 import { registration, rosterMembership, teamSeason } from "../schema/team";
+import { league } from "../schema/league";
 import { season } from "../schema/season";
 import type { Db } from "./schedule";
 import { required } from "./rows";
@@ -1020,7 +1023,13 @@ export async function purchaseStatus(db: Db, id: PurchaseId) {
   return found ?? null;
 }
 
-export const OFF_APP_METHODS = ["cash", "venmo", "other"] as const;
+export const OFF_APP_METHODS = [
+  "cash",
+  "venmo",
+  "zelle",
+  "check",
+  "other",
+] as const;
 export type OffAppMethod = (typeof OFF_APP_METHODS)[number];
 
 /**
@@ -1042,17 +1051,24 @@ export async function recordOffAppPayment(
   },
 ): Promise<PurchaseId> {
   const [owner] = await db
-    .select({ leagueId: season.leagueId })
+    .select({ leagueId: season.leagueId, fees: league.processingFees })
     .from(season)
+    .innerJoin(league, eq(league.id, season.leagueId))
     .where(eq(season.id, input.seasonId));
   if (!owner) throw new Error("No such season.");
+  const priceCents = input.items.reduce((sum, i) => sum + i.amountCents, 0);
+  const fees = offAppFees(input.method, priceCents, readFeeSettings(owner.fees));
   const purchaseId = await createPurchase(db, {
     userId: input.userId,
     leagueId: owner.leagueId,
     seasonId: input.seasonId,
     items: input.items,
+    ...(fees.feeCents > 0
+      ? { fee: { cents: fees.feeCents, method: "venmo" as const } }
+      : {}),
+    feeSavedCents: fees.savedCents,
   });
-  const amountCents = input.items.reduce((sum, i) => sum + i.amountCents, 0);
+  const amountCents = priceCents + fees.feeCents;
   const note = input.note.trim().slice(0, 200) || null;
   await settlePurchase(db, purchaseId, {
     method: input.method,
@@ -1066,7 +1082,31 @@ export async function recordOffAppPayment(
     action: "payment.record_offline",
     entityType: "registration",
     entityId: input.registrationId,
-    after: { purchaseId, method: input.method, amountCents, note },
+    after: {
+      purchaseId,
+      method: input.method,
+      amountCents,
+      ...(fees.feeCents > 0 ? { feeCents: fees.feeCents } : {}),
+      note,
+    },
   });
   return purchaseId;
+}
+
+/**
+ * What a payment made outside the app adds or saves when the league's
+ * processing fees are on (ADR 0082): a Venmo business profile's fee is the
+ * payer's, and cash, Zelle, check and personal Venmo save the card fee.
+ * Nothing either way while the setting is off, or for "other".
+ */
+export function offAppFees(
+  method: OffAppMethod,
+  priceCents: number,
+  settings: FeeSettings,
+): { feeCents: number; savedCents: number } {
+  if (!feesOn(settings) || method === "other" || priceCents <= 0)
+    return { feeCents: 0, savedCents: 0 };
+  const feeCents = feeFor(method, priceCents, settings);
+  const card = feeFor("card", priceCents, settings);
+  return { feeCents, savedCents: Math.max(0, card - feeCents) };
 }

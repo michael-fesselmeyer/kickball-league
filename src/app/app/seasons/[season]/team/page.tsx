@@ -653,6 +653,8 @@ async function Team({
                             >
                               <option value="cash">Cash</option>
                               <option value="venmo">Venmo</option>
+                              <option value="zelle">Zelle</option>
+                              <option value="check">Check</option>
                               <option value="other">Other</option>
                             </select>
                             <input type="hidden" name="note" value="" />
