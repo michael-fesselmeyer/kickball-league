@@ -181,6 +181,7 @@ export function eventShareText({
   invite,
   url,
   cancelled,
+  locale = DEFAULT_LOCALE,
 }: {
   title: string;
   kind: string;
@@ -191,15 +192,23 @@ export function eventShareText({
   invite: { site: string; url: string } | null;
   url: string;
   cancelled: boolean;
+  /** The message's language (ADR 0065); English unless given. */
+  locale?: Locale;
 }): string {
+  const words = messagesFor(locale);
   if (cancelled)
-    return [`Called off: ${bold(title)} (${when})`, url].join("\n");
+    return [
+      fill(words.event.shareCalledOff, { title: bold(title), when }),
+      url,
+    ].join("\n");
   return [
     `${bold(title)} · ${kind}`,
     when,
     place,
-    audience ? `For ${audience}` : null,
-    invite ? `RSVP on ${invite.site}: ${invite.url}` : null,
+    audience ? fill(words.event.shareFor, { audience }) : null,
+    invite
+      ? fill(words.email.event.rsvpOn, { site: invite.site, url: invite.url })
+      : null,
     url,
   ]
     .filter((line) => line !== null)

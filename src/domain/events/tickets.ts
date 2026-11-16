@@ -2,6 +2,10 @@ import { dollarsToCents } from "@/domain/money/credit";
 import { CARD_MINIMUM_CENTS } from "@/domain/registration/promo";
 import { formatCents } from "@/domain/registration/pricing";
 import { err, ok, type Result } from "@/domain/result";
+import { fill } from "@/i18n/catalog";
+import { formatMoney } from "@/i18n/format";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 import type { EventKind } from "./event";
 
 /**
@@ -114,13 +118,21 @@ export function ticketPrice(
 }
 
 /** "$15", or "$15 ($10 for members)", or "Free for members, $15 otherwise". */
-export function priceLine(prices: TicketPrices): string | null {
+export function priceLine(
+  prices: TicketPrices,
+  locale: Locale = DEFAULT_LOCALE,
+): string | null {
   const full = prices.ticketPriceCents;
   if (full === null) return null;
+  const words = messagesFor(locale).eventCard;
+  const money = (cents: number) =>
+    locale === DEFAULT_LOCALE
+      ? formatCents(cents)
+      : formatMoney(locale, cents, { whole: true });
   const member = prices.memberPriceCents;
-  if (member === null || member === full) return formatCents(full);
-  if (member === 0) return `Free for members, ${formatCents(full)} otherwise`;
-  return `${formatCents(full)} (${formatCents(member)} for members)`;
+  if (member === null || member === full) return money(full);
+  if (member === 0) return fill(words.freeForMembers, { price: money(full) });
+  return fill(words.memberPrice, { price: money(full), member: money(member) });
 }
 
 export type TicketStatus =

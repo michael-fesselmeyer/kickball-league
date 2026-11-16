@@ -1,4 +1,7 @@
 import { inviteSite } from "@/domain/events/audience";
+import { fill } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
 
 /**
  * An event's external invite (Partiful or any https page) as a button that
@@ -7,10 +10,14 @@ import { inviteSite } from "@/domain/events/audience";
 export function InviteButton({
   url,
   primary = false,
+  locale = DEFAULT_LOCALE,
 }: {
   url: string;
   primary?: boolean;
+  /** The page's language (ADR 0065); English unless given. */
+  locale?: Locale;
 }) {
+  const words = messagesFor(locale).event;
   return (
     <a
       href={url}
@@ -18,8 +25,8 @@ export function InviteButton({
       rel="noopener noreferrer nofollow"
       className={`btn ${primary ? "btn-primary" : "btn-secondary"}`}
     >
-      RSVP on {inviteSite(url)}
-      <span className="sr-only"> (opens in a new tab)</span>
+      {fill(words.rsvpOn, { site: inviteSite(url) })}
+      <span className="sr-only">{words.newTab}</span>
     </a>
   );
 }
