@@ -26,7 +26,7 @@ import { requirePermissionToChange } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";
 
 /**
- * The season-end leadership check-in (ADR 0090). Every action is about the
+ * The season-end leadership check-in (ADR 0091). Every action is about the
  * person's own team this season; none logs what was chosen.
  */
 

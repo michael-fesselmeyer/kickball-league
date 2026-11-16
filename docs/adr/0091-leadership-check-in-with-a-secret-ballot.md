@@ -1,4 +1,4 @@
-# ADR 0090: A season-end leadership check-in with a secret ballot
+# ADR 0091: A season-end leadership check-in with a secret ballot
 
 - Status: accepted
 - Date: 2026-11-15

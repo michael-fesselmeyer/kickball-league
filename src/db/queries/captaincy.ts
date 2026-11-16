@@ -246,7 +246,7 @@ export async function offerCaptaincy(
   input: {
     teamSeasonId: TeamSeasonId;
     toUserId: UserId;
-    /** Null when the league's own process makes the offer (ADR 0090). */
+    /** Null when the league's own process makes the offer (ADR 0091). */
     actorId: UserId | null;
     now: Date;
   },
@@ -464,7 +464,7 @@ export async function setTeamRole(
     teamSeasonId: TeamSeasonId;
     userId: UserId;
     role: "co_captain" | "player";
-    /** Null when the league's own process makes the change (ADR 0090). */
+    /** Null when the league's own process makes the change (ADR 0091). */
     actorId: UserId | null;
     now: Date;
   },
