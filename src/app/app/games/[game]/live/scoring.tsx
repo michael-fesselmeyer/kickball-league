@@ -34,8 +34,16 @@ import {
   undoAction,
 } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
-import { PermitWatchNote, type PermitProps } from "./permit-watch";
-import { type ClockProps, GameClockNote } from "./game-clock";
+import {
+  PermitWatchNote,
+  type PermitProps,
+  usePermitWatch,
+} from "./permit-watch";
+import { type ClockProps, GameClockNote, useGameClock } from "./game-clock";
+import {
+  clockAnnouncement,
+  permitAnnouncement,
+} from "@/domain/gameday/announce";
 import { useTally } from "./use-tally";
 
 /** Takes back the last tap, and says which. */
@@ -137,6 +145,14 @@ export function Scoring({
   const called = calledScore(halves, kicksFirst);
   const next = line.next;
   const last = line.last;
+  const clockState = useGameClock(clock, next);
+  const watch = usePermitWatch(permit, halves.length);
+  const announcement = [
+    clockState ? clockAnnouncement(clockState) : "",
+    watch && permit ? permitAnnouncement(watch, permit.endReason) : "",
+  ]
+    .filter((sentence) => sentence !== "")
+    .join(" ");
   const team = (side: "A" | "B") => names[side];
   const waiting = outbox.entries.length > 0;
   // Offline, or behind entries still waiting: save it on the phone.
@@ -250,9 +266,15 @@ export function Scoring({
   return (
     <>
       <OutboxStatus outbox={outbox} />
-      {clock && <GameClockNote clock={clock} next={next} />}
-      {permit && (
-        <PermitWatchNote permit={permit} halvesEntered={halves.length} />
+      {clockState && <GameClockNote state={clockState} />}
+      {watch && <PermitWatchNote watch={watch} />}
+      {/* One hidden status for both clocks, so the screen has one place a
+          screen reader hears them; it changes only at phase changes and the
+          30, 15 and 5 minute marks. */}
+      {(clock || permit) && (
+        <p role="status" className="sr-only">
+          {announcement}
+        </p>
       )}
       {notice && (
         <p role="alert" className="rounded-lg border border-danger p-3">
