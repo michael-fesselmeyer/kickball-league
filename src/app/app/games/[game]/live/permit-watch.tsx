@@ -1,8 +1,11 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { permitAnnouncement } from "@/domain/gameday/announce";
-import { type PermitEndRule, permitWatch } from "@/domain/gameday/permit-end";
+import {
+  type PermitEndRule,
+  permitWatch,
+  type Watch,
+} from "@/domain/gameday/permit-end";
 
 /** The permit window and rule set saved with the game's screen, as JSON. */
 export type PermitProps = {
@@ -24,24 +27,19 @@ const minute = () => Math.floor(Date.now() / 30_000) * 30_000;
 const onServer = () => 0;
 
 /**
- * A warning when the game would run past the end of play (the permit's end,
- * or dark), with the league's rule for that case. The game clock above it
- * counts the minutes left, so this says nothing while all is well. It works from the
- * permit window the page was loaded with and the phone's clock, so it keeps
- * counting with no signal and needs no realtime service.
+ * Where the game stands against the end of play (the permit's end, or
+ * dark), from the permit window the page was loaded with and the phone's
+ * clock, so it keeps counting with no signal and needs no realtime
+ * service. Null until the phone's clock is read, rather than something
+ * that could be wrong.
  */
-export function PermitWatchNote({
-  permit,
-  halvesEntered,
-}: {
-  permit: PermitProps;
-  halvesEntered: number;
-}) {
+export function usePermitWatch(
+  permit: PermitProps | null,
+  halvesEntered: number,
+): Watch | null {
   const stamp = useSyncExternalStore(subscribe, minute, onServer);
-  // Before the clock is read (server render, first paint) say nothing
-  // rather than something that could be wrong.
-  if (stamp === 0) return null;
-  const watch = permitWatch({
+  if (stamp === 0 || !permit) return null;
+  return permitWatch({
     permitEndsAt: new Date(permit.permitEndsAt),
     now: new Date(stamp),
     startsAt: new Date(permit.startsAt),
@@ -51,25 +49,24 @@ export function PermitWatchNote({
     rule: permit.rule,
     endReason: permit.endReason,
   });
-  if (!watch) return null;
-  // The end-of-play clock above shows the time left, so only a warning
-  // shows here. The visible lines count down every half minute, so they
-  // are silent; a hidden status changes only when the phase or a 30, 15 or
-  // 5 minute mark does, and that is what a screen reader hears.
+}
+
+/**
+ * A warning when the game would run past the end of play, with the
+ * league's rule for that case. The end-of-play clock above counts the
+ * minutes left, so this shows nothing while all is well. It is silent: the
+ * scoring screen's one hidden status carries `permitAnnouncement`, which
+ * changes only at a phase change or the 30, 15 and 5 minute marks.
+ */
+export function PermitWatchNote({ watch }: { watch: Watch }) {
+  if (watch.level === "ok") return null;
   return (
-    <>
-      {watch.level !== "ok" && (
-        <p
-          className={`rounded-lg border p-3 font-bold ${
-            watch.level === "over" ? "border-danger" : "border-warning"
-          }`}
-        >
-          {watch.message}
-        </p>
-      )}
-      <p role="status" className="sr-only">
-        {permitAnnouncement(watch, permit.endReason)}
-      </p>
-    </>
+    <p
+      className={`rounded-lg border p-3 font-bold ${
+        watch.level === "over" ? "border-danger" : "border-warning"
+      }`}
+    >
+      {watch.message}
+    </p>
   );
 }
