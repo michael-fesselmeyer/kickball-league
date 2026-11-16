@@ -65,9 +65,17 @@ export async function EjectSection({
         action={ejectAction.bind(null, game.id)}
         className="flex flex-col gap-3"
       >
-        <label className="flex flex-col gap-1">
-          Player
-          <select name="person" required defaultValue="" className={field}>
+        {/* A label of its own, so the list's name is "Player" and not
+            the option it shows. */}
+        <div className="flex flex-col gap-1">
+          <label htmlFor="eject-person">Player</label>
+          <select
+            id="eject-person"
+            name="person"
+            required
+            defaultValue=""
+            className={field}
+          >
             <option value="" disabled>
               Choose a player
             </option>
@@ -85,7 +93,7 @@ export async function EjectSection({
               </optgroup>
             ))}
           </select>
-        </label>
+        </div>
         <label className="flex flex-col gap-1">
           Reason (optional)
           <textarea
