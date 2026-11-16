@@ -224,11 +224,9 @@ describe("refreshInterestPage", () => {
       [INTEREST_TAG],
     ]);
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([
-      ["/en/l/flag-football/interest"],
-      ["/es/l/flag-football/interest"],
+      ...inEveryLanguage("/l/flag-football/interest"),
       ["/[lang]/l/[league]/interest", "page"],
-      ["/en/l/_default/interest"],
-      ["/es/l/_default/interest"],
+      ...inEveryLanguage("/l/_default/interest"),
       ["/[lang]/l/[league]/interest", "page"],
     ]);
   });

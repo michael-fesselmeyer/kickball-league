@@ -4,7 +4,7 @@ import { emailPl } from "./email.pl";
 import { pagesPl } from "./pages.pl";
 
 /**
- * Polish (ADR 0065). Machine-drafted without a paid service; a
+ * Polish (ADR 0094). Machine-drafted without a paid service; a
  * native-speaking player reviews it before launch (docs/i18n.md). Casual
  * "ty", and the game words in the glossary there.
  */
@@ -28,10 +28,8 @@ export const pl: Translation<EnglishMessages> = {
       signIn: "Zaloguj się",
     },
     theme: {
-      group: "Motyw kolorów",
-      system: "Auto",
-      light: "Jasny",
-      dark: "Ciemny",
+      toLight: "Przełącz na tryb jasny",
+      toDark: "Przełącz na tryb ciemny",
     },
     language: {
       group: "Język",
@@ -200,6 +198,7 @@ export const pl: Translation<EnglishMessages> = {
     timeTba: "Godzina do ustalenia",
   },
   gameStatus: {
+    ruling: "Rozstrzygnięcie",
     cancelled: "Odwołany",
     postponed: "Przełożony",
     rainedOut: "Odwołany przez deszcz",
@@ -220,6 +219,8 @@ export const pl: Translation<EnglishMessages> = {
     off: "Odwołany",
   },
   ruleSet: {
+    bestOf: "do {n} wygranych setów",
+    daylight: "gra kończy się {minutes} minut przed zachodem słońca",
     innings: {
       $plural: {
         one: "{n} zmiana",

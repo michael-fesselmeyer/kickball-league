@@ -8,18 +8,26 @@ import type { emailEn } from "./email.en";
  */
 export const emailPl: Translation<typeof emailEn> = {
   layout: {
+    fewer: "Wolisz mniej maili?",
+    turnDown: {
+      team: "Tylko moja drużyna",
+      weekly: "Zamiast tego podsumowanie tygodnia",
+      snooze: "Wycisz na 2 tygodnie",
+    },
     because: "Dostajesz ten e-mail, ponieważ {reason}.",
     settings: "Wybierz, jakie e-maile dostajesz i kiedy",
     stopAbout: "Nie wysyłaj e-maili o: {topic}",
     pushBecause: "Ponieważ {reason}.",
   },
   topics: {
+    lost_found: "rzeczy znalezione",
+    rules: "zasady i terminarz",
     rainout: "odwołania przez deszcz",
     schedule_change: "zmiany w terminarzu",
-    game_reminder: "sprzęt ligi",
-    payment: "przypomnienia o płatności",
+    game_reminder: "przypomnienia o meczach",
+    payment: "płatności i zapisy",
     sub_request: "prośby o zmiennika",
-    announcement: "ogłoszenia",
+    announcement: "wiadomości ligi",
     score: "wyniki",
     events: "wydarzenia",
     marketing: "nowości i oferty ligi",
@@ -218,6 +226,8 @@ export const emailPl: Translation<typeof emailEn> = {
     refundedLead: "Liga zwróciła pieniądze za twoje zamówienie: {what}.",
   },
   money: {
+    warningLeadCharge:
+      "Do opłaty drużyny za {season} wciąż brakuje {balance}. Jako gwarant drużyny {on} zostaniesz obciążony kwotą {charge} z karty {card}: to reszta według ceny przy płatności kartą, która pokrywa prowizję.",
     warningSubject:
       "{team} wciąż ma do zapłaty {balance}: obciążenie karty {on}",
     warningHeading: "Uwaga: {team} ma jeszcze {balance} do zapłaty",

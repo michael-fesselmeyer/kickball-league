@@ -4,7 +4,7 @@ import { emailZh } from "./email.zh";
 import { pagesZh } from "./pages.zh";
 
 /**
- * Simplified Chinese (ADR 0065). Machine-drafted without a paid service; a
+ * Simplified Chinese (ADR 0094). Machine-drafted without a paid service; a
  * native-speaking player reviews it before launch (docs/i18n.md). Friendly
  * and casual ("你"), with the game words in the glossary there.
  */
@@ -28,10 +28,8 @@ export const zh: Translation<EnglishMessages> = {
       signIn: "登录",
     },
     theme: {
-      group: "颜色主题",
-      system: "自动",
-      light: "浅色",
-      dark: "深色",
+      toLight: "切换到浅色模式",
+      toDark: "切换到深色模式",
     },
     language: {
       group: "语言",
@@ -172,6 +170,7 @@ export const zh: Translation<EnglishMessages> = {
     timeTba: "时间待定",
   },
   gameStatus: {
+    ruling: "裁定",
     cancelled: "已取消",
     postponed: "已延期",
     rainedOut: "因雨取消",
@@ -192,6 +191,8 @@ export const zh: Translation<EnglishMessages> = {
     off: "取消",
   },
   ruleSet: {
+    bestOf: "{n} 局 {n} 胜制",
+    daylight: "日落前 {minutes} 分钟结束比赛",
     innings: { $plural: { other: "{n} 局" } },
     timeLimit: "限时 {minutes} 分钟",
     bunting: "允许触击",

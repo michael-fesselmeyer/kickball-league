@@ -7,18 +7,26 @@ import type { emailEn } from "./email.en";
  */
 export const emailHt: Translation<typeof emailEn> = {
   layout: {
+    fewer: "Ou pito resevwa mwens imèl?",
+    turnDown: {
+      team: "Sèlman ekip mwen",
+      weekly: "Rezime chak semèn pito",
+      snooze: "Kanpe pou 2 semèn",
+    },
     because: "Ou resevwa imèl sa a paske {reason}.",
     settings: "Chwazi ki imèl ou resevwa ak ki lè",
     stopAbout: "Sispann imèl sou {topic}",
     pushBecause: "Paske {reason}.",
   },
   topics: {
+    lost_found: "bagay pèdi ak jwenn",
+    rules: "règ ak orè",
     rainout: "match anile akoz lapli",
     schedule_change: "chanjman nan orè a",
-    game_reminder: "materyèl lig la",
-    payment: "rapèl pou peye",
+    game_reminder: "rapèl match",
+    payment: "peman ak enskripsyon",
     sub_request: "demann ranplasan",
-    announcement: "anons",
+    announcement: "nouvèl lig la",
     score: "nòt",
     events: "evènman",
     marketing: "nouvèl ak òf lig la",
@@ -201,6 +209,8 @@ export const emailHt: Translation<typeof emailEn> = {
     refundedLead: "Lig la ranbouse kòmand ou pou {what}.",
   },
   money: {
+    warningLeadCharge:
+      "Frè ekip ou a pou {season} gen {balance} ki poko peye toujou. Kòm garan ekip la, {on} y ap retire {charge} sou {card} ou: rès la nan pri kat la, ki kouvri frè kat la.",
     warningSubject: "{team} toujou dwe {balance}: kat ou ap peye {on}",
     warningHeading: "Atansyon: {team} toujou dwe {balance}",
     warningLead:

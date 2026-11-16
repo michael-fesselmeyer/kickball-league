@@ -4,7 +4,7 @@ import { emailRu } from "./email.ru";
 import { pagesRu } from "./pages.ru";
 
 /**
- * Russian (ADR 0065). Machine-drafted without a paid service; a
+ * Russian (ADR 0094). Machine-drafted without a paid service; a
  * native-speaking player reviews it before launch (docs/i18n.md). Friendly,
  * with a lowercase "вы", and the game words in the glossary there.
  */
@@ -28,10 +28,8 @@ export const ru: Translation<EnglishMessages> = {
       signIn: "Войти",
     },
     theme: {
-      group: "Цветовая тема",
-      system: "Авто",
-      light: "Светлая",
-      dark: "Тёмная",
+      toLight: "Включить светлую тему",
+      toDark: "Включить тёмную тему",
     },
     language: {
       group: "Язык",
@@ -200,6 +198,7 @@ export const ru: Translation<EnglishMessages> = {
     timeTba: "Время уточняется",
   },
   gameStatus: {
+    ruling: "Решение",
     cancelled: "Отменена",
     postponed: "Перенесена",
     rainedOut: "Отменена из-за дождя",
@@ -220,6 +219,8 @@ export const ru: Translation<EnglishMessages> = {
     off: "Отменена",
   },
   ruleSet: {
+    bestOf: "до {n} сетов",
+    daylight: "игра заканчивается за {minutes} минут до заката",
     innings: {
       $plural: {
         one: "{n} иннинг",
