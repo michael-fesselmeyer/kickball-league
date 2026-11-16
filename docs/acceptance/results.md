@@ -172,3 +172,149 @@ Also seen, not filed: the demo seed has no emergency contacts on file and no reg
 ### Not run, and why
 
 - P2-9 (Weather): The chip shows only when the forecast reaches the game; the next game was 7 days out and, after the slot re-cut bug (#332) cancelled this run's November slots, no game was in range. Needs a current-dated seed (#317)
+
+## Run 2
+
+- Date: 2026-11-15, Phase A: every row of [Added for run 2](checklist.md#added-for-run-2) that is on `main`, on a production build of `main` at `061faeaa`. Rows waiting for a pull request run in Phase B, once the merge and schema queues drain. Run 1's rows were not repeated.
+- Setup: as run 1: `npm run build`, then `npm run start -- --port 3420`, on a freshly migrated local Postgres (Docker) seeded with `npm run demo:reset` (demo mode on), Stripe calls to stripe-mock, CI's placeholder settings (no email provider, so queued messages were checked in the `message` table). Driven with real clicks in Chromium at 375 × 812, admin and owner screens at desktop size unless a row says phone. People who aren't demo personas (a second admin, an owner, new players) signed in with a one-time link; the owner role was given from the operator console.
+- Data: the first `demo:reset` moved the league 8 weeks and put Fall 2026's played games in the future (#541). The rows ran on the data that fix makes (5 weeks): played games end Nov 10, a round is live tonight and the next game day is Tue Nov 24.
+
+### Counts
+
+66 pass, 3 fail, 0 not run, of 69 rows on `main`. 28 rows wait for pull requests (Phase B).
+
+### Failures and their fixes
+
+A failed row passes again only after its fix merges and the row is run again.
+
+| Row | What | Issue | Fix | Re-run |
+|---|---|---|---|---|
+| R2-X2 | `demo:reset` follows the second demo league's calendar and moves the main league 8 weeks, so played games with scores land on Nov 17 to Dec 1 | [#541](https://github.com/michael-fesselmeyer/kickball-league/issues/541) | [#542](https://github.com/michael-fesselmeyer/kickball-league/pull/542), open | After it merges |
+| R2-A9 | Publishing one edited rules section marks every section as changed, with the new start date on all of them (the browser's CRLF line breaks) | [#545](https://github.com/michael-fesselmeyer/kickball-league/issues/545) | [#547](https://github.com/michael-fesselmeyer/kickball-league/pull/547), open | After it merges |
+| R2-P6 | The player's stats page mixes in their season from the other league, under the same title, and adds it to career totals | [#552](https://github.com/michael-fesselmeyer/kickball-league/issues/552) | Not started | After a fix merges |
+
+### Other issues found
+
+- [#550](https://github.com/michael-fesselmeyer/kickball-league/issues/550): at phone size the profile scrolls sideways (446 px): the daily message limit select grows to its longest option ([screenshot](screenshots/run2-profile-overflow.png)). Fix: [#551](https://github.com/michael-fesselmeyer/kickball-league/pull/551), open. The rows that use the profile passed otherwise.
+- [#553](https://github.com/michael-fesselmeyer/kickball-league/issues/553): the seed signs no waivers, so game-day check-in flags all 30 players "No waiver".
+- [#554](https://github.com/michael-fesselmeyer/kickball-league/issues/554): the demo's live round is moved to tonight without a permit for today: the live screen and command center say "2806 minutes left in the permit", the permit page shows the Nov 17 hours, the rain-out screen offers a Nov 17 with no games, and one ref has three games at once. It waits for #522 and #476, which change the same file.
+
+### UX notes
+
+Not filed; for the copy and UI pass:
+
+- Ejection notice: "Ejected this game: Wren O.." (double period).
+- The schedule's versions table says "Problems: None" for a draft whose H12 permit problem is listed just below it.
+- The private-event request shows "Contact , organizer.pat@example.test" when the organizer has no name yet.
+- The permit renewal screen reads "Playing fall, Wed, Sep 1, 2027"; the application packet says "Borough not known" while the give-back form names BK.
+- Field layouts: attaching a file while "This field needs no layout" is still ticked, then unticking it, sends no file and shows "Upload a layout, or tick that the field needs none, before adding a note."
+- The help search shows its matches above the full list rather than filtering the list.
+
+### Row results
+
+| ID | Area | Result | Note |
+|---|---|---|---|
+| R2-V1 | Seasons page | pass | /seasons lists Spring 2027 (coming up), Fall 2026 (being played), Summer 2026 and earlier, each with schedule and standings links; linked from the footer |
+| R2-V2 | Help center | pass | /help lists how-tos by role; typing "rain" shows "1 how-to found. Call a rain-out · Admins" above the full list; /help/captain has numbered how-tos (invite players, kicking order, scores, co-captains, subs), each under its own anchor |
+| R2-V3 | Schedule widget | pass | /widget gives a one-line iframe for /embed/schedule; the embed lists the next game day's games with times and fields and is the only page allowed in a frame (frame-ancestors *); others send X-Frame-Options DENY |
+| R2-V4 | Rules page | pass | /rules: sections with anchors, "New wording from January 10, 2027", dated "What changed" list. Division game settings show only when a division has a rule set; the seeded Fall 2026 has none, so none shown (by design, src/db/queries/rules.ts) |
+| R2-V5 | Park page | pass | /fields/mccarren-park: "Permitted by NYC Parks: Kickball League (demo) holds the fields and hours below, and only those", the next permitted days with each field's hours and permit number; linked from the park page as "See who has which field today" |
+| R2-V6 | Contact the league | pass | /contact (no account): park-rules category, rule, date, place, message, reply email: "Got it! Thanks. The league's admins read every message."; the form doesn't show it again; the admin queue lists "How the park is used (public)" |
+| R2-V7 | Private events | pass | /private-events is public with "Request a booking", which leads a signed-in organizer (a new example.test account) to the form: "Request sent. We emailed you a confirmation"; their list shows "Waiting for the league" |
+| R2-V8 | Game-day status | pass | Public schedule: "Tue, Nov 24: Some games start late. Field 2 still wet." and "Starts late: 8:30 PM" on the delayed game |
+| R2-V9 | Rulings in public | pass | Public game page: "Forfeit", "The Big Kicks win by forfeit"; the reason appears nowhere |
+| R2-V10 | Clubs run by players | pass | /friends lists "Run by our players" first (Sunday Sketch Club); /events shows it as a featured card with "More friends of the league" |
+| R2-V11 | Default league address | pass | /l/demo-league, /l/demo-league/seasons and /l/demo-league/seasons/fall-2026/standings answer 308 to the plain addresses; /l/flag-football/… answers 200 |
+| R2-V12 | Security headers | pass | / and /app send CSP, X-Frame-Options DENY, Referrer-Policy, nosniff, HSTS and Permissions-Policy; /app signed out goes to /sign-in?next=%2Fapp |
+| R2-P1 | Free-agent quiz | pass | A new free agent's quiz: three self-ratings (still learning, solid, a strength), competitive or fun, game nights, optional note and a friend code; five taps and Save in under 2 seconds: "Thanks! Your answers are saved." |
+| R2-P2 | Shirt size at sign-up | pass | New account (riley.newcomer@example.test): profile with shirt size L; Spring 2027's register page offers XS to XXL in both the team and free-agent forms, starting at the profile's size; joining as a free agent with M saves M on the profile; next steps: quiz, waiver, pay $85 |
+| R2-P3 | Volunteer shifts | pass | Player signs up for the set-up lead shift: "You're on the shift. Thanks for helping out!", listed under "Your shifts" with a set-up checklist link; another member sees it "Full"; "Drop" frees the spot ("You've dropped the shift", 1 of 1 left) |
+| R2-P4 | Season survey | pass | Ref (on a Summer 2026 team) answers the five questions: "Thanks! Your answers are in."; opening it again: "You've already answered." |
+| R2-P5 | Season card | pass | Card: Champions, games, team runs, win streak, record, best game, superlatives earned ("Highest-scoring team in the league", "Cardiac kid: 2 wins by a single run"); "Make my card's link public" gives a public page with WhatsApp sharing; home links to "Your Summer 2026 season in kickball" |
+| R2-P6 | Player stats | fail | /app/stats works (stats with "based on N of M games", leaderboard opt-out), but it also lists the player's season in the other league (flag football) as a second "Fall 2026 · The Big Kicks" with no league name, and adds it to the career totals |
+| R2-P7 | Raise a concern | pass | "Raise a concern" from home: category, optional park rule and game, message; "Your concerns" lists "How a game was played · Sent Nov 15 · Open" |
+| R2-P8 | Field check-in | pass | Captain's "Show the check-in code" (code changes every few minutes); the player opens the game's check-in link with it, taps Check in: "You're checked in ... playing for The Big Kicks"; the captain's list goes to 2 checked in |
+| R2-P9 | Partiful event | pass | Members-only prom: "The guest list is on partiful.example.test" and an "RSVP on" button; no in-app RSVP or waitlist; calendar and WhatsApp copy still there |
+| R2-P10 | Short-handed team | pass | Team page RSVP note: "10 in · 0 maybe · 0 out · 6 no answer. Short-handed: you can field 9 (5 and 4), a lineup the rulebook allows"; below-6 forfeit wording is covered by unit tests (#489), not reproduced with seeded RSVPs |
+| R2-C1 | Game-day checklist | pass | Captain's game-day checklist (linked from home on game day): 4 before and 2 after items for their own team; a tick survives a reload |
+| R2-C2 | Attendance | pass | Ticked Bea Silva in by hand and saved: "1 checked in", flagged as not signed this season's waiver; the team's attendance page counts games per player (Bea 1). Every seeded player shows "No waiver" because the seed signs no waivers (see issues) |
+| R2-C3 | Ruling on our game | pass | The captain's score screen shows "Forfeit ruling · Pitch Please forfeited · Reason: …" and when the admin ruled |
+| R2-C4 | Injury report | pass | Captain's injury form (who was hurt, body area, care, witnesses, what happened): "Report sent. The league's owners and admins will follow up."; opening the admin report afterwards is a 404 for the captain |
+| R2-C5 | Permit time on live | pass | Captains open the live screen only when their game has no ref (score.live); this game had one, so the line was seen as the ref: "2806 minutes left in the permit" (wrong here because of the demo live round, #554). The warning near the end is checked by src/domain/gameday/permit-end.test.ts, which passes |
+| R2-R1 | Ref availability | pass | Ref page lists each Fall 2026 game time; ticking Nov 24 8:00 PM and saving: "Saved. Thanks!"; times already reffed are fixed with "ask an admin" |
+| R2-R2 | Drop a game | pass | "Can't make it?" on Dec 1 with a reason, "Drop this game": the assignment is declined and the game leaves the ref's list. Asking the pool happens only within a day of the game, so no pool messages were due; "Take it" not exercised |
+| R2-R3 | Quick live scoring | pass | Live screen: two "+1 run" taps then Undo leave 1; the count survives a reload; End half saves the bottom of the 4th and moves to the top of the 5th; Undo reopens the half with its run; the public game page shows "Live: Bottom of the 4th" with the same line score |
+| R2-R4 | Eject a player | pass | "Eject a player" (Wren O., with a reason): "Ejected. They're out of the kicking order for the rest of the game, and the league has the report." Copy nit: "Ejected this game: Wren O.." has a double period. The lineup page had no saved order, so the ejected mark there wasn't seen |
+| R2-R5 | Permit and layout | pass | Ref's permit page on game day: permit number, field, hours, the permit document and the field's layout image with its note ("Diamond in the north corner.") |
+| R2-R6 | Ref who also plays | pass | Not reproducible with the seed (the assigner never puts a ref on their own team's game); checked with the fix's tests: src/domain/scores/scores.test.ts (21) and src/db/queries/score-confirmations.db.test.ts (6) pass |
+| R2-A1 | Game-day status | pass | At phone size: Tue Nov 24 set to Watching (decide by 7:00 PM, reason), then Delayed for one game to 8:30 PM: "Saved, and the players in the affected games are being told." |
+| R2-A2 | Game-day pack | pass | "Print game-day pack" for Tue Nov 24 with rosters: one sheet per field with the permit line ("Permit SAMPLE-0042. Permit on file"), a printed-permit box, each game's blank line score (innings 1-7, X, R), a QR code for the score, captains' initials, then a check-in sheet per team with sub lines |
+| R2-A3 | Scheduled announcement | pass | Announcement scheduled for Sat Nov 28: listed under Scheduled, "sends Sat, Nov 28, 8:30 AM"; edited ("Saved the changes to the scheduled announcement.") and cancelled; audit has announcement.schedule, .edit and .cancel |
+| R2-A4 | Game day for WhatsApp | pass | "Game days for the group chat": each game day's games, times, fields and address as text, with a "Copy for WhatsApp" button per day |
+| R2-A5 | Rain-out to the owners | pass | A plain admin (not the operator) sees "Send Tue, Nov 24 to the owners to confirm" instead of Cancel; sending: "Sent to the owners", one rainout_request message, audited as rainout.prepare, and the screen says who sent it and "Waiting for an owner to confirm". (The demo admin is also the operator in this setup, so it may confirm directly.) |
+| R2-A6 | Ref assigner and pay | pass | Caleb Dubois added to the pool by email; once both refs ticked their Dec 1 times, "4 of 6 games have a proposed ref", each ref kept on one field for back-to-back games, two games explained ("Everyone free then plays in it, has another game, or would have to change fields"); "Accept all": "4 refs assigned." Pay sheet: $25 a game, 6 worked, "Mark paid" by cash or Venmo |
+| R2-A7 | Season checklist | pass | Season checklist: open tasks first with "Due in 37 days · Tue, Dec 22 · Addie Admin"; "Mark done": "Ticked off. Nice work."; "Add the task" (Pick up the trophy, Dec 1): "Added the task.", listed as "Due in 16 days" |
+| R2-A8 | Win-back list | pass | Spring 2027 opened for registration: "Not signed up yet (116)", the most loyal first ("The Big Kicks in Fall 2026 · 2 seasons"), "Email all 116 not emailed yet"; one Email sends one (win_back_email 1). Before opening, the page says the list shows only while registration is open |
+| R2-A9 | Rules editor | fail | Rules editor: changed one sentence of Lineups, start Dec 1: "Published."; /rules shows the entry, but it lists "Lineups changed, Fielding changed, Playoffs changed" and all three say "New wording from December 1, 2026": the browser's CRLF line breaks make untouched sections look edited (#545, fixed in #547) |
+| R2-A10 | Shirt order | pass | Shirt order: 116 players, all with a size; sizes by team with each team's color and a league total; status "Not placed yet", vendor CSV, sizes offered (XS to XXXL) |
+| R2-A11 | Concerns queue | pass | Concern page: reply ("Reply to the sender"), admin note, close with what was done; 3 concern_update emails (received, reply, closed); the player sees the reply and the closing note but not the admin note; the queue shows the share answered within a day |
+| R2-A12 | Injury reports | pass | Injury report: person, body area, care, witnesses, the retention date and "Only owners and admins can read this"; viewing and the carrier CSV are audited (injury.view, injury.export) |
+| R2-A13 | Permit coverage | pass | Spring 2027 draft, then Field 1's May 10 permit marked lost: the schedule lists "H12: Field 1's permit for that time was marked lost." and offers no Publish button; restoring the permit brings it back. The versions table still says "Problems: None" for that draft |
+| R2-A14 | Field layouts | pass | Field layouts: a PNG with a note saves ("Layout saved.", "A layout is on file"); with Field 2 set to neither, Publish is refused: "A field this schedule uses has no layout yet. Add one, or confirm none is needed". Attaching a file while "This field needs no layout" is still ticked and then unticking it sends no file ("Upload a layout, or tick that the field needs none, before adding a note.") |
+| R2-A15 | Written rulings | pass | Admin sets "Pitch Please forfeited" on a final game: with no reason, "A forfeit, or a change to a score that was reported or is final, needs a written reason."; with one, "Score saved." and 8 game_ruling messages (both teams' captains and co-captains, and the ref). Reversed to the played score with a reason; audit has game.forfeit and game.forfeit_reversed |
+| R2-A16 | Volunteer shifts | pass | Admin posts a Setup shift and a Set-up lead shift for Tue Nov 24: "Shift posted. Members can sign up now."; the admin list shows who signed up and spots left; the set-up lead's page says it opens on that game day and lists the coming one |
+| R2-A17 | League gear | pass | Kit "Ball bag A" added ("It's at its home until someone picks it up"); assigned to Dec 1 8:00 PM with Reese R. bringing it: "Assigned. They'll get a reminder the evening before." and "brings it to McCarren Park, Field 1 by 7:30 PM" |
+| R2-A18 | Stat awards | pass | Summer 2026 stat awards: MVP weights form, "Work out the awards": "Awards worked out. Check them below, then publish."; a draft with Season MVP (Quinn U., 100 points, based on 7 of 7 games), Iron Kicker, Golden Boot ("No one qualified this season"), Best Teammate, Rookie, Sub of the Year, each with "How it's worked out" and a note box. Not published in this run |
+| R2-A19 | Season cards | pass | Season cards for Summer 2026: 7 built; "Refresh the cards" keeps sharing choices; 7 season_card messages queued once |
+| R2-A20 | Survey results | pass | "Open the survey and invite players": 7 survey_invite messages; results show "1 of 7 players answered (14%)", "Average: 5.0 out of 5", answers per choice and comments, never who |
+| R2-A21 | Private event requests | pass | Admin queue shows the request (what, when, contact, note); "Set up the private season" with dates and an organization-paid $600: a private season (registration open) and the organizer's page; a second private_event email; the season is not on /seasons. Copy nit: the contact reads ", organizer.pat@example.test" when the account has no name yet |
+| R2-A22 | Clubs | pass | Friends admin: "Run by our players · on the events page" on Sunday Sketch Club, links-back and click counts per entry ("None yet"), with a note that blocked pings aren't counted |
+| R2-A23 | Suspension history | pass | A captain's unsportsmanlike report naming Wren Okafor shows "Ejected once before: Sun, Nov 15 … Threw the ball at a runner's head after a warning." beside the suspend form |
+| R2-A24 | Command center order | pass | At phone size: Today shows status, rain-out, checklist, announcement, refs and print buttons, the forecast card, counts (4 games, 4 of 4 refs, 3 playing) and fields in start-time order. The permit line reads "2804 minutes left in the permit" because of the demo's live round (#554); a game past its permit end couldn't be produced with this data |
+| R2-A25 | Season attendance | pass | Season attendance lists every team's players with games played from field check-in (Bea Silva and Pat Player 1 after this run's check-ins; seeded games have no check-ins, which #508 adds) |
+| R2-A26 | Hand-added game kept | pass | No screen adds a game without a round, so checked with its database test: "hand" cases in src/db/queries/schedule.db.test.ts pass |
+| R2-O1 | Confirm a rain-out | pass | The owner sees "Caleb Dubois sent this rain-out to the owners ... Confirm it below" and confirms: "Rain-out saved as a draft with the makeups"; publishing it queued 115 rain-out emails. "Let admins confirm rain-outs too" saved ("Admins can now confirm rain-outs themselves"), audited as rainout.confirm_policy, and then a plain admin gets the Cancel button; setting turned back off |
+| R2-O2 | Books, quicker | pass | At phone size: quick add ($36.75, Equipment) "Expense added." and the next form starts on Equipment; an expected "Bar deposit" listed to confirm or skip; a bank CSV preview leaves out the money-in row, guesses Equipment, Shirts and Fields and permits, and imports 2; an out-of-pocket expense shows "Omar Abara is owed $22.00" with "Reimbursed" |
+| R2-O3 | Permit fees | pass | Permits: "Permitted hours 42 of 50" with the 50-hour insurance warning, fees due date, "Give back field time" for the rained-out Nov 24 with the borough office's answers ready to copy. Fee estimates show only for permits with no cost; the seeded permit has one |
+| R2-O4 | Permit renewal | pass | Renewal: NYC Parks' renewal and new-request windows, each held field and weekday ("Keep it, 20:00–22:00, 7 dates"), and dates outside the next period called out; packet: league, season, team and player counts, rosters only if chosen. Copy nits: "Playing fall, Wed, Sep 1" in lower case; the packet's request sheet says "Borough not known" while the give-back form says BK |
+| R2-O5 | Season report card | pass | Report card beside Summer 2026: people (registered, returning, new, share back), money from the books, games (16 played, 4 rained out), sportsmanship 4.2, community (survey, events, 204 bar check-ins), CSV; the shareable version leaves out money and anything about one person. Summer 2026 shows 7 players because the seed registers few people in past seasons (seen in run 1) |
+| R2-O6 | Checklist template | pass | Owner adds "21 days before the start" task to the checklist template: "Added the task to the template." |
+| R2-X1 | Build and migrations | pass | Fresh database kb_accept2_demo: every migration applied; npm run build passed on 061faeaa (after clearing a stale .next/dev left by an old dev server in the worktree) |
+| R2-X2 | Demo reset | fail | demo:reset moved the league 8 weeks, not 5: the second demo league's calendar set the move and Fall 2026's played games landed on Nov 17 to Dec 1 with scores (#541, fixed in #542; rows below ran on the data #542 makes: 5 weeks) |
+| R2-X3 | CI | pass | CI on 061faeaa (the commit tested) passed. Later, while this ran, main's 30dff76b failed end-to-end shard 4 of 4 (left to the merge queue) |
+| R2-X4 | More than one league | pass | The second demo league (flag football) has its own seasons and standings under /l/flag-football with its own teams; a team slug shared with the main league ("the-big-kicks") stays separate. The player's stats page mixes the two (R2-P6, #552) |
+
+### Waiting for Phase B
+
+These rows run after their pull requests merge. [#457](https://github.com/michael-fesselmeyer/kickball-league/pull/457) (lost and found) merged after the build tested here, so R2-P13 runs in Phase B too.
+
+| ID | Area | Waiting for |
+|---|---|---|
+| R2-V13 | Interest sign-ups | #463 |
+| R2-V14 | Languages | #447, #448, #526, #533 |
+| R2-V15 | Guest teams | #479 |
+| R2-V16 | Searchable rulebook | #490 |
+| R2-V17 | Email code sign-in | #530 |
+| R2-P11 | Open to a new team | #537 |
+| R2-P12 | Choose alerts | #536 |
+| R2-P13 | Lost and found | #457 |
+| R2-P14 | Code of conduct | #458 |
+| R2-P15 | Leadership check-in | #538 |
+| R2-P16 | Phone apps | #525 |
+| R2-C6 | Captain polls | #454 |
+| R2-C7 | Shirt opt-out | #475 |
+| R2-R7 | Cards | #478 |
+| R2-R8 | Daylight clock | #476 |
+| R2-R9 | Delayed game clock | #522 |
+| R2-A27 | Shared fields | #460 |
+| R2-A28 | Playoff formats | #459 |
+| R2-A29 | Tournaments | #479 |
+| R2-A30 | Interest forms | #463 |
+| R2-A31 | Code of conduct editor | #458 |
+| R2-A32 | Captain polls | #454 |
+| R2-A33 | Late-joiner shirts | #475 |
+| R2-A34 | Sport types | #488 |
+| R2-A35 | Demo data | #508 |
+| R2-A36 | Fixes between features | #522 |
+| R2-O7 | Acting admin | #477 |
+| R2-O8 | Paste the rulebook | #490 |
