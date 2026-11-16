@@ -98,7 +98,13 @@ npm run mobile:add:android
 npm run mobile:icons
 ```
 
-The first two create `ios/` and `android/` (commit both); `mobile:add:ios` also writes the site's host into the iOS app's `WKAppBoundDomains`, which WKWebView needs before it runs the site's service worker. The third cuts every icon and splash size from `mobile/assets/`.
+```bash
+npm run mobile:sign-in
+```
+
+The first two create `ios/` and `android/` (commit both); `mobile:add:ios` also writes the site's host into the iOS app's `WKAppBoundDomains`, which WKWebView needs before it runs the site's service worker. The third cuts every icon and splash size from `mobile/assets/`. The fourth registers the apps' URL scheme (`MOBILE_APP_ID`), which Google sign-in returns to ([ADR 0077](adr/0077-signing-in-inside-the-apps.md)); run it again after changing `MOBILE_APP_ID`.
+
+Then, for iOS, open the project (`npm run mobile:open:ios`), add `mobile/native/ios/WebAuthSessionPlugin.swift` and `MainViewController.swift` to the App target, and set the view controller's class in `Main.storyboard` to `MainViewController`. Without them Google sign-in still works on iOS, but asks "Open in Kickball?" on the way back.
 
 ## Running the apps
 
@@ -143,6 +149,7 @@ npm run mobile:android
 | `npm run mobile:web`          | Write the shell's own start and error pages for `MOBILE_APP_URL` into `mobile/www/`  |
 | `npm run mobile:add:ios`      | Generate the iOS project (once)                                                      |
 | `npm run mobile:add:android`  | Generate the Android project (once)                                                  |
+| `npm run mobile:sign-in`      | Register the apps' URL scheme for Google sign-in in both projects                    |
 | `npm run mobile:sync`         | Copy the pages, config and plugins into both projects and set the app-bound domains |
 | `npm run mobile:ios`          | Sync, then build and run in the iOS Simulator                                        |
 | `npm run mobile:android`      | Sync, then build and run on the Android emulator or a plugged-in phone               |
@@ -161,7 +168,7 @@ npm run mobile:android
 
 ## Known gaps
 
-- **Signing in.** Google refuses sign-in inside an app's web view, and a magic link opens in the phone's browser, not the app. Signing in in the apps needs a sign-in code from the email that can be typed into the app (issue #524). Until then the apps show the public pages, and signed-in screens need the browser or the installed web app.
+- **Passkeys.** Signing in inside the apps uses the emailed code or Google ([ADR 0077](adr/0077-signing-in-inside-the-apps.md)). Passkeys stay on the web until Android's Digital Asset Links (free, needs a release signing key) and iOS's Associated Domains (paid account) are set up.
 - **Push.** Native push needs FCM on Android (free) and APNs on iOS (paid developer account).
 - **Deep links.** Links in email and push open the browser. Android App Links are free and can be added with the signing key's fingerprint; iOS universal links need the paid account.
 
