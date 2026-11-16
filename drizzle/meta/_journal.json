@@ -631,6 +631,13 @@
       "when": 1794857493392,
       "tag": "0089_searchable_rulebook",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1794858337554,
+      "tag": "0090_sport_rules",
+      "breakpoints": true
     }
   ]
 }
