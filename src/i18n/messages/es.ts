@@ -26,10 +26,8 @@ export const es: Translation<EnglishMessages> = {
       signIn: "Iniciar sesión",
     },
     theme: {
-      group: "Tema de color",
-      system: "Automático",
-      light: "Claro",
-      dark: "Oscuro",
+      toLight: "Cambiar a modo claro",
+      toDark: "Cambiar a modo oscuro",
     },
     language: {
       group: "Idioma",
