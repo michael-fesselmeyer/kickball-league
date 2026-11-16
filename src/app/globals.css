@@ -135,9 +135,11 @@
   --color-transparent: transparent;
   --color-current: currentColor;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    var(--font-inter), var(--font-script, ui-sans-serif), system-ui, sans-serif;
   --font-display:
-    var(--font-bricolage), var(--font-inter), ui-sans-serif, sans-serif;
+    var(--font-bricolage), var(--font-inter), var(--font-script, ui-sans-serif),
+    sans-serif;
 }
 
 @theme {
@@ -196,6 +198,33 @@
 }
 
 @layer base {
+  /*
+   * Scripts the Latin web fonts don't cover use the phone's own font for
+   * them (docs/i18n.md, Fonts): a Chinese, Korean or Bengali web font would
+   * not fit the font budget, and every phone ships one. Cyrillic and Polish
+   * letters come from Inter's own subsets, loaded only when a page uses them.
+   */
+  :root:lang(zh-Hans) {
+    --font-script:
+      "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
+      "Noto Sans CJK SC", ui-sans-serif;
+  }
+
+  :root:lang(ko) {
+    --font-script:
+      "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR",
+      "Noto Sans CJK KR", ui-sans-serif;
+    /* Korean wraps between words, not inside them; a long address still breaks. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  :root:lang(bn) {
+    --font-script:
+      "Kohinoor Bangla", "Bangla Sangam MN", "Noto Sans Bengali", "Nirmala UI",
+      "Vrinda", ui-sans-serif;
+  }
+
   body {
     background: var(--bg);
     color: var(--text);
