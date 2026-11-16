@@ -645,6 +645,13 @@
       "when": 1794861442257,
       "tag": "0091_open_to_move",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1794862820878,
+      "tag": "0092_leadership_check_in",
+      "breakpoints": true
     }
   ]
 }
