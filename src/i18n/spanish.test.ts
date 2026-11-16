@@ -5,7 +5,7 @@ import { type PublicGame, statusLabel } from "@/domain/schedule/public-game";
 import { ruleSetSummary } from "@/domain/season/divisions";
 
 /**
- * The public pages' shared helpers in Spanish (ADR 0065). English stays
+ * The public pages' shared helpers in Spanish (ADR 0094). English stays
  * the default for every caller that doesn't pass a language.
  */
 const NY = "America/New_York";

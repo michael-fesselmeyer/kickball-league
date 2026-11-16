@@ -49,7 +49,7 @@ const eslintConfig = defineConfig([
   {
     // domain/ and i18n/ are pure TypeScript: no framework, database or app
     // imports. i18n/ holds the message catalogs and formatting the domain's
-    // words come from (ADR 0065). See docs/architecture.md, "Code layout".
+    // words come from (ADR 0094). See docs/architecture.md, "Code layout".
     files: ["src/domain/**/*.{ts,tsx}", "src/i18n/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
