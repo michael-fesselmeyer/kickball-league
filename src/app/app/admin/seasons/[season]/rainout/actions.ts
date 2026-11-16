@@ -3,21 +3,19 @@
 import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 import { db, txDb } from "@/db/client";
-import { recordAudit } from "@/db/queries/audit";
 import {
   adminsConfirmRainouts,
   anySlotOpen,
-  cancelOpenSlots,
   gameDayParks,
   sendRainoutToOwners,
   setAdminsConfirmRainouts,
   worstPark,
 } from "@/db/queries/rainout-decision";
-import { loadVersion, saveVersion } from "@/db/queries/schedule";
+import { declareRainout as declareRainoutDraft } from "@/db/queries/rainout-declare";
+import { loadVersion } from "@/db/queries/schedule";
 import { seasonBySlug, versionsOf } from "@/db/queries/schedule-screen";
 import { user } from "@/db/schema/auth";
 import type { SlotId } from "@/domain/ids";
-import { reschedule } from "@/domain/scheduler/reschedule";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { parkDecision, parkWeather } from "@/lib/park-weather";
 import { featureEnabled } from "@/lib/platform/site";
@@ -59,51 +57,20 @@ export async function declareRainout(
   });
   const season = await seasonBySlug(db, league?.id ?? null, slug);
   if (!season) notFound();
-  const published = (await versionsOf(db, season.id)).find(
-    (v) => v.status === "published",
-  );
-  const version = published ? await loadVersion(db, published.id) : null;
-  if (!version) redirect(`${page}?error=no_published`);
-
-  const cancelled = version.input.slots
-    .filter((s) => s.date === date)
-    .map((s) => s.id);
-  if (cancelled.length === 0) redirect(`${page}?error=no_games`);
-  const result = reschedule(version.input, version.schedule, cancelled);
-
-  const draftId = await txDb.transaction(async (tx) => {
-    // Someone else confirmed this day first: nothing more to cancel.
-    if ((await cancelOpenSlots(tx, cancelled as SlotId[])).length === 0)
-      return null;
-    const id = await saveVersion(tx, {
-      seasonId: version.seasonId,
-      // Cancelled slots are gone: they are neither reserve nor places to move to.
-      input: {
-        ...version.input,
-        slots: version.input.slots.filter((s) => !cancelled.includes(s.id)),
-        locked: result.locked,
-      },
-      schedule: result.schedule,
-      origin: "rainout",
-      parentVersionId: version.id,
-      createdBy: subject.userId,
-    });
-    await recordAudit(tx, {
+  const declared = await txDb.transaction((tx) =>
+    declareRainoutDraft(tx, {
+      seasonId: season.id,
+      date,
       actorId: subject.userId,
-      action: "rainout.declare",
-      entityType: "season",
-      entityId: version.seasonId,
-      after: {
-        date,
-        slotsCancelled: cancelled.length,
-        postponed: result.moved.length,
-        unplaced: result.moved.filter((m) => m.to === null).length,
-        draftVersionId: id,
-      },
-    });
-    return id;
-  });
-  if (draftId === null) redirect(`${page}?date=${date}&error=already`);
+    }),
+  );
+  if (!declared.ok)
+    redirect(
+      declared.error === "already"
+        ? `${page}?date=${date}&error=already`
+        : `${page}?error=${declared.error}`,
+    );
+  const draftId = declared.value;
   // The cancelled slots show as called off on the public pages at once.
   refreshSeasonPages(season.id);
   redirect(`/app/admin/seasons/${slug}/schedule?rainout=${draftId}`);
