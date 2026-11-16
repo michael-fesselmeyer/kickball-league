@@ -211,9 +211,7 @@ export async function startPurchase(
   const choice = input.processingFee;
   const feeMethod = choice && netCents > 0 ? choice.method : null;
   const feeCents =
-    choice && feeMethod
-      ? feeFor(feeMethod, netCents, choice.settings)
-      : 0;
+    choice && feeMethod ? feeFor(feeMethod, netCents, choice.settings) : 0;
   const purchaseId = await createPurchase(db, {
     userId: input.userId,
     leagueId: input.leagueId,

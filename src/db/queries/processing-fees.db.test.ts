@@ -164,7 +164,7 @@ async function checkout(
     items: [w.line(input.cents ?? FEE)],
     promoCode: input.promoCode ?? null,
     useCredit: input.useCredit ?? false,
-    fee: feeChoice(input.method ?? "card", settings, { bank: true }),
+    processingFee: feeChoice(input.method ?? "card", settings, { bank: true }),
     now: NOW,
   });
   if (!started.ok) throw new Error(started.error);
