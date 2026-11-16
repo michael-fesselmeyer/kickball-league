@@ -87,7 +87,7 @@ test("the home page, FAQ and schedule read in Spanish at /es", async ({
   ).toHaveAttribute("href", /\/seasons\/fall-2026\/schedule$/);
 
   // A page not translated yet is still English, and says so in <html>.
-  await page.goto("/es/about");
-  await expect(page).toHaveURL(/\/about$/);
+  await page.goto("/es/records");
+  await expect(page).toHaveURL(/\/records$/);
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
 });
