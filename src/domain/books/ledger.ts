@@ -56,6 +56,10 @@ export type LedgerInput = {
   payments: readonly LedgerPayment[];
   /** League credit spent on this season's paid purchases. */
   creditAppliedCents: number;
+  /** Processing fees payers covered, already inside the income (ADR 0082). */
+  feesCoveredCents?: number;
+  /** Card fees payers saved by paying with a free method (ADR 0082). */
+  feesSavedCents?: number;
   expenses: readonly LedgerExpense[];
   /** The permit windows' cost shares for the season. */
   permitCostCents: readonly number[];
@@ -69,6 +73,10 @@ export type Ledger = {
     refundsCents: number;
     totalCents: number;
     creditAppliedCents: number;
+    /** Inside the income: processing fees payers covered. */
+    feesCoveredCents: number;
+    /** Not income: card fees payers saved with cash, Zelle or check. */
+    feesSavedCents: number;
   };
   /** Every category in order, zero when nothing was spent on it. */
   expenses: { category: ExpenseCategory; label: string; cents: number }[];
@@ -113,6 +121,8 @@ export function buildLedger(input: LedgerInput): Ledger {
       refundsCents,
       totalCents: totalIn,
       creditAppliedCents: input.creditAppliedCents,
+      feesCoveredCents: input.feesCoveredCents ?? 0,
+      feesSavedCents: input.feesSavedCents ?? 0,
     },
     expenses,
     permitCostCents,
