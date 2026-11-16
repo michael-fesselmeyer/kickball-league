@@ -46,7 +46,7 @@ const ERRORS: Record<string, string> = {
   too_many_witnesses: `Name at most ${WITNESSES_MAX} witnesses.`,
   not_started: "This game hasn't started yet.",
   called_off: "This game was called off.",
-  not_found: "That game is gone.",
+  not_found: "That game no longer exists.",
 };
 
 const field = "rounded-md border border-border bg-surface px-2 py-2";

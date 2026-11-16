@@ -40,7 +40,7 @@ import { LeagueLink } from "@/components/league-link";
 export const metadata: Metadata = { title: "RSVP" };
 
 const ERRORS: Record<string, string> = {
-  not_found: "That event is gone.",
+  not_found: "That event no longer exists.",
   cancelled: "The league called this event off.",
   over: "This event is over.",
   no_rsvp: "Theme weeks don't need an RSVP. Just show up on game day.",

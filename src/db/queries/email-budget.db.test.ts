@@ -161,7 +161,7 @@ describe("the email budget", () => {
       // The notice to the admin goes out of the reserve.
       await drain(db, send);
       const notices = sent.filter((e) =>
-        e.subject.startsWith("Urgent email is waiting"),
+        e.subject.startsWith("Urgent emails are on hold"),
       );
       expect(notices).toHaveLength(1);
       expect(notices[0]?.text).toContain("3 urgent emails could not go today");
@@ -236,7 +236,7 @@ describe("the email budget", () => {
       // Ordinary email stops at 4; the reserve carries the one admin notice.
       expect(sent.length).toBeLessThanOrEqual(BUDGET.daily);
       expect(
-        sent.filter((e) => !e.subject.startsWith("Urgent email is waiting")),
+        sent.filter((e) => !e.subject.startsWith("Urgent emails are on hold")),
       ).toHaveLength(BUDGET.daily - BUDGET.reserve);
       // Nothing urgent was dropped: every rain-out is sent or waiting.
       const rows = await emailRows(db);

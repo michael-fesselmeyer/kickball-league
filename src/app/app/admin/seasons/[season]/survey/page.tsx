@@ -41,7 +41,7 @@ const ERRORS: Record<string, string> = {
   exists: "This season's survey is already open.",
   confirm: "Tick the box to confirm.",
   closed: "The survey is already closed.",
-  not_found: "That season is gone.",
+  not_found: "That season no longer exists.",
 };
 
 /**

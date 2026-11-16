@@ -60,7 +60,7 @@ const ERRORS: Record<string, string> = {
   not_a_winner: "That winner was already replaced.",
   no_one_left: "Everyone who entered has already been drawn.",
   reason: REDRAW_REASON_ERROR,
-  not_found: "That giveaway is gone.",
+  not_found: "That giveaway no longer exists.",
 };
 
 async function AdminGiveaway({ params, searchParams }: Props) {

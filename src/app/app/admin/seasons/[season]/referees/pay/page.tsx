@@ -41,7 +41,7 @@ const ERRORS: Record<string, string> = {
   unknown_ref: "That person isn't a ref this season.",
   stale:
     "Someone recorded a payment to this ref a moment ago, so this one wasn't. Check the sheet, then try again if it's still owed.",
-  unknown_season: "That season is gone.",
+  unknown_season: "That season no longer exists.",
 };
 const NOTICES: Record<string, string> = {
   fee: "Fee saved. Everyone's pay is worked out again from it.",

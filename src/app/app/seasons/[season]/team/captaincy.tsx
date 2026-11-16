@@ -42,7 +42,7 @@ export const CAPTAINCY_MESSAGES: Record<string, { ok: boolean; text: string }> =
       text: "The captain's role only changes by handing the team over.",
     },
     unchanged: { ok: false, text: "Nothing to change." },
-    not_found: { ok: false, text: "That offer is gone." },
+    not_found: { ok: false, text: "That offer no longer exists." },
   };
 
 const ROLE = { captain: "Captain", co_captain: "Co-captain", player: "Player" };

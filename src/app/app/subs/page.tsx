@@ -28,7 +28,7 @@ export default function SubsPage(props: PageProps<"/app/subs">) {
 const ERRORS: Record<string, string> = {
   full: "Every spot you could take is held. Keep an eye out: a spot opens if someone drops out.",
   closed: "That request is closed.",
-  not_found: "That request is gone.",
+  not_found: "That request no longer exists.",
   already_claimed: "You're already on that one.",
   declined_before: "The captain already passed on your offer for that game.",
   not_registered: "Register for the season to sub.",

@@ -37,7 +37,7 @@ export async function POST(
 
   const g = await checklistGame(db, gameId);
   if (!g || !g.teams.some((t) => t.id === tick.teamSeasonId))
-    return answer({ ok: false, message: "That game is gone." });
+    return answer({ ok: false, message: "That game no longer exists." });
   const allowed = await permissionToChange("game_checklist.tick", {
     leagueId: g.leagueId,
     teamSeasonId: tick.teamSeasonId,
@@ -46,8 +46,8 @@ export async function POST(
     return allowed.error === "signed_out"
       ? answer({ ok: false, message: "Sign in to save it." }, 401)
       : allowed.error === "frozen"
-        ? answer({ ok: false, message: "The site is paused." }, 423)
-        : answer({ ok: false, message: "Only the team's captains tick." });
+        ? answer({ ok: false, message: "The league is paused right now." }, 423)
+        : answer({ ok: false, message: "Only the team's captains can tick items." });
   const now = new Date();
   // From the game's day on: a tick kept offline may arrive after midnight.
   if (localDay(now, g.timeZone) < g.date)
@@ -62,5 +62,5 @@ export async function POST(
   });
   return saved === "saved"
     ? answer({ ok: true })
-    : answer({ ok: false, message: "The checklist changed. Reload it." });
+    : answer({ ok: false, message: "The checklist changed. Reload the page to see the latest." });
 }

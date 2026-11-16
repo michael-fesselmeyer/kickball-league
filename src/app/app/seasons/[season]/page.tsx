@@ -26,15 +26,15 @@ import { activeLeague, activeLeagueId } from "@/lib/league/active";
 export const metadata: Metadata = { title: "Your season" };
 
 const PAYMENT_MESSAGES: Record<string, string> = {
-  off: "Online payment is not set up yet.",
+  off: "Online payment isn't set up yet.",
   cancelled: "Payment cancelled. Nothing was charged.",
-  failed: "Stripe could not start the payment. Try again in a minute.",
+  failed: "Stripe couldn't start the payment. Try again in a minute.",
   waiver_first: "Sign the waiver before paying.",
-  already_paid: "You have already paid.",
+  already_paid: "You've already paid.",
   in_progress:
     "Your checkout is still opening. Wait a moment, then tap Pay again.",
   captain_pays: "Your captain is paying the team fee.",
-  no_price: "The league has not set a price for this yet.",
+  no_price: "The league hasn't set a price yet.",
   unknown_code:
     "That promo code doesn't exist. Check the spelling and try again.",
   expired: "That promo code has expired.",

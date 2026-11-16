@@ -52,7 +52,7 @@ const NOTICES: Record<string, string> = {
 
 const ERRORS: Record<string, string> = {
   ...CLAIM_REFUSALS,
-  not_found: "That shift is gone.",
+  not_found: "That shift no longer exists.",
   not_on: "You weren't on that shift.",
 };
 

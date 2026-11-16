@@ -41,7 +41,7 @@ const PROBLEMS: Record<
   date: "Pick the day the new season starts.",
   same_dates: "Pick a start day other than this season's.",
   duplicate: "Another season already has that name. Pick another.",
-  unknown_season: "That season is gone.",
+  unknown_season: "That season no longer exists.",
 };
 
 const FRESH = [

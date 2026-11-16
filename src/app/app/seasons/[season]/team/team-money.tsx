@@ -33,7 +33,7 @@ const NOTICES: Record<string, { text: string; good: boolean }> = {
     good: false,
   },
   failed: {
-    text: "Stripe could not start that. Try again in a minute.",
+    text: "Stripe couldn't start that. Try again in a minute.",
     good: false,
   },
 };

@@ -41,7 +41,7 @@ const MESSAGES: Record<string, { ok: boolean; text: string }> = {
   },
   not_found: {
     ok: false,
-    text: "One of those games is gone. Check your picks.",
+    text: "One of those games no longer exists. Check your picks.",
   },
   empty: { ok: false, text: "Pick a winner for at least one game first." },
   hidden: { ok: true, text: "You're off the leaderboards." },

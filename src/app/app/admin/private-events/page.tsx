@@ -22,7 +22,7 @@ const ERRORS: Record<AcceptProblem | "not_found" | "not_open", string> = {
   bad_payer: "Choose who pays.",
   bad_amount: "Enter the amount in dollars, such as 600 or 45.50.",
   bad_games_per_day: "Choose one or two games a team per game day.",
-  not_found: "That request is gone.",
+  not_found: "That request no longer exists.",
   not_open: "That request was already answered.",
 };
 

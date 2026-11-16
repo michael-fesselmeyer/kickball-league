@@ -57,7 +57,7 @@ const ERRORS: Record<string, string> = {
   amount: "Enter dollars, such as 45 or 129.99.",
   category: "Pick a category.",
   note: "Keep the note to 200 characters.",
-  unknown_expense: "That expense is already gone.",
+  unknown_expense: "That expense was already removed.",
   unknown_season: "That season isn't in this league.",
   unknown_payer: "Pick league money or one of the owners.",
   no_file: "Choose a photo or PDF of the receipt.",
