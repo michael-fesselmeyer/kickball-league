@@ -50,6 +50,8 @@ const entrySchema = z.discriminatedUnion("kind", [
     kind: z.literal("end"),
     version: z.string().max(80),
     ending: z.enum(["normal", "called"]),
+    /** A called game: daylight or field time (#467). Older phones send none. */
+    callReason: z.enum(["daylight", "field_time"]).nullable().optional(),
   }),
 ]);
 

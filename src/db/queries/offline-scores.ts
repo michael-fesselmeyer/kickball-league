@@ -221,6 +221,8 @@ async function applyReport(
           role: input.role,
           teamSeasonId: input.teamSeasonId,
           ending: entry.ending,
+          callReason:
+            entry.ending === "called" ? (entry.callReason ?? null) : null,
           clientId: entry.key,
           now: input.now,
         });

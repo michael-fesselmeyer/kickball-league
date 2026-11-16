@@ -390,6 +390,10 @@ export async function reportScore(
       inningsPlayed:
         input.score.outcome === "called" ? input.score.inningsPlayed : null,
       reason,
+      callReason:
+        input.score.outcome === "called"
+          ? (input.score.callReason ?? null)
+          : null,
       clientId: input.clientId,
       reportedAt: input.now,
     })

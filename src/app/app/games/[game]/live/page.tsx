@@ -12,14 +12,26 @@ import {
   gameLimitsFor,
   permitInfoFor,
 } from "@/db/queries/permit-watch";
+import { startOf } from "@/db/queries/game-start";
+import { GameClock, type GameClockProps } from "@/components/game-clock";
+import {
+  type HeldUpBy,
+  isLateStart,
+  minutesLate,
+} from "@/domain/gameday/daylight";
 import { gameForScoring, scoreHistory } from "@/db/queries/scores";
 import { can } from "@/domain/authz/permissions";
 import { type GameId, parseId } from "@/domain/ids";
-import { fullWhen } from "@/domain/schedule/format";
+import { fullWhen, kickoff } from "@/domain/schedule/format";
 import { scoreVersion } from "@/domain/scores/offline";
 import { MIN_CALLED_INNINGS, PLAYOFF_TIE } from "@/domain/scores/scores";
 import { requirePermission } from "@/lib/auth/permission";
-import { kicksFirstAction } from "./actions";
+import {
+  heldUpAction,
+  kicksFirstAction,
+  startAction,
+  undoStartAction,
+} from "./actions";
 import { EJECT_ERRORS, EjectSection } from "./eject";
 import { featureEnabled } from "@/lib/platform/site";
 import { Scoring } from "./scoring";
@@ -55,6 +67,11 @@ const ERRORS: Record<string, string> = {
   playoff_tie: PLAYOFF_TIE,
   not_found: "That game is gone.",
   ...EJECT_ERRORS,
+  start_too_early:
+    "First pitch can be recorded from 30 minutes before the game’s time.",
+  start_closed: "This game is over, so its start can’t change.",
+  start_not_started: "Record first pitch first.",
+  start_not_found: "That game has no time slot, so it has no start to record.",
 };
 
 async function Live({
@@ -78,6 +95,7 @@ async function Live({
     limits,
     discipline,
     delays,
+    start,
   ] = await Promise.all([
     gameForScoring(db, gameId),
     liveGame(db, gameId),
@@ -88,6 +106,7 @@ async function Live({
     gameLimitsFor(db, gameId),
     featureEnabled("discipline"),
     delayedStarts(db, [gameId]),
+    startOf(db, gameId),
   ]);
   if (!g || !live) notFound();
   const ctx = {
@@ -106,12 +125,15 @@ async function Live({
   const error =
     typeof query.error === "string" ? ERRORS[query.error] : undefined;
   const scorePage = `/app/games/${g.id}/score`;
-  // The permit window saved with the game; the screen counts down from it
-  // on the phone's own clock, so it keeps working with no signal.
+  // When play must end, saved with the game; the screen counts down from it
+  // on the phone's own clock, so it keeps working with no signal. The time
+  // limit runs from the scheduled start, or a delayed day's new start, as
+  // the game clock does: every minute late comes off the game.
   const info = permits.get(g.id);
   const permit = info
     ? {
-        permitEndsAt: info.permitEndsAt.toISOString(),
+        permitEndsAt: info.end.endsAt.toISOString(),
+        endReason: info.end.reason,
         startsAt: info.clockStartsAt.toISOString(),
         timeLimitMinutes: info.timeLimitMinutes,
         innings: info.innings,
@@ -124,6 +146,18 @@ async function Live({
   const clock = clockStart
     ? { startsAt: clockStart.toISOString(), limits }
     : null;
+  // When play must end (#467), from the field's permit or sunset.
+  const endClock: GameClockProps | null =
+    info && !info.dayOff
+      ? {
+          firstPitchAt: info.clockStartsAt.toISOString(),
+          startedAt: start?.startedAt.toISOString() ?? null,
+          endsAt: info.end.endsAt.toISOString(),
+          endReason: info.end.reason,
+          endLabel: kickoff(info.end.endsAt, tz),
+          sunsetLabel: info.sunsetAt ? kickoff(info.sunsetAt, tz) : null,
+        }
+      : null;
 
   return (
     <>
@@ -150,6 +184,17 @@ async function Live({
         <p role="alert" className="rounded-lg border border-danger p-3">
           {error}
         </p>
+      )}
+
+      {!snapshot.closed && endClock && <GameClock clock={endClock} />}
+      {!snapshot.closed && g.startsAt && (
+        <StartPanel
+          gameId={g.id}
+          firstPitchAt={info?.clockStartsAt ?? delays.get(g.id) ?? g.startsAt}
+          start={start}
+          names={names}
+          tz={tz}
+        />
       )}
 
       {snapshot.closed ? (
@@ -198,6 +243,11 @@ async function Live({
           endKey={randomUUID()}
           permit={permit}
           clock={clock}
+          endOfPlay={
+            endClock
+              ? { endsAt: endClock.endsAt, endReason: endClock.endReason }
+              : null
+          }
         />
       )}
 
@@ -212,5 +262,90 @@ async function Live({
         Report or confirm the final score instead
       </Link>
     </>
+  );
+}
+
+const HELD_UP_LABEL = (names: { A: string; B: string }) =>
+  ({
+    team_a: `${names.A} weren’t ready`,
+    team_b: `${names.B} weren’t ready`,
+    both: "Neither team was ready",
+    neither: "Not the teams: the field, the ref or the weather",
+  }) satisfies Record<HeldUpBy, string>;
+
+/**
+ * First pitch with one tap (issue #467): the clock counts down from it, and
+ * a late start asks who held it up, for the admins' punctuality log.
+ */
+function StartPanel({
+  gameId,
+  firstPitchAt,
+  start,
+  names,
+  tz,
+}: {
+  gameId: string;
+  firstPitchAt: Date;
+  start: { startedAt: Date; heldUpBy: HeldUpBy | null } | null;
+  names: { A: string; B: string };
+  tz: string;
+}) {
+  if (!start)
+    return (
+      <form
+        action={startAction.bind(null, gameId)}
+        className="flex flex-col gap-2"
+      >
+        <SubmitButton className="btn btn-primary">
+          First pitch: start the clock
+        </SubmitButton>
+        <p className="text-small text-text-muted">
+          Tap when the first pitch is thrown. Due at {kickoff(firstPitchAt, tz)}
+          .
+        </p>
+      </form>
+    );
+  const late = minutesLate(firstPitchAt, start.startedAt);
+  const labels = HELD_UP_LABEL(names);
+  return (
+    <section aria-labelledby="first-pitch" className="flex flex-col gap-2">
+      <h2 id="first-pitch" className="text-h3">
+        First pitch at {kickoff(start.startedAt, tz)}
+      </h2>
+      <p className="text-small text-text-muted">
+        {late === 0
+          ? "On time."
+          : `${late} minute${late === 1 ? "" : "s"} after the scheduled ${kickoff(firstPitchAt, tz)}.`}
+        {start.heldUpBy && ` ${labels[start.heldUpBy]}.`}
+      </p>
+      {isLateStart(firstPitchAt, start.startedAt) && !start.heldUpBy && (
+        <form
+          action={heldUpAction.bind(null, gameId)}
+          className="flex flex-col gap-2 rounded-lg border border-warning p-3"
+        >
+          <p className="font-bold">Who held up the start?</p>
+          {(Object.keys(labels) as HeldUpBy[]).map((key) => (
+            <SubmitButton
+              key={key}
+              name="heldUpBy"
+              value={key}
+              className="btn btn-secondary"
+            >
+              {labels[key]}
+            </SubmitButton>
+          ))}
+        </form>
+      )}
+      <details className="text-small">
+        <summary className="min-h-11 content-center">
+          Tapped first pitch by mistake?
+        </summary>
+        <form action={undoStartAction.bind(null, gameId)} className="mt-2">
+          <SubmitButton className="btn btn-secondary">
+            Undo first pitch
+          </SubmitButton>
+        </form>
+      </details>
+    </section>
   );
 }

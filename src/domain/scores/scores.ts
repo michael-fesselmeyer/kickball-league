@@ -62,7 +62,12 @@ export type ScoreInput = {
   scoreA: number;
   scoreB: number;
   inningsPlayed: number | null;
+  /** A called game only: the light ran out, or the field had to be clear (#467). */
+  callReason?: CallReason | null;
 };
+
+export const CALL_REASONS = ["daylight", "field_time"] as const;
+export type CallReason = (typeof CALL_REASONS)[number];
 
 export type ScoreErrors = {
   scoreA?: string;
