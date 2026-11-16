@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   ANCHOR_BENCHMARK_INDEX,
   ANCHOR_SLOWDOWN,
@@ -7,6 +7,8 @@ import {
   MIN_SLOWDOWN,
   medianOf,
   slowdownFor,
+  waitForUrl,
+  withRetries,
   withSlowdown,
 } from "../../scripts/lighthouse-calibration.mjs";
 
@@ -71,5 +73,76 @@ describe("withSlowdown", () => {
   it("does not alter the config it was given", () => {
     withSlowdown(rc, 2);
     expect(rc.ci.collect.settings.throttling.cpuSlowdownMultiplier).toBe(4);
+  });
+});
+
+describe("withRetries", () => {
+  const sleep = vi.fn(async () => {});
+
+  it("returns the first success and retries only after failures", async () => {
+    const attempt = vi
+      .fn<(n: number) => Promise<number>>()
+      .mockRejectedValueOnce(new Error("connect ECONNREFUSED 127.0.0.1:44271"))
+      .mockResolvedValueOnce(3450);
+    const onRetry = vi.fn();
+    sleep.mockClear();
+
+    await expect(
+      withRetries(attempt, { tries: 3, delayMs: 2000, onRetry, sleep }),
+    ).resolves.toBe(3450);
+    expect(attempt.mock.calls).toEqual([[1], [2]]);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+    expect(sleep).toHaveBeenCalledExactlyOnceWith(2000);
+  });
+
+  it("gives up after the last try with every reason, without a result", async () => {
+    const attempt = vi.fn(async (n: number) => {
+      throw new Error(`refused ${n}`);
+    });
+    sleep.mockClear();
+
+    await expect(withRetries(attempt, { tries: 3, sleep })).rejects.toThrow(
+      "Failed 3 times (try 1: refused 1; try 2: refused 2; try 3: refused 3)",
+    );
+    expect(attempt).toHaveBeenCalledTimes(3);
+    // No wait after the last try.
+    expect(sleep).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("waitForUrl", () => {
+  it("waits until the port answers", async () => {
+    const fetchUrl = vi
+      .fn<(url: string) => Promise<{ ok: boolean; status: number }>>()
+      .mockRejectedValueOnce(new Error("ECONNREFUSED"))
+      .mockResolvedValueOnce({ ok: false, status: 503 })
+      .mockResolvedValueOnce({ ok: true, status: 200 });
+
+    await waitForUrl("http://127.0.0.1:9222/json/version", {
+      timeoutMs: 1000,
+      fetchUrl,
+      now: () => 0,
+      sleep: async () => {},
+    });
+    expect(fetchUrl).toHaveBeenCalledTimes(3);
+  });
+
+  it("fails with the last reason once the time is up", async () => {
+    let clock = 0;
+    await expect(
+      waitForUrl("http://127.0.0.1:9222/json/version", {
+        timeoutMs: 300,
+        intervalMs: 100,
+        fetchUrl: async () => {
+          throw new Error("connect ECONNREFUSED");
+        },
+        now: () => clock,
+        sleep: async (ms) => {
+          clock += ms;
+        },
+      }),
+    ).rejects.toThrow(
+      "http://127.0.0.1:9222/json/version did not answer within 300 ms (connect ECONNREFUSED)",
+    );
   });
 });

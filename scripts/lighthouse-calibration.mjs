@@ -62,3 +62,63 @@ export function withSlowdown(config, slowdown) {
     },
   };
 }
+
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Runs `attempt` until it succeeds, at most `tries` times, waiting `delayMs`
+ * between tries. If every try fails, throws one error that lists them all,
+ * so a caller can stop loudly instead of carrying on without a result.
+ */
+export async function withRetries(
+  attempt,
+  { tries, delayMs = 0, onRetry = () => {}, sleep = pause },
+) {
+  const errors = [];
+  for (let n = 1; n <= tries; n++) {
+    try {
+      return await attempt(n);
+    } catch (error) {
+      errors.push(error);
+      if (n < tries) {
+        onRetry(error, n);
+        await sleep(delayMs);
+      }
+    }
+  }
+  const reasons = errors
+    .map((e, i) => `try ${i + 1}: ${e instanceof Error ? e.message : e}`)
+    .join("; ");
+  throw new AggregateError(errors, `Failed ${tries} times (${reasons})`);
+}
+
+/**
+ * Waits until `url` answers with a success status, asking every
+ * `intervalMs`, and throws once `timeoutMs` has passed without one. Chrome's
+ * debugging port can open a moment after Chrome starts.
+ */
+export async function waitForUrl(
+  url,
+  {
+    timeoutMs,
+    intervalMs = 100,
+    fetchUrl = (u) => fetch(u),
+    now = () => Date.now(),
+    sleep = pause,
+  },
+) {
+  const deadline = now() + timeoutMs;
+  let last = "no answer";
+  for (;;) {
+    try {
+      const response = await fetchUrl(url);
+      if (response.ok) return;
+      last = `status ${response.status}`;
+    } catch (error) {
+      last = error instanceof Error ? error.message : String(error);
+    }
+    if (now() >= deadline)
+      throw new Error(`${url} did not answer within ${timeoutMs} ms (${last})`);
+    await sleep(intervalMs);
+  }
+}
