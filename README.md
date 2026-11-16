@@ -22,6 +22,10 @@ This project replaces the patchwork with one site. Players register, sign the wa
 
 Highlights by audience. The complete list, with every rule and edge case, is in [docs/features.md](docs/features.md).
 
+**Everyone signed in**
+
+- A home dashboard with the next game, what needs you (award votes, polls, surveys, registration) and your team, plus a phone tab bar (Home, Schedule, Team, Menu) and a grouped menu. Captains, refs, admins and owners each get their own group on top, so nobody sees a link they can't use.
+
 **Players**
 
 - Sign up with an email link or its 6-digit code, Google or a passkey (the code and Google also work inside the phone apps); sign the waiver and accept the league's code of conduct (written in the app, versioned, asked once per version), confirm the age check and pay by full or split pay through Stripe, with promo codes and league credit applied.

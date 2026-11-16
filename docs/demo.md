@@ -28,7 +28,7 @@ Mid-demo, **Reset demo** in the yellow banner (as Admin) puts everything back th
 
 ## The walkthrough
 
-The yellow banner at the top switches who you are: **Player**, **Captain**, **Ref** or **Admin**, in one tap. In the demo, Admin also has the owners' screens (the books and the owner dashboard), which on the league's site belong to the owners alone.
+The yellow banner at the top switches who you are: pick **Player**, **Captain**, **Ref** or **Admin** in its **Viewing as** picker and tap **Go**. It shows who you're viewing as, and takes one short row on a phone. Inside the app, the tab bar (Home, Schedule, Team, Menu) and the **Menu** groups change with the role: Captain adds a Captain group, Ref adds Referee, and Admin has League admin and Owner instead of the player's groups. In the demo, Admin also has the owners' screens (the books and the owner dashboard), which on the league's site belong to the owners alone.
 
 ### 1. The public site (1 minute)
 
