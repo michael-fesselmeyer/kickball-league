@@ -37,6 +37,7 @@ export const en = {
     language: {
       group: "Language",
       current: "{language} (current)",
+      report: "Spot a wrong or clumsy translation? Tell the league",
     },
   },
   profile: {

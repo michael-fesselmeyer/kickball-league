@@ -34,6 +34,7 @@ export const es: Translation<EnglishMessages> = {
     language: {
       group: "Idioma",
       current: "{language} (actual)",
+      report: "¿Ves una traducción incorrecta o rara? Avísale a la liga",
     },
   },
   profile: {
