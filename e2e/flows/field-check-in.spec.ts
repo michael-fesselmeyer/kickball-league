@@ -24,7 +24,7 @@ test.describe.serial("field check-in", () => {
     today = await addGameToday(TEAM, OTHER);
   });
   test.afterAll(async () => {
-    await today.remove();
+    await today?.remove();
   });
 
   test("the captain shows the game's check-in code", async ({ browser }) => {

@@ -24,7 +24,7 @@ test.describe.serial("ref assigner and pay sheet", () => {
     ]);
   });
   test.afterAll(async () => {
-    await games.remove();
+    await games?.remove();
   });
 
   test("a ref says when they can work, an admin accepts the proposal, then pays them", async ({

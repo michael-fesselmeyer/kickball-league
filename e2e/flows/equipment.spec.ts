@@ -66,8 +66,8 @@ test.describe.serial("league gear", () => {
   });
   test.afterAll(async () => {
     await removeKit();
-    await first.remove();
-    await second.remove();
+    await first?.remove();
+    await second?.remove();
   });
 
   test("an admin adds a kit and assigns it to two games", async ({
