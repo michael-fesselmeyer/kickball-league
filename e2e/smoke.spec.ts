@@ -120,17 +120,20 @@ test("Google sign-in stays hidden until it is configured", async ({ page }) => {
   ).toHaveCount(0);
 });
 
-test("the theme switch remembers a choice across page loads", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Dark" }).click();
-  await page.reload();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await expect(page.getByRole("button", { name: "Dark" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+test.describe("theme switch", () => {
+  test.use({ colorScheme: "light" });
+
+  test("remembers a choice across page loads", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Switch to dark mode" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await page.reload();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(
+      page.getByRole("button", { name: "Switch to light mode" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expectNoAxeViolations(page);
+  });
 });
 
 test("the page fits a phone screen without sideways scrolling", async ({
