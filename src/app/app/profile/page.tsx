@@ -21,6 +21,8 @@ import { env } from "@/env";
 import { requireSelf } from "@/lib/auth/permission";
 import { siteOrigin } from "@/lib/site";
 import { AlertLimitsSettings } from "./alert-limits";
+import { TurnDownSettings } from "./turn-downs";
+import { turnDownsOf } from "@/db/queries/alert-choices";
 import { AwayWeeks } from "./away-weeks";
 import { CreditSection } from "./credit-section";
 import { EmailSettings } from "./email-settings";
@@ -57,6 +59,7 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
     limits,
     away,
     cards,
+    turnDowns,
   ] = await Promise.all([
     profileOf(db, subject.userId),
     emailSettingsOf(db, subject.userId),
@@ -69,6 +72,7 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
     alertLimitsFor(db, subject.userId),
     awaySeasonsFor(db, subject.userId, new Date()),
     myCards(db, subject.userId),
+    turnDownsOf(db, subject.userId),
   ]);
   const emergency = await emergencyCardOf(
     db,
@@ -125,6 +129,12 @@ async function Profile({ searchParams }: PageProps<"/app/profile">) {
               ? "invalid"
               : null
         }
+      />
+      <TurnDownSettings
+        turnDowns={turnDowns}
+        now={new Date()}
+        timeZone={league?.timeZone ?? DEFAULT_TIME_ZONE}
+        saved={query.turndowns === "saved"}
       />
       {publicKey && push && (
         <PushSettings
