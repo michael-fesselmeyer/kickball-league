@@ -51,12 +51,12 @@ test("an admin records another group, gets an overlap warning and sees them on g
   // A group with no usual hours is fine too.
   // Added to every field, so whichever fields host the game day names it.
   const fieldIds = await groups
-    .getByLabel("Field")
+    .getByLabel("Field", { exact: true })
     .last()
     .locator("option")
     .evaluateAll((o) => o.map((x) => (x as HTMLOptionElement).value));
   for (const id of fieldIds) {
-    await groups.getByLabel("Field").last().selectOption(id);
+    await groups.getByLabel("Field", { exact: true }).last().selectOption(id);
     await groups.getByLabel("Group name").last().fill("Pickup Frisbee");
     await groups.getByRole("button", { name: "Add group" }).click();
     await expect(admin.getByRole("status")).toHaveText("Group added.");
