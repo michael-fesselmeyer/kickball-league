@@ -179,8 +179,9 @@ function buildMatches(
         "main",
         round,
         m + 1,
-        previous[2 * m] ?? null,
-        previous[2 * m + 1] ?? null,
+        // Pairings come in twos, so both places exist (either may be a bye).
+        previous[2 * m] as Entry,
+        previous[2 * m + 1] as Entry,
         code,
       );
       next.push(winner);
@@ -190,21 +191,22 @@ function buildMatches(
     losers.push(dropped);
     previous = next;
   }
-  const champion = previous[0] ?? null;
+  // Two or more teams always make a final, so its winner is a real side.
+  const champion = previous[0] as BracketSide;
 
   if (format === "double_elimination") {
     // The losers' side: the first round's losers pair up; then, round by
     // round, the next main round's losers drop in to face the survivors,
     // who pair up again. Dropping in in reverse order every other round
     // keeps teams from meeting again straight away.
-    let alive: Entry[] = losers[0] ?? [];
+    let alive: Entry[] = losers[0] as Entry[];
     let lround = 0;
     if (rounds > 1) {
       lround = 1;
       alive = halve(alive, lround);
       for (let wr = 2; wr <= rounds; wr++) {
         lround++;
-        const drops = [...(losers[wr - 1] ?? [])];
+        const drops = [...(losers[wr - 1] as Entry[])];
         if (wr % 2 === 0) drops.reverse();
         const round = lround;
         alive = alive.map((survivor, i) =>
@@ -212,7 +214,7 @@ function buildMatches(
             "losers",
             round,
             i + 1,
-            drops[i] ?? null,
+            drops[i] as Entry,
             survivor,
             `l${round}m${i + 1}`,
           ),
@@ -223,27 +225,27 @@ function buildMatches(
         }
       }
     }
-    const losersChampion = alive[0] ?? null;
-    if (champion && losersChampion) {
-      matches.push({
-        id: "gf",
-        stage: "grand_final",
-        round: 1,
-        position: 1,
-        home: champion,
-        away: losersChampion,
-      });
-      // Played only if the losers' side champion wins the grand final, so
-      // both teams have one loss. The winners' side champion stays first.
-      matches.push({
-        id: "gf2",
-        stage: "reset",
-        round: 1,
-        position: 1,
-        home: { loserOf: "gf" },
-        away: { winnerOf: "gf" },
-      });
-    }
+    // The winners' final always has a loser, so the losers' side always
+    // ends with a real champion.
+    const losersChampion = alive[0] as BracketSide;
+    matches.push({
+      id: "gf",
+      stage: "grand_final",
+      round: 1,
+      position: 1,
+      home: champion,
+      away: losersChampion,
+    });
+    // Played only if the losers' side champion wins the grand final, so
+    // both teams have one loss. The winners' side champion stays first.
+    matches.push({
+      id: "gf2",
+      stage: "reset",
+      round: 1,
+      position: 1,
+      home: { loserOf: "gf" },
+      away: { winnerOf: "gf" },
+    });
   } else if (thirdPlace) {
     const semis = matches.filter(
       (m) => m.stage === "main" && m.round === rounds - 1,
@@ -374,10 +376,12 @@ export function placeBracket(
     diagnostics,
   );
   const wave = waves(drafts);
+  // Every match has a wave.
+  const waveOf = (m: { id: string }) => wave.get(m.id) as number;
   const title = (m: Draft) => (isTitleGame(m, rounds, format) ? 1 : 0);
   const ordered = [...drafts].sort(
     (a, b) =>
-      (wave.get(a.id) ?? 0) - (wave.get(b.id) ?? 0) ||
+      waveOf(a) - waveOf(b) ||
       title(a) - title(b) ||
       STAGE_ORDER[a.stage] - STAGE_ORDER[b.stage] ||
       a.round - b.round ||
@@ -405,7 +409,7 @@ export function placeBracket(
   const later = (s: Slot, than: [string, number]) =>
     s.date > than[0] || (s.date === than[0] && s.timeIndex > than[1]);
 
-  for (const w of [...new Set(matches.map((m) => wave.get(m.id) ?? 0))]) {
+  for (const w of [...new Set(matches.map(waveOf))]) {
     const inWave = matches.filter((m) => wave.get(m.id) === w);
     let latest = after;
     for (const match of inWave) {
