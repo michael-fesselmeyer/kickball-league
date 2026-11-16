@@ -295,6 +295,8 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `guarantee_failed` | urgent | A captain's card guarantee that could not be charged |
 | `guarantee_warning` | urgent | A warning before a captain's card guarantee is charged |
 | `incident_filed` | urgent | For owners and admins: a report was filed for a game |
+| `leadership_check_in` | non-urgent | Your team's season-end leadership check-in: when it opens, a teammate suggests you, the ballot opens, and the outcome |
+| `leadership_result` | urgent | For captains: your team's leadership check-in result, privately first, waiting for your choice |
 | `instagram_reconnect` | non-urgent | For admins: the Instagram connection needs reconnecting |
 | `instagram_storage_full` | non-urgent | For admins: Instagram photo storage is full |
 | `interest_go_ahead` | non-urgent | News that a new night, park or format you showed interest in is going ahead |

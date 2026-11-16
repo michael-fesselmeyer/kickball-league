@@ -112,6 +112,16 @@ export const MESSAGE_KINDS = {
     urgency: "urgent",
     label: "For owners and admins: a report was filed for a game",
   },
+  leadership_check_in: {
+    urgency: "non_urgent",
+    label:
+      "Your team's season-end leadership check-in: when it opens, a teammate suggests you, the ballot opens, and the outcome",
+  },
+  leadership_result: {
+    urgency: "urgent",
+    label:
+      "For captains: your team's leadership check-in result, privately first, waiting for your choice",
+  },
   instagram_reconnect: {
     urgency: "non_urgent",
     label: "For admins: the Instagram connection needs reconnecting",
