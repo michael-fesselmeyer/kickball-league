@@ -177,7 +177,15 @@ async function StatAwards({
                 </SubmitButton>
               </form>
               {board.publishedAt && (
-                <Link href={`/seasons/${slug}/awards`} className="underline">
+                // Not prefetched: a prefetch renders the public page while
+                // the admin may be taking it down, and a render that ends
+                // after the take-down is cached as fresh, so the page stays
+                // up (public-cache.ts, SECOND_EXPIRY_MS).
+                <Link
+                  href={`/seasons/${slug}/awards`}
+                  prefetch={false}
+                  className="underline"
+                >
                   See the awards page
                 </Link>
               )}
