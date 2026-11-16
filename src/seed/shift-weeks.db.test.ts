@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { awardPoll } from "@/db/schema/awards";
 import { game, slot } from "@/db/schema/game";
+import { league } from "@/db/schema/league";
 import { scheduleVersion } from "@/db/schema/schedule";
 import { season } from "@/db/schema/season";
 import { messagingWorld } from "@/db/test/messaging-world";
@@ -17,9 +18,21 @@ afterAll(closePool);
 const ninePm = (date: string, edt: boolean) =>
   new Date(`${date}T${edt ? "01" : "02"}:00:00Z`);
 
-/** A season being played, games on three Tuesdays at 8 pm, the first final. */
+/**
+ * A season being played, games on three Tuesdays at 8 pm, the first final.
+ * Its league is the default one, which the demo's move follows, whatever else
+ * the test database holds.
+ */
 async function playing(db: Db) {
   const w = await messagingWorld(db);
+  await db
+    .update(league)
+    .set({ isDefault: false })
+    .where(eq(league.isDefault, true));
+  await db
+    .update(league)
+    .set({ isDefault: true })
+    .where(eq(league.id, w.leagueId));
   await db
     .update(season)
     .set({
@@ -142,6 +155,25 @@ describe("catchUpDemoLeague", () => {
       expect(v?.inputSnapshot).toMatchObject({
         slots: [{ date: "2026-11-17", startsAt: "2026-11-18T01:00:00.000Z" }],
       });
+    });
+  });
+
+  it("follows the default league when another league is further behind", async () => {
+    await inRolledBackDb(async (db) => {
+      const { next } = await playing(db);
+      // A second league on its own calendar, its next game three weeks back.
+      const other = await messagingWorld(db);
+      await db
+        .update(season)
+        .set({ status: "in_progress" })
+        .where(eq(season.id, other.season.id));
+      await other.gameEnding(ninePm("2026-09-02", true));
+      // Wednesday Sep 23: the default league's next game (Sep 22) needs one
+      // week; the other league's would need three and push Sep 15's final
+      // game into the future.
+      const now = new Date("2026-09-23T15:00:00Z");
+      expect(await catchUpDemoLeague(db, { now, ranFrom: now })).toBe(1);
+      expect(await startOf(db, next.slotId)).toBe("2026-09-30T00:00:00.000Z");
     });
   });
 

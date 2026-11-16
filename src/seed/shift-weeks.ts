@@ -60,7 +60,14 @@ export function weeksToCatchUp(nextGameDay: string, today: string): number {
   return days <= 0 ? 0 : Math.ceil(days / 7);
 }
 
-/** The in-progress season's first unplayed game day, as a local date. */
+/**
+ * The in-progress season's first unplayed game day, as a local date. The
+ * whole database moves by one number of weeks, so it follows the default
+ * league (the demo's main one): another league seeded on its own calendar,
+ * such as the second demo league, must not push the main league's played
+ * games into the future. Without a default league in play, the earliest
+ * league's day counts.
+ */
 export async function nextUnplayedGameDay(
   db: Db,
 ): Promise<{ date: string; timeZone: string } | null> {
@@ -78,8 +85,8 @@ export async function nextUnplayedGameDay(
      where s.status in ('in_progress', 'playoffs')
        and g.status not in ('final', 'forfeit', 'cancelled')
        and sl.status <> 'cancelled'
-     group by l.timezone
-     order by 1
+     group by l.id, l.timezone, l.is_default
+     order by l.is_default desc, 1
      limit 1`,
   );
   const row = rows[0];
