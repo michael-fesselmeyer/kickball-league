@@ -19,6 +19,11 @@ import {
   spreadDiscount,
 } from "@/domain/registration/promo";
 import { creditToApply } from "@/domain/money/credit";
+import {
+  type FeeMethod,
+  type FeeSettings,
+  feeFor,
+} from "@/domain/money/processing-fee";
 import { statusAfterRefunds } from "@/domain/registration/refund";
 import { err, ok, type Result } from "@/domain/result";
 import { savedPaymentMethod } from "../schema/guarantee";
@@ -81,11 +86,16 @@ export async function createPurchase(
     items: readonly PurchaseLine[];
     promo?: { id: PromoCodeId; discountCents: number };
     creditCents?: number;
+    /** The processing fee the payer covers, and its method (ADR 0082). */
+    fee?: { cents: number; method: FeeMethod | "venmo" };
+    /** The card fee a payer saved with a free method (ADR 0082). */
+    feeSavedCents?: number;
   },
 ): Promise<PurchaseId> {
   const subtotal = input.items.reduce((sum, i) => sum + i.amountCents, 0);
   const discount = input.promo?.discountCents ?? 0;
   const credit = input.creditCents ?? 0;
+  const fee = input.fee && input.fee.cents > 0 ? input.fee : null;
   const [created] = await db
     .insert(purchase)
     .values({
@@ -95,7 +105,10 @@ export async function createPurchase(
       subtotalCents: subtotal,
       discountCents: discount,
       creditAppliedCents: credit,
-      totalCents: subtotal - discount - credit,
+      feeCents: fee?.cents ?? 0,
+      feeMethod: fee?.method ?? null,
+      feeSavedCents: input.feeSavedCents ?? 0,
+      totalCents: subtotal - discount - credit + (fee?.cents ?? 0),
       promoCodeId: input.promo?.id ?? null,
     })
     .returning({ id: purchase.id });
@@ -115,12 +128,25 @@ export async function createPurchase(
 
 export type StartedPurchase = {
   purchaseId: PurchaseId;
+  /** What Stripe charges: the price after discount and credit, plus the fee. */
   totalCents: number;
+  /** The processing fee inside the total; zero while fees are off. */
+  feeCents: number;
+  feeMethod: FeeMethod | null;
   /** League credit used, already taken from the person's balance. */
   creditCents: number;
-  /** What to charge for each item, in order, after the discount and credit. */
+  /**
+   * What to charge for each item, in order, after the discount and credit.
+   * The fee is not in these: it is a line of its own.
+   */
   chargeCents: number[];
 };
+
+/**
+ * How the payer chose to pay online, when the league's fee setting is on
+ * (ADR 0082). Null while it is off: amounts and Checkout stay as before.
+ */
+export type FeeChoice = { method: FeeMethod; settings: FeeSettings } | null;
 
 /**
  * Creates the purchase for a checkout, with a promo code when one was
@@ -142,6 +168,8 @@ export async function startPurchase(
     promoCode: string | null;
     /** Use the person's league credit. On unless they unticked it. */
     useCredit?: boolean;
+    /** The processing fee to cover, when fees are on; worked out after credit. */
+    processingFee?: FeeChoice;
     now: Date;
     /**
      * Links what the purchase is for (an event ticket) before a purchase
@@ -174,6 +202,15 @@ export async function startPurchase(
     const balance = await creditBalance(db, input.userId, input.leagueId);
     creditCents = creditToApply(discounted, balance);
   }
+  // The fee is on what is left to charge, so credit and discounts carry
+  // none, and a purchase they cover in full has none.
+  const netCents = discounted - creditCents;
+  const choice = input.processingFee;
+  const feeMethod = choice && netCents > 0 ? choice.method : null;
+  const feeCents =
+    choice && feeMethod
+      ? feeFor(feeMethod, netCents, choice.settings)
+      : 0;
   const purchaseId = await createPurchase(db, {
     userId: input.userId,
     leagueId: input.leagueId,
@@ -181,6 +218,9 @@ export async function startPurchase(
     items: input.items,
     ...(promo ? { promo } : {}),
     creditCents,
+    ...(feeMethod && feeCents > 0
+      ? { fee: { cents: feeCents, method: feeMethod } }
+      : {}),
   });
   await spendCredit(db, {
     userId: input.userId,
@@ -189,11 +229,13 @@ export async function startPurchase(
     cents: creditCents,
   });
   await input.attach?.(purchaseId);
-  const totalCents = discounted - creditCents;
+  const totalCents = netCents + feeCents;
   if (totalCents === 0) await settlePurchase(db, purchaseId, null, input.now);
   return ok({
     purchaseId,
     totalCents,
+    feeCents,
+    feeMethod: feeCents > 0 ? feeMethod : null,
     creditCents,
     chargeCents: spreadDiscount(
       amounts,
@@ -287,6 +329,8 @@ export async function openCheckoutsFor(db: Db, registrationId: RegistrationId) {
         eq(purchaseItem.registrationId, registrationId),
         eq(purchase.status, "open"),
         isNotNull(purchase.stripeCheckoutSessionId),
+        // A bank transfer on its way is not left open: it is paying.
+        isNull(purchase.processingSince),
       ),
     );
 }
@@ -512,6 +556,10 @@ export async function handleStripeEvent(
           event.type === "checkout.session.async_payment_succeeded") &&
         session.payment_status === "paid";
       if (paid) await markPaid(db, found.id, session, now);
+      else if (event.type === "checkout.session.completed")
+        // A bank transfer: Checkout is done and the money is on its way.
+        // Stripe sends async_payment_succeeded or _failed in a few days.
+        await markProcessing(db, found.id, now);
       else if (event.type === "checkout.session.async_payment_failed")
         await setStatusIfOpen(db, found.id, "failed", now);
       else if (event.type === "checkout.session.expired")
@@ -732,6 +780,47 @@ export async function refreshRefundStatus(
         inArray(purchase.status, ["paid", "partially_refunded", "refunded"]),
       ),
     );
+}
+
+/**
+ * A bank transfer's Checkout completed but the money takes a few business
+ * days (ADR 0082). The purchase stays open and is marked, so a second "Pay"
+ * leaves it alone and the guarantee's deadline charge waits for it.
+ */
+async function markProcessing(db: Db, id: PurchaseId, now: Date) {
+  await db
+    .update(purchase)
+    .set({ processingSince: now })
+    .where(
+      and(
+        eq(purchase.id, id),
+        eq(purchase.status, "open"),
+        isNull(purchase.processingSince),
+      ),
+    );
+}
+
+/**
+ * An open purchase for a registration whose bank transfer is on its way,
+ * so the season page says so instead of offering to pay again.
+ */
+export async function processingPaymentFor(
+  db: Db,
+  registrationId: RegistrationId,
+): Promise<{ id: PurchaseId; since: Date } | null> {
+  const [found] = await db
+    .select({ id: purchase.id, since: purchase.processingSince })
+    .from(purchase)
+    .innerJoin(purchaseItem, eq(purchaseItem.purchaseId, purchase.id))
+    .where(
+      and(
+        eq(purchaseItem.registrationId, registrationId),
+        eq(purchase.status, "open"),
+        isNotNull(purchase.processingSince),
+      ),
+    )
+    .limit(1);
+  return found?.since ? { id: found.id, since: found.since } : null;
 }
 
 async function setStatusIfOpen(

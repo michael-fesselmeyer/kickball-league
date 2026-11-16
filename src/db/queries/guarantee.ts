@@ -2,6 +2,7 @@ import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type { LeagueId, PurchaseId, TeamSeasonId, UserId } from "@/domain/ids";
 import { formatMoment } from "@/domain/money/credit";
 import { chargeTime, guaranteeStep } from "@/domain/money/guarantee";
+import { feeFor, readFeeSettings } from "@/domain/money/processing-fee";
 import { formatCents } from "@/domain/registration/pricing";
 import type {
   GuaranteeFailedPayload,
@@ -166,6 +167,7 @@ export async function planGuarantees(
       seasonSlug: season.slug,
       teamName: team.name,
       timeZone: league.timezone,
+      fees: league.processingFees,
     })
     .from(savedPaymentMethod)
     .innerJoin(teamSeason, eq(savedPaymentMethod.teamSeasonId, teamSeason.id))
@@ -185,9 +187,15 @@ export async function planGuarantees(
     db,
     rows.map((r) => r.teamSeasonId),
   );
+  const processing = await teamsWithPaymentOnTheWay(
+    db,
+    rows.map((r) => r.teamSeasonId),
+  );
   const plan: GuaranteePlan = { warned: 0, charges: 0 };
   for (const r of rows) {
     const balanceCents = balances.get(r.teamSeasonId)?.balanceCents ?? 0;
+    // The card price when the league's processing fees are on (ADR 0082).
+    const feeCents = feeFor("card", balanceCents, readFeeSettings(r.fees));
     const step = guaranteeStep(
       {
         deadline: r.deadline,
@@ -210,6 +218,9 @@ export async function planGuarantees(
         balance: formatCents(balanceCents),
         chargeOn: formatMoment(chargeTime(r.deadline, now), r.timeZone),
         card: describeCard(r.brand, r.last4),
+        ...(feeCents > 0
+          ? { charge: formatCents(balanceCents + feeCents) }
+          : {}),
       };
       await enqueueMessages(db, [
         {
@@ -223,6 +234,9 @@ export async function planGuarantees(
       ]);
       plan.warned += 1;
     } else if (step === "charge") {
+      // A teammate's bank transfer is on its way: wait for it to clear or
+      // fail instead of charging the captain for money already coming.
+      if (processing.has(r.teamSeasonId)) continue;
       const [created] = await db
         .insert(purchase)
         .values({
@@ -230,7 +244,9 @@ export async function planGuarantees(
           leagueId: sql<LeagueId>`(select league_id from season where id = ${r.seasonId})`,
           seasonId: r.seasonId,
           subtotalCents: balanceCents,
-          totalCents: balanceCents,
+          feeCents,
+          feeMethod: feeCents > 0 ? "card" : null,
+          totalCents: balanceCents + feeCents,
         })
         .returning({ id: purchase.id });
       if (!created) continue;
@@ -250,12 +266,35 @@ export async function planGuarantees(
         action: "guarantee.charge",
         entityType: "team_season",
         entityId: r.teamSeasonId,
-        after: { purchaseId: created.id, cents: balanceCents },
+        after: { purchaseId: created.id, cents: balanceCents, feeCents },
       });
       plan.charges += 1;
     }
   }
   return plan;
+}
+
+/**
+ * Teams with a payment toward their fee on its way: a bank transfer whose
+ * Checkout completed and has not cleared or failed yet (ADR 0082).
+ */
+async function teamsWithPaymentOnTheWay(
+  db: Db,
+  ids: readonly TeamSeasonId[],
+): Promise<Set<TeamSeasonId>> {
+  if (ids.length === 0) return new Set();
+  const rows = await db
+    .selectDistinct({ id: purchaseItem.teamSeasonId })
+    .from(purchaseItem)
+    .innerJoin(purchase, eq(purchaseItem.purchaseId, purchase.id))
+    .where(
+      and(
+        inArray(purchaseItem.teamSeasonId, [...ids]),
+        eq(purchase.status, "open"),
+        isNotNull(purchase.processingSince),
+      ),
+    );
+  return new Set(rows.flatMap((r) => (r.id ? [r.id] : [])));
 }
 
 export type ChargeToSend = {

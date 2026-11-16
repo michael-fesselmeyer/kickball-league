@@ -17,6 +17,11 @@ export const guaranteeWarningPayload = z.object({
   /** When the card will be charged, such as "Monday, March 1 at 12:00 AM". */
   chargeOn: z.string().min(1),
   card: z.string().min(1),
+  /**
+   * The card price of the balance, when the league's processing fees are on
+   * (ADR 0082): what the card will be charged, fee included.
+   */
+  charge: z.string().min(1).optional(),
 });
 export type GuaranteeWarningPayload = z.infer<typeof guaranteeWarningPayload>;
 
@@ -28,7 +33,9 @@ export const guaranteeWarningEmail = defineTemplate(
         subject: `${p.teamName} still owes ${p.balance}: your card is charged ${p.chargeOn}`,
         heading: `Heads up: ${p.balance} left on ${p.teamName}`,
         paragraphs: [
-          `Your team's ${p.seasonName} fee still has ${p.balance} unpaid. As the team's guarantee, your ${p.card} will be charged that amount on ${p.chargeOn}.`,
+          p.charge
+            ? `Your team's ${p.seasonName} fee still has ${p.balance} unpaid. As the team's guarantee, your ${p.card} will be charged ${p.charge} on ${p.chargeOn}: the balance at the card price, which covers the card fee.`
+            : `Your team's ${p.seasonName} fee still has ${p.balance} unpaid. As the team's guarantee, your ${p.card} will be charged that amount on ${p.chargeOn}.`,
           "Anything your teammates pay before then comes off the charge. Collect the rest from them afterwards, or remove the card if you would rather pay another way.",
         ],
         action: {

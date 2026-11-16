@@ -1,3 +1,4 @@
+import type { FeeMethod } from "@/domain/money/processing-fee";
 import { randomBytes } from "node:crypto";
 import { and, asc, desc, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import { rsvpWindow, whenLine } from "@/domain/events/event";
@@ -36,7 +37,7 @@ import { recordAudit } from "./audit";
 import { returnSpentCredit } from "./credit";
 import { counts, type LockedEvent, lockEvent, type RsvpError } from "./events";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
-import { closePurchases, startPurchase } from "./payments";
+import { closePurchases, type FeeChoice, startPurchase } from "./payments";
 import {
   confirmStripeRefund,
   type RefundStartError,
@@ -494,6 +495,9 @@ export type BuyOutcome =
       ticketId: EventTicketId;
       purchaseId: PurchaseId;
       totalCents: number;
+      /** The processing fee inside the total (ADR 0082); zero while off. */
+      feeCents: number;
+      feeMethod: FeeMethod | null;
       creditCents: number;
       description: string;
       expiresAt: Date;
@@ -521,6 +525,8 @@ export async function buyTicket(
     /** Registered in any season, for the member price. */
     member: boolean;
     useCredit: boolean;
+    /** Who covers the processing fee, when the league turned that on. */
+    fee?: FeeChoice;
     now: Date;
   },
 ): Promise<Result<BuyOutcome, TicketError>> {
@@ -605,6 +611,7 @@ export async function buyTicket(
     ],
     promoCode: null,
     useCredit: input.useCredit,
+    ...(input.fee ? { fee: input.fee } : {}),
     now: input.now,
     attach: async (purchaseId) => {
       const hold = {
@@ -641,6 +648,8 @@ export async function buyTicket(
     ticketId,
     purchaseId: started.value.purchaseId,
     totalCents: started.value.totalCents,
+    feeCents: started.value.feeCents,
+    feeMethod: started.value.feeMethod,
     creditCents: started.value.creditCents,
     description,
     expiresAt: checkoutExpiry(input.now),

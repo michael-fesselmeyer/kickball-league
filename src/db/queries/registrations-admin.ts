@@ -32,7 +32,7 @@ import type { Db } from "./schedule";
 /** A payment someone made, with what has gone back or is on its way. */
 export type BoardPayment = {
   paymentId: PaymentId;
-  method: "stripe" | "cash" | "venmo" | "other";
+  method: "stripe" | "cash" | "venmo" | "zelle" | "check" | "other";
   amountCents: number;
   /** Refunded, as Stripe confirmed or as recorded for off-app money. */
   refundedCents: number;
