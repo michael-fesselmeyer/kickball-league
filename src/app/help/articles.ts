@@ -209,6 +209,111 @@ export const HELP_ROLES: readonly HelpRole[] = [
           "unsubscribe",
         ],
       },
+      {
+        id: "contact-league",
+        title: "Contact the league",
+        summary:
+          "Ask a question or report a problem at the field. No account needed.",
+        steps: [
+          'Open "Contact the league" from the About page or a park page.',
+          'Pick what it is about: "A question", "A problem at the field", "Something about how the park is used" or "Something else".',
+          "Add the date and field if you know them, and write your message. Please leave out links.",
+          'Add your email if you want a reply, then tap "Send to the league".',
+        ],
+        notes: [
+          "Only the league's admins read it, and your email is kept a year after they close your message.",
+          'Signed in and it\'s about a game or a person? Use "Raise a concern" instead.',
+          "For an emergency, call 911 first.",
+        ],
+        keywords: [
+          "question",
+          "park rules",
+          "problem",
+          "email the league",
+          "reach",
+        ],
+      },
+      {
+        id: "check-in",
+        title: "Check in at the game",
+        summary:
+          "Scan the code on your captain's or ref's phone so the league knows you played.",
+        steps: [
+          "At the field, ask your captain or the ref to show the game's check-in code.",
+          "Scan it with your phone's camera and sign in if asked.",
+          'Tap "Check in". You see "You\'re checked in".',
+        ],
+        notes: [
+          "The code changes every few minutes, so a code from a photo won't work. Scan the live one.",
+          "Told you're not on the roster? Ask a captain to add you, or to approve your sub claim, then scan again.",
+          "Check-in closed or missed it? Ask your captain to tick you in. It counts toward your games played.",
+        ],
+        keywords: ["qr", "scan", "attendance", "games played", "played"],
+      },
+      {
+        id: "email-choices",
+        title: "Choose which emails you get",
+        summary:
+          "News from the league is opt-in. Pick your emails, set a daily limit and unsubscribe in one tap.",
+        steps: [
+          "Open your profile and find the email settings.",
+          'Tick the emails you want, such as "Announcements from admins and captains". Sign-in links always come.',
+          "Set a daily limit for news and reminders, and hold them overnight if you like.",
+          'Tap "Save email settings".',
+        ],
+        notes: [
+          "A new account starts with league news off, so tick it if you want it.",
+          "Every email has an unsubscribe link for its topic. One tap and it stops.",
+          "Urgent things, like a rain-out or a payment deadline, still arrive at once.",
+        ],
+        screen: { href: "/app/profile", label: "Your profile" },
+        keywords: [
+          "unsubscribe",
+          "newsletter",
+          "news",
+          "opt in",
+          "email",
+          "digest",
+          "quiet hours",
+        ],
+      },
+      {
+        id: "season-card",
+        title: "Your season card",
+        summary:
+          "After a season ends you get a card with your games, your team's season and any awards. Share it if you like.",
+        steps: [
+          'Open the message that says your season card is ready, or find "Your season in kickball" in the app.',
+          "Look it over. Only you can see it at first.",
+          'To share, tap "Make my card\'s link public", then share it or copy it for WhatsApp.',
+          'Changed your mind? Tap "Make my card private". The link and its picture stop working.',
+        ],
+        notes: ["No other player's name is on your card."],
+        screen: { href: "/app", label: "Your home" },
+        keywords: ["end of season", "wrapped", "stats", "share", "awards"],
+      },
+      {
+        id: "who-has-field",
+        title: "See who has a field",
+        summary:
+          "Each park has a public page showing which fields the league holds and when.",
+        steps: [
+          "Open the park's page from the league's site.",
+          'Under "Fields and hours", see each field the league has permitted for the coming days, with its permit number and hours.',
+          "A line for today says whether the league holds a field right now.",
+          'Read "House rules" before you set up.',
+        ],
+        notes: [
+          'Someone else on a field we hold? Be friendly, show them the permit number and tell the league through "Contact the league".',
+        ],
+        keywords: [
+          "permit",
+          "park",
+          "field",
+          "someone is on our field",
+          "nyc parks",
+        ],
+      },
     ],
   },
   {
@@ -292,6 +397,73 @@ export const HELP_ROLES: readonly HelpRole[] = [
         notes: ["Sub requests aren't offered for playoff games."],
         keywords: ["substitute", "short", "pickup"],
       },
+      {
+        id: "game-day-checklist",
+        title: "Game-day checklist",
+        summary:
+          "Tick the league's before and after list for your team, even with no signal.",
+        steps: [
+          "On game day, open the game-day checklist from your game. It opens on the day.",
+          "Tick each item before play for your team's game.",
+          "Tick the after-play items when you're done.",
+          'When your game is the last at the field, confirm "Field left clean" or note what you saw. A photo is optional.',
+        ],
+        notes: [
+          "Your ticks are saved on your phone and sent when you're back online.",
+          "The league writes the list each season, so it can differ from last time.",
+        ],
+        screen: { href: "/app", label: "Your home" },
+        keywords: [
+          "checklist",
+          "set up",
+          "field clean",
+          "before game",
+          "after game",
+        ],
+      },
+      {
+        id: "check-in-players",
+        title: "Check your players in",
+        summary:
+          "Show the game's rotating code so players scan it, or tick them in yourself.",
+        steps: [
+          "At the game, open its check-in screen and hold up the code for your players to scan.",
+          'Each player scans it and taps "Check in".',
+          "Watch the screen for anyone who checked in without a signed waiver.",
+          "Anyone missed? Tick them in by hand, at the field or up to a week later.",
+        ],
+        notes: [
+          "Approved subs count too.",
+          "Your team page shows attendance and each player's games played. Some seasons need a minimum for the playoffs.",
+        ],
+        screen: { href: "/app", label: "Your home, then the game" },
+        keywords: ["attendance", "qr", "games played", "tick in", "playoffs"],
+      },
+      {
+        id: "injury-report",
+        title: "Report an injury",
+        summary:
+          "File a short, private report if someone is hurt in your game.",
+        steps: [
+          "Call 911 first if it is serious.",
+          'On the game page, tap "Someone was hurt? Report an injury".',
+          "Choose who was hurt, where they were hurt and what care they needed.",
+          "Say what happened: when, how and what was done. Leave out anything not needed.",
+          'Tap "Send the report".',
+        ],
+        notes: [
+          "Only the league's owners and admins can read it. The league is emailed that a report was filed, with no details.",
+          "The game has to have started for you to file.",
+        ],
+        keywords: [
+          "hurt",
+          "injured",
+          "insurance",
+          "accident",
+          "first aid",
+          "safety",
+        ],
+      },
     ],
   },
   {
@@ -347,6 +519,67 @@ export const HELP_ROLES: readonly HelpRole[] = [
         ],
         notes: ["Either captain and admins can report one too."],
         keywords: ["ejection", "safety", "conduct", "suspension", "report"],
+      },
+      {
+        id: "ref-pool",
+        title: "Take a game from the ref pool",
+        summary:
+          "Say when you can ref, pick up games that need a ref and drop one if your plans change.",
+        steps: [
+          'Open "Your games and pay". Under "When can you ref?", tick the game times you can work and tap "Save when I can ref".',
+          "When a game has no ref, the league asks the pool. Open the link and take the game. The first ref to take it gets it.",
+          "Your games show on your home with their pay.",
+          'Can\'t make one? Tap "Drop this game" before it starts, and say why. Admins see the reason.',
+        ],
+        notes: [
+          "You can't take a game your own team plays, or one at the same time as a game you play or ref.",
+          "Game started already? Tell an admin instead of dropping it.",
+          "Not in the pool? Ask an admin to add you.",
+        ],
+        screen: { href: "/app/referee", label: "Your games and pay" },
+        keywords: [
+          "assign",
+          "pay",
+          "availability",
+          "drop",
+          "take a game",
+          "pool",
+        ],
+      },
+      {
+        id: "injury",
+        title: "Report an injury",
+        summary:
+          "If someone is hurt, get help first, then file a short private report.",
+        steps: [
+          "Call 911 first if it is serious. Look after the player.",
+          'Open the game and tap "Someone was hurt? Report an injury".',
+          "Choose who was hurt, where and what care they needed from the lists.",
+          'Say what happened and who saw it, then tap "Send the report".',
+        ],
+        notes: [
+          "Only the league's owners and admins read the report. Players, captains and the other team never see it.",
+          "Captains and admins can file one too.",
+        ],
+        keywords: ["hurt", "accident", "insurance", "first aid", "safety"],
+      },
+      {
+        id: "permit-layout",
+        title: "Find the permit and the field layout",
+        summary:
+          "See which fields we hold and where the permitted area ends, even with no signal.",
+        steps: [
+          "Open your game on game day and tap the park permit.",
+          'Use "Open the layout (PDF)" to see where the permitted area ends and where the diamonds go.',
+          "Use it to set up, or to show someone else on the field what we hold.",
+        ],
+        notes: [
+          "It is saved on your phone with your next game, so it opens without a signal.",
+          "No layout? The screen says so. Ask an admin to add it.",
+          "When a game would run past the field's permit, you and the captains get a warning before it starts.",
+        ],
+        screen: { href: "/app/referee", label: "Your games" },
+        keywords: ["permit", "layout", "map", "field", "past permit", "late"],
       },
     ],
   },
@@ -424,6 +657,183 @@ export const HELP_ROLES: readonly HelpRole[] = [
         ],
         screen: { href: "/app/admin/today", label: "Game day" },
         keywords: ["today", "dashboard", "refs", "live", "game day"],
+      },
+      {
+        id: "refunds",
+        title: "Refund a payment",
+        summary:
+          "Send money back through Stripe, or mark a cash or Venmo refund as handed back.",
+        steps: [
+          "Open the season's registrations and find the player.",
+          "Under their payment, type an amount in dollars, or leave it blank to refund what is left, and add a reason.",
+          'Tap "Refund through Stripe" for a card payment, or "Mark refunded" for cash or Venmo.',
+          "Card refunds show as refunded once Stripe confirms. Until then you see the amount as pending.",
+        ],
+        notes: [
+          "You need a sign-in from the last 15 minutes. If it asks, sign out and back in, then refund again. Nothing was refunded.",
+          "Stripe said no? Nothing went back. Try again in a minute.",
+          "You can't refund more than is left on the payment. Every refund is in the audit log.",
+        ],
+        screen: { href: "/app/admin", label: "Admin" },
+        keywords: [
+          "money back",
+          "stripe",
+          "partial",
+          "cancel",
+          "credit",
+          "audit",
+        ],
+      },
+      {
+        id: "shirt-order",
+        title: "Run the shirt order",
+        summary:
+          "Count sizes, remind players who haven't picked one, and send the vendor a sheet.",
+        steps: [
+          'Open the season\'s "Shirt order" and save the sizes you offer. Sign-up forms use them from then on.',
+          "See the counts for the whole league and each team. Players with no size get one reminder email.",
+          'Add the cost and vendor if you have them, then tap "Download for the vendor (CSV)". It has sizes and counts only unless you tick "Include names for team packing".',
+          'Tap "Mark the order placed", then "Mark the order received" when the box arrives. Each player\'s shirt updates.',
+        ],
+        notes: [
+          "Once the order is placed the sizes stay as they were when it was counted.",
+          "An owner can add the cost to the books as a shirts expense from this screen.",
+          'Players who joined late and replacement jerseys are listed under "Replacement jerseys to make".',
+        ],
+        screen: { href: "/app/admin", label: "Admin" },
+        keywords: [
+          "shirts",
+          "jerseys",
+          "sizes",
+          "vendor",
+          "late joiners",
+          "csv",
+        ],
+      },
+      {
+        id: "game-day-checklists",
+        title: "Set up the game-day checklists",
+        summary:
+          "Write each season's captain checklist and give the set-up lead a plan for the day.",
+        steps: [
+          "Open the season's game-day checklist and review the before and after items. Sensible defaults are there.",
+          'Post a "Set-up lead" volunteer shift for each game day. Whoever claims it gets the checklist for the day.',
+          "The set-up lead sees each field's permit, your short script for asking people to move and a one-tap note for how it went.",
+          "On the day, the command center shows each field's set-up and end-of-day checks.",
+        ],
+        notes: [
+          "Anything but a fine result shows on the incidents screen.",
+          "Everything works with no signal and syncs later.",
+        ],
+        screen: { href: "/app/admin", label: "Admin" },
+        keywords: [
+          "set-up lead",
+          "volunteer",
+          "field clean",
+          "checklist",
+          "move a group",
+        ],
+      },
+      {
+        id: "field-layouts",
+        title: "Add a field layout",
+        summary:
+          "Upload a picture of where the permitted area ends. A schedule can't be published without one.",
+        steps: [
+          "Open the field and add its layout: a photo or PDF showing the permitted area, the diamonds and the spectator areas.",
+          "Add a short note, or confirm the field needs no layout.",
+          "Publish the schedule. It checks that every field it uses has one.",
+        ],
+        notes: [
+          "The layout opens from the command center, from the set-up shift and from the ref's and captains' permit page.",
+          "It uses the same file storage and limits as permit documents.",
+        ],
+        screen: { href: "/app/admin", label: "Admin" },
+        keywords: ["layout", "diamond", "map", "photo", "pdf", "permit"],
+      },
+      {
+        id: "permit-coverage",
+        title: "When a game isn't covered by a permit",
+        summary:
+          "Publishing and event saves check that a permit covers the field for the whole time.",
+        steps: [
+          "Publish a schedule, move a game, or save a pickup, practice or event on a league field.",
+          "If no permit with its document covers the whole time, the screen explains the gap, such as the field's permit ending before the game does.",
+          "Move the game, shorten it, or add the missing permit under Books, then Permits.",
+        ],
+        notes: [
+          "A permit marked lost doesn't count.",
+          "This keeps the league from posting games on a field it doesn't hold.",
+        ],
+        screen: { href: "/app/books/permits", label: "Permits" },
+        keywords: [
+          "permit",
+          "gap",
+          "publish blocked",
+          "pickup",
+          "event",
+          "lost permit",
+        ],
+      },
+      {
+        id: "ref-assigner",
+        title: "Assign refs and pay them",
+        summary:
+          "Get a suggested ref for every game, accept or change it, then record what refs are owed and paid.",
+        steps: [
+          "Add refs to the league's pool. Each one ticks the times they can work.",
+          'Open "Assign refs" for a game day or the whole season. Each game gets a suggested ref, or a reason why nobody fits.',
+          "Accept all, accept one, or pick someone else by hand. A ref isn't suggested for their own team's game.",
+          'Open the pay sheet, set the per-game fee, and tap "Mark paid" when you pay a ref in cash or Venmo.',
+        ],
+        notes: [
+          "A game with no ref goes to the pool, and the first ref to take it gets it.",
+          "Marking paid adds a Refs expense to the books.",
+        ],
+        screen: { href: "/app/admin", label: "Admin" },
+        keywords: ["referee", "pay sheet", "assign", "pool", "fee", "venmo"],
+      },
+      {
+        id: "league-inbox",
+        title: "Answer concerns and contact messages",
+        summary:
+          "One queue holds private concerns from players and messages from the public contact form.",
+        steps: [
+          "Open the incidents screen. New concerns and messages are in the queue.",
+          "Open one, read it and reply by email. Add private notes for other admins.",
+          "Close it with what was done. The person is told.",
+        ],
+        notes: [
+          "Only admins see a sender's address, and every read is logged.",
+          "Messages are deleted 12 months after they close.",
+          "Park-rule messages are grouped, so you can spot a pattern across a season.",
+        ],
+        screen: { href: "/app/admin/incidents", label: "Incidents" },
+        keywords: [
+          "concerns",
+          "contact",
+          "reply",
+          "incidents",
+          "inbox",
+          "complaint",
+        ],
+      },
+      {
+        id: "injury-reports",
+        title: "Read and manage injury reports",
+        summary:
+          "Review reports, download one for the insurer, and delete the details when they're no longer needed.",
+        steps: [
+          "You're emailed when a report is filed, with a link and no details. Open the incidents screen.",
+          "Open the report to read who was hurt, what care they needed and what happened.",
+          "Download it for the insurance carrier. It includes the dates of the current insurance certificate.",
+          "Delete it when it's no longer needed. Details are deleted three years after the report anyway.",
+        ],
+        notes: [
+          "Only owners and admins can read these. Every opening, export and deletion is in the audit log.",
+        ],
+        screen: { href: "/app/admin/incidents", label: "Incidents" },
+        keywords: ["injury", "insurance", "privacy", "delete", "export"],
       },
     ],
   },
@@ -518,6 +928,41 @@ export const HELP_ROLES: readonly HelpRole[] = [
         ],
         screen: { href: "/app/owner", label: "Owner dashboard" },
         keywords: ["numbers", "metrics", "retention", "money summary", "csv"],
+      },
+      {
+        id: "season-checklist",
+        title: "The season checklist",
+        summary:
+          "A list of jobs that keep a season running, each with an owner and a due date.",
+        steps: [
+          "Open the season's checklist. It starts from the league template, dated from the season's first day.",
+          "Give each task an owner and a due date, and add notes.",
+          "Tick tasks as they're done. The dashboard shows the next three.",
+          "Edit the template to change what future seasons start with.",
+        ],
+        notes: [
+          "Each task's owner gets an email 3 days before it's due, and once if it's overdue.",
+          "Starting the next season offers to carry the checklist over.",
+        ],
+        screen: { href: "/app/owner", label: "Owner dashboard" },
+        keywords: ["tasks", "template", "to do", "due date"],
+      },
+      {
+        id: "report-card",
+        title: "Season report card",
+        summary:
+          "Compare a season with the one before it, with a version to share with sponsors.",
+        steps: [
+          "Open a season's report card.",
+          "Read each measure with both numbers and the change in plain words, such as players, money, games and survey scores.",
+          "Download the CSV, or open the shareable version for sponsors.",
+        ],
+        notes: [
+          "The shareable version leaves out money and anything about one person. Print it or save it as a PDF.",
+          "Owners only.",
+        ],
+        screen: { href: "/app/owner", label: "Owner dashboard" },
+        keywords: ["compare", "last season", "sponsors", "csv", "pdf"],
       },
     ],
   },
