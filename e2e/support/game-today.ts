@@ -722,3 +722,114 @@ async function withDb<T>(body: (db: Client) => Promise<T>): Promise<T> {
     await db.end();
   }
 }
+
+/**
+ * A refereed game that was due to start `minutesAgo` minutes ago, for the
+ * daylight and field-time clock (issue #467). It sits in a small private
+ * season of its own on a lit field of its own, held by a confirmed permit
+ * for 90 minutes from first pitch, so play ends at the permit whatever the
+ * time of day the test runs. Reese Ref refs it. `remove` deletes it all,
+ * with its recorded start.
+ */
+export async function addRefereedGameStarted(
+  teamA: string,
+  teamB: string,
+  minutesAgo: number,
+): Promise<{
+  gameId: string;
+  seasonSlug: string;
+  remove: () => Promise<void>;
+}> {
+  const tag = Math.random().toString(36).slice(2, 8);
+  const slug = `clock-${tag}`;
+  const made = await withDb(async (db) => {
+    const { rows } = await db.query<{
+      season: string;
+      game: string;
+      venue: string;
+    }>(
+      `with new_season as (
+         insert into season (league_id, name, slug, status, visibility,
+                             starts_on, ends_on, fee_model, player_fee_cents,
+                             roster_min, roster_max)
+         select s.league_id, $3, $4, 'in_progress', 'private',
+                current_date - 1, current_date + 7,
+                s.fee_model, s.player_fee_cents, s.roster_min, s.roster_max
+           from season s where s.slug = 'fall-2026'
+            and s.league_id = (select id from league where is_default)
+         returning id, league_id
+       ), entries as (
+         insert into team_season (team_id, season_id)
+         select t.id, new_season.id from team t, new_season
+          where t.league_id = new_season.league_id and t.name in ($1, $2)
+         returning id, team_id
+       ), new_venue as (
+         insert into venue (league_id, name, slug)
+         select league_id, $3 || ' park', $4 || '-park' from new_season
+         returning id
+       ), new_field as (
+         insert into field (venue_id, name, has_lights)
+         select id, 'Lit field', true from new_venue
+         returning id
+       ), first_pitch as (
+         select date_trunc('minute', now())
+                  - make_interval(mins => $5::int) as at
+       ), new_permit as (
+         insert into permit_window (field_id, season_id, starts_at, ends_at,
+                                    status)
+         select new_field.id, new_season.id, first_pitch.at,
+                first_pitch.at + interval '90 minutes', 'confirmed'
+           from new_field, new_season, first_pitch
+         returning id, field_id, season_id, starts_at
+       ), new_slot as (
+         insert into slot (season_id, field_id, permit_window_id, starts_at,
+                           ends_at, time_index)
+         select season_id, field_id, id, starts_at,
+                starts_at + interval '1 hour', 0
+           from new_permit
+         returning id, season_id
+       ), new_game as (
+         insert into game (season_id, team_a_id, team_b_id, kind, slot_id)
+         select new_slot.season_id,
+                (select e.id from entries e join team t on t.id = e.team_id
+                  where t.name = $1),
+                (select e.id from entries e join team t on t.id = e.team_id
+                  where t.name = $2),
+                'exhibition', new_slot.id
+           from new_slot
+         returning id, season_id
+       ), ref as (
+         insert into referee_assignment (game_id, user_id, status, responded_at)
+         select new_game.id, u.id, 'accepted', now()
+           from new_game, "user" u
+          where u.email = 'reese.ref@example.test'
+         returning game_id
+       )
+       select new_game.season_id as season, new_game.id as game,
+              (select id from new_venue) as venue
+         from new_game, ref`,
+      [teamA, teamB, `Clock ${tag}`, slug, minutesAgo],
+    );
+    const [row] = rows;
+    if (!row) throw new Error(`Could not add ${teamA} vs ${teamB} started`);
+    return row;
+  });
+  return {
+    gameId: made.game,
+    seasonSlug: slug,
+    remove: () =>
+      withDb(async (db) => {
+        await db.query("delete from game where season_id = $1", [made.season]);
+        await db.query("delete from slot where season_id = $1", [made.season]);
+        await db.query("delete from permit_window where season_id = $1", [
+          made.season,
+        ]);
+        await db.query("delete from field where venue_id = $1", [made.venue]);
+        await db.query("delete from venue where id = $1", [made.venue]);
+        await db.query("delete from team_season where season_id = $1", [
+          made.season,
+        ]);
+        await db.query("delete from season where id = $1", [made.season]);
+      }),
+  };
+}
