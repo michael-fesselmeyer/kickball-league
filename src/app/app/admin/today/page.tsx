@@ -13,14 +13,14 @@ import type { LeagueId } from "@/domain/ids";
 import type { ParkGames } from "@/db/queries/rainout-decision";
 import { gamesNeedingRef } from "@/db/queries/referee-cover";
 import { gameForecast, rainRisk } from "@/domain/weather/forecast";
+import { HandoversCard } from "@/components/handovers-card";
+import { loadHandovers } from "@/lib/gameday/handovers";
 import { requirePermission } from "@/lib/auth/permission";
 import { featureEnabled } from "@/lib/platform/site";
 import { cachedForecast } from "@/lib/weather";
 import { CommandBoard } from "./board";
 import { DayFields } from "./fields";
 import { DayGear } from "./gear";
-import { HandoversCard } from "./handovers-card";
-import { loadHandovers } from "./handovers";
 import { loadCommand, parseDay } from "./load";
 import { activeLeague } from "@/lib/league/active";
 
@@ -240,7 +240,7 @@ async function DayHandovers(input: {
   now: Date;
   rows: readonly CommandDayRow[];
 }) {
-  const fields = await loadHandovers(input);
+  const fields = await loadHandovers({ ...input, forAdmin: true });
   return (
     <HandoversCard
       fields={fields}

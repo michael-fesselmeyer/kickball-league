@@ -1,9 +1,19 @@
 import { db } from "@/db/client";
-import type { CommandDayRow } from "@/db/queries/command-center";
 import { handoverInputs, overlapsOn } from "@/db/queries/field-groups";
 import { nextHandovers } from "@/domain/field-groups/groups";
 import { permitOfficeFor } from "@/domain/field-groups/office";
 import type { FieldId, LeagueId } from "@/domain/ids";
+
+/** The part of a game the handovers need; the command center's rows fit. */
+export type HandoverRow = {
+  id: string;
+  fieldId: string;
+  fieldName: string;
+  venue: { name: string } | null;
+  startsAt: Date;
+  slotCancelled: boolean;
+  status: string;
+};
 
 /** One field's handovers for the day, as plain data the board can tick on. */
 export type FieldHandovers = {
@@ -32,8 +42,8 @@ export type FieldHandovers = {
 /**
  * What the command center shows about other groups at each field in use
  * today (issue #408): the next handover with its countdown, groups with no
- * usual hours, and any overlap recorded for the day. Admin-only data, read
- * for the screen that already requires `season.manage`. A few reads, however
+ * usual hours, and any overlap recorded for the day. Contacts are admin-only:
+ * they are read only for an admin's screen. A few reads, however
  * many fields: the groups and the league's hold, and the day's overlaps.
  * A field none of this applies to is left out.
  */
@@ -42,7 +52,12 @@ export async function loadHandovers(input: {
   date: string;
   timeZone: string;
   now: Date;
-  rows: readonly CommandDayRow[];
+  rows: readonly HandoverRow[];
+  /**
+   * Admins see each group's contact and get the incident link. The set-up
+   * lead is not an admin: no contact is read at all, and no incident link.
+   */
+  forAdmin: boolean;
 }): Promise<FieldHandovers[]> {
   const playing = input.rows.filter(
     (r) => !r.slotCancelled && r.status !== "cancelled",
@@ -52,6 +67,7 @@ export async function loadHandovers(input: {
   const [inputs, overlaps] = await Promise.all([
     handoverInputs(db, {
       leagueId: input.leagueId,
+      withContact: input.forAdmin,
       fieldIds,
       date: input.date,
       timeZone: input.timeZone,
@@ -100,7 +116,7 @@ export async function loadHandovers(input: {
           : null,
         first.fieldName,
       ),
-      incidentGameId: (started.at(-1) ?? first).id,
+      incidentGameId: input.forAdmin ? (started.at(-1) ?? first).id : null,
     });
   }
   return out.sort((a, b) => a.label.localeCompare(b.label));

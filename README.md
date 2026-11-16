@@ -122,7 +122,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 
 - The books: money in from recorded payments, expenses with receipts, expected costs, statement import and a CSV for taxes.
 - Park permits, fees, renewals and a capacity planner; the schedule cannot be published outside a documented permit.
-- Other groups on our fields: admins record who else uses each field, their usual days and hours, and a contact only admins see. The game-day screen shows each field's next handover with a countdown in the last 30 minutes, and a recorded overlap warns admins ahead of the day with the borough permit office's number ([ADR 0066](docs/adr/0066-other-groups-on-a-field.md)).
+- Other groups on our fields: admins record who else uses each field, their usual days and hours, and a contact only admins see. The game-day screen shows each field's next handover with a countdown in the last 30 minutes, and the set-up lead's checklist shows it too, without contacts. A recorded overlap warns admins ahead of the day with the borough permit office's number ([ADR 0066](docs/adr/0066-other-groups-on-a-field.md)).
 - A dashboard, a season report card, win-back list and a public "where the money goes" page.
 - Several leagues on one deployment, and a platform operator role above the owners.
 

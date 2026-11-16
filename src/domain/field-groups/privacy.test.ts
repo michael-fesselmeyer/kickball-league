@@ -14,6 +14,8 @@ const READERS = /db\/(queries|schema)\/field-groups["']/;
 const ALLOWED = [
   /^db\//,
   /^app\/app\/admin\//,
+  // Reads contacts only when told it serves an admin; see its test below.
+  /^lib\/gameday\/handovers\.ts$/,
   // The domain module imports nothing from the database.
 ];
 
@@ -51,6 +53,18 @@ describe("the group contact stays admin-only", () => {
       .filter((f) => !f.endsWith(".test.ts") && !f.endsWith(".test.tsx"))
       .filter((f) => READERS.test(readFileSync(join(SRC, f), "utf8")));
     expect(admin.every((f) => /\/(fields|today)\//.test(f))).toBe(true);
+  });
+});
+
+describe("the set-up lead's checklist", () => {
+  const page = readFileSync(
+    join(SRC, "app", "app", "games", "[game]", "checklist", "page.tsx"),
+    "utf8",
+  );
+
+  it("asks for handovers without contacts", () => {
+    expect(page).toMatch(/forAdmin: false/);
+    expect(page).not.toMatch(/forAdmin: true/);
   });
 });
 

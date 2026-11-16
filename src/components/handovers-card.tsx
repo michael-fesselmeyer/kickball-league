@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { countdown } from "@/domain/field-groups/groups";
-import type { FieldHandovers } from "./handovers";
+import type { FieldHandovers } from "@/lib/gameday/handovers";
 
 const TICK_MS = 15_000;
 
@@ -28,7 +28,7 @@ function Contact({ value }: { value: string }) {
  * The next handover at each field in use today, with a countdown in the last
  * half hour (issue #408). The list comes from the server for the day; the
  * clock here only moves which handover is "next" and the countdown, so the
- * page needs no polling. Admin-only: it shows the groups' contacts.
+ * page needs no polling. Shows a group's contact only when the server sent one (admins).
  */
 export function HandoversCard({
   fields,

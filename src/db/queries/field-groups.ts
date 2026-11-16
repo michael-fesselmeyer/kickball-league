@@ -1,4 +1,15 @@
-import { and, asc, eq, gte, inArray, lt, ne, or, isNull } from "drizzle-orm";
+import {
+  and,
+  asc,
+  eq,
+  gte,
+  inArray,
+  isNull,
+  lt,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import {
   clockOf,
   isRealDate,
@@ -385,6 +396,8 @@ export async function handoverInputs(
   db: Db,
   input: {
     leagueId: LeagueId;
+    /** False for a screen that isn't admin-only: the contact is not even read. */
+    withContact: boolean;
     fieldIds: readonly FieldId[];
     date: string;
     timeZone: string;
@@ -402,7 +415,10 @@ export async function handoverInputs(
   const fieldIds = [...input.fieldIds];
   const [groups, windows, slots] = await Promise.all([
     db
-      .select(groupColumns)
+      .select({
+        ...groupColumns,
+        contact: input.withContact ? fieldGroup.contact : sql<null>`null`,
+      })
       .from(fieldGroup)
       .innerJoin(field, eq(fieldGroup.fieldId, field.id))
       .innerJoin(venue, eq(field.venueId, venue.id))
