@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
+import { expectHydrated } from "../support/hydration";
 import { pageAs } from "../support/personas";
 
 /**
@@ -34,6 +35,8 @@ test("an admin publishes a rule change with a notice, and the rules page shows i
   });
   const newText =
     "Sample rules for the demo league.\n\nNine players field at a time.";
+  // Typed before hydration, the text would be put back to the saved rules.
+  await expectHydrated(fielding.getByLabel("Text"));
   await fielding.getByLabel("Text").fill(newText);
   await admin
     .getByLabel("What changed, in one line")
