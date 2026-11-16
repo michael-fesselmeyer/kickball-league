@@ -1,4 +1,5 @@
 import { revalidatePath, revalidateTag, updateTag } from "next/cache";
+import { after } from "next/server";
 import {
   DEFAULT_LEAGUE_SEGMENT,
   LEAGUE_PREFIX,
@@ -171,6 +172,26 @@ export function refreshSeasonPages(seasonId: string): void {
   refreshParkPages();
   revalidatePath("/l/[league]/seasons", "page");
   for (const route of SEASON_PAGE_ROUTES) revalidatePath(route, "layout");
+  expireSeasonPagesAgain(seasonId);
+}
+
+/**
+ * How long after a season changes its pages are expired a second time. A
+ * page that started rendering before the change, with the old data, can
+ * finish after it and be saved as fresh, because the framework dates a
+ * saved page by when it finished. Expiring again once such a render is done
+ * drops that copy; a render slower than this can still leave the old page
+ * up until it next revalidates (docs/architecture.md, section 3).
+ */
+export const SECOND_EXPIRY_MS = 5_000;
+
+/** After the response, a second expiry of the season's tag and pages. */
+function expireSeasonPagesAgain(seasonId: string): void {
+  after(async () => {
+    await new Promise((resolve) => setTimeout(resolve, SECOND_EXPIRY_MS));
+    revalidateTag(seasonTag(seasonId), { expire: 0 });
+    for (const route of SEASON_PAGE_ROUTES) revalidatePath(route, "layout");
+  });
 }
 
 /**
