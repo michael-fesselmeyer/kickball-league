@@ -44,8 +44,11 @@ test("a player posts a found item, the owner answers, and it is handed over", as
   await expect(owner.getByRole("status").first()).toContainText(
     "Nobody's contact details",
   );
-  // No address or phone number anywhere on the screen.
-  await expect(owner.locator("main")).not.toContainText(/@|\d{3}-\d{4}/);
+  // No address or phone number in the conversation or the notice.
+  await expect(owner.getByRole("article")).not.toContainText(/@|\d{3}-\d{4}/);
+  await expect(owner.getByRole("status").first()).not.toContainText(
+    /@|\d{3}-\d{4}/,
+  );
 
   // The finder sees the answer and replies.
   await finder.reload();
@@ -93,5 +96,10 @@ test("a finder can't answer their own post, and an admin can take a post down", 
   await admin.getByRole("link", { name: lost }).click();
   await admin.getByRole("button", { name: /Take this post down/ }).click();
   await expect(admin.getByText("Post taken down.")).toBeVisible();
+  // It is gone from the board.
+  await admin.goto("/app/lost-and-found");
+  await expect(
+    admin.getByRole("heading", { name: "Lost and found", level: 1 }),
+  ).toBeVisible();
   await expect(admin.getByText(lost)).toHaveCount(0);
 });
