@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gte, inArray, isNull, ne, sql } from "drizzle-orm";
 import type {
+  LeagueId,
   LeadershipCheckInId,
   LeadershipOptionId,
   SeasonId,
@@ -1341,4 +1342,47 @@ export async function myLeadership(db: Db, userId: UserId) {
     })),
     stoodFor: stood,
   };
+}
+
+/** The league's quorum for leadership check-ins, as a percentage. */
+export async function leadershipQuorum(
+  db: Db,
+  leagueId: LeagueId,
+): Promise<number> {
+  const [row] = await db
+    .select({ percent: league.leadershipQuorumPercent })
+    .from(league)
+    .where(eq(league.id, leagueId));
+  return row?.percent ?? 60;
+}
+
+/**
+ * Sets the league's quorum (50 to 100). Check-ins already open keep the
+ * quorum they opened with.
+ */
+export async function setLeadershipQuorum(
+  db: Db,
+  input: { leagueId: LeagueId; percent: number; actorId: UserId },
+): Promise<Result<void, "bad_quorum">> {
+  if (
+    !Number.isInteger(input.percent) ||
+    input.percent < 50 ||
+    input.percent > 100
+  )
+    return err("bad_quorum");
+  const before = await leadershipQuorum(db, input.leagueId);
+  if (before === input.percent) return ok(undefined);
+  await db
+    .update(league)
+    .set({ leadershipQuorumPercent: input.percent })
+    .where(eq(league.id, input.leagueId));
+  await recordAudit(db, {
+    actorId: input.actorId,
+    action: "leadership.quorum",
+    entityType: "league",
+    entityId: input.leagueId,
+    before: { percent: before },
+    after: { percent: input.percent },
+  });
+  return ok(undefined);
 }
