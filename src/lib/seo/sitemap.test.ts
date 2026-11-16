@@ -15,31 +15,40 @@ describe("buildSitemap", () => {
       ORIGIN,
       `${ORIGIN}/es`,
       `${ORIGIN}/parks/mccarren-park`,
+      `${ORIGIN}/es/parks/mccarren-park`,
       `${ORIGIN}/seasons`,
       `${ORIGIN}/faq`,
       `${ORIGIN}/es/faq`,
       `${ORIGIN}/rules`,
+      `${ORIGIN}/es/rules`,
       `${ORIGIN}/contact`,
       `${ORIGIN}/nyc-kickball-league`,
       `${ORIGIN}/free-agents`,
       `${ORIGIN}/news/how-to-play-kickball`,
       `${ORIGIN}/about`,
+      `${ORIGIN}/es/about`,
       `${ORIGIN}/events`,
+      `${ORIGIN}/es/events`,
       `${ORIGIN}/sponsors`,
+      `${ORIGIN}/es/sponsors`,
       `${ORIGIN}/private-events`,
       `${ORIGIN}/friends`,
       `${ORIGIN}/records`,
       `${ORIGIN}/history`,
       `${ORIGIN}/help`,
+      `${ORIGIN}/es/help`,
       `${ORIGIN}/help/player`,
+      `${ORIGIN}/es/help/player`,
       `${ORIGIN}/help/captain`,
+      `${ORIGIN}/es/help/captain`,
       `${ORIGIN}/help/ref`,
+      `${ORIGIN}/es/help/ref`,
       `${ORIGIN}/help/admin`,
       `${ORIGIN}/help/owner`,
       `${ORIGIN}/widget`,
     ]);
-    // The home page and the FAQ are also in Spanish.
-    expect(urls).toHaveLength(CONTENT_PAGES.length + 2);
+    // These content pages are also in Spanish.
+    expect(urls).toHaveLength(CONTENT_PAGES.length + 11);
   });
 
   it("adds data pages after the content pages, with when they last changed", () => {
@@ -47,12 +56,20 @@ describe("buildSitemap", () => {
     const sitemap = buildSitemap(ORIGIN, [
       { path: "/seasons/summer-2027/standings", lastModified: changed },
     ]);
-    expect(sitemap.at(-1)).toEqual({
-      url: `${ORIGIN}/seasons/summer-2027/standings`,
-      lastModified: changed,
-      changeFrequency: "daily",
-      priority: 0.5,
-    });
+    const languages = {
+      en: `${ORIGIN}/seasons/summer-2027/standings`,
+      es: `${ORIGIN}/es/seasons/summer-2027/standings`,
+    };
+    // Standings are in Spanish too: one entry per language, each listing both.
+    expect(sitemap.slice(-2)).toEqual(
+      [languages.en, languages.es].map((url) => ({
+        url,
+        lastModified: changed,
+        changeFrequency: "daily",
+        priority: 0.5,
+        alternates: { languages },
+      })),
+    );
   });
 
   it("lists each event page with when it last changed", () => {

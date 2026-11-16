@@ -110,7 +110,7 @@ describe("addresses in each language", () => {
       es: "/es/faq",
       "x-default": "/faq",
     });
-    expect(languageAlternates("/about")).toEqual({});
+    expect(languageAlternates("/records")).toEqual({});
   });
 });
 
