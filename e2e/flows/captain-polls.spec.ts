@@ -17,7 +17,7 @@ test("an admin asks the captains a question and a captain answers for their team
   await expect(admin.getByRole("heading", { level: 1 })).toHaveText(
     "Captains' polls",
   );
-  await admin.getByLabel("Question").fill("Playoff innings?");
+  await admin.getByLabel("Question", { exact: true }).fill("Playoff innings?");
   await admin.getByLabel("Option 1").fill("Five");
   await admin.getByLabel("Option 2").fill("Seven");
   await admin.getByRole("button", { name: "Open the poll" }).click();
