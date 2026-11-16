@@ -475,7 +475,7 @@ describe("size reminders", () => {
         .where(eq(message.template, "shirt_size_reminder"));
       expect(sent).toEqual({
         userId: w.agent,
-        topic: "announcement",
+        topic: "payment",
         payload: {
           seasonName: "Spring 2027",
           sizes: "XS, S, M, L, XL and XXL",
