@@ -39,6 +39,7 @@ import {
   type Db,
   loadVersion,
   type PlayoffPlacement,
+  lockSchedulePublish,
   publishVersion,
   saveVersion,
 } from "./schedule";
@@ -545,6 +546,9 @@ export async function publishBracket(
     if (!draft?.scheduleVersionId)
       return err(found.length > 0 ? "already_published" : "no_bracket");
     const versionId = draft.scheduleVersionId;
+    // A schedule published meanwhile makes this draft stale: checked under
+    // the season's publish lock, so none can land between check and publish.
+    await lockSchedulePublish(tx, seasonId);
     const [version] = await tx
       .select({ parent: scheduleVersion.parentVersionId })
       .from(scheduleVersion)
