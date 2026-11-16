@@ -84,4 +84,33 @@ describe("renderEmail", () => {
       "Change your digest: https://league.example.test/app/profile#alert-limits",
     );
   });
+
+  it("offers turning down next to unsubscribe, and nothing without it (#529)", () => {
+    const parts = {
+      subject: "News",
+      heading: "News",
+      paragraphs: ["Hello"],
+      reason: "you play in the league",
+    };
+    const page = "https://league.example.test/unsubscribe/abc";
+    const withLinks = renderEmail(parts, {
+      ...site,
+      unsubscribe: {
+        pageUrl: page,
+        oneClickUrl: "https://league.example.test/api/unsubscribe/abc",
+        topicLabel: "League news",
+      },
+    });
+    for (const choice of ["team", "weekly", "snooze"]) {
+      expect(withLinks.html).toContain(`href="${page}?do=${choice}"`);
+      expect(withLinks.text).toContain(`${page}?do=${choice}`);
+    }
+    expect(withLinks.html).toContain("Only my team");
+    expect(withLinks.html).toContain("Weekly digest instead");
+    expect(withLinks.html).toContain("Snooze for 2 weeks");
+    expect(withLinks.html).toContain("Stop emails about league news");
+    const without = renderEmail(parts, site);
+    expect(without.html).not.toContain("Snooze for 2 weeks");
+    expect(without.text).not.toContain("Snooze");
+  });
 });

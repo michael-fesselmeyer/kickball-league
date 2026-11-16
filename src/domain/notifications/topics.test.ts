@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ENABLED,
   isPushTopic,
+  NEWS_TOPICS,
   PUSH_TOPICS,
   SETTINGS_TOPICS,
   TOPICS,
@@ -73,5 +74,26 @@ describe("wantsPush", () => {
     ]);
     const emailTopics = SETTINGS_TOPICS.map((t) => t.topic);
     for (const { topic } of PUSH_TOPICS) expect(emailTopics).toContain(topic);
+  });
+});
+
+describe("rules and schedule (#521)", () => {
+  it("is on by default and offered in the settings", () => {
+    expect(TOPICS).toContain("rules");
+    expect(DEFAULT_ENABLED.rules).toBe(true);
+    expect(wantsEmail([], "rules")).toBe(true);
+    expect(SETTINGS_TOPICS.map((t) => t.topic)).toContain("rules");
+  });
+
+  it("keeps a choice to turn it off", () => {
+    expect(wantsEmail([{ topic: "rules", enabled: false }], "rules")).toBe(
+      false,
+    );
+  });
+
+  it("tells news apart from game messages", () => {
+    expect(NEWS_TOPICS.has("announcement")).toBe(true);
+    for (const topic of ["rules", "payment", "rainout", "sub_request"] as const)
+      expect(NEWS_TOPICS.has(topic)).toBe(false);
   });
 });
