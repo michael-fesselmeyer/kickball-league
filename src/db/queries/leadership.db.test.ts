@@ -426,10 +426,28 @@ describe("the ballot's result", () => {
       await w.vote(w.c.userId, w.cap.userId);
       await w.vote(w.cap.userId, w.cap.userId);
       await advanceCheckIns(db, day(13));
+      // The captain hears first, whatever the result; the team waits.
+      expect(await stateOf(db, w.id)).toMatchObject({
+        step: "captain_review",
+        outcome: "no_majority",
+        electedUserId: null,
+      });
+      expect(
+        (await leadershipFor(db, w.aces.id, w.cap.userId))!.resultForCaptain,
+      ).toBe("no_majority");
+      expect((await leadershipFor(db, w.aces.id, w.a.userId))!.outcome).toBeNull();
+      expect(
+        await captainChooses(db, {
+          checkInId: w.id,
+          userId: w.cap.userId,
+          choice: "hand_off_now",
+          now: day(14),
+        }),
+      ).toEqual({ ok: false, error: "closed" });
+      await advanceCheckIns(db, day(16));
       expect(await stateOf(db, w.id)).toMatchObject({
         step: "closed",
         outcome: "no_majority",
-        electedUserId: null,
       });
     });
   });
@@ -589,6 +607,7 @@ describe("roster changes", () => {
         .set({ status: "removed" })
         .where(eq(rosterMembership.registrationId, w.b.registrationId));
       await advanceCheckIns(db, day(13));
+      await advanceCheckIns(db, day(16));
       expect(await stateOf(db, w.id)).toMatchObject({
         step: "closed",
         outcome: "winner_left",
