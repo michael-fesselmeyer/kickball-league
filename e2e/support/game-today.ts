@@ -23,6 +23,29 @@ export async function addGameInDays(
   days: number,
   hour: number,
 ): Promise<{ gameId: string; remove: () => Promise<void> }> {
+  return addFallGame(teamA, teamB, days, hour, false);
+}
+
+/**
+ * The same exhibition game, kicked off 30 minutes ago (or at midnight,
+ * league time, if that is later, so it is still today's game), for flows
+ * that score or check players in: those need a game under way on its own
+ * day, whatever time the flow runs.
+ */
+export async function addGameKickedOffToday(
+  teamA: string,
+  teamB: string,
+): Promise<{ gameId: string; remove: () => Promise<void> }> {
+  return addFallGame(teamA, teamB, 0, 0, true);
+}
+
+async function addFallGame(
+  teamA: string,
+  teamB: string,
+  days: number,
+  hour: number,
+  kickedOff: boolean,
+): Promise<{ gameId: string; remove: () => Promise<void> }> {
   const ids = await withDb(async (db) => {
     const { rows } = await db.query<{ game: string; slot: string }>(
       `with teams as (
@@ -34,9 +57,15 @@ export async function addGameInDays(
           where s.slug = 'fall-2026' and l.slug = 'demo-league'
             and t.name in ($1, $2)
        ), noon as (
-         select (date_trunc('day', now() at time zone timezone)
-                   + make_interval(days => $3::int, hours => $4::int))
-                  at time zone timezone as starts_at,
+         select case
+                  when $5::boolean then greatest(
+                    date_trunc('day', now() at time zone timezone)
+                      at time zone timezone,
+                    date_trunc('minute', now()) - interval '30 minutes')
+                  else (date_trunc('day', now() at time zone timezone)
+                          + make_interval(days => $3::int, hours => $4::int))
+                         at time zone timezone
+                end as starts_at,
                 season_id, league_id
            from teams limit 1
        ), place as (
@@ -58,7 +87,7 @@ export async function addGameInDays(
               'exhibition', new_slot.id
          from new_slot
        returning id as game, slot_id as slot`,
-      [teamA, teamB, days, hour],
+      [teamA, teamB, days, hour, kickedOff],
     );
     const [row] = rows;
     if (!row)

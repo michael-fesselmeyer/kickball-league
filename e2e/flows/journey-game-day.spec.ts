@@ -1,14 +1,15 @@
 import { expect, type Page, test } from "@playwright/test";
 import { Client } from "pg";
 import { expectNoAxeViolations } from "../support/axe";
-import { addGameToday } from "../support/game-today";
+import { addGameKickedOffToday } from "../support/game-today";
 import { type Member, memberPage } from "../support/people";
 import { captainEmail, pageSignedInAs, playerEmail } from "../support/sign-in";
 
 /**
  * One game, from the first player at the field to the confirmed score,
  * across check-in, the ref's live scoring and the captains' confirmation.
- * Grand Slammers play the Sun Kickers today. Their captain shows the
+ * Grand Slammers play the Sun Kickers; the game kicked off half an hour
+ * ago, so the ref can score it whatever time the flow runs. Their captain shows the
  * check-in code, a Grand Slammers player scans it and the captain sees
  * them checked in. The ref, Rene Marsh (made up for this flow), is
  * assigned, keeps score half-inning by half-inning from their phone and
@@ -58,7 +59,7 @@ async function assignRef(gameId: string, email: string) {
 test("a game from check-in to a confirmed score", async ({ browser }) => {
   // Five people sign in and the game is scored by hand.
   test.slow();
-  const game = await addGameToday(HOME, AWAY);
+  const game = await addGameKickedOffToday(HOME, AWAY);
   try {
     const captain = await pageSignedInAs(
       browser,
