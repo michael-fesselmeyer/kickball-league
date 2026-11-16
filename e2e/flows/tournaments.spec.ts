@@ -81,9 +81,12 @@ test("a guest team signs up, its players sign the waiver and the bracket plays o
     admin.getByRole("status").filter({ hasText: "Bracket drawn" }),
   ).toBeVisible();
 
+  // Games are numbered across the bracket, byes included, so each game is
+  // found by its round and who plays in it.
   const semi = admin
     .getByRole("listitem")
-    .filter({ hasText: "Semifinals, game 1:" });
+    .filter({ hasText: /Semifinals, game \d+:/ })
+    .filter({ hasText: TEAM });
   await semi.getByLabel(`${TEAM} runs`).fill("2");
   await semi.getByLabel("Borough Bases Gold runs").fill("5");
   await semi.getByRole("button", { name: "Save score" }).click();
@@ -93,7 +96,7 @@ test("a guest team signs up, its players sign the waiver and the bracket plays o
 
   const final = admin
     .getByRole("listitem")
-    .filter({ hasText: "Final, game 1:" });
+    .filter({ hasText: /Final, game \d+:/ });
   await final.getByLabel("Borough Bases Blue runs").fill("7");
   await final.getByLabel("Borough Bases Gold runs").fill("3");
   await final.getByRole("button", { name: "Save score" }).click();
