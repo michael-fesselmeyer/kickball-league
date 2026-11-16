@@ -30,7 +30,9 @@ import {
   recordOffAppPayment,
   startPurchase,
 } from "./payments";
+import { queuePaymentReminders } from "./payment-reminders";
 import { feeSettingsOf, saveFeeSettings } from "./processing-fees";
+import { message } from "../schema/message";
 import { rebateBoard } from "./rebates";
 import {
   myRegistration,
@@ -482,6 +484,35 @@ describe("processing fees while the setting is on", () => {
       expect((await purchaseRow(db, c.purchaseId)).status).toBe("paid");
       expect((await paymentOf(db, c.purchaseId))?.amountCents).toBe(FEE + fee);
       expect(await processingPaymentFor(db, w.registrationId)).toBeNull();
+    });
+  });
+
+  it("sends no payment reminder while a bank transfer is on its way", async () => {
+    await inRolledBackDb(async (db) => {
+      const deadline = new Date(NOW.getTime() + 3 * 86_400_000);
+      const w = await world(db, { deadline });
+      await turnOn(db, w);
+      const reminders = async () =>
+        (
+          await db
+            .select({ id: message.id })
+            .from(message)
+            .where(eq(message.userId, w.userId))
+        ).length;
+      const c = await checkout(db, w, { method: "bank" });
+      await complete(db, c, `pi_remind_${w.tag}`, "unpaid");
+      await queuePaymentReminders(db, NOW);
+      expect(await reminders()).toBe(0);
+      // It failed: the reminder goes out.
+      await handleStripeEvent(
+        db,
+        event(eventId(), "checkout.session.async_payment_failed", {
+          id: c.sessionId,
+        }),
+        NOW,
+      );
+      await queuePaymentReminders(db, NOW);
+      expect(await reminders()).toBe(1);
     });
   });
 
