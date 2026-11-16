@@ -124,4 +124,22 @@ describe("securityHeaderRules", () => {
       expect(headers["X-Frame-Options"], path).toBe("DENY");
     }
   });
+
+  it("send built files only the headers that apply to them", () => {
+    for (const path of [
+      "/_next/static/chunks/0vlgnmlt4nvdh.js",
+      "/_next/static/media/inter.woff2",
+    ]) {
+      const headers = headersFor(path);
+      expect(headers["Content-Security-Policy"], path).toBeUndefined();
+      expect(headers["X-Frame-Options"], path).toBeUndefined();
+      expect(headers["Permissions-Policy"], path).toBeUndefined();
+      expect(headers["X-Content-Type-Options"], path).toBe("nosniff");
+      expect(headers["Strict-Transport-Security"], path).toContain("max-age=");
+    }
+    // A page whose path merely starts like one still gets the full set.
+    expect(headersFor("/_next-steps")["Content-Security-Policy"]).toBe(
+      contentSecurityPolicy({ dev: false }),
+    );
+  });
 });
