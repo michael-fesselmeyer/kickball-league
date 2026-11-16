@@ -22,6 +22,13 @@ function screens(dir = join(process.cwd(), "src/app")): string[] {
 }
 
 describe("the help center's how-tos", () => {
+  it("gives a language without its own how-tos the English ones", () => {
+    for (const locale of ["zh", "ru", "pl", "bn", "ko", "ht"] as const) {
+      expect(helpRolesFor(locale), locale).toBe(HELP_ROLES);
+      expect(TRANSLATED_HELP_ROLES[locale], locale).toEqual([]);
+    }
+  });
+
   it("covers every role with the topics each needs", () => {
     const titles = Object.fromEntries(
       HELP_ROLES.map((r) => [r.slug, r.articles.map((a) => a.id)]),
