@@ -161,7 +161,7 @@ npm run mobile:android
 
 ## Known gaps
 
-- **Signing in.** Google refuses sign-in inside an app's web view, and a magic link opens in the phone's browser, not the app. Signing in in the apps needs a sign-in code from the email that can be typed into the app, tracked as its own issue. Until then the apps show the public pages, and signed-in screens need the browser or the installed web app.
+- **Signing in.** Google refuses sign-in inside an app's web view, and a magic link opens in the phone's browser, not the app. Signing in in the apps needs a sign-in code from the email that can be typed into the app (issue #524). Until then the apps show the public pages, and signed-in screens need the browser or the installed web app.
 - **Push.** Native push needs FCM on Android (free) and APNs on iOS (paid developer account).
 - **Deep links.** Links in email and push open the browser. Android App Links are free and can be added with the signing key's fingerprint; iOS universal links need the paid account.
 
