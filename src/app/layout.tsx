@@ -5,6 +5,7 @@ import { DemoBanner } from "@/components/demo-banner";
 import { Kickball } from "@/components/kickball";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { env } from "@/env";
+import { nativeShellScript } from "@/lib/mobile/native-shell";
 import { registerWorkerScript } from "@/lib/pwa/install";
 import { appIconPath } from "@/lib/pwa/icons";
 import { THEME_COLORS } from "@/lib/pwa/theme-colors";
@@ -42,6 +43,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // Edge to edge, so the iOS and Android apps can draw under the status bar
+  // and home indicator; the layout pads itself clear of them (pt-safe,
+  // pb-safe, px-safe in globals.css).
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light.theme },
     { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark.theme },
@@ -74,33 +79,38 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: applySavedThemeScript }} />
+        {/* Returns at once outside the iOS and Android apps (docs/mobile.md). */}
+        <script dangerouslySetInnerHTML={{ __html: nativeShellScript }} />
         {process.env.NODE_ENV === "production" && (
           // The service worker runs in production builds only, so it never
           // serves a stale file during development.
           <script dangerouslySetInnerHTML={{ __html: registerWorkerScript }} />
         )}
       </head>
-      <body className="flex min-h-full flex-col">
+      <body className="flex min-h-full flex-col px-safe">
         {/* The first stop for a keyboard: past the banner and header. */}
         <a
           href="#content"
-          className="fixed top-2 left-2 z-50 btn -translate-y-20 btn-primary focus:translate-y-0 print:hidden"
+          className="fixed top-[calc(var(--safe-top)+0.5rem)] left-[calc(var(--safe-left)+0.5rem)] z-50 btn -translate-y-20 btn-primary focus:translate-y-0 print:hidden"
         >
           Skip to content
         </a>
-        <DemoBanner />
-        <header className="border-b-2 border-text bg-surface print:hidden">
-          <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-2 md:px-6">
-            <Link
-              href="/"
-              className="flex items-center gap-2 font-display text-h3 font-extrabold text-text"
-            >
-              <Kickball className="size-8 -rotate-12" />
-              Kickball League
-            </Link>
-            <ThemeSwitch />
-          </div>
-        </header>
+        {/* Paints the status bar's strip in the app with the header's color. */}
+        <div className="bg-surface pt-safe print:pt-0">
+          <DemoBanner />
+          <header className="border-b-2 border-text bg-surface print:hidden">
+            <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-2 md:px-6">
+              <Link
+                href="/"
+                className="flex items-center gap-2 font-display text-h3 font-extrabold text-text"
+              >
+                <Kickball className="size-8 -rotate-12" />
+                Kickball League
+              </Link>
+              <ThemeSwitch />
+            </div>
+          </header>
+        </div>
         <div
           id="content"
           tabIndex={-1}
@@ -108,7 +118,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           {children}
         </div>
-        <footer className="border-t-2 border-text bg-surface print:hidden">
+        <footer className="border-t-2 border-text bg-surface pb-safe print:hidden">
           <nav
             aria-label="Site"
             className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-4 md:px-6"

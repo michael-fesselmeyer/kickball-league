@@ -76,7 +76,7 @@ export async function renderMark(
   size: number,
   fraction: number,
   colors: MarkColors = LIGHT_MARK,
-  headers?: Record<string, string>,
+  headers: Record<string, string> = {},
 ): Promise<ImageResponse> {
   display ??= readFile(
     join(

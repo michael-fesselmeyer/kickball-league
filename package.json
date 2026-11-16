@@ -28,7 +28,15 @@
     "test:e2e:site-wide": "E2E_SITE_WIDE=true playwright test",
     "lighthouse": "lhci autorun",
     "check:route-js": "node scripts/check-route-js.mjs",
-    "mobile:sign-in": "tsx scripts/mobile-sign-in-native.ts"
+    "mobile:sign-in": "tsx scripts/mobile-sign-in-native.ts",
+    "mobile:web": "tsx scripts/mobile-web.ts",
+    "mobile:assets": "tsx scripts/mobile-assets.tsx",
+    "mobile:icons": "capacitor-assets generate --assetPath mobile/assets --ios --android",
+    "mobile:sync": "npm run mobile:web && cap sync",
+    "mobile:ios": "npm run mobile:sync && cap run ios",
+    "mobile:android": "npm run mobile:sync && cap run android",
+    "mobile:open:ios": "cap open ios",
+    "mobile:open:android": "cap open android"
   },
   "dependencies": {
     "@better-auth/passkey": "1.7.22",

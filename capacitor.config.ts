@@ -50,7 +50,12 @@ const config = {
   plugins: {
     // Draw edge to edge and hand the page its safe-area insets as
     // --safe-area-inset-* variables, which src/app/globals.css reads.
-    SystemBars: { insetsHandling: "css", style: "DEFAULT" },
+    SystemBars: {
+      insetsHandling: "css",
+      style: "DEFAULT",
+      // The site's viewport asks for viewport-fit=cover (src/app/layout.tsx).
+      initialViewportFitValueHint: "cover",
+    },
   },
 } as const;
 

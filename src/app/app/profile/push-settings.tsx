@@ -7,6 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { isNativeShell } from "@/lib/mobile/native-shell";
 import {
   browserPushGlobals,
   type DeviceState,
@@ -31,6 +32,23 @@ const NOT_SUBSCRIBED: Record<"unsupported" | "blocked" | "failed", string> = {
 };
 
 /**
+ * The iOS and Android apps have no web push, and native push is not built
+ * yet (ADR 0074), so the app says where push does work.
+ */
+const IN_APP =
+  "The app can't show notifications yet, so league news comes by email as set above. To get push on this phone, open this page in your phone's browser (on iPhone, from the site added to your Home Screen).";
+
+const notSubscribed = (reason: keyof typeof NOT_SUBSCRIBED) =>
+  reason === "unsupported" && isNativeShell() ? IN_APP : NOT_SUBSCRIBED[reason];
+
+/** What this device can do, asked once the page is in the browser. */
+async function currentDevice(): Promise<DeviceState> {
+  // Android's web view may expose the push API without a push service.
+  if (isNativeShell()) return { state: "unsupported" };
+  return deviceState(browserPushGlobals());
+}
+
+/**
  * Push notifications, one checkbox per push topic. Saving with any topic
  * ticked asks the browser for permission and subscribes this device first.
  * Off until the person turns it on.
@@ -49,7 +67,7 @@ export function PushSettings({
   const [device, setDevice] = useState<DeviceState | null>(null);
   useEffect(() => {
     let live = true;
-    void deviceState(browserPushGlobals()).then((s) => {
+    void currentDevice().then((s) => {
       if (live) setDevice(s);
     });
     return () => {
@@ -76,10 +94,10 @@ export function PushSettings({
           publicKey,
         );
         if (!subscribed.ok) {
-          setDevice(await deviceState(browserPushGlobals()));
+          setDevice(await currentDevice());
           return done({
             status: "error",
-            message: NOT_SUBSCRIBED[subscribed.reason],
+            message: notSubscribed(subscribed.reason),
           });
         }
         form.set("subscription", subscribed.json);
@@ -133,7 +151,7 @@ export function PushSettings({
               ? deviceCount > 0
                 ? `Push is on for ${deviceCount === 1 ? "1 other device" : `${deviceCount} other devices`}, not this one. Tick a topic and save to add this one.`
                 : "Push is off. Tick a topic and save, and your browser will ask to allow notifications."
-              : NOT_SUBSCRIBED[device.state]}
+              : notSubscribed(device.state)}
       </p>
       {/*
         Submitted from onSubmit rather than `action`: React resets a form

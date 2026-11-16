@@ -235,6 +235,37 @@
  * Playful primitives (ADR 0002). Colors come from tested token pairs:
  * on-highlight on highlight, on-brand on brand, text on surface.
  */
+/*
+ * Safe areas (docs/mobile.md). The page is laid out under the notch, the
+ * status bar and the home indicator (viewport-fit=cover) and pads itself
+ * clear of them. Android's app shell passes the insets as
+ * --safe-area-inset-* because older Android web views report env() as 0;
+ * everywhere else env() has them, and they are 0 where nothing is in the
+ * way.
+ */
+:root {
+  --safe-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --safe-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  --safe-bottom: var(
+    --safe-area-inset-bottom,
+    env(safe-area-inset-bottom, 0px)
+  );
+  --safe-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+}
+
+@utility pt-safe {
+  padding-top: var(--safe-top);
+}
+
+@utility pb-safe {
+  padding-bottom: var(--safe-bottom);
+}
+
+@utility px-safe {
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
 @utility sticker {
   display: inline-block;
   rotate: -2deg;

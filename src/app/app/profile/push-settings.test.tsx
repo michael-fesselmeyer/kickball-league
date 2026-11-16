@@ -155,6 +155,22 @@ describe("PushSettings", () => {
     expect(screen.getByLabelText(/Rain-outs/).matches(":disabled")).toBe(true);
   });
 
+  it("says where push works when it is opened inside the app", async () => {
+    document.documentElement.setAttribute("data-shell", "app");
+    try {
+      browser.state = { state: "off" };
+      show();
+      expect(
+        await screen.findByText(/The app can't show notifications yet/),
+      ).toBeTruthy();
+      expect(screen.getByLabelText(/Rain-outs/).matches(":disabled")).toBe(
+        true,
+      );
+    } finally {
+      document.documentElement.removeAttribute("data-shell");
+    }
+  });
+
   it("turns push off on this device and shows the devices left", async () => {
     browser.state = { state: "on", endpoint: ENDPOINT };
     browser.unsubscribed = ENDPOINT;
