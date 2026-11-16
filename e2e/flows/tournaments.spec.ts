@@ -69,7 +69,7 @@ test("a guest team signs up, its players sign the waiver and the bracket plays o
   const admin = await pageAs(browser, "Admin");
   await admin.goto(ADMIN_EVENT);
   const panel = admin.getByRole("region", { name: "Guest teams and charity" });
-  await expect(panel.getByText(TEAM)).toBeVisible();
+  await expect(panel.getByText(TEAM, { exact: true })).toBeVisible();
   await expect(panel.getByText("jo@example.test")).toBeVisible();
   await expect(
     panel.getByText("1 of 6 players have signed the waiver."),
