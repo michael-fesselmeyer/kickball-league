@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import sharp from "sharp";
+import { goViaMenu } from "../support/app-nav";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 
@@ -36,7 +37,7 @@ test("a player shares a photo, an admin approves it, and it shows on the team pa
 
   const player = await pageAs(browser, "Player");
   await player.setViewportSize(PHONE);
-  await player.getByRole("link", { name: "Share a photo" }).click();
+  await goViaMenu(player, "Share a photo");
   await expect(
     player.getByRole("heading", { name: "Share a photo" }),
   ).toBeVisible();
