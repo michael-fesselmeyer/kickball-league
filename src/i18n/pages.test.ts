@@ -43,7 +43,7 @@ describe("isTranslated", () => {
 
 describe("offeredLocales", () => {
   it("offers English and each language with a translated page", () => {
-    // No Spanish page yet, so the footer offers no other language.
-    expect(offeredLocales()).toEqual(["en"]);
+    // Spanish has translated pages, so the footer offers it too.
+    expect(offeredLocales()).toEqual(["en", "es"]);
   });
 });
