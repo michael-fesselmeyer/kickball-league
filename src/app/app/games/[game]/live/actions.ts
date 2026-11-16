@@ -18,7 +18,11 @@ import { can } from "@/domain/authz/permissions";
 import { isOneOf } from "@/domain/guards";
 import { type GameId, parseId, type UserId } from "@/domain/ids";
 import { HALVES } from "@/domain/scores/live";
-import { CALL_REASONS, PLAYOFF_TIE, reportingTeam } from "@/domain/scores/scores";
+import {
+  CALL_REASONS,
+  PLAYOFF_TIE,
+  reportingTeam,
+} from "@/domain/scores/scores";
 import { HELD_UP_BY } from "@/domain/gameday/daylight";
 import { requirePermissionToChange } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";

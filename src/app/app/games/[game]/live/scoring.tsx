@@ -125,7 +125,8 @@ export function Scoring({
   const [pickedReason, setPickedReason] = useState<CallReason | "" | null>(
     null,
   );
-  const callReason = pickedReason ?? (timeUp && endOfPlay ? endOfPlay.endReason : "");
+  const callReason =
+    pickedReason ?? (timeUp && endOfPlay ? endOfPlay.endReason : "");
   const outbox = useOutbox(gameId);
   const [stored, setTally] = useTally(gameId);
   const [notice, setNotice] = useState<string | null>(null);
