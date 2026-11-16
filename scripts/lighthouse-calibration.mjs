@@ -18,6 +18,15 @@ export const TARGET_DEVICE_INDEX = ANCHOR_BENCHMARK_INDEX / ANCHOR_SLOWDOWN;
 export const MIN_SLOWDOWN = 2;
 export const MAX_SLOWDOWN = 6;
 
+/**
+ * Whether a runner is too slow to measure the target phone at all: slower
+ * than the phone itself, so no slowdown (even none) can reproduce it, and
+ * a shard on it runs out its time limit without a meaningful result.
+ */
+export function tooSlowToMeasure(benchmarkIndex) {
+  return benchmarkIndex < TARGET_DEVICE_INDEX;
+}
+
 /** The middle value of a list of numbers (the mean of the middle two). */
 export function medianOf(values) {
   if (values.length === 0) throw new Error("No benchmark samples.");

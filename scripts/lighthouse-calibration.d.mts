@@ -7,6 +7,7 @@ export declare const MIN_SLOWDOWN: number;
 export declare const MAX_SLOWDOWN: number;
 export declare function medianOf(values: number[]): number;
 export declare function slowdownFor(benchmarkIndex: number): number;
+export declare function tooSlowToMeasure(benchmarkIndex: number): boolean;
 export declare function withSlowdown<T extends { ci: { collect: object } }>(
   config: T,
   slowdown: number,
