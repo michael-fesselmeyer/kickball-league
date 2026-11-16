@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
@@ -20,6 +21,7 @@ import {
   STAT_AWARDS,
 } from "@/domain/awards/stat-awards";
 import { requireSelf } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
 import { setOptOutAction } from "./actions";
 
 export const metadata: Metadata = { title: "Your stats" };
@@ -96,9 +98,12 @@ function StatTable({ caption, rows }: { caption: string; rows: Row[] }) {
 async function Stats({ searchParams }: PageProps<"/app/stats">) {
   const subject = await requireSelf("profile.edit", "/app/stats");
   const query = await searchParams;
+  // Stats are per league: the one the player is looking at (ADR 0048).
+  const leagueId = await activeLeagueId();
+  if (!leagueId) notFound();
   const [played, won, pollWins, hidden] = await Promise.all([
-    seasonsPlayedBy(db, subject.userId),
-    awardsWonBy(db, subject.userId),
+    seasonsPlayedBy(db, subject.userId, leagueId),
+    awardsWonBy(db, subject.userId, leagueId),
     pollWinsBy(db, subject.userId),
     isOptedOut(db, subject.userId),
   ]);

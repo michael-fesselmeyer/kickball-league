@@ -79,7 +79,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
 │   └── delete                      Delete your account: what is deleted, what the league keeps; a fresh sign-in (passkey or email link) and your typed email address confirm it
-├── stats                           Your stats: career and each season's games played, attendance, team wins and runs while playing, sub appearances and awards won, each with "based on N of M games"; your stat awards; stay off or come back on public leaderboards
+├── stats                           Your stats in the selected league: career and each season's games played, attendance, team wins and runs while playing, sub appearances and awards won, each with "based on N of M games"; your stat awards; stay off or come back on public leaderboards
 ├── seasons/[season]/export/        CSV downloads: roster.csv (with shirt sizes) and payments.csv; the whole season for admins, ?team= for one team (its captains too)
 ├── team/[teamSeason]               Roster, RSVPs, how many are available each game week after away weeks (captains also see who is away and a prompt to ask for a sub when a week is short), payments, invites, subs, announcements (captain view adds controls and roster and payment CSV downloads)
 ├── subs                            Sub requests I can claim, and games I'm subbing in
