@@ -351,6 +351,7 @@ The goal is as many extras as possible in the first pass. A season cannot run wi
 | "Copy for WhatsApp" and share links on results, sub requests and rain-outs | P2 |
 | Web push for installed app users | P2 |
 | One-click unsubscribe for each topic in every email, as quick as replying STOP to a text | MVP |
+| Choosing alerts without overload: lean defaults (your registration, payments, shirt size and changes to your own games always come; rule changes are on; league news, events and surveys are opt-in), one in-app card at a time that offers an alert at the moment it helps (after a first RSVP, on joining a team, after a first game, at the end of a season) with a sample message, asked once and quiet for a month after "No thanks", and the browser's permission prompt only after "Yes". Next to every unsubscribe link and in the settings: "Only my team", "Weekly digest instead" and "Snooze for 2 weeks". Admins see counts per topic (opted in, turned down, unsubscribed) and nothing per person | MVP |
 
 ### Community, events and content
 | Feature | Tag |
@@ -450,7 +451,7 @@ New goals from the owner of this project. Each row says what it means for the pr
 | Signing up is as easy as possible, on any device | Sign-up to paid in under two minutes on a phone: email link or Google, a profile only when registering, Apple Pay or Google Pay at checkout. Measured in the end-to-end tests on a phone viewport | MVP (a target for work already planned) |
 | One account in the browser and in an app for Android and Apple | The installable app (PWA) shares the browser's sign-in and works on both platforms. Store listings are not planned, because both app stores charge developers a fee (section 7) | PWA moves from P2 to MVP |
 | Opt out of texts and news | Every email has a one-click unsubscribe for its topic, as quick as replying STOP; news and promotions are off until a member turns them on (a new account starts with league announcements off; accounts that already existed keep what they had). The site sends no text messages (section 7). Game-critical notices (rain-outs, schedule changes) stay on by default but can be switched to push or to the site only | MVP |
-| Alerts that fit each role, without too many | Default topics per role (owner, admin, ref, captain, player, sponsor). A daily cap per person, a digest for non-urgent news, and quiet hours. Each message says why the person got it and how to change it | MVP defaults; caps and digest P2 |
+| Alerts that fit each role, without too many | Default topics per role (owner, admin, ref, captain, player, sponsor). A daily cap per person, a digest for non-urgent news, and quiet hours. Each message says why the person got it and how to change it New (issue #529): alerts are offered by in-app cards at the moment they help, never on a first visit, and every email offers turning down (only my team, weekly digest, snooze) next to turning off. | MVP defaults; caps and digest P2 |
 | More transparency, without oversharing | Team members see their own team's payment and waiver progress (already planned). New: an optional season summary of where the money goes, by category totals only, which the owners choose to publish. Never another person's amounts, birth date or contact details unless the privacy rules in data-model.md section 4 allow it | P2 |
 
 ### Payments

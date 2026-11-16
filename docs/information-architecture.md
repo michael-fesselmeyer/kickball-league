@@ -62,7 +62,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── legal/terms, legal/privacy
 ├── account-deleted                 Shown after a person deletes their account: what was removed and what the league keeps
 ├── guest/[token]                   A guest team's waiver link: the league's waiver and a name field, so a player from another league signs without an account; the secret in the link is the key, not indexed, its own team's name and a head count are all it shows
-├── unsubscribe/[token]             An email's "Stop emails about …" link: asks, then turns that topic's email off; the signed link is the key, no sign-in (its one-click POST is /api/unsubscribe/[token])
+├── unsubscribe/[token]             An email's "Stop emails about …" link: asks, then turns that topic's email off, or offers turning down instead (only my team, weekly digest, snooze for 2 weeks; the footer's links open it with one ready via ?do=); the signed link is the key, no sign-in (its one-click POST is /api/unsubscribe/[token])
 ├── media/instagram/[image]         Our copy of a featured Instagram photo (404 once hidden)
 ├── media/friends/[logo]            A friend league's logo, as stored (404 once removed or replaced)
 ├── media/photos/[photo]            A member's approved photo (404 while waiting, once rejected or deleted)
@@ -79,7 +79,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 ├── rules                           The rulebook inside the app, with the same search, contents and rule anchors: for owners while it is owners only, for anyone with an account while it is members only; never cached. Others see that the league hasn't shared it
 ├── referee                         Refs: tick the game times you can work for each season (a time you already ref is fixed), and your games worked, what you've earned, payments and the balance; "Can't make it?" drops a game still to come, with a reason
 │   └── take/[game]                 "Take it": a game with no ref, from the message refs get; the first ref to tap gets it, anyone after sees it's taken
-├── account                         Profile, weeks you'll miss for each season still to come, email, push and message-limit settings, waivers, payments, league credit and its history, the referral link, and any yellow or red cards a ref gave you, visible only to you (built at /app/profile)
+├── account                         Profile, weeks you'll miss for each season still to come, email, push and message-limit settings, turning down (only my team, weekly roundup, snooze), waivers, payments, league credit and its history, the referral link, and any yellow or red cards a ref gave you, visible only to you (built at /app/profile)
 │   ├── security                    Passkeys and devices: add, rename and remove passkeys; list signed-in devices and sign one or all others out
 │   ├── export                      Download your data: everything the league holds about you, as JSON
 │   └── delete                      Delete your account: what is deleted, what the league keeps; a fresh sign-in (passkey or email link) and your typed email address confirm it
@@ -244,6 +244,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
     ├── messages                    Announcements and delivery log
     ├── shirt-waiting               Late-joiner shirts: players who joined after their season's order, across teams, by size; the batch-reorder readiness; spare stock to log and hand out; mark the batch ordered and received
     ├── shirt-makers                Shirt makers directory: add, change or remove local custom jersey and t-shirt makers (https links, free to list)
+    ├── alerts                      Alert choices as counts per topic: members getting it by email or phone, "No thanks" on its in-app card, unsubscribes from email links; and how many chose only my team, a weekly roundup or a snooze. Never who
     ├── merch/                      The shop's items: price, in the shop or hidden, orders still to make; a new item; the printer's CSV; how much photo storage is used
     │   ├── new                     Add an item: league item or replacement team jersey, name, description, price and member price, made to order or stock per size, order deadline
     │   ├── [item]                  Orders to make by size, each with the buyer, team and color and what they paid on card and in credit; mark one or all fulfilled; a full refund per order; photos (add up to four, remove); edit the details; hide from the shop or put back
