@@ -15,6 +15,10 @@ import { openSeasons } from "@/db/queries/registration";
 import { mySeasons } from "@/lib/nav/my-seasons";
 import { pickupsFor } from "@/db/queries/subs";
 import { surveysWaitingFor } from "@/db/queries/surveys";
+import { alertCardFor } from "@/db/queries/alert-choices";
+import { AlertCardView } from "@/components/alert-card";
+import { CARD_COPY } from "@/domain/notifications/alert-cards";
+import { env } from "@/env";
 import { AllOutboxStatus } from "@/components/offline-outbox";
 import { Pickups } from "@/components/pickups";
 import { can } from "@/domain/authz/permissions";
@@ -117,6 +121,16 @@ async function Account({ searchParams }: PageProps<"/app">) {
     const id = parseId<UserId>(subject.userId);
     return id ? myCards(db, id, onShow) : [];
   })();
+  // The one alert card to offer now, if any (issue #529), started early too.
+  const alertCard = (async () => {
+    const id = parseId<UserId>(subject.userId);
+    return id
+      ? alertCardFor(db, id, {
+          now: new Date(),
+          pushReady: Boolean(env.VAPID_PUBLIC_KEY),
+        })
+      : null;
+  })();
   const isAdmin = can(subject, "season.manage", {});
   const userId = parseId<UserId>(subject.userId);
   const now = new Date();
@@ -214,6 +228,7 @@ async function Account({ searchParams }: PageProps<"/app">) {
   const won = await wins;
   const surveysOpen = await surveys;
   const [latestCard] = await cards;
+  const offer = await alertCard;
   // Where the day's one "I'm at the field" button goes: the first of today's
   // games not checked in yet.
   const checkInGameId =
@@ -368,6 +383,12 @@ async function Account({ searchParams }: PageProps<"/app">) {
             ))}
           </ul>
         </section>
+      )}
+      {offer && (
+        <AlertCardView
+          copy={CARD_COPY[offer]}
+          publicKey={env.VAPID_PUBLIC_KEY ?? null}
+        />
       )}
       {won.length > 0 && (
         <section

@@ -9,6 +9,10 @@ import { teamAvailability } from "@/db/queries/away";
 import { openTeamInvite, rosterBoard } from "@/db/queries/invites";
 import { mySpots, savedFor } from "@/db/queries/lineups";
 import { myRsvps, type TeamRsvps, teamRsvps } from "@/db/queries/rsvps";
+import { env } from "@/env";
+import { alertCardFor } from "@/db/queries/alert-choices";
+import { AlertCardView } from "@/components/alert-card";
+import { CARD_COPY } from "@/domain/notifications/alert-cards";
 import { teamGames } from "@/db/queries/scores";
 import {
   myRegistration,
@@ -282,6 +286,7 @@ async function Team({
     suspended,
     captaincy,
     recruitingNow,
+    offer,
   ] = await Promise.all([
     teamRsvps(db, teamSeasonId, upcoming),
     pickupsFor(db, upcoming),
@@ -304,6 +309,12 @@ async function Team({
     ),
     leads || coCaptain || myOffer ? teamCaptaincy(db, teamSeasonId) : null,
     recruiting ? recruitingSummary(db, recruiting, now) : null,
+    // The one alert card to offer now, if any (issue #529): a first RSVP
+    // brings the rain-out card here.
+    alertCardFor(db, subject.userId, {
+      now,
+      pushReady: Boolean(env.VAPID_PUBLIC_KEY),
+    }),
   ]);
   const mySuspension = suspended.get(subject.userId);
   const day = (d: Date) =>
@@ -471,6 +482,13 @@ async function Team({
           <HelpLink audience="player" article="rsvp" topic="your team page" />
         )}
       </header>
+
+      {offer && (
+        <AlertCardView
+          copy={CARD_COPY[offer]}
+          publicKey={env.VAPID_PUBLIC_KEY ?? null}
+        />
+      )}
 
       {balance && (
         <TeamMoney
