@@ -35,7 +35,7 @@ export type DivisionRow = {
     id: RuleSetId;
     name: string;
     innings: number | null;
-    /** Sets in a match; present only when the rule set sets it (ADR 0072). */
+    /** Sets in a match; present only when the rule set sets it (ADR 0087). */
     bestOf?: number;
     timeLimitMinutes: number | null;
     options: { bunting?: boolean; stealing?: boolean };

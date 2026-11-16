@@ -166,7 +166,7 @@ function OpenForm() {
   );
 }
 
-/** What the operator sees to open a league from an option (ADR 0072). */
+/** What the operator sees to open a league from an option (ADR 0087). */
 type Opening = {
   operator: boolean;
   sport: string;
@@ -350,7 +350,7 @@ function FormCard({
 
 /**
  * The league opened from an option, or for the operator, the one step that
- * opens it: a new league with a draft season (ADR 0072).
+ * opens it: a new league with a draft season (ADR 0087).
  */
 function OpenLeague({
   option,

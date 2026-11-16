@@ -5,7 +5,7 @@
  *   disputes it. A ref who plays for one of the teams reports for that team,
  *   so the other team answers. An admin's report is final at once.
  * - A report nobody disputes becomes final 24 hours after it was made.
- * - What counts as a valid result is the sport's rule (ADR 0072): see
+ * - What counts as a valid result is the sport's rule (ADR 0087): see
  *   src/domain/sports. A forfeit has no score; the other team wins.
  *
  * Pure: the caller passes the time.
@@ -22,7 +22,7 @@ export {
   type ScoreErrors,
   type ScoreInput,
 } from "@/domain/sports/result";
-// Kickball's checks, the default sport's (ADR 0072). Other sports' checks
+// Kickball's checks, the default sport's (ADR 0087). Other sports' checks
 // are in src/domain/sports; `sportRules(sport).score.check` picks one.
 export {
   checkScore,

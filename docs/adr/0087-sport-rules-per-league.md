@@ -1,4 +1,4 @@
-# ADR 0072: A league plays one sport, and the sport's rules live in code
+# ADR 0087: A league plays one sport, and the sport's rules live in code
 
 - Status: accepted
 - Date: 2026-11-15

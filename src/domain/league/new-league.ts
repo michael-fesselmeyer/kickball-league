@@ -93,7 +93,7 @@ export const newLeagueSchema = z.object({
     .min(2, { error: "Name the rule set, for example Standard." })
     .max(60, { error: "Keep the rule set's name under 60 characters." }),
   innings: optionalNumber(1, 15, "Innings are 1 to 15, or leave it empty."),
-  /** Sets in a match, for a sport played in sets (ADR 0072). */
+  /** Sets in a match, for a sport played in sets (ADR 0087). */
   bestOf: z
     .string()
     .trim()
@@ -121,7 +121,7 @@ export type NewLeagueInput = {
   ruleSet: {
     name: string;
     innings: number | null;
-    /** Sets in a match; set only when given (ADR 0072). */
+    /** Sets in a match; set only when given (ADR 0087). */
     bestOf?: number;
     timeLimitMinutes: number | null;
   };

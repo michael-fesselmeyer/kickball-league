@@ -9,7 +9,7 @@ import {
 import { isLeagueSlug } from "./paths";
 
 /**
- * A new league opened from an interest sign-up option (ADR 0072): one step
+ * A new league opened from an interest sign-up option (ADR 0087): one step
  * from "this option has enough interest" to a league with a draft season,
  * filled in from the option and the league that asked. Everything here is
  * a starting point the league's admins change before registration opens;

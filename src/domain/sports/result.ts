@@ -1,5 +1,5 @@
 /**
- * A reported result, the same for every sport (ADR 0072): two numbers in
+ * A reported result, the same for every sport (ADR 0087): two numbers in
  * the sport's unit (runs, sets won, points) and how the game ended. Each
  * sport checks it by its own rules; see ./sports.ts.
  */

@@ -19,7 +19,7 @@ import { seasonDivisionStandings } from "./standings";
 afterAll(closePool);
 
 /**
- * Scores by the league's sport (ADR 0072): a dodgeball league reports sets,
+ * Scores by the league's sport (ADR 0087): a dodgeball league reports sets,
  * its match length comes from its rule sets, and its standings read sets.
  */
 

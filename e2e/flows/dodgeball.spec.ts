@@ -3,7 +3,7 @@ import { expectNoAxeViolations } from "../support/axe";
 import { pageSignedInAs } from "../support/sign-in";
 
 /**
- * A dodgeball league (ADR 0072, seeded by src/seed/dodgeball-league.ts):
+ * A dodgeball league (ADR 0087, seeded by src/seed/dodgeball-league.ts):
  * its admin enters a best-of-five match in sets, and the public standings
  * read sets, with no innings and no live scoring anywhere.
  */

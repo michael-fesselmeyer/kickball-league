@@ -4,7 +4,7 @@ import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 
 /**
- * One step from an interest option to a new league (ADR 0072): the
+ * One step from an interest option to a new league (ADR 0087): the
  * operator (the demo admin, on the flows server) opens a dodgeball league
  * from an option, and the option links to it.
  */

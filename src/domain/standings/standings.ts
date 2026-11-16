@@ -10,7 +10,7 @@ import { RUN_DIFFERENCE_CAP } from "@/domain/sports/kickball";
  *   games between them.
  * - Run difference is capped at 10 a game, so a blowout cannot decide a tie.
  *   That cap is kickball's: another sport passes its own, or none for one
- *   whose scores are already bounded, such as sets (ADR 0072). Every
+ *   whose scores are already bounded, such as sets (ADR 0087). Every
  *   "run" here is the sport's scoring unit.
  * - A forfeit is a win for one team and a loss for the other. Its score does
  *   not count toward runs (an assumption until the owners say otherwise).
