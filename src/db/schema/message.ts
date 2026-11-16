@@ -9,6 +9,7 @@ import {
   smallint,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -46,6 +47,7 @@ export const messageTopic = pgEnum("message_topic", [
   "team_roles",
   "game_day_watch",
   "lost_found",
+  "rules",
 ]);
 
 /** Email and web push today; text arrives later behind the same outbox. */
@@ -156,6 +158,13 @@ export const message = pgTable(
   ],
 );
 
+/** Where a person changed a topic's setting. */
+export const preferenceSource = pgEnum("preference_source", [
+  "settings",
+  "card",
+  "email_link",
+]);
+
 /**
  * A person's choice for one topic and channel. No row means the topic's
  * default, which is on for everything except marketing.
@@ -171,12 +180,20 @@ export const notificationPreference = pgTable(
     topic: messageTopic().notNull(),
     channel: messageChannel().notNull(),
     enabled: boolean().notNull(),
+    /**
+     * Where the person last changed it: the settings page, an alert card or
+     * an email's link. Null for choices made before it was recorded, and for
+     * the off-by-default choice a new account starts with. Admins see only
+     * counts of these (src/db/queries/alert-choices.ts).
+     */
+    changedVia: preferenceSource(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
   (t) => [
+    index("notification_preference_topic_idx").on(t.topic, t.channel),
     unique("notification_preference_once").on(t.userId, t.topic, t.channel),
   ],
 );
@@ -199,6 +216,19 @@ export const alertSetting = pgTable(
     /** Whole local hours; both null when quiet hours are off. */
     quietStartHour: smallint().default(22),
     quietEndHour: smallint().default(8),
+    /**
+     * "Snooze for 2 weeks": until then, non-urgent messages are held for
+     * the first digest after it. Urgent ones still go at once.
+     */
+    snoozedUntil: timestamp({ withTimezone: true }),
+    /**
+     * "Only my team": league-wide news (announcements to the whole league,
+     * event news, invitations back) is skipped; their team's news still
+     * comes.
+     */
+    teamOnly: boolean().notNull().default(false),
+    /** "Weekly roundup": league news is held for one email on Sundays. */
+    weeklyNews: boolean().notNull().default(false),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
       .defaultNow()
@@ -210,6 +240,41 @@ export const alertSetting = pgTable(
       "alert_setting_quiet_hours",
       sql`(${t.quietStartHour} is null and ${t.quietEndHour} is null) or (${t.quietStartHour} between 0 and 23 and ${t.quietEndHour} between 0 and 23 and ${t.quietStartHour} <> ${t.quietEndHour})`,
     ),
+  ],
+);
+
+/**
+ * The in-app cards that offer alerts at the moment they help
+ * (src/domain/notifications/alert-cards.ts): after a first RSVP, on
+ * joining a team, after a first game and at the end of a season.
+ */
+export const alertCard = pgEnum("alert_card", [
+  "first_rsvp",
+  "joined_team",
+  "first_game",
+  "season_end",
+]);
+
+export const alertCardAnswer = pgEnum("alert_card_answer", ["yes", "no"]);
+
+/**
+ * A person's answer to one alert card. Each card asks once: a row means it
+ * is never shown again, and a "no" keeps every card away for a month.
+ */
+export const alertCardResponse = pgTable(
+  "alert_card_response",
+  {
+    userId: uuid()
+      .notNull()
+      .$type<UserId>()
+      .references(() => user.id, { onDelete: "cascade" }),
+    card: alertCard().notNull(),
+    answer: alertCardAnswer().notNull(),
+    answeredAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.card] }),
+    index("alert_card_response_card_idx").on(t.card, t.answer),
   ],
 );
 
