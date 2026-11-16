@@ -139,7 +139,7 @@ async function Dashboard({ searchParams }: PageProps<"/app/admin">) {
     nextGameDay(db, current, now),
     missingScores(db, current, now),
     registrationSummary(db, current.id),
-    otherSeasons(db, current.id),
+    otherSeasons(db, league.id, current.id),
     pendingNewTeamCount(db, current.id),
     needsReconnect(db, league.id),
     seasonSignups(db, current.id),

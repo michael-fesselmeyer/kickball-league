@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { db } from "@/db/client";
 import { seasonsForAdmin } from "@/db/queries/schedule-screen";
 import { requirePermission } from "@/lib/auth/permission";
+import { activeLeagueId } from "@/lib/league/active";
 import { PageLoading } from "@/components/page-loading";
 
 export const metadata: Metadata = { title: "Seasons" };
@@ -29,7 +30,8 @@ const STATUS_NAMES: Record<string, string> = {
 
 async function Seasons() {
   await requirePermission("season.manage", { next: "/app/admin/seasons" });
-  const seasons = await seasonsForAdmin(db);
+  const leagueId = await activeLeagueId();
+  const seasons = leagueId ? await seasonsForAdmin(db, leagueId) : [];
   return (
     <>
       <header className="flex flex-wrap items-end justify-between gap-4">
