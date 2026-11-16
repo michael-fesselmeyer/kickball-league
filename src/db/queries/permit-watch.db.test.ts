@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { division, ruleSet } from "../schema/division";
-import { field, game, slot, venue } from "../schema/game";
+import { field, game, gameStart, slot, venue } from "../schema/game";
 import { gameDayStatus, gameDayStatusGame } from "../schema/game-day";
 import { league } from "../schema/league";
 import { permitWindow } from "../schema/schedule";
@@ -17,8 +17,19 @@ const one = <T>(rows: T[], what: string) => required(rows[0], what);
 
 const at = (hhmm: string, day = "2026-11-14") => new Date(`${day}T${hhmm}:00Z`);
 
-/** A game at 9 pm New York on Nov 14 (02:00 UTC on the 15th) cut from a permit. */
-async function world(db: Db, options: { withRules: boolean }) {
+/**
+ * A game at 8 pm New York on Nov 14 (01:00 UTC on the 15th), long after
+ * sunset, so its fields have lights unless a test says otherwise.
+ */
+async function world(
+  db: Db,
+  options: {
+    withRules: boolean;
+    hasLights?: boolean;
+    marginMinutes?: number;
+    at?: { lat: string; lng: string };
+  },
+) {
   const tag = Math.random().toString(36).slice(2, 8);
   const lg = one(
     await db
@@ -48,7 +59,12 @@ async function world(db: Db, options: { withRules: boolean }) {
   const park = one(
     await db
       .insert(venue)
-      .values({ leagueId: lg.id, name: "Example Park", slug: `p-${tag}` })
+      .values({
+        leagueId: lg.id,
+        name: "Example Park",
+        slug: `p-${tag}`,
+        ...(options.at ?? {}),
+      })
       .returning({ id: venue.id }),
     "venue",
   );
@@ -56,7 +72,11 @@ async function world(db: Db, options: { withRules: boolean }) {
     await db
       .insert(field)
       .values(
-        ["Field 1", "Field 2"].map((name) => ({ venueId: park.id, name })),
+        ["Field 1", "Field 2"].map((name) => ({
+          venueId: park.id,
+          name,
+          hasLights: options.hasLights ?? true,
+        })),
       )
       .returning({ id: field.id })
   ).map((f) => f.id);
@@ -73,6 +93,9 @@ async function world(db: Db, options: { withRules: boolean }) {
             options: {
               permitEndRule: "last_inning_to_start",
               noNewInningMinutes: 5,
+              ...(options.marginMinutes === undefined
+                ? {}
+                : { daylightMarginMinutes: options.marginMinutes }),
             },
           })
           .returning({ id: ruleSet.id }),
@@ -140,6 +163,7 @@ const play = async (
   w: Awaited<ReturnType<typeof world>>,
   fieldId: typeof w.f1,
   permitWindowId: Awaited<ReturnType<typeof permit>> | null,
+  slotStartsAt = at("01:00", "2026-11-15"),
 ) => {
   const s = one(
     await db
@@ -148,8 +172,8 @@ const play = async (
         seasonId: w.seasonId,
         fieldId,
         permitWindowId,
-        startsAt: at("01:00", "2026-11-15"),
-        endsAt: at("02:00", "2026-11-15"),
+        startsAt: slotStartsAt,
+        endsAt: new Date(slotStartsAt.getTime() + 3_600_000),
         timeIndex: 0,
       })
       .returning({ id: slot.id }),
@@ -183,9 +207,14 @@ describe("permit info for a game", () => {
       const id = await play(db, w, w.f1, p);
       const info = (await permitInfoFor(db, [id])).get(id);
       expect(info).toEqual({
-        permitEndsAt: at("03:00", "2026-11-15"),
         slotStartsAt: at("01:00", "2026-11-15"),
         clockStartsAt: at("01:00", "2026-11-15"),
+        dayOff: false,
+        clearBy: at("03:00", "2026-11-15"),
+        sunsetAt: null,
+        end: { endsAt: at("03:00", "2026-11-15"), reason: "field_time" },
+        startedAt: null,
+        heldUpBy: null,
         timeLimitMinutes: 60,
         innings: 5,
         rule: "last_inning_to_start",
@@ -234,7 +263,8 @@ describe("permit info for a game", () => {
       );
       const id = await play(db, w, w.f1, p);
       const info = (await permitInfoFor(db, [id])).get(id);
-      expect(info?.permitEndsAt).toEqual(at("04:00", "2026-11-15"));
+      expect(info?.clearBy).toEqual(at("04:00", "2026-11-15"));
+      expect(info?.end.endsAt).toEqual(at("04:00", "2026-11-15"));
       // No division, so regulation length and the default rule.
       expect(info).toMatchObject({
         timeLimitMinutes: 90,
@@ -261,7 +291,7 @@ describe("permit info for a game", () => {
       });
     }));
 
-  it("leaves out a game whose slot is not cut from a permit window, and takes no games", () =>
+  it("leaves out a game on a lit field whose slot is not cut from a permit window, and takes no games", () =>
     inRolledBackDb(async (db) => {
       const w = await world(db, { withRules: false });
       const id = await play(db, w, w.f1, null);
@@ -322,6 +352,70 @@ describe("permit info for a game", () => {
       );
       expect((await delayedStarts(db, [offGame, moved])).size).toBe(0);
       expect((await delayedStarts(db, [])).size).toBe(0);
+    }));
+
+  it("ends play at sunset less the default margin on a field without lights", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db, {
+        withRules: false,
+        hasLights: false,
+        at: { lat: "40.712800", lng: "-74.006000" },
+      });
+      // 4:15 pm EST on Nov 14, no permit window: daylight alone.
+      const id = await play(db, w, w.f1, null, at("21:15"));
+      const info = (await permitInfoFor(db, [id])).get(id);
+      expect(info?.clearBy).toBeNull();
+      const sunsetAt = info?.sunsetAt;
+      if (!sunsetAt) throw new Error("no sunset");
+      // Sunset in New York on Nov 14 is about 4:38 pm EST (21:38 UTC).
+      expect(Math.abs(sunsetAt.getTime() - at("21:38").getTime())).toBeLessThan(
+        3 * 60_000,
+      );
+      expect(info?.end).toEqual({
+        endsAt: new Date(sunsetAt.getTime() - 15 * 60_000),
+        reason: "daylight",
+      });
+    }));
+
+  it("takes the earlier of daylight and the permit, with the rule set's margin", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db, {
+        withRules: true,
+        hasLights: false,
+        marginMinutes: 30,
+      });
+      const p = await permit(db, w, w.f1, at("20:00"), at("23:00"));
+      const id = await play(db, w, w.f1, p, at("20:30"));
+      const info = (await permitInfoFor(db, [id])).get(id);
+      const sunsetAt = info?.sunsetAt;
+      if (!sunsetAt) throw new Error("no sunset");
+      expect(info?.clearBy).toEqual(at("23:00"));
+      expect(info?.end).toEqual({
+        endsAt: new Date(sunsetAt.getTime() - 30 * 60_000),
+        reason: "daylight",
+      });
+    }));
+
+  it("reads the recorded first pitch and who held it up", () =>
+    inRolledBackDb(async (db) => {
+      const w = await world(db, { withRules: false });
+      const p = await permit(
+        db,
+        w,
+        w.f1,
+        at("00:00", "2026-11-15"),
+        at("03:00", "2026-11-15"),
+      );
+      const id = await play(db, w, w.f1, p);
+      await db.insert(gameStart).values({
+        gameId: id,
+        startedAt: at("01:12", "2026-11-15"),
+        heldUpBy: "team_b",
+      });
+      expect((await permitInfoFor(db, [id])).get(id)).toMatchObject({
+        startedAt: at("01:12", "2026-11-15"),
+        heldUpBy: "team_b",
+      });
     }));
 });
 

@@ -26,7 +26,7 @@ import { season } from "../schema/season";
 import { team, teamSeason } from "../schema/team";
 import { recordAudit } from "./audit";
 import { layoutsOf } from "./field-layouts";
-import { permitInfoFor } from "./permit-watch";
+import { type PermitInfo, permitInfoFor } from "./permit-watch";
 import type { Db } from "./schedule";
 
 /**
@@ -178,8 +178,21 @@ export async function commandRows(
         : null,
     report: r.report,
     halves: r.halves,
-    permit: permits.get(r.id) ?? null,
+    permit: clockOf(permits.get(r.id)),
   }));
+}
+
+/** The command center's view of a game's end of play. */
+function clockOf(info: PermitInfo | undefined): CommandRow["permit"] {
+  if (!info) return null;
+  return {
+    permitEndsAt: info.end.endsAt,
+    clockStartsAt: info.clockStartsAt,
+    endReason: info.end.reason,
+    timeLimitMinutes: info.timeLimitMinutes,
+    innings: info.innings,
+    rule: info.rule,
+  };
 }
 
 /**

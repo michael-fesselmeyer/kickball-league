@@ -50,8 +50,13 @@ export function permitEndFor(own: Span, held: readonly Span[]): Date {
 }
 
 export type WatchInput = {
-  /** The end of the permit window saved with the game; null without one. */
+  /**
+   * When play must end: the end of the permit window saved with the game,
+   * or the end of daylight when that comes first (#467); null without one.
+   */
   permitEndsAt: Date | null;
+  /** Which of the two `permitEndsAt` is; the field time when not given. */
+  endReason?: "field_time" | "daylight" | undefined;
   now: Date;
   /** The game's slot start, when its clock starts. */
   startsAt: Date;
@@ -100,16 +105,20 @@ const plural = (n: number) => `${n} minute${n === 1 ? "" : "s"}`;
 export function permitWatch(input: WatchInput): Watch | null {
   const { permitEndsAt, now } = input;
   if (!permitEndsAt) return null;
+  const dark = input.endReason === "daylight";
   const rule = PERMIT_END_RULE_TEXT[input.rule];
   const left = permitEndsAt.getTime() - now.getTime();
   if (left <= 0) {
     const ago = minutes(-left);
+    const when = ago <= 1 ? "just now" : `${plural(ago)} ago`;
     return {
       minutesLeft: 0,
       level: "over",
       reason: "over",
       rule,
-      message: `The permit ended ${ago <= 1 ? "just now" : `${plural(ago)} ago`}. ${rule}`,
+      message: dark
+        ? `Play had to end ${when} to finish before dark. ${rule}`
+        : `The permit ended ${when}. ${rule}`,
     };
   }
   const minutesLeft = minutes(left);
@@ -131,24 +140,29 @@ export function permitWatch(input: WatchInput): Watch | null {
       ? now.getTime() + halvesLeft * pace
       : null;
   const base = { minutesLeft, rule };
+  const past = dark
+    ? `dark: play must end in ${plural(minutesLeft)}`
+    : `the permit, which ends in ${plural(minutesLeft)}`;
   if (limitEnd !== null && limitEnd > permitEndsAt.getTime())
     return {
       ...base,
       level: "watch",
       reason: "time_limit",
-      message: `The time limit would run past the permit, which ends in ${plural(minutesLeft)}. ${rule}`,
+      message: `The time limit would run past ${past}. ${rule}`,
     };
   if (paceEnd !== null && paceEnd > permitEndsAt.getTime())
     return {
       ...base,
       level: "watch",
       reason: "pace",
-      message: `At this pace the game runs past the permit, which ends in ${plural(minutesLeft)}. ${rule}`,
+      message: `At this pace the game runs past ${past}. ${rule}`,
     };
   return {
     ...base,
     level: "ok",
     reason: null,
-    message: `${plural(minutesLeft)} left in the permit.`,
+    message: dark
+      ? `${plural(minutesLeft)} of daylight left to play.`
+      : `${plural(minutesLeft)} left in the permit.`,
   };
 }

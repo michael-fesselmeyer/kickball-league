@@ -40,11 +40,15 @@ export type CommandRow = {
   /** The latest reported final score, if any. */
   report: { scoreA: number; scoreB: number } | null;
   halves: HalfInning[];
-  /** The permit window saved with the game, with its rule set; null without one. */
+  /**
+   * When play must end (the permit's end, or the end of daylight when that
+   * comes first, #467), with its rule set; null without either.
+   */
   permit: {
     permitEndsAt: Date;
     /** When the game's clock starts: a delayed game's new start, else the slot's. */
     clockStartsAt: Date;
+    endReason?: "field_time" | "daylight";
     timeLimitMinutes: number | null;
     innings: number | null;
     rule: PermitEndRule;
@@ -94,7 +98,7 @@ export type CommandState = {
     refsAssigned: number;
     live: number;
     missing: number;
-    /** Games still being played after their permit ended. */
+    /** Games still being played after play had to end (permit or daylight). */
     pastPermit: number;
   };
 };
@@ -180,6 +184,7 @@ export function commandState(
           row.permit && (score === "live" || score === "on")
             ? permitWatch({
                 permitEndsAt: row.permit.permitEndsAt,
+                endReason: row.permit.endReason,
                 now,
                 startsAt: row.permit.clockStartsAt,
                 timeLimitMinutes: row.permit.timeLimitMinutes,
