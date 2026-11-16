@@ -1,4 +1,4 @@
-# ADR 0069: Offer alerts when they help, and turn down instead of off
+# ADR 0092: Offer alerts when they help, and turn down instead of off
 
 - Status: accepted
 - Date: 2026-11-15
