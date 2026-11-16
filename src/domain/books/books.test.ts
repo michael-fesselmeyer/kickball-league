@@ -28,6 +28,8 @@ describe("buildLedger", () => {
       refundsCents: 14_500,
       totalCents: 164_500,
       creditAppliedCents: 1_500,
+      feesCoveredCents: 0,
+      feesSavedCents: 0,
     });
     const by = Object.fromEntries(
       ledger.expenses.map((e) => [e.category, e.cents]),
@@ -44,6 +46,22 @@ describe("buildLedger", () => {
     expect(ledger.permitCostCents).toBe(40_000);
     expect(ledger.expenseTotalCents).toBe(98_000);
     expect(ledger.netCents).toBe(66_500);
+  });
+
+  it("shows the processing fees payers covered and saved, already inside money in", () => {
+    const ledger = buildLedger({
+      payments: [{ method: "stripe", amountCents: 77_270, refundedCents: 0 }],
+      creditAppliedCents: 0,
+      feesCoveredCents: 2_270,
+      feesSavedCents: 1_850,
+      expenses: [],
+      permitCostCents: [],
+    });
+    expect(ledger.income.totalCents).toBe(77_270);
+    expect(ledger.income.feesCoveredCents).toBe(2_270);
+    expect(ledger.income.feesSavedCents).toBe(1_850);
+    // Fees saved were never paid, so they are not money in.
+    expect(ledger.netCents).toBe(77_270);
   });
 
   it("is all zeros for an empty season, and can go negative", () => {

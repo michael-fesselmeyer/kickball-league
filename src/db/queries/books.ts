@@ -1,3 +1,4 @@
+import { feeShareOfRefund } from "@/domain/money/processing-fee";
 import {
   aliasedTable,
   and,
@@ -309,6 +310,8 @@ function paymentsOfSeason(db: Db, s: SeasonRef) {
       paidAt: payment.paidAt,
       createdAt: payment.createdAt,
       creditAppliedCents: purchase.creditAppliedCents,
+      feeCents: purchase.feeCents,
+      feeSavedCents: purchase.feeSavedCents,
       purchaseId: purchase.id,
       kinds: sql<
         string[]
@@ -408,6 +411,19 @@ export async function seasonBooks(db: Db, s: SeasonRef): Promise<SeasonBooks> {
       refundedCents: p.refundedCents,
     })),
     creditAppliedCents: [...credit.values()].reduce((a, b) => a + b, 0),
+    // Processing fees payers covered, less what refunds gave back, and the
+    // card fees saved by free methods (ADR 0082), once per purchase.
+    feesCoveredCents: [
+      ...new Map(
+        payments.map((p) => [
+          p.purchaseId,
+          p.feeCents - feeShareOfRefund(p.refundedCents, p.amountCents, p.feeCents),
+        ]),
+      ).values(),
+    ].reduce((a, b) => a + b, 0),
+    feesSavedCents: [
+      ...new Map(payments.map((p) => [p.purchaseId, p.feeSavedCents])).values(),
+    ].reduce((a, b) => a + b, 0),
     expenses,
     permitCostCents: permitCosts.map((p) => p.costCents ?? 0),
   });

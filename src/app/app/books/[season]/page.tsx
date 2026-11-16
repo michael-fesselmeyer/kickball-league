@@ -455,7 +455,7 @@ async function Books({
             </tr>
             <tr className="border-b border-border">
               <th scope="row" className="py-2 font-normal">
-                Paid outside the app (cash, Venmo)
+                Paid outside the app (cash, Venmo, Zelle, check)
               </th>
               <td className="py-2 text-right tabular-nums">
                 {money(ledger.income.offAppCents)}
@@ -477,6 +477,27 @@ async function Books({
                 {money(ledger.income.totalCents)}
               </td>
             </tr>
+            {(ledger.income.feesCoveredCents > 0 ||
+              ledger.income.feesSavedCents > 0) && (
+              <>
+                <tr className="border-b border-border text-text-muted">
+                  <th scope="row" className="py-2 font-normal">
+                    Processing fees payers covered (in money in)
+                  </th>
+                  <td className="py-2 text-right tabular-nums">
+                    {money(ledger.income.feesCoveredCents)}
+                  </td>
+                </tr>
+                <tr className="border-b border-border text-text-muted">
+                  <th scope="row" className="py-2 font-normal">
+                    Card fees saved by cash, Zelle and check
+                  </th>
+                  <td className="py-2 text-right tabular-nums">
+                    {money(ledger.income.feesSavedCents)}
+                  </td>
+                </tr>
+              </>
+            )}
             {ledger.expenses.map((e) => (
               <tr key={e.category} className="border-b border-border">
                 <th scope="row" className="py-2 font-normal">

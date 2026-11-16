@@ -1,3 +1,4 @@
+import { feeShareOfRefund } from "@/domain/money/processing-fee";
 import { and, eq, inArray, notInArray, or, sum, sql } from "drizzle-orm";
 import type {
   LeagueId,
@@ -125,6 +126,8 @@ async function paidByTeam(db: Db, teamIds: readonly TeamSeasonId[]) {
       amountCents: purchaseItem.amountCents,
       subtotalCents: purchase.subtotalCents,
       discountCents: purchase.discountCents,
+      feeCents: purchase.feeCents,
+      totalCents: purchase.totalCents,
     })
     .from(purchaseItem)
     .innerJoin(purchase, eq(purchaseItem.purchaseId, purchase.id))
@@ -159,10 +162,12 @@ async function paidByTeam(db: Db, teamIds: readonly TeamSeasonId[]) {
         : null) ??
       (i.registrationId ? teamOfRegistration.get(i.registrationId) : null);
     if (!teamId || i.subtotalCents === 0) continue;
-    const net = Math.max(
-      0,
-      i.subtotalCents - i.discountCents - (refundedOf.get(i.purchaseId) ?? 0),
-    );
+    // A refund gives back part of the processing fee with the price
+    // (ADR 0082); only the price's part lowers what was paid for the team.
+    const refunded = refundedOf.get(i.purchaseId) ?? 0;
+    const refundedPrice =
+      refunded - feeShareOfRefund(refunded, i.totalCents, i.feeCents);
+    const net = Math.max(0, i.subtotalCents - i.discountCents - refundedPrice);
     const cents = Math.floor((i.amountCents * net) / i.subtotalCents);
     const byUser = result.get(teamId) ?? new Map<UserId, number>();
     byUser.set(i.userId, (byUser.get(i.userId) ?? 0) + cents);
