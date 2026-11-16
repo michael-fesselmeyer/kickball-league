@@ -68,6 +68,8 @@ const iconProps = {
  * One button that flips between light and dark, remembered on this device
  * (design-system.md §2). Both icons are rendered and CSS shows the one for
  * the theme in effect, so the server HTML is right before any script runs.
+ * The visible box is a snug 36px around the 20px icon; an invisible ::after
+ * keeps the tap target at 44 × 44 without widening it.
  */
 export function ThemeSwitch() {
   const theme = useSyncExternalStore(subscribe, read, () => "light");
@@ -79,7 +81,7 @@ export function ThemeSwitch() {
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
       aria-pressed={dark}
       onClick={() => choose(dark ? "light" : "dark")}
-      className="inline-flex size-11 items-center justify-center rounded-input border border-border-strong text-text"
+      className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-input border border-border-strong p-0 leading-none text-text after:absolute after:-inset-1 after:content-['']"
     >
       <svg {...iconProps} className="hidden dark:block">
         <circle cx="12" cy="12" r="4" />
