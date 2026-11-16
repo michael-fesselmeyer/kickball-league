@@ -185,6 +185,30 @@ describe("suggestPlacements", () => {
     );
   });
 
+  it("sends someone looking for a change to another team with room", () => {
+    // Their last team is short on women and would otherwise win.
+    const last = team("Last", many(3, { side: "man" }));
+    const result = suggestPlacements(
+      [free("Pia", { side: "woman" })],
+      [
+        { ...last, movingOn: ["r-Pia"] },
+        team("Even", [...many(6, { side: "woman" }), ...many(6)]),
+      ],
+    );
+    expect(result.suggestions.map((s) => s.teamName)).toEqual(["Even"]);
+  });
+
+  it("falls back to their last team when no other team has room", () => {
+    const result = suggestPlacements(
+      [free("Quin")],
+      [
+        { ...team("Last", many(2)), movingOn: ["r-Quin"] },
+        team("Full", many(4), 4),
+      ],
+    );
+    expect(result.suggestions.map((s) => s.teamName)).toEqual(["Last"]);
+  });
+
   it("keeps a friend group off a team that lists one of them", () => {
     const result = suggestPlacements(
       [free("Mo", { groupId: "g9" }), free("Ned", { groupId: "g9" })],

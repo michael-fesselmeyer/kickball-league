@@ -300,6 +300,8 @@ Every kind of message the outbox sends is urgent or non-urgent ([ADR 0019](adr/0
 | `interest_go_ahead` | non-urgent | News that a new night, park or format you showed interest in is going ahead |
 | `merch_receipt` | urgent | Your receipt for an order from the league shop |
 | `merch_update` | non-urgent | Your league shop order is ready, or was refunded |
+| `move_accepted` | non-urgent | For captains: a player who said yes to your team's invite for next season |
+| `move_invite` | non-urgent | A team's invite for next season, when you said you're open to a new team |
 | `new_team` | non-urgent | Answers to new-team requests |
 | `private_event` | urgent | Your request for a private league or tournament: received, set up or declined |
 | `payment_reminder` | urgent | Payment deadline reminders |

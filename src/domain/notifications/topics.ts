@@ -111,7 +111,7 @@ export const SETTINGS_TOPICS: readonly {
   {
     topic: "team_roles",
     label: "Captain and co-captains",
-    hint: "When your captain offers you the captaincy or makes you a co-captain, and the answer to a captaincy you offered.",
+    hint: "When your captain offers you the captaincy or makes you a co-captain, and the answer to a captaincy you offered. Also invites from teams when you're open to a new team, and, for captains, a player who said yes.",
   },
   {
     topic: "events",

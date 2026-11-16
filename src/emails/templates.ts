@@ -32,6 +32,7 @@ import { interestGoAheadEmail } from "./interest-go-ahead";
 import { instagramStorageFullEmail } from "./instagram-storage-full";
 import type { RenderContext } from "./layout";
 import { merchEmail } from "./merch";
+import { moveAcceptedEmail, moveInviteEmail } from "./team-change";
 import { newTeamEmail } from "./new-team";
 import {
   guaranteeFailedEmail,
@@ -100,6 +101,8 @@ const TEMPLATES: Readonly<Record<MessageKind | typeof DIGEST_KIND, Template>> =
     interest_go_ahead: interestGoAheadEmail,
     merch_receipt: merchEmail,
     merch_update: merchEmail,
+    move_accepted: moveAcceptedEmail,
+    move_invite: moveInviteEmail,
     new_team: newTeamEmail,
     payment_reminder: paymentReminderEmail,
     permit_alert: permitAlertEmail,
