@@ -100,6 +100,10 @@ test("a captain disputes a reported score and an admin settles it", async ({
     await admin.getByText("Set the score as an admin").click();
     await admin.getByRole("spinbutton", { name: HOME }).fill("5");
     await admin.getByRole("spinbutton", { name: AWAY }).fill("5");
+    // Settling a dispute is a ruling, so it carries a written reason.
+    await admin
+      .getByLabel("Reason for the ruling")
+      .fill("Both captains agreed the run at third base doesn't count.");
     await admin
       .getByRole("button", { name: "Save as the final score" })
       .click();
@@ -107,6 +111,9 @@ test("a captain disputes a reported score and an admin settles it", async ({
     await expect(
       admin.getByRole("region", { name: "Final score" }),
     ).toContainText(`${HOME} 5, ${AWAY} 5`);
+    await expect(
+      admin.getByRole("region", { name: "Final score" }),
+    ).toContainText("Reason: “Both captains agreed");
 
     await admin.goto(`/app/admin/seasons/${SEASON}/scores`);
     await expect(
