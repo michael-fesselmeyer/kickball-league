@@ -200,9 +200,9 @@ function Refund({ slug, person }: { slug: string; person: BoardPerson }) {
         {p.feeCents > 0 && (
           <p className="basis-full text-small text-text-muted">
             The {formatCents(p.amountCents)} paid includes a{" "}
-            {formatCents(p.feeCents)} processing fee. A full refund returns
-            it; a partial refund should return the same share of it, so
-            refunding half the price means{" "}
+            {formatCents(p.feeCents)} processing fee. A full refund returns it;
+            a partial refund should return the same share of it, so refunding
+            half the price means{" "}
             {formatCents(
               refundForPrice(
                 Math.floor((p.amountCents - p.feeCents) / 2),

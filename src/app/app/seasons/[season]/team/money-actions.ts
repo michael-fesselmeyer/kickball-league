@@ -150,9 +150,13 @@ export async function payBalanceAction(
   const now = new Date();
   const userId = subject.userId;
   // Who covers the processing fee, when the league turned that on (ADR 0082).
-  const fee = feeChoice(form.get("payMethod"), await feeSettingsOf(db, league.id), {
-    bank: true,
-  });
+  const fee = feeChoice(
+    form.get("payMethod"),
+    await feeSettingsOf(db, league.id),
+    {
+      bank: true,
+    },
+  );
   const started = await txDb.transaction((tx) =>
     startPurchaseFor(tx, {
       registrationId: mine.id,

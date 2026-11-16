@@ -8,11 +8,7 @@ import { db } from "@/db/client";
 import { hasPasskey } from "@/db/queries/passkeys";
 import { feeSettingsOf } from "@/db/queries/processing-fees";
 import { profileOf } from "@/db/queries/profile";
-import {
-  bpsText,
-  feesOn,
-  methodQuotes,
-} from "@/domain/money/processing-fee";
+import { bpsText, feesOn, methodQuotes } from "@/domain/money/processing-fee";
 import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission, sessionIsFresh } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";
@@ -89,10 +85,10 @@ async function ProcessingFees({
         <h1 className="text-h1">Processing fees</h1>
         <p className="text-text-muted">
           Card payments cost the league about 3% of every payment. When this is
-          on, whoever pays by card, Apple Pay or Google Pay pays the card
-          price, which covers that cost, and cash, Zelle and check cost the
-          price alone. Bank transfers and a Venmo business profile cover their
-          own smaller fees.
+          on, whoever pays by card, Apple Pay or Google Pay pays the card price,
+          which covers that cost, and cash, Zelle and check cost the price
+          alone. Bank transfers and a Venmo business profile cover their own
+          smaller fees.
         </p>
         <p className="font-semibold">
           It is {feesOn(settings) ? "on" : "off"}.
@@ -123,8 +119,8 @@ async function ProcessingFees({
         <ul className="list-disc pl-6">
           <li>
             Ask Stripe, and the bank behind it if Stripe says so, whether the
-            league must tell them first, and do it. Visa asks for notice 30
-            days before any card surcharge.
+            league must tell them first, and do it. Visa asks for notice 30 days
+            before any card surcharge.
           </li>
           <li>
             New York caps any card fee at what the processor charges, and the
@@ -286,8 +282,8 @@ async function ProcessingFees({
         <label className="flex flex-col gap-1">
           <span className="text-h3">How to pay with cash, Zelle or check</span>
           <span className="text-text-muted">
-            Shown wherever players pay, for example who takes cash and where
-            to send Zelle. Use the league&apos;s own payment details, not a
+            Shown wherever players pay, for example who takes cash and where to
+            send Zelle. Use the league&apos;s own payment details, not a
             person&apos;s.
           </span>
           <textarea
@@ -306,8 +302,8 @@ async function ProcessingFees({
             name="confirmed"
             defaultChecked={feesOn(settings)}
           />
-          The league has confirmed the legal side, told Stripe whatever it
-          asked for, and entered its real rates.
+          The league has confirmed the legal side, told Stripe whatever it asked
+          for, and entered its real rates.
         </label>
 
         <SubmitButton className="btn self-start btn-primary" disabled={!fresh}>

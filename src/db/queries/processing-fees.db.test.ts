@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
-import type { LeagueId, PurchaseId, TeamSeasonId, UserId } from "@/domain/ids";
+import type { PurchaseId } from "@/domain/ids";
 import {
   bankFeeCents,
   cardFeeCents,
@@ -67,7 +67,7 @@ async function world(
     .insert(user)
     .values({ name: "Robin", email: `fees-${tag}@example.test` })
     .returning({ id: user.id });
-  const userId = captain!.id as UserId;
+  const userId = captain!.id;
   await db
     .insert(profile)
     .values({ userId, firstName: "Robin", lastName: "Example" });
@@ -75,7 +75,7 @@ async function world(
     .insert(league)
     .values({ name: "Fee League", slug: `fees-${tag}` })
     .returning({ id: league.id });
-  const leagueId = lg!.id as LeagueId;
+  const leagueId = lg!.id;
   await db.insert(season).values({
     leagueId,
     name: "Spring",
@@ -114,7 +114,7 @@ async function world(
     .update(registration)
     .set({ status: "pending_payment" })
     .where(eq(registration.id, mine.id));
-  const teamSeasonId = team.value.teamSeasonId as TeamSeasonId;
+  const teamSeasonId = team.value.teamSeasonId;
   const line = (cents: number): PurchaseLine => ({
     kind: options.split ? "player_share" : "team_fee",
     amountCents: cents,
@@ -318,9 +318,7 @@ describe("processing fees while the setting is on", () => {
       expect(await purchaseRow(db, c.purchaseId)).toMatchObject({
         status: "paid",
       });
-      expect((await paymentOf(db, c.purchaseId))?.amountCents).toBe(
-        FEE + fee,
-      );
+      expect((await paymentOf(db, c.purchaseId))?.amountCents).toBe(FEE + fee);
       const [reg] = await db
         .select({ status: registration.status })
         .from(registration)
@@ -586,9 +584,11 @@ describe("processing fees while the setting is on", () => {
         .select({ id: savedPaymentMethod.chargePurchaseId })
         .from(savedPaymentMethod)
         .where(eq(savedPaymentMethod.teamSeasonId, w.teamSeasonId));
-      expect(
-        await purchaseRow(db, saved!.id as PurchaseId),
-      ).toMatchObject({ totalCents: FEE, feeCents: 0, feeMethod: null });
+      expect(await purchaseRow(db, saved!.id as PurchaseId)).toMatchObject({
+        totalCents: FEE,
+        feeCents: 0,
+        feeMethod: null,
+      });
     });
   });
 

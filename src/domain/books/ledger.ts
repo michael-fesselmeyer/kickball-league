@@ -37,12 +37,7 @@ export const CATEGORY_LABELS: Readonly<Record<ExpenseCategory, string>> = {
 };
 
 export type PaymentMethod =
-  | "stripe"
-  | "cash"
-  | "venmo"
-  | "zelle"
-  | "check"
-  | "other";
+  "stripe" | "cash" | "venmo" | "zelle" | "check" | "other";
 
 export type LedgerPayment = {
   method: PaymentMethod;
