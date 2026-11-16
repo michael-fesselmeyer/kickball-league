@@ -1,6 +1,5 @@
-import { DemoAdminTools } from "@/components/demo-admin-tools";
+import { LazyDemoTool } from "@/components/demo-tools-lazy";
 import { demoStatus } from "@/lib/demo/guard";
-import { DemoRolePicker } from "@/components/demo-role-picker";
 
 /**
  * Shown on every page of the demo deployment, and nowhere else: says the
@@ -29,9 +28,9 @@ export function DemoBanner() {
             Everyone here is made up, and it all resets nightly.
           </span>
         </p>
-        <DemoRolePicker />
+        <LazyDemoTool tool="rolePicker" />
       </div>
-      <DemoAdminTools />
+      <LazyDemoTool tool="adminTools" />
     </aside>
   );
 }

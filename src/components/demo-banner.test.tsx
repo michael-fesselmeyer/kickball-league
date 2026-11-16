@@ -35,12 +35,13 @@ describe("DemoBanner", () => {
     warn.mockRestore();
   });
 
-  it("offers one picker to view as each role in demo mode", () => {
+  it("offers one picker to view as each role in demo mode", async () => {
     vi.stubEnv("DEMO_MODE", "true");
     vi.stubEnv("DATABASE_URL", "postgresql://ci:ci@localhost:5432/kb_demo");
     render(<DemoBanner />);
     expect(screen.getByRole("complementary", { name: "Demo" })).toBeTruthy();
-    const picker = screen.getByRole("combobox", { name: "Viewing as" });
+    // The picker loads in its own chunk, only where the banner shows.
+    const picker = await screen.findByRole("combobox", { name: "Viewing as" });
     expect(picker.getAttribute("name")).toBe("persona");
     expect(
       Array.from(picker.querySelectorAll("option:not([disabled])")).map((o) => [
