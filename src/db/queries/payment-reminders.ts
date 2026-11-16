@@ -1,8 +1,9 @@
-import { and, eq, gt, inArray, lte } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, lte, notExists } from "drizzle-orm";
 import { dueReminder } from "@/domain/notifications/payment-reminders";
 import { localDate } from "@/domain/scheduler/slots";
 import type { PaymentReminderPayload } from "@/emails/payment-reminder";
 import { league } from "../schema/league";
+import { purchase, purchaseItem } from "../schema/money";
 import { season } from "../schema/season";
 import { registration } from "../schema/team";
 import { enqueueMessages, type OutboxMessage } from "./outbox";
@@ -55,6 +56,20 @@ export async function queuePaymentReminders(
         and(
           eq(registration.seasonId, s.id),
           inArray(registration.status, UNPAID),
+          // A bank transfer on its way (ADR 0082) is paying already.
+          notExists(
+            db
+              .select({ id: purchaseItem.id })
+              .from(purchaseItem)
+              .innerJoin(purchase, eq(purchase.id, purchaseItem.purchaseId))
+              .where(
+                and(
+                  eq(purchaseItem.registrationId, registration.id),
+                  eq(purchase.status, "open"),
+                  isNotNull(purchase.processingSince),
+                ),
+              ),
+          ),
         ),
       );
     const deadline = new Intl.DateTimeFormat("en-US", {
