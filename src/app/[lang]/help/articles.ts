@@ -1117,15 +1117,24 @@ export const TRANSLATED_HELP_ROLES: Readonly<
 > = {
   en: HELP_ROLES.map((r) => r.slug),
   es: ["player", "captain", "ref"],
+  // Written in English and Spanish so far; the other languages' footers
+  // link to the English help.
+  zh: [],
+  ru: [],
+  pl: [],
+  bn: [],
+  ko: [],
+  ht: [],
 };
 
 /**
  * The how-tos in a language: each translated role's articles in it, with
  * the same ids and screens as the English ones. Roles not translated are
- * left out; their pages are in English.
+ * left out; their pages are in English. A language with no how-tos of its
+ * own gets the English ones.
  */
 export function helpRolesFor(locale: Locale): readonly HelpRole[] {
-  if (locale === "en") return HELP_ROLES;
+  if (locale !== "es") return HELP_ROLES;
   return HELP_ROLES.flatMap((role) => {
     if (!isSpanishRole(role.slug)) return [];
     const words = HELP_ES[role.slug];

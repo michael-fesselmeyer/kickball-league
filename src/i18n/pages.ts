@@ -1,6 +1,24 @@
 import { DEFAULT_LOCALE, LOCALES, type Locale } from "./locales";
 
 /**
+ * The public pages every catalog covers. Spanish adds the help center; the
+ * other languages link to it in English until its how-tos are translated.
+ */
+const CATALOG_PAGES = [
+  "/",
+  "/faq",
+  "/seasons/*/schedule",
+  "/about",
+  "/parks/mccarren-park",
+  "/seasons/*/standings",
+  "/teams/*",
+  "/games/*",
+  "/events",
+  "/sponsors",
+  "/sponsors/*",
+] as const;
+
+/**
  * Which public pages each language is served for (ADR 0094). A page joins
  * a language once all its words are translated, so a visitor never lands
  * on a half-translated page: `/es/x` for a page not listed here goes to
@@ -14,23 +32,13 @@ import { DEFAULT_LOCALE, LOCALES, type Locale } from "./locales";
 export const TRANSLATED_PAGES: Readonly<Record<Locale, readonly string[]>> = {
   // English is the source: every page, whatever this says.
   en: [],
-  es: [
-    "/",
-    "/faq",
-    "/seasons/*/schedule",
-    "/about",
-    "/parks/mccarren-park",
-    "/seasons/*/standings",
-    "/teams/*",
-    "/games/*",
-    "/events",
-    "/sponsors",
-    "/sponsors/*",
-    "/help",
-    "/help/player",
-    "/help/captain",
-    "/help/ref",
-  ],
+  es: [...CATALOG_PAGES, "/help", "/help/player", "/help/captain", "/help/ref"],
+  zh: CATALOG_PAGES,
+  ru: CATALOG_PAGES,
+  pl: CATALOG_PAGES,
+  bn: CATALOG_PAGES,
+  ko: CATALOG_PAGES,
+  ht: CATALOG_PAGES,
 };
 
 const compiled = new Map<string, RegExp>();
