@@ -75,6 +75,7 @@ export const HELP_ROLES: readonly HelpRole[] = [
         notes: [
           "If your captain pays the whole team fee, the step says so and there's nothing to pay.",
           "Paid a teammate in cash? Your captain can record it on the team page.",
+          "If the league has the card price turned on, the Pay step shows the total for each way to pay first: the card price with its processing fee on its own line, a bank transfer if offered, and the lower price for cash, Zelle or check, with how to pay those.",
         ],
         screen: { href: "/app", label: "Your home, then your season" },
         keywords: [
@@ -85,6 +86,11 @@ export const HELP_ROLES: readonly HelpRole[] = [
           "promo code",
           "credit",
           "owe",
+          "zelle",
+          "cash",
+          "check",
+          "bank transfer",
+          "processing fee",
         ],
       },
       {
@@ -1057,6 +1063,38 @@ export const HELP_ROLES: readonly HelpRole[] = [
         ],
         screen: { href: "/app/owner", label: "Owner dashboard" },
         keywords: ["compare", "last season", "sponsors", "csv", "pdf"],
+      },
+      {
+        id: "processing-fees",
+        title: "Have payers cover processing fees",
+        summary:
+          "Card payers pay a card price that covers the card fee; cash, Zelle and check stay free. Off until the league turns it on.",
+        steps: [
+          "Confirm the legal side with the league's adviser first, and give Stripe any notice it asks for. The settings page lists what to check.",
+          "Open Processing fees and enter the league's real card rate (Stripe's US rate is 2.9% + $0.30). The fee is never more than the rate entered.",
+          "Add how players pay with cash, Zelle or check, using the league's own details. Players see it wherever they pay.",
+          "Choose whether to offer bank transfers (turn on bank payments in Stripe first) and whether Venmo is a business profile with its own fee.",
+          'Choose "On", tick the box and save. Season fees and team balances show each method\'s total before anyone pays.',
+        ],
+        notes: [
+          "A full refund returns the fee; a partial refund returns the same share of it.",
+          "The books show fees payers covered and card fees saved by free methods.",
+          "Tickets, the shop and private events stay at their price.",
+        ],
+        screen: {
+          href: "/app/owner/processing-fees",
+          label: "Processing fees",
+        },
+        keywords: [
+          "card fee",
+          "surcharge",
+          "stripe",
+          "zelle",
+          "cash",
+          "check",
+          "bank transfer",
+          "venmo",
+        ],
       },
     ],
   },

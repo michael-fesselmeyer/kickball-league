@@ -7,7 +7,7 @@
 
 ## Context
 
-Card fees on team registrations are one of the league's larger costs. Stripe takes 2.9% + 30¢ of every domestic card, Apple Pay and Google Pay payment, so a $750 team fee costs the league about $22. Cash and recorded Venmo payments already exist and cost nothing. The rule the league wants (issue #540): whoever pays with a method that costs the league a fee covers that fee, so the league nets its price, and the free methods (cash, Zelle and check) stay free and are always offered.
+Card fees on team registrations are one of the league's larger costs. Stripe takes 2.9% + 30¢ of every domestic card, Apple Pay and Google Pay payment, so a $750 team fee costs the league about $22. Cash and recorded Venmo payments already exist and cost nothing. The rule the league wants: whoever pays with a method that costs the league a fee covers that fee, so the league nets its price, and the free methods (cash, Zelle and check) stay free and are always offered.
 
 Passing a card fee on is regulated. What we found, as of November 2026:
 
@@ -28,7 +28,7 @@ Passing a card fee on is regulated. What we found, as of November 2026:
 
 ## Decision
 
-**A lower price for free methods (two-tier pricing), not a card surcharge.** When the setting is on, every place a player or captain picks how to pay shows the total for each method before they commit:
+**A lower price for free methods (two-tier pricing), not a card surcharge.** When the setting is on, every place a player or captain pays a season fee (registration, a split share, a team's balance) shows the total for each method before they commit:
 
 | Method | Total |
 |---|---|
@@ -47,6 +47,8 @@ The card price is shown first and labelled as the card price, with the fee as it
 
 **Stripe bank transfers are a second switch, for season fees only.** Bank transfers (ACH Direct Debit through Checkout) are offered only when an admin also turns them on, and only for registration and a captain's team balance, where amounts are large and there is time for a payment that takes a few business days. A purchase whose bank transfer is processing is marked (`purchase.processing_since`): a second "Pay" does not expire it, its holder is told it is on its way, and the captain guarantee's deadline charge waits until it clears or fails. Tickets and the shop stay card only, because their checkouts hold a spot or stock for an hour.
 
+**Only where a free method can be used.** Two-tier pricing is a discount only if the cheaper methods are really on offer. Season fees have them: a captain or admin records cash, Zelle, check or Venmo against a registration, and the team's balance counts it. Event tickets, the shop and private events are paid only through Checkout, with no way to record a free payment, so a fee there would be a card surcharge in all but name. They stay at their price until they can take a recorded payment. The captain guarantee's deadline charge is a card payment for a season balance: it charges the card price, says so when the card is saved and in the 72-hour warning, and the captain can still have teammates pay with a free method before then.
+
 **Zelle and check join cash and Venmo as recorded methods** at all times. They change no amount, so they are not behind the setting.
 
 **Behind an admin setting, off by default.** `league.processing_fees` holds the switch, the bank-transfer switch, the rates, whether Venmo is a business profile, and what to tell payers about the free methods (for example who takes cash and where to send Zelle). While it is off, every amount, every Checkout session and every screen is exactly as before. The settings screen lists what the league must confirm before turning it on: its adviser's sign-off, Stripe's (and its acquirer's) agreement and any notice they ask for, and the posted card prices.
@@ -60,6 +62,7 @@ The card price is shown first and labelled as the card price, with the fee as it
 
 ## Consequences
 
+- Tickets, the shop and private events take no fee for now; offering a recorded payment there is a separate change.
 - One migration: `league.processing_fees` (jsonb, off by default), `purchase.fee_cents`, `purchase.fee_method`, `purchase.fee_saved_cents` and `purchase.processing_since`, the purchase amount check including the fee, and `zelle` and `check` as payment methods.
 - With the setting off nothing changes; tests pin every amount.
 - The owners' books show fees covered by payers and fees saved by free methods; receipts and the payment history show the fee as its own line.

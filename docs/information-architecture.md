@@ -158,6 +158,7 @@ One deployment can run several leagues ([ADR 0048](adr/0048-several-leagues-on-o
 │   ├── permits                     Opens the newest season's permits (where the reminder emails point)
 │   └── files/[file]                A receipt, permit document or certificate, for owners and the operator
 ├── owner/                          Owner dashboard: owners and the platform operator only (404 for everyone else); opens on the newest season past draft
+│   ├── processing-fees             Who covers processing fees (owners and the operator): off or on, the card, bank-transfer and Venmo rates, how to pay with cash, Zelle or check, what to confirm before turning it on, and an example of what payers see; saving needs a recent sign-in (ADR 0082)
 │   └── [season]                    Membership by season (new, returning, retention), money in and out by season, the season's teams (roster against target, waivers, payments), event turnout and sponsor check-ins by week; "Refresh now"
 │       ├── dashboard.csv           The same numbers, one per line: counts and totals only
 │       ├── report                  Season report card (running or finished seasons; others 404): charts of players, games and money for this season and the one before, then People, Money, Games and Community tables with both numbers and the change in words

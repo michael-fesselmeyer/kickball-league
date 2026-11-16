@@ -77,6 +77,7 @@ describe("the help center's how-tos", () => {
         "dashboard",
         "season-checklist",
         "report-card",
+        "processing-fees",
       ],
     });
   });

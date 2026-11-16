@@ -106,6 +106,7 @@ erDiagram
     boolean admins_confirm_rainouts "admins may confirm rain-outs too; owners only, default false"
     text rulebook_visibility "owners (default), members or public; who may read the rulebook"
     smallint leadership_quorum_percent "share of a roster that must take part in a leadership check-in; 50 to 100, default 60"
+    jsonb processing_fees "who covers processing fees (ADR 0082); owners only, off by default"
   }
   league_member {
     uuid league_id PK, FK
@@ -803,7 +804,11 @@ erDiagram
     int subtotal_cents
     int discount_cents
     int credit_applied_cents
-    int total_cents
+    int fee_cents "processing fee the payer covers; 0 while fees are off"
+    enum fee_method "card, bank, venmo; set when fee_cents > 0"
+    int fee_saved_cents "card fee saved by a free method, for the books"
+    int total_cents "subtotal - discount - credit + fee"
+    timestamptz processing_since "a bank transfer on its way"
     uuid promo_code_id FK
     text stripe_checkout_session_id UK
     text stripe_payment_intent_id UK "for charges the app makes itself"
@@ -821,6 +826,7 @@ erDiagram
   payment {
     uuid id PK
     uuid purchase_id FK
+    enum method "stripe, cash, venmo, zelle, check, other"
     text stripe_payment_intent_id UK
     text stripe_charge_id
     int amount_cents
@@ -961,13 +967,14 @@ Notes:
 - Pressing "Pay" again expires the earlier Checkout session first, so one registration cannot be paid twice.
 - `credit_entry` is an append-only ledger per player. A balance is the sum of the deltas. Checkout locks the player's user row, applies credit after any promo code (never leaving a charge under 50 cents) and writes a negative `spent` row tied to the purchase; if that purchase expires or fails, a `released` row gives it back. Each purchase spends and releases at most once. Credit covering the whole price settles the purchase with no payment, like a promo code. Credit does not expire.
 - A split-pay team's balance is its whole-team fee on the day it registered (an early-bird team keeps its early-bird price) minus the `team_fee`, `player_share` and `balance` items of its paid purchases. Refunds do not reopen it. When the balance reaches zero the team is confirmed.
+- Processing fees ([ADR 0082](adr/0082-payers-cover-processing-fees.md)): `league.processing_fees` holds the owners' setting (on or off, the card, bank-transfer and Venmo rates, whether bank transfers are offered and Venmo is a business profile, and how to pay with cash, Zelle or check), read through `readFeeSettings`, which treats anything missing as Stripe's published rates and an unknown mode as off. While it is on, a season fee or team balance paid by card, or by bank transfer where offered, carries `fee_cents` worked out on what is left after any promo code and credit, never more than the processor's own fee on the total, so `total_cents = subtotal - discount - credit + fee` (a check constraint). Purchase items keep the price without the fee, so split balances, referral credit and rain-out rebates count the price only. A recorded Venmo payment on a business profile carries Venmo's fee; cash, Zelle, check and personal Venmo record the card fee they saved in `fee_saved_cents`. A refund returns the same share of the fee as of the price. A bank transfer whose Checkout completed but whose money has not cleared sets `processing_since`: a second "Pay" leaves it alone and the guarantee's deadline charge waits for it. Changes are audited as `processing_fees.update`. Tickets, merch and private events take no fee.
 - `saved_payment_method` is the captain guarantee ([ADR 0022](adr/0022-captain-guarantee-and-league-credit.md)): one live card per team, saved by Checkout in setup mode. The daily job warns the captain once per deadline (`warned_for_deadline`, `warned_at`) and makes one `balance` purchase for the deadline charge (`charge_purchase_id`), never sooner than 72 hours after the warning. That purchase carries the PaymentIntent; `payment_intent.succeeded` settles it and `payment_intent.payment_failed` fails it.
 - `season_rebate` records how a team's rain-out rebate was worked out. A game is lost when it was cancelled or postponed, or sits in the published schedule with no slot or a cancelled one. A team that lost more than the season's `rebate_policy.thresholdPct` (25% by default) gets that share of what was paid for it, split among the people who paid in proportion to what they paid (promo discounts and refunds taken off), as `rainout_rebate` credit rows.
 - `waitlist_entry` is the team line for a full season. An offer holds a spot until `offer_expires_at` (48 hours, never past registration closing) and counts as expired the moment that passes. While anyone waits or holds a live offer, registering a team takes a lock on the season row and only the offer's holder may take the spot.
 - A `referral` is made when someone registers for the first time after arriving through `/r/<code>` (a 30-day cookie). It is credited once, with $10 of `referral` credit to the referrer, when that registration is paid.
 - Promo codes are applied by the app, not by Stripe ([ADR 0010](adr/0010-promo-codes-applied-in-app.md)). Checkout locks the code's row, counts its uses and writes the purchase with `discount_cents` and `promo_code_id`; Stripe is sent the discounted line items. A use is a purchase that is open, paid or refunded, so an abandoned or failed checkout gives its use back. A code that covers the whole price settles the purchase at once with no `payment` row. A percentage rounds down to the cent, and a code never leaves a charge under Stripe's 50-cent minimum. Turning a code off sets `disabled_at`; purchases that used it keep their discount.
 - Merch ([ADR 0037](adr/0037-merch-orders-hold-stock-at-checkout.md)): a `merch_order` is one item in one size, bought in one `purchase` with no season and one `merch` item. It is `held` from the moment its checkout starts until `held_until` (an hour past Stripe Checkout's 31-minute expiry), `paid` once the webhook or covering credit settles its purchase, `fulfilled` when an admin hands it out, `refunded` when an admin refunds it in full, and `released` when its checkout ends unpaid. What is left of a size is `merch_item_size.stock` less the quantity of paid, fulfilled and still-held orders; nothing is decremented, and an item `made_to_order` has no limit. Every order and every change to stock locks the `merch_item` row first. A replacement jersey (`team_jersey`) is for one of the buyer's teams in a season not yet over, and keeps that team's name and color as ordered. `unit_price_cents` is the member price for anyone registered in any season. Photos are stored like the Instagram copies: at most 4 per item and 10 MB for all of them. A paid order stays when its buyer deletes their account; an open checkout is released.
-- A refund never cancels a registration; an admin removes a player separately. `payment.refunded_cents` is what has gone back. For Stripe payments only the `charge.refunded` webhook moves it, to Stripe's running total (never lower, so replays and late events are harmless), and refunds made in Stripe's dashboard count too. An admin's Stripe refund writes its `refund` row first, under a lock on the payment, then calls Stripe with the row's id as the idempotency key and stores `stripe_refund_id`; if Stripe refuses, the row is deleted. Off-app refunds (cash or Venmo handed back) add to `refunded_cents` at once. The purchase then becomes `partially_refunded` or `refunded`. Every refund writes an audit row (`refund.issue`).
+- A refund never cancels a registration; an admin removes a player separately. `payment.refunded_cents` is what has gone back. For Stripe payments only the `charge.refunded` webhook moves it, to Stripe's running total (never lower, so replays and late events are harmless), and refunds made in Stripe's dashboard count too. An admin's Stripe refund writes its `refund` row first, under a lock on the payment, then calls Stripe with the row's id as the idempotency key and stores `stripe_refund_id`; if Stripe refuses, the row is deleted. Off-app refunds (cash, Venmo, Zelle or check handed back) add to `refunded_cents` at once. The purchase then becomes `partially_refunded` or `refunded`. Every refund writes an audit row (`refund.issue`).
 
 ### 2.4 Notifications and consent
 

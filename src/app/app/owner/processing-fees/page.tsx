@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { ConfirmItsYou } from "@/components/confirm-its-you";
+import { HelpLink } from "@/components/help-link";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { db } from "@/db/client";
@@ -83,6 +84,11 @@ async function ProcessingFees({
           Owner dashboard
         </Link>
         <h1 className="text-h1">Processing fees</h1>
+        <HelpLink
+          audience="owner"
+          article="processing-fees"
+          topic="processing fees"
+        />
         <p className="text-text-muted">
           Card payments cost the league about 3% of every payment. When this is
           on, whoever pays by card, Apple Pay or Google Pay pays the card price,

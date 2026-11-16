@@ -124,6 +124,9 @@ async function Dashboard({
               Report card
             </Link>
           )}
+          <Link href="/app/owner/processing-fees" className="btn btn-secondary">
+            Processing fees
+          </Link>
         </div>
         <form
           action={refreshDashboardAction.bind(null, season.slug)}
