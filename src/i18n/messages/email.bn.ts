@@ -7,18 +7,26 @@ import type { emailEn } from "./email.en";
  */
 export const emailBn: Translation<typeof emailEn> = {
   layout: {
+    fewer: "কম ইমেইল চান?",
+    turnDown: {
+      team: "শুধু আমার দল",
+      weekly: "বরং সাপ্তাহিক সারাংশ",
+      snooze: "২ সপ্তাহ বন্ধ রাখুন",
+    },
     because: "আপনি এই ইমেইল পেয়েছেন, কারণ {reason}।",
     settings: "কোন ইমেইল কখন পাবেন, বেছে নিন",
     stopAbout: "{topic} নিয়ে ইমেইল বন্ধ করুন",
     pushBecause: "কারণ {reason}।",
   },
   topics: {
+    lost_found: "হারানো-পাওয়া",
+    rules: "নিয়ম আর সূচি",
     rainout: "বৃষ্টিতে বাতিল",
     schedule_change: "সূচির পরিবর্তন",
-    game_reminder: "লিগের সরঞ্জাম",
-    payment: "টাকা দেওয়ার রিমাইন্ডার",
+    game_reminder: "খেলার রিমাইন্ডার",
+    payment: "পেমেন্ট আর রেজিস্ট্রেশন",
     sub_request: "বদলির অনুরোধ",
-    announcement: "ঘোষণা",
+    announcement: "লিগের খবর",
     score: "স্কোর",
     events: "ইভেন্ট",
     marketing: "লিগের খবর ও অফার",
@@ -195,6 +203,8 @@ export const emailBn: Translation<typeof emailEn> = {
     refundedLead: "লিগ {what}-এর অর্ডারের টাকা ফেরত দিয়েছে।",
   },
   money: {
+    warningLeadCharge:
+      "আপনার দলের {season}-এর ফি এখনো {balance} বাকি। দলের জামিনদার হিসেবে {on} তারিখে আপনার {card} থেকে {charge} কাটা হবে: কার্ডের দামে বাকি টাকা, যাতে কার্ডের ফি ধরা আছে।",
     warningSubject:
       "{team}-এর এখনো {balance} বাকি: {on} আপনার কার্ড থেকে কাটা হবে",
     warningHeading: "সতর্কতা: {team}-এর {balance} বাকি",

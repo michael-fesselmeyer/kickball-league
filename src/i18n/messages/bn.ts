@@ -4,7 +4,7 @@ import { emailBn } from "./email.bn";
 import { pagesBn } from "./pages.bn";
 
 /**
- * Bengali (ADR 0065). Machine-drafted without a paid service; a
+ * Bengali (ADR 0094). Machine-drafted without a paid service; a
  * native-speaking player reviews it before launch (docs/i18n.md). Polite
  * "আপনি", warm and simple, with the game words in the glossary there.
  * Numbers stay in Western digits, like the scores and times around them.
@@ -29,10 +29,8 @@ export const bn: Translation<EnglishMessages> = {
       signIn: "সাইন ইন",
     },
     theme: {
-      group: "রঙের থিম",
-      system: "অটো",
-      light: "হালকা",
-      dark: "গাঢ়",
+      toLight: "লাইট মোডে যান",
+      toDark: "ডার্ক মোডে যান",
     },
     language: {
       group: "ভাষা",
@@ -183,6 +181,7 @@ export const bn: Translation<EnglishMessages> = {
     timeTba: "সময় পরে জানানো হবে",
   },
   gameStatus: {
+    ruling: "সিদ্ধান্ত",
     cancelled: "বাতিল",
     postponed: "স্থগিত",
     rainedOut: "বৃষ্টিতে বাতিল",
@@ -203,6 +202,8 @@ export const bn: Translation<EnglishMessages> = {
     off: "বাতিল",
   },
   ruleSet: {
+    bestOf: "{n} সেটের সেরা",
+    daylight: "সূর্যাস্তের {minutes} মিনিট আগে খেলা শেষ",
     innings: { $plural: { one: "{n} ইনিংস", other: "{n} ইনিংস" } },
     timeLimit: "{minutes} মিনিটের সীমা",
     bunting: "বান্ট চলবে",

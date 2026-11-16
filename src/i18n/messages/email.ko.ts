@@ -8,18 +8,26 @@ import type { emailEn } from "./email.en";
  */
 export const emailKo: Translation<typeof emailEn> = {
   layout: {
+    fewer: "이메일을 줄이고 싶나요?",
+    turnDown: {
+      team: "우리 팀 소식만",
+      weekly: "주간 요약으로 받기",
+      snooze: "2주 동안 쉬기",
+    },
     because: "이 이메일은 {reason} 보내 드렸어요.",
     settings: "받을 이메일과 받는 시간 고르기",
     stopAbout: "{topic} 이메일 그만 받기",
     pushBecause: "{reason} 보내 드렸어요.",
   },
   topics: {
+    lost_found: "분실물",
+    rules: "규칙과 일정",
     rainout: "우천 취소",
     schedule_change: "일정 변경",
-    game_reminder: "리그 장비",
-    payment: "결제 알림",
+    game_reminder: "경기 알림",
+    payment: "결제와 등록",
     sub_request: "대체 선수 요청",
-    announcement: "공지",
+    announcement: "리그 소식",
     score: "점수",
     events: "이벤트",
     marketing: "리그 소식과 혜택",
@@ -193,6 +201,8 @@ export const emailKo: Translation<typeof emailEn> = {
     refundedLead: "리그가 {what} 주문을 환불했어요.",
   },
   money: {
+    warningLeadCharge:
+      "팀의 {season} 참가비가 아직 {balance} 남아 있어요. 팀 보증인인 당신의 {card}에서 {on}에 {charge}이(가) 결제됩니다: 카드 수수료가 포함된 카드 가격 기준 잔액이에요.",
     warningSubject: "{team} 미납액 {balance}: {on}에 카드로 결제돼요",
     warningHeading: "알림: {team} 미납액 {balance}",
     warningLead:

@@ -4,7 +4,7 @@ import { emailKo } from "./email.ko";
 import { pagesKo } from "./pages.ko";
 
 /**
- * Korean (ADR 0065). Machine-drafted without a paid service; a
+ * Korean (ADR 0094). Machine-drafted without a paid service; a
  * native-speaking player reviews it before launch (docs/i18n.md). Friendly
  * polite speech (해요체), with the game words in the glossary there.
  */
@@ -28,10 +28,8 @@ export const ko: Translation<EnglishMessages> = {
       signIn: "로그인",
     },
     theme: {
-      group: "색상 테마",
-      system: "자동",
-      light: "라이트",
-      dark: "다크",
+      toLight: "라이트 모드로 전환",
+      toDark: "다크 모드로 전환",
     },
     language: {
       group: "언어",
@@ -175,6 +173,7 @@ export const ko: Translation<EnglishMessages> = {
     timeTba: "시간 미정",
   },
   gameStatus: {
+    ruling: "판정",
     cancelled: "취소",
     postponed: "연기",
     rainedOut: "우천 취소",
@@ -195,6 +194,8 @@ export const ko: Translation<EnglishMessages> = {
     off: "취소",
   },
   ruleSet: {
+    bestOf: "{n}세트 중 다승제",
+    daylight: "일몰 {minutes}분 전에 경기 종료",
     innings: { $plural: { other: "{n}이닝" } },
     timeLimit: "{minutes}분 제한",
     bunting: "번트 허용",

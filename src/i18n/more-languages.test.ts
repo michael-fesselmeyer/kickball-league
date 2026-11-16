@@ -89,17 +89,17 @@ describe("ordinals", () => {
 
   it("fit each language's phrase for a place in the standings", () => {
     const place = (locale: (typeof NEW)[number]) =>
-      fill(messagesFor(locale).card.finishOf, {
+      fill(messagesFor(locale).team.standing, {
+        record: "5-2",
         rank: formatOrdinal(locale, 2),
-        of: 8,
       });
     expect(NEW.map(place)).toEqual([
-      "8 队中第2名",
-      "2-е место из 8",
-      "2. miejsce na 8",
-      "8টি দলের মধ্যে 2য়",
-      "8팀 중 2위",
-      "2yèm sou 8",
+      "5-2，第2名",
+      "5-2, 2-е место",
+      "5-2, 2. miejsce",
+      "5-2, 2য় স্থান",
+      "5-2, 2위",
+      "5-2, 2yèm plas",
     ]);
   });
 

@@ -7,18 +7,26 @@ import type { emailEn } from "./email.en";
  */
 export const emailZh: Translation<typeof emailEn> = {
   layout: {
+    fewer: "想少收点邮件？",
+    turnDown: {
+      team: "只看我的球队",
+      weekly: "改成每周摘要",
+      snooze: "暂停两周",
+    },
     because: "你收到这封邮件，是因为{reason}。",
     settings: "选择你想收到哪些邮件、什么时候收",
     stopAbout: "不再接收关于{topic}的邮件",
     pushBecause: "因为{reason}。",
   },
   topics: {
+    lost_found: "失物招领",
+    rules: "规则和赛程",
     rainout: "因雨取消",
     schedule_change: "赛程变动",
-    game_reminder: "联赛装备",
-    payment: "付款提醒",
+    game_reminder: "比赛提醒",
+    payment: "付款和报名",
     sub_request: "替补请求",
-    announcement: "公告",
+    announcement: "联赛新闻",
     score: "比分",
     events: "活动",
     marketing: "联赛新闻和优惠",
@@ -186,6 +194,8 @@ export const emailZh: Translation<typeof emailEn> = {
     refundedLead: "联赛为你订购的 {what} 退了款。",
   },
   money: {
+    warningLeadCharge:
+      "你们队 {season} 的费用还有 {balance} 未付。作为球队的担保人，你的 {card} 将在 {on} 被扣款 {charge}：这是按刷卡价计算的余额，已包含刷卡手续费。",
     warningSubject: "{team} 还欠 {balance}：将于 {on} 从你的卡扣款",
     warningHeading: "提醒：{team} 还剩 {balance} 未付",
     warningLead:

@@ -9,18 +9,26 @@ import type { emailEn } from "./email.en";
  */
 export const emailRu: Translation<typeof emailEn> = {
   layout: {
+    fewer: "Хотите меньше писем?",
+    turnDown: {
+      team: "Только моя команда",
+      weekly: "Лучше раз в неделю",
+      snooze: "Пауза на 2 недели",
+    },
     because: "Вы получили это письмо, потому что {reason}.",
     settings: "Выбрать, какие письма получать и когда",
     stopAbout: "Не присылать письма: {topic}",
     pushBecause: "Потому что {reason}.",
   },
   topics: {
+    lost_found: "бюро находок",
+    rules: "правила и расписание",
     rainout: "отмены из-за дождя",
     schedule_change: "изменения расписания",
-    game_reminder: "инвентарь лиги",
-    payment: "напоминания об оплате",
+    game_reminder: "напоминания об играх",
+    payment: "оплата и регистрация",
     sub_request: "запросы на замену",
-    announcement: "объявления",
+    announcement: "новости лиги",
     score: "счёт игр",
     events: "события",
     marketing: "новости и предложения лиги",
@@ -215,6 +223,8 @@ export const emailRu: Translation<typeof emailEn> = {
     refundedLead: "Лига вернула деньги за ваш заказ: {what}.",
   },
   money: {
+    warningLeadCharge:
+      "За вашей командой остаётся {balance} взноса за {season}. Вы поручились за команду, поэтому {on} с вашей карты {card} спишут {charge}: остаток по цене при оплате картой, с учётом комиссии.",
     warningSubject: "{team} ещё должна {balance}: списание с вашей карты {on}",
     warningHeading: "Внимание: у команды {team} осталось {balance}",
     warningLead:

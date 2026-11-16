@@ -4,7 +4,7 @@ import { emailHt } from "./email.ht";
 import { pagesHt } from "./pages.ht";
 
 /**
- * Haitian Creole (ADR 0065). Machine-drafted without a paid service; a
+ * Haitian Creole (ADR 0094). Machine-drafted without a paid service; a
  * native-speaking player reviews it before launch (docs/i18n.md). Friendly
  * and direct ("ou"), with the game words in the glossary there.
  */
@@ -28,10 +28,8 @@ export const ht: Translation<EnglishMessages> = {
       signIn: "Konekte",
     },
     theme: {
-      group: "Koulè tèm",
-      system: "Otomatik",
-      light: "Klè",
-      dark: "Fonse",
+      toLight: "Pase nan mòd klè",
+      toDark: "Pase nan mòd fonse",
     },
     language: {
       group: "Lang",
@@ -181,6 +179,7 @@ export const ht: Translation<EnglishMessages> = {
     timeTba: "Lè a poko anonse",
   },
   gameStatus: {
+    ruling: "Desizyon",
     cancelled: "Anile",
     postponed: "Ranvwaye",
     rainedOut: "Anile akoz lapli",
@@ -201,6 +200,8 @@ export const ht: Translation<EnglishMessages> = {
     off: "Anile",
   },
   ruleSet: {
+    bestOf: "pi bon nan {n} sèt",
+    daylight: "jwèt la fini {minutes} minit anvan solèy kouche",
     innings: { $plural: { one: "{n} manch", other: "{n} manch" } },
     timeLimit: "limit {minutes} minit",
     bunting: "bunt pèmèt",
