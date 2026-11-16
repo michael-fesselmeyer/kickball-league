@@ -45,7 +45,8 @@ test("a dodgeball admin enters a match in sets and the standings count them", as
   );
   await page.context().close();
 
-  const visitor = await browser.newPage();
+  const visitorContext = await browser.newContext();
+  const visitor = await visitorContext.newPage();
   await visitor.goto(`${LEAGUE}/seasons/winter-2026/standings`);
   const table = visitor.getByRole("table");
   await expect(table.getByRole("columnheader", { name: "SF" })).toBeAttached();
@@ -54,5 +55,5 @@ test("a dodgeball admin enters a match in sets and the standings count them", as
     visitor.getByText(/then set difference, then sets allowed/),
   ).toBeVisible();
   await expectNoAxeViolations(visitor);
-  await visitor.close();
+  await visitorContext.close();
 });
