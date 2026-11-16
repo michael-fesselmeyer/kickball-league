@@ -47,23 +47,21 @@ export const moveInviteEmail = defineTemplate(moveInvitePayload, (p, ctx) =>
   ),
 );
 
-export const moveAcceptedEmail = defineTemplate(
-  moveAcceptedPayload,
-  (p, ctx) =>
-    renderEmail(
-      {
-        subject: `${p.player} said yes to ${p.team}`,
-        heading: "Someone would like to join you",
-        paragraphs: [
-          `${p.player} said yes to your invite and would like to hear about playing for ${p.team} in ${p.seasonName}.`,
-          "Their email is on your team page. Send them your team's invite link when you're ready.",
-        ],
-        action: {
-          label: "See your team",
-          path: `/app/seasons/${p.seasonSlug}/team#recruiting`,
-        },
-        reason: `you captain ${p.team}`,
+export const moveAcceptedEmail = defineTemplate(moveAcceptedPayload, (p, ctx) =>
+  renderEmail(
+    {
+      subject: `${p.player} said yes to ${p.team}`,
+      heading: "Someone would like to join you",
+      paragraphs: [
+        `${p.player} said yes to your invite and would like to hear about playing for ${p.team} in ${p.seasonName}.`,
+        "Their email is on your team page. Send them your team's invite link when you're ready.",
+      ],
+      action: {
+        label: "See your team",
+        path: `/app/seasons/${p.seasonSlug}/team#recruiting`,
       },
-      ctx,
-    ),
+      reason: `you captain ${p.team}`,
+    },
+    ctx,
+  ),
 );

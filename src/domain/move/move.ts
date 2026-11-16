@@ -58,10 +58,7 @@ export const seenByCaptains = (a: Audience) => a === "captains" || a === "both";
  * it. `closings` are the league's seasons' closing times (a season with no
  * closing time closes when it starts). Null while no season ahead has one.
  */
-export function clearsAt(
-  setAt: Date,
-  closings: readonly Date[],
-): Date | null {
+export function clearsAt(setAt: Date, closings: readonly Date[]): Date | null {
   let first: Date | null = null;
   for (const c of closings)
     if (c > setAt && (first === null || c < first)) first = c;

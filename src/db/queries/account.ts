@@ -70,6 +70,7 @@ import { myDisciplineRecords, removeDisciplineNotes } from "./discipline";
 import { resetFeed } from "./event-audience";
 import { leaveEvent } from "./events";
 import { myKeepOffEntries, removeKeepOffsFor } from "./keep-off";
+import { myMoveData } from "./move";
 import { cancelHandoffsFor, myHandoffs } from "./captaincy";
 import { myPickemData, removePickemData } from "./pickem";
 import { myGearRecords, releaseGearOf } from "./equipment";
@@ -685,6 +686,9 @@ export async function personalData(
     // League gear they have, bring to games, handed on or reported (#286).
     leagueGear: await myGearRecords(db, userId),
     notOnMyTeamLists: await myKeepOffEntries(db, userId),
+    // Looking for a change (ADR 0081): their flag and the invites it got,
+    // and what they wrote when inviting for a team, never to whom.
+    teamChange: await myMoveData(db, userId),
     emailSettings,
     alertLimits,
     pushDevices,

@@ -1,4 +1,15 @@
-import { and, asc, count, desc, eq, exists, inArray, ne, notExists, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  exists,
+  inArray,
+  ne,
+  notExists,
+  sql,
+} from "drizzle-orm";
 import type {
   LeagueId,
   MoveInterestId,
@@ -411,8 +422,14 @@ export async function recruitingTeam(
     .where(eq(teamSeason.id, teamSeasonId));
   if (!row || row.visibility !== "league") return null;
   if (!isRecruiting(row.status, row.closesAt, now)) return null;
-  const { status: _s, visibility: _v, closesAt: _c, ...team_ } = row;
-  return team_;
+  return {
+    teamId: row.teamId,
+    teamName: row.teamName,
+    seasonId: row.seasonId,
+    seasonName: row.seasonName,
+    seasonSlug: row.seasonSlug,
+    leagueId: row.leagueId,
+  };
 }
 
 /** Flags this team may count: open to captains, never its own players'. */
@@ -766,7 +783,16 @@ export async function myMoveData(db: Db, userId: UserId) {
       .innerJoin(team, eq(moveInvite.teamId, team.id))
       .innerJoin(season, eq(moveInvite.seasonId, season.id))
       .where(eq(moveInvite.sentBy, userId))
-      .groupBy(team.name, season.name, moveInvite.message, moveInvite.createdAt),
+      .groupBy(
+        team.name,
+        season.name,
+        moveInvite.message,
+        moveInvite.createdAt,
+      ),
   ]);
-  return { lookingForAChange: interests, invitesReceived: received, invitesSent: sent };
+  return {
+    lookingForAChange: interests,
+    invitesReceived: received,
+    invitesSent: sent,
+  };
 }
