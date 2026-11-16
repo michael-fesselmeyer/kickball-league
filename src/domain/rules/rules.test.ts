@@ -98,6 +98,27 @@ describe("planChange", () => {
     ]);
   });
 
+  it("reads a browser's CRLF line breaks as the same text", () => {
+    const twoLines = { ...LINEUPS, body: "First line.\n\n- a rule" };
+    const current = [twoLines, PLAYOFFS];
+    const crlf = (s: typeof LINEUPS) => ({
+      ...same(s),
+      body: s.body.replace(/\n/g, "\r\n"),
+    });
+    expect(planChange(current, [crlf(twoLines), crlf(PLAYOFFS)])).toEqual({
+      ok: false,
+      error: "no_changes",
+    });
+    const plan = planChange(current, [
+      { ...crlf(twoLines), body: "First line.\r\n\r\n- a new rule" },
+      crlf(PLAYOFFS),
+    ]);
+    if (!plan.ok) throw new Error(plan.error);
+    expect(plan.value.changes.map((c) => [c.slug, c.after])).toEqual([
+      ["lineups", "First line.\n\n- a new rule"],
+    ]);
+  });
+
   it("refuses nothing changed, blanks, duplicates and long text", () => {
     expect(planChange(CURRENT, CURRENT.map(same))).toEqual({
       ok: false,
