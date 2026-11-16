@@ -46,7 +46,7 @@ import { enqueueMessages } from "./outbox";
 import type { Db } from "./schedule";
 
 /**
- * "Looking for a change" (ADR 0081): rows for src/domain/move. Every read
+ * "Looking for a change" (ADR 0089): rows for src/domain/move. Every read
  * here is written for one audience, and none of them is ever reachable
  * from a team the person has played on:
  *

@@ -25,7 +25,7 @@ import { TURNOUT, vibeLabel, type Availability, type Position } from "./quiz";
  *
  * - A team never gets someone on its "not on my team" list (ADR 0036), nor
  *   a friend group with them in it.
- * - Someone looking for a change (ADR 0081) goes to another team when one
+ * - Someone looking for a change (ADR 0089) goes to another team when one
  *   has room; their last team is only the fallback.
  */
 
@@ -61,7 +61,7 @@ export type MatchTeam = {
   keepOff?: readonly string[];
   /**
    * Registrations of players who played for this team and are looking for
-   * a change (ADR 0081), when they let admins see it. A preference, not a
+   * a change (ADR 0089), when they let admins see it. A preference, not a
    * rule: the team is suggested only when no other team has room.
    */
   movingOn?: readonly string[];

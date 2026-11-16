@@ -160,7 +160,7 @@ export const PERSON_COLUMNS: Readonly<Record<string, PersonRule>> = {
     clash: "Both are on the same team's keep-off list once",
   },
   "team_keep_off.added_by": actor("keep-off entries added"),
-  // Looking for a change (ADR 0081): one per person per league.
+  // Looking for a change (ADR 0089): one per person per league.
   "move_interest.user_id": {
     kind: "dedupe",
     label: "looking for a change",

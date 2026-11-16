@@ -208,7 +208,7 @@ async function Team({
   // sees it and can step down; a teammate offered the captaincy answers.
   const leads = can(subject, "captaincy.manage", { teamSeasonId });
   const coCaptain = mine.team.role === "co_captain";
-  // Players quietly open to a new team (ADR 0081), for the team's captains
+  // Players quietly open to a new team (ADR 0089), for the team's captains
   // while this season is recruiting: a count, and names of those who said
   // yes. The queries never count anyone who has played for this team.
   const recruits = can(subject, "move.recruit", { teamSeasonId });

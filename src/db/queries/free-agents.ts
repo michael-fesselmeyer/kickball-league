@@ -266,7 +266,7 @@ export type PoolEntry = PoolPlayer & {
   answers: StoredQuizAnswers | null;
   notes: string | null;
   code: string | null;
-  /** Looking for a change and letting admins see it (ADR 0081). */
+  /** Looking for a change and letting admins see it (ADR 0089). */
   lookingForChange: boolean;
 };
 
@@ -281,7 +281,7 @@ export type MatcherTeam = MatchTeam & {
  * together: the season's limits, its open teams, every placeable
  * registration with profile, quiz, group and team, and who each team's
  * "not on my team" list keeps off; and who is looking for a change from
- * which team (ADR 0081), when they let admins see it.
+ * which team (ADR 0089), when they let admins see it.
  */
 export async function matcherInput(db: Db, seasonId: SeasonId) {
   const [limits, entries, people, keepOff, moving] = await Promise.all([

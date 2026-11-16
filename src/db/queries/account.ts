@@ -686,7 +686,7 @@ export async function personalData(
     // League gear they have, bring to games, handed on or reported (#286).
     leagueGear: await myGearRecords(db, userId),
     notOnMyTeamLists: await myKeepOffEntries(db, userId),
-    // Looking for a change (ADR 0081): their flag and the invites it got,
+    // Looking for a change (ADR 0089): their flag and the invites it got,
     // and what they wrote when inviting for a team, never to whom.
     teamChange: await myMoveData(db, userId),
     emailSettings,

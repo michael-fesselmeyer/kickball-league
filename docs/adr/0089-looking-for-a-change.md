@@ -1,4 +1,4 @@
-# ADR 0081: Looking for a change, hidden from your own team, with a double opt-in
+# ADR 0089: Looking for a change, hidden from your own team, with a double opt-in
 
 - Status: accepted
 - Date: 2026-11-15
