@@ -53,7 +53,10 @@ export async function generateDraft(
     seed,
   });
   if (!loaded.ok) notFound();
-  const [latest] = await versionsOf(db, season.id);
+  // A fresh draft follows the published schedule, so it can be published
+  // over it; with nothing published, the newest version.
+  const versions = await versionsOf(db, season.id);
+  const latest = versions.find((v) => v.status === "published") ?? versions[0];
   await saveVersion(txDb, {
     seasonId: season.id,
     input: loaded.value,
