@@ -1,6 +1,7 @@
 import {
   DEFAULT_LOCALE,
   isLocale,
+  LANG_ATTRIBUTES,
   type Locale,
   localizedPath,
 } from "./locales";
@@ -124,7 +125,8 @@ export function languageAlternates(path: string): Record<string, string> {
   const out: Record<string, string> = {};
   const locales = localesOf(path);
   if (locales.length < 2) return out;
-  for (const locale of locales) out[locale] = localizedPath(locale, path);
+  for (const locale of locales)
+    out[LANG_ATTRIBUTES[locale]] = localizedPath(locale, path);
   out["x-default"] = localizedPath(DEFAULT_LOCALE, path);
   return out;
 }

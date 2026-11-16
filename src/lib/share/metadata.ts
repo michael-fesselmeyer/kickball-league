@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { SHARE_IMAGE_SIZE } from "@/domain/share/cards";
-import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
+import {
+  DEFAULT_LOCALE,
+  type Locale,
+  OPEN_GRAPH_LOCALES,
+} from "@/i18n/locales";
 import { SITE } from "@/lib/site";
-
-const OPEN_GRAPH_LOCALES = { en: "en_US", es: "es_US" } as const;
 
 /**
  * Open Graph and Twitter tags for a page with a generated share image. A

@@ -1,6 +1,11 @@
 import { SubmitButton } from "@/components/submit-button";
 import { fill } from "@/i18n/catalog";
-import { LOCALE_NAMES, LOCALES, type Locale } from "@/i18n/locales";
+import {
+  LANG_ATTRIBUTES,
+  LOCALE_NAMES,
+  LOCALES,
+  type Locale,
+} from "@/i18n/locales";
 import { messagesFor } from "@/i18n/messages";
 import { saveLanguageAction } from "./actions";
 
@@ -21,7 +26,7 @@ export function LanguageSetting({
     <section
       id="language"
       aria-labelledby="language-heading"
-      lang={language}
+      lang={LANG_ATTRIBUTES[language]}
       className="flex flex-col gap-3"
     >
       <h2 id="language-heading" className="text-h2">
@@ -38,7 +43,7 @@ export function LanguageSetting({
           {LOCALES.map((locale) => (
             <label
               key={locale}
-              lang={locale}
+              lang={LANG_ATTRIBUTES[locale]}
               className="flex min-h-11 items-center gap-2"
             >
               <input

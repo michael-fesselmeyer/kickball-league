@@ -7,7 +7,13 @@ import { Kickball } from "@/components/kickball";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { env } from "@/env";
 import { nativeShellScript } from "@/lib/mobile/native-shell";
-import { LOCALES, localizedPath } from "@/i18n/locales";
+import {
+  DEFAULT_LOCALE,
+  LANG_ATTRIBUTES,
+  LOCALES,
+  localizedPath,
+  OPEN_GRAPH_LOCALES,
+} from "@/i18n/locales";
 import { isTranslated } from "@/i18n/pages";
 import { localeOf, messagesFor } from "@/i18n/messages";
 import { registerWorkerScript } from "@/lib/pwa/install";
@@ -43,8 +49,6 @@ const bricolage = Bricolage_Grotesque({
 export function generateStaticParams() {
   return LOCALES.map((lang) => ({ lang }));
 }
-
-const OPEN_GRAPH_LOCALES = { en: "en_US", es: "es_US" } as const;
 
 export async function generateMetadata({
   params,
@@ -112,7 +116,7 @@ export default async function RootLayout({
     // data-theme is set before paint by the script below, so React must not
     // warn that the server-rendered attribute differs.
     <html
-      lang={locale}
+      lang={LANG_ATTRIBUTES[locale]}
       className={`${inter.variable} ${bricolage.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -176,6 +180,18 @@ export default async function RootLayout({
           </nav>
           <div className="mx-auto w-full max-w-5xl px-4 pb-4 md:px-6">
             <LanguageSwitcher current={locale} label={shell.language.group} />
+            {locale !== DEFAULT_LOCALE && (
+              // Translations are drafted without a native speaker
+              // (docs/i18n.md), so anyone can flag one that reads wrong.
+              <p className="mt-2 text-small text-text-muted">
+                <Link
+                  href="/contact"
+                  className="inline-flex min-h-11 items-center underline underline-offset-4"
+                >
+                  {shell.language.report}
+                </Link>
+              </p>
+            )}
           </div>
         </footer>
       </body>
