@@ -73,6 +73,7 @@ const ACTIONS: Record<string, string> = {
   "event.ticket_refund": "Refunded an event ticket",
   "event.update": "Changed an event",
   "field.create": "Added a field",
+  "field.lights": "Marked whether a field has lights",
   "field_group.create": "Recorded another group that uses a field",
   "field_group.delete": "Removed another group that uses a field",
   "field_group.update": "Changed another group that uses a field",
