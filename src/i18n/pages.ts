@@ -23,6 +23,8 @@ export const TRANSLATED_PAGES: Readonly<Record<Locale, readonly string[]>> = {
     "/seasons/*/standings",
     "/teams/*",
     "/games/*",
+    "/events",
+    "/events/*",
   ],
 };
 

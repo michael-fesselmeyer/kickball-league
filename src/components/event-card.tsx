@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { inviteSite } from "@/domain/events/audience";
-import {
-  type EventKind,
-  KIND_LABELS,
-  spotsLeft,
-  whenLine,
-} from "@/domain/events/event";
+import { type EventKind, spotsLeft, whenLine } from "@/domain/events/event";
 import { priceLine } from "@/domain/events/tickets";
 import { type LeagueRef, leagueHref } from "@/domain/league/paths";
+import { dateTimeFormat } from "@/domain/time/format-cache";
+import { fill, plural } from "@/i18n/catalog";
+import { DEFAULT_LOCALE, LOCALE_TAGS, type Locale } from "@/i18n/locales";
+import { messagesFor } from "@/i18n/messages";
+import { linkIn } from "@/i18n/routing";
 
 export type EventCardData = {
   slug: string;
@@ -31,33 +31,54 @@ export type EventCardData = {
  * when there is no limit; a ticketed event leads with its price: "$15 · 6
  * spots left".
  */
-export function spotsLine(e: EventCardData, now: Date): string | null {
-  const spots = roomLine(e, now);
+export function spotsLine(
+  e: EventCardData,
+  now: Date,
+  locale: Locale = DEFAULT_LOCALE,
+): string | null {
+  const spots = roomLine(e, now, locale);
   if (e.cancelledAt || e.endsAt <= now) return spots;
-  const price = priceLine({
-    ticketPriceCents: e.ticketPriceCents ?? null,
-    memberPriceCents: e.memberPriceCents ?? null,
-  });
+  const price = priceLine(
+    {
+      ticketPriceCents: e.ticketPriceCents ?? null,
+      memberPriceCents: e.memberPriceCents ?? null,
+    },
+    locale,
+  );
   if (!price) return spots;
   return spots ? `${price} · ${spots}` : price;
 }
 
-function roomLine(e: EventCardData, now: Date): string | null {
-  if (e.cancelledAt) return "Called off";
+function roomLine(e: EventCardData, now: Date, locale: Locale): string | null {
+  const words = messagesFor(locale).eventCard;
+  if (e.cancelledAt) return words.calledOff;
   if (e.endsAt <= now) return null;
   if (e.kind === "theme_week") return null;
   if (!e.inAppRsvp)
-    return e.inviteUrl ? `RSVP on ${inviteSite(e.inviteUrl)}` : null;
+    return e.inviteUrl
+      ? fill(words.rsvpOn, { site: inviteSite(e.inviteUrl) })
+      : null;
   const left = spotsLeft(e.capacity, e.going);
-  if (left === null) return e.going > 0 ? `${e.going} going` : null;
-  if (left === 0) return "Full: waitlist open";
-  return left === 1 ? "1 spot left" : `${left} spots left`;
+  if (left === null)
+    return e.going > 0 ? fill(words.going, { n: e.going }) : null;
+  if (left === 0) return words.full;
+  return plural(locale, words.spotsLeft, left);
 }
 
 /** The month and day in a tear-off block, like a wall calendar. */
-function DateBlock({ at, timeZone }: { at: Date; timeZone: string }) {
+function DateBlock({
+  at,
+  timeZone,
+  locale,
+}: {
+  at: Date;
+  timeZone: string;
+  locale: Locale;
+}) {
   const part = (options: Intl.DateTimeFormatOptions) =>
-    new Intl.DateTimeFormat("en-US", { timeZone, ...options }).format(at);
+    dateTimeFormat(LOCALE_TAGS[locale], { timeZone, ...options })
+      .format(at)
+      .replace(/\.$/, "");
   return (
     <span
       aria-hidden="true"
@@ -82,7 +103,8 @@ export function EventCard({
   event: e,
   timeZone,
   now,
-  href = leagueHref(league, `/events/${e.slug}`),
+  locale = DEFAULT_LOCALE,
+  href = linkIn(locale, leagueHref(league, `/events/${e.slug}`)),
   note,
   tag,
 }: {
@@ -91,30 +113,34 @@ export function EventCard({
   event: EventCardData;
   timeZone: string;
   now: Date;
+  /** The page's language (ADR 0065); English unless given. */
+  locale?: Locale;
   href?: string;
   /** A line about the viewer, such as "You're going". */
   note?: string | null | undefined;
   /** Who it's for, when that isn't everyone: "Members only". */
   tag?: string | null | undefined;
 }) {
-  const spots = spotsLine(e, now);
+  const words = messagesFor(locale);
+  const kind = words.eventKinds[e.kind];
+  const spots = spotsLine(e, now, locale);
   const cancelled = e.cancelledAt !== null;
   return (
     <Link
       href={href}
       className="flex min-h-11 items-start gap-3 rounded-card border border-border bg-surface p-3 shadow-card hover:bg-surface-2"
     >
-      <DateBlock at={e.startsAt} timeZone={timeZone} />
+      <DateBlock at={e.startsAt} timeZone={timeZone} locale={locale} />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="text-micro font-bold tracking-wide text-text-muted uppercase">
-          {tag ? `${KIND_LABELS[e.kind]} · ${tag}` : KIND_LABELS[e.kind]}
+          {tag ? fill(words.eventCard.tagged, { kind, tag }) : kind}
         </span>
         <span
           className={`font-display text-h3 leading-tight font-bold ${cancelled ? "line-through decoration-2" : ""}`}
         >
           {e.title}
         </span>
-        <span className="text-small">{whenLine(e, timeZone)}</span>
+        <span className="text-small">{whenLine(e, timeZone, locale)}</span>
         {e.place && (
           <span className="text-small text-text-muted">{e.place}</span>
         )}

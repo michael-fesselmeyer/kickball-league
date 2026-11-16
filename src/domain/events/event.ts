@@ -2,7 +2,9 @@ import { type FieldId, parseId } from "@/domain/ids";
 import { err, ok, type Result } from "@/domain/result";
 import { localDay } from "@/domain/schedule/public-game";
 import { slugify } from "@/domain/slug";
+import { dateTimeFormat } from "@/domain/time/format-cache";
 import { localTime, zonedInstant } from "@/domain/time/zoned";
+import { DEFAULT_LOCALE, LOCALE_TAGS, type Locale } from "@/i18n/locales";
 
 /**
  * League events (docs/product-spec.md, "Community, events and content"):
@@ -343,8 +345,10 @@ export function rsvpWindow(
 export function whenLine(
   e: { kind: EventKind; startsAt: Date; endsAt: Date },
   timeZone: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): string {
-  const day = new Intl.DateTimeFormat("en-US", {
+  const tag = LOCALE_TAGS[locale];
+  const day = dateTimeFormat(tag, {
     timeZone,
     weekday: "short",
     month: "short",
@@ -355,7 +359,7 @@ export function whenLine(
     const asDay = (d: string) => day.format(zonedInstant(d, "12:00", timeZone));
     return first === last ? asDay(first) : `${asDay(first)} – ${asDay(last)}`;
   }
-  const time = new Intl.DateTimeFormat("en-US", {
+  const time = dateTimeFormat(tag, {
     timeZone,
     hour: "numeric",
     minute: "2-digit",
