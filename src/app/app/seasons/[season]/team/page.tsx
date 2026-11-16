@@ -250,7 +250,7 @@ async function Team({
     offerFor(db, teamSeasonId, subject.userId),
     teamShirtInfo(db, teamSeasonId),
     recruits ? recruitingTeam(db, teamSeasonId, now) : null,
-    // The season-end leadership check-in (ADR 0077), once one is open.
+    // The season-end leadership check-in (ADR 0090), once one is open.
     checkInStep(db, teamSeasonId),
   ]);
   // Answers are for games still to come.

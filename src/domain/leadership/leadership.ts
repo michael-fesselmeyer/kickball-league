@@ -1,5 +1,5 @@
 /**
- * The season-end leadership check-in (product-spec.md, section 6; ADR 0077).
+ * The season-end leadership check-in (product-spec.md, section 6; ADR 0090).
  * Pure rules; src/db/queries/leadership.ts reads and writes the rows.
  *
  * 1. Check-in: each player on the roster checks in once, privately. They

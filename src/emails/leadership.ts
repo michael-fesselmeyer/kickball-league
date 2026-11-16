@@ -9,7 +9,7 @@ const about = {
 };
 
 /**
- * The season-end leadership check-in (ADR 0077). Kind `leadership_check_in`
+ * The season-end leadership check-in (ADR 0090). Kind `leadership_check_in`
  * (non-urgent) for the whole roster: it opened, a teammate suggested you,
  * the ballot opened, and the outcome. Kind `leadership_result` (urgent) for
  * the captain alone: the result, before the team hears it. No message ever

@@ -24,7 +24,7 @@ import { teamSeason } from "./team";
 
 /**
  * A team's season-end leadership check-in (docs/data-model.md, section 2.1;
- * ADR 0077). Secrecy rests on four rules, which tests check:
+ * ADR 0090). Secrecy rests on four rules, which tests check:
  *
  * - Who took part (`leadership_participation`) is stored apart from what
  *   they chose (`leadership_candidate.nominated`, `leadership_ballot_option

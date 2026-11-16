@@ -17,7 +17,7 @@ const references = (table: Parameters<typeof getTableConfig>[0]) =>
     (fk) => getTableConfig(fk.reference().foreignTable).name,
   );
 
-describe("leadership check-in secrecy (ADR 0077)", () => {
+describe("leadership check-in secrecy (ADR 0090)", () => {
   it("keeps who took part to a person, a check-in and a step: no time, no choice", () => {
     expect(
       columns(leadershipParticipation)

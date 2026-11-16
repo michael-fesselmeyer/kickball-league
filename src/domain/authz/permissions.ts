@@ -233,7 +233,7 @@ const RULES = {
   // Accept or decline the captaincy offered to you, or step down as a
   // co-captain: only the person themselves.
   "captaincy.respond": self,
-  // The season-end leadership check-in (ADR 0077): everyone on the team
+  // The season-end leadership check-in (ADR 0090): everyone on the team
   // checks in and votes; only the captain hears the result first and
   // chooses how to hand over; admins open, pause, resume and close it, and
   // never see a choice.
