@@ -74,8 +74,13 @@ export function formatMoney(
   }).format(amount);
 }
 
-/** "A, B and C" / "A, B y C". */
+/** "A, B and C" / "A, B y C" / "A, B ak C". */
 export function formatList(locale: Locale, items: readonly string[]): string {
+  // The formatting data has no Haitian Creole; its lists join with "ak".
+  if (locale === "ht")
+    return items.length < 2
+      ? (items[0] ?? "")
+      : `${items.slice(0, -1).join(", ")} ak ${items.at(-1)}`;
   return new Intl.ListFormat(LOCALE_TAGS[locale], {
     style: "long",
     type: "conjunction",
@@ -84,17 +89,45 @@ export function formatList(locale: Locale, items: readonly string[]): string {
 
 /**
  * An ordinal: "3rd" in English; "3.º" in Spanish, or "3.ª" for a feminine
- * noun such as "entrada" (inning). No catalog, so client components can
- * use it.
+ * noun such as "entrada" (inning). Languages that put the ordinal in the
+ * phrase around it get what their catalog's phrase expects: "第3" for
+ * "第3名", the bare number for Korean "3회" and Russian "3-й", "3." in
+ * Polish, "3yèm" in Creole and "3য়" in Bengali. No catalog, so client
+ * components can use it.
  */
 export function formatOrdinal(
   locale: Locale,
   n: number,
   gender: "masculine" | "feminine" = "masculine",
 ): string {
-  if (locale === "es") return `${n}.${gender === "feminine" ? "ª" : "º"}`;
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 13) return `${n}th`;
-  const suffix = ["th", "st", "nd", "rd"][n % 10] ?? "th";
-  return `${n}${suffix}`;
+  switch (locale) {
+    case "es":
+      return `${n}.${gender === "feminine" ? "ª" : "º"}`;
+    case "zh":
+      return `第${n}`;
+    case "ko":
+    case "ru":
+      return `${n}`;
+    case "pl":
+      return `${n}.`;
+    case "ht":
+      return n === 1 ? "1ye" : `${n}yèm`;
+    case "bn":
+      return `${n}${bengaliSuffix(n)}`;
+    case "en": {
+      const tens = n % 100;
+      if (tens >= 11 && tens <= 13) return `${n}th`;
+      const suffix = ["th", "st", "nd", "rd"][n % 10] ?? "th";
+      return `${n}${suffix}`;
+    }
+  }
+}
+
+/** Bengali ordinal endings: ১ম, ২য়, ৩য়, ৪র্থ, ৫ম…১০ম, ৬ষ্ঠ, then -তম. */
+function bengaliSuffix(n: number): string {
+  if (n === 2 || n === 3) return "য়";
+  if (n === 4) return "র্থ";
+  if (n === 6) return "ষ্ঠ";
+  if (n >= 1 && n <= 10) return "ম";
+  return "তম";
 }
