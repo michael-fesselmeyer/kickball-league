@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PublicGame } from "../schedule/public-game";
+import { type PublicGame, resultLine } from "../schedule/public-game";
 import {
   announcementShareText,
   bold,
@@ -265,5 +265,30 @@ describe("gameDayShareText", () => {
       url: scheduleUrl,
     });
     expect(text).not.toMatch(/\p{Extended_Pictographic}/u);
+  });
+});
+
+describe("in Spanish (ADR 0065)", () => {
+  const url = "https://league.example.test/es/games/g1";
+  const timeZone = "America/New_York";
+
+  it("writes a forfeit and a final in Spanish", () => {
+    const forfeit: PublicGame = { ...base, status: "forfeit", forfeitBy: "a" };
+    expect(resultLine(forfeit, "es")).toBe("Kickers gana por abandono");
+    const final: PublicGame = {
+      ...base,
+      status: "final",
+      scoreA: 5,
+      scoreB: 3,
+    };
+    expect(gameShareText(final, { url, timeZone, locale: "es" })).toBe(
+      ["Final: *Sluggers 5, Kickers 3*", "dom, 15 de nov", url].join("\n"),
+    );
+  });
+
+  it("announces an upcoming game in Spanish", () => {
+    expect(
+      gameShareText(base, { url, timeZone, locale: "es" }).split("\n")[0],
+    ).toBe("Se juega: *Sluggers vs. Kickers*");
   });
 });
