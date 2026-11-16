@@ -575,6 +575,13 @@
       "when": 1794830041754,
       "tag": "0081_interest_signups",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1794833624802,
+      "tag": "0082_field_groups",
+      "breakpoints": true
     }
   ]
 }
