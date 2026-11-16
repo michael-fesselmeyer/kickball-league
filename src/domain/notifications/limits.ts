@@ -16,6 +16,36 @@ export type AlertLimits = {
 
 export type QuietHours = { startHour: number; endHour: number };
 
+/**
+ * The ways to turn alerts down instead of off (issue #529), offered in the
+ * settings and next to every email's unsubscribe link.
+ */
+export type TurnDowns = {
+  /** "Snooze for 2 weeks": non-urgent messages wait for the digest after it. */
+  snoozedUntil: Date | null;
+  /** "Only my team": league-wide news is skipped. */
+  teamOnly: boolean;
+  /** "Weekly roundup": league news comes in one email on Sundays. */
+  weeklyNews: boolean;
+};
+
+export const NO_TURN_DOWNS: TurnDowns = {
+  snoozedUntil: null,
+  teamOnly: false,
+  weeklyNews: false,
+};
+
+/** How long "Snooze for 2 weeks" lasts. */
+export const SNOOZE_DAYS = 14;
+
+/** When a snooze started at `now` ends. */
+export const snoozeEnd = (now: Date): Date =>
+  new Date(now.getTime() + SNOOZE_DAYS * 24 * 60 * 60 * 1000);
+
+/** Whether the person's snooze still covers `now`. */
+export const isSnoozed = (turnDowns: TurnDowns, now: Date): boolean =>
+  turnDowns.snoozedUntil !== null && turnDowns.snoozedUntil > now;
+
 export const DIGEST_FREQUENCIES = ["daily", "weekly"] as const;
 export type DigestFrequency = (typeof DIGEST_FREQUENCIES)[number];
 
@@ -275,6 +305,10 @@ export type Delivery = {
   limits: AlertLimits;
   /** Non-urgent messages already sent to this person today on this channel. */
   sentToday: number;
+  /** Snooze and weekly roundup; none when left out. */
+  turnDowns?: TurnDowns;
+  /** Whether the message is league news (topics.ts, NEWS_TOPICS). */
+  news?: boolean;
 };
 
 export type Decision =
@@ -290,6 +324,10 @@ export type Decision =
  * always go; non-urgent ones wait out quiet hours, then go while the
  * person is under their daily cap and are held for the digest after that;
  * the digest itself waits out quiet hours and is never capped.
+ *
+ * Turning down: while snoozed, non-urgent messages are held for the first
+ * digest after the snooze and the digest waits for it to end; with the
+ * weekly roundup on, league news is held for Sunday's digest.
  */
 export function decide({
   class: kind,
@@ -298,15 +336,26 @@ export function decide({
   timeZone,
   limits,
   sentToday,
+  turnDowns = NO_TURN_DOWNS,
+  news = false,
 }: Delivery): Decision {
   const quiet = inQuietHours(now, timeZone, limits.quietHours);
   if (kind === "urgent")
     return { action: "send", silent: quiet && channel === "push" };
+  if (turnDowns.snoozedUntil && turnDowns.snoozedUntil > now)
+    return kind === "digest"
+      ? { action: "wait", until: turnDowns.snoozedUntil }
+      : {
+          action: "hold",
+          until: nextDigestAt(turnDowns.snoozedUntil, timeZone, limits.digest),
+        };
   if (quiet)
     return {
       action: "wait",
       until: quietHoursEnd(now, timeZone, limits.quietHours),
     };
+  if (kind === "non_urgent" && news && turnDowns.weeklyNews)
+    return { action: "hold", until: nextDigestAt(now, timeZone, "weekly") };
   if (kind === "digest" || sentToday < limits.dailyCap)
     return { action: "send", silent: false };
   return { action: "hold", until: nextDigestAt(now, timeZone, limits.digest) };
