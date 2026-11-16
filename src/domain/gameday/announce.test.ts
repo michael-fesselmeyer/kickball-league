@@ -96,9 +96,9 @@ describe("permitAnnouncement when sunset ends play (#467)", () => {
     expect(permitAnnouncement(watch("ok", 15), "daylight")).toBe(
       "15 minutes or less left in the daylight.",
     );
-    expect(permitAnnouncement(watch("watch", 90, "time_limit"), "daylight")).toBe(
-      "Heads up: the time limit would run past the daylight.",
-    );
+    expect(
+      permitAnnouncement(watch("watch", 90, "time_limit"), "daylight"),
+    ).toBe("Heads up: the time limit would run past the daylight.");
     expect(permitAnnouncement(watch("over", 0), "daylight")).toBe(
       "The daylight has run out.",
     );
