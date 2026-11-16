@@ -23,6 +23,7 @@ import {
 } from "../schema/game";
 import {
   announcement,
+  alertCardResponse,
   alertSetting,
   message,
   notificationPreference,
@@ -525,9 +526,22 @@ export async function personalData(
       digest: alertSetting.digest,
       quietStartHour: alertSetting.quietStartHour,
       quietEndHour: alertSetting.quietEndHour,
+      snoozedUntil: alertSetting.snoozedUntil,
+      teamOnly: alertSetting.teamOnly,
+      weeklyNews: alertSetting.weeklyNews,
     })
     .from(alertSetting)
     .where(eq(alertSetting.userId, userId));
+  // Their answers to the in-app alert offers (issue #529).
+  const alertCardAnswers = await db
+    .select({
+      card: alertCardResponse.card,
+      answer: alertCardResponse.answer,
+      answeredAt: alertCardResponse.answeredAt,
+    })
+    .from(alertCardResponse)
+    .where(eq(alertCardResponse.userId, userId))
+    .orderBy(asc(alertCardResponse.answeredAt));
   // Which browsers get push, without the endpoint or keys: those only
   // let a push service reach the device.
   const pushDevices = await db
@@ -695,6 +709,7 @@ export async function personalData(
     teamChange: await myMoveData(db, userId),
     emailSettings,
     alertLimits,
+    alertCardAnswers,
     pushDevices,
     messages,
     photos: (await myPhotos(db, userId)).map((p) => without(p, "id")),
@@ -957,6 +972,9 @@ export async function deleteAccount(
     .delete(notificationPreference)
     .where(eq(notificationPreference.userId, userId));
   await db.delete(alertSetting).where(eq(alertSetting.userId, userId));
+  await db
+    .delete(alertCardResponse)
+    .where(eq(alertCardResponse.userId, userId));
   await db.delete(pushSubscription).where(eq(pushSubscription.userId, userId));
   // Out of the ref pool; games already reffed and pay already made stay.
   await db.delete(refereeProfile).where(eq(refereeProfile.userId, userId));
