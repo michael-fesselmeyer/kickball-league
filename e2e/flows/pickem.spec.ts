@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { Client } from "pg";
 import { expectNoAxeViolations } from "../support/axe";
+import { adminTool, goViaMenu } from "../support/app-nav";
 import { pageAs } from "../support/personas";
 
 /**
@@ -75,7 +76,7 @@ test("a player picks the coming game day's winner, for bragging rights only", as
   try {
     const player = await pageAs(browser, "Player");
     await player.goto("/app");
-    await player.getByRole("link", { name: "Pick'em" }).click();
+    await goViaMenu(player, "Pick'em");
     await expect(
       player.getByRole("heading", { name: "Pick'em", level: 1 }),
     ).toBeVisible();
@@ -124,7 +125,7 @@ test("an admin keeps players off their own team's games, and lets them back", as
   try {
     const admin = await pageAs(browser, "Admin");
     await admin.goto("/app/admin");
-    await admin.getByRole("link", { name: "Pick'em" }).click();
+    await (await adminTool(admin, "Pick'em")).click();
     await expect(
       admin.getByRole("heading", { name: "Pick'em settings" }),
     ).toBeVisible();

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
+import { adminTool, goViaMenu } from "../support/app-nav";
 import { pageAs } from "../support/personas";
 import { download } from "../support/seed-data";
 import {
@@ -32,7 +33,7 @@ test("a player orders a replacement jersey with credit, and an admin exports and
 
   const admin = await pageAs(browser, "Admin");
   await admin.goto("/app/admin");
-  await admin.getByRole("link", { name: "Merch", exact: true }).click();
+  await (await adminTool(admin, "Merch")).click();
   await expect(admin.getByRole("heading", { name: "Merch" })).toBeVisible();
   await admin.getByRole("link", { name: "New item" }).click();
   await admin.getByLabel("Kind").selectOption({
@@ -63,7 +64,7 @@ test("a player orders a replacement jersey with credit, and an admin exports and
   // Casey orders from the shop: their profile's size is picked already.
   const captain = await pageAs(browser, "Captain");
   await captain.goto("/app");
-  await captain.getByRole("link", { name: "League shop" }).click();
+  await goViaMenu(captain, "League shop");
   await expect(
     captain.getByRole("heading", { name: "League shop" }),
   ).toBeVisible();

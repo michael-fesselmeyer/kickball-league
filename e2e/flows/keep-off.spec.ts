@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 import { Client } from "pg";
 import { expectNoAxeViolations } from "../support/axe";
+import { adminTool } from "../support/app-nav";
 import { pageAs } from "../support/personas";
 import { captainEmail, pageSignedInAs } from "../support/sign-in";
 
@@ -119,7 +120,7 @@ test.describe.serial("a captain keeps someone off the team, quietly", () => {
     const admin = await pageAs(browser, "Admin");
     await admin.setViewportSize(PHONE);
     await admin.goto("/app/admin");
-    await admin.getByRole("link", { name: "Not-on-my-team lists" }).click();
+    await (await adminTool(admin, "Not-on-my-team lists")).click();
     const team = admin.getByRole("region", { name: `${TEAM} (1)` });
     await expect(team).toContainText(PERSON.name);
     await expect(team).toContainText(REASON);

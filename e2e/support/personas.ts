@@ -1,18 +1,19 @@
 import { expect, type Browser, type Page } from "@playwright/test";
 
-/** The demo personas' buttons in the banner (src/lib/demo/personas.ts). */
+/** The demo personas in the banner's picker (src/lib/demo/personas.ts). */
 export type Persona = "Player" | "Captain" | "Ref" | "Admin";
 
 /**
- * Signs in as a demo persona with the banner's one-tap "view as"
+ * Signs in as a demo persona with the banner's "Viewing as" picker
  * (docs/adr/0004-demo-mode.md), the same way a demo visitor does.
  */
 export async function viewAs(page: Page, persona: Persona) {
   await page.goto("/sign-in");
-  await page
-    .getByRole("complementary", { name: "Demo" })
-    .getByRole("button", { name: persona, exact: true })
-    .click();
+  const banner = page.getByRole("complementary", { name: "Demo" });
+  await banner
+    .getByRole("combobox", { name: "Viewing as" })
+    .selectOption({ label: persona });
+  await banner.getByRole("button", { name: "Go" }).click();
   await expect(page).toHaveURL(/\/app(\/|$)/);
 }
 
