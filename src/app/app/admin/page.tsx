@@ -680,6 +680,7 @@ function AdminTools({ base, isOwner }: { base: string; isOwner: boolean }) {
         ...(isOwner
           ? ([["/app/admin/acting-admins", "Acting admins"]] as Tool[])
           : []),
+        ["/app/admin/alerts", "Alert choices"],
         ["/app/admin/audit", "Audit log"],
       ],
     },
