@@ -187,16 +187,20 @@ export const HELP_ROLES: readonly HelpRole[] = [
       },
       {
         id: "alerts",
-        title: "Turn alerts on or off",
+        title: "Turn alerts on, down or off",
         summary:
-          "Choose which emails and phone notifications you get, and when the non-urgent ones arrive.",
+          "Choose which emails and phone notifications you get, and get fewer without missing your games.",
         steps: [
           "Open your profile from your home.",
           'Under "Email settings", tick the emails you want and tap "Save email settings". Sign-in links always come.',
-          'Under "Push notifications", tick topics and tap "Save push settings". Your browser asks to allow notifications. "Turn off push on this device" stops them on this phone.',
           'Under "How often we message you", set a daily limit, a daily or weekly digest, and quiet hours.',
+          'Under "Fewer messages, not none", pick "Only my team", get league news as a weekly roundup, or tap "Snooze for 2 weeks".',
+          'Under "Push notifications", tick topics and tap "Save push settings". Your browser asks to allow notifications. "Turn off push on this device" stops them on this phone.',
         ],
         notes: [
+          'We never ask for notifications on your first visit. Now and then a card offers one alert at the moment it helps, like rain-out alerts after you RSVP. Each card asks once, and "No thanks" keeps them away for a month.',
+          "Every email has the same choices at the bottom: only my team, a weekly digest, snooze, or stop that kind of email.",
+          "Rain-outs, changes to your games, payment deadlines and your shirt size always come. Rule changes are on unless you turn them off.",
           "Urgent messages, such as a rain-out on your game day, still come during quiet hours, without a sound.",
         ],
         screen: { href: "/app/profile#notifications", label: "Your profile" },
@@ -207,6 +211,10 @@ export const HELP_ROLES: readonly HelpRole[] = [
           "quiet hours",
           "digest",
           "unsubscribe",
+          "snooze",
+          "fewer emails",
+          "too many emails",
+          "rules",
         ],
       },
       {
