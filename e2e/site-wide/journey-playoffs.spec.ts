@@ -52,14 +52,17 @@ test("an admin seeds a bracket, scores the playoffs and crowns a champion", asyn
     await expect(admin.getByRole("heading", { level: 1 })).toHaveText(
       "Playoffs",
     );
-    await admin.getByLabel("Teams in the playoffs").fill("4");
-    await admin.getByLabel("Playoff day").selectOption({ value: day });
+    // One single-elimination bracket: the first tier's fields, leaving the
+    // optional lower tiers empty.
+    const bracket = admin.getByRole("group", { name: "Championship bracket" });
+    await bracket.getByLabel("Teams in the playoffs").fill("4");
+    await bracket.getByLabel("Playoff day").selectOption({ value: day });
     await expectNoAxeViolations(admin);
     await admin.getByRole("button", { name: "Make the bracket" }).click();
     await expect(admin.getByRole("status")).toHaveText(
       "Bracket drafted. Check it, then publish it.",
     );
-    const semi = admin.getByRole("article", { name: "Semifinals, game 1" });
+    const semi = admin.getByRole("article", { name: "Game 1, Semifinals" });
     await expect(semi).toContainText("1");
     await expect(admin.getByRole("article")).toHaveCount(3);
     await expectNoAxeViolations(admin);
@@ -106,10 +109,10 @@ test("an admin seeds a bracket, scores the playoffs and crowns a champion", asyn
 
     await admin.goto(`/app/admin/seasons/${SEASON}/playoffs`);
     await expect(
-      admin.getByRole("article", { name: "Final, game 1" }),
+      admin.getByRole("article", { name: "Game 3, Final" }),
     ).toContainText(a1);
     await expect(
-      admin.getByRole("article", { name: "Final, game 1" }),
+      admin.getByRole("article", { name: "Game 3, Final" }),
     ).toContainText(a2);
     await expectNoAxeViolations(admin);
   });
