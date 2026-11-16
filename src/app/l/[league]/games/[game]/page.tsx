@@ -255,7 +255,12 @@ async function Game({ params }: PageProps<"/l/[league]/games/[game]">) {
           <dt className="text-micro font-bold tracking-wide text-text-muted uppercase">
             When
           </dt>
-          <dd className={calledOff ? "line-through" : ""}>
+          {/* The page's largest text, sent with the first byte: the status
+              and forecast below stream in later, so they must stay smaller
+              or the phone's largest paint waits for them. */}
+          <dd
+            className={`text-h3 font-bold ${calledOff ? "line-through" : ""}`}
+          >
             {game.startsAt
               ? fullWhen(game.startsAt, timeZone)
               : "Time to be announced"}
