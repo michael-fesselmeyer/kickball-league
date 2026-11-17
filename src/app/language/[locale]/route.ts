@@ -4,8 +4,9 @@ import { languageSwitchTarget } from "@/i18n/routing";
 
 /**
  * The footer's language links land here (ADR 0094) and go on to the page
- * the visitor came from, in the language they picked. Working it out on the
- * server keeps the routing tables out of every page's JavaScript.
+ * the visitor came from, in the language they picked: the link's `from`
+ * path, else the `Referer`. Working it out on the server keeps the routing
+ * tables out of every page's JavaScript.
  */
 export async function GET(
   request: NextRequest,
@@ -13,7 +14,10 @@ export async function GET(
 ) {
   const { locale } = await params;
   const target = languageSwitchTarget(
-    request.headers.get("referer"),
+    {
+      from: request.nextUrl.searchParams.get("from"),
+      referer: request.headers.get("referer"),
+    },
     request.nextUrl.origin,
     isLocale(locale) ? locale : DEFAULT_LOCALE,
   );

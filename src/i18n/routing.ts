@@ -91,26 +91,58 @@ export function switchLanguagePath(pathname: string, target: Locale): string {
  * Where the footer's link to `target` goes (src/app/language): the page the
  * visitor came from, in that language, when it is translated; else that
  * language's home page, or the English one. Signed-in pages follow the
- * profile's setting, so their link goes there. `referer` is trusted only
- * from this site, and only its path and query are used.
+ * profile's setting, so their link goes there.
+ *
+ * The page comes from the link's own `from` (the path the footer's script
+ * adds on click), else the `Referer`. Either is trusted only from this site,
+ * only its path and query are used, and only a page counts: a file such as
+ * `/sw.js`, `/_next/...` or `/api/...` goes to the home page instead.
  */
 export function languageSwitchTarget(
-  referer: string | null,
+  source: { from: string | null; referer: string | null },
   origin: string,
   target: Locale,
 ): string {
-  let from: URL | null = null;
-  try {
-    from = referer ? new URL(referer) : null;
-  } catch {
-    from = null;
-  }
-  const local = from?.origin === origin ? from : null;
-  const path = local ? splitLocale(local.pathname).rest : "/";
+  const local =
+    sameSitePath(source.from, origin, true) ??
+    sameSitePath(source.referer, origin, false);
+  const page = local && isPagePath(local.pathname) ? local : null;
+  const path = page ? splitLocale(page.pathname).rest : "/";
   if (path === "/app" || path.startsWith("/app/")) return PROFILE_LANGUAGE;
   if (isTranslated(target, path))
-    return `${localizedPath(target, path)}${local?.search ?? ""}`;
+    return `${localizedPath(target, path)}${page?.search ?? ""}`;
   return isTranslated(target, "/") ? localizedPath(target, "/") : "/";
+}
+
+/**
+ * `value` as an address on this site, or null. A `from` must be a path
+ * (`/es/faq?x=1`), never a full or protocol-relative address; a `Referer`
+ * is a full address on `origin`.
+ */
+function sameSitePath(
+  value: string | null,
+  origin: string,
+  pathOnly: boolean,
+): URL | null {
+  if (!value) return null;
+  if (pathOnly && !/^\/(?![/\\])/.test(value)) return null;
+  try {
+    const url = pathOnly ? new URL(value, origin) : new URL(value);
+    return url.origin === origin ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether `pathname` can be a page a visitor reads: not a file with an
+ * extension, the client's build files, an API route, or the language
+ * switch itself.
+ */
+export function isPagePath(pathname: string): boolean {
+  if (/^\/(?:_next|api|language)(?:\/|$)/.test(pathname)) return false;
+  const last = pathname.slice(pathname.lastIndexOf("/") + 1);
+  return !last.includes(".");
 }
 
 /** The profile's language setting, where signed-in pages pick a language. */
