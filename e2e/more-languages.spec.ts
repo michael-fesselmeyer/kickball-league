@@ -19,7 +19,13 @@ const PAGES = [
     lang: "ru",
     heading: "Расписание",
   },
-  { path: "/pl/about", lang: "pl", heading: "Liga kickballa do" },
+  {
+    path: "/pl/about",
+    lang: "pl",
+    heading: "Liga kickballa do",
+    // Polish letters would pull in the web fonts' Latin Extended files.
+    noWebFont: true,
+  },
   {
     path: "/bn/faq",
     lang: "bn",
@@ -62,6 +68,14 @@ for (const { path, lang, heading, ...rest } of PAGES)
       expect(
         await page.evaluate(() => getComputedStyle(document.body).fontFamily),
       ).toContain(rest.script);
+    if ("noWebFont" in rest)
+      for (const selector of ["body", "h1"])
+        expect(
+          await page.evaluate(
+            (s) => getComputedStyle(document.querySelector(s)!).fontFamily,
+            selector,
+          ),
+        ).not.toMatch(/Inter|Bricolage/);
     await expectNoAxeViolations(page);
   });
 

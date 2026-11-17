@@ -17,7 +17,8 @@ Every phone the players use ships a good font for each of these scripts: Apple's
 ## Decision
 
 - Chinese, Korean and Bengali text uses the device's own font for the script. `globals.css` names a short list per language (`:root:lang(...)`, `--font-script`), placed after Inter in the body and heading stacks, so Latin letters and numbers keep the site's fonts and the script's letters come from the phone's.
-- Russian and Polish need nothing new: Inter's Cyrillic and Latin Extended subsets are already in its `@font-face` rules, and the browser downloads one only on a page that uses it. Only the Latin subset is preloaded, so English pages pay nothing. Russian headings use Inter, since Bricolage has no Cyrillic.
+- Russian needs nothing new: Inter's Cyrillic subset is already in its `@font-face` rules, and the browser downloads it only on a page that uses it. Only the Latin subset is preloaded, so English pages pay nothing. Russian headings use Inter, since Bricolage has no Cyrillic.
+- Polish pages use the phone's own font for all their text. Inter and Bricolage do have Polish letters, but in their Latin Extended files, about 105 kB more on every Polish page, which Lighthouse CI measured past the font budget. Every phone's own font covers Polish.
 - Korean wraps between words (`word-break: keep-all`), as Korean readers expect.
 - One page per script is in Lighthouse CI, so the font budget is checked in each.
 
