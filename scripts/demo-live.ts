@@ -2,7 +2,8 @@
  * The last step of `npm run demo:reset`: makes the freshly seeded demo league
  * look like a game night in progress (src/seed/demo-live.ts): a live game,
  * a rain watch on the next game day, and the reminders the league's jobs
- * would have sent, waiting in the outbox.
+ * would have sent, waiting in the outbox. Then the demo-only data for the
+ * newer features (src/seed/demo-showcase.ts).
  *
  * Refuses (exit code 1, before connecting to anything) unless demo mode is
  * fully on, like the reset itself (src/lib/demo/guard.ts).
@@ -14,6 +15,7 @@ import * as schema from "../src/db/schema";
 import { canResetDemo } from "../src/lib/demo/guard";
 import { defaultLeague } from "../src/db/queries/leagues";
 import { liveDemo } from "../src/seed/demo-live";
+import { addDemoLanguages, addDemoShowcase } from "../src/seed/demo-showcase";
 
 if (!process.env.DATABASE_URL && existsSync(".env.local"))
   process.loadEnvFile(".env.local");
@@ -37,8 +39,14 @@ async function main(): Promise<void> {
       console.info("No league to start a game night in.");
       return;
     }
-    const done = await db.transaction((tx) =>
-      liveDemo(tx, league.id, new Date()),
+    const now = new Date();
+    // Languages first, so tonight's reminders go out in each person's own.
+    const languages = await db.transaction((tx) =>
+      addDemoLanguages(tx, league.id),
+    );
+    const done = await db.transaction((tx) => liveDemo(tx, league.id, now));
+    const shown = await db.transaction((tx) =>
+      addDemoShowcase(tx, league.id, now),
     );
     console.info(
       [
@@ -49,6 +57,10 @@ async function main(): Promise<void> {
           ? `Rain watch on the game day starting ${done.rainWatchFrom.toISOString()}.`
           : "No later game day, so no rain watch.",
         `${done.queued} reminders and alerts are waiting in the demo's mail.`,
+        `${languages} players read the league in another language.`,
+        shown.length
+          ? `Demo data for: ${shown.join(", ")}.`
+          : "No demo data for the newer features.",
       ].join(" "),
     );
   } catch (error) {
