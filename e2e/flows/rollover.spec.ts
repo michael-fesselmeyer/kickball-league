@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
+import { seasonTool } from "../support/app-nav";
 
 /**
  * An admin starts the next season from the demo's fall season: previews
@@ -12,9 +13,7 @@ test("an admin starts the next season from the last one", async ({
 }) => {
   const page = await pageAs(browser, "Admin");
   await page.goto("/app/admin/seasons/fall-2026");
-  await page
-    .getByRole("link", { name: "Start the next season from this one" })
-    .click();
+  await (await seasonTool(page, "Start the next season from this one")).click();
   await expect(
     page.getByRole("heading", { name: "Start the next season" }),
   ).toBeVisible();

@@ -45,177 +45,8 @@ async function Season({
           All seasons
         </Link>
         <h1 className="text-h1">{season.name}</h1>
-        <p className="flex flex-wrap gap-4">
-          <Link
-            href={`/app/admin/seasons/${slug}/fields`}
-            className="underline"
-          >
-            Fields and permits
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/divisions`}
-            className="underline"
-          >
-            Divisions
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/schedule`}
-            className="underline"
-          >
-            Schedule
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/registrations`}
-            className="underline"
-          >
-            Registrations
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/promo-codes`}
-            className="underline"
-          >
-            Promo codes
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/waitlist`}
-            className="underline"
-          >
-            Waitlist
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/rebates`}
-            className="underline"
-          >
-            Rain-out rebates
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/free-agents`}
-            className="underline"
-          >
-            Free-agent matcher
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/scores`}
-            className="underline"
-          >
-            Scores
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/referees`}
-            className="underline"
-          >
-            Referees
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/announcements`}
-            className="underline"
-          >
-            Announcements
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/checklist`}
-            className="underline"
-          >
-            Checklist
-          </Link>
-          <Link href={`/app/admin/seasons/${slug}/recap`} className="underline">
-            Weekly recap
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/playoffs`}
-            className="underline"
-          >
-            Playoffs
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/shirts`}
-            className="underline"
-          >
-            Shirts
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/shirt-order`}
-            className="underline"
-          >
-            Shirt order
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/survey`}
-            className="underline"
-          >
-            Season survey
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/win-back`}
-            className="underline"
-          >
-            Win back past players
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/requests`}
-            className="underline"
-          >
-            Team requests
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/new-teams`}
-            className="underline"
-          >
-            New-team requests
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/awards`}
-            className="underline"
-          >
-            Awards
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/captain-polls`}
-            className="underline"
-          >
-            Captains&apos; polls
-          </Link>
-          <Link href={`/app/admin/seasons/${slug}/cards`} className="underline">
-            Season cards
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/attendance`}
-            className="underline"
-          >
-            Attendance
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/starts`}
-            className="underline"
-          >
-            Start times
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/sportsmanship`}
-            className="underline"
-          >
-            Sportsmanship
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/challenge`}
-            className="underline"
-          >
-            Sign-up challenge
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/leadership`}
-            className="underline"
-          >
-            Leadership check-ins
-          </Link>
-          <Link
-            href={`/app/admin/seasons/${slug}/rollover`}
-            className="underline"
-          >
-            Start the next season from this one
-          </Link>
-        </p>
       </header>
+      <SeasonTools slug={slug} />
       {typeof query.rolled === "string" && (
         <p role="status" className="rounded-lg border border-success p-3">
           Season created as a draft from the last one, with {query.rolled}{" "}
@@ -247,5 +78,109 @@ async function Season({
         submitLabel="Save changes"
       />
     </>
+  );
+}
+
+type Tool = [path: string, label: string];
+
+/**
+ * The season's tools, grouped the way the admin home groups the league's
+ * (AdminTools). Each group folds away, so the page opens on its four
+ * headings rather than a wall of links.
+ */
+const SEASON_TOOL_GROUPS: { title: string; tools: Tool[] }[] = [
+  {
+    title: "Setup",
+    tools: [
+      ["fields", "Fields and permits"],
+      ["divisions", "Divisions"],
+      ["schedule", "Schedule"],
+      ["playoffs", "Playoffs"],
+      ["starts", "Start times"],
+      ["checklist", "Checklist"],
+      ["rollover", "Start the next season from this one"],
+    ],
+  },
+  {
+    title: "Players and money",
+    tools: [
+      ["registrations", "Registrations"],
+      ["promo-codes", "Promo codes"],
+      ["waitlist", "Waitlist"],
+      ["rebates", "Rain-out rebates"],
+      ["free-agents", "Free-agent matcher"],
+      ["requests", "Team requests"],
+      ["new-teams", "New-team requests"],
+    ],
+  },
+  {
+    title: "Game day",
+    tools: [
+      ["status", "Game-day status"],
+      ["scores", "Scores"],
+      ["referees", "Referees"],
+      ["rainout", "Rain-out"],
+      ["attendance", "Attendance"],
+      ["sportsmanship", "Sportsmanship"],
+      ["game-day-checklist", "Game-day checklist"],
+    ],
+  },
+  {
+    title: "Engagement",
+    tools: [
+      ["announcements", "Announcements"],
+      ["recap", "Weekly recap"],
+      ["team-of-the-week", "Team of the week"],
+      ["awards", "Awards"],
+      ["captain-polls", "Captains' polls"],
+      ["cards", "Season cards"],
+      ["survey", "Season survey"],
+      ["challenge", "Sign-up challenge"],
+      ["win-back", "Win back past players"],
+      ["leadership", "Leadership check-ins"],
+      ["shirts", "Shirts"],
+      ["shirt-order", "Shirt order"],
+    ],
+  },
+];
+
+function SeasonTools({ slug }: { slug: string }) {
+  return (
+    <nav aria-label="Season tools" className="flex flex-col gap-2">
+      {SEASON_TOOL_GROUPS.map((group) => (
+        <details
+          key={group.title}
+          className="group rounded-card border-2 border-text bg-surface"
+        >
+          <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3 px-4 font-bold">
+            <span>
+              {group.title}{" "}
+              <span className="font-normal text-text-muted">
+                ({group.tools.length})
+              </span>
+            </span>
+            <span
+              aria-hidden="true"
+              className="text-text-muted transition-transform group-open:rotate-180"
+            >
+              ▾
+            </span>
+          </summary>
+          <ul className="grid border-t border-border px-4 pb-2 sm:grid-cols-2 sm:gap-x-6">
+            {group.tools.map(([path, label]) => (
+              <li key={path}>
+                <Link
+                  href={`/app/admin/seasons/${slug}/${path}`}
+                  prefetch={false}
+                  className="flex min-h-11 items-center border-b border-border hover:underline"
+                >
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ))}
+    </nav>
   );
 }

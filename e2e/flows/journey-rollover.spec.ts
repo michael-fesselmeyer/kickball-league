@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
+import { seasonTool } from "../support/app-nav";
 
 /**
  * An admin rolls last season over and carries on to a schedule. From the
@@ -22,9 +23,9 @@ test("an admin rolls a season over, schedules it and publishes", async ({
 
   await test.step("the next season is created from the last, with its teams and permit hours", async () => {
     await admin.goto("/app/admin/seasons/fall-2026");
-    await admin
-      .getByRole("link", { name: "Start the next season from this one" })
-      .click();
+    await (
+      await seasonTool(admin, "Start the next season from this one")
+    ).click();
     await expect(
       admin.getByRole("heading", { name: "Start the next season" }),
     ).toBeVisible();

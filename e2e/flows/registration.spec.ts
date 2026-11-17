@@ -10,6 +10,7 @@ import {
   sendCheckoutCompleted,
   sendGuaranteeCharged,
 } from "../support/stripe-webhook";
+import { seasonTool } from "../support/app-nav";
 
 /**
  * A new season, from the admin opening registration to a captain paying
@@ -179,7 +180,7 @@ test("Stripe's webhook marks the captain paid once, and a forged one is refused"
 test("an admin adds a promo code for the season", async ({ browser }) => {
   const page = await pageAs(browser, "Admin");
   await page.goto(`/app/admin/seasons/${SEASON_SLUG}`);
-  await page.getByRole("link", { name: "Promo codes" }).click();
+  await (await seasonTool(page, "Promo codes")).click();
   await expect(
     page.getByRole("heading", { name: "Promo codes" }),
   ).toBeVisible();

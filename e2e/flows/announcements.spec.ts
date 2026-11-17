@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
+import { seasonTool } from "../support/app-nav";
 
 /**
  * Casey Captain emails The Big Kicks from the team page, and an admin emails
@@ -34,7 +35,7 @@ test("a captain messages the team and an admin messages a team", async ({
 
   const admin = await pageAs(browser, "Admin");
   await admin.goto("/app/admin/seasons/fall-2026");
-  await admin.getByRole("link", { name: "Announcements" }).click();
+  await (await seasonTool(admin, "Announcements")).click();
   await expect(admin.getByRole("heading", { level: 1 })).toHaveText(
     "Announcements",
   );
