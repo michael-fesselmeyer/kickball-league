@@ -17,6 +17,7 @@ import {
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeagueId } from "@/lib/league/active";
+import { ScrollTable } from "@/components/scroll-table";
 
 export const metadata: Metadata = { title: "Free-agent matcher" };
 
@@ -250,7 +251,7 @@ async function FreeAgents({
           <h2 id="teams" className="text-h2">
             Teams after these suggestions
           </h2>
-          <div className="overflow-x-auto">
+          <ScrollTable label="Teams table">
             <table className="w-full min-w-[32rem] text-left">
               <thead className="text-text-muted">
                 <tr>
@@ -278,7 +279,7 @@ async function FreeAgents({
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollTable>
           <p className="text-small text-text-muted">
             W and M count players by the fielding group in their profile.
           </p>
@@ -292,7 +293,7 @@ async function FreeAgents({
         {pool.length === 0 ? (
           <p className="text-text-muted">Nobody in the pool.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <ScrollTable label="Free agent pool table">
             <table className="w-full min-w-[56rem] text-left">
               <thead className="text-text-muted">
                 <tr>
@@ -335,7 +336,7 @@ async function FreeAgents({
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollTable>
         )}
       </section>
 
@@ -423,7 +424,7 @@ async function FreeAgents({
                 {pool.map((p) => (
                   <label
                     key={p.registrationId}
-                    className="flex min-h-11 items-center gap-2"
+                    className="check-row"
                   >
                     <input
                       type="checkbox"

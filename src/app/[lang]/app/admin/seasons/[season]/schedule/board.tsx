@@ -27,6 +27,7 @@ import {
   type BoardState,
 } from "./board-model";
 import { metricRows, readable } from "./labels";
+import { ScrollTable } from "@/components/scroll-table";
 
 export type BoardProps = {
   versionNo: number;
@@ -480,7 +481,7 @@ export function Board({
             </div>
           )}
 
-          <div className="overflow-x-auto">
+          <ScrollTable label="Schedule board">
             <table
               ref={table}
               aria-describedby={instructions}
@@ -632,7 +633,7 @@ export function Board({
                 })}
               </tbody>
             </table>
-          </div>
+          </ScrollTable>
         </div>
 
         <aside
@@ -688,7 +689,7 @@ export function Board({
             </div>
             <form action={save} className="flex flex-col gap-2">
               <input type="hidden" name="edits" value={JSON.stringify(edits)} />
-              <label className="flex items-center gap-2">
+              <label className="check-row">
                 <input
                   type="checkbox"
                   name="pin"

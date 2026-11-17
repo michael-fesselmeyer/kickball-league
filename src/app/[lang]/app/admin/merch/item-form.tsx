@@ -9,6 +9,7 @@ import {
   merchSizeLabel,
 } from "@/domain/merch/catalog";
 import { SubmitButton } from "@/components/submit-button";
+import { ScrollTable } from "@/components/scroll-table";
 
 const control =
   "min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body";
@@ -138,7 +139,7 @@ export function ItemFormFields({
       <p className="text-small text-text-muted">
         Stripe&apos;s fee for each card payment comes out of the price.
       </p>
-      <label className="flex min-h-11 items-center gap-2">
+      <label className="check-row">
         <input
           type="checkbox"
           name="madeToOrder"
@@ -169,7 +170,7 @@ export function ItemFormFields({
           Stock is how many the league has of that size in all, sold or not.
           Leave it blank for an item made to order.
         </p>
-        <div className="overflow-x-auto">
+        <ScrollTable label="Sizes and stock">
           <table className="text-left">
             <thead className="text-small text-text-muted">
               <tr>
@@ -189,7 +190,7 @@ export function ItemFormFields({
                 return (
                   <tr key={size}>
                     <td className="pr-4">
-                      <label className="flex min-h-11 items-center gap-2">
+                      <label className="check-row">
                         <input
                           type="checkbox"
                           name={`size_${size}`}
@@ -218,7 +219,7 @@ export function ItemFormFields({
               })}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
       </fieldset>
       <SubmitButton className="btn self-start btn-primary">
         {submit}

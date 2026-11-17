@@ -30,6 +30,7 @@ import { GroupsSection, OverlapAlert } from "./groups-section";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeagueId } from "@/lib/league/active";
+import { ScrollTable } from "@/components/scroll-table";
 
 export const metadata: Metadata = { title: "Fields and permits" };
 
@@ -365,7 +366,7 @@ async function Fields({
                 className={input}
               />
             </label>
-            <label className="flex min-h-11 items-center gap-2">
+            <label className="check-row">
               <input name="hasLights" type="checkbox" className="size-5" />
               Has lights
             </label>
@@ -432,7 +433,7 @@ async function Fields({
                       className={input}
                     />
                   </label>
-                  <label className="flex min-h-11 items-center gap-2">
+                  <label className="check-row">
                     <input
                       name="noLayoutNeeded"
                       type="checkbox"
@@ -537,7 +538,7 @@ async function Fields({
         {screen.permits.length === 0 ? (
           <p className="text-text-muted">No permit windows yet.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <ScrollTable label="Permit hours">
             <table className="w-full min-w-[36rem] text-left">
               <thead className="text-text-muted">
                 <tr>
@@ -603,7 +604,7 @@ async function Fields({
                 })}
               </tbody>
             </table>
-          </div>
+          </ScrollTable>
         )}
       </section>
 

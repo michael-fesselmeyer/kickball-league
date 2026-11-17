@@ -7,6 +7,7 @@ import { alertChoiceCounts } from "@/db/queries/alert-choices";
 import { PageLoading } from "@/components/page-loading";
 import { requirePermission } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";
+import { ScrollTable } from "@/components/scroll-table";
 
 export const metadata: Metadata = { title: "Alert choices" };
 
@@ -43,7 +44,7 @@ async function AlertChoices() {
           chose, as counts only. Nobody is tracked one by one.
         </p>
       </header>
-      <div className="overflow-x-auto">
+      <ScrollTable label="Alert choices per topic">
         <table className="w-full text-left text-small">
           <caption className="sr-only">Alert choices per topic</caption>
           <thead>
@@ -83,7 +84,7 @@ async function AlertChoices() {
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
       <section aria-labelledby="fewer" className="flex flex-col gap-2">
         <h2 id="fewer" className="text-h3">
           Fewer messages, not none

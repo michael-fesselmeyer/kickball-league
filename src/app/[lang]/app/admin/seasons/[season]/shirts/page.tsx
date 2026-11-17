@@ -18,6 +18,7 @@ import { markTeamOrderedAction, setShirtStatusAction } from "./actions";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeagueId } from "@/lib/league/active";
+import { ScrollTable } from "@/components/scroll-table";
 
 export const metadata: Metadata = { title: "Shirts" };
 
@@ -108,7 +109,7 @@ function PlayerTable({
   players: ShirtPlayer[];
 }) {
   return (
-    <div className="overflow-x-auto">
+    <ScrollTable label="Players and shirt sizes">
       <table className="w-full min-w-[30rem] text-left">
         <thead className="text-text-muted">
           <tr>
@@ -135,7 +136,7 @@ function PlayerTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 }
 
@@ -204,7 +205,7 @@ async function Shirts({
         <h2 id="sizes" className="text-h2">
           Sizes by team
         </h2>
-        <div className="overflow-x-auto">
+        <ScrollTable label="Sizes by team table">
           <table className="w-full min-w-[36rem] text-left">
             <thead className="text-text-muted">
               <tr>
@@ -242,7 +243,7 @@ async function Shirts({
               <CountsRow label="All players" counts={all} strong />
             </tfoot>
           </table>
-        </div>
+        </ScrollTable>
         <p>
           <strong>Still to order:</strong>{" "}
           {toOrder.length === 0 && all.toOrderUnknown === 0
