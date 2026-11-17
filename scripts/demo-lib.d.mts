@@ -40,4 +40,6 @@ export declare function buildKey(options: {
   day: string;
   port: number;
   database: string;
+  /** A fingerprint of the private branding (scripts/demo-branding.mjs). */
+  brand?: string;
 }): string;
