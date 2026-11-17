@@ -22,7 +22,7 @@ const STATUS: Record<string, { tone: string; text: string; role: string }> = {
 
 /**
  * The weeks the person will miss, one form per season they're registered
- * for. Weeks already gone are shown but can't be changed.
+ * for. Weeks already gone are left out: there's nothing left to change.
  */
 export function AwayWeeks({
   seasons,
@@ -82,34 +82,32 @@ export function AwayWeeks({
                   </span>
                 )}
               </legend>
-              {s.weeks.map((w) => (
-                <label
-                  key={w.week}
-                  className={`flex min-h-11 items-center gap-3 ${w.past ? "text-text-muted" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    name="week"
-                    value={w.week}
-                    defaultChecked={w.away}
-                    disabled={w.past}
-                    className="size-5"
-                  />
-                  <span className="flex flex-col">
-                    <span>
-                      Week of {w.label}
-                      {w.past && " (gone)"}
+              {s.weeks
+                .filter((w) => !w.past)
+                .map((w) => (
+                  <label
+                    key={w.week}
+                    className="flex min-h-11 items-center gap-3"
+                  >
+                    <input
+                      type="checkbox"
+                      name="week"
+                      value={w.week}
+                      defaultChecked={w.away}
+                      className="size-5"
+                    />
+                    <span className="flex flex-col">
+                      <span>Week of {w.label}</span>
+                      {w.games.length > 0 && (
+                        <span className="text-small text-text-muted">
+                          {w.games
+                            .map((g) => `${when(g.startsAt)} vs ${g.opponent}`)
+                            .join(" · ")}
+                        </span>
+                      )}
                     </span>
-                    {w.games.length > 0 && (
-                      <span className="text-small text-text-muted">
-                        {w.games
-                          .map((g) => `${when(g.startsAt)} vs ${g.opponent}`)
-                          .join(" · ")}
-                      </span>
-                    )}
-                  </span>
-                </label>
-              ))}
+                  </label>
+                ))}
             </fieldset>
             <SubmitButton className="btn self-start btn-secondary">
               Save away weeks for {s.seasonName}
