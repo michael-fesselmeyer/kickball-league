@@ -124,7 +124,7 @@ test.describe.serial("a player quietly looks for a new team", () => {
     browser,
   }) => {
     const newCaptain = await phone(browser, "newCaptain");
-    await newCaptain.goto(`/app/seasons/${SEASON}/team`);
+    await newCaptain.goto(`/app/seasons/${SEASON}/team?view=roster`);
     const yes = newCaptain
       .getByRole("region", { name: "Players looking for a change" })
       .getByRole("listitem");
@@ -135,7 +135,7 @@ test.describe.serial("a player quietly looks for a new team", () => {
     await newCaptain.context().close();
 
     const oldCaptain = await phone(browser, "oldCaptain");
-    await oldCaptain.goto(`/app/seasons/${SEASON}/team`);
+    await oldCaptain.goto(`/app/seasons/${SEASON}/team?view=roster`);
     await nothingAboutMo(oldCaptain);
     await oldCaptain.context().close();
   });
