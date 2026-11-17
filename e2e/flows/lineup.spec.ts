@@ -77,9 +77,10 @@ test("a captain sets a kicking order that keeps to the two-in-a-row rule", async
   await ref.setViewportSize(PHONE);
   await ref
     .getByRole("link", {
-      name: "Kicking orders for The Big Kicks vs Sun Kickers",
+      name: "Open game The Big Kicks vs Sun Kickers",
     })
     .click();
+  await ref.getByRole("link", { name: "Kicking orders" }).click();
   const bigKicks = ref.getByRole("region", { name: "The Big Kicks" });
   await expect(bigKicks.getByRole("listitem")).toHaveCount(10);
   await expect(bigKicks).toContainText("Keeps to the kicking-order rule");

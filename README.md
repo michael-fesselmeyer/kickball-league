@@ -24,7 +24,7 @@ Highlights by audience. The complete list, with every rule and edge case, is in 
 
 **Everyone signed in**
 
-- A home dashboard with the next game, what needs you (award votes, polls, surveys, registration) and your team, plus a phone tab bar (Home, Schedule, Team, Menu) and a grouped menu. Captains, refs, admins and owners each get their own group on top, so nobody sees a link they can't use.
+- A home dashboard with the next game (answer In, Maybe or Out right there, or follow it live), what needs you (award votes, polls, surveys, registration) and your team, plus a phone tab bar (Home, Schedule, Team, Menu) and a grouped menu. Captains, refs, admins and owners each get their own group on top, so nobody sees a link they can't use.
 
 **Players**
 
