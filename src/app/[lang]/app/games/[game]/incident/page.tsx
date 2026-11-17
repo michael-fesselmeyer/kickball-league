@@ -165,16 +165,8 @@ async function Report({
                   </p>
                 ) : (
                   players.map((p) => (
-                    <label
-                      key={p.userId}
-                      className="flex min-h-11 items-center gap-3"
-                    >
-                      <input
-                        type="checkbox"
-                        name="people"
-                        value={p.userId}
-                        className="size-5"
-                      />
+                    <label key={p.userId} className="check-row">
+                      <input type="checkbox" name="people" value={p.userId} />
                       {p.name}
                     </label>
                   ))

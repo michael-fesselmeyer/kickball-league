@@ -156,10 +156,7 @@ async function ChangeTeam({
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-1 text-h2">Who can see it</legend>
           {AUDIENCE_OPTIONS.map((o) => (
-            <label
-              key={o.value}
-              className="flex min-h-11 cursor-pointer items-start gap-3 py-1"
-            >
+            <label key={o.value} className="check-row-top">
               <input
                 type="radio"
                 name="audience"
@@ -169,7 +166,6 @@ async function ChangeTeam({
                 // Named by its label alone; the hint describes it.
                 aria-labelledby={`audience-${o.value}-label`}
                 aria-describedby={`audience-${o.value}-hint`}
-                className="mt-0.5 size-5 shrink-0"
               />
               <span className="flex flex-col">
                 <span id={`audience-${o.value}-label`}>{o.label}</span>

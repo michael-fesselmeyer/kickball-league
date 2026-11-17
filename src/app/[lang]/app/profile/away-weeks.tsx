@@ -85,16 +85,12 @@ export function AwayWeeks({
               {s.weeks
                 .filter((w) => !w.past)
                 .map((w) => (
-                  <label
-                    key={w.week}
-                    className="flex min-h-11 items-center gap-3"
-                  >
+                  <label key={w.week} className="check-row">
                     <input
                       type="checkbox"
                       name="week"
                       value={w.week}
                       defaultChecked={w.away}
-                      className="size-5"
                     />
                     <span className="flex flex-col">
                       <span>Week of {w.label}</span>
