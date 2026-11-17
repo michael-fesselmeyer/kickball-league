@@ -94,7 +94,7 @@ describe("demo view-as endpoint", () => {
       body: { persona: "admin" },
       returnHeaders: true,
     });
-    expect(response).toEqual({ landing: "/app/admin/seasons" });
+    expect(response).toEqual({ landing: "/app/admin" });
     expect(headers.get("set-cookie")).toMatch(/session_token=/);
     expect(db.session).toHaveLength(1);
     const expiresAt = db.session[0]?.expiresAt as Date;
