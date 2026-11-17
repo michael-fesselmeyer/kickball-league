@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { completeProfile, pageAs } from "../support/personas";
 import { confirmAge, openSeason, signWaiver } from "../support/season";
+import { seasonTool } from "../support/app-nav";
 
 // Players mostly use the app on phones.
 test.use({ viewport: { width: 390, height: 844 } });
@@ -187,7 +188,7 @@ test("a team reaches 100% and leads the sign-up challenge", async ({
 
   await test.step("the admin starts the challenge", async () => {
     await admin.goto(`/app/admin/seasons/${SEASON_SLUG}`);
-    await admin.getByRole("link", { name: "Sign-up challenge" }).click();
+    await (await seasonTool(admin, "Sign-up challenge")).click();
     await expect(admin.getByRole("heading", { level: 1 })).toHaveText(
       "Sign-up challenge",
     );
@@ -251,8 +252,9 @@ test("a team reaches 100% and leads the sign-up challenge", async ({
     });
     await expect(board.getByRole("listitem").first()).toContainText(TEAM);
     await expect(board.getByRole("listitem").first()).toContainText(
-      "2 of 2 signed up · 100%",
+      "2 of 2 signed up",
     );
+    await expect(board.getByRole("listitem").first()).toContainText("100%");
     await expectNoAxeViolations(player);
     await player.context().close();
   });
