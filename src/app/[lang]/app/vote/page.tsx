@@ -60,9 +60,9 @@ function Choices({
   suggested: readonly string[];
 }) {
   const kind = CATEGORIES[ballot.poll.category].nominee;
-  const choices = ballot.nominees.filter(
-    (n) => n.id !== me && n.id !== ballot.myTeamSeasonId,
-  );
+  const choices = ballot.nominees
+    .filter((n) => n.id !== me && n.id !== ballot.myTeamSeasonId)
+    .sort((a, b) => a.name.localeCompare(b.name));
   if (kind === "team")
     return choices.map((n) => (
       <option key={n.id} value={n.id}>
