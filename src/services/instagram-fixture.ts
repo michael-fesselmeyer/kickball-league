@@ -118,20 +118,51 @@ function chunk(type: string, data: Buffer): Buffer {
   return Buffer.concat([length, body, crc]);
 }
 
-/** A square PNG of diagonal stripes in two colors picked from the seed. */
+/** A square PNG of a drawn game-day scene, its colors picked from the seed. */
 export function fixturePhoto(seed: string, size = 360): Buffer {
   const hash = createHash("sha256").update(seed).digest();
-  const a = [hash[0]!, hash[1]!, hash[2]!];
-  const b = [255 - hash[0]!, 255 - hash[1]!, 255 - hash[2]!];
-  const band = 24 + (hash[3]! % 24);
+  const byte = (i: number) => hash[i]!;
+  // A simple drawn scene, so the demo's photos read as a game day rather
+  // than test patterns: a sky (its evening tint from the seed), a mown
+  // field and a red ball with its shadow. Still drawn, never a real photo.
+  const horizon = Math.round(size * (0.42 + (byte(3) % 20) / 100));
+  const warm = byte(4) / 255;
+  const skyTop = [70 + warm * 60, 130 + warm * 20, 220 - warm * 60];
+  const skyLow = [235, 200 + (1 - warm) * 40, 170 + (1 - warm) * 70];
+  const grass = [70 + (byte(5) % 30), 150 + (byte(6) % 40), 70];
+  const ball = {
+    x: size * (0.25 + (byte(7) % 50) / 100),
+    y: horizon + (size - horizon) * (0.35 + (byte(8) % 30) / 100),
+    r: size * (0.08 + (byte(9) % 6) / 100),
+  };
+  const stripe = Math.max(8, Math.round(size / 9));
+  const mix = (from: number[], to: number[], t: number) =>
+    from.map((c, i) => Math.round(c + (to[i]! - c) * t));
   const rows: Buffer[] = [];
   for (let y = 0; y < size; y++) {
     const row = Buffer.alloc(1 + size * 3);
     for (let x = 0; x < size; x++) {
-      const [r, g, bl] = Math.floor((x + y) / band) % 2 === 0 ? a : b;
-      row[1 + x * 3] = r!;
-      row[2 + x * 3] = g!;
-      row[3 + x * 3] = bl!;
+      let color: number[];
+      if (y < horizon) color = mix(skyTop, skyLow, y / horizon);
+      else {
+        const shade = Math.floor(x / stripe) % 2 === 0 ? 1 : 0.9;
+        color = grass.map((c) => Math.round(c * shade));
+      }
+      // The ball's shadow, then the ball, lit from the upper left.
+      const sx = (x - ball.x - ball.r * 0.3) / (ball.r * 1.2);
+      const sy = (y - ball.y - ball.r * 0.9) / (ball.r * 0.35);
+      if (sx * sx + sy * sy <= 1) color = color.map((c) => c * 0.6);
+      const dx = x - ball.x;
+      const dy = y - ball.y;
+      if (dx * dx + dy * dy <= ball.r * ball.r) {
+        const lx = (dx + ball.r * 0.35) / ball.r;
+        const ly = (dy + ball.r * 0.35) / ball.r;
+        const light = Math.max(0, 1 - Math.sqrt(lx * lx + ly * ly));
+        color = mix([200, 40, 45], [255, 170, 160], light * 0.8);
+      }
+      row[1 + x * 3] = Math.round(color[0]!);
+      row[2 + x * 3] = Math.round(color[1]!);
+      row[3 + x * 3] = Math.round(color[2]!);
     }
     rows.push(row);
   }

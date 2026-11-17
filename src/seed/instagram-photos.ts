@@ -14,7 +14,7 @@ import type { SeedData } from "./generate";
 /**
  * Photos for the demo league's home and team pages, as if an admin had
  * synced Instagram and curated it, then disconnected and kept the photos.
- * The pictures are drawn stripes (src/services/instagram-fixture.ts), never
+ * The pictures are drawn scenes (src/services/instagram-fixture.ts), never
  * real photos, and the captions are invented. The account is disconnected,
  * so the demo admin can connect the recorded fixture and see a sync. Fixed
  * ids in their own range.
