@@ -68,7 +68,7 @@ _Why it matters:_ an argument at the field ends with a search on a phone, not "I
 
 ### Admin: growing the league (3 minutes)
 
-**3. Is there interest in a new night?** As **Admin**, on the admin home open **All admin tools → Interest sign-ups**. "Where should we grow?" has 40 answers: Thursday nights at Sample Park is marked **Enough to run** (11 of the 8 teams it needs, counting friends), Sunday nights isn't there yet. The public form is at `/interest`; nobody needs an account to answer. **Open Thursday nights ... as a new league** turns the option into a new league with a draft first season, for the owners and admins to finish. (**Reset demo** removes a league opened this way.)
+**3. Is there interest in a new night?** As **Admin**, on the admin home open **League tools → Interest sign-ups**. "Where should we grow?" has 40 answers: Thursday nights at Sample Park is marked **Enough to run** (11 of the 8 teams it needs, counting friends), Sunday nights isn't there yet. The public form is at `/interest`; nobody needs an account to answer. **Open Thursday nights ... as a new league** turns the option into a new league with a draft first season, for the owners and admins to finish. (**Reset demo** removes a league opened this way.)
 
 _Why it matters:_ the league books a permit for a new night only after people have said they'd play, and starting it takes one tap.
 
@@ -124,7 +124,7 @@ _Why it matters:_ captains who are tired get a graceful handover, and nobody has
 
 ### Admin: the league office (3 minutes)
 
-**15. Game day and the seasons.** As **Admin**, the admin home starts with the current season's card and its main tools, then tonight's games with RSVPs and refs. **Menu → Seasons** shows every season as a card with its status, current first; **Manage** opens a season's tools, grouped. Open **Game day screen**: every game tonight, its ref, the live score and the weather. Then **All admin tools → Incidents → Cards**: the cards refs gave, including the one from step 13.
+**15. Game day and the seasons.** As **Admin**, the admin home starts with the season, one or two tools for the moment (**Game day screen** and **Scores** on a game day) and **League tools**, every other tool grouped by job; then anything that needs an admin and tonight's games with RSVPs and refs. **Menu → Seasons** shows every season as a card with its status, current first; **Manage** opens a season's tools, grouped. Open **Game day screen**: every game tonight, its ref, the live score and the weather. Then **League tools → Incidents → Cards**: the cards refs gave, including the one from step 13.
 
 _Why it matters:_ one screen answers "is everything on track tonight?" from a phone at the park.
 
@@ -143,11 +143,11 @@ _Why it matters:_ the owners see the health of each team's leadership, and can s
 ### More to show, if there is time
 
 - **Signing up and paying** (Ref): Reese doesn't play this fall, so they show a newcomer's sign-up. Open **Spring 2027: register**, join as a free agent at the early-bird price, sign the waiver, and pay on the demo checkout page. **Demo mail** (Admin) has the receipt. Nobody collects cash or Venmo.
-- **Rain-outs** (Admin): the next game day has a **rain watch**, and the rain alert is in **Demo mail**. Open the admin home's **Rain-out**, call off that day and look at the proposed makeups. A rain-out is one decision, and everyone hears at once; a few players get it in Spanish, Chinese or Russian.
+- **Rain-outs** (Admin): the next game day has a **rain watch**, and the rain alert is in **Demo mail**. On the admin home, open **Call a rain-out** under the next game day, call off that day and look at the proposed makeups. A rain-out is one decision, and everyone hears at once; a few players get it in Spanish, Chinese or Russian.
 - **The scheduler and free agents** (Admin): **Spring 2027 → Schedule**, generate a schedule and look at its fairness numbers; **Spring 2027 → Free agents**, the suggested placements with their reasons.
-- **The books, permits and the owner dashboard** (Admin): **Books** by category with receipts; **Permits → Capacity**, how many teams the field time fits; **Owner**, membership, money and turnout season by season.
+- **The books, permits and the owner dashboard** (Admin, under **League tools**): **Books** by category with receipts; **Permits → Capacity**, how many teams the field time fits; **Owner**, membership, money and turnout season by season.
 - **Game-day check-in** (Captain, then Admin): open a game from round 1: the **before play** checklist is ticked for both teams. Its attendance lists who played; two players haven't signed this season's waiver and are flagged.
-- **Late-joiner shirts** (Admin): **All admin tools → Late-joiner shirts**: three players joined after the shirt order. Hand one a spare from stock; the rest wait until a reorder is worth it.
+- **Late-joiner shirts** (Admin): **League tools → Late-joiner shirts**: three players joined after the shirt order. Hand one a spare from stock; the rest wait until a reorder is worth it.
 - **Season cards and concerns**: **Summer 2026**'s season card for the player's team (Player); **Concerns**, two waiting, one with an admin-only note (Admin).
 
 ## What is real and what is pretend
