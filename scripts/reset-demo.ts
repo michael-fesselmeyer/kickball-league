@@ -23,6 +23,8 @@ import * as schema from "../src/db/schema";
 import { canResetDemo } from "../src/lib/demo/guard";
 import { brandDemoLeague, demoBranding } from "../src/seed/demo-branding";
 import { catchUpDemoLeague } from "../src/seed/shift-weeks";
+import { removeOpenedDemoLeagues } from "../src/seed/demo-showcase";
+import { SEED_LEAGUE_SLUG } from "../src/seed/generate";
 
 if (!process.env.DATABASE_URL && existsSync(".env.local"))
   process.loadEnvFile(".env.local");
@@ -39,6 +41,21 @@ console.info("Demo mode is on. Resetting the demo league.");
 
 async function reset(): Promise<void> {
   const ranFrom = new Date();
+  // Leagues opened from the demo's interest form go before the form does.
+  const before = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    max: 1,
+  });
+  try {
+    const db = drizzle({ client: before, schema, casing: "snake_case" });
+    const removed = await db.transaction((tx) =>
+      removeOpenedDemoLeagues(tx, SEED_LEAGUE_SLUG),
+    );
+    if (removed)
+      console.info(`Removed ${removed} league(s) opened during the demo.`);
+  } finally {
+    await before.end();
+  }
   // The seed script runs on import and sets the exit code itself.
   const { seeding } = await import("./seed");
   await seeding;
