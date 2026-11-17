@@ -67,10 +67,59 @@ const localDate = (instant: Date, timeZone: string) =>
 export type EndOfPlay = { endsAt: Date; reason: EndReason };
 
 /**
+ * A permit that runs past midnight still belongs to the evening it started:
+ * its end counts as the game's own until this hour the next morning.
+ */
+const PAST_MIDNIGHT_UNTIL_HOUR = 6;
+
+/** The local hour (0 to 23) of an instant in a time zone. */
+const localHour = (instant: Date, timeZone: string) =>
+  Number(
+    dateTimeFormat("en-US", {
+      hour: "numeric",
+      hourCycle: "h23",
+      timeZone,
+    }).format(instant),
+  );
+
+/** The day after a YYYY-MM-DD date. */
+const nextDay = (date: string) => {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+};
+
+/**
+ * The time the field must be clear, when it belongs to the game's own day:
+ * on the game's local date, or in the small hours after it for a permit that
+ * runs past midnight. A `clearBy` from another day (a permit window the game
+ * has moved away from) says nothing about this game, so it is dropped
+ * rather than shown as a day-long countdown.
+ */
+export function clearByOnGameDay(
+  clearBy: Date | null,
+  gameStartsAt: Date,
+  timeZone: string,
+): Date | null {
+  if (!clearBy) return null;
+  const day = localDate(gameStartsAt, timeZone);
+  const clearDay = localDate(clearBy, timeZone);
+  if (clearDay === day) return clearBy;
+  if (
+    clearDay === nextDay(day) &&
+    localHour(clearBy, timeZone) < PAST_MIDNIGHT_UNTIL_HOUR
+  )
+    return clearBy;
+  return null;
+}
+
+/**
  * When play must end: the earlier of the time the field must be clear and
  * sunset less the margin. A field with lights has no daylight end. When
  * both fall at the same minute, the field time is named, as the firmer
- * rule. Null when neither is known.
+ * rule. Null when neither is known. Given the game's start and time zone,
+ * a `clearBy` that isn't on the game's own day is ignored
+ * (`clearByOnGameDay`).
  */
 export function endOfPlay(input: {
   /** The end of the league's hold on the field; null with no permit. */
@@ -78,12 +127,20 @@ export function endOfPlay(input: {
   sunsetAt: Date | null;
   hasLights: boolean;
   marginMinutes: number;
+  /** The game's start and the league's time zone, to check `clearBy`'s day. */
+  gameDay?: { startsAt: Date; timeZone: string };
 }): EndOfPlay | null {
   const dark =
     input.hasLights || !input.sunsetAt
       ? null
       : new Date(input.sunsetAt.getTime() - input.marginMinutes * 60_000);
-  const { clearBy } = input;
+  const clearBy = input.gameDay
+    ? clearByOnGameDay(
+        input.clearBy,
+        input.gameDay.startsAt,
+        input.gameDay.timeZone,
+      )
+    : input.clearBy;
   if (clearBy && (!dark || clearBy.getTime() <= dark.getTime()))
     return { endsAt: clearBy, reason: "field_time" };
   if (dark) return { endsAt: dark, reason: "daylight" };
