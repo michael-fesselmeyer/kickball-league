@@ -1,0 +1,2 @@
+ALTER TABLE "profile" DROP CONSTRAINT "profile_language_known";--> statement-breakpoint
+ALTER TABLE "profile" ADD CONSTRAINT "profile_language_known" CHECK ("profile"."language" in ('en', 'es', 'zh', 'ru', 'pl', 'bn', 'ko', 'ht'));
