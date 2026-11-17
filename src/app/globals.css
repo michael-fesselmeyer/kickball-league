@@ -547,6 +547,35 @@ body:has(.app-nav) > footer {
   }
 }
 
+/* The public header's menu (src/components/site-header.tsx): the app
+   menu's sheet, from the very bottom since public pages have no tab bar.
+   Inside the app, its links and Join button give way to the app's own tabs
+   and menu. On a phone the theme button moves into the sheet, so the
+   header's row fits a 375px screen; inside the app it stays in the header. */
+.site-menu {
+  inset: auto 0 0 0;
+  max-height: calc(100dvh - var(--safe-top) - 3rem);
+  padding-bottom: calc(1.5rem + var(--safe-bottom));
+}
+
+body:has(.app-nav) .site-nav {
+  display: none;
+}
+
+@media (max-width: 63.999rem) {
+  body:not(:has(.app-nav)) .site-theme {
+    display: none;
+  }
+}
+
+@media (min-width: 48rem) {
+  .site-menu {
+    inset: 0 0 0 auto;
+    max-height: none;
+    padding-bottom: 1.25rem;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .app-menu:popover-open {
     animation: app-menu-in 160ms var(--ease-out, ease-out);
