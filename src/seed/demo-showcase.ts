@@ -33,9 +33,10 @@ import {
   event,
   eventRsvp,
   field,
+  game,
+  gameStart,
   guestTeam,
   guestWaiverSignature,
-  game,
   interestForm,
   interestOption,
   leadershipCheckIn,
@@ -91,6 +92,7 @@ export async function addDemoShowcase(
   await step("shared fields", () => addFieldGroups(db, ctx));
   await step("acting admin", () => addActingAdmin(db, ctx));
   await step("ref cards", () => addRefCards(db, ctx));
+  await step("start times", () => addStartTimes(db, ctx));
   await step("alert choices", () => addAlertChoices(db, ctx));
   await step("open to a new team", () => addMoveInterest(db, ctx));
   await step("leadership check-in", () => addLeadershipCheckIn(db, ctx));
@@ -500,6 +502,53 @@ async function addRefCards(db: Db, ctx: Context): Promise<boolean> {
 }
 
 /**
+ * First pitch for the games already played, as refs tapped it: most on
+ * time, a few late, and the ref said which team held them up. The admins'
+ * start-times report then shows who costs the league daylight.
+ */
+async function addStartTimes(db: Db, ctx: Context): Promise<boolean> {
+  const played = await db
+    .select({ id: game.id, startsAt: slot.startsAt })
+    .from(game)
+    .innerJoin(slot, eq(game.slotId, slot.id))
+    .where(
+      and(
+        eq(game.seasonId, ctx.seasonId),
+        eq(game.status, "final"),
+        lt(slot.startsAt, ctx.now),
+      ),
+    )
+    .orderBy(asc(slot.startsAt), asc(game.id));
+  if (played.length === 0) return false;
+  // Every fifth game started late: minutes late and who held it up.
+  const late = [
+    [12, "team_a"],
+    [8, "team_b"],
+    [15, "team_a"],
+    [7, "both"],
+  ] as const;
+  await db
+    .insert(gameStart)
+    .values(
+      played.map((g, i) => {
+        const delay =
+          i % 5 === 3 ? late[Math.floor(i / 5) % late.length] : null;
+        const minutes = delay ? delay[0] : i % 3;
+        const startedAt = new Date(g.startsAt.getTime() + minutes * 60_000);
+        return {
+          gameId: g.id,
+          startedAt,
+          heldUpBy: delay ? delay[1] : null,
+          recordedBy: PERSONA_IDS.ref,
+          recordedAt: startedAt,
+        };
+      }),
+    )
+    .onConflictDoNothing();
+  return true;
+}
+
+/**
  * How players answered the alert cards and the email footers: most said
  * yes to game reminders, some want only their team's news or a weekly
  * roundup, a couple snoozed, and two turned league news off from an email.
@@ -569,6 +618,8 @@ async function addMoveInterest(db: Db, ctx: Context): Promise<boolean> {
   }
   // The demo captain leads the team again in the season that's signing
   // up, so the team page shows the recruiting count.
+  const captainTeam = ctx.teams[0]?.id;
+  if (!captainTeam) return added > 0;
   const [mine] = await db
     .select({ id: teamSeason.id, seasonId: teamSeason.seasonId })
     .from(teamSeason)
@@ -582,7 +633,7 @@ async function addMoveInterest(db: Db, ctx: Context): Promise<boolean> {
           db
             .select({ teamId: teamSeason.teamId })
             .from(teamSeason)
-            .where(eq(teamSeason.id, ctx.teams[0]?.id ?? ctx.seasonId)),
+            .where(eq(teamSeason.id, captainTeam)),
         ),
       ),
     )
