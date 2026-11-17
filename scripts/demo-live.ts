@@ -10,10 +10,13 @@
  */
 import { existsSync } from "node:fs";
 import { drizzle } from "drizzle-orm/node-postgres";
+import { gte, sql } from "drizzle-orm";
 import { Pool } from "pg";
 import * as schema from "../src/db/schema";
+import { message } from "../src/db/schema/message";
 import { canResetDemo } from "../src/lib/demo/guard";
 import { defaultLeague } from "../src/db/queries/leagues";
+import { gameNight } from "../src/seed/demo-evening";
 import { liveDemo } from "../src/seed/demo-live";
 import { addDemoLanguages, addDemoShowcase } from "../src/seed/demo-showcase";
 
@@ -39,7 +42,15 @@ async function main(): Promise<void> {
       console.info("No league to start a game night in.");
       return;
     }
-    const now = new Date();
+    // Tonight's game is always an evening one: a demo built overnight or
+    // in the day plays it at 7 pm today, and this step reads that evening's
+    // clock as "now" for the live game, the reminders and the demo data.
+    const now = gameNight(new Date(), league.timeZone).clock;
+    // The database's own clock, which stamps the mail queued below.
+    const { rows } = await pool.query<{ at: Date }>(
+      "select clock_timestamp() as at",
+    );
+    const queuedFrom = rows[0]?.at ?? new Date();
     // Languages first, so tonight's reminders go out in each person's own.
     const languages = await db.transaction((tx) =>
       addDemoLanguages(tx, league.id),
@@ -48,6 +59,14 @@ async function main(): Promise<void> {
     const shown = await db.transaction((tx) =>
       addDemoShowcase(tx, league.id, now),
     );
+    // The mail this step queued is dated by the evening's clock too, so
+    // Demo mail doesn't show it written at the hour the demo was built.
+    await db
+      .update(message)
+      .set({
+        createdAt: sql`least(${message.sendAfter}, ${now.toISOString()}::timestamptz)`,
+      })
+      .where(gte(message.createdAt, queuedFrom));
     console.info(
       [
         done.liveGameId

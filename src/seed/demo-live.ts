@@ -28,11 +28,10 @@ import type {
   UserId,
 } from "@/domain/ids";
 import { fixtureForecast } from "@/services/weather-fixture";
+import { STARTED_AGO } from "./demo-evening";
 import { PERSONA_IDS } from "./demo-personas";
 
 const MINUTE = 60_000;
-/** The live game started this long ago: a few innings in. */
-const STARTED_AGO = 40 * MINUTE;
 /** The rain alert job runs the evening before a game day. */
 const ALERT_LEAD = 20 * 60 * MINUTE;
 
@@ -74,7 +73,9 @@ export type LiveDemo = {
  * (docs/demo.md), after `demo:reset` has seeded it:
  *
  * 1. The next round still to play moves to today, so its first games
- *    started 40 minutes ago, and they are live: first pitch is recorded,
+ *    started 40 minutes before `now`, and they are live (the demo passes an
+ *    evening clock, src/seed/demo-evening.ts, so the game is never at an
+ *    odd hour): first pitch is recorded,
  *    the team that kicks first is set, three and a half innings are
  *    entered by the game's ref (the demo ref is checked in at the field),
  *    and the games are in progress. The round's later games haven't
