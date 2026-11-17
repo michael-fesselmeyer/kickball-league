@@ -4,6 +4,10 @@ export declare const BRANDING_FILE: string;
 export declare const PUBLIC_LOGO_DIR: string;
 export declare const LOGO_MAX_HEIGHT: number;
 export declare const LOGO_LARGE_SIDE: number;
+export declare const LOGO_BACKGROUNDS: readonly LogoBackground[];
+export declare const KNOCK_OUT_TOLERANCE: number;
+
+export type LogoBackground = "keep" | "knock-out";
 
 export declare class BrandingError extends Error {}
 
@@ -12,6 +16,8 @@ export type Branding = {
   shortName: string | null;
   /** The logo file's full path, or null. */
   logo: string | null;
+  /** What the demo's copy does with the logo's background. */
+  logoBackground: LogoBackground;
   teams: string[];
 };
 
@@ -27,6 +33,9 @@ export declare function logoSize(
   largeSide?: number | null,
 ): { width: number; height: number };
 export declare function brandingKey(branding: Branding | null): string;
+export declare function knockOutBackground(
+  input: Buffer | string,
+): Promise<Buffer>;
 export declare function prepareLogo(
   branding: Branding | null,
   publicDir: string,
