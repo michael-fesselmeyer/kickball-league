@@ -11,6 +11,9 @@
  * 4. Starts stripe-mock (the binary or Docker) when it can, so paying works.
  * 5. Starts the app in demo mode on a free port and opens the browser.
  *
+ * With a private/brand/demo-branding.json (git ignores private/), the demo
+ * shows that league's name, logo and team names instead of the generic ones.
+ *
  * It never reads .env.local. The demo's secrets are made on the first run
  * and kept in .demo/ (git ignores it); nothing is printed but the address.
  *
@@ -35,11 +38,18 @@ import {
   POSTGRES_IMAGE,
   STRIPE_MOCK_IMAGE,
 } from "./demo-lib.mjs";
+import {
+  brandingEnv,
+  brandingKey,
+  loadBranding,
+  prepareLogo,
+} from "./demo-branding.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const stateDir = path.join(root, ".demo");
 const secretsFile = path.join(stateDir, "env");
 const stateFile = path.join(stateDir, "state.json");
+const brandDir = path.join(root, "private", "brand");
 const args = new Set(process.argv.slice(2));
 const PG_CONTAINER = "kb-demo-postgres";
 const STRIPE_CONTAINER = "kb-demo-stripe-mock";
@@ -326,6 +336,16 @@ async function startStripeMock(docker) {
   return { url: `http://localhost:${port}`, stop };
 }
 
+/** The private branding, or null; a file that can't be used is reported and skipped. */
+function readBranding() {
+  try {
+    return loadBranding(brandDir);
+  } catch (error) {
+    note(error.message);
+    return null;
+  }
+}
+
 function openBrowser(url) {
   const [command, commandArgs] =
     process.platform === "darwin"
@@ -373,13 +393,24 @@ async function main() {
     state.appPort && (await portFree(state.appPort))
       ? state.appPort
       : await freePort(APP_PORT);
-  const env = demoEnv({
-    shell: process.env,
-    secrets,
-    databaseUrl: pg.url,
-    port,
-    stripeMockUrl: stripe?.url ?? null,
-  });
+  const branding = readBranding();
+  if (branding) say("Branding the demo from private/brand");
+  let logo = null;
+  try {
+    logo = await prepareLogo(branding, path.join(root, "public"));
+  } catch (error) {
+    note(`Skipping the logo: ${error.message}`);
+  }
+  const env = {
+    ...demoEnv({
+      shell: process.env,
+      secrets,
+      databaseUrl: pg.url,
+      port,
+      stripeMockUrl: stripe?.url ?? null,
+    }),
+    ...brandingEnv(branding, logo),
+  };
   const key = buildKey({
     commit: output("git", ["rev-parse", "HEAD"], { cwd: root }) ?? "",
     changes:
@@ -391,6 +422,7 @@ async function main() {
     }),
     port,
     database: pg.url,
+    brand: brandingKey(branding),
   });
   const buildId = path.join(root, ".next", "BUILD_ID");
   const builtId = existsSync(buildId) ? readFileSync(buildId, "utf8") : null;

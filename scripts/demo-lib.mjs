@@ -137,9 +137,9 @@ export function databaseUrl({ host, port, password }) {
  * today) and the address it runs at. A build with the same key is still
  * fresh and can be reused with its data.
  */
-export function buildKey({ commit, changes, day, port, database }) {
+export function buildKey({ commit, changes, day, port, database, brand = "" }) {
   return createHash("sha256")
-    .update(JSON.stringify({ commit, changes, day, port, database }))
+    .update(JSON.stringify({ commit, changes, day, port, database, brand }))
     .digest("hex")
     .slice(0, 16);
 }

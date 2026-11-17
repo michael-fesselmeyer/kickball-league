@@ -81,7 +81,7 @@ describe("buildKey", () => {
     port: 4100,
     database: url,
   };
-  it("changes with the code, the day and the address", () => {
+  it("changes with the code, the day, the address and the branding", () => {
     const key = buildKey(base);
     expect(buildKey({ ...base })).toBe(key);
     for (const change of [
@@ -89,6 +89,7 @@ describe("buildKey", () => {
       { changes: " M src/app/page.tsx" },
       { day: "2026-11-15" },
       { port: 4101 },
+      { brand: "0123456789abcdef" },
     ])
       expect(buildKey({ ...base, ...change })).not.toBe(key);
   });

@@ -11,12 +11,17 @@
  * Its last step moves the seeded league forward by whole weeks so the
  * in-progress season's next game day is the coming one
  * (src/seed/shift-weeks.ts); `npm run seed` keeps the fixed calendar.
+ *
+ * With SITE_NAME or DEMO_TEAM_NAMES set (npm run demo sets them from a
+ * private branding file, docs/demo.md), it then writes that league name and
+ * those team names over the seed's (src/seed/demo-branding.ts).
  */
 import { existsSync } from "node:fs";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "../src/db/schema";
 import { canResetDemo } from "../src/lib/demo/guard";
+import { brandDemoLeague, demoBranding } from "../src/seed/demo-branding";
 import { catchUpDemoLeague } from "../src/seed/shift-weeks";
 
 if (!process.env.DATABASE_URL && existsSync(".env.local"))
@@ -27,6 +32,8 @@ if (!allowed.on) {
   console.error(allowed.reason);
   process.exit(1);
 }
+
+const branding = demoBranding(process.env);
 
 console.info("Demo mode is on. Resetting the demo league.");
 
@@ -48,6 +55,14 @@ async function reset(): Promise<void> {
         ? "The demo season is already current."
         : `Moved the demo league ${weeks} weeks forward, so its next game day is the coming one.`,
     );
+    if (branding.leagueName || branding.teamNames.length > 0) {
+      const renamed = await db.transaction((tx) =>
+        brandDemoLeague(tx, branding),
+      );
+      console.info(
+        `Branded the demo league: its name and ${renamed} team names.`,
+      );
+    }
   } finally {
     await pool.end();
   }
