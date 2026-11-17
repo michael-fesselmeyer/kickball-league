@@ -41,11 +41,17 @@ export type NavInput = {
   awards: boolean;
   /** Public pages of this league start here: "" or "/l/<slug>". */
   leagueBase: string;
+  /** This person's other leagues, to switch to (ADR 0048). */
+  otherLeagues?: readonly { slug: string; name: string }[];
 };
 
 export type NavIcon = "home" | "schedule" | "team" | "admin" | "whistle";
 export type NavTab = { href: string; label: string; icon: NavIcon };
-export type NavLink = { href: string; label: string };
+/**
+ * A menu link. `document` links go to a route handler (the league switch),
+ * so they load as a whole page instead of through the client router.
+ */
+export type NavLink = { href: string; label: string; document?: boolean };
 export type NavGroup = { id: string; title: string; links: NavLink[] };
 
 export type AppNav = { tabs: NavTab[]; groups: NavGroup[] };
@@ -98,14 +104,17 @@ export function appNav(input: NavInput): AppNav {
     if (kept.length > 0) groups.push({ id, title, links: kept });
   };
 
+  // "Your stats" sits in My season, or under Account when it would be My
+  // season's only link (a ref on no current team), so no group is a lone
+  // link that also sits elsewhere.
+  let statsInAccount = false;
   if (playing) {
-    const teams = input.seasons.filter((s) => s.teamName);
-    add("my-season", "My season", [
-      ...teams.map((s) => ({
-        href: `/app/seasons/${s.seasonSlug}/team`,
-        label:
-          teams.length > 1 ? `${s.teamName} · ${s.seasonName}` : "Your team",
-      })),
+    const seasonLinks = [
+      // The current team only; Home lists every season's team.
+      team !== null && {
+        href: `/app/seasons/${team.seasonSlug}/team`,
+        label: "Your team",
+      },
       ...input.seasons
         .filter((s) => !s.teamName)
         .map((s) => ({
@@ -120,8 +129,13 @@ export function appNav(input: NavInput): AppNav {
         href: pub(`/seasons/${anySeason.seasonSlug}/standings`),
         label: "Standings",
       },
-      input.plays && { href: "/app/stats", label: "Your stats" },
-    ]);
+    ].filter((l): l is NavLink => l !== false);
+    if (seasonLinks.length > 0)
+      add("my-season", "My season", [
+        ...seasonLinks,
+        input.plays && { href: "/app/stats", label: "Your stats" },
+      ]);
+    else statsInAccount = input.plays;
     add("game-day", "Game day", [
       input.pickem && { href: "/app/pickem", label: "Pick'em" },
       input.plays &&
@@ -190,7 +204,13 @@ export function appNav(input: NavInput): AppNav {
 
   add("account", "Account", [
     { href: "/app/profile", label: "Your profile" },
+    statsInAccount && { href: "/app/stats", label: "Your stats" },
     input.sponsor && { href: "/app/sponsor", label: "Your sponsor page" },
+    ...(input.otherLeagues ?? []).map((l) => ({
+      href: `/app/league/${l.slug}?next=${encodeURIComponent("/app")}`,
+      label: `Switch to ${l.name}`,
+      document: true,
+    })),
   ]);
 
   return { tabs, groups };
