@@ -201,9 +201,10 @@
   /*
    * Scripts the Latin web fonts don't cover use the phone's own font for
    * them (docs/i18n.md, Fonts): a Chinese, Korean or Bengali web font would
-   * not fit the font budget, and every phone ships one. Cyrillic and Polish
-   * letters come from Inter's own subsets, loaded only when a page uses them.
+   * not fit the font budget, and every phone ships one. Cyrillic comes from
+   * Inter's own subset, loaded only on a page that uses it.
    */
+
   :root:lang(zh-Hans) {
     --font-script:
       "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
@@ -503,4 +504,17 @@ body:has(.app-nav) > footer {
   body:has(.app-nav) {
     padding-bottom: 0;
   }
+}
+
+/*
+ * Polish letters such as ą and ł are in Inter's and Bricolage's Latin
+ * Extended files, about 105 kB more on every Polish page, past the font
+ * budget. Polish pages use the phone's own font instead, which covers
+ * them, so they load no more font than an English page.
+ */
+:root:lang(pl) {
+  /* Unlayered and more specific than next/font's class on <html>, so it
+     wins wherever the fonts are named. */
+  --font-inter: ui-sans-serif, system-ui;
+  --font-bricolage: ui-sans-serif, system-ui;
 }
