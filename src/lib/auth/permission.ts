@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { db } from "@/db/client";
 import { loadSubject } from "@/db/queries/subject";
+import { waitForRequest } from "@/db/wait-for-request";
 import {
   type Action,
   type Context,
@@ -24,9 +25,14 @@ import { auth } from "./index";
  * for it; React's `cache` makes that one lookup per render. Server Actions
  * and Route Handlers are not renders, so each call there looks it up fresh.
  */
-export const currentAuthSession = cache(async () =>
-  auth.api.getSession({ headers: await headers() }),
-);
+export const currentAuthSession = cache(async () => {
+  const requestHeaders = await headers();
+  // In a page's App Shell prerender (ADR 0047) this stops here, before Better
+  // Auth: the prerender's end reaches Next.js intact instead of being logged
+  // as an INTERNAL_SERVER_ERROR. In a real request it resolves at once.
+  await waitForRequest();
+  return auth.api.getSession({ headers: requestHeaders });
+});
 
 /**
  * The signed-in person as a permissions subject in the league the app is

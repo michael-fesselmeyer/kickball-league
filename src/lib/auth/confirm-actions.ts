@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { waitForRequest } from "@/db/wait-for-request";
 import { env } from "@/env";
 import { auth } from "@/lib/auth";
 import { safeNextPath } from "@/lib/safe-next";
@@ -17,6 +18,7 @@ import { requestSignInLink } from "./request-link";
 export async function emailConfirmLink(form: FormData): Promise<void> {
   const back = safeNextPath(form.get("next"));
   const requestHeaders = await headers();
+  await waitForRequest();
   const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) redirect(`/sign-in?next=${encodeURIComponent(back)}`);
   const page = new URL(back, "http://same-site.invalid");

@@ -4,6 +4,7 @@ import { isAPIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { waitForRequest } from "@/db/wait-for-request";
 import { auth } from "@/lib/auth";
 import {
   permissionToChange,
@@ -68,7 +69,9 @@ export async function resetDemo(): Promise<void> {
  */
 export async function demoPersona(): Promise<PersonaKey | null> {
   if (!demoStatus(process.env).on) return null;
-  const session = await auth.api.getSession({ headers: await headers() });
+  const requestHeaders = await headers();
+  await waitForRequest();
+  const session = await auth.api.getSession({ headers: requestHeaders });
   const email = session?.user.email?.toLowerCase();
   if (!email) return null;
   return PERSONA_KEYS.find((key) => PERSONAS[key].email === email) ?? null;
