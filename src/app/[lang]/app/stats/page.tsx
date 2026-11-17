@@ -132,8 +132,12 @@ async function Stats({ searchParams }: PageProps<"/[lang]/app/stats">) {
   return (
     <>
       <header className="flex flex-col gap-1">
-        <Link href="/app/profile" className="underline">
-          Your profile
+        {/* In the menu under My season, next to the team page. */}
+        <Link
+          href="/app"
+          className="inline-flex min-h-11 items-center underline"
+        >
+          Home
         </Link>
         <h1 className="text-h1">Your stats</h1>
         <p className="text-text-muted">
@@ -173,18 +177,21 @@ async function Stats({ searchParams }: PageProps<"/[lang]/app/stats">) {
         <p>Your stats start once you&apos;ve played a season on a team.</p>
       ) : (
         <>
-          <section aria-labelledby="career" className="flex flex-col gap-2">
-            <h2 id="career" className="text-h2">
-              Career
-            </h2>
-            <p className="text-text-muted">
-              {career.seasons} season{career.seasons === 1 ? "" : "s"}
-            </p>
-            <StatTable
-              caption="Career stats"
-              rows={rowsOf(career, careerAwards)}
-            />
-          </section>
+          {/* With one season, its table and the career's are the same. */}
+          {perSeason.length > 1 && (
+            <section aria-labelledby="career" className="flex flex-col gap-2">
+              <h2 id="career" className="text-h2">
+                Career
+              </h2>
+              <p className="text-text-muted">
+                {career.seasons} season{career.seasons === 1 ? "" : "s"}
+              </p>
+              <StatTable
+                caption="Career stats"
+                rows={rowsOf(career, careerAwards)}
+              />
+            </section>
+          )}
           {perSeason.map((s) => (
             <section
               key={s.seasonId}
