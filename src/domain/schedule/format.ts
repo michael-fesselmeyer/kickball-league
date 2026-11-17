@@ -46,6 +46,21 @@ export function shortDay(
   }).format(instant);
 }
 
+/** "Mon, Sep 14, 2025": a day from another season, where the year matters. */
+export function shortDayWithYear(
+  instant: Date,
+  timeZone: string,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  return dateTimeFormat(LOCALE_TAGS[locale], {
+    timeZone,
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(instant);
+}
+
 /** "Monday, September 14, 2026 at 8:00 PM EDT" */
 export function fullWhen(
   instant: Date,

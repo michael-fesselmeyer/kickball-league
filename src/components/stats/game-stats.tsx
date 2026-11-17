@@ -1,7 +1,7 @@
 import { cacheLife } from "next/cache";
 import Link from "next/link";
 import type { SeasonId } from "@/domain/ids";
-import { shortDay } from "@/domain/schedule/format";
+import { shortDay, shortDayWithYear } from "@/domain/schedule/format";
 import type { PublicGame } from "@/domain/schedule/public-game";
 import { pickBlurb } from "@/domain/stats/game-of-the-week";
 import { rivalry, seriesLine } from "@/domain/stats/rivalry";
@@ -55,6 +55,14 @@ export async function GameStats({
   const name = (slug: string) =>
     slug === a ? game.teamA.name : game.teamB.name;
   const isPick = stats.pick?.gameId === game.id;
+  // Newest first, with the year on meetings from another season.
+  const meetings = [...series.history]
+    .sort((x, y) => y.playedAt.getTime() - x.playedAt.getTime())
+    .slice(0, MEETINGS_SHOWN);
+  const when = (m: (typeof meetings)[number]) =>
+    m.seasonId === game.seasonId
+      ? shortDay(m.playedAt, timeZone, locale)
+      : shortDayWithYear(m.playedAt, timeZone, locale);
   const form = [game.teamA, game.teamB].map((t) => ({
     team: t,
     streak: streakLabel(stats.streaks.get(t.slug)?.current ?? null, locale),
@@ -100,9 +108,9 @@ export async function GameStats({
             })}
           </p>
         )}
-        {series.history.length > 0 && (
+        {meetings.length > 0 && (
           <ul className="flex flex-col">
-            {series.history.slice(0, MEETINGS_SHOWN).map((m) => (
+            {meetings.map((m) => (
               <li
                 key={m.gameId}
                 className="flex flex-wrap items-center justify-between gap-x-3 border-t border-border py-1"
@@ -115,7 +123,7 @@ export async function GameStats({
                   aria-current={m.gameId === game.id ? "page" : undefined}
                   className="inline-flex min-h-11 items-center underline"
                 >
-                  {shortDay(m.playedAt, timeZone, locale)}
+                  <time dateTime={m.playedAt.toISOString()}>{when(m)}</time>
                 </Link>
                 <span className="text-small tabular-nums">
                   {m.winner === null
