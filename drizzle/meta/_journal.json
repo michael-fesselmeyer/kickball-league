@@ -680,6 +680,13 @@
       "when": 1794873811393,
       "tag": "0096_more_languages",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1794876129696,
+      "tag": "0097_italian_french",
+      "breakpoints": true
     }
   ]
 }
