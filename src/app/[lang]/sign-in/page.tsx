@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { env } from "@/env";
 import { isGoogleEnabled } from "@/lib/auth/google";
+import { currentAuthSession } from "@/lib/auth/permission";
 import { appScheme } from "@/lib/mobile/app-scheme";
 import { safeNextPath } from "@/lib/safe-next";
+import { signOut } from "../app/actions";
+import { SignOutForm } from "../app/offline-sync";
 import { signInWithGoogle } from "./actions";
 import { GoogleSignIn } from "./google-sign-in";
 import { PasskeySignIn } from "./passkey-sign-in";
@@ -35,6 +39,16 @@ async function FormForRequest({
   searchParams,
 }: Pick<PageProps<"/[lang]/sign-in">, "searchParams">) {
   const { next, google, app } = await searchParams;
+  // The header and footer are static and can't tell who is signed in, so
+  // their "Sign in or open the app" lands here either way.
+  const session = await currentAuthSession();
+  if (session)
+    return (
+      <SignedIn
+        who={session.user.name || session.user.email}
+        next={safeNextPath(next)}
+      />
+    );
   // `app` comes back from the apps' browser sheet (ADR 0077).
   const problem = google ?? app;
   return (
@@ -49,6 +63,29 @@ async function FormForRequest({
           : undefined
       }
     />
+  );
+}
+
+/** Someone already signed in: the way into the app, or out. */
+function SignedIn({ who, next }: { who: string; next: string }) {
+  return (
+    <section
+      aria-labelledby="signed-in"
+      className="flex flex-col gap-4 rounded-card border-2 border-text bg-surface p-5 shadow-card"
+    >
+      <h2 id="signed-in" className="text-h3">
+        You&apos;re signed in as <span className="break-words">{who}</span>
+      </h2>
+      <Link href={next} className="btn btn-primary">
+        Go to your games
+      </Link>
+      <div className="flex flex-col gap-2">
+        <p className="text-small text-text-muted">
+          Not you, or signing in with another account?
+        </p>
+        <SignOutForm action={signOut} />
+      </div>
+    </section>
   );
 }
 
