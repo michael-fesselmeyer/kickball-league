@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
-import { openMoreActions } from "../support/app-nav";
+import { adminTool, openMoreActions } from "../support/app-nav";
 
 /**
  * The game-day command center (issue #257) at phone width: an admin keeps
@@ -19,9 +19,7 @@ test("an admin watches the ref check in on the game-day screen without reloading
 }) => {
   const admin = await pageAs(browser, "Admin");
   await admin.goto("/app/admin");
-  await expect(
-    admin.getByRole("link", { name: "Game day screen" }),
-  ).toBeVisible();
+  await expect(await adminTool(admin, "Game day screen")).toBeVisible();
   await admin.goto(`/app/admin/today?date=${DAY}`);
   await expect(admin.getByRole("heading", { level: 1 })).toHaveText("Game day");
   const screen = admin.getByRole("main");

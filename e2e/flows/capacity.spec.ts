@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { adminTool } from "../support/app-nav";
 import { expectNoAxeViolations } from "../support/axe";
 import { ownerAccount } from "../support/accounts";
 import { pageSignedInAs } from "../support/sign-in";
@@ -18,7 +19,7 @@ test("an owner plans for more teams and requests exactly the extra field time", 
 }) => {
   const page = await pageSignedInAs(browser, await ownerAccount("Casey"));
   await page.goto("/app/admin");
-  await page.getByRole("link", { name: "Books", exact: true }).click();
+  await (await adminTool(page, "Books")).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Books:");
   await page.getByText("Other seasons", { exact: true }).click();
   await page.getByRole("link", { name: "Fall 2026" }).click();
