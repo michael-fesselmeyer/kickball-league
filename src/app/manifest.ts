@@ -19,7 +19,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
     name: SITE.name,
-    short_name: "Kickball",
+    short_name: SITE.shortName,
     description: SITE.description,
     start_url: "/app",
     scope: "/",

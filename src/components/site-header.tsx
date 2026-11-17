@@ -1,6 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Kickball } from "@/components/kickball";
 import { ThemeSwitch, type ThemeLabels } from "@/components/theme-switch";
+import type { SiteLogo } from "@/lib/site";
 
 export const SITE_MENU_ID = "site-menu";
 
@@ -40,12 +42,22 @@ const SHEET_LINK =
  * `/sign-in` itself offers the way into the app to someone who is. Inside
  * the app (`body:has(.app-nav)`, globals.css) the links give way to the
  * app's own tabs and menu.
+ *
+ * A deployment that configures the league's logo (src/lib/site.ts) shows it
+ * in place of the kickball mark, and one with a short name shows that on a
+ * phone, where the full name would push the buttons onto a second line.
  */
 export function SiteHeader({
   words,
   href,
+  logo = null,
+  shortBrand = null,
 }: {
   words: SiteHeaderWords;
+  /** The league's logo, already sized small at build time (scripts/demo.mjs). */
+  logo?: SiteLogo | null;
+  /** The league's short name, shown instead of the full one on a phone. */
+  shortBrand?: string | null;
   /** Puts a path in the page's language where it is translated. */
   href: (path: string) => string;
 }) {
@@ -69,8 +81,27 @@ export function SiteHeader({
           href={href("/")}
           className="mr-auto flex min-h-11 items-center gap-2 font-display text-body-lg text-accent sm:text-h3"
         >
-          <Kickball className="size-7 -rotate-12 sm:size-8" />
-          {words.brand}
+          {logo ? (
+            <Image
+              src={logo.src}
+              width={logo.width}
+              height={logo.height}
+              // Resized when the demo is built; no optimizer round trip.
+              unoptimized
+              alt=""
+              className="h-9 w-auto max-w-24 object-contain sm:h-10"
+            />
+          ) : (
+            <Kickball className="size-7 -rotate-12 sm:size-8" />
+          )}
+          {shortBrand ? (
+            <>
+              <span className="sm:hidden">{shortBrand}</span>
+              <span className="hidden sm:inline">{words.brand}</span>
+            </>
+          ) : (
+            words.brand
+          )}
         </Link>
         <nav aria-label={words.nav} className="site-nav hidden lg:block">
           <ul className="flex items-center">
