@@ -108,7 +108,7 @@ test("sign-ups collect shirt sizes, and an admin orders the shirts from them", a
       captain.getByRole("combobox", { name: "Shirt size" }),
     ).toHaveValue("l");
 
-    await captain.goto(`/app/seasons/${SLUG}/team`);
+    await captain.goto(`/app/seasons/${SLUG}/team?view=roster`);
     await captain.getByRole("button", { name: "Make an invite link" }).click();
     const link = captain.getByLabel("Your team's link");
     await expect(link).toHaveValue(/\/app\/join\//);

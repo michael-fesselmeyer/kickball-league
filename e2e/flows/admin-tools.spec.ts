@@ -75,7 +75,7 @@ test("a captain and an admin download rosters and payments as CSV", async ({
   browser,
 }) => {
   const captain = await pageAs(browser, "Captain");
-  await captain.goto("/app/seasons/fall-2026/team");
+  await captain.goto("/app/seasons/fall-2026/team?view=roster");
   const roster = await download(
     captain.getByRole("link", { name: "Download the roster (CSV)" }),
   );

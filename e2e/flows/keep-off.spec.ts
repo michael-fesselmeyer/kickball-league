@@ -51,7 +51,7 @@ test.describe.serial("a captain keeps someone off the team, quietly", () => {
       await captainEmail(TEAM, SEASON),
     );
     await captain.setViewportSize(PHONE);
-    await captain.goto(`/app/seasons/${SEASON}/team`);
+    await captain.goto(`/app/seasons/${SEASON}/team?view=settings`);
 
     const list = captain.getByRole("region", { name: /^Not on my team/ });
     await list.getByText("Not on my team").click();
@@ -68,16 +68,18 @@ test.describe.serial("a captain keeps someone off the team, quietly", () => {
     await expect(list.getByRole("listitem")).not.toContainText(PERSON.name);
     await expectNoAxeViolations(captain);
 
+    await captain.goto(`/app/seasons/${SEASON}/team?view=roster`);
     await captain
       .getByRole("button", { name: /^Make (an invite link|a new link)/ })
       .click();
     inviteLink = await captain.getByLabel("Your team's link").inputValue();
     expect(inviteLink).toMatch(/\/app\/join\//);
 
+    await captain.goto(`/app/seasons/${SEASON}/team`);
     await captain
       .getByRole("listitem")
       .filter({ hasText: `vs ${OTHER}` })
-      .getByRole("link", { name: "Short? Find subs" })
+      .getByRole("link", { name: /^(Find subs|Ask for a sub)$/ })
       .click();
     await captain.getByLabel("How many subs").fill("2");
     await captain.getByLabel("At least this many women").fill("0");

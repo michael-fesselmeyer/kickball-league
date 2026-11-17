@@ -204,7 +204,7 @@ test("a whole season, from setting it up to a rain-out", async ({
     await signWaiver(captain, SLUG, "Casey Captain");
     await payShare(captain, "$100", "casey.captain@example.test");
 
-    await captain.goto(`/app/seasons/${SLUG}/team`);
+    await captain.goto(`/app/seasons/${SLUG}/team?view=roster`);
     await captain.getByRole("button", { name: "Make an invite link" }).click();
     const link = captain.getByLabel("Your team's link");
     await expect(link).toHaveValue(/\/app\/join\//);
@@ -229,7 +229,7 @@ test("a whole season, from setting it up to a rain-out", async ({
     await signWaiver(player, SLUG, "Addie Admin");
     await payShare(player, "$100", "addie.admin@example.test");
 
-    await captain.goto(`/app/seasons/${SLUG}/team`);
+    await captain.goto(`/app/seasons/${SLUG}/team?view=roster`);
     await expect(
       captain.getByText(/2 signed the waiver, 2 paid\./),
     ).toBeVisible();
@@ -291,9 +291,12 @@ test("a whole season, from setting it up to a rain-out", async ({
     await signWaiver(sub, SLUG, "Pat Player");
 
     await captain.goto(`/app/seasons/${SLUG}/team`);
+    // The first game still to come: one link to ask for subs for it.
     await captain
-      .getByRole("link", { name: "Short? Find subs" })
+      .getByRole("listitem")
+      .filter({ has: captain.getByRole("button", { name: "In", exact: true }) })
       .first()
+      .getByRole("link", { name: /^(Find subs|Ask for a sub)$/ })
       .click();
     await captain.getByLabel("How many subs").fill("1");
     await captain.getByLabel("At least this many women").fill("0");

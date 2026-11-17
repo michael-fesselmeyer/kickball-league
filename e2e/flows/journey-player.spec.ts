@@ -300,7 +300,7 @@ test("a new player signs up, pays the early-bird price, is placed on a team and 
     await player.context().close();
 
     const captain = await memberPage(browser, captainPerson);
-    await captain.goto(`/app/seasons/${SLUG}/team`);
+    await captain.goto(`/app/seasons/${SLUG}/team?view=roster`);
     await expect(
       captain.getByText(/2 signed the waiver, 2 paid\./),
     ).toBeVisible();
