@@ -4,7 +4,18 @@ import { buildRobots, buildSitemap, eventPages } from "./sitemap";
 const ORIGIN = "https://league.example.test";
 
 /** Each language's address prefix, in LOCALES order. */
-const PREFIXES = ["", "/es", "/zh", "/ru", "/pl", "/bn", "/ko", "/ht"];
+const PREFIXES = [
+  "",
+  "/es",
+  "/zh",
+  "/ru",
+  "/pl",
+  "/bn",
+  "/ko",
+  "/ht",
+  "/it",
+  "/fr",
+];
 
 /** A page translated into every language: its address in each. */
 const everyLanguage = (path: string) =>
@@ -51,10 +62,9 @@ describe("buildSitemap", () => {
     ]);
     const urls = everyLanguage("/seasons/summer-2027/standings");
     const languages = Object.fromEntries(
-      ["en", "es", "zh-Hans", "ru", "pl", "bn", "ko", "ht"].map((tag, i) => [
-        tag,
-        urls[i],
-      ]),
+      ["en", "es", "zh-Hans", "ru", "pl", "bn", "ko", "ht", "it", "fr"].map(
+        (tag, i) => [tag, urls[i]],
+      ),
     );
     // Standings are in every language: one entry each, each listing all.
     expect(sitemap.slice(-urls.length)).toEqual(

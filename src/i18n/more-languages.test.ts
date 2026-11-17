@@ -24,7 +24,7 @@ describe("the new languages", () => {
       "Kreyòl ayisyen",
     ]);
     expect(LANG_ATTRIBUTES.zh).toBe("zh-Hans");
-    expect(LOCALES).toEqual(["en", "es", ...NEW]);
+    expect(LOCALES).toEqual(["en", "es", ...NEW, "it", "fr"]);
   });
 
   it("serve the catalog's pages under their own prefix, and link to English help", () => {
@@ -144,5 +144,64 @@ describe("Haitian Creole dates and lists", () => {
   it("joins a list with “ak”", () => {
     expect(formatList("ht", ["Ana", "Bo", "Cy"])).toBe("Ana, Bo ak Cy");
     expect(formatList("ht", ["Ana"])).toBe("Ana");
+  });
+});
+
+describe("Italian and French", () => {
+  const LATIN = ["it", "fr"] as const;
+
+  it("are offered by their own names", () => {
+    expect(LATIN.map((l) => LOCALE_NAMES[l])).toEqual(["Italiano", "Français"]);
+    expect(LATIN.map((l) => LANG_ATTRIBUTES[l])).toEqual(["it", "fr"]);
+  });
+
+  it("serve the catalog's pages under their own prefix, and link to English help", () => {
+    for (const locale of LATIN) {
+      expect(isTranslated(locale, "/faq"), locale).toBe(true);
+      expect(isTranslated(locale, "/help/player"), locale).toBe(false);
+      expect(switchLanguagePath("/es/faq", locale)).toBe(`/${locale}/faq`);
+    }
+    expect(languageAlternates("/about")).toMatchObject({
+      it: "/it/about",
+      fr: "/fr/about",
+    });
+  });
+
+  it("write ordinals their own way, an inning in the feminine", () => {
+    expect([1, 2, 3].map((n) => formatOrdinal("it", n))).toEqual([
+      "1º",
+      "2º",
+      "3º",
+    ]);
+    expect(formatOrdinal("it", 3, "feminine")).toBe("3ª");
+    expect([1, 2, 21].map((n) => formatOrdinal("fr", n))).toEqual([
+      "1er",
+      "2e",
+      "21e",
+    ]);
+    expect(formatOrdinal("fr", 1, "feminine")).toBe("1re");
+  });
+
+  it("fit each language's phrase for a place in the standings", () => {
+    const place = (locale: (typeof LATIN)[number], n: number) =>
+      fill(messagesFor(locale).team.standing, {
+        record: "5-2",
+        rank: formatOrdinal(locale, n),
+      });
+    expect(place("it", 2)).toBe("5-2, 2º posto");
+    expect(place("fr", 1)).toBe("5-2, 1er au classement");
+  });
+
+  it("count one in French for zero as well as one", () => {
+    const teams = (n: number) =>
+      plural("fr", messagesFor("fr").formats.teams, n);
+    expect([0, 1, 2].map(teams)).toEqual(["0 équipe", "1 équipe", "2 équipes"]);
+    const players = (n: number) =>
+      plural("it", messagesFor("it").formats.players, n);
+    expect([0, 1, 2].map(players)).toEqual([
+      "0 giocatori",
+      "1 giocatore",
+      "2 giocatori",
+    ]);
   });
 });

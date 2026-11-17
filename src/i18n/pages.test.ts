@@ -53,6 +53,8 @@ describe("offeredLocales", () => {
       "bn",
       "ko",
       "ht",
+      "it",
+      "fr",
     ]);
   });
 });
