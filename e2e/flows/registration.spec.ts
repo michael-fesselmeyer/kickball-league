@@ -170,7 +170,7 @@ test("Stripe's webhook marks the captain paid once, and a forged one is refused"
 
   await page.goto(`/app/seasons/${SEASON_SLUG}`);
   await expect(page.getByText(`You're all set for ${SEASON}.`)).toBeVisible();
-  await page.goto(`/app/seasons/${SEASON_SLUG}/team`);
+  await page.goto(`/app/seasons/${SEASON_SLUG}/team?view=roster`);
   await expect(page.getByText(/1 signed the waiver, 1 paid\./)).toBeVisible();
   await expectNoAxeViolations(page);
   await page.context().close();
@@ -506,7 +506,7 @@ test("a captain guarantees the team's balance with a saved card", async ({
   browser,
 }) => {
   const page = await pageAs(browser, "Captain");
-  await page.goto(`/app/seasons/${SEASON_SLUG}/team`);
+  await page.goto(`/app/seasons/${SEASON_SLUG}/team?view=roster`);
   const fee = page.getByRole("region", { name: "Team fee" });
   await expect(fee).toContainText("$80 of $1,200 paid.");
   await expect(fee).toContainText("$1,120 left");
@@ -538,7 +538,7 @@ test("a captain guarantees the team's balance with a saved card", async ({
       eventId,
     ),
   ).toEqual({ status: 200, outcome: "duplicate" });
-  await page.goto(`/app/seasons/${SEASON_SLUG}/team`);
+  await page.goto(`/app/seasons/${SEASON_SLUG}/team?view=roster`);
   await expect(fee).toContainText("Visa ending 4242 guarantees the balance.");
   await expectNoAxeViolations(page);
   await page.context().close();
@@ -560,7 +560,7 @@ test("at the deadline the captain is warned, then the saved card pays the balanc
   await moveDeadline(SEASON_SLUG, new Date(Date.now() + 3_600_000));
   expect(await runJob()).toMatchObject({ warned: 1, charged: 0 });
   expect(await runJob()).toMatchObject({ warned: 0, charged: 0 });
-  await page.goto(`/app/seasons/${SEASON_SLUG}/team`);
+  await page.goto(`/app/seasons/${SEASON_SLUG}/team?view=roster`);
   const fee = page.getByRole("region", { name: "Team fee" });
   await expect(fee).toContainText(
     "It will be charged for whatever is still unpaid on",

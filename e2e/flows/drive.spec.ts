@@ -216,7 +216,7 @@ test("a team reaches 100% and leads the sign-up challenge", async ({
       "Your team is registered",
     );
     await signWaiver(captain, SEASON_SLUG, "Casey Captain");
-    await captain.goto(`/app/seasons/${SEASON_SLUG}/team`);
+    await captain.goto(`/app/seasons/${SEASON_SLUG}/team?view=roster`);
     await expect(
       captain.getByRole("heading", {
         name: "Sign-up challenge: 1 of 2 signed up",

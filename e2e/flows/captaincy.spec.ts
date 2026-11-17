@@ -43,20 +43,23 @@ test.describe
     test.slow();
     const page = await pageSignedInAs(browser, captain.email);
     await page.setViewportSize(PHONE);
-    await page.goto(`/app/seasons/${SEASON}/team`);
+    await page.goto(`/app/seasons/${SEASON}/team?view=settings`);
     const panel = page.getByRole("region", { name: "Captain and co-captains" });
     await expect(panel).toBeVisible();
 
+    // Each roster of buttons is folded until it's needed.
+    await panel.getByText("Change co-captains").click();
     await panel
       .getByRole("button", { name: `Make co-captain for ${coCaptain.name}` })
       .click();
     await expect(page.getByRole("status")).toHaveText(
       "They're a co-captain now.",
     );
-    await expect(
-      panel.getByRole("listitem").filter({ hasText: coCaptain.name }),
-    ).toContainText("Co-captain");
+    await expect(panel).toContainText(
+      new RegExp(`Co-captains?: [^·]*${coCaptain.name}`),
+    );
 
+    await panel.getByText("Hand the team over").click();
     await panel
       .getByLabel("Hand the team to")
       .selectOption({ label: next.name });
@@ -86,6 +89,7 @@ test.describe
     );
 
     const panel = page.getByRole("region", { name: "Captain and co-captains" });
+    await panel.getByText("Change co-captains").click();
     await expect(
       panel.getByRole("listitem").filter({ hasText: `${next.name} (you)` }),
     ).toContainText("Captain");
@@ -94,6 +98,7 @@ test.describe
       await expect(
         panel.getByRole("listitem").filter({ hasText: who }),
       ).toContainText("Co-captain");
+    await panel.getByText("Hand the team over").click();
     await expect(
       panel.getByRole("button", { name: "Offer the captaincy" }),
     ).toBeVisible();
