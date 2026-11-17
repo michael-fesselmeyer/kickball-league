@@ -177,7 +177,7 @@ function TeamLine({
       </span>
       {score !== null && (
         <span
-          className={`font-display text-h3 tabular-nums ${won ? "font-extrabold" : "text-text-muted"}`}
+          className={`font-sans text-h3 tabular-nums ${won ? "font-extrabold" : "text-text-muted"}`}
         >
           {score}
         </span>

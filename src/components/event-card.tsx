@@ -87,7 +87,7 @@ function DateBlock({
       <span className="text-micro font-bold tracking-wide uppercase">
         {part({ month: "short" })}
       </span>
-      <span className="font-display text-h3 leading-none font-extrabold tabular-nums">
+      <span className="font-sans text-h3 leading-none font-extrabold tabular-nums">
         {part({ day: "numeric" })}
       </span>
     </span>

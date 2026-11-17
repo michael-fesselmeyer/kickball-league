@@ -25,48 +25,48 @@
 
 /* tokens:light */
 :root {
-  --bg: #fbf8f1;
-  --surface: #ffffff;
-  --surface-2: #f2ede1;
-  --text: #14182b;
-  --text-muted: #4a5068;
-  --border: #d9d2c0;
-  --border-strong: #8c8672;
-  --brand: #1f3a8a;
-  --on-brand: #ffffff;
-  --accent: #8f1a1c;
-  --on-accent: #ffffff;
-  --highlight: #f5b301;
-  --on-highlight: #14182b;
-  --success: #1a7b49;
-  --warning: #9f5b00;
-  --danger: #b3261e;
-  --info: #1f5fbf;
-  --focus: #1f3a8a;
-  --chart-1: #2a78d6;
-  --chart-2: #d4561f;
+  --bg: #f6ebd3;
+  --surface: #fff8ea;
+  --surface-2: #efdfc0;
+  --text: #1b2547;
+  --text-muted: #4d4b5e;
+  --border: #e2cda4;
+  --border-strong: #857049;
+  --brand: #233c7d;
+  --on-brand: #fff8ea;
+  --accent: #781b22;
+  --on-accent: #fff8ea;
+  --highlight: #f2a33a;
+  --on-highlight: #1b2547;
+  --success: #196a41;
+  --warning: #874c00;
+  --danger: #ae231c;
+  --info: #1f58b5;
+  --focus: #233c7d;
+  --chart-1: #2a6fcb;
+  --chart-2: #c24e1a;
 }
 
 /* tokens:dark */
 :root[data-theme="dark"] {
-  --bg: #0e1220;
-  --surface: #161b2e;
-  --surface-2: #1f2640;
-  --text: #f3efe6;
-  --text-muted: #a9b0c7;
-  --border: #2e3757;
-  --border-strong: #656f97;
-  --brand: #8fa8ff;
-  --on-brand: #0e1220;
-  --accent: #ff7a6e;
-  --on-accent: #0e1220;
-  --highlight: #ffc93c;
-  --on-highlight: #0e1220;
+  --bg: #0f1730;
+  --surface: #172244;
+  --surface-2: #1f2c55;
+  --text: #f6ebd3;
+  --text-muted: #b4b9ce;
+  --border: #2e3b66;
+  --border-strong: #6b78a5;
+  --brand: #9db4ff;
+  --on-brand: #0f1730;
+  --accent: #ff8a80;
+  --on-accent: #0f1730;
+  --highlight: #f7b955;
+  --on-highlight: #0f1730;
   --success: #4cc38a;
   --warning: #f0a840;
   --danger: #ff7a6e;
   --info: #7fb0ff;
-  --focus: #ffc93c;
+  --focus: #f7b955;
   --chart-1: #3987e5;
   --chart-2: #d95926;
 }
@@ -76,24 +76,24 @@
 @media (prefers-color-scheme: dark) {
   /* tokens:dark-system */
   :root:not([data-theme="light"]) {
-    --bg: #0e1220;
-    --surface: #161b2e;
-    --surface-2: #1f2640;
-    --text: #f3efe6;
-    --text-muted: #a9b0c7;
-    --border: #2e3757;
-    --border-strong: #656f97;
-    --brand: #8fa8ff;
-    --on-brand: #0e1220;
-    --accent: #ff7a6e;
-    --on-accent: #0e1220;
-    --highlight: #ffc93c;
-    --on-highlight: #0e1220;
+    --bg: #0f1730;
+    --surface: #172244;
+    --surface-2: #1f2c55;
+    --text: #f6ebd3;
+    --text-muted: #b4b9ce;
+    --border: #2e3b66;
+    --border-strong: #6b78a5;
+    --brand: #9db4ff;
+    --on-brand: #0f1730;
+    --accent: #ff8a80;
+    --on-accent: #0f1730;
+    --highlight: #f7b955;
+    --on-highlight: #0f1730;
     --success: #4cc38a;
     --warning: #f0a840;
     --danger: #ff7a6e;
     --info: #7fb0ff;
-    --focus: #ffc93c;
+    --focus: #f7b955;
     --chart-1: #3987e5;
     --chart-2: #d95926;
   }
@@ -136,22 +136,23 @@
   --color-current: currentColor;
 
   --font-sans:
-    var(--font-inter), var(--font-script, ui-sans-serif), system-ui, sans-serif;
+    var(--font-text), var(--font-script, ui-sans-serif), system-ui, sans-serif;
   --font-display:
-    var(--font-bricolage), var(--font-inter), var(--font-script, ui-sans-serif),
+    var(--font-headline), var(--font-text), var(--font-script, ui-sans-serif),
     sans-serif;
 }
 
 @theme {
-  /* Type scale: fluid between 360px and 1280px viewports (design-system.md §3). */
+  /* Type scale: fluid between 360px and 1280px viewports (design-system.md §3).
+     Line heights leave room for the headline script's tall swashes (ADR 0096). */
   --text-display: clamp(2.5rem, 1.7174rem + 3.4783vw, 4.5rem);
-  --text-display--line-height: 1;
+  --text-display--line-height: 1.15;
   --text-h1: clamp(2rem, 1.6087rem + 1.7391vw, 3rem);
-  --text-h1--line-height: 1.1;
+  --text-h1--line-height: 1.2;
   --text-h2: clamp(1.5rem, 1.3043rem + 0.8696vw, 2rem);
-  --text-h2--line-height: 1.2;
+  --text-h2--line-height: 1.25;
   --text-h3: clamp(1.25rem, 1.1522rem + 0.4348vw, 1.5rem);
-  --text-h3--line-height: 1.25;
+  --text-h3--line-height: 1.3;
   --text-body-lg: 1.125rem;
   --text-body-lg--line-height: 1.5;
   --text-body: 1rem;
@@ -164,7 +165,7 @@
   /* Spacing keeps Tailwind's 4px base (0.25rem): 1, 2, 3, 4, 6, 8, 12, 16, 24. */
 
   --radius-input: 6px;
-  --radius-card: 12px;
+  --radius-card: 20px;
   --radius-sheet: 20px;
 
   --shadow-card: 0 1px 2px rgb(20 24 43 / 0.06), 0 2px 8px rgb(20 24 43 / 0.06);
@@ -201,8 +202,9 @@
   /*
    * Scripts the Latin web fonts don't cover use the phone's own font for
    * them (docs/i18n.md, Fonts): a Chinese, Korean or Bengali web font would
-   * not fit the font budget, and every phone ships one. Cyrillic comes from
-   * Inter's own subset, loaded only on a page that uses it.
+   * not fit the font budget, and every phone ships one. The Latin web fonts
+   * have no Cyrillic either, so Russian takes the phone's own sans the same
+   * way, through the fallbacks after them.
    */
 
   :root:lang(zh-Hans) {
@@ -232,12 +234,19 @@
     font-family: var(--font-sans);
   }
 
+  /* The headline script comes in one weight (ADR 0096): a bolder weight
+     would be faked by smearing the glyphs, so headings ask for none, and
+     the browser never synthesizes one. */
+  :root {
+    font-synthesis-weight: none;
+  }
+
   h1,
   h2,
   h3 {
     font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-weight: 400;
+    letter-spacing: 0;
   }
 
   :focus-visible {
@@ -335,6 +344,21 @@
   padding-inline: 0.12em;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
+}
+
+/* Ringer-tee stripes along an element's bottom edge, in the league's colors
+   (ADR 0096): the site header's edge. Decoration only, drawn as a
+   background, so it holds no content and prints as nothing. */
+@utility ringer-stripes {
+  padding-bottom: 0.75rem;
+  background-image: linear-gradient(
+    var(--accent) 0 33.3%,
+    var(--highlight) 33.3% 66.6%,
+    var(--brand) 66.6%
+  );
+  background-size: 100% 0.75rem;
+  background-position: bottom;
+  background-repeat: no-repeat;
 }
 
 @utility btn {
@@ -596,14 +620,13 @@ body:has(.app-nav) .site-nav {
 }
 
 /*
- * Polish letters such as ą and ł are in Inter's and Bricolage's Latin
- * Extended files, about 105 kB more on every Polish page, past the font
- * budget. Polish pages use the phone's own font instead, which covers
+ * Polish letters such as ą and ł are in the web fonts' Latin Extended
+ * files, more on every Polish page than the font budget allows. Polish pages use the phone's own font instead, which covers
  * them, so they load no more font than an English page.
  */
 :root:lang(pl) {
   /* Unlayered and more specific than next/font's class on <html>, so it
      wins wherever the fonts are named. */
-  --font-inter: ui-sans-serif, system-ui;
-  --font-bricolage: ui-sans-serif, system-ui;
+  --font-text: ui-sans-serif, system-ui;
+  --font-headline: ui-sans-serif, system-ui;
 }

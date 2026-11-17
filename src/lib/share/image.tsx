@@ -25,15 +25,15 @@ import { SITE } from "@/lib/site";
 export { SHARE_IMAGE_SIZE };
 
 const T = {
-  bg: "#FBF8F1",
-  surface2: "#F2EDE1",
-  text: "#14182B",
-  muted: "#4A5068",
-  brand: "#1F3A8A",
-  onBrand: "#FFFFFF",
-  accent: "#8F1A1C",
-  highlight: "#F5B301",
-  danger: "#B3261E",
+  bg: "#F6EBD3",
+  surface2: "#EFDFC0",
+  text: "#1B2547",
+  muted: "#4D4B5E",
+  brand: "#233C7D",
+  onBrand: "#FFF8EA",
+  accent: "#781B22",
+  highlight: "#F2A33A",
+  danger: "#AE231C",
 } as const;
 
 const STICKER: Record<StickerTone, { bg: string; fg: string }> = {

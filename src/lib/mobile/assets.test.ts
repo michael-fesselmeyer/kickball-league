@@ -38,8 +38,8 @@ describe("native app icon and splash sources", () => {
   });
 
   it("draws the dark splash in the dark theme's colors", () => {
-    expect(byFile("splash.png").colors.background).toBe("#FBF8F1");
-    expect(byFile("splash-dark.png").colors.background).toBe("#0E1220");
+    expect(byFile("splash.png").colors.background).toBe("#F6EBD3");
+    expect(byFile("splash-dark.png").colors.background).toBe("#0F1730");
   });
 
   it("renders a mark at the requested size", async () => {

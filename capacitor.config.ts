@@ -19,7 +19,7 @@ loadEnvConfig(process.cwd(), process.env.NODE_ENV !== "production", {
 const app = resolveAppUrl(process.env[APP_URL_VARIABLE]);
 
 /** The light theme's page background (src/design/tokens.ts). */
-const BACKGROUND = "#FBF8F1";
+const BACKGROUND = "#F6EBD3";
 
 const config = {
   // A placeholder in a reserved domain; set MOBILE_APP_ID to the league's
