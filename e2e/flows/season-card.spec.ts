@@ -34,9 +34,7 @@ test("a player shares their season card and takes it back", async ({
     browser,
     await seasonCardEmail("summer-2026"),
   );
-  await player
-    .getByRole("link", { name: "Your Summer 2026 season in kickball" })
-    .click();
+  await player.getByRole("link", { name: "Your Summer 2026 recap" }).click();
   const title = player.getByRole("heading", {
     level: 1,
     name: /'s season in kickball$/,
