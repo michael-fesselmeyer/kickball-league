@@ -42,21 +42,21 @@ The home screen shows tonight's game, the RSVP buttons and anything owed. Tap **
 
 _Why it matters:_ captains know who is coming before game day, without chasing anyone by text.
 
-### 3. Signing up and paying (1 minute): Player
+### 3. Signing up and paying (1 minute): Ref
 
-Open **Spring 2027**, register, and pay on the demo checkout page. Then open **Demo mail** as Admin: the receipt is there.
+Reese Ref doesn't play this fall, so they show a newcomer's sign-up. Open **Spring 2027: register**, join as a free agent at the early-bird price, sign the waiver, and pay on the demo checkout page. Then open **Demo mail** as Admin: the receipt is there. (Pat Player is already on The Big Kicks' spring roster, with the captain paying.)
 
 _Why it matters:_ nobody collects cash or Venmo; the app knows who has paid and sends the receipt.
 
 ### 4. Live scoring from the field (1 minute): Ref
 
-The ref's home lists tonight's games; the first ones are already in the fourth inning. Open one and enter the runs for the next half-inning.
+The ref's home lists tonight's games; the first ones are already in the fourth inning, first pitch recorded on time, with the minutes of play left before the field must be clear. Open one and enter the runs for the next half-inning.
 
 _Why it matters:_ scores and standings are right the moment a game ends, with no texts or spreadsheets.
 
 ### 5. The game-day command center (1 minute): Admin
 
-Open **Game day** (`/app/admin/today`): every game tonight, its field, its ref and whether they checked in, the live score with the inning, and the weather. It refreshes by itself.
+Admin opens on the league admin home (`/app/admin`): tonight's games with each team's RSVPs, refs and what's next on the checklist. Open **Game day** (`/app/admin/today`): every game tonight, its field, its ref and whether they checked in, the live score with the inning, and the weather. It refreshes by itself.
 
 _Why it matters:_ one screen answers "is everything on track tonight?" from a phone at the park.
 
