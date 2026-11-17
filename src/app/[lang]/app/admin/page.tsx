@@ -170,84 +170,96 @@ async function Dashboard({ searchParams }: PageProps<"/[lang]/app/admin">) {
       timeZone: current.timeZone,
     }).format(d);
 
+  const today = localDate(now, current.timeZone);
+  const isGameDay = day?.date === today;
+  // A few "needs you" items lead the page; each opens where it's settled.
+  const needs: { key: string; href: string; label: string }[] = [];
+  if (missing.length > 0)
+    needs.push({
+      key: "scores",
+      href: "#missing",
+      label:
+        missing.length === 1
+          ? "1 game needs a final score"
+          : `${missing.length} games need a final score`,
+    });
+  if (newTeams > 0)
+    needs.push({
+      key: "new-teams",
+      href: `${base}/new-teams`,
+      label:
+        newTeams === 1
+          ? "1 new-team request is waiting for an answer"
+          : `${newTeams} new-team requests are waiting for an answer`,
+    });
+  if (instagram)
+    needs.push({
+      key: "instagram",
+      href: "/app/admin/instagram",
+      label: `Reconnect Instagram: posts from @${instagram.username} stopped syncing`,
+    });
+
   return (
     <>
-      <header className="flex flex-col gap-3">
-        <p className="text-micro font-bold tracking-widest text-text-muted uppercase">
-          League admin
-        </p>
-        <h1 className="text-h1">{current.name}</h1>
-        <p className="text-text-muted">
-          {SEASON_STATUS[current.status] ?? current.status}
-          {others.length > 0 && (
-            <>
-              {" · Other seasons: "}
-              {others.map((s, i) => (
-                <span key={s.slug}>
-                  {i > 0 && ", "}
-                  <Link
-                    href={`/app/admin?season=${s.slug}`}
-                    className="underline"
-                  >
-                    {s.name}
-                  </Link>
-                </span>
-              ))}
-            </>
-          )}
-        </p>
-        <AdminTools base={base} isOwner={isOwner} />
-        {instagram && (
-          <p role="status" className="rounded-lg border border-warning p-3">
-            Instagram stopped accepting the connection to @{instagram.username},
-            so new posts aren&apos;t syncing.{" "}
-            <Link href="/app/admin/instagram" className="font-bold underline">
-              Reconnect Instagram
-            </Link>
+      <header className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <p className="text-micro font-bold tracking-widest text-text-muted uppercase">
+            League admin
           </p>
-        )}
-        {can(subject, "books.manage") && (
-          <p className="flex flex-wrap items-center gap-3">
-            {can(subject, "dashboard.view") && (
-              <Link
-                href={`/app/owner/${current.slug}`}
-                className="btn btn-secondary"
-              >
-                Owner dashboard
-              </Link>
-            )}
-            <Link
-              href={`/app/books/${current.slug}`}
-              className="btn btn-secondary"
-            >
-              Books
-            </Link>
-            <Link
-              href={`/app/books/${current.slug}/permits`}
-              className="btn btn-secondary"
-            >
-              Permits
-            </Link>
-          </p>
-        )}
-        {isOwner && (
-          <p>
-            <a href="/app/admin/league.json" className="underline">
-              Download all league data
-            </a>{" "}
-            <span className="text-text-muted">
-              (seasons, teams, rosters, games, scores, payments and the books,
-              as JSON)
-            </span>
-          </p>
-        )}
+          <h1 className="text-h1">{current.name}</h1>
+          <SeasonSwitcher
+            status={SEASON_STATUS[current.status] ?? current.status}
+            others={others}
+          />
+        </div>
+        <AdminTools
+          slug={current.slug}
+          primary={primaryActions(base, current.status, isGameDay)}
+          isOwner={isOwner}
+          books={can(subject, "books.manage")}
+          dashboard={
+            can(subject, "books.manage") && can(subject, "dashboard.view")
+          }
+        />
       </header>
 
-      <NextGameDay day={day} base={base} dayLabel={dayLabel} time={time} />
+      {needs.length > 0 && (
+        <section aria-labelledby="needs-you" className="flex flex-col gap-2">
+          <h2 id="needs-you" className="text-h3">
+            Needs you
+          </h2>
+          <ul className="flex flex-col rounded-card border-2 border-warning bg-surface px-4">
+            {needs.map((n) => (
+              <li
+                key={n.key}
+                className="border-b border-border last:border-b-0"
+              >
+                <Link
+                  href={n.href}
+                  className="flex min-h-12 items-center justify-between gap-3 py-2 font-bold hover:underline"
+                >
+                  {n.label}
+                  <span aria-hidden="true" className="text-text-muted">
+                    ›
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <NextGameDay
+        day={day}
+        today={isGameDay}
+        base={base}
+        dayLabel={dayLabel}
+        time={time}
+      />
 
       <ChecklistCard
         tasks={checklist}
-        today={localDate(now, current.timeZone)}
+        today={today}
         href={`${base}/checklist`}
       />
 
@@ -303,17 +315,6 @@ async function Dashboard({ searchParams }: PageProps<"/[lang]/app/admin">) {
         )}
       </section>
 
-      {newTeams > 0 && (
-        <p role="status" className="rounded-lg border border-warning p-3">
-          <Link href={`${base}/new-teams`} className="underline">
-            {newTeams === 1
-              ? "1 new-team request is"
-              : `${newTeams} new-team requests are`}{" "}
-            waiting for an answer
-          </Link>
-        </p>
-      )}
-
       <Registrations summary={registrations} href={`${base}/registrations`} />
       {/* Sign-ups matter while players can still join; mid-season the
           registrations table above already says it. */}
@@ -348,11 +349,14 @@ async function Dashboard({ searchParams }: PageProps<"/[lang]/app/admin">) {
 
 function NextGameDay({
   day,
+  today,
   base,
   dayLabel,
   time,
 }: {
   day: GameDay | null;
+  /** The next game day is today. */
+  today: boolean;
   base: string;
   dayLabel: (date: string) => string;
   time: (d: Date) => string;
@@ -393,19 +397,24 @@ function NextGameDay({
     <section aria-labelledby="next-day" className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 id="next-day" className="text-h2">
-          Next game day: {dayLabel(day.date)}
+          {today ? "Game day today" : "Next game day"}: {dayLabel(day.date)}
         </h2>
-        <div className="flex flex-wrap gap-2">
-          <Link href={`${base}/referees`} className="btn btn-secondary">
-            Assign refs
-          </Link>
+        <p className="flex flex-wrap gap-x-4">
+          {day.withoutReferee > 0 && (
+            <Link
+              href={`${base}/referees`}
+              className="inline-flex min-h-11 items-center font-bold underline"
+            >
+              Assign refs
+            </Link>
+          )}
           <Link
             href={`${base}/rainout?date=${day.date}`}
-            className="btn btn-secondary"
+            className="inline-flex min-h-11 items-center font-bold underline"
           >
             Call a rain-out
           </Link>
-        </div>
+        </p>
       </div>
       <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
         {stats.map(([label, value, tone]) => (
@@ -609,37 +618,146 @@ function Count({ done, of }: { done: number; of: number }) {
 }
 
 type Tool = readonly [href: string, label: string];
+type ToolGroup = { title: string; tools: Tool[] };
 
 /**
- * Every admin tool, grouped by the job it's for. The few used every game
- * day stay in sight; the rest fold away so the dashboard comes first.
+ * The one or two tools an admin most likely wants right now: the game-day
+ * screen and scores on a game day, registrations while sign-ups run, and
+ * otherwise the schedule. Everything else waits in "League tools".
  */
-function AdminTools({ base, isOwner }: { base: string; isOwner: boolean }) {
-  const everyday: Tool[] = [
-    ["/app/admin/today", "Game day screen"],
-    [base, "Season setup"],
-    [`${base}/schedule`, "Schedule"],
-    [`${base}/registrations`, "Registrations"],
-    [`${base}/scores`, "Scores"],
-    [`${base}/rainout`, "Rain-out"],
-  ];
-  const groups: { title: string; tools: Tool[] }[] = [
+function primaryActions(
+  base: string,
+  status: string,
+  isGameDay: boolean,
+): Tool[] {
+  if (isGameDay)
+    return [
+      ["/app/admin/today", "Game day screen"],
+      [`${base}/scores`, "Scores"],
+    ];
+  if (
+    status === "draft" ||
+    status === "registration_open" ||
+    status === "registration_closed"
+  )
+    return [
+      [`${base}/registrations`, "Registrations"],
+      [`${base}/schedule`, "Schedule"],
+    ];
+  return [[`${base}/schedule`, "Schedule"]];
+}
+
+/**
+ * The season on show and a compact way to the others: a native <details>
+ * that opens a short list, so it needs no script.
+ */
+function SeasonSwitcher({
+  status,
+  others,
+}: {
+  status: string;
+  others: readonly { slug: string; name: string }[];
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 text-text-muted">
+      <span>{status}</span>
+      {others.length > 0 && (
+        <details className="group relative">
+          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 underline [&::-webkit-details-marker]:hidden">
+            Other seasons
+            <span
+              aria-hidden="true"
+              className="transition-transform group-open:rotate-180"
+            >
+              ▾
+            </span>
+          </summary>
+          <ul className="absolute top-full left-0 z-20 flex min-w-56 flex-col rounded-card border-2 border-text bg-surface px-4 py-1 text-text shadow-sticker">
+            {others.map((s) => (
+              <li
+                key={s.slug}
+                className="border-b border-border last:border-b-0"
+              >
+                <Link
+                  href={`/app/admin?season=${s.slug}`}
+                  className="flex min-h-11 items-center hover:underline"
+                >
+                  {s.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The admin's tools: one or two for the moment in sight, and every tool in
+ * one "League tools" disclosure, grouped by job like the app menu. Each
+ * person sees only the tools they may open.
+ */
+function AdminTools({
+  slug,
+  primary,
+  isOwner,
+  books,
+  dashboard,
+}: {
+  slug: string;
+  primary: Tool[];
+  isOwner: boolean;
+  /** Keeps the books and the permits (owners). */
+  books: boolean;
+  /** Opens the owner dashboard. */
+  dashboard: boolean;
+}) {
+  const base = `/app/admin/seasons/${slug}`;
+  const only = (on: boolean, tools: Tool[]): Tool[] => (on ? tools : []);
+  const groups: ToolGroup[] = [
     {
       title: "Game day",
       tools: [
+        ["/app/admin/today", "Game day screen"],
+        [`${base}/scores`, "Scores"],
+        [`${base}/referees`, "Referees"],
         ["/app/admin/today/print", "Print game-day pack"],
         ["/app/admin/equipment", "League gear"],
-        [`${base}/referees`, "Referees"],
         [`${base}/team-of-the-week`, "Team of the week"],
       ],
     },
     {
       title: "Season",
       tools: [
+        [base, "Season setup"],
+        [`${base}/schedule`, "Schedule"],
+        [`${base}/registrations`, "Registrations"],
+        [`${base}/rainout`, "Rain-out"],
         [`${base}/checklist`, "Season checklist"],
         [`${base}/survey`, "Season survey"],
         ["/app/admin/interest", "Interest sign-ups"],
         ["/app/admin/seasons", "All seasons"],
+      ],
+    },
+    {
+      title: "Fields",
+      tools: [
+        [`${base}/fields`, "Fields and permit windows"],
+        ...only(books, [[`/app/books/${slug}/permits`, "Permits"]]),
+      ],
+    },
+    {
+      title: "Money and merch",
+      tools: [
+        ...only(dashboard, [[`/app/owner/${slug}`, "Owner dashboard"]]),
+        ...only(books, [[`/app/books/${slug}`, "Books"]]),
+        ["/app/sponsor", "Sponsors"],
+        [`${base}/rebates`, "Rebates"],
+        ["/app/admin/credit", "League credit"],
+        ["/app/admin/merch", "Merch"],
+        ["/app/admin/shirt-waiting", "Late-joiner shirts"],
+        ["/app/admin/shirt-makers", "Shirt makers"],
       ],
     },
     {
@@ -667,22 +785,9 @@ function AdminTools({ base, isOwner }: { base: string; isOwner: boolean }) {
       ],
     },
     {
-      title: "Money and merch",
-      tools: [
-        ["/app/sponsor", "Sponsors"],
-        [`${base}/rebates`, "Rebates"],
-        ["/app/admin/credit", "League credit"],
-        ["/app/admin/merch", "Merch"],
-        ["/app/admin/shirt-waiting", "Late-joiner shirts"],
-        ["/app/admin/shirt-makers", "Shirt makers"],
-      ],
-    },
-    {
       title: "Records and access",
       tools: [
-        ...(isOwner
-          ? ([["/app/admin/acting-admins", "Acting admins"]] as Tool[])
-          : []),
+        ...only(isOwner, [["/app/admin/acting-admins", "Acting admins"]]),
         ["/app/admin/alerts", "Alert choices"],
         ["/app/admin/audit", "Audit log"],
       ],
@@ -691,17 +796,20 @@ function AdminTools({ base, isOwner }: { base: string; isOwner: boolean }) {
   return (
     <nav aria-label="Admin tools" className="flex flex-col gap-3">
       <ul className="flex flex-wrap gap-2">
-        {everyday.map(([href, label]) => (
-          <li key={label}>
-            <Link href={href} className="btn btn-secondary">
+        {primary.map(([href, label], i) => (
+          <li key={href}>
+            <Link
+              href={href}
+              className={`btn ${i === 0 ? "btn-primary" : "btn-secondary"}`}
+            >
               {label}
             </Link>
           </li>
         ))}
       </ul>
       <details className="group rounded-card border-2 border-text bg-surface">
-        <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3 px-4 font-bold">
-          All admin tools
+        <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 font-bold [&::-webkit-details-marker]:hidden">
+          League tools
           <span
             aria-hidden="true"
             className="text-text-muted transition-transform group-open:rotate-180"
@@ -711,13 +819,20 @@ function AdminTools({ base, isOwner }: { base: string; isOwner: boolean }) {
         </summary>
         <div className="grid gap-x-8 gap-y-5 border-t border-border p-4 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
-            <section key={group.title} className="flex flex-col">
-              <h2 className="text-micro font-bold tracking-widest text-text-muted uppercase">
+            <section
+              key={group.title}
+              aria-labelledby={`tools-${slugify(group.title)}`}
+              className="flex flex-col"
+            >
+              <h2
+                id={`tools-${slugify(group.title)}`}
+                className="text-micro font-bold tracking-widest text-text-muted uppercase"
+              >
                 {group.title}
               </h2>
               <ul className="flex flex-col">
                 {group.tools.map(([href, label]) => (
-                  <li key={label}>
+                  <li key={href}>
                     <Link
                       href={href}
                       prefetch={false}
@@ -730,8 +845,24 @@ function AdminTools({ base, isOwner }: { base: string; isOwner: boolean }) {
               </ul>
             </section>
           ))}
+          {isOwner && (
+            <p className="text-small sm:col-span-2 lg:col-span-3">
+              <a
+                href="/app/admin/league.json"
+                className="inline-flex min-h-11 items-center font-bold underline"
+              >
+                Download all league data
+              </a>{" "}
+              <span className="text-text-muted">
+                (seasons, teams, rosters, games, scores, payments and the books,
+                as JSON)
+              </span>
+            </p>
+          )}
         </div>
       </details>
     </nav>
   );
 }
+
+const slugify = (title: string) => title.toLowerCase().replace(/[^a-z]+/g, "-");
