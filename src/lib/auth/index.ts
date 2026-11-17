@@ -77,7 +77,9 @@ const beforeAuth = createAuthMiddleware(async (ctx) => {
     signedInAt: session ? new Date(session.session.createdAt) : null,
     now: new Date(),
     writable:
-      !site || canWrite(site.status, isCurrentOperator(session!.user.id)),
+      session && site
+        ? canWrite(site.status, isCurrentOperator(session.user.id))
+        : true,
   });
   if (refusal)
     throw new APIError(
