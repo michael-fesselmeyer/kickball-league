@@ -39,8 +39,10 @@ export function SignupBoard({
               mine ? "border-2 border-brand" : "border-border"
             }`}
           >
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-              <span className="flex items-center gap-2 font-bold">
+            {/* One layout at every width: the name and the percent on one
+                line, the bar, then the count, so no card wraps differently. */}
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="flex min-w-0 items-center gap-2 font-bold">
                 {t.rank !== undefined && (
                   <span className="text-text-muted tabular-nums">
                     {t.rank}.
@@ -49,17 +51,16 @@ export function SignupBoard({
                 {t.color && (
                   <span
                     aria-hidden="true"
-                    className="inline-block size-3 rounded-full border border-border"
+                    className="inline-block size-3 shrink-0 rounded-full border border-border"
                     style={{ background: t.color }}
                   />
                 )}
-                {t.name}
+                <span className="min-w-0 break-words">{t.name}</span>
                 {mine && <span className="sr-only"> (your team)</span>}
               </span>
-              <span className="tabular-nums">
-                {t.progress.signedUp} of {t.progress.of} signed up ·{" "}
-                <strong>{t.progress.percent}%</strong>
-              </span>
+              <strong className="shrink-0 tabular-nums">
+                {t.progress.percent}%
+              </strong>
             </div>
             <div
               aria-hidden="true"
@@ -72,12 +73,12 @@ export function SignupBoard({
                 style={{ width: `${t.progress.percent}%` }}
               />
             </div>
-            {nudge && left > 0 && (
-              <p className="text-small text-text-muted">
-                Needs {left} more {left === 1 ? "player" : "players"} with an
-                account and a signed waiver.
-              </p>
-            )}
+            <p className="text-small text-text-muted tabular-nums">
+              {t.progress.signedUp} of {t.progress.of} signed up
+              {nudge &&
+                left > 0 &&
+                ` · needs ${left} more ${left === 1 ? "player" : "players"} with an account and a signed waiver`}
+            </p>
           </li>
         );
       })}
