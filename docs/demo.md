@@ -11,7 +11,7 @@ npm run demo
 The first run needs the internet once, to install the packages, download Postgres and stripe-mock into Docker and fetch the fonts. It takes about five minutes. After that it starts in seconds on the same day and works offline. The command:
 
 1. Finds Postgres: Docker if it is running (the demo keeps its own container, `kb-demo-postgres`), or a local Homebrew Postgres. With neither, it says how to install one.
-2. Creates the `kb_demo` database, migrates it and fills it with the demo league (`npm run demo:reset`). The season is current: tonight's first games are being played right now, the ref is at the field, and the next game day has a rain watch. The reset also adds demo-only data for the newer features (`src/seed/demo-showcase.ts`): an open captains' poll, a drafted playoff bracket, a soccer club that shares a field, an acting admin, ref cards, a leadership check-in, players open to a new team, late-joiner shirts and more interest sign-ups. It takes a few seconds.
+2. Creates the `kb_demo` database, migrates it and fills it with the demo league (`npm run demo:reset`). The season is current: tonight's first games are being played, the ref is at the field, and the next game day has a rain watch. Tonight's games are always an evening game night (`src/seed/demo-evening.ts`): between 6 pm and 10:30 pm they kicked off 40 minutes ago; a demo built earlier in the day (or overnight) plays them at 7 pm today, and one built later at 9:50 pm. The countdown, the permit, the reminders and Demo mail all follow that evening. The reset also adds demo-only data for the newer features (`src/seed/demo-showcase.ts`): an open captains' poll, a drafted playoff bracket, a soccer club that shares a field, an acting admin, ref cards, a leadership check-in, players open to a new team, late-joiner shirts and more interest sign-ups. It takes a few seconds.
 3. Builds the app with `DEMO_MODE=true`, or reuses today's build when nothing changed. The banner's role picker and admin tools are compiled in only when a build has `DEMO_MODE=true` (`next.config.ts`), so the league's own site ships none of their code; a demo deployment needs the variable at build time as well as at run time.
 4. Starts [stripe-mock](https://github.com/stripe/stripe-mock) when it can (the `stripe-mock` binary, or Docker), so paying goes through a demo checkout page. Without it, the payment screen says it is a demo payment.
 5. Starts the app in demo mode on a free port, prints the address and opens the browser.
@@ -29,6 +29,7 @@ The demo can wear the visiting league's own name, logo and team names. They stay
   "leagueName": "The league's full name",
   "shortName": "A short form for phones (optional)",
   "logo": "logo-file-in-this-folder.png",
+  "logoBackground": "knock-out",
   "teams": ["First team", "Second team", "…"]
 }
 ```
@@ -36,6 +37,7 @@ The demo can wear the visiting league's own name, logo and team names. They stay
 - `leagueName` (required, up to 80 characters) replaces the generic name in the header, page titles, share images, the installed app's name and the league's row in the database.
 - `shortName` (optional, up to 24 characters) is shown in the header on a phone, where the full name would push the buttons onto a second line, and under the home-screen icon.
 - `logo` (optional) is a `.png`, `.webp` or `.jpg` file name in `private/brand/`. A square-ish logo on a transparent background looks best. At build time the demo resizes it with sharp into `public/brand/` (also ignored by git): a 120-pixel-tall copy for the header and a larger one for share images and home-screen icons. Without a logo the kickball mark stays.
+- `logoBackground` (optional) is `"keep"` (the default: the file is used as it is) or `"knock-out"`, for a logo on a solid white or light background, which otherwise shows as a box on the coloured header. The demo's copy then has that background made transparent, filled in from the edges so white inside the artwork stays, and is trimmed to the artwork. The file in `private/brand/` is never changed. A logo whose corners aren't one light colour is used as it is.
 - `teams` (optional, up to 64 names) renames the seeded teams in order: Fall 2026's eight teams first (the first name goes to the team Pat Player and Casey Captain play on in the walkthrough below), then the two teams from past seasons. Extra names go unused; with fewer, the rest keep their invented names. Slugs, colors and every seeded game stay as they are.
 
 The next `npm run demo` notices the file (or a change to it) and rebuilds. If the file can't be used (bad JSON, a missing logo, a blank name), the demo says what is wrong and runs with the generic league instead. Without the file, the demo is exactly as described here.
