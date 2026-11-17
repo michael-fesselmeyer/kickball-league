@@ -146,7 +146,8 @@ describe("the demo never sees .env files", () => {
   });
 
   it("is needed: without the preload a forced reload reads .env.local", () => {
-    const { NODE_OPTIONS: _hidden, ...unguarded } = env;
+    const unguarded = { ...env };
+    delete unguarded.NODE_OPTIONS;
     expect(Object.keys(run(unguarded)).length).toBeGreaterThan(5);
   });
 
