@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import sharp from "sharp";
+import { adminTool } from "../support/app-nav";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 import { download } from "../support/seed-data";
@@ -18,7 +19,7 @@ test("an owner adds an expense with a receipt photo, reads the ledger and downlo
 }) => {
   const page = await pageAs(browser, "Admin");
   await page.goto("/app/admin");
-  await page.getByRole("link", { name: "Books", exact: true }).click();
+  await (await adminTool(page, "Books")).click();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Books:");
   // The demo's games and its sample permit are in the fall season.
   await page.getByText("Other seasons", { exact: true }).click();

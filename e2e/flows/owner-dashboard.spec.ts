@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 import { download } from "../support/seed-data";
-import { openMoreActions } from "../support/app-nav";
+import { adminTool, openMoreActions } from "../support/app-nav";
 
 /**
  * The owner dashboard and the season money summary (ADR 0038), at phone
@@ -17,7 +17,7 @@ test("an owner reads the dashboard, downloads its numbers and publishes a summar
 }) => {
   const page = await pageAs(browser, "Admin");
   await page.goto("/app/admin");
-  await page.getByRole("link", { name: "Owner dashboard" }).click();
+  await (await adminTool(page, "Owner dashboard")).click();
   await expect(page).toHaveURL(/\/app\/owner\/[a-z0-9-]+$/);
   // The demo's money and sponsor check-ins are in the fall season.
   await page.goto("/app/owner/fall-2026");

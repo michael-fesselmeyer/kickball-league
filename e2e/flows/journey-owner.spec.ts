@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { adminTool } from "../support/app-nav";
 import { expectNoAxeViolations } from "../support/axe";
 import { type Member, memberPage } from "../support/people";
 import { pageAs } from "../support/personas";
@@ -69,9 +70,7 @@ test("the operator makes an owner and an admin, and only the owner sees the mone
   const note = `Line paint for ${BOOKS_SEASON}`;
   await test.step("the owner adds an expense and reads the numbers", async () => {
     await avery.goto("/app/admin");
-    await expect(
-      avery.getByRole("link", { name: "Books", exact: true }),
-    ).toBeVisible();
+    await expect(await adminTool(avery, "Books")).toBeVisible();
     await avery.goto(`/app/books/${BOOKS_SEASON}`);
     await expect(avery.getByRole("heading", { level: 1 })).toHaveText(
       "Books: Spring 2027",
@@ -110,7 +109,7 @@ test("the operator makes an owner and an admin, and only the owner sees the mone
 
     await avery.goto("/app/admin");
     const exported = await download(
-      avery.getByRole("link", { name: "Download all league data" }),
+      await adminTool(avery, "Download all league data"),
     );
     const data = JSON.parse(exported.text) as { seasons: { slug: string }[] };
     expect(data.seasons.map((s) => s.slug)).toContain(BOOKS_SEASON);
@@ -119,11 +118,20 @@ test("the operator makes an owner and an admin, and only the owner sees the mone
   await test.step("an admin who isn't an owner can't see the books", async () => {
     await kit.goto("/app/admin");
     await expect(kit.getByRole("heading", { level: 1 })).toBeVisible();
+    // The folded "League tools" links are hidden until opened: count those
+    // too, so none means none.
     await expect(
-      kit.getByRole("link", { name: "Books", exact: true }),
+      kit.getByRole("link", {
+        name: "Books",
+        exact: true,
+        includeHidden: true,
+      }),
     ).toHaveCount(0);
     await expect(
-      kit.getByRole("link", { name: "Download all league data" }),
+      kit.getByRole("link", {
+        name: "Download all league data",
+        includeHidden: true,
+      }),
     ).toHaveCount(0);
     await expectNotFound(kit, `/app/books/${BOOKS_SEASON}`);
     await expectNotFound(kit, `/app/owner/${BOOKS_SEASON}`);

@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { adminTool } from "../support/app-nav";
 import { expectNoAxeViolations } from "../support/axe";
 import { type Member, memberPage } from "../support/people";
 import { pageAs } from "../support/personas";
@@ -103,7 +104,7 @@ test("the operator's switches reach owners, admins, players and visitors", async
     const rowan = await pageSignedInAs(browser, owner.email);
     await rowan.goto("/app/admin");
     const exported = await download(
-      rowan.getByRole("link", { name: "Download all league data" }),
+      await adminTool(rowan, "Download all league data"),
     );
     expect(JSON.parse(exported.text)).toHaveProperty("seasons");
     await rowan.context().close();

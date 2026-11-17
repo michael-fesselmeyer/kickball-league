@@ -25,13 +25,14 @@ export async function menuGroups(page: Page): Promise<string[]> {
 }
 
 /**
- * A tool in League admin's tool list. Only the everyday ones are in sight;
- * the rest sit under "All admin tools", which this opens when needed.
+ * A tool on League admin's home. One or two for the moment are in sight;
+ * every tool sits in the grouped "League tools" list, which this opens when
+ * the tool isn't in sight. A tool in both places is the one in sight.
  */
 export async function adminTool(page: Page, name: string): Promise<Locator> {
   const tools = page.getByRole("navigation", { name: "Admin tools" });
-  const link = tools.getByRole("link", { name, exact: true });
-  const more = tools.locator("summary", { hasText: "All admin tools" });
+  const link = tools.getByRole("link", { name, exact: true }).first();
+  const more = tools.locator("summary", { hasText: "League tools" });
   await expect(async () => {
     if (!(await link.isVisible())) await more.click();
     await expect(link).toBeVisible({ timeout: 1_000 });
