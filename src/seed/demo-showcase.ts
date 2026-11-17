@@ -21,7 +21,6 @@ import {
 import { castVote, openPoll } from "@/db/queries/captain-polls";
 import { giveCard } from "@/db/queries/cards";
 import { nextGameDayStart } from "@/db/queries/demo";
-import { addGroup, addOverlap } from "@/db/queries/field-groups";
 import { saveAnswer } from "@/db/queries/interest";
 import { openCheckIns, submitCheckIn } from "@/db/queries/leadership";
 import { setMoveInterest } from "@/db/queries/move";
@@ -33,6 +32,8 @@ import {
   event,
   eventRsvp,
   field,
+  fieldGroup,
+  fieldOverlap,
   game,
   gameStart,
   guestTeam,
@@ -362,49 +363,36 @@ async function addFieldGroups(db: Db, ctx: Context): Promise<boolean> {
   const next = await nextGameDayStart(db, ctx.leagueId, ctx.now);
   if (!first || !next) return false;
   const local = localParts(next, ctx.timeZone);
-  const soccer = await addGroup(
-    db,
-    {
-      leagueId: ctx.leagueId,
-      fieldId: first.id,
-      group: {
+  // Written straight to the tables, without a contact: the seed never
+  // touches the admin-only contact (src/domain/field-groups/privacy.test.ts).
+  const [soccer, youth] = await db
+    .insert(fieldGroup)
+    .values([
+      {
+        fieldId: first.id,
         name: "Riverside Adult Soccer (example)",
         weekdays: [local.weekday],
         startsAt: "18:00",
         endsAt: "20:00",
-        contact: "fields@riverside-soccer.example.test",
+        createdBy: ctx.adminId,
       },
-    },
-    ctx.adminId,
-  );
-  if (!soccer.ok) throw new Error(`Demo field group failed: ${soccer.error}`);
-  const youth = await addGroup(
-    db,
-    {
-      leagueId: ctx.leagueId,
-      fieldId: (second ?? first).id,
-      group: {
+      {
+        fieldId: (second ?? first).id,
         name: "Little Sluggers Youth Baseball (example)",
         weekdays: [6],
         startsAt: "09:00",
         endsAt: "13:00",
-        contact: null,
+        createdBy: ctx.adminId,
       },
-    },
-    ctx.adminId,
-  );
-  if (!youth.ok) throw new Error(`Demo field group failed: ${youth.error}`);
-  const overlap = await addOverlap(
-    db,
-    {
-      leagueId: ctx.leagueId,
-      groupId: soccer.value,
-      on: local.date,
-      note: "Their playoff runs late: they have the field until 8:30 pm, so the first game there starts a little late.",
-    },
-    ctx.adminId,
-  );
-  if (!overlap.ok) throw new Error(`Demo overlap failed: ${overlap.error}`);
+    ])
+    .returning({ id: fieldGroup.id });
+  if (!soccer || !youth) return false;
+  await db.insert(fieldOverlap).values({
+    groupId: soccer.id,
+    onDate: local.date,
+    note: "Their playoff runs late: they have the field until 8:30 pm, so the first game there starts a little late.",
+    createdBy: ctx.adminId,
+  });
   return true;
 }
 
