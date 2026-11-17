@@ -1,7 +1,6 @@
 // Pure helpers for `npm run demo` (scripts/demo.mjs), kept apart so they can
 // be tested without starting anything.
 import { createECDH, createHash, randomBytes } from "node:crypto";
-import { fileURLToPath } from "node:url";
 
 /** The demo database: its name must contain "demo" (docs/adr/0004-demo-mode.md). */
 export const DEMO_DATABASE = "kb_demo";
@@ -68,9 +67,8 @@ export function formatEnvFile(values) {
 }
 
 /** Preloaded into the demo's processes: hides every `.env*` file from them. */
-export const HIDE_ENV_PRELOAD = fileURLToPath(
-  new URL("./demo-hide-env.cjs", import.meta.url),
-);
+export const HIDE_ENV_PRELOAD = new URL("./demo-hide-env.mjs", import.meta.url)
+  .href;
 
 /** The only variables the demo's processes inherit from the shell. */
 const PASS_THROUGH = [
@@ -105,8 +103,8 @@ export function demoEnv({ shell, secrets, databaseUrl, port, stripeMockUrl }) {
     // Next.js and drizzle-kit skip loading .env files when this is set.
     __NEXT_PROCESSED_ENV: "true",
     // Next.js reloads env files on a build even with the flag above, so the
-    // files are also hidden from every process (scripts/demo-hide-env.cjs).
-    NODE_OPTIONS: `--require "${HIDE_ENV_PRELOAD}"`,
+    // files are also hidden from every process (scripts/demo-hide-env.mjs).
+    NODE_OPTIONS: `--import "${HIDE_ENV_PRELOAD}"`,
     NEXT_TELEMETRY_DISABLED: "1",
     DATABASE_URL: databaseUrl,
     BETTER_AUTH_URL: `http://localhost:${port}`,

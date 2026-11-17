@@ -1,10 +1,10 @@
-// Preloaded into every process the demo starts (NODE_OPTIONS=--require).
+// Preloaded into every process the demo starts (NODE_OPTIONS=--import).
 // Makes the project's `.env*` files look missing, so the league's real keys
 // in `.env.local` cannot reach the demo. Next.js ignores its own
 // `__NEXT_PROCESSED_ENV` guard when a build reloads its env, so the files are
 // hidden at the file-system level instead. `.env.example` stays readable.
-const fs = require("node:fs");
-const path = require("node:path");
+import fs from "node:fs";
+import path from "node:path";
 
 const hidden = (target) => {
   if (typeof target !== "string" && !(target instanceof URL)) return false;

@@ -16,7 +16,7 @@ The first run needs the internet once, to install the packages, download Postgre
 4. Starts [stripe-mock](https://github.com/stripe/stripe-mock) when it can (the `stripe-mock` binary, or Docker), so paying goes through a demo checkout page. Without it, the payment screen says it is a demo payment.
 5. Starts the app in demo mode on a free port, prints the address and opens the browser.
 
-`npm run demo -- --fresh` starts over with new data and a new build; `--no-open` leaves the browser closed. Press Ctrl+C to stop. It never reads `.env.local` or any other `.env*` file: every process the demo starts has them hidden (`scripts/demo-hide-env.cjs`), because Next.js reloads env files during a build even when told not to. The demo's throwaway secrets are made on the first run and kept in `.demo/`, which git ignores.
+`npm run demo -- --fresh` starts over with new data and a new build; `--no-open` leaves the browser closed. Press Ctrl+C to stop. It never reads `.env.local` or any other `.env*` file: every process the demo starts has them hidden (`scripts/demo-hide-env.mjs`), because Next.js reloads env files during a build even when told not to. The demo's throwaway secrets are made on the first run and kept in `.demo/`, which git ignores.
 
 Mid-demo, **Reset demo** in the yellow banner (as Admin) puts everything back the way it started and signs everyone out. From a terminal, `npm run demo:reset` does the same.
 
