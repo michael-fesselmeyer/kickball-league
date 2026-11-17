@@ -3,15 +3,18 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ANCHOR_BENCHMARK_INDEX,
   ANCHOR_SLOWDOWN,
+  afterWarmup,
   MAX_SLOWDOWN,
   MIN_SLOWDOWN,
   medianOf,
+  reasonOf,
   slowdownFor,
   TARGET_DEVICE_INDEX,
   tooSlowToMeasure,
   waitForUrl,
   withRetries,
   withSlowdown,
+  withTimeout,
 } from "../../scripts/lighthouse-calibration.mjs";
 
 type Config = {
@@ -162,5 +165,75 @@ describe("tooSlowToMeasure", () => {
     expect(tooSlowToMeasure(1200)).toBe(false);
     expect(slowdownFor(1200)).toBe(MIN_SLOWDOWN);
     expect(tooSlowToMeasure(ANCHOR_BENCHMARK_INDEX)).toBe(false);
+  });
+});
+
+describe("afterWarmup", () => {
+  it("drops the cold first sample before the median is taken", () => {
+    // The hung shard's samples (run 43943188248): Chrome was still starting.
+    const samples = [429, 1936, 3471, 3525, 3468, 3490];
+    expect(afterWarmup(samples, 1)).toEqual([1936, 3471, 3525, 3468, 3490]);
+    expect(medianOf(afterWarmup(samples, 1))).toBe(3471);
+  });
+
+  it("does not alter the samples it was given", () => {
+    const samples = [1845, 2625, 2647];
+    afterWarmup(samples, 1);
+    expect(samples).toEqual([1845, 2625, 2647]);
+  });
+
+  it("needs at least one sample after the warm-up", () => {
+    expect(() => afterWarmup([1971], 1)).toThrow(
+      "Only 1 benchmark samples; 1 are warm-up.",
+    );
+  });
+});
+
+describe("withTimeout", () => {
+  it("settles with the promise when it is in time", async () => {
+    await expect(
+      withTimeout(Promise.resolve(3450), 1000, "late"),
+    ).resolves.toBe(3450);
+    await expect(
+      withTimeout(Promise.reject(new Error("refused")), 1000, "late"),
+    ).rejects.toThrow("refused");
+  });
+
+  it("rejects once the time is up, after letting the caller clean up", async () => {
+    vi.useFakeTimers();
+    try {
+      const onTimeout = vi.fn();
+      const never = new Promise<number>(() => {});
+      const result = withTimeout(never, 45_000, "no benchmark within 45 s", {
+        onTimeout,
+      });
+      const settled = expect(result).rejects.toThrow(
+        "no benchmark within 45 s",
+      );
+      await vi.advanceTimersByTimeAsync(45_000);
+      await settled;
+      expect(onTimeout).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("clears its timer when the promise settles first", async () => {
+    const clearTimer = vi.fn();
+    await withTimeout(Promise.resolve(1), 1000, "late", { clearTimer });
+    expect(clearTimer).toHaveBeenCalledOnce();
+  });
+});
+
+describe("reasonOf", () => {
+  it("names a failure even when its message is empty", () => {
+    // The hung shard logged "Benchmark try 1 of 3 failed ()".
+    expect(reasonOf(new Error(""))).toBe("Error");
+    expect(reasonOf(new TypeError(""))).toBe("TypeError");
+    expect(reasonOf(new Error("connect ECONNREFUSED"))).toBe(
+      "connect ECONNREFUSED",
+    );
+    expect(reasonOf(undefined)).toBe("unknown error");
+    expect(reasonOf("closed by peer")).toBe("closed by peer");
   });
 });

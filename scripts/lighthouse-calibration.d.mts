@@ -31,3 +31,18 @@ export declare function waitForUrl(
     sleep?: (ms: number) => Promise<void>;
   },
 ): Promise<void>;
+export declare function afterWarmup(
+  samples: number[],
+  warmup: number,
+): number[];
+export declare function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  message: string,
+  options?: {
+    onTimeout?: () => void;
+    setTimer?: (fn: () => void, ms: number) => unknown;
+    clearTimer?: (timer: unknown) => void;
+  },
+): Promise<T>;
+export declare function reasonOf(error: unknown): string;

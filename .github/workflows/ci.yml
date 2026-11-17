@@ -383,7 +383,9 @@ jobs:
         run: node scripts/lighthouse-shard.mjs ${{ matrix.shard }} ${{ strategy.job-total }}
       # Sets only the CPU slowdown, from this runner's benchmark index, so
       # every shard measures the same phone (ADR 0079). It logs both numbers.
+      # It stops itself after 3 minutes; this limit backs that up (ADR 0097).
       - name: Calibrate the CPU throttle to this runner
+        timeout-minutes: 5
         run: node scripts/lighthouse-calibrate.mjs .lighthouseci/shard.json
       # A Lighthouse crash before any page is scored (no budget checked)
       # measures the whole shard once more; a budget miss fails at once.
