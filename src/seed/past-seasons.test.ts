@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { allTimeRecords, seasonChampion } from "@/domain/history/history";
 import { type ResultGame, standings } from "@/domain/standings/standings";
 import { generateSeed } from "./generate";
-import { generatePastSeasons, PAST_SEASONS } from "./past-seasons";
+import {
+  generatePastSeasons,
+  PAST_SEASONS,
+  pastSeasonMembers,
+} from "./past-seasons";
+import { seasonCardSeedRows } from "./season-cards";
 
 const data = generateSeed();
 const past = generatePastSeasons(data);
@@ -91,5 +96,47 @@ describe("generatePastSeasons", () => {
       "kick-starters",
       "rubber-duckies",
     ]);
+  });
+});
+
+describe("pastSeasonMembers", () => {
+  const data = generateSeed();
+  const members = pastSeasonMembers(data);
+  const past = generatePastSeasons(data);
+  const cards = seasonCardSeedRows(data);
+
+  it("puts twelve on every team of every completed season, a captain first", () => {
+    const byEntry = Map.groupBy(members.memberships, (m) => m.teamSeasonId);
+    for (const s of past.seasons)
+      for (const entry of s.entries) {
+        const carded = cards.memberships.filter(
+          (m) => m.teamSeasonId === entry.id,
+        ).length;
+        const own = byEntry.get(entry.id) ?? [];
+        expect(own.length + carded).toBe(12);
+        const captains =
+          own.filter((m) => m.role === "captain").length +
+          cards.memberships.filter(
+            (m) => m.teamSeasonId === entry.id && m.role === "captain",
+          ).length;
+        expect(captains).toBe(1);
+      }
+  });
+
+  it("never signs anyone up twice for a season, the card players included", () => {
+    const keys = [...members.registrations, ...cards.registrations].map(
+      (r) => `${r.seasonId}/${r.userId}`,
+    );
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it("gives the retired teams invented players on the seed's domain, each paid up", () => {
+    expect(members.users).toHaveLength(2 * 12);
+    for (const u of members.users)
+      expect(u.email.endsWith("@seed.example")).toBe(true);
+    expect(members.fees).toHaveLength(members.registrations.length);
+    expect(new Set(members.fees.map((f) => f.key)).size).toBe(
+      members.fees.length,
+    );
   });
 });

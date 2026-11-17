@@ -20,6 +20,7 @@ import type {
   UserId,
 } from "@/domain/ids";
 import type { SeedData } from "./generate";
+import { insertSeedFees } from "./money-summary";
 import { generatePastSeasons } from "./past-seasons";
 
 /**
@@ -160,6 +161,27 @@ export async function addSeasonCards(
   const rows = seasonCardSeedRows(data);
   await db.insert(registration).values(rows.registrations);
   await db.insert(rosterMembership).values(rows.memberships);
+  // They paid the summer fee like the rest of the season's players.
+  const admin = data.profiles.find((p) => p.globalRole === "admin");
+  const summer = generatePastSeasons(data).seasons.find(
+    (p) => p.season.id === rows.seasonId,
+  )?.season;
+  if (admin && summer)
+    await insertSeedFees(
+      db,
+      data.league.id,
+      admin.userId,
+      rows.registrations.map((r, i) => ({
+        userId: r.userId,
+        seasonId: r.seasonId,
+        registrationId: r.id,
+        teamSeasonId: rows.memberships[i]?.teamSeasonId ?? null,
+        amountCents: summer.playerFeeCents,
+        description: `${summer.name} player fee`,
+        paidAt: new Date(`${summer.startsOn}T16:00:00Z`),
+        key: `${summer.slug}_card_${i + 1}`,
+      })),
+    );
   if (rows.rsvps.length > 0) await db.insert(gameRsvp).values(rows.rsvps);
   if (rows.kicksFirst) {
     await db

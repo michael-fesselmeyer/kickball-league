@@ -38,6 +38,7 @@ import { addSeedFriends } from "../src/seed/friends";
 import { addSeedShirtMakers } from "../src/seed/shirt-makers";
 import { addSeedTournament } from "../src/seed/tournament";
 import { addSeedLineups } from "../src/seed/lineups";
+import { addGameNight } from "../src/seed/game-night";
 import { addMerchDemo, removeSeedMerch } from "../src/seed/merch";
 import { addSeedKits } from "../src/seed/equipment";
 import { addTicketDemo, removeSeedTickets } from "../src/seed/tickets";
@@ -349,12 +350,15 @@ async function main(): Promise<void> {
       await tx.insert(permitWindow).values(data.permitWindows);
       await tx.insert(slot).values(data.nextSlots);
       await tx.insert(teamConstraint).values(data.teamConstraints);
-      await addDemoPersonas(tx, data);
+      await addDemoPersonas(tx, data, {
+        authSecret: process.env.BETTER_AUTH_SECRET,
+      });
       await addSecondLeague(tx);
       await addDodgeballLeague(tx);
       await addDisciplinePlayer(tx, data);
       await addKeepOffPerson(tx, data);
       await addSeedLineups(tx, data);
+      await addGameNight(tx, data);
       await addSeedAwayWeeks(tx, data);
       await addPastSeasons(tx, data);
       await addSeedDivisions(tx, data);
