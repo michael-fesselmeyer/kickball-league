@@ -344,7 +344,7 @@ async function Rainout({
             action={setRainoutPolicyAction.bind(null, slug, date)}
             className="flex flex-col items-start gap-2"
           >
-            <label className="flex items-center gap-2">
+            <label className="check-row">
               <input
                 type="checkbox"
                 name="adminsConfirm"

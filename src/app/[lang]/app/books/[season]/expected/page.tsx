@@ -193,7 +193,7 @@ async function Expected({
               {CADENCES.map((c) => (
                 <label
                   key={c}
-                  className="flex min-h-11 items-center gap-2 rounded-md border border-border px-3 py-2 has-[:checked]:border-brand has-[:checked]:font-bold"
+                  className="check-row rounded-md border border-border px-3 py-2 has-[:checked]:border-brand has-[:checked]:font-bold"
                 >
                   <input
                     type="radio"

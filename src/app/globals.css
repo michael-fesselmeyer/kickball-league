@@ -259,6 +259,22 @@
   select {
     min-height: 2.75rem;
   }
+
+  /* A select is as wide as its longest option and a file input as wide as
+     its button and file name; on a phone either can push the page sideways.
+     They never grow past their column. */
+  select,
+  input[type="file"] {
+    max-width: 100%;
+  }
+  /* A fieldset is as wide as its widest child by default (min-content). */
+  fieldset {
+    min-width: 0;
+  }
+  :where(label:has(> select, > input[type="file"])) {
+    min-width: 0;
+    max-width: 100%;
+  }
 }
 
 /*
@@ -342,6 +358,50 @@
 @utility btn-secondary {
   background: var(--surface);
   color: var(--text);
+}
+
+/*
+ * A checkbox or radio with its label as one 44px row (design-system.md §4):
+ * <label class="check-row"><input type="radio" …/><span>Text</span></label>.
+ * The whole row is the target, the box is 20px rather than the browser's
+ * 13px, and a hint under the text wraps beside it.
+ */
+@utility check-row {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+
+  & > input:where([type="checkbox"], [type="radio"]) {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    cursor: pointer;
+  }
+
+  &:has(> input:disabled) {
+    cursor: not-allowed;
+    color: var(--text-muted);
+  }
+}
+
+/* A check-row whose text runs to several lines: the box sits by the first. */
+@utility check-row-top {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-block: 0.5rem;
+  cursor: pointer;
+
+  & > input:where([type="checkbox"], [type="radio"]) {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.125rem;
+    cursor: pointer;
+  }
 }
 
 /* A form on its way (SubmitButton): pressing again does nothing, and it looks it. */

@@ -99,7 +99,7 @@ async function Packet({
           {hidden.map((h, i) => (
             <input key={i} type="hidden" name={h.name} value={h.value} />
           ))}
-          <label className="flex min-h-11 items-center gap-2">
+          <label className="check-row">
             <input
               type="checkbox"
               name="names"

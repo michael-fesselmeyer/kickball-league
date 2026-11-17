@@ -107,7 +107,7 @@ async function GameDayPack({
               className="min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body"
             />
           </label>
-          <label className="flex min-h-11 items-center gap-2">
+          <label className="check-row">
             <input
               type="checkbox"
               name="rosters"

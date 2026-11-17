@@ -52,7 +52,7 @@ function HoursFields({ g }: { g?: GroupRow }) {
         <legend>Usual days (leave all blank if they vary)</legend>
         <div className="flex flex-wrap gap-x-4">
           {WEEKDAYS.map((name, day) => (
-            <label key={name} className="flex min-h-11 items-center gap-2">
+            <label key={name} className="check-row">
               <input
                 type="checkbox"
                 name="weekdays"

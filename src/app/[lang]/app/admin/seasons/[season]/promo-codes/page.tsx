@@ -194,7 +194,7 @@ async function PromoCodes({
           <fieldset className="flex flex-col gap-2">
             <legend>Takes off</legend>
             <div className="flex flex-wrap items-center gap-4">
-              <label className="flex min-h-11 items-center gap-3">
+              <label className="check-row">
                 <input
                   className="size-5 accent-brand"
                   type="radio"
@@ -204,7 +204,7 @@ async function PromoCodes({
                 />
                 A percentage
               </label>
-              <label className="flex min-h-11 items-center gap-3">
+              <label className="check-row">
                 <input
                   className="size-5 accent-brand"
                   type="radio"

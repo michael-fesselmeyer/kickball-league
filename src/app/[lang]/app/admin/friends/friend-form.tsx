@@ -173,7 +173,7 @@ export function FriendFormFields({
           />
         )}
       </Field>
-      <label className="flex min-h-11 items-center gap-3">
+      <label className="check-row">
         <input
           type="checkbox"
           name="linksBack"
@@ -185,7 +185,7 @@ export function FriendFormFields({
       </label>
       <fieldset className="flex flex-col gap-1 rounded-card border border-border p-4">
         <legend className="px-1 font-bold">Run by one of our players</legend>
-        <label className="flex min-h-11 items-center gap-3">
+        <label className="check-row">
           <input
             type="checkbox"
             name="runByPlayer"
@@ -196,7 +196,7 @@ export function FriendFormFields({
           />
           List it under &ldquo;Run by our players&rdquo;
         </label>
-        <label className="flex min-h-11 items-center gap-3">
+        <label className="check-row">
           <input
             type="checkbox"
             name="featured"
