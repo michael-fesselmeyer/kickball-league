@@ -32,6 +32,12 @@ export const PUBLIC_PAGE_LIFE = {
 export const seasonTag = (seasonId: string) => `season:${seasonId}`;
 export const teamTag = (teamSlug: string) => `team:${teamSlug}`;
 export const gameTag = (gameId: string) => `game:${gameId}`;
+/**
+ * The running scores on a season's schedule page. Each half entered
+ * expires it, so the schedule shows a live score without every season page
+ * re-rendering inning by inning.
+ */
+export const seasonLiveTag = (seasonId: string) => `season-live:${seasonId}`;
 /** Every sponsor page and the sponsors list: there are only a handful. */
 export const SPONSORS_TAG = "sponsors";
 
@@ -222,6 +228,15 @@ export function refreshGamePage(
     `${LEAGUE_PREFIX}/${segmentOf(league)}/games/${gameId}`,
   ))
     revalidatePath(path);
+}
+
+/** A half-inning was entered or undone: the game page and the season's running scores. */
+export function refreshLiveScore(
+  game: { id: string; seasonId: string },
+  league: LeagueRef | null,
+): void {
+  refreshGamePage(game.id, league);
+  updateTag(seasonLiveTag(game.seasonId));
 }
 
 /**

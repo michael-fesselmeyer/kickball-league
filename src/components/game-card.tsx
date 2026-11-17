@@ -36,6 +36,8 @@ type Props = {
   morph?: boolean;
   /** The page's language (ADR 0094); English unless given. */
   locale?: Locale;
+  /** The running score while the game is being played, if it is known. */
+  live?: { scoreA: number; scoreB: number } | null | undefined;
 };
 
 /** One game in a list: when, where, who, and the result. Opens the game page. */
@@ -49,6 +51,7 @@ export function GameCard({
   note,
   morph = true,
   locale = DEFAULT_LOCALE,
+  live,
 }: Props) {
   const done = hasResult(game);
   const calledOff = isCalledOff(game);
@@ -63,62 +66,84 @@ export function GameCard({
     highlight != null &&
     (game.teamA.id === highlight || game.teamB.id === highlight);
 
+  const pill = label && (
+    <span
+      className={`shrink-0 rounded-full border px-2 py-0.5 text-micro font-bold tracking-wide uppercase ${
+        calledOff
+          ? "border-danger text-danger"
+          : game.status === "in_progress"
+            ? "border-accent text-accent"
+            : "border-border-strong text-text-muted"
+      }`}
+    >
+      {label}
+    </span>
+  );
+  // A final score, or the running score of a game being played.
+  const running = game.status === "in_progress" ? (live ?? null) : null;
+  const shown =
+    done && game.status === "final"
+      ? { scoreA: game.scoreA, scoreB: game.scoreB }
+      : running;
+
+  /*
+   * A narrow card (a phone, or two cards side by side) puts the time,
+   * field and status on one line above the teams, so the names get the
+   * card's whole width; from 24rem the time sits beside them
+   * (container query on the card itself, so the grid's columns count).
+   */
   const card = (
     <Link
       href={linkIn(locale, leagueHref(league, `/games/${game.id}`))}
-      className={`flex min-h-11 items-center gap-3 rounded-card border bg-surface p-3 shadow-card hover:bg-surface-2 ${
+      className={`@container block min-h-11 rounded-card border bg-surface p-3 shadow-card hover:bg-surface-2 ${
         mine ? "border-2 border-brand" : "border-border"
       }`}
     >
-      <span
-        className={`w-24 shrink-0 flex-col text-small ${compact ? "hidden" : "flex"}`}
-      >
-        {game.startsAt ? (
-          <>
-            {showDay && (
-              <span>{shortDay(game.startsAt, timeZone, locale)}</span>
+      <span className="flex flex-col gap-2 @sm:flex-row @sm:items-center @sm:gap-3">
+        {(!compact || pill) && (
+          <span
+            className={`flex flex-wrap items-center gap-x-2 text-small @sm:w-24 @sm:shrink-0 @sm:flex-col @sm:flex-nowrap @sm:items-start ${compact ? "@sm:hidden" : ""}`}
+          >
+            {!compact &&
+              (game.startsAt ? (
+                <>
+                  {showDay && (
+                    <span>{shortDay(game.startsAt, timeZone, locale)}</span>
+                  )}
+                  <span className="font-bold tabular-nums">
+                    {kickoff(game.startsAt, timeZone, locale)}
+                  </span>
+                </>
+              ) : (
+                <span className="font-bold">
+                  {messagesFor(locale).schedule.timeTba}
+                </span>
+              ))}
+            {!compact && game.field && (
+              <span className="text-text-muted">{game.field}</span>
             )}
-            <span className="font-bold tabular-nums">
-              {kickoff(game.startsAt, timeZone, locale)}
-            </span>
-          </>
-        ) : (
-          <span className="font-bold">
-            {messagesFor(locale).schedule.timeTba}
+            {pill && <span className="ml-auto @sm:hidden">{pill}</span>}
           </span>
         )}
-        {game.field && <span className="text-text-muted">{game.field}</span>}
-      </span>
-      <span
-        className={`flex min-w-0 flex-1 flex-col gap-1 ${calledOff ? "line-through decoration-2" : ""}`}
-      >
-        <TeamLine
-          team={game.teamA}
-          score={done && game.status === "final" ? game.scoreA : null}
-          won={winner === game.teamA.id}
-          mine={game.teamA.id === highlight}
-        />
-        <TeamLine
-          team={game.teamB}
-          score={done && game.status === "final" ? game.scoreB : null}
-          won={winner === game.teamB.id}
-          mine={game.teamB.id === highlight}
-        />
-        {note && <span className="text-small text-text-muted">{note}</span>}
-      </span>
-      {label && (
         <span
-          className={`shrink-0 rounded-full border px-2 py-0.5 text-micro font-bold tracking-wide uppercase ${
-            calledOff
-              ? "border-danger text-danger"
-              : game.status === "in_progress"
-                ? "border-accent text-accent"
-                : "border-border-strong text-text-muted"
-          }`}
+          className={`flex min-w-0 flex-1 flex-col gap-1 ${calledOff ? "line-through decoration-2" : ""}`}
         >
-          {label}
+          <TeamLine
+            team={game.teamA}
+            score={shown ? shown.scoreA : null}
+            won={winner === game.teamA.id}
+            mine={game.teamA.id === highlight}
+          />
+          <TeamLine
+            team={game.teamB}
+            score={shown ? shown.scoreB : null}
+            won={winner === game.teamB.id}
+            mine={game.teamB.id === highlight}
+          />
+          {note && <span className="text-small text-text-muted">{note}</span>}
         </span>
-      )}
+        {pill && <span className="hidden @sm:flex">{pill}</span>}
+      </span>
     </Link>
   );
   return morph ? <Morph name={gameMorph(game.id)}>{card}</Morph> : card;
