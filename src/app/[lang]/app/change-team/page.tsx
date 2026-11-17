@@ -156,27 +156,29 @@ async function ChangeTeam({
         <fieldset className="flex flex-col gap-3">
           <legend className="mb-1 text-h2">Who can see it</legend>
           {AUDIENCE_OPTIONS.map((o) => (
-            <div key={o.value} className="flex min-h-11 items-start gap-3">
+            <label
+              key={o.value}
+              className="flex min-h-11 cursor-pointer items-start gap-3 py-1"
+            >
               <input
-                id={`audience-${o.value}`}
                 type="radio"
                 name="audience"
                 value={o.value}
                 required
                 defaultChecked={(mine?.audience ?? "both") === o.value}
                 aria-describedby={`audience-${o.value}-hint`}
-                className="mt-1 size-6"
+                className="mt-0.5 size-5 shrink-0"
               />
-              <div className="flex flex-col">
-                <label htmlFor={`audience-${o.value}`}>{o.label}</label>
+              <span className="flex flex-col">
+                {o.label}
                 <span
                   id={`audience-${o.value}-hint`}
                   className="text-small text-text-muted"
                 >
                   {o.hint}
                 </span>
-              </div>
-            </div>
+              </span>
+            </label>
           ))}
         </fieldset>
         <label htmlFor="note" className="flex flex-col gap-1">

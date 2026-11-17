@@ -46,26 +46,26 @@ export function SignWaiverForm({
           {state.error}
         </p>
       )}
-      <label className="flex items-start gap-2">
+      <label className="flex min-h-11 items-start gap-3 py-2">
         <input
           type="checkbox"
           name="agree"
           value="yes"
           required
-          className="mt-1"
+          className="mt-0.5 size-5 shrink-0"
         />
         <span>I have read the whole waiver and I agree to it.</span>
       </label>
       {conductSha256 && (
         <>
           <input type="hidden" name="conductSha256" value={conductSha256} />
-          <label className="flex items-start gap-2">
+          <label className="flex min-h-11 items-start gap-3 py-2">
             <input
               type="checkbox"
               name="conduct"
               value="yes"
               required
-              className="mt-1"
+              className="mt-0.5 size-5 shrink-0"
             />
             <span>
               I have read the code of conduct above and I agree to follow it.

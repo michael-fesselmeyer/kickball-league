@@ -291,7 +291,7 @@ async function Score({
         />
         <Link
           href={`/app/games/${g.id}/lineup`}
-          className="self-start text-small underline"
+          className="inline-flex min-h-11 items-center self-start underline"
         >
           Kicking orders
         </Link>
@@ -384,7 +384,7 @@ async function Score({
                 <input
                   name="note"
                   maxLength={300}
-                  className="rounded-md border border-border bg-surface px-2 py-1"
+                  className="min-h-11 rounded-md border border-border bg-surface px-3 py-2"
                 />
               </label>
               <div className="flex flex-wrap gap-3">
