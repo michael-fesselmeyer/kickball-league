@@ -13,8 +13,9 @@ Languages ([ADR 0094](adr/0094-languages-from-the-path-and-the-profile.md)): the
 ```
 /                                   Home: what, where, when, price, join; featured Instagram photos and the home cover
 ├── seasons/                        Every public season, newest first: status, dates, schedule and standings links (a sign-up link while registration is open); linked from the home page and the footer
+│   ├── current/[view]              The header's Schedule and Standings links: a short redirect to that view (schedule, standings or bracket) of the season being played, else the latest finished one, so the static header never has to name a season (not a page)
 │   └── [season]/                   Season overview and register button
-│       ├── schedule                Full schedule, filter by team or date; theme weeks marked on their game days; crossover games marked
+│       ├── schedule                Full schedule, filter by team or date; theme weeks marked on their game days; crossover games marked; a running score on each game being played; "Jump to this week" to the first game day from today. Titled with the season, and the team when filtered ("The Big Kicks: Fall 2026 schedule")
 │       │   └── division/[division] One division's games and its crossovers, picked by the path; its rule set
 │       ├── standings               Standings (a table per division when the season has divisions), tiebreaker notes, power rankings and the game of the week
 │       ├── bracket                 Playoff bracket, as a board or a plain list (?view=list, served as /bracket/list)
@@ -26,7 +27,7 @@ Languages ([ADR 0094](adr/0094-languages-from-the-path-and-the-profile.md)): the
 ├── teams/[team]                    Team page: roster (first name, last initial, and any published stat award as a badge, with a link to the season's awards), results, next game, streaks, rivalries, all-time record and titles, tagged Instagram photos and the team's cover, and players' approved photos with a link to share one
 │   ├── calendar.ics                Team calendar feed: every published game, in the league's time zone
 │   └── share.png                   Team share image: record, place, last five results
-├── games/[game]                    Game page: time, field, weather, score, the live line score while it is played, head-to-head history, share buttons; from kickoff, players' approved photos and a link to share one
+├── games/[game]                    Game page: time, field, weather, score, the live line score while it is played, head-to-head history (newest first, with the year on meetings from another season), share buttons; from kickoff, players' approved photos and a link to share one
 │   └── share.png                   Game share image: score on a final, or the matchup and its state
 ├── records                         League records across every season: most runs, biggest win, longest streaks
 ├── rules/                          Searchable rulebook with a link for every rule number
@@ -72,7 +73,7 @@ Languages ([ADR 0094](adr/0094-languages-from-the-path-and-the-profile.md)): the
 ├── (error)                         A page that fails to load: "That didn't load", not the player's fault, "Try again" (never by itself) and a way home
 ├── offline                         Shown by the service worker when a page needs the network; links the saved next game
 ├── paused                          Neutral notice while the site is paused or read-only (operator setting)
-└── sign-in, sign-up                Email link, passkey (button and email-field autofill) or Google
+└── sign-in, sign-up                Email link, passkey (button and email-field autofill) or Google; someone already signed in gets "You're signed in as …" with "Go to your games" and "Sign out" instead
 
 /operator                           Platform operator console (404 for everyone else): leagues (list and start one: name, sport, address, colors, time zone, minimum age, first rule set), owners and admins per league, site status, feature switches, league export
 
@@ -269,11 +270,12 @@ Languages ([ADR 0094](adr/0094-languages-from-the-path-and-the-profile.md)): the
 
 ### Navigation
 
-- **Phone, public:** top bar with the league badge and a Join button; a menu sheet for the rest.
+- **Phone, public:** top bar with the league badge, a Join button (to the seasons list) and a menu button. The menu is a sheet from the bottom, the app menu's native popover: Schedule, Standings, Events, FAQ, then About, History, Help and Contact, the theme button and "Sign in or open the app". Following a link closes it (a few lines inlined in the page's head, no script file). `src/components/site-header.tsx`.
+- **Static header, both ways:** the header and footer are part of every static page and never read the session, so the sign-in link reads "Sign in or open the app" and `/sign-in` sends someone already signed in on to the app. Inside `/app` the public links and Join give way to the app's tabs and menu.
 - **Phone, signed in:** a bottom tab bar on every `/app` screen: Home, Schedule, Team and Menu, clear of the home indicator, with room left below the page so it never covers anything. Someone with no team gets Admin (admins) or Reffing (refs) in Team's place, or no third tab. Menu opens a sheet from the bottom with grouped links: My season (your current team as "Your team", schedule, standings, your stats), Game day (pick'em, award votes, sub for a team), League life (events, volunteer, shop, photos), Help (help center, league rules, raise a concern, lost and found) and Account (profile, sponsor page, "Switch to …" each of your other leagues, sign out). A group whose only link would sit elsewhere too is left out: a ref on no current team gets "Your stats" under Account instead of a one-link My season. Other seasons' teams are on Home.
 - **Roles add groups, never views:** a captain also sees Captain (roster and payments, message your team, attendance, find subs, scheduling requests), a ref sees Referee, admins see League admin and owners see Owner. Someone with several roles sees each group; an admin or ref with no team sees no player groups. Every link is one the person's role may open (`src/domain/nav/app-nav.ts`).
 - **The menu is a native popover:** a non-modal dialog that Escape, a tap outside, Close or following a link closes. No script opens it.
-- **Desktop:** top navigation for public pages; inside `/app`, the same tabs sit in a bar under the header and Menu opens a panel from the right. League admin's home keeps its six everyday tools in sight and folds the rest into "All admin tools", grouped by job.
+- **Desktop:** top navigation for public pages (Schedule · Standings · Events · FAQ, then Join and "Sign in or open the app", from 1024px wide); inside `/app`, the same tabs sit in a bar under the header and Menu opens a panel from the right. League admin's home keeps its six everyday tools in sight and folds the rest into "All admin tools", grouped by job.
 
 ## 2. Primary flows
 

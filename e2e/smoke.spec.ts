@@ -13,7 +13,11 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expect(
         page.getByRole("link", { name: "Sign up for a season" }),
       ).toBeVisible();
-      await expect(page.getByRole("link", { name: "Sign in" })).toBeVisible();
+      await expect(
+        page
+          .getByRole("contentinfo")
+          .getByRole("link", { name: "Sign in or open the app" }),
+      ).toBeVisible();
       await expectNoAxeViolations(page);
     });
 
