@@ -102,15 +102,29 @@ export function checkFielding(
     };
   }
   const listed = LISTED_SHORT.find(([a, b]) => more >= a && fewer >= b);
-  if (listed)
+  if (listed) {
+    // Say why: the smaller group is too few, or too few are in at all.
+    const [moreSide, fewerSide] =
+      women >= men ? (["women", "men"] as const) : (["men", "women"] as const);
+    const why =
+      fewer < rules.maxFielders - rules.maxPerGender
+        ? `only ${fewer} ${group(fewerSide, fewer)} ${fewer === 1 ? "is" : "are"} in`
+        : `${women + men} are in`;
     return {
       fielders,
       level: "short",
-      message: `Short-handed: you can field ${listed[0] + listed[1]} (${listed[0]} and ${listed[1]}), a lineup the rulebook allows.${unknown}`,
+      message: `Short-handed: ${why}, so you can field ${listed[0] + listed[1]} (${listed[0]} ${group(moreSide, listed[0])} and ${listed[1]} ${group(fewerSide, listed[1])}), a lineup the rulebook allows.${unknown}`,
     };
+  }
   return {
     fielders,
     level: "check",
     message: `${fielders} can take the field (${more} and ${fewer}), which is outside the rulebook's listed lineups. Check with the ref.${unknown}`,
   };
+}
+
+/** "women" or "woman", "men" or "man", for a count. */
+function group(side: "women" | "men", n: number): string {
+  if (n !== 1) return side;
+  return side === "women" ? "woman" : "man";
 }
