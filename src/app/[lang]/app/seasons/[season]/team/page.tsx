@@ -8,11 +8,7 @@ import { challengeForSeason } from "@/db/queries/challenges";
 import { teamAvailability } from "@/db/queries/away";
 import { openTeamInvite, rosterBoard } from "@/db/queries/invites";
 import { mySpots, savedFor } from "@/db/queries/lineups";
-import { myRsvps, type TeamRsvps, teamRsvps } from "@/db/queries/rsvps";
-import { env } from "@/env";
-import { alertCardFor } from "@/db/queries/alert-choices";
-import { AlertCardView } from "@/components/alert-card";
-import { CARD_COPY } from "@/domain/notifications/alert-cards";
+import { myRsvps, teamRsvps } from "@/db/queries/rsvps";
 import { teamGames } from "@/db/queries/scores";
 import {
   myRegistration,
@@ -64,6 +60,7 @@ import { RecruitingSection } from "./recruiting";
 import { type GuaranteeView, TeamMoney } from "./team-money";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
+import { Rsvp } from "./rsvp";
 import { activeLeague } from "@/lib/league/active";
 
 export const metadata: Metadata = { title: "Your team" };
@@ -77,75 +74,6 @@ export default function TeamPage(
         <Team {...props} />
       </Suspense>
     </main>
-  );
-}
-
-const LEVEL_STYLE = {
-  full: "text-success",
-  short: "text-text",
-  check: "text-warning",
-  forfeit: "text-danger",
-} as const;
-
-/** One game's answer buttons, the team's counts and the fielding check. */
-function Rsvp({
-  action,
-  mine,
-  team,
-  suspended,
-}: {
-  action: (form: FormData) => Promise<void>;
-  mine: "in" | "out" | "maybe" | null;
-  team: TeamRsvps | undefined;
-  /** A suspended player can't say they're in. */
-  suspended: boolean;
-}) {
-  return (
-    <div className="flex w-full flex-col gap-1">
-      <form action={action} className="flex flex-wrap items-center gap-2">
-        <span className="text-small text-text-muted">You:</span>
-        {(
-          [
-            ["in", "In"],
-            ["maybe", "Maybe"],
-            ["out", "Out"],
-          ] as const
-        ).map(([value, label]) => (
-          <SubmitButton
-            key={value}
-            name="status"
-            value={value}
-            aria-pressed={mine === value}
-            disabled={suspended && value === "in"}
-            className={`min-h-11 min-w-11 rounded-full border px-3 py-0.5 text-small disabled:opacity-50 ${
-              mine === value
-                ? "border-text bg-text text-surface"
-                : "border-border"
-            }`}
-          >
-            {label}
-          </SubmitButton>
-        ))}
-      </form>
-      {team && team.in === 0 ? (
-        <p className="text-small text-text-muted">
-          Nobody has said they&apos;re in yet. {team.maybe} maybe · {team.out}{" "}
-          out · {team.noAnswer} no answer.
-        </p>
-      ) : (
-        team && (
-          <p className="text-small">
-            <span className="text-text-muted">
-              {team.in} in · {team.maybe} maybe · {team.out} out ·{" "}
-              {team.noAnswer} no answer.{" "}
-            </span>
-            <span className={LEVEL_STYLE[team.fielding.level]}>
-              {team.fielding.message}
-            </span>
-          </p>
-        )
-      )}
-    </div>
   );
 }
 
@@ -289,7 +217,6 @@ async function Team({
     suspended,
     captaincy,
     recruitingNow,
-    offer,
   ] = await Promise.all([
     teamRsvps(db, teamSeasonId, upcoming),
     pickupsFor(db, upcoming),
@@ -312,12 +239,6 @@ async function Team({
     ),
     leads || coCaptain || myOffer ? teamCaptaincy(db, teamSeasonId) : null,
     recruiting ? recruitingSummary(db, recruiting, now) : null,
-    // The one alert card to offer now, if any (issue #529): a first RSVP
-    // brings the rain-out card here.
-    alertCardFor(db, subject.userId, {
-      now,
-      pushReady: Boolean(env.VAPID_PUBLIC_KEY),
-    }),
   ]);
   const mySuspension = suspended.get(subject.userId);
   const day = (d: Date) =>
@@ -328,6 +249,13 @@ async function Team({
       hour: "numeric",
       minute: "2-digit",
       timeZone: league?.timeZone ?? "America/New_York",
+    }).format(d);
+  const shortDay = (d: Date) =>
+    new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      timeZone,
     }).format(d);
   /** "W 7–4", "L 2–5", "T 3–3", "W (forfeit)", or empty before a result. */
   const result = (g: (typeof games)[number]) => {
@@ -485,13 +413,6 @@ async function Team({
           <HelpLink audience="player" article="rsvp" topic="your team page" />
         )}
       </header>
-
-      {offer && (
-        <AlertCardView
-          copy={CARD_COPY[offer]}
-          publicKey={env.VAPID_PUBLIC_KEY ?? null}
-        />
-      )}
 
       {balance && (
         <TeamMoney
@@ -788,6 +709,7 @@ async function Team({
                       mine={mineRsvps.get(g.id) ?? null}
                       team={rsvps.get(g.id)}
                       suspended={mySuspension !== undefined}
+                      when={g.startsAt ? shortDay(g.startsAt) : "this game"}
                     />
                   )}
                   {unplayed.includes(g.id) &&

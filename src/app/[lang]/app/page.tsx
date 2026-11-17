@@ -12,8 +12,12 @@ import { myGiveawayWins } from "@/db/queries/giveaways";
 import { publishedGamesFor } from "@/db/queries/public-schedule";
 import { gamesToReferee } from "@/db/queries/referees";
 import { openSeasons } from "@/db/queries/registration";
-import { mySeasons } from "@/lib/nav/my-seasons";
+import { myLeagues as leaguesOfMine, mySeasons } from "@/lib/nav/my-seasons";
 import { pickupsFor } from "@/db/queries/subs";
+import { myRsvps, teamRsvps } from "@/db/queries/rsvps";
+import { suspendedAmong } from "@/db/queries/discipline";
+import { rsvpAction } from "./seasons/[season]/team/actions";
+import { Rsvp } from "./seasons/[season]/team/rsvp";
 import { surveysWaitingFor } from "@/db/queries/surveys";
 import { alertCardFor } from "@/db/queries/alert-choices";
 import { AlertCardView } from "@/components/alert-card";
@@ -50,8 +54,6 @@ import { OfflineSync } from "./offline-sync";
 import { PageLoading } from "@/components/page-loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeague } from "@/lib/league/active";
-import { LeagueSwitcher } from "@/components/league-switcher";
-import { leaguesOf } from "@/db/queries/leagues";
 import { leagueBase, leagueHref } from "@/domain/league/paths";
 
 export const metadata: Metadata = { title: "Home" };
@@ -71,7 +73,7 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
   const session = await currentAuthSession();
   if (!session) redirect("/sign-in?next=/app");
 
-  const { name, email } = session.user;
+  const { name } = session.user;
   const subject = await currentSubject();
   // Started now so it runs alongside the queries below: the next game is
   // kept on the device for when the field has no signal.
@@ -144,7 +146,7 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
       open: league ? await openSeasons(db, league.id, now) : [],
     };
   })();
-  const leagues = userId ? leaguesOf(db, userId) : Promise.resolve([]);
+  const leagues = userId ? leaguesOfMine(userId) : Promise.resolve([]);
   const refereeingAndPickups = (async () => {
     const refereeing =
       userId && subject.isReferee
@@ -165,12 +167,26 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
       refereeingAndPickups,
       myGames,
     ]);
-  // The league on show counts as theirs too, so its name is in the switcher.
-  const switchable =
-    league && !myLeagues.some((l) => l.id === league.id)
-      ? [league, ...myLeagues]
-      : myLeagues;
+  // Someone in more than one league sees which one is on show; switching
+  // is in the menu's Account group.
+  const inOtherLeagues = myLeagues.some((l) => l.id !== league?.id);
   const nextGame = pickNextGame(games, now);
+  // This person's team in the next game, if they play in it (a ref may not):
+  // its In / Maybe / Out go on the card while the game is still to come.
+  const myTeamInNext = nextGame
+    ? subject.roster.find(
+        (m) =>
+          m.teamSeasonId === nextGame.teamA.id ||
+          m.teamSeasonId === nextGame.teamB.id,
+      )
+    : undefined;
+  const nextIsLive = nextGame?.status === "in_progress";
+  const answersNext =
+    myTeamInNext !== undefined &&
+    userId !== null &&
+    !nextIsLive &&
+    nextGame?.startsAt != null &&
+    nextGame.startsAt > now;
   // The next game's park permit, for its ref and captains (ADR 0034).
   const nextGameId = parseId<GameId>(nextGame?.id);
   const seesPermit =
@@ -186,8 +202,8 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
   const nextDate = nextGame?.startsAt
     ? localDay(nextGame.startsAt, timeZone)
     : null;
-  // The permit and the day's status, read at once.
-  const [permitShown, nextDay] = await Promise.all([
+  // The permit, the day's status and the RSVPs, read at once.
+  const [permitShown, nextDay, nextRsvp] = await Promise.all([
     seesPermit && nextGameId !== null
       ? fieldPermitForGame(db, nextGameId).then((p) => p !== null)
       : false,
@@ -195,6 +211,19 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
       ? statusesFrom(db, nextGame.seasonId as SeasonId, nextDate).then(
           (days) => days.get(nextDate) ?? null,
         )
+      : null,
+    answersNext && nextGameId && userId && myTeamInNext
+      ? Promise.all([
+          myRsvps(db, userId, [nextGameId]),
+          teamRsvps(db, myTeamInNext.teamSeasonId as TeamSeasonId, [
+            nextGameId,
+          ]),
+          suspendedAmong(db, [userId], now),
+        ]).then(([mine, team, suspended]) => ({
+          mine: mine.get(nextGameId) ?? null,
+          team: team.get(nextGameId),
+          suspended: suspended.has(userId),
+        }))
       : null,
   ]);
   // On its day, the next game's emergency contacts, for its ref and
@@ -238,6 +267,13 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
   const nextStatus =
     nextGame && nextDay ? gameStatus(nextDay, nextGame.id) : null;
   const nextWords = nextStatus ? gameWords(nextStatus, timeZone) : null;
+  const day = (d: Date) =>
+    new Intl.DateTimeFormat("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      timeZone: league?.timeZone ?? "America/New_York",
+    }).format(d);
   const when = (d: Date) =>
     new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -290,11 +326,12 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
     <>
       <header className="flex flex-col gap-1">
         <h1 className="text-h1">Hi, {firstName}</h1>
-        <p className="text-text-muted">
-          Signed in as <strong className="text-text">{name || email}</strong>.
-        </p>
+        {league && inOtherLeagues && (
+          <p className="text-small text-text-muted">
+            {league.name} · switch leagues in the menu
+          </p>
+        )}
       </header>
-      {league && <LeagueSwitcher active={league} leagues={switchable} />}
       {nextGame && (
         <section
           aria-labelledby="next-game"
@@ -319,6 +356,30 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
               {nextGame.field ? ` · ${nextGame.field}` : ""}
               {nextGame.venue ? `, ${nextGame.venue.name}` : ""}
             </p>
+          )}
+          {nextIsLive && (
+            <Link
+              href={
+                league
+                  ? leagueHref(league, `/games/${nextGame.id}`)
+                  : `/games/${nextGame.id}`
+              }
+              className="mt-1 btn self-start btn-primary"
+            >
+              Live now <span aria-hidden="true">→</span>
+            </Link>
+          )}
+          {nextRsvp && nextGame.startsAt && (
+            <div className="mt-1">
+              <Rsvp
+                action={rsvpAction.bind(null, nextGame.seasonSlug, nextGame.id)}
+                mine={nextRsvp.mine}
+                team={nextRsvp.team}
+                suspended={nextRsvp.suspended}
+                when={day(nextGame.startsAt)}
+                counts={false}
+              />
+            </div>
           )}
           {nextDay && nextStatus && nextWords && (
             <GameDayNotice
@@ -473,6 +534,29 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
           <h2 id="refereeing" className="text-h3">
             Games you&apos;re refereeing
           </h2>
+          {checkInGameId ? (
+            // One tap checks the ref in for all of the day's games.
+            <form
+              action={checkInAsRefereeAction}
+              className="flex flex-wrap items-center gap-x-3 gap-y-1"
+            >
+              <input type="hidden" name="gameId" value={checkInGameId} />
+              <SubmitButton className="btn btn-secondary">
+                I&apos;m at the field
+              </SubmitButton>
+              <span className="text-small text-text-muted">
+                For all of today&apos;s games
+              </span>
+            </form>
+          ) : (
+            refereeing.some(
+              (g) => isGameDay(g.startsAt, now, timeZone) && g.checkedInAt,
+            ) && (
+              <p className="text-small text-success">
+                You&apos;re checked in for today&apos;s games.
+              </p>
+            )
+          )}
           {refereeing.length === 0 ? (
             <p className="text-text-muted">No games coming up.</p>
           ) : (
@@ -495,59 +579,21 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
                       ]}
                     />
                   </span>
-                  <span className="flex flex-col items-end gap-1">
-                    {g.startsAt <= now && (
-                      <>
-                        <Link
-                          href={`/app/games/${g.id}/score`}
-                          className="btn btn-primary"
-                        >
-                          Score
-                        </Link>
-                        {/* Optional: skipping it changes nothing. */}
-                        <Link
-                          href={`/app/games/${g.id}/live`}
-                          className="btn btn-secondary"
-                        >
-                          Keep score live
-                          <span className="sr-only">
-                            {" "}
-                            for {g.teamAName} vs {g.teamBName}
-                          </span>
-                        </Link>
-                      </>
-                    )}
-                    {isGameDay(g.startsAt, now, timeZone) &&
-                      (g.checkedInAt ? (
-                        <span className="text-small text-success">
-                          Checked in
-                        </span>
-                      ) : g.id === checkInGameId ? (
-                        // One tap checks the ref in for all of the day's
-                        // games, so the button shows once, on the first.
-                        <form action={checkInAsRefereeAction}>
-                          <input type="hidden" name="gameId" value={g.id} />
-                          <SubmitButton className="btn btn-secondary">
-                            I&apos;m at the field
-                          </SubmitButton>
-                          <span className="block text-small text-text-muted">
-                            For all of today&apos;s games
-                          </span>
-                        </form>
-                      ) : null)}
-                    {isGameDay(g.startsAt, now, timeZone) && (
-                      <Link
-                        href={`/app/games/${g.id}/lineup`}
-                        className="text-small underline"
-                      >
-                        Kicking orders
-                        <span className="sr-only">
-                          {" "}
-                          for {g.teamAName} vs {g.teamBName}
-                        </span>
-                      </Link>
-                    )}
-                  </span>
+                  {(g.startsAt <= now ||
+                    isGameDay(g.startsAt, now, timeZone)) && (
+                    // One button per game: scoring, the live score and the
+                    // kicking orders are all on the game's screen.
+                    <Link
+                      href={`/app/games/${g.id}/score`}
+                      className="btn shrink-0 btn-primary"
+                    >
+                      Open game
+                      <span className="sr-only">
+                        {" "}
+                        {g.teamAName} vs {g.teamBName}
+                      </span>
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
