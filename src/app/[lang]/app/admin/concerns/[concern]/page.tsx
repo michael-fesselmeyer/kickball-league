@@ -103,22 +103,42 @@ async function Concern({
         </h2>
         <p className="whitespace-pre-wrap">{found.body}</p>
         <dl className="text-small text-text-muted">
-          {found.parkRule && <div>Park rule: {PARK_RULES[found.parkRule]}</div>}
-          {found.occurredOn && <div>Date: {found.occurredOn}</div>}
-          {found.place && <div>Where: {found.place}</div>}
-          {found.gameId && (
-            <div>
-              <Link href={`/app/games/${found.gameId}`} className="underline">
-                The game
-              </Link>
+          {found.parkRule && (
+            <div className="flex flex-wrap gap-x-1">
+              <dt>Park rule:</dt>
+              <dd>{PARK_RULES[found.parkRule]}</dd>
             </div>
           )}
-          <div>
-            Sender:{" "}
-            {found.senderName ??
-              (found.replyEmail
-                ? `${found.replyEmail} (not signed in)`
-                : "Left no address")}
+          {found.occurredOn && (
+            <div className="flex flex-wrap gap-x-1">
+              <dt>Date:</dt>
+              <dd>{found.occurredOn}</dd>
+            </div>
+          )}
+          {found.place && (
+            <div className="flex flex-wrap gap-x-1">
+              <dt>Where:</dt>
+              <dd>{found.place}</dd>
+            </div>
+          )}
+          {found.gameId && (
+            <div className="flex flex-wrap gap-x-1">
+              <dt>Game:</dt>
+              <dd>
+                <Link href={`/app/games/${found.gameId}`} className="underline">
+                  The game
+                </Link>
+              </dd>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-x-1">
+            <dt>Sender:</dt>
+            <dd>
+              {found.senderName ??
+                (found.replyEmail
+                  ? `${found.replyEmail} (not signed in)`
+                  : "Left no address")}
+            </dd>
           </div>
         </dl>
         <p className="text-small text-text-muted">
