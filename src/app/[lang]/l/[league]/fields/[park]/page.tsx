@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
-import { PageLoading } from "@/components/page-loading";
 import { ParkToday, type TodayDay } from "@/components/park-today";
 import { db } from "@/db/client";
 import type { LeagueInfo } from "@/db/queries/leagues";
@@ -33,8 +31,12 @@ type Props = PageProps<"/[lang]/l/[league]/fields/[park]">;
 /** How many permitted days the page lists. */
 const DAYS_SHOWN = 14;
 
-/** A cache life Next.js leaves out of the prerender and reads per request. */
-const NOT_KEPT = { stale: 0, revalidate: 0, expire: 0 } as const;
+/**
+ * The whole page is static and painted in full (ADR 0029): with no
+ * <Suspense> boundary around the park, its days are part of the first paint
+ * instead of being revealed by a script after a loading state.
+ */
+export const ensureStatic = "navigation";
 
 export async function generateStaticParams(props: LeagueParams) {
   return publicParkParams(props);
@@ -55,9 +57,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default function ParkPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:px-6">
-      <Suspense fallback={<PageLoading>Loading the park…</PageLoading>}>
-        <Park {...props} />
-      </Suspense>
+      <Park {...props} />
     </main>
   );
 }
@@ -104,7 +104,9 @@ async function ParkDetails({
     const windows = await parkPermitWindows(db, park.id, new Date());
     return { park, windows };
   });
-  cacheLife(found ? PUBLIC_PAGE_LIFE : NOT_KEPT);
+  // A miss is kept like a hit: the route must be fully static, and adding a
+  // park expires the parks tag. A build with no database lists no real park.
+  cacheLife(PUBLIC_PAGE_LIFE);
   if (!found) notFound();
   const { park, windows } = found;
   const zone = league.timeZone;
