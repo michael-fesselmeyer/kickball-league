@@ -1125,6 +1125,8 @@ export const TRANSLATED_HELP_ROLES: Readonly<
   bn: [],
   ko: [],
   ht: [],
+  it: [],
+  fr: [],
 };
 
 /**

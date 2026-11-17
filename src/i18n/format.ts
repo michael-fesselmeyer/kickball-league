@@ -103,6 +103,11 @@ export function formatOrdinal(
   switch (locale) {
     case "es":
       return `${n}.${gender === "feminine" ? "ª" : "º"}`;
+    case "it":
+      return `${n}${gender === "feminine" ? "ª" : "º"}`;
+    case "fr":
+      if (n === 1) return gender === "feminine" ? "1re" : "1er";
+      return `${n}e`;
     case "zh":
       return `第${n}`;
     case "ko":

@@ -15,6 +15,8 @@ export const LOCALES = [
   "bn",
   "ko",
   "ht",
+  "it",
+  "fr",
 ] as const;
 
 export type Locale = (typeof LOCALES)[number];
@@ -40,6 +42,8 @@ export const LOCALE_TAGS: Readonly<Record<Locale, string>> = {
   bn: "bn-u-nu-latn",
   ko: "ko",
   ht: "ht",
+  it: "it-IT",
+  fr: "fr-FR",
 };
 
 /**
@@ -55,6 +59,8 @@ export const LANG_ATTRIBUTES: Readonly<Record<Locale, string>> = {
   bn: "bn",
   ko: "ko",
   ht: "ht",
+  it: "it",
+  fr: "fr",
 };
 
 /** Each language's name in itself, for the language switcher. */
@@ -67,6 +73,8 @@ export const LOCALE_NAMES: Readonly<Record<Locale, string>> = {
   bn: "বাংলা",
   ko: "한국어",
   ht: "Kreyòl ayisyen",
+  it: "Italiano",
+  fr: "Français",
 };
 
 /** The Open Graph locale of each language's pages. */
@@ -79,6 +87,8 @@ export const OPEN_GRAPH_LOCALES: Readonly<Record<Locale, string>> = {
   bn: "bn_BD",
   ko: "ko_KR",
   ht: "ht_HT",
+  it: "it_IT",
+  fr: "fr_FR",
 };
 
 /**
