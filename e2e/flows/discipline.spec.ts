@@ -178,7 +178,10 @@ test.describe
     // Rate the other team in the season's first game, which is final:
     // the last of the results, which list the newest first.
     await captain.goto("/app/seasons/fall-2026/team");
-    await captain.getByRole("link", { name: /^See score/ }).last().click();
+    await captain
+      .getByRole("link", { name: /^See score/ })
+      .last()
+      .click();
     const rating = captain.getByRole("region", { name: /sportsmanship$/ });
     await rating.getByLabel("4").check();
     await rating
