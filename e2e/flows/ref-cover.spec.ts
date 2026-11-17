@@ -6,8 +6,7 @@ import { pageAs } from "../support/personas";
 /**
  * A game that loses its ref (issue #389), at phone width: Reese Ref drops a
  * game three hours out with a reason, the admins' game-day screen lists it
- * as needing a ref, and the first ref to tap "Take it" gets it back. Reese
- * is the demo's only ref, so nobody else is asked.
+ * as needing a ref, and the first ref to tap "Take it" gets it back.
  */
 test.use({ viewport: { width: 390, height: 844 } });
 
