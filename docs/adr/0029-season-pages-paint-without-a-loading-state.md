@@ -37,3 +37,7 @@ The public game page (`/games/[game]`) had the same problem with a smaller page:
 
 `/paused` showed "Loading…" while it read the site's status per request, and lost the same race in about half of its Lighthouse runs (#347). It now reads the league's name and status in one cached read tagged `site`, which the operator's status change expires along with the page (`refreshSiteNotice`), and sets `ensureStatic = "navigation"`.
 
+
+## Update: the event page (2026-11-17)
+
+The public event page (`/events/[event]`) wrapped the whole event in a boundary behind "Loading the event…". A tournament's page is large enough that React moved the finished event to the end of the document and revealed it with an inline script, so the description, the page's largest paint, waited on that script. Lighthouse measured it at about 1.1 s in some runs and 3.6 s in others against the 2.0 s budget, depending on whether its model ordered the reveal after the framework's scripts. The page now follows this decision: no boundary around the event and `ensureStatic = "navigation"`. Everything it reads is cached by the event's tag and the photo tags, so every event is prerendered as fully static HTML with the event in the first paint, and an event the build didn't list is rendered in full on its first visit. The events list and the sponsor pages still use a page-level boundary; they can follow when their build-without-a-database fallback is handled the same way.
