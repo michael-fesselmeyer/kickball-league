@@ -121,6 +121,7 @@ test("a game from check-in to a confirmed score", async ({ browser }) => {
         await expect(quinn.getByRole("heading", { name: half })).toBeVisible();
         await scoreHalf(quinn, runs);
       }
+      await quinn.getByRole("button", { name: "End the game" }).click();
       await quinn
         .getByRole("button", { name: `Game over: ${HOME} 6, ${AWAY} 3` })
         .click();
