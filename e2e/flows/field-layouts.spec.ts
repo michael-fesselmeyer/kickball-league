@@ -56,7 +56,7 @@ test("an admin adds a layout, and the ref sees it with the permit", async ({
   const ref = await pageAs(browser, "Ref");
   await ref
     .getByRole("region", { name: "Games you're refereeing" })
-    .getByRole("link", { name: "Score", exact: true })
+    .getByRole("link", { name: /^Open game/ })
     .first()
     .click();
   await ref.getByRole("link", { name: "Park permit for this game" }).click();

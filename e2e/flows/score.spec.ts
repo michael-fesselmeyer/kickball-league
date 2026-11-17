@@ -11,7 +11,7 @@ test("a ref enters a score and a captain confirms it", async ({ browser }) => {
   const game = ref
     .getByRole("listitem")
     .filter({ hasText: "The Big Kicks vs Kickin' Chicken" });
-  await game.getByRole("link", { name: "Score", exact: true }).click();
+  await game.getByRole("link", { name: /^Open game/ }).click();
   await expect(ref.getByRole("heading", { level: 1 })).toHaveText(
     "The Big Kicks vs Kickin' Chicken",
   );

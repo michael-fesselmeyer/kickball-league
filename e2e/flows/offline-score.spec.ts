@@ -14,7 +14,7 @@ async function openScoreScreen(page: Page, matchup: string) {
   await page
     .getByRole("listitem")
     .filter({ hasText: matchup })
-    .getByRole("link", { name: "Score", exact: true })
+    .getByRole("link", { name: /^Open game/ })
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(matchup);
   // The first page load installs the worker; the outbox needs it running.
