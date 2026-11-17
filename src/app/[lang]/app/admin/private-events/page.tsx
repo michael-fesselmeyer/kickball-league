@@ -171,7 +171,7 @@ async function Queue({
                 </div>
                 <fieldset className="flex flex-col gap-1">
                   <legend className="text-small">Who pays</legend>
-                  <label className="flex min-h-11 items-center gap-2">
+                  <label className="check-row">
                     <input
                       type="radio"
                       name="payer"
@@ -181,7 +181,7 @@ async function Queue({
                     />
                     The organization, once for every team
                   </label>
-                  <label className="flex min-h-11 items-center gap-2">
+                  <label className="check-row">
                     <input
                       type="radio"
                       name="payer"

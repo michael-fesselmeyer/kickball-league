@@ -147,7 +147,7 @@ async function SurveyAdmin({ params, searchParams }: Props) {
                 action={closeSurveyAction.bind(null, slug)}
                 className="flex flex-col gap-2"
               >
-                <label className="flex min-h-11 items-center gap-2">
+                <label className="check-row">
                   <input
                     type="checkbox"
                     name="confirm"

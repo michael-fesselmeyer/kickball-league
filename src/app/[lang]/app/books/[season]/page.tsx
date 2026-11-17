@@ -81,7 +81,7 @@ const NOTICES: Record<string, string> = {
 
 const input = "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
 const chip =
-  "flex min-h-11 items-center gap-2 rounded-md border border-border px-3 py-2 has-[:checked]:border-brand has-[:checked]:font-bold";
+  "flex min-h-11 items-center gap-2 rounded-md border border-border px-3 py-2 has-[:checked]:border-brand has-[:checked]:font-bold [&>input]:size-5";
 
 const dollars = (cents: number) => (cents / 100).toFixed(2);
 

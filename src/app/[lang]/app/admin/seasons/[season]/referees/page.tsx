@@ -214,7 +214,7 @@ async function Referees({
                       className="w-48 rounded-md border border-border bg-surface px-2 py-1"
                     />
                     {query.error === "own_team" && query.game === g.id && (
-                      <label className="flex items-center gap-2 text-small">
+                      <label className="check-row text-small">
                         <input
                           type="checkbox"
                           name="ownTeamOk"

@@ -85,7 +85,7 @@ async function Rulebook({
                 value={v}
                 defaultChecked={visibility === v}
                 aria-describedby={`visibility-${v}-help`}
-                className="mt-1.5"
+                className="mt-1 size-5"
               />
               <div>
                 <label htmlFor={`visibility-${v}`} className="font-bold">

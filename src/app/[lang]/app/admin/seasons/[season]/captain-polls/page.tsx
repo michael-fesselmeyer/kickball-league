@@ -252,7 +252,7 @@ async function CaptainPolls({
           </fieldset>
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1">Who votes for a team</legend>
-            <label className="flex items-center gap-2">
+            <label className="check-row">
               <input
                 type="radio"
                 name="voters"
@@ -261,14 +261,14 @@ async function CaptainPolls({
               />
               The captain
             </label>
-            <label className="flex items-center gap-2">
+            <label className="check-row">
               <input type="radio" name="voters" value="captains_and_co" />
               The captain or a co-captain (the last answer counts)
             </label>
           </fieldset>
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1">When captains see the results</legend>
-            <label className="flex items-center gap-2">
+            <label className="check-row">
               <input
                 type="radio"
                 name="results"
@@ -277,7 +277,7 @@ async function CaptainPolls({
               />
               Once their team has voted
             </label>
-            <label className="flex items-center gap-2">
+            <label className="check-row">
               <input type="radio" name="results" value="at_close" />
               When voting closes
             </label>

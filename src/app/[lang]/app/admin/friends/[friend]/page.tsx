@@ -110,7 +110,7 @@ async function EditFriend({ params, searchParams }: Props) {
           action={removeFriendAction.bind(null, entry.id)}
           className="flex flex-col gap-3"
         >
-          <label className="flex min-h-11 items-center gap-3">
+          <label className="check-row">
             <input
               type="checkbox"
               name="confirm"

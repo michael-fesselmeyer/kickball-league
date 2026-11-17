@@ -220,10 +220,7 @@ async function Kit({
                   </p>
                 )}
                 {candidates.map((c) => (
-                  <label
-                    key={c.userId}
-                    className="flex min-h-11 items-center gap-2"
-                  >
+                  <label key={c.userId} className="check-row">
                     <input
                       type="radio"
                       name="userId"

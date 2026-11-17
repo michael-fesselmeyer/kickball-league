@@ -162,10 +162,7 @@ function AudienceFields({
             ) : (
               <div className="grid gap-x-4 sm:grid-cols-2">
                 {teams.map((t) => (
-                  <label
-                    key={t.id}
-                    className="check-row"
-                  >
+                  <label key={t.id} className="check-row">
                     <input
                       type="checkbox"
                       name="team"

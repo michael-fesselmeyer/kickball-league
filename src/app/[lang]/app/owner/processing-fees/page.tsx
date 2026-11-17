@@ -159,7 +159,7 @@ async function ProcessingFees({
       <form action={saveFeeSettingsAction} className="flex flex-col gap-6">
         <fieldset className="flex flex-col gap-2">
           <legend className="text-h3">Who covers fees</legend>
-          <label className="flex min-h-11 items-center gap-3">
+          <label className="check-row">
             <input
               className="size-5 accent-brand"
               type="radio"
@@ -169,7 +169,7 @@ async function ProcessingFees({
             />
             Off: the league pays every fee (prices as they are)
           </label>
-          <label className="flex min-h-11 items-center gap-3">
+          <label className="check-row">
             <input
               className="size-5 accent-brand"
               type="radio"
@@ -213,7 +213,7 @@ async function ProcessingFees({
 
         <fieldset className="flex flex-col gap-3">
           <legend className="text-h3">Bank transfers</legend>
-          <label className="flex min-h-11 items-center gap-3">
+          <label className="check-row">
             <input
               className="size-5 accent-brand"
               type="checkbox"
@@ -252,7 +252,7 @@ async function ProcessingFees({
 
         <fieldset className="flex flex-col gap-3">
           <legend className="text-h3">Venmo</legend>
-          <label className="flex min-h-11 items-center gap-3">
+          <label className="check-row">
             <input
               className="size-5 accent-brand"
               type="checkbox"
@@ -301,7 +301,7 @@ async function ProcessingFees({
           />
         </label>
 
-        <label className="flex min-h-11 items-start gap-3">
+        <label className="check-row-top">
           <input
             className="mt-1 size-5 accent-brand"
             type="checkbox"

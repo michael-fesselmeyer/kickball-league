@@ -629,7 +629,7 @@ async function Permits({
                 Fields to ask for, in order
               </legend>
               {inputs.fields.map((f) => (
-                <label key={f.id} className="flex min-h-11 items-center gap-2">
+                <label key={f.id} className="check-row">
                   <input
                     type="checkbox"
                     name="field"

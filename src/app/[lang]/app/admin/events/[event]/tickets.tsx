@@ -148,7 +148,7 @@ export function EventTickets({
                     maxLength={200}
                     className={`${control} w-full`}
                   />
-                  <label className="flex min-h-11 items-center gap-2">
+                  <label className="check-row">
                     <input
                       type="checkbox"
                       name="confirm"

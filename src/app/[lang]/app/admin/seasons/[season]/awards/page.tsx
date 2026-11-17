@@ -181,7 +181,7 @@ async function Awards({
         >
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1">For</legend>
-            <label className="flex items-center gap-2">
+            <label className="check-row">
               <input
                 type="radio"
                 name="kind"
@@ -191,7 +191,7 @@ async function Awards({
               />
               One game day
             </label>
-            <label className="flex items-center gap-2">
+            <label className="check-row">
               <input
                 type="radio"
                 name="kind"

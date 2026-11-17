@@ -235,7 +235,7 @@ async function MerchItemAdmin({
             action={addPhotoAction.bind(null, item.id)}
             className="flex flex-col items-start gap-3 rounded-card border border-border bg-surface p-4"
           >
-            <div className="flex flex-col gap-1">
+            <div className="flex w-full flex-col gap-1">
               <label htmlFor="photo" className="font-bold">
                 Photo (JPEG, PNG or WebP, up to 3 MB)
               </label>
@@ -245,7 +245,7 @@ async function MerchItemAdmin({
                 type="file"
                 required
                 accept="image/jpeg,image/png,image/webp"
-                className="min-h-11"
+                className="min-h-11 w-full max-w-full"
               />
             </div>
             <div className="flex w-full flex-col gap-1">
@@ -351,7 +351,7 @@ function OrderRow({ itemId, order: o }: { itemId: string; order: AdminOrder }) {
               maxLength={200}
               className={`${control} w-full`}
             />
-            <label className="flex min-h-11 items-center gap-2">
+            <label className="check-row">
               <input
                 type="checkbox"
                 name="confirm"

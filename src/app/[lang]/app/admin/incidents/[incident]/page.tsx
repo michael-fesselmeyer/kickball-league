@@ -109,7 +109,7 @@ function SuspendForm({
       )}
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1">Suspend {name} for</legend>
-        <label className="flex flex-wrap items-center gap-2">
+        <label className="check-row flex-wrap">
           <input
             type="radio"
             name="scope"
@@ -127,7 +127,7 @@ function SuspendForm({
             className={`${field} w-20`}
           />
         </label>
-        <label className="flex items-center gap-2">
+        <label className="check-row">
           <input
             type="radio"
             name="scope"
@@ -136,7 +136,7 @@ function SuspendForm({
           />
           The rest of the season
         </label>
-        <label className="flex items-center gap-2">
+        <label className="check-row">
           <input
             type="radio"
             name="scope"

@@ -314,7 +314,7 @@ async function Divisions({
             divisions differ in size, every team in the smaller one plays this
             many and the larger division&apos;s teams share the rest evenly.
           </p>
-          <label className="flex min-h-11 items-center gap-2">
+          <label className="check-row">
             <input
               name="crossoversCount"
               type="checkbox"
@@ -323,7 +323,7 @@ async function Divisions({
             />
             Crossover results count in division standings
           </label>
-          <label className="flex min-h-11 items-center gap-2">
+          <label className="check-row">
             <input
               name="combinedFinal"
               type="checkbox"
@@ -431,11 +431,11 @@ async function Divisions({
                   className={`${input} w-28`}
                 />
               </label>
-              <label className="flex min-h-11 items-center gap-2">
+              <label className="check-row">
                 <input name="bunting" type="checkbox" className="size-5" />
                 Bunting
               </label>
-              <label className="flex min-h-11 items-center gap-2">
+              <label className="check-row">
                 <input name="stealing" type="checkbox" className="size-5" />
                 Stealing
               </label>

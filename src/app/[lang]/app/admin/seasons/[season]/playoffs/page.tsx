@@ -311,7 +311,7 @@ async function Playoffs({
                           className={`${input} w-24`}
                         />
                       </label>
-                      <label className="flex min-h-11 items-center gap-2">
+                      <label className="check-row">
                         <input
                           name={id("third")}
                           type="checkbox"

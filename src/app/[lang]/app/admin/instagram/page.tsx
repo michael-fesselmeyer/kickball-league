@@ -198,7 +198,7 @@ async function Instagram({
               action={showNewestAction}
               className="flex flex-wrap items-center gap-3"
             >
-              <label className="flex min-h-11 items-center gap-2">
+              <label className="check-row">
                 <input
                   type="checkbox"
                   name="showNewest"
@@ -223,7 +223,7 @@ async function Instagram({
                 </p>
                 <fieldset className="flex flex-col gap-2">
                   <legend className="sr-only">Synced photos</legend>
-                  <label className="flex min-h-11 items-center gap-2">
+                  <label className="check-row">
                     <input
                       type="radio"
                       name="photos"
@@ -232,7 +232,7 @@ async function Instagram({
                     />
                     Keep them up
                   </label>
-                  <label className="flex min-h-11 items-center gap-2">
+                  <label className="check-row">
                     <input type="radio" name="photos" value="delete" />
                     Remove them from the site
                   </label>

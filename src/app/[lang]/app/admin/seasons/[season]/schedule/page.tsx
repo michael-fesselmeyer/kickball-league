@@ -542,7 +542,7 @@ async function Schedule({
                   })}
               </select>
             </label>
-            <label className="flex items-center gap-2">
+            <label className="check-row">
               <input type="checkbox" name="pin" defaultChecked />
               Pin it there, so regenerating keeps it
             </label>

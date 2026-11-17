@@ -240,7 +240,7 @@ async function Accounts({
                   name="mergedId"
                   value={preview.merged.id}
                 />
-                <label className="flex items-start gap-2">
+                <label className="check-row-top">
                   <input type="checkbox" name="same" className="mt-1" />
                   <span>
                     I&apos;ve checked that both accounts belong to the same
