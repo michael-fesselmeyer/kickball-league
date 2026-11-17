@@ -210,7 +210,7 @@ test("a ref sees the park permit on the game's page", async ({ browser }) => {
   const page = await pageAs(browser, "Ref");
   await page
     .getByRole("region", { name: "Games you're refereeing" })
-    .getByRole("link", { name: "Score", exact: true })
+    .getByRole("link", { name: /^Open game/ })
     .first()
     .click();
   await page.getByRole("link", { name: "Park permit for this game" }).click();

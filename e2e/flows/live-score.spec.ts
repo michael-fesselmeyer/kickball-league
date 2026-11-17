@@ -24,12 +24,13 @@ test("a ref scores inning by inning and calls the game", async ({
   browser,
 }) => {
   const ref = await pageAs(browser, "Ref");
-  // The optional nudge on the ref's home screen, once the slot has started.
+  // The optional nudge on the game's screen, once the slot has started.
   await ref
     .getByRole("listitem")
     .filter({ hasText: "Red Rubber Ballers vs Sun Kickers" })
-    .getByRole("link", { name: /^Keep score live/ })
+    .getByRole("link", { name: /^Open game/ })
     .click();
+  await ref.getByRole("link", { name: /^Keep score live/ }).click();
   await expect(
     ref.getByRole("heading", { name: "Who kicks first?" }),
   ).toBeVisible();

@@ -53,7 +53,7 @@ test.describe
     await ref
       .getByRole("listitem")
       .filter({ hasText: GAME })
-      .getByRole("link", { name: "Score", exact: true })
+      .getByRole("link", { name: /^Open game/ })
       .click();
     await ref.getByRole("link", { name: "Report an incident" }).click();
     await expect(
@@ -87,7 +87,7 @@ test.describe
     await ref
       .getByRole("listitem")
       .filter({ hasText: GAME })
-      .getByRole("link", { name: "Score", exact: true })
+      .getByRole("link", { name: /^Open game/ })
       .click();
     const cards = ref.getByRole("region", { name: "Cards" });
     await expect(cards).toContainText(
