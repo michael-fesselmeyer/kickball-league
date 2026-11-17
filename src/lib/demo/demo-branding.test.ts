@@ -16,6 +16,7 @@ import {
   brandingKey,
   loadBranding,
   LOGO_MAX_HEIGHT,
+  knockOutBackground,
   logoSize,
   prepareLogo,
 } from "../../../scripts/demo-branding.mjs";
@@ -55,6 +56,7 @@ describe("loadBranding", () => {
       leagueName: FIXTURE.leagueName,
       shortName: "HLKS",
       logo: join(dir, "mark.png"),
+      logoBackground: "keep",
       teams: FIXTURE.teams,
     });
   });
@@ -65,6 +67,7 @@ describe("loadBranding", () => {
       leagueName: "Harbor Lights",
       shortName: null,
       logo: null,
+      logoBackground: "keep",
       teams: [],
     });
   });
@@ -86,6 +89,7 @@ describe("loadBranding", () => {
     [{ leagueName: "A", logo: "../mark.png" }, "not a path"],
     [{ leagueName: "A", logo: "mark.gif" }, ".png, .webp or .jpg"],
     [{ leagueName: "A", logo: "gone.png" }, "the logo gone.png isn't in"],
+    [{ leagueName: "A", logoBackground: "white" }, '"logoBackground" must be'],
     [{ leagueName: "A", teams: "Toads" }, '"teams" must be a list'],
     [{ leagueName: "A", teams: ["Toads", ""] }, '"teams[1]" must be'],
     [{ leagueName: "A", teams: ["Toads", "toads"] }, "lists toads twice"],
@@ -185,6 +189,30 @@ describe("prepareLogo", () => {
     expect([big.width, big.height]).toEqual([410, 512]);
   });
 
+  it("knocks out a white background into a trimmed transparent copy", async () => {
+    await whiteRingLogo(join(dir, "mark.png"));
+    const before = await sharp(join(dir, "mark.png")).raw().toBuffer();
+    write({ ...FIXTURE, logoBackground: "knock-out" });
+    const publicDir = join(dir, "public");
+
+    const logo = await prepareLogo(loadBranding(dir), publicDir);
+
+    // The ring is 300 px square inside a 600 by 400 white canvas: trimmed to
+    // the ring, at the header's 120 px.
+    expect(logo).toMatchObject({
+      width: LOGO_MAX_HEIGHT,
+      height: LOGO_MAX_HEIGHT,
+    });
+    const small = await sharp(join(publicDir, logo!.src)).metadata();
+    expect([small.width, small.height, small.hasAlpha]).toEqual([
+      120,
+      120,
+      true,
+    ]);
+    // The original is only read.
+    expect(await sharp(join(dir, "mark.png")).raw().toBuffer()).toEqual(before);
+  });
+
   it("removes an old copy and writes nothing without a logo", async () => {
     const publicDir = join(dir, "public");
     mkdirSync(join(publicDir, "brand"), { recursive: true });
@@ -192,5 +220,51 @@ describe("prepareLogo", () => {
     expect(await prepareLogo(loadBranding(dir), publicDir)).toBeNull();
     expect(await prepareLogo(null, publicDir)).toBeNull();
     expect(existsSync(join(publicDir, "brand"))).toBe(false);
+  });
+});
+
+/** A navy ring with a white middle on a 600 by 400 white canvas. */
+async function whiteRingLogo(file: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400">
+    <rect width="600" height="400" fill="#fff"/>
+    <circle cx="300" cy="200" r="140" fill="#fff" stroke="#1d3557" stroke-width="20"/>
+  </svg>`;
+  await sharp(Buffer.from(svg)).png().toFile(file);
+}
+
+describe("knockOutBackground", () => {
+  const pixel = async (png: Buffer, x: number, y: number) => {
+    const { data, info } = await sharp(png)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const i = (y * info.width + x) * 4;
+    return [...data.subarray(i, i + 4)];
+  };
+
+  it("clears the background from the edges and keeps the white inside", async () => {
+    await whiteRingLogo(join(dir, "mark.png"));
+    const out = await knockOutBackground(join(dir, "mark.png"));
+    const meta = await sharp(out).metadata();
+    // Trimmed to the ring: 280 across plus the 20 px stroke.
+    expect([meta.width, meta.height]).toEqual([300, 300]);
+    // Corners outside the ring are clear.
+    expect((await pixel(out, 5, 5))[3]).toBe(0);
+    // The white middle, which the fill can't reach, stays solid white.
+    expect(await pixel(out, 150, 150)).toEqual([255, 255, 255, 255]);
+    // The ring stays solid navy.
+    expect(await pixel(out, 150, 5)).toEqual([0x1d, 0x35, 0x57, 255]);
+  });
+
+  it("leaves a logo without a solid light background as it is", async () => {
+    await sharp({
+      create: { width: 40, height: 30, channels: 4, background: "#1d3557" },
+    })
+      .png()
+      .toFile(join(dir, "mark.png"));
+    const out = await knockOutBackground(join(dir, "mark.png"));
+    const meta = await sharp(out).metadata();
+    expect([meta.width, meta.height]).toEqual([40, 30]);
+    expect(await pixel(out, 0, 0)).toEqual([0x1d, 0x35, 0x57, 255]);
   });
 });
