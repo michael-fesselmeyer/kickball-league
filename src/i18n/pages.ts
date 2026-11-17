@@ -39,6 +39,8 @@ export const TRANSLATED_PAGES: Readonly<Record<Locale, readonly string[]>> = {
   bn: CATALOG_PAGES,
   ko: CATALOG_PAGES,
   ht: CATALOG_PAGES,
+  it: CATALOG_PAGES,
+  fr: CATALOG_PAGES,
 };
 
 const compiled = new Map<string, RegExp>();

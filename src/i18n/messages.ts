@@ -3,7 +3,9 @@ import { DEFAULT_LOCALE, isLocale, type Locale } from "./locales";
 import { type EnglishMessages, en } from "./messages/en";
 import { bn } from "./messages/bn";
 import { es } from "./messages/es";
+import { fr } from "./messages/fr";
 import { ht } from "./messages/ht";
+import { it } from "./messages/it";
 import { ko } from "./messages/ko";
 import { pl } from "./messages/pl";
 import { ru } from "./messages/ru";
@@ -11,7 +13,7 @@ import { zh } from "./messages/zh";
 
 /** Every language's catalog; English is complete by definition. */
 export const CATALOGS: Readonly<Record<Locale, Translation<EnglishMessages>>> =
-  { en, es, zh, ru, pl, bn, ko, ht };
+  { en, es, zh, ru, pl, bn, ko, ht, it, fr };
 
 export type Messages = Complete<EnglishMessages>;
 
