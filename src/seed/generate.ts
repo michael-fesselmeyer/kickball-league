@@ -22,6 +22,7 @@ import {
   SAMPLE_WAIVER_TITLE,
 } from "./sample-waiver";
 import { generateSlots } from "@/domain/scheduler/slots";
+import { balancedGameDays } from "./balanced-days";
 import { HOME_PARK } from "@/lib/site";
 
 /**
@@ -48,7 +49,7 @@ export const TEAMS: readonly {
   { name: "Foul Play", slug: "foul-play", color: "#2A9D8F" },
 ];
 
-const FIRST_NAMES = [
+export const FIRST_NAMES = [
   "Alex",
   "Amara",
   "Bea",
@@ -81,7 +82,7 @@ const FIRST_NAMES = [
   "Zoe",
 ] as const;
 
-const LAST_NAMES = [
+export const LAST_NAMES = [
   "Abara",
   "Bianchi",
   "Castillo",
@@ -111,6 +112,8 @@ const LAST_NAMES = [
 const SHIRT_SIZES = ["xs", "s", "m", "l", "xl", "xxl"] as const;
 
 export const ROSTER_SIZE = 14;
+/** The fewest of each fielding group a team needs to field eleven. */
+const FULL_SIDE_GROUP = 5;
 /** Fall plays Tuesday evenings (summer is Sunday afternoons, spring Monday evenings). */
 const GAME_DAYS = [
   "2026-09-15",
@@ -345,6 +348,31 @@ export function generateSeed(seed = 2026) {
     }
   }
 
+  // Every team can field a full side of eleven (at most six of either
+  // fielding group): one with fewer than five in a group has players from
+  // the larger group counted in it instead. No random draw, so every id
+  // and score after this stays the same.
+  for (const entry of teamSeasons) {
+    const own = rosterMemberships
+      .filter((m) => m.teamSeasonId === entry.id)
+      .flatMap((m) => {
+        const userId = registrations.find(
+          (r) => r.id === m.registrationId,
+        )?.userId;
+        const p = profiles.find((x) => x.userId === userId);
+        return p ? [p] : [];
+      });
+    for (const side of ["woman", "man"] as const) {
+      const other = side === "woman" ? "man" : "woman";
+      const count = () => own.filter((p) => p.lineupGender === side).length;
+      for (const p of own.filter((x) => x.lineupGender === other).reverse()) {
+        if (count() >= FULL_SIDE_GROUP) break;
+        p.lineupGender = side;
+        if (p.gender !== "nonbinary") p.gender = side;
+      }
+    }
+  }
+
   // Slots: every game day, every field, at each kickoff hour, an hour each, as
   // the slot cutter makes them from the season's 8 to 10 pm permits (so an
   // admin who cuts slots again keeps these). Each slot's local game day is kept
@@ -368,14 +396,28 @@ export function generateSeed(seed = 2026) {
     ),
   );
 
-  // Games: one round per game day; the first rounds are already final.
-  const games = roundRobin(teamSeasons.length).flatMap((pairs, round) => {
+  // Games: one round per game day; the first rounds are already final. Each
+  // game's kickoff and field come from a balanced plan, so the published
+  // schedule grades well on the schedule screen.
+  const pairings = roundRobin(teamSeasons.length);
+  const plan = balancedGameDays(pairings, {
+    teams: teamSeasons.length,
+    times: KICKOFF_HOURS.length,
+    fields: fields.length,
+  });
+  const games = pairings.flatMap((pairs, round) => {
     const date = GAME_DAYS[round] as string;
-    const daySlots = random.shuffle(
-      slots.filter((s) => gameDayOf.get(s.id) === date),
-    );
+    const daySlots = slots.filter((s) => gameDayOf.get(s.id) === date);
+    // The draw stays, though the plan places the games, so every id and
+    // score after it is the same as before the plan.
+    random.shuffle(daySlots);
     return pairs.map(([a, b], i) => {
-      const slot = daySlots[i];
+      const where = plan[round]?.[i];
+      const slot = daySlots.find(
+        (s) =>
+          s.timeIndex === where?.timeIndex &&
+          s.fieldId === fields[where.field]?.id,
+      );
       if (!slot) throw new Error(`Not enough slots on ${date}`);
       const played = round < PLAYED_ROUNDS;
       return {
@@ -400,14 +442,26 @@ export function generateSeed(seed = 2026) {
   // Next spring, set up but not yet scheduled, for the schedule screens: the
   // same teams entered, permits on Monday evenings, slots cut from them, and
   // no games. Built after everything above, so earlier ids stay the same.
+  // Sign-ups are open, with the early-bird price on, so a demo visitor can
+  // register and pay: they opened two weeks before the fall's next game
+  // day and close the week before spring starts.
   const nextSeason = {
     id: id<SeasonId>(),
     leagueId: league.id,
     name: "Spring 2027",
     slug: "spring-2027",
-    status: "registration_closed" as const,
+    status: "registration_open" as const,
     startsOn: SPRING_DAYS[0] as string,
     endsOn: SPRING_DAYS.at(-1) as string,
+    registrationOpensAt: newYorkTime("2026-09-29", 9),
+    registrationClosesAt: new Date(
+      newYorkTime("2027-03-29", 0).getTime() - 60_000,
+    ),
+    paymentDeadlineAt: new Date(
+      newYorkTime("2027-04-01", 0).getTime() - 60_000,
+    ),
+    earlyBirdEndsAt: new Date(newYorkTime("2026-12-07", 0).getTime() - 60_000),
+    earlyBirdDiscountCents: 1000,
     feeModel: "per_player" as const,
     playerFeeCents: 8500,
     freeAgentFeeCents: 8500,
