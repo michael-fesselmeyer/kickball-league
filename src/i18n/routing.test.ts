@@ -3,8 +3,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { LEAGUE_PAGE_ROOTS } from "@/domain/league/paths";
 import { formatDay, formatList, formatMoney, formatNumber } from "./format";
-import { localizedPath } from "./locales";
+import { type Locale, localizedPath } from "./locales";
 import {
+  isPagePath,
   languageAlternates,
   languageSwitchTarget,
   PROFILE_LANGUAGE,
@@ -65,43 +66,96 @@ describe("addresses in each language", () => {
 
   describe("languageSwitchTarget", () => {
     const ORIGIN = "https://league.example.test";
+    const byReferer = (referer: string | null, target: Locale) =>
+      languageSwitchTarget({ from: null, referer }, ORIGIN, target);
+    const byFrom = (from: string | null, target: Locale, referer = null) =>
+      languageSwitchTarget({ from, referer }, ORIGIN, target);
 
     it("goes back to the page the visitor came from, with its query", () => {
-      expect(
-        languageSwitchTarget(
-          `${ORIGIN}/es/seasons/fall-2026?team=a`,
-          ORIGIN,
-          "en",
-        ),
-      ).toBe("/seasons/fall-2026?team=a");
-      expect(languageSwitchTarget(`${ORIGIN}/faq`, ORIGIN, "es")).toBe(
-        "/es/faq",
+      expect(byReferer(`${ORIGIN}/es/seasons/fall-2026?team=a`, "en")).toBe(
+        "/seasons/fall-2026?team=a",
       );
+      expect(byReferer(`${ORIGIN}/faq`, "es")).toBe("/es/faq");
     });
 
     it("goes to the language's home for a page not translated", () => {
-      expect(languageSwitchTarget(`${ORIGIN}/records`, ORIGIN, "es")).toBe(
-        "/es",
-      );
+      expect(byReferer(`${ORIGIN}/records`, "es")).toBe("/es");
     });
 
     it("sends signed-in pages to the profile's language setting", () => {
-      expect(languageSwitchTarget(`${ORIGIN}/app/teams`, ORIGIN, "es")).toBe(
-        PROFILE_LANGUAGE,
-      );
+      expect(byReferer(`${ORIGIN}/app/teams`, "es")).toBe(PROFILE_LANGUAGE);
+      expect(byFrom("/app/teams", "es")).toBe(PROFILE_LANGUAGE);
     });
 
     it("trusts only this site's own pages as where the visitor came from", () => {
+      expect(byReferer("https://elsewhere.example.test/es/faq", "en")).toBe(
+        "/",
+      );
+      expect(byReferer("not a url", "en")).toBe("/");
+      expect(byReferer(null, "en")).toBe("/");
+    });
+
+    it("prefers the link's own path to the Referer", () => {
       expect(
         languageSwitchTarget(
-          "https://elsewhere.example.test/es/faq",
+          { from: "/es/faq", referer: `${ORIGIN}/sw.js` },
           ORIGIN,
           "en",
         ),
-      ).toBe("/");
-      expect(languageSwitchTarget("not a url", ORIGIN, "en")).toBe("/");
-      expect(languageSwitchTarget(null, ORIGIN, "en")).toBe("/");
+      ).toBe("/faq");
+      expect(byFrom("/faq", "es")).toBe("/es/faq");
+      expect(byFrom("/es/seasons/fall-2026?team=a", "en")).toBe(
+        "/seasons/fall-2026?team=a",
+      );
     });
+
+    it("takes only a path on this site as the link's own", () => {
+      for (const from of [
+        "https://elsewhere.example.test/es/faq",
+        "//elsewhere.example.test/es/faq",
+        "/\\elsewhere.example.test/es/faq",
+        "faq",
+        "javascript:alert(1)",
+        "",
+      ]) {
+        // Falls back to the Referer, then the home page.
+        expect(
+          languageSwitchTarget(
+            { from, referer: `${ORIGIN}/help` },
+            ORIGIN,
+            "es",
+          ),
+        ).toBe("/es/help");
+        expect(byFrom(from, "en")).toBe("/");
+      }
+    });
+
+    it("never sends the visitor to a file or a route that isn't a page", () => {
+      for (const path of [
+        "/sw.js",
+        "/es/sw.js",
+        "/manifest.webmanifest",
+        "/_next/static/chunks/main.js",
+        "/api/health",
+        "/language/es",
+        "/icons/icon-192.png",
+      ]) {
+        expect(byReferer(`${ORIGIN}${path}`, "en")).toBe("/");
+        expect(byFrom(path, "en")).toBe("/");
+        expect(byFrom(path, "es")).toBe("/es");
+      }
+    });
+  });
+
+  it("tells a page's path from a file's", () => {
+    expect(isPagePath("/")).toBe(true);
+    expect(isPagePath("/es/faq")).toBe(true);
+    expect(isPagePath("/l/queens/seasons/fall-2026")).toBe(true);
+    expect(isPagePath("/languages")).toBe(true);
+    expect(isPagePath("/sw.js")).toBe(false);
+    expect(isPagePath("/_next")).toBe(false);
+    expect(isPagePath("/api/me")).toBe(false);
+    expect(isPagePath("/language/en")).toBe(false);
   });
 
   it("lists alternates only for a page in more than one language", () => {
