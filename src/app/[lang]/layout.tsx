@@ -3,8 +3,7 @@ import { Bricolage_Grotesque, Inter } from "next/font/google";
 import Link from "next/link";
 import { DemoBanner } from "@/components/demo-banner";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import { Kickball } from "@/components/kickball";
-import { ThemeSwitch } from "@/components/theme-switch";
+import { SiteHeader } from "@/components/site-header";
 import { env } from "@/env";
 import { nativeShellScript } from "@/lib/mobile/native-shell";
 import {
@@ -22,6 +21,7 @@ import { THEME_COLORS } from "@/lib/pwa/theme-colors";
 import { isIndexable, SITE, siteOrigin } from "@/lib/site";
 import { applySavedThemeScript } from "@/lib/theme";
 import { themeSwitchScript } from "@/lib/theme-switch-script";
+import { closeMenuOnLinkScript } from "@/lib/close-menu-script";
 import "../globals.css";
 import "../motion.css";
 
@@ -124,6 +124,8 @@ export default async function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: applySavedThemeScript }} />
         {/* The theme button's behavior, with no script file to download. */}
         <script dangerouslySetInnerHTML={{ __html: themeSwitchScript }} />
+        {/* Closes the header's menu sheet when one of its links is followed. */}
+        <script dangerouslySetInnerHTML={{ __html: closeMenuOnLinkScript }} />
         {/* Returns at once outside the iOS and Android apps (docs/mobile.md). */}
         <script dangerouslySetInnerHTML={{ __html: nativeShellScript }} />
         {process.env.NODE_ENV === "production" && (
@@ -143,18 +145,18 @@ export default async function RootLayout({
         {/* Paints the status bar's strip in the app with the header's color. */}
         <div className="bg-surface pt-safe print:pt-0">
           <DemoBanner />
-          <header className="border-b-2 border-text bg-surface print:hidden">
-            <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 md:px-6">
-              <Link
-                href={href("/")}
-                className="flex items-center gap-2 font-display text-h3 font-extrabold text-text"
-              >
-                <Kickball className="size-8 -rotate-12" />
-                {shell.brand}
-              </Link>
-              <ThemeSwitch labels={shell.theme} />
-            </div>
-          </header>
+          <SiteHeader
+            href={href}
+            words={{
+              ...shell.header,
+              brand: shell.brand,
+              about: shell.footer.about,
+              history: shell.footer.history,
+              help: shell.footer.help,
+              contact: shell.footer.contact,
+              theme: shell.theme,
+            }}
+          />
         </div>
         <div
           id="content"
@@ -172,7 +174,10 @@ export default async function RootLayout({
               <Link
                 key={link.href}
                 href={href(link.href)}
-                className="inline-flex min-h-11 items-center font-bold text-text underline-offset-4 hover:underline"
+                // Below the fold on every page: fetching each one on every
+                // visit costs more requests than it saves taps.
+                prefetch={false}
+                className="inline-flex min-h-11 min-w-11 items-center justify-center font-bold text-text underline-offset-4 hover:underline"
               >
                 {shell.footer[link.key]}
               </Link>
