@@ -23,6 +23,7 @@ import {
 import { cachedDashboard, ownerSeason } from "../load";
 import { SubmitButton } from "@/components/submit-button";
 import { LeagueLink } from "@/components/league-link";
+import { ScrollTable } from "@/components/scroll-table";
 
 export const metadata: Metadata = { title: "Owner dashboard" };
 
@@ -160,7 +161,7 @@ async function Dashboard({
             { key: "new", label: "New", className: SERIES_2 },
           ]}
         />
-        <div className="overflow-x-auto">
+        <ScrollTable label="Members by season">
           <table className="w-full">
             <caption className="sr-only">
               Members by season: new, returning, and how many of the season
@@ -217,7 +218,7 @@ async function Dashboard({
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
         <p className="text-small text-text-muted">
           Retention is the share of the season before&apos;s members who signed
           up again. Members have a registration that isn&apos;t cancelled,
@@ -275,7 +276,7 @@ async function Dashboard({
             { key: "out", label: "Money out", className: SERIES_2 },
           ]}
         />
-        <div className="overflow-x-auto">
+        <ScrollTable label="Money by season">
           <table className="w-full">
             <caption className="sr-only">Money in and out by season</caption>
             <thead className="text-small text-text-muted">
@@ -326,7 +327,7 @@ async function Dashboard({
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
         {moneyHere && (
           <div className="grid gap-6 sm:grid-cols-2">
             <table className="w-full">
@@ -413,7 +414,7 @@ async function Dashboard({
         {selected.teams.length === 0 ? (
           <p className="text-text-muted">Nobody has signed up yet.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <ScrollTable label={`${season.name} teams`}>
             <table className="w-full">
               <caption className="sr-only">
                 {season.name} teams: roster against its target, waivers signed
@@ -467,7 +468,7 @@ async function Dashboard({
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollTable>
         )}
         <p className="text-small text-text-muted">
           Roster is members against the team&apos;s target size (the
@@ -482,7 +483,7 @@ async function Dashboard({
         {selected.events.length === 0 ? (
           <p className="text-text-muted">No events during this season.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <ScrollTable label={`Events during ${season.name}`}>
             <table className="w-full">
               <caption className="sr-only">
                 Events during {season.name}: people going and checked in
@@ -524,7 +525,7 @@ async function Dashboard({
                 ))}
               </tbody>
             </table>
-          </div>
+          </ScrollTable>
         )}
         <p className="text-small text-text-muted">
           Check-ins are tickets scanned at the door, so only ticketed events

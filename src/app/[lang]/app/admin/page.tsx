@@ -26,6 +26,7 @@ import { can } from "@/domain/authz/permissions";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
 import { activeLeague } from "@/lib/league/active";
+import { ScrollTable } from "@/components/scroll-table";
 
 export const metadata: Metadata = { title: "League admin" };
 
@@ -536,7 +537,7 @@ function Registrations({
           Nobody has registered yet. Teams show up here as captains sign up.
         </p>
       ) : (
-        <div className="overflow-x-auto">
+        <ScrollTable label="Registrations by team">
           <table className="w-full border-collapse text-small">
             <caption className="sr-only">
               Players, payments and waivers by team
@@ -588,7 +589,7 @@ function Registrations({
               </tr>
             </tfoot>
           </table>
-        </div>
+        </ScrollTable>
       )}
     </section>
   );

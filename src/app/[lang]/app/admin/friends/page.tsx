@@ -19,6 +19,7 @@ import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
 import { activeLeague } from "@/lib/league/active";
 import { LeagueLink } from "@/components/league-link";
+import { ScrollTable } from "@/components/scroll-table";
 
 export const metadata: Metadata = { title: "Friends of the league" };
 
@@ -97,7 +98,7 @@ async function AdminFriends({
       {entries.length === 0 ? (
         <p className="text-text-muted">No leagues in the directory yet.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <ScrollTable label="Leagues in the directory">
           <table className="w-full text-left">
             <caption className="sr-only">Leagues in the directory</caption>
             <thead className="text-small text-text-muted">
@@ -151,7 +152,7 @@ async function AdminFriends({
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollTable>
       )}
       <p className="text-small text-text-muted">
         Logos use {kb(logoBytes)} of {kb(MAX_TOTAL_LOGO_BYTES)}.

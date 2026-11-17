@@ -8,6 +8,7 @@ import { KIND_LABELS, whenLine } from "@/domain/events/event";
 import { requirePermission } from "@/lib/auth/permission";
 import { PageLoading } from "@/components/page-loading";
 import { activeLeague } from "@/lib/league/active";
+import { ScrollTable } from "@/components/scroll-table";
 
 export const metadata: Metadata = { title: "Manage events" };
 
@@ -36,7 +37,7 @@ async function AdminEvents({
   const past = events.filter((e) => e.endsAt <= now).reverse();
 
   const table = (list: typeof events, caption: string) => (
-    <div className="overflow-x-auto">
+    <ScrollTable label={caption}>
       <table className="w-full text-left">
         <caption className="sr-only">{caption}</caption>
         <thead className="text-small text-text-muted">
@@ -90,7 +91,7 @@ async function AdminEvents({
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollTable>
   );
 
   return (

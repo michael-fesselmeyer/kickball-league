@@ -20,6 +20,7 @@ import {
   logSpareAction,
 } from "./actions";
 import { todayIn } from "./today";
+import { ScrollTable } from "@/components/scroll-table";
 
 export const metadata: Metadata = { title: "Late-joiner shirts" };
 
@@ -120,7 +121,7 @@ async function ShirtWaiting({
               : `Not yet: ${summary.toOrder} to order after spares, and ${summary.stillNeeded} more before a reorder of ${BATCH_MINIMUM} is worth it.`}
         </p>
         {summary.total > 0 && (
-          <div className="overflow-x-auto">
+          <ScrollTable label="Players waiting for a shirt">
             <table className="w-full text-left tabular-nums">
               <caption className="sr-only">
                 Players waiting for a shirt, by team and size
@@ -169,7 +170,7 @@ async function ShirtWaiting({
                 </tr>
               </tfoot>
             </table>
-          </div>
+          </ScrollTable>
         )}
         <div className="flex flex-wrap gap-3">
           {summary.total > 0 && (
