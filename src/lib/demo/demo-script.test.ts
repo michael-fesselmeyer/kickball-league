@@ -125,7 +125,10 @@ describe("the demo never sees .env files", () => {
       const result = spawnSync(process.execPath, ["-e", probe], {
         cwd: dir,
         encoding: "utf8",
-        env: { ...env, NODE_PATH: path.resolve("node_modules") },
+        env: {
+          ...env,
+          NODE_PATH: path.resolve("node_modules"),
+        } as NodeJS.ProcessEnv,
       });
       return JSON.parse(result.stdout.trim().split("\n").at(-1) ?? "{}");
     } finally {
