@@ -1,6 +1,7 @@
 // Pure helpers for `npm run demo` (scripts/demo.mjs), kept apart so they can
 // be tested without starting anything.
 import { createECDH, createHash, randomBytes } from "node:crypto";
+import { fileURLToPath } from "node:url";
 
 /** The demo database: its name must contain "demo" (docs/adr/0004-demo-mode.md). */
 export const DEMO_DATABASE = "kb_demo";
@@ -66,6 +67,11 @@ export function formatEnvFile(values) {
   ].join("\n");
 }
 
+/** Preloaded into the demo's processes: hides every `.env*` file from them. */
+export const HIDE_ENV_PRELOAD = fileURLToPath(
+  new URL("./demo-hide-env.cjs", import.meta.url),
+);
+
 /** The only variables the demo's processes inherit from the shell. */
 const PASS_THROUGH = [
   "PATH",
@@ -89,7 +95,7 @@ const PASS_THROUGH = [
 /**
  * Everything the demo's server, build and reset see. Built from nothing
  * rather than from the shell, and with `.env.local` switched off, so none
- * of the league's own keys can reach the demo. Payments are on only with
+ * of the league's own keys can reach the demo (see HIDE_ENV_PRELOAD). Payments are on only with
  * stripe-mock; without it, paying says it is a demo payment.
  */
 export function demoEnv({ shell, secrets, databaseUrl, port, stripeMockUrl }) {
@@ -98,6 +104,9 @@ export function demoEnv({ shell, secrets, databaseUrl, port, stripeMockUrl }) {
   Object.assign(env, {
     // Next.js and drizzle-kit skip loading .env files when this is set.
     __NEXT_PROCESSED_ENV: "true",
+    // Next.js reloads env files on a build even with the flag above, so the
+    // files are also hidden from every process (scripts/demo-hide-env.cjs).
+    NODE_OPTIONS: `--require "${HIDE_ENV_PRELOAD}"`,
     NEXT_TELEMETRY_DISABLED: "1",
     DATABASE_URL: databaseUrl,
     BETTER_AUTH_URL: `http://localhost:${port}`,

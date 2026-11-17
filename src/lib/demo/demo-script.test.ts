@@ -1,3 +1,7 @@
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { envSchema } from "@/lib/env";
 import { demoStatus } from "./guard";
@@ -87,5 +91,66 @@ describe("buildKey", () => {
       { port: 4101 },
     ])
       expect(buildKey({ ...base, ...change })).not.toBe(key);
+  });
+});
+
+describe("the demo never sees .env files", () => {
+  // Every name in the example env file, each given a value that is not the demo's.
+  const names = [
+    ...new Set(
+      (
+        readFileSync(".env.example", "utf8").match(
+          /^#?\s*[A-Z][A-Z0-9_]*(?==)/gm,
+        ) ?? []
+      ).map((name) => name.replace(/^#?\s*/, "")),
+    ),
+  ];
+  const probe = `
+    const { loadEnvConfig } = require("@next/env");
+    const fs = require("node:fs");
+    loadEnvConfig(process.cwd(), false, console, true);
+    try { process.loadEnvFile(".env.local"); } catch {}
+    const out = {};
+    for (const [k, v] of Object.entries(process.env)) if (v === "league-real-value") out[k] = v;
+    out.readable = fs.existsSync(".env.local");
+    console.log(JSON.stringify(out));
+  `;
+  const run = (env: Record<string, string>) => {
+    const dir = mkdtempSync(path.join(tmpdir(), "demo-env-"));
+    try {
+      writeFileSync(
+        path.join(dir, ".env.local"),
+        names.map((name) => `${name}=league-real-value`).join("\n"),
+      );
+      const result = spawnSync(process.execPath, ["-e", probe], {
+        cwd: dir,
+        encoding: "utf8",
+        env: { ...env, NODE_PATH: path.resolve("node_modules") },
+      });
+      return JSON.parse(result.stdout.trim().split("\n").at(-1) ?? "{}");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+  const env = demoEnv({
+    shell,
+    secrets,
+    databaseUrl: url,
+    port: 4100,
+    stripeMockUrl: "http://localhost:12112",
+  });
+
+  it("checks a real list of names", () => {
+    expect(names).toContain("DATABASE_URL");
+    expect(names.length).toBeGreaterThan(10);
+  });
+
+  it("is needed: without the preload a forced reload reads .env.local", () => {
+    const { NODE_OPTIONS: _hidden, ...unguarded } = env;
+    expect(Object.keys(run(unguarded)).length).toBeGreaterThan(5);
+  });
+
+  it("lets no name from the example env file reach the demo with another value", () => {
+    expect(run(env)).toEqual({ readable: false });
   });
 });

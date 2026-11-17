@@ -7,6 +7,7 @@ export declare const DEMO_ROLE: string;
 export declare const DEMO_ADMIN_ID: string;
 export declare const STRIPE_MOCK_IMAGE: string;
 export declare const POSTGRES_IMAGE: string;
+export declare const HIDE_ENV_PRELOAD: string;
 
 export type DemoSecrets = {
   AUTH_SECRET: string;
