@@ -97,7 +97,11 @@ export function SiteHeader({
           {shortBrand ? (
             <>
               <span className="sm:hidden">{shortBrand}</span>
-              <span className="hidden sm:inline">{words.brand}</span>
+              {/* Beside the laptop nav, a long name takes two balanced
+                  lines rather than pushing the buttons onto a second row. */}
+              <span className="hidden sm:inline lg:inline-block lg:max-w-40 lg:text-[1.25rem] lg:leading-none lg:text-balance">
+                {words.brand}
+              </span>
             </>
           ) : (
             words.brand
