@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   shiftDate,
   shiftInstant,
+  shiftedPollTitle,
+  shiftSlug,
   shiftSnapshot,
   weeksToCatchUp,
 } from "./shift-weeks";
@@ -71,5 +73,53 @@ describe("shifting by weeks", () => {
         { teamId: "t2", kind: "prefer", timeIndex: 1 },
       ],
     });
+  });
+});
+
+describe("shiftSlug", () => {
+  it("moves the date at the end of an event's address", () => {
+    expect(shiftSlug("spring-bowling-night-2027-03-13", 5)).toBe(
+      "spring-bowling-night-2027-04-17",
+    );
+    expect(shiftSlug("season-wrap-party-2026-10-31", 5)).toBe(
+      "season-wrap-party-2026-12-05",
+    );
+  });
+
+  it("leaves an address without a date alone", () => {
+    expect(shiftSlug("spring-prom", 5)).toBe("spring-prom");
+    expect(shiftSlug("week-2026", 5)).toBe("week-2026");
+  });
+});
+
+describe("shiftedPollTitle", () => {
+  const poll = {
+    kind: "weekly" as const,
+    category: "mvp" as const,
+    gameDay: "2026-11-10",
+    seasonName: "Fall 2026",
+  };
+
+  it("renames a default weekly title for its new game day", () => {
+    expect(shiftedPollTitle({ ...poll, title: "MVP, Tue, Oct 6" }, 5)).toBe(
+      "MVP, Tue, Nov 10",
+    );
+  });
+
+  it("keeps a title someone wrote, and season polls' titles", () => {
+    expect(
+      shiftedPollTitle({ ...poll, title: "Best catch of the night" }, 5),
+    ).toBe("Best catch of the night");
+    expect(
+      shiftedPollTitle(
+        {
+          ...poll,
+          kind: "season",
+          gameDay: null,
+          title: "Fall 2026 MVP",
+        },
+        5,
+      ),
+    ).toBe("Fall 2026 MVP");
   });
 });

@@ -1,5 +1,6 @@
 import { type SQL, sql } from "drizzle-orm";
 import type { Db } from "@/db/queries/schedule";
+import { defaultTitle } from "@/domain/awards/awards";
 import { localDate } from "@/domain/scheduler/slots";
 import { localTime, zonedInstant } from "@/domain/time/zoned";
 
@@ -17,14 +18,21 @@ import { localTime, zonedInstant } from "@/domain/time/zoned";
  * - `created_at` and `updated_at`, the records' own history;
  * - anything the seed wrote with the clock while it ran (between `ranFrom`
  *   and `ranTo`), such as a schedule's publish time;
- * - tables the seed already dates from now (award polls and votes), and
- *   tables that aren't league data (sign-in, push devices, the outbox, the
- *   audit log, webhooks, Instagram tokens), and birth dates.
+ * - times the seed already dates from now (when an award poll still open
+ *   opens and closes, and the votes in it), and tables that aren't league data (sign-in, push
+ *   devices, the outbox, the audit log, webhooks, Instagram tokens), and
+ *   birth dates.
+ *
+ * Moved besides the dates themselves: an award poll's game day, with its
+ * title when it is the default one that names the day (and, for a weekly
+ * poll that had closed before the seed ran, its times and votes), and the
+ * date at the
+ * end of an event's address (`spring-bowling-night-2027-03-13`), so neither
+ * names a day the league no longer plays or meets on.
  */
 
 /** Tables whose dates the seed writes relative to now, or that aren't league data. */
 const LEFT_ALONE = new Set([
-  "award_poll",
   "award_vote",
   "account",
   "session",
@@ -41,6 +49,8 @@ const LEFT_ALONE_COLUMNS = new Set([
   "created_at",
   "updated_at",
   "profile.birth_date",
+  "award_poll.opens_at",
+  "award_poll.closes_at",
 ]);
 
 /** Far enough ahead that nothing real lives there, for the two-step move. */
@@ -162,6 +172,42 @@ export function shiftSnapshot(
   };
 }
 
+/** An event address that ends in a date, `<title>-YYYY-MM-DD`. */
+const DATED_SLUG = /^(.*)-(\d{4}-\d{2}-\d{2})$/;
+
+/**
+ * An event address with its trailing date moved by whole weeks, or the
+ * same address when it has no date at the end.
+ */
+export function shiftSlug(slug: string, weeks: number): string {
+  const m = DATED_SLUG.exec(slug);
+  if (!m?.[1] || !m[2] || Number.isNaN(Date.parse(m[2]))) return slug;
+  return `${m[1]}-${shiftDate(m[2], weeks)}`;
+}
+
+/**
+ * A weekly award poll's title after its game day moved: the default title
+ * for the new day when the old one was the default for the old day, so a
+ * title someone wrote themselves is kept.
+ */
+export function shiftedPollTitle(
+  poll: {
+    title: string;
+    kind: "weekly" | "season";
+    category: Parameters<typeof defaultTitle>[1];
+    gameDay: string | null;
+    seasonName: string;
+  },
+  weeks: number,
+): string {
+  if (poll.kind !== "weekly" || !poll.gameDay) return poll.title;
+  const before = shiftDate(poll.gameDay, -weeks);
+  return poll.title ===
+    defaultTitle(poll.kind, poll.category, before, poll.seasonName)
+    ? defaultTitle(poll.kind, poll.category, poll.gameDay, poll.seasonName)
+    : poll.title;
+}
+
 /** Reads the rows of a raw query on either database driver. */
 async function rowsOf<T>(db: Db, query: SQL): Promise<T[]> {
   const result: unknown = await db.execute(query);
@@ -253,6 +299,62 @@ export async function shiftSeededDates(
         shiftSnapshot(v.input_snapshot, weeks, timeZone),
       )}::jsonb where id = ${v.id}`,
     );
+  // Event addresses that carry the event's date move with it, in two steps
+  // (through a parked name) so two addresses never collide on the way.
+  const events = await rowsOf<{ id: string; slug: string }>(
+    db,
+    sql`select id, slug from event`,
+  );
+  const renamed = events
+    .map((e) => ({ id: e.id, slug: shiftSlug(e.slug, weeks) }))
+    .filter((e, i) => e.slug !== events[i]?.slug);
+  for (const e of renamed)
+    await db.execute(
+      sql`update event set slug = ${`${e.slug}-moving`} where id = ${e.id}`,
+    );
+  for (const e of renamed)
+    await db.execute(sql`update event set slug = ${e.slug} where id = ${e.id}`);
+  // A weekly poll that had already closed when the seed ran was written on
+  // the seed's calendar, so it moves with its game day, votes and all; one
+  // dated from now (still open) keeps its times.
+  const shiftCol = (col: SQL) =>
+    sql`((${col} at time zone ${timeZone}) + make_interval(weeks => ${weeks}::int)) at time zone ${timeZone}`;
+  const closedWeekly = sql`select id from award_poll
+     where kind = 'weekly' and closes_at < ${from}::timestamptz`;
+  await db.execute(
+    sql`update award_vote set cast_at = ${shiftCol(sql.raw("cast_at"))}
+     where award_poll_id in (${closedWeekly})`,
+  );
+  await db.execute(
+    sql`update award_poll set opens_at = ${shiftCol(sql.raw("opens_at"))},
+           closes_at = ${shiftCol(sql.raw("closes_at"))}
+     where id in (${closedWeekly})`,
+  );
+  // Weekly award polls whose title names the old game day name the new one.
+  const polls = await rowsOf<{
+    id: string;
+    title: string;
+    kind: "weekly" | "season";
+    category: Parameters<typeof defaultTitle>[1];
+    game_day: string | null;
+    season_name: string;
+  }>(
+    db,
+    sql`select p.id, p.title, p.kind, p.category,
+           to_char(p.game_day, 'YYYY-MM-DD') as game_day, s.name as season_name
+      from award_poll p join season s on s.id = p.season_id
+     where p.kind = 'weekly' and p.game_day is not null`,
+  );
+  for (const p of polls) {
+    const title = shiftedPollTitle(
+      { ...p, gameDay: p.game_day, seasonName: p.season_name },
+      weeks,
+    );
+    if (title !== p.title)
+      await db.execute(
+        sql`update award_poll set title = ${title} where id = ${p.id}`,
+      );
+  }
   return byTable.size;
 }
 
