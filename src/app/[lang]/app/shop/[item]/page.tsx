@@ -21,7 +21,7 @@ import { creditToApply, formatMoment } from "@/domain/money/credit";
 import { formatCents } from "@/domain/registration/pricing";
 import { requirePermission } from "@/lib/auth/permission";
 import { orderMerchAction } from "../actions";
-import { PageLoading } from "@/components/page-loading";
+import { ShopItemSkeleton } from "./loading";
 import { SubmitButton } from "@/components/submit-button";
 import { activeLeague, activeLeagueId } from "@/lib/league/active";
 
@@ -53,7 +53,7 @@ export default function ShopItemPage(
 ) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
-      <Suspense fallback={<PageLoading>Loading the item…</PageLoading>}>
+      <Suspense fallback={<ShopItemSkeleton />}>
         <ShopItem {...props} />
       </Suspense>
     </main>

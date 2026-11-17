@@ -78,7 +78,8 @@ test("an admin reviews and publishes stat awards, and a player opts out", async 
   await expect(
     player.getByRole("heading", { name: "Your stats" }),
   ).toBeVisible();
-  const career = player.getByRole("table", { name: "Career stats" });
+  // One season shows its own table; more add a career table above them.
+  const career = player.getByRole("table", { name: / stats$/ }).first();
   await expect(
     career.getByRole("row", { name: /^Games played/ }),
   ).toBeVisible();
