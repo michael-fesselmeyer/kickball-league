@@ -12,7 +12,7 @@ test("the standings read in Spanish and keep the visitor in Spanish", async ({
   await page.goto("/es/seasons/fall-2026/standings");
   await expect(page.locator("html")).toHaveAttribute("lang", "es");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Clasificación",
+    "Clasificación de Fall 2026",
   );
   // Column abbreviations are explained in Spanish.
   await expect(page.locator('abbr[title="Ganados"]').first()).toHaveText("G");

@@ -78,7 +78,7 @@ test("the home page, FAQ and schedule read in Spanish at /es", async ({
 
   await page.goto("/es/seasons/fall-2026/schedule");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Calendario",
+    "Calendario de Fall 2026",
   );
   await expect(page.getByLabel("Equipo")).toBeVisible();
   // Each language's page lists the other as an alternate.

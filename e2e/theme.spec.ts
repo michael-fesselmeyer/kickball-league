@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { seededPlayerEmail } from "./support/seed-data";
 import { signIn } from "./support/sign-in";
+import { themeButton } from "./support/theme";
 
 test.use({ colorScheme: "dark" });
 
@@ -10,7 +11,7 @@ test("a chosen theme survives signing in and a rebuilt <html>", async ({
   await page.goto("/");
   const root = page.locator("html");
   // Nothing saved: the device setting (dark here) decides.
-  await page.getByRole("button", { name: "Switch to light mode" }).click();
+  await (await themeButton(page, "Switch to light mode")).click();
   await expect(root).toHaveAttribute("data-theme", "light");
 
   await signIn(page, await seededPlayerEmail());

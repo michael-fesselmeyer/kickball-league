@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./support/axe";
+import { themeButton } from "./support/theme";
 
 for (const colorScheme of ["light", "dark"] as const) {
   test.describe(`${colorScheme} theme`, () => {
@@ -129,12 +130,12 @@ test.describe("theme switch", () => {
 
   test("remembers a choice across page loads", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Switch to dark mode" }).click();
+    await (await themeButton(page, "Switch to dark mode")).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await page.reload();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await expect(
-      page.getByRole("button", { name: "Switch to light mode" }),
+      await themeButton(page, "Switch to light mode"),
     ).toHaveAttribute("aria-pressed", "true");
     await expectNoAxeViolations(page);
   });
