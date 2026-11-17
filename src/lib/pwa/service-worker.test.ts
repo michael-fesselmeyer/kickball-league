@@ -27,7 +27,25 @@ type Req = {
   method: string;
   mode: string;
   headers: Headers;
+  referrer?: string;
+  referrerPolicy?: string;
+  /** Set when the worker builds a request of its own from another. */
+  init?: RequestInit;
 };
+
+/**
+ * The worker's `new Request(request, init)`: a copy of the request that
+ * remembers the init, so the fake network can report what was asked for.
+ */
+class WorkerRequest {
+  constructor(input: string | Req, init?: RequestInit) {
+    Object.assign(
+      this,
+      typeof input === "string" ? { url: new URL(input, ORIGIN).href } : input,
+      { init },
+    );
+  }
+}
 
 const keyOf = (input: string | Req | Request) => {
   const url = typeof input === "string" ? input : input.url;
@@ -103,7 +121,10 @@ class FakeNetwork {
 
   fetch = async (input: string | Req, init?: RequestInit) => {
     const path = new URL(keyOf(input)).pathname;
-    this.calls.push({ path, init });
+    this.calls.push({
+      path,
+      init: init ?? (typeof input === "string" ? undefined : input.init),
+    });
     if (!this.online) throw new TypeError("Failed to fetch");
     const respond = this.pages.get(path);
     return respond ? respond() : new Response("Not found", { status: 404 });
@@ -306,8 +327,9 @@ function loadWorker(
     "caches",
     "fetch",
     "indexedDB",
+    "Request",
     `${source}\nreturn { routeFor, VERSION, SHELL_CACHE, NEXT_GAME_CACHE, NEXT_GAME_INFO, OUTBOX_DB, SEND_TAG, ENTRIES, OUTCOMES };`,
-  )(self, storage, network.fetch, idb) as {
+  )(self, storage, network.fetch, idb, WorkerRequest) as {
     routeFor: (request: Req) => string;
     VERSION: string;
     SHELL_CACHE: string;
@@ -380,16 +402,24 @@ type RequestOptions = {
   method?: string;
   mode?: string;
   headers?: Record<string, string>;
+  referrer?: string;
 };
 
 const request = (
   path: string,
-  { method = "GET", mode = "cors", headers = {} }: RequestOptions = {},
+  {
+    method = "GET",
+    mode = "cors",
+    headers = {},
+    referrer = "",
+  }: RequestOptions = {},
 ): Req => ({
   url: new URL(path, ORIGIN).href,
   method,
   mode,
   headers: new Headers(headers),
+  referrer,
+  referrerPolicy: "strict-origin-when-cross-origin",
 });
 const navigate = (path: string) => request(path, { mode: "navigate" });
 
@@ -540,10 +570,25 @@ describe("service worker: page loads", () => {
     });
     for (const path of ["/seasons/spring-2027/schedule", GAME, "/app"]) {
       await worker.fetch(navigate(path));
-      expect(network.fetched(path).at(-1)?.init).toEqual({
+      expect(network.fetched(path).at(-1)?.init).toMatchObject({
         cache: "no-cache",
       });
     }
+  });
+
+  it("passes on the page's own referrer, not the worker's address", async () => {
+    // The footer's language links go back to the page in the Referer.
+    await worker.fetch(
+      request("/language/en", {
+        mode: "navigate",
+        referrer: `${ORIGIN}/es/faq`,
+      }),
+    );
+    expect(network.fetched("/language/en").at(-1)?.init).toEqual({
+      cache: "no-cache",
+      referrer: `${ORIGIN}/es/faq`,
+      referrerPolicy: "strict-origin-when-cross-origin",
+    });
   });
 });
 

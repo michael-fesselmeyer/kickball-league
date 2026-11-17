@@ -340,7 +340,16 @@ async function page(event) {
     // Always check with the server, as a page load without the worker does.
     // Public pages carry `stale-while-revalidate` for the CDN, and a plain
     // fetch would let the browser answer with its stored copy (#204).
-    const response = await fetch(event.request, { cache: "no-cache" });
+    // Any init rebuilds the request with this worker as its client, which
+    // would make the Referer `/sw.js`; the language links read it (B1), so
+    // the page's own referrer and policy are passed on.
+    const response = await fetch(
+      new Request(event.request, {
+        cache: "no-cache",
+        referrer: event.request.referrer,
+        referrerPolicy: event.request.referrerPolicy,
+      }),
+    );
     if (
       (GAME_PAGE.test(path) ||
         PERMIT_PAGE.test(path) ||
