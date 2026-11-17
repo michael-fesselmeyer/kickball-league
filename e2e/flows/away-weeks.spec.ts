@@ -49,7 +49,9 @@ test("a player marks a week away and the captain sees the week short", async ({
   await expect(
     captain.getByRole("heading", { name: "The Big Kicks vs Sun Kickers" }),
   ).toBeVisible();
-  await expect(captain.getByText(/available that week · away: /)).toBeVisible();
-  await expect(captain.getByText(/^Short that week: /)).toBeVisible();
+  // Players have answered, so the RSVP check says whether the team is
+  // short, and the away weeks only name who's away.
+  await expect(captain.getByText(/^Away that week: /)).toBeVisible();
+  await expect(captain.getByText(/^Short that week: /)).toHaveCount(0);
   await expectNoAxeViolations(captain);
 });
