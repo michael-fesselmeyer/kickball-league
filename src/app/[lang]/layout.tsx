@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Inter } from "next/font/google";
+import { DM_Sans, Shrikhand } from "next/font/google";
 import Link from "next/link";
 import { DemoBanner } from "@/components/demo-banner";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -25,17 +25,18 @@ import { closeMenuOnLinkScript } from "@/lib/close-menu-script";
 import "../globals.css";
 import "../motion.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+// The retro rec look (ADR 0096): a friendly geometric sans for text, as one
+// variable file, and a 1970s swash script for headlines, which comes in one
+// weight. Latin only; fonts are budgeted at 120 kB in total.
+const text = DM_Sans({
+  variable: "--font-text",
   subsets: ["latin"],
   display: "swap",
 });
 
-// Playful display face (ADR 0002). Weight axis only: the width axis (for the
-// condensed scoreboard face) is added with the scoreboard, so pages don't pay
-// for it before it is used. Fonts are budgeted at 120 kB in total.
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
+const headline = Shrikhand({
+  variable: "--font-headline",
+  weight: "400",
   subsets: ["latin"],
   display: "swap",
 });
@@ -117,7 +118,7 @@ export default async function RootLayout({
     // warn that the server-rendered attribute differs.
     <html
       lang={LANG_ATTRIBUTES[locale]}
-      className={`${inter.variable} ${bricolage.variable} h-full antialiased`}
+      className={`${text.variable} ${headline.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

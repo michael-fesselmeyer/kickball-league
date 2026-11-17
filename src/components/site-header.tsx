@@ -63,11 +63,11 @@ export function SiteHeader({
     { path: "/contact", label: words.contact },
   ];
   return (
-    <header className="border-b-2 border-text bg-surface print:hidden">
+    <header className="bg-surface ringer-stripes print:hidden">
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2 md:px-6">
         <Link
           href={href("/")}
-          className="mr-auto flex min-h-11 items-center gap-2 font-display text-body-lg font-extrabold text-text sm:text-h3"
+          className="mr-auto flex min-h-11 items-center gap-2 font-display text-body-lg text-accent sm:text-h3"
         >
           <Kickball className="size-7 -rotate-12 sm:size-8" />
           {words.brand}

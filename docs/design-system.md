@@ -18,6 +18,8 @@ Three directions were considered:
 
 **Decision: A, Sunday League.** Navy and red are already the league's colors, so the owners will recognize their league in the demo; cream and navy hold contrast in full sun on a phone at the field; and the scoreboard motif gives the animations a reason to exist. Option B's dark-first look survives as the dark theme. Option C's warmth is borrowed for event and sponsor pages through photography.
 
+**Retro rec look (2026-11-17, [ADR 0096](adr/0096-retro-rec-look-in-the-logo-colors.md)).** The chosen look option is "Retro Rec Center", a 1970s rec league, themed to the league's logo: Shrikhand headlines over DM Sans, ringer-tee stripes (maroon, gold, navy) along the header's edge, rounder cards, and the palette sampled from the logo's navy and maroon on warm cream. The structure below stays: semantic tokens, tested contrast pairs, pill buttons and stickers.
+
 **Personality (updated 2026-11-12, [ADR 0002](adr/0002-playful-brand-personality.md)).** The first build of direction A read as corporate. This is a social league: fun, meeting people, maybe a drink after. The system above stays (tokens, contrast, the league's navy and red); the personality loosens: a friendlier display face, pill buttons, tilted "stickers" on the golden highlight with a hard offset shadow, and highlighter swipes on key words. The dark theme leans into Option B's night-game feel.
 
 **Voice.** Casual, warm, brief. Say what happens next. "Your spot isn't confirmed until you pay your share" is better than "Payment pending". A joke is welcome on happy paths, confirmations and empty states, and never in an error, a payment, a waiver or anything legal. Nothing implies drinking is expected: "a drink (or a seltzer)" is the tone. The full guide, with before and after examples, is in [voice.md](voice.md).
@@ -28,65 +30,69 @@ Tokens are semantic. Components never use a raw color. A league re-brands by cha
 
 ### Light theme
 
+The retro rec palette in the league's logo colors ([ADR 0096](adr/0096-retro-rec-look-in-the-logo-colors.md)): navy and maroon sampled from the logo, a ringer-tee gold, on warm cream.
+
 | Token | Value | Used for | Contrast |
 |---|---|---|---|
-| `--bg` | `#FBF8F1` | Page background (cream) | — |
-| `--surface` | `#FFFFFF` | Cards, sheets, inputs | — |
-| `--surface-2` | `#F2EDE1` | Table stripes, wells, hover | — |
-| `--text` | `#14182B` | Body text and headings | 16.6:1 on `--bg` |
-| `--text-muted` | `#4A5068` | Secondary text, captions | 7.5:1 on `--bg`, 6.8:1 on `--surface-2` |
-| `--border` | `#D9D2C0` | Decorative dividers | Not relied on for meaning |
-| `--border-strong` | `#8C8672` | Input and control outlines | 3.4:1 on `--bg` |
-| `--brand` | `#1F3A8A` | Primary buttons, links, active navigation | 9.8:1 on `--bg` |
-| `--on-brand` | `#FFFFFF` | Text on brand | 10.3:1 |
-| `--accent` | `#8F1A1C` | The league's brick red, sampled from its logo: emphasis, live indicators, the kickball | 8.5:1 on `--bg` |
-| `--on-accent` | `#FFFFFF` | Text on accent | 9.0:1 |
-| `--highlight` | `#F5B301` | The "golden" moments: winners, team of the week, badges | Background only |
-| `--on-highlight` | `#14182B` | Text on highlight | 9.5:1 |
-| `--success` | `#1A7B49` | Paid, confirmed, "in" | 5.0:1 on `--bg`, 4.5:1 on `--surface-2` |
-| `--warning` | `#9F5B00` | Due soon, weather watch | 5.0:1 on `--bg`, 4.5:1 on `--surface-2` |
-| `--danger` | `#B3261E` | Errors, forfeits, rain-out, destructive actions. Deliberately brighter than `--accent` so an error never looks like branding | 6.2:1 on `--bg` |
-| `--info` | `#1F5FBF` | Neutral notices | 5.7:1 on `--bg` |
-| `--focus` | `#1F3A8A` | Focus ring, 3px with a 2px offset | 9.8:1 on `--bg` |
+| `--bg` | `#F6EBD3` | Page background (warm cream) | — |
+| `--surface` | `#FFF8EA` | Cards, sheets, inputs | — |
+| `--surface-2` | `#EFDFC0` | Table stripes, wells, hover | — |
+| `--text` | `#1B2547` | Body text and headings (navy ink) | 12.7:1 on `--bg`, 11.4:1 on `--surface-2` |
+| `--text-muted` | `#4D4B5E` | Secondary text, captions | 7.1:1 on `--bg`, 6.4:1 on `--surface-2` |
+| `--border` | `#E2CDA4` | Decorative dividers | Not relied on for meaning |
+| `--border-strong` | `#857049` | Input and control outlines | 4.0:1 on `--bg`, 3.6:1 on `--surface-2` |
+| `--brand` | `#233C7D` | The logo's navy: primary buttons, links, active navigation | 8.8:1 on `--bg` |
+| `--on-brand` | `#FFF8EA` | Text on brand | 9.9:1 |
+| `--accent` | `#781B22` | The logo's maroon: the wordmark, emphasis, live indicators, the kickball | 9.0:1 on `--bg` |
+| `--on-accent` | `#FFF8EA` | Text on accent | 10.0:1 |
+| `--highlight` | `#F2A33A` | Ringer-tee gold: winners, team of the week, badges, the middle stripe | Background only |
+| `--on-highlight` | `#1B2547` | Text on highlight | 7.2:1 |
+| `--success` | `#196A41` | Paid, confirmed, "in" | 5.6:1 on `--bg`, 5.0:1 on `--surface-2` |
+| `--warning` | `#874C00` | Due soon, weather watch | 5.8:1 on `--bg`, 5.2:1 on `--surface-2` |
+| `--danger` | `#AE231C` | Errors, forfeits, rain-out, destructive actions. Deliberately brighter than `--accent` so an error never looks like branding | 5.8:1 on `--bg` |
+| `--info` | `#1F58B5` | Neutral notices | 5.7:1 on `--bg` |
+| `--focus` | `#233C7D` | Focus ring, 3px with a 2px offset | 8.8:1 on `--bg` |
 
 ### Dark theme
 
+A night game under the logo's navy.
+
 | Token | Value | Contrast |
 |---|---|---|
-| `--bg` | `#0E1220` | — |
-| `--surface` | `#161B2E` | — |
-| `--surface-2` | `#1F2640` | — |
-| `--text` | `#F3EFE6` | 16.3:1 on `--bg`, 14.9:1 on `--surface` |
-| `--text-muted` | `#A9B0C7` | 8.6:1 on `--bg`, 6.9:1 on `--surface-2` |
-| `--border` | `#2E3757` | Decorative |
-| `--border-strong` | `#656F97` | 3.8:1 on `--bg`, 3.0:1 on `--surface-2` |
-| `--brand` | `#8FA8FF` | 8.2:1 on `--bg` |
-| `--on-brand` | `#0E1220` | 8.2:1 |
-| `--accent` | `#FF7A6E` | 7.3:1 on `--bg` |
-| `--on-accent` | `#0E1220` | 7.3:1 |
-| `--highlight` | `#FFC93C` | Background only |
-| `--on-highlight` | `#0E1220` | 12.1:1 |
-| `--success` | `#4CC38A` | 8.4:1 |
-| `--warning` | `#F0A840` | 9.2:1 |
-| `--danger` | `#FF7A6E` | 7.3:1 |
-| `--info` | `#7FB0FF` | 8.5:1 |
-| `--focus` | `#FFC93C` | 12.1:1 against `--bg` |
+| `--bg` | `#0F1730` | — |
+| `--surface` | `#172244` | — |
+| `--surface-2` | `#1F2C55` | — |
+| `--text` | `#F6EBD3` | 15.0:1 on `--bg`, 13.2:1 on `--surface` |
+| `--text-muted` | `#B4B9CE` | 9.1:1 on `--bg`, 7.0:1 on `--surface-2` |
+| `--border` | `#2E3B66` | Decorative |
+| `--border-strong` | `#6B78A5` | 4.1:1 on `--bg`, 3.1:1 on `--surface-2` |
+| `--brand` | `#9DB4FF` | 8.8:1 on `--bg` |
+| `--on-brand` | `#0F1730` | 8.8:1 |
+| `--accent` | `#FF8A80` | 7.8:1 on `--bg` |
+| `--on-accent` | `#0F1730` | 7.8:1 |
+| `--highlight` | `#F7B955` | Background only |
+| `--on-highlight` | `#0F1730` | 10.1:1 |
+| `--success` | `#4CC38A` | 8.0:1 |
+| `--warning` | `#F0A840` | 8.8:1 |
+| `--danger` | `#FF7A6E` | 7.0:1 |
+| `--info` | `#7FB0FF` | 8.1:1 |
+| `--focus` | `#F7B955` | 10.1:1 against `--bg` |
 
 Rules:
 - Body text meets 4.5:1 and large text and control outlines meet 3:1, which is WCAG 2.2 AA, on every background (`--bg`, `--surface`, `--surface-2`). A unit test (`src/design/tokens.test.ts`) checks every pair in both themes. It caught three values that passed on `--bg` but not on `--surface-2`; `--success`, `--warning` and dark `--border-strong` were adjusted slightly.
 - The theme follows the system setting until the visitor flips it. The header holds one icon button (`src/components/theme-switch.tsx`): a moon in light mode ("Switch to dark mode"), a sun in dark mode ("Switch to light mode"), a snug 36 × 36 box around a 20px inline SVG, with an invisible edge that keeps the tap target at 44 × 44, and no visible text. It shows the theme in effect, so with nothing saved it reflects the system setting, and one tap saves the opposite choice (`light` or `dark`) in `localStorage` on this device. There is no "Auto" choice and no cookie; an old stored value other than `light` or `dark` is ignored. A script in `<head>` applies the saved theme before first paint. The button is server-rendered, and a second inline script (`src/lib/theme-switch-script.ts`) handles its taps and keeps its label and pressed state current, so it adds no script file to download. That script also restores `data-theme` on `<html>` whenever React rebuilds that element's attributes from the server render (a server action such as the demo role switch, or signing in), so a chosen theme is never lost.
 - Color never carries meaning alone. A paid status is a green dot **and** the word "Paid"; a win is bold **and** marked "W".
-- Charts use two series tokens, `--chart-1` (blue: light `#2A78D6`, dark `#3987E5`) and `--chart-2` (orange: light `#D4561F`, dark `#D95926`). The pair was checked for lightness, chroma and separation under each kind of color blindness, and each meets 3:1 on every background (the token test). A chart has at most these two series, always a legend and the numbers beside the bars, so color is never the only cue; charts are drawn on the server (the owner dashboard).
+- Charts use two series tokens, `--chart-1` (blue: light `#2A6FCB`, dark `#3987E5`) and `--chart-2` (orange: light `#C24E1A`, dark `#D95926`). The pair was checked for lightness, chroma and separation under each kind of color blindness, and each meets 3:1 on every background (the token test). A chart has at most these two series, always a legend and the numbers beside the bars, so color is never the only cue; charts are drawn on the server (the owner dashboard).
 - Team colors are chosen by captains and are never used for text. They appear as a badge fill or a 4px stripe, and the badge picks dark or light initials by computed contrast.
 
 ## 3. Typography
 
-Two families, both variable fonts, self-hosted through `next/font` with `display: swap` and a metric-matched fallback so text does not shift when the font loads.
+Two families, self-hosted through `next/font` with `display: swap` and a metric-matched fallback so text does not shift when the font loads ([ADR 0096](adr/0096-retro-rec-look-in-the-logo-colors.md)).
 
 | Role | Family | Why |
 |---|---|---|
-| Display | **Bricolage Grotesque** (variable optical size, width and weight) | Friendly and a little quirky without hurting legibility; the width axis still gives a condensed scoreboard face. Replaced Archivo, which read too corporate ([ADR 0002](adr/0002-playful-brand-personality.md)) |
-| Text and UI | **Inter** | Highly legible at small sizes on phones; tabular numerals for scores and tables |
+| Display | **Shrikhand** (one weight) | A 1970s swash script, like the lettering on a rec-league ringer tee: warm, a little goofy, unmistakably not an office league. Replaced Bricolage Grotesque |
+| Text and UI | **DM Sans** (variable weight) | A friendly geometric sans that stays legible at small sizes on phones; tabular numerals for scores and tables. Replaced Inter |
 
 ### Scale
 
@@ -94,16 +100,16 @@ Fluid between a 360px and a 1280px viewport using `clamp()`. Sizes in rem.
 
 | Token | Phone | Desktop | Line height | Use |
 |---|---|---|---|---|
-| `display` | 2.5 | 4.5 | 1.0 | Home hero, final scores |
-| `h1` | 2.0 | 3.0 | 1.1 | Page titles |
-| `h2` | 1.5 | 2.0 | 1.2 | Section titles |
-| `h3` | 1.25 | 1.5 | 1.25 | Card titles |
+| `display` | 2.5 | 4.5 | 1.15 | Home hero, final scores |
+| `h1` | 2.0 | 3.0 | 1.2 | Page titles |
+| `h2` | 1.5 | 2.0 | 1.25 | Section titles |
+| `h3` | 1.25 | 1.5 | 1.3 | Card titles |
 | `body-lg` | 1.125 | 1.125 | 1.5 | Lead paragraphs |
 | `body` | 1.0 | 1.0 | 1.5 | Default; never smaller than 16px so iPhones do not zoom into inputs |
 | `small` | 0.875 | 0.875 | 1.45 | Captions, table cells |
 | `micro` | 0.75 | 0.75 | 1.4 | Labels in uppercase with letter spacing; never for sentences |
 
-- Display and headings: Bricolage Grotesque at weight 800, slightly tight letter spacing. Scores: Bricolage at width 75 with tabular numerals. Only the weight axis loads today; the width axis is added with the first scoreboard, so no page pays for it before it is used (fonts are budgeted at 120 kB).
+- Display and headings: Shrikhand at its one weight with normal letter spacing. Headings never ask for a bolder weight, and `font-synthesis-weight: none` stops the browser faking one. Scores and numbers use DM Sans with tabular numerals.
 - Line length is capped at about 70 characters for prose.
 - Text can be zoomed to 200% without loss of content, and layouts reflow at a 320px width.
 
@@ -112,7 +118,7 @@ Fluid between a 360px and a 1280px viewport using `clamp()`. Sizes in rem.
 | Token group | Values |
 |---|---|
 | Spacing | A 4px base: 4, 8, 12, 16, 24, 32, 48, 64, 96 |
-| Radius | 6px for inputs and chips, 12px for cards, 20px for sheets, full for buttons, badges and stickers |
+| Radius | 6px for inputs and chips, 20px for cards and sheets (the rounder rec-center card), full for buttons, badges and stickers |
 | Border | 1px by default; 2px for selected or active |
 | Shadow | A soft card shadow, a sheet shadow, and a hard offset "sticker" shadow (3px, no blur, in `--text`) for stickers and primary buttons. Dark theme replaces soft shadows with a lighter surface; the sticker shadow stays |
 | Breakpoints | `sm` 480, `md` 768, `lg` 1024, `xl` 1280. Styles are written for phones first and widened |

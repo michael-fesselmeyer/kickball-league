@@ -13,10 +13,10 @@ import { SITE } from "@/lib/site";
  */
 
 const T = {
-  bg: "#FBF8F1",
-  brand: "#1F3A8A",
-  onBrand: "#FFFFFF",
-  accent: "#8F1A1C",
+  bg: "#F6EBD3",
+  brand: "#233C7D",
+  onBrand: "#FFF8EA",
+  accent: "#781B22",
 } as const;
 
 export type AppIcon = {
