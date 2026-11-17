@@ -154,7 +154,8 @@ export function appNav(input: NavInput): AppNav {
       captained.length > 1 ? `captain-${s.seasonSlug}` : "captain",
       captained.length > 1 ? `Captain: ${s.teamName}` : "Captain",
       [
-        { href: base, label: "Roster and payments" },
+        { href: `${base}?view=roster`, label: "Roster and payments" },
+        { href: `${base}?view=settings`, label: "Team settings" },
         { href: `${base}/announcements`, label: "Message your team" },
         { href: `${base}/attendance`, label: "Attendance" },
         { href: `${base}/subs`, label: "Find subs" },

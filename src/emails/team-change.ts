@@ -58,7 +58,7 @@ export const moveAcceptedEmail = defineTemplate(moveAcceptedPayload, (p, ctx) =>
       ],
       action: {
         label: "See your team",
-        path: `/app/seasons/${p.seasonSlug}/team#recruiting`,
+        path: `/app/seasons/${p.seasonSlug}/team?view=roster#recruiting`,
       },
       reason: `you captain ${p.team}`,
     },
