@@ -17,6 +17,7 @@ import { requirePermissionToChange } from "@/lib/auth/permission";
 import { checkoutPage } from "@/lib/demo/checkout";
 import { sendQueuedSoon } from "@/services/outbox";
 import { stripeClient } from "@/services/stripe";
+import { closableCheckouts } from "@/services/stale-checkouts";
 import { logError } from "@/lib/log-error";
 import { allowAction } from "@/lib/action-limit";
 import { activeLeague } from "@/lib/league/active";
@@ -71,6 +72,7 @@ export async function orderMerchAction(
     const resumed = await resumeCheckout(result.value.purchaseId);
     if (resumed.kind === "url") redirect(resumed.url);
     if (resumed.kind === "paying") redirect("/app/shop?order=paid");
+    if (resumed.kind === "unknown") redirect(`${page}?error=checkout_unknown`);
     result = await place();
   }
   if (!result.ok) redirect(`${page}?error=${result.error}`);
@@ -141,27 +143,35 @@ const paidPage = () => `${env.BETTER_AUTH_URL}/app/shop?order=paid`;
 
 /**
  * A checkout someone left open: its page while Stripe still takes payment;
- * "paying" once it's complete and the webhook is on its way; else closed,
- * and its stock and credit are given back.
+ * "paying" once it's complete and the webhook is on its way; "unknown"
+ * when Stripe can't be asked; else closed, and its stock and credit are
+ * given back.
  */
 async function resumeCheckout(
   purchaseId: Extract<PlaceOutcome, { kind: "open_checkout" }>["purchaseId"],
 ): Promise<
-  { kind: "url"; url: string } | { kind: "paying" } | { kind: "closed" }
+  | { kind: "url"; url: string }
+  | { kind: "paying" }
+  | { kind: "closed" }
+  | { kind: "unknown" }
 > {
   const stripe = stripeClient();
   const found = await merchCheckout(db, purchaseId);
-  const session =
-    stripe && found?.sessionId
-      ? await stripe.checkout.sessions
-          .retrieve(found.sessionId)
-          .catch(() => null)
-      : null;
-  const url = session ? checkoutPage(session, paidPage()) : null;
-  if (session?.status === "open" && url) return { kind: "url", url };
-  if (session?.status === "complete") return { kind: "paying" };
-  if (session && stripe)
-    await stripe.checkout.sessions.expire(session.id).catch(() => null);
+  if (stripe && found?.sessionId) {
+    const session = await stripe.checkout.sessions
+      .retrieve(found.sessionId)
+      .catch(() => null);
+    const url = session ? checkoutPage(session, paidPage()) : null;
+    if (session?.status === "open" && url) return { kind: "url", url };
+    // Closed here only once Stripe says it's expired: a checkout Stripe
+    // couldn't be asked about may still be paid, and its stock and credit
+    // must hold.
+    const stale = await closableCheckouts(stripe.checkout.sessions, [
+      { id: purchaseId, sessionId: found.sessionId },
+    ]);
+    if (stale.state === "paid") return { kind: "paying" };
+    if (stale.state === "unknown") return { kind: "unknown" };
+  }
   await txDb.transaction((tx) => expirePurchases(tx, [purchaseId]));
   return { kind: "closed" };
 }
