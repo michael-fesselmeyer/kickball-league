@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { InstagramPhotos } from "@/components/instagram-photos";
 import { MemberPhotos } from "@/components/member-photos";
 import { InviteButton } from "@/components/invite-button";
 import { JsonLd } from "@/components/json-ld";
-import { PageLoading } from "@/components/page-loading";
 import { ShareButtons } from "@/components/share";
 import { db } from "@/db/client";
 import { eventBySlug, seasonOn } from "@/db/queries/events";
@@ -53,13 +51,15 @@ import { languageAlternates, linkIn } from "@/i18n/routing";
 type Props = PageProps<"/[lang]/l/[league]/events/[event]">;
 
 /**
- * The page reads its language from the path outside its <Suspense>
- * boundary, so its heading and loading words are in that language from the
- * first paint (ADR 0094). Every league and language is listed at build, so
- * it is still prerendered; only a navigation into a page the build didn't
- * list waits for it, as on the rules page.
+ * The whole page is static, as the season pages are (ADR 0029), and an event
+ * the build didn't list is rendered in full on its first visit instead of
+ * streaming in behind a loading state. Without a <Suspense> boundary around
+ * it, the event is part of the first paint: React moves a finished boundary
+ * larger than its progressive chunk to the end of the document and reveals it
+ * with a script, so the description could paint up to 300 ms after the rest,
+ * and on a slow phone only once the framework's scripts had run.
  */
-export const instant = false;
+export const ensureStatic = "navigation";
 
 /** Every event's page is prerendered at build time. */
 export async function generateStaticParams(props: LeagueParams) {
@@ -104,13 +104,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function EventPage(props: Props) {
-  const words = messagesFor(localeOf((await props.params).lang)).event;
+export default function EventPage(props: Props) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:px-6">
-      <Suspense fallback={<PageLoading>{words.loading}</PageLoading>}>
-        <Event {...props} />
-      </Suspense>
+      <Event {...props} />
     </main>
   );
 }
