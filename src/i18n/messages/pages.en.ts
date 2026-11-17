@@ -152,6 +152,7 @@ export const pagesEn = {
   },
   standings: {
     title: "Standings",
+    seasonTitle: "{season} standings",
     seasonNav: "Season",
     schedule: "Schedule",
     playoffs: "Playoffs",

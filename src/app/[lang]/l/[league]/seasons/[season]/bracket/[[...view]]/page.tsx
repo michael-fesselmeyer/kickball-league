@@ -14,15 +14,35 @@ import {
   publicSeasonParams,
 } from "@/lib/static-params";
 import type { LeagueInfo } from "@/db/queries/leagues";
+import type { LeagueId } from "@/domain/ids";
 import { leagueHref } from "@/domain/league/paths";
-import { publicLeague } from "@/lib/league/public";
+import { cachedLeague, publicLeague } from "@/lib/league/public";
 import { isPublicSeason } from "@/domain/private-events/visibility";
 
-export const metadata: Metadata = {
-  title: "Playoff bracket",
-  description:
-    "The playoff bracket: seeds from the final standings, game times and fields, and who moves on.",
-};
+const DESCRIPTION =
+  "The playoff bracket: seeds from the final standings, game times and fields, and who moves on.";
+
+/** A public season's name, for the title; null for a draft or none. */
+async function cachedSeasonName(leagueId: LeagueId, slug: string) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
+  const season = await seasonBySlug(db, leagueId, slug);
+  if (!season) return null;
+  cacheTag(seasonTag(season.id));
+  return isPublicSeason(season) ? season.name : null;
+}
+
+/** Unique per season and view (WCAG 2.4.2), and the same as the h1. */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { league: segment, season: slug, view } = await params;
+  const league = slug === NO_SEASON ? null : await cachedLeague(segment);
+  const name = league ? await cachedSeasonName(league.id, slug) : null;
+  const list = view?.[0] === "list" ? " (list)" : "";
+  return {
+    title: name ? `${name} playoffs${list}` : "Playoff bracket",
+    description: DESCRIPTION,
+  };
+}
 
 type Props =
   PageProps<"/[lang]/l/[league]/seasons/[season]/bracket/[[...view]]">;
@@ -78,8 +98,7 @@ async function Bracket({
   return (
     <>
       <header className="flex flex-col gap-2">
-        <p className="text-text-muted">{season.name}</p>
-        <h1 className="text-h1">Playoffs</h1>
+        <h1 className="text-h1">{season.name} playoffs</h1>
         <nav aria-label="Season" className="flex flex-wrap gap-x-4 gap-y-1">
           <Link
             href={leagueHref(league, `/seasons/${season.slug}/schedule`)}

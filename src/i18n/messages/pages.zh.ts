@@ -145,6 +145,7 @@ export const pagesZh: Translation<
   },
   standings: {
     title: "积分榜",
+    seasonTitle: "{season} 积分榜",
     seasonNav: "赛季",
     schedule: "赛程",
     playoffs: "季后赛",

@@ -151,6 +151,7 @@ export const pagesBn: Translation<
   },
   standings: {
     title: "পয়েন্ট টেবিল",
+    seasonTitle: "{season} পয়েন্ট টেবিল",
     seasonNav: "সিজন",
     schedule: "সূচি",
     playoffs: "প্লে-অফ",

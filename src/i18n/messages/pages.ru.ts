@@ -168,6 +168,7 @@ export const pagesRu: Translation<
   },
   standings: {
     title: "Турнирная таблица",
+    seasonTitle: "Турнирная таблица: {season}",
     seasonNav: "Сезон",
     schedule: "Расписание",
     playoffs: "Плей-офф",

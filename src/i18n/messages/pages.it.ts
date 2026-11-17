@@ -161,6 +161,7 @@ export const pagesIt: Translation<
   },
   standings: {
     title: "Classifica",
+    seasonTitle: "Classifica: {season}",
     seasonNav: "Stagione",
     schedule: "Calendario",
     playoffs: "Playoff",

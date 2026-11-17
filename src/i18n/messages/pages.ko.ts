@@ -152,6 +152,7 @@ export const pagesKo: Translation<
   },
   standings: {
     title: "순위표",
+    seasonTitle: "{season} 순위표",
     seasonNav: "시즌",
     schedule: "일정",
     playoffs: "플레이오프",
