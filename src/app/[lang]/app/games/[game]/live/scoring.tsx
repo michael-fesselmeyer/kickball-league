@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { LineScore } from "@/components/line-score";
 import { OutboxStatus, useOutbox } from "@/components/offline-outbox";
 import { isOneOf } from "@/domain/guards";
@@ -138,6 +138,12 @@ export function Scoring({
   const outbox = useOutbox(gameId);
   const [stored, setTally] = useTally(gameId);
   const [notice, setNotice] = useState<string | null>(null);
+  // Ending the game takes two taps, so a stray one mid-game doesn't end it.
+  const [confirmingEnd, setConfirmingEnd] = useState(false);
+  const endQuestion = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (confirmingEnd) endQuestion.current?.focus();
+  }, [confirmingEnd]);
   const [nextEndKey, setNextEndKey] = useState(endKey);
   const halves = withWaiting(snapshot.halves, outbox.entries);
   const shown = { ...snapshot, halves };
@@ -418,51 +424,72 @@ export function Scoring({
             This reports the final score. The captains confirm it on the score
             screen as usual.
           </p>
-          <form action={end} className="flex flex-col gap-2">
-            {called && (
-              <fieldset className="flex flex-col gap-1 rounded-lg border border-border p-3">
-                <legend className="px-1 text-small font-bold">
-                  If you call it, why?
-                </legend>
-                {(["daylight", "field_time", ""] as const).map((value) => (
-                  <label key={value || "other"} className="check-row">
-                    <input
-                      type="radio"
-                      name="callReason"
-                      value={value}
-                      checked={callReason === value}
-                      onChange={() => setPickedReason(value)}
-                      className="size-5"
-                    />
-                    {CALL_REASON_LABEL[value]}
-                  </label>
-                ))}
-              </fieldset>
-            )}
-            <SubmitButton
-              name="ending"
-              value="normal"
-              className="btn btn-primary"
+          {!confirmingEnd ? (
+            <button
+              type="button"
+              onClick={() => setConfirmingEnd(true)}
+              className="btn self-start btn-secondary"
             >
-              Game over: {names.A} {line.totalA}, {names.B} {line.totalB}
-            </SubmitButton>
-            {called ? (
+              End the game
+            </button>
+          ) : (
+            <form action={end} className="flex flex-col gap-2">
+              <p ref={endQuestion} tabIndex={-1} className="font-bold">
+                End the game at {names.A} {line.totalA}, {names.B} {line.totalB}
+                ?
+              </p>
+              {called && (
+                <fieldset className="flex flex-col gap-1 rounded-lg border border-border p-3">
+                  <legend className="px-1 text-small font-bold">
+                    If you call it, why?
+                  </legend>
+                  {(["daylight", "field_time", ""] as const).map((value) => (
+                    <label key={value || "other"} className="check-row">
+                      <input
+                        type="radio"
+                        name="callReason"
+                        value={value}
+                        checked={callReason === value}
+                        onChange={() => setPickedReason(value)}
+                        className="size-5"
+                      />
+                      {CALL_REASON_LABEL[value]}
+                    </label>
+                  ))}
+                </fieldset>
+              )}
               <SubmitButton
                 name="ending"
-                value="called"
-                className="btn btn-secondary"
+                value="normal"
+                className="btn btn-primary"
               >
-                Called after the {ordinal(called.inningsPlayed)}: {names.A}{" "}
-                {called.scoreA}, {names.B} {called.scoreB}
+                Game over: {names.A} {line.totalA}, {names.B} {line.totalB}
               </SubmitButton>
-            ) : (
-              <p className="text-small text-text-muted">
-                A game called before {MIN_CALLED_INNINGS} complete innings
-                doesn’t count. If the weather stops it, tell an admin it’s a
-                rain-out.
-              </p>
-            )}
-          </form>
+              {called ? (
+                <SubmitButton
+                  name="ending"
+                  value="called"
+                  className="btn btn-secondary"
+                >
+                  Called after the {ordinal(called.inningsPlayed)}: {names.A}{" "}
+                  {called.scoreA}, {names.B} {called.scoreB}
+                </SubmitButton>
+              ) : (
+                <p className="text-small text-text-muted">
+                  A game called before {MIN_CALLED_INNINGS} complete innings
+                  doesn’t count. If the weather stops it, tell an admin it’s a
+                  rain-out.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => setConfirmingEnd(false)}
+                className="btn self-start btn-secondary"
+              >
+                Not yet, keep scoring
+              </button>
+            </form>
+          )}
           {called && line.completeInnings * 2 < halves.length && (
             <p className="text-small text-text-muted">
               A called game stands at the last complete inning, so the runs in
