@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 import { pageSignedInAs, seasonCardEmail } from "../support/sign-in";
+import { seasonTool } from "../support/app-nav";
 
 /**
  * "Your season in kickball". The seed has Summer 2026 completed, with its
@@ -15,7 +16,7 @@ test("a player shares their season card and takes it back", async ({
 }) => {
   const admin = await pageAs(browser, "Admin");
   await admin.goto("/app/admin/seasons/summer-2026");
-  await admin.getByRole("link", { name: "Season cards" }).click();
+  await (await seasonTool(admin, "Season cards")).click();
   await expect(
     admin.getByRole("heading", { name: "Season cards" }),
   ).toBeVisible();

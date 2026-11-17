@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
+import { seasonTool } from "../support/app-nav";
 
 /**
  * The win-back list (issue #370) at phone width. It shows only while a
@@ -50,7 +51,7 @@ test("an admin opens registration and emails a past player to come back", async 
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page).toHaveURL(/\?saved=1/);
 
-  await page.getByRole("link", { name: "Win back past players" }).click();
+  await (await seasonTool(page, "Win back past players")).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Win back past players",
   );

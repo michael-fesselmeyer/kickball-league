@@ -4,6 +4,7 @@ import { type Member, memberPage } from "../support/people";
 import { pageAs } from "../support/personas";
 import { confirmAge, leagueDate, openSeason } from "../support/season";
 import { download } from "../support/seed-data";
+import { seasonTool } from "../support/app-nav";
 
 /** A CSV file's lines; it opens with a byte-order mark so Excel reads UTF-8. */
 function csvLines(text: string): string[] {
@@ -66,7 +67,7 @@ test("sign-ups collect shirt sizes, and an admin orders the shirts from them", a
       rosterMax: 16,
     });
     await admin.goto(`/app/admin/seasons/${SLUG}`);
-    await admin.getByRole("link", { name: "Shirt order" }).click();
+    await (await seasonTool(admin, "Shirt order")).click();
     await expect(admin.getByRole("heading", { level: 1 })).toHaveText(
       "Shirt order",
     );

@@ -4,6 +4,7 @@ import { expectNoAxeViolations } from "../support/axe";
 import { unscoreGame } from "../support/games";
 import { pageAs } from "../support/personas";
 import { captainEmail, pageSignedInAs } from "../support/sign-in";
+import { seasonTool } from "../support/app-nav";
 
 /**
  * An admin's week after a game day, across scores, the weekly recap,
@@ -58,7 +59,7 @@ test("an admin settles a missing score, sends the recap and posts a team-only ev
 
   await test.step("a missing score is set and leaves the scores list", async () => {
     await admin.goto(`/app/admin/seasons/${SEASON}`);
-    await admin.getByRole("link", { name: "Scores", exact: true }).click();
+    await (await seasonTool(admin, "Scores")).click();
     await expect(admin.getByRole("heading", { level: 1 })).toHaveText("Scores");
     const game = admin.getByRole("listitem").filter({ hasText: GAME });
     await expectNoAxeViolations(admin);

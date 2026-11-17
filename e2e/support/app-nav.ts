@@ -38,3 +38,28 @@ export async function adminTool(page: Page, name: string): Promise<Locator> {
   }).toPass();
   return link;
 }
+
+/**
+ * A tool on a season's admin page. The tools sit in folded groups (Setup,
+ * Players and money, Game day, Engagement); this opens the group that holds
+ * it when needed.
+ */
+export async function seasonTool(page: Page, name: string): Promise<Locator> {
+  const tools = page.getByRole("navigation", { name: "Season tools" });
+  const link = tools.getByRole("link", { name, exact: true });
+  const group = tools.locator("details", { has: link }).locator("summary");
+  await expect(async () => {
+    if (!(await link.isVisible())) await group.click();
+    await expect(link).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+  return link;
+}
+
+/** Opens a screen's "More" actions (MoreActions), named by its group's label. */
+export async function openMoreActions(page: Page, label: string) {
+  const nav = page.getByRole("navigation", { name: label });
+  const summary = nav.locator("summary", { hasText: "More" });
+  if ((await nav.locator("details").getAttribute("open")) === null)
+    await summary.click();
+  return nav;
+}
