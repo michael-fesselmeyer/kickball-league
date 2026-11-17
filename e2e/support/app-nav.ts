@@ -49,7 +49,10 @@ export async function seasonTool(page: Page, name: string): Promise<Locator> {
   const link = tools.getByRole("link", { name, exact: true });
   const group = tools
     .locator("details")
-    .filter({ has: page.getByRole("link", { name, exact: true }) });
+    // A closed group's links are hidden, so the role query has to include them.
+    .filter({
+      has: page.getByRole("link", { name, exact: true, includeHidden: true }),
+    });
   await expect(group).toHaveCount(1);
   if ((await group.getAttribute("open")) === null)
     await group.locator("summary").click();
