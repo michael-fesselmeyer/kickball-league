@@ -62,6 +62,7 @@ import { addSeedSponsors, removeSeedSponsors } from "../src/seed/sponsors";
 import { addSeedStatAwards } from "../src/seed/stat-awards";
 import { addSeedInterest } from "../src/seed/interest";
 import { addSeedRules } from "../src/seed/rules";
+import { addSeedWaiverSignatures } from "../src/seed/waiver-signatures";
 import {
   addDemoConcerns,
   addDemoGameDay,
@@ -387,6 +388,7 @@ async function main(): Promise<void> {
       await addDemoConcerns(tx, data, new Date());
       await addDemoGameDay(tx, data);
       await addSeedInterest(tx, data, new Date());
+      await addSeedWaiverSignatures(tx, data);
     });
     // After the commit, on the pool: the summary reads its totals in parallel.
     await addSeedMoneySummary(db, data);
