@@ -122,7 +122,7 @@ test("a captain who opts out sees the shirt makers, and the history shows the te
       .getByRole("button", { name: "Remove from the directory" })
       .click();
     await expect(admin.getByRole("status")).toContainText("Maker removed");
-    await captain.goto("/app/seasons/fall-2026/team");
+    await captain.goto("/app/seasons/fall-2026/team?view=settings");
     await expect(captain.getByText(MAKER)).toHaveCount(0);
     await expect(captain.getByText("Corner Print Shop")).toBeVisible();
   });

@@ -175,9 +175,10 @@ test.describe
       captain.getByRole("row", { name: new RegExp(PLAYER) }),
     ).toContainText("Suspended, 1 more game");
     await expect(captain.getByText("Outside alcohol")).toHaveCount(0);
-    // Rate the other team in the season's first game, which is final.
+    // Rate the other team in the season's first game, which is final:
+    // the last of the results, which list the newest first.
     await captain.goto("/app/seasons/fall-2026/team");
-    await captain.getByRole("link", { name: "See score" }).first().click();
+    await captain.getByRole("link", { name: /^See score/ }).last().click();
     const rating = captain.getByRole("region", { name: /sportsmanship$/ });
     await rating.getByLabel("4").check();
     await rating
