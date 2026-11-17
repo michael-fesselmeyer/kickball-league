@@ -475,8 +475,10 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
       )}
       {(mine.length > 0 || latestCard) && (
         <section aria-labelledby="your-season" className="flex flex-col gap-2">
+          {/* The season card is a finished season's recap, so with no
+              current season the section is about last season. */}
           <h2 id="your-season" className="text-h3">
-            Your season
+            {mine.length > 0 ? "Your season" : "Last season"}
           </h2>
           <ul className="flex flex-col rounded-card border-2 border-text bg-surface px-4">
             {mine.map((m) => (
@@ -506,7 +508,7 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
                   href={`/app/seasons/${latestCard.seasonSlug}/card`}
                   className={ROW}
                 >
-                  Your {latestCard.seasonName} season in kickball
+                  Your {latestCard.seasonName} recap
                   <Chevron />
                 </Link>
               </li>
