@@ -1,4 +1,5 @@
 import { and, eq, inArray, or } from "drizzle-orm";
+import { saveEmergencyContact } from "@/db/queries/emergency";
 import type { Db } from "@/db/queries/schedule";
 import {
   refereeAssignment,
@@ -26,8 +27,12 @@ import { insertSeedProfiles } from "./roles";
  * - Pat Player and Casey Captain on the first team, Casey as its captain
  *   (the generated captain steps down to co-captain, and the team's target
  *   roster grows by two).
- * - Reese Ref referees the last played round and the next one, so there are
- *   finished games and games waiting for a score.
+ * - Reese Ref referees the last played round and the next one, one game at
+ *   each kickoff (never two at once), so there are finished games and games
+ *   waiting for a score. The league's other refs take the rest
+ *   (src/seed/referee-pool.ts).
+ * - Every persona's profile is complete (an invented 555-01xx phone and a
+ *   birth date), so each can sign up for the season that's open.
  * - Addie Admin runs the league.
  * Fixed ids, so the personas are the same people after every reset.
  */
@@ -56,17 +61,35 @@ export function demoPersonaRows(data: SeedData) {
     emailVerified: true,
   }));
   const profiles = [
-    { key: "player", gender: "woman", lineupGender: "woman" },
-    { key: "captain", gender: "man", lineupGender: "man" },
-    { key: "ref", gender: "nonbinary", lineupGender: "woman" },
-    { key: "admin", gender: "woman", lineupGender: "woman" },
-  ].map(({ key, gender, lineupGender }) => ({
+    {
+      key: "player",
+      gender: "woman",
+      lineupGender: "woman",
+      born: "1995-04-12",
+    },
+    { key: "captain", gender: "man", lineupGender: "man", born: "1991-09-03" },
+    {
+      key: "ref",
+      gender: "nonbinary",
+      lineupGender: "woman",
+      born: "1988-01-27",
+    },
+    {
+      key: "admin",
+      gender: "woman",
+      lineupGender: "woman",
+      born: "1986-06-18",
+    },
+  ].map(({ key, gender, lineupGender, born }, i) => ({
     userId: PERSONA_IDS[key as PersonaKey],
     firstName: PERSONAS[key as PersonaKey].firstName,
     lastName: PERSONAS[key as PersonaKey].lastName,
     gender: gender as "woman" | "man" | "nonbinary",
     lineupGender: lineupGender as "woman" | "man",
     shirtSize: "m" as const,
+    // 555-0100 to 555-0199 are set aside for fiction: no real phone.
+    phoneE164: `+1718555010${i + 1}`,
+    birthDate: born,
     globalRole: key === "admin" ? ("admin" as const) : ("player" as const),
   }));
 
@@ -91,16 +114,39 @@ export function demoPersonaRows(data: SeedData) {
     sharesContact: true,
   }));
 
+  // One game at each kickoff of the last played round and the next: the
+  // first field's game at that time.
   const refereedRounds = [PLAYED_ROUNDS, PLAYED_ROUNDS + 1];
-  const refereeAssignments = data.games
+  const slotOf = new Map(data.slots.map((s) => [s.id, s]));
+  const fieldOrder = new Map(data.fields.map((f) => [f.id, f.sortOrder]));
+  const at = (g: (typeof data.games)[number]) => {
+    const s = slotOf.get(g.slotId);
+    return {
+      time: s?.startsAt.getTime() ?? 0,
+      field: s ? (fieldOrder.get(s.fieldId) ?? 0) : 0,
+    };
+  };
+  const refereed = data.games
     .filter((g) => refereedRounds.includes(g.roundNo))
-    .map((g, i) => ({
-      id: rowId<RefereeAssignmentId>(301 + i),
-      gameId: g.id,
-      userId: PERSONA_IDS.ref,
-      status: "accepted" as const,
-      respondedAt: new Date("2026-08-25T16:00:00Z"),
-    }));
+    .sort(
+      (a, b) =>
+        a.roundNo - b.roundNo ||
+        at(a).time - at(b).time ||
+        at(a).field - at(b).field,
+    )
+    .filter(
+      (g, i, all) =>
+        i === 0 ||
+        all[i - 1]?.roundNo !== g.roundNo ||
+        at(all[i - 1] as typeof g).time !== at(g).time,
+    );
+  const refereeAssignments = refereed.map((g, i) => ({
+    id: rowId<RefereeAssignmentId>(301 + i),
+    gameId: g.id,
+    userId: PERSONA_IDS.ref,
+    status: "accepted" as const,
+    respondedAt: new Date("2026-08-25T16:00:00Z"),
+  }));
 
   return {
     users,
@@ -147,11 +193,42 @@ export async function removeDemoPersonas(db: Db): Promise<void> {
   await db.delete(user).where(inArray(user.id, ids));
 }
 
-/** Adds the personas to a freshly seeded demo league. */
-export async function addDemoPersonas(db: Db, data: SeedData): Promise<void> {
+/**
+ * The invented emergency contact every persona has saved, so their profile
+ * is ready for sign-up. 555-0199 is a number set aside for fiction.
+ */
+export const PERSONA_EMERGENCY_CARD = {
+  name: "Sam Example",
+  relationship: "Friend",
+  phone: "+17185550199",
+  firstAid: null,
+};
+
+/**
+ * Adds the personas to a freshly seeded demo league. Their emergency
+ * contacts are sealed with the server's auth secret (src/db/queries/
+ * emergency.ts), so they are saved only when `authSecret` is given: without
+ * it the server could not open them anyway.
+ */
+export async function addDemoPersonas(
+  db: Db,
+  data: SeedData,
+  {
+    authSecret,
+    now = new Date(),
+  }: { authSecret?: string | undefined; now?: Date } = {},
+): Promise<void> {
   const rows = demoPersonaRows(data);
   await db.insert(user).values(rows.users);
   await insertSeedProfiles(db, data.league.id, rows.profiles);
+  if (authSecret)
+    for (const u of rows.users)
+      await saveEmergencyContact(db, {
+        userId: u.id,
+        card: PERSONA_EMERGENCY_CARD,
+        secret: authSecret,
+        now,
+      });
   await db.insert(registration).values(rows.registrations);
   // One active captain per team: the generated one steps aside first.
   await db
