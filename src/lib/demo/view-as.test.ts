@@ -51,7 +51,7 @@ describe("viewAsPersona with demo mode on", () => {
     const result = await viewAsPersona(on, "admin", deps);
     expect(result).toEqual({
       ok: true,
-      value: { landing: "/app/admin/seasons" },
+      value: { landing: "/app/admin" },
     });
     expect(deps.startSession).toHaveBeenCalledExactlyOnceWith(admin);
   });
