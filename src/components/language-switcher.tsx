@@ -1,12 +1,15 @@
 import { LANG_ATTRIBUTES, LOCALE_NAMES, type Locale } from "@/i18n/locales";
 import { offeredLocales } from "@/i18n/pages";
+import { languageSwitchScript } from "@/lib/language-switch-script";
 
 /**
  * The footer's language links (ADR 0094), rendered on the server with no
- * client JavaScript. Each goes through `/language/<code>`, which sends the
+ * client bundle. Each goes through `/language/<code>`, which sends the
  * visitor on to the page they were on, in that language where it is
- * translated (src/i18n/routing.ts, languageSwitchTarget). Nothing until a
- * second language has a translated page.
+ * translated (src/i18n/routing.ts, languageSwitchTarget). A few lines of
+ * inline script add that page's path to the link as it is followed
+ * (src/lib/language-switch-script.ts). Nothing until a second language has
+ * a translated page.
  */
 export function LanguageSwitcher({
   current,
@@ -25,6 +28,7 @@ export function LanguageSwitcher({
             {/* A plain link: the target is a redirect, not a page to prefetch. */}
             <a
               href={`/language/${locale}`}
+              data-language-switch={`/language/${locale}`}
               hrefLang={LANG_ATTRIBUTES[locale]}
               lang={LANG_ATTRIBUTES[locale]}
               rel="nofollow"
@@ -36,6 +40,8 @@ export function LanguageSwitcher({
           </li>
         ))}
       </ul>
+      {/* Names the current page on click, with no script file to download. */}
+      <script dangerouslySetInnerHTML={{ __html: languageSwitchScript }} />
     </nav>
   );
 }
