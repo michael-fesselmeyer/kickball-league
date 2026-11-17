@@ -10,6 +10,7 @@ import {
 } from "@/domain/volunteer/limits";
 import type { ShiftForm } from "@/domain/volunteer/shifts";
 import type { ShiftFormState } from "./actions";
+import { FormError } from "@/components/form-error";
 
 const control =
   "min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body";
@@ -67,11 +68,7 @@ export function ShiftFormFields({
       // Keyed by the values, so a failed save shows what was sent.
       key={JSON.stringify(v)}
     >
-      {state.error && (
-        <p role="alert" className="rounded-lg border border-danger p-3">
-          {state.error}
-        </p>
-      )}
+      <FormError message={state.error} attempt={state} />
       <Field label="Job">
         {(p) => (
           <select

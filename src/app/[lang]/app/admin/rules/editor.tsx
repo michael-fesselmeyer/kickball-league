@@ -11,6 +11,7 @@ import {
   type SubmittedSection,
 } from "@/domain/rules/rules";
 import { publishRulesAction, type RulesFormState } from "./actions";
+import { FormError } from "@/components/form-error";
 
 const control =
   "min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body";
@@ -49,11 +50,7 @@ export function RulesEditor({
   return (
     <form action={action} className="flex flex-col gap-6">
       <input type="hidden" name="version" value={version} />
-      {state.error && (
-        <p role="alert" className="rounded-lg border border-danger p-3">
-          {state.error}
-        </p>
-      )}
+      <FormError message={state.error} attempt={state} />
       {state.stale && state.draft && (
         <details className="rounded-lg border border-border p-3">
           <summary className="min-h-11 cursor-pointer py-2 font-bold underline">
@@ -119,7 +116,7 @@ export function RulesEditor({
                 />
               </label>
               {!isNew && (
-                <label className="flex min-h-11 items-center gap-2">
+                <label className="check-row">
                   <input
                     type="checkbox"
                     name="remove"
@@ -162,7 +159,7 @@ export function RulesEditor({
             className={control}
           />
         </label>
-        <label className="flex min-h-11 items-start gap-2">
+        <label className="check-row-top">
           <input
             type="checkbox"
             name="notice"

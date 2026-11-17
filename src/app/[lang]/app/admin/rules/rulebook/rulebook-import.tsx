@@ -11,6 +11,7 @@ import {
 import { numberedBlocksOf } from "@/domain/rules/rulebook";
 import { BODY_MAX, SUMMARY_MAX, TITLE_MAX } from "@/domain/rules/rules";
 import { type ImportState, importRulebookAction } from "./actions";
+import { FormError } from "@/components/form-error";
 
 const control =
   "min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body";
@@ -110,11 +111,7 @@ export function RulebookImport({
           ))}
         </ul>
       )}
-      {state.error && (
-        <p role="alert" className="rounded-lg border border-danger p-3">
-          {state.error}
-        </p>
-      )}
+      <FormError message={state.error} attempt={state} />
       <ol className="flex flex-col gap-6">
         {split.sections.map((s, i) => (
           <li key={i}>
@@ -146,7 +143,7 @@ export function RulebookImport({
                   className={`${control} py-2`}
                 />
               </label>
-              <label className="flex min-h-11 items-center gap-2">
+              <label className="check-row">
                 <input type="checkbox" name="skip" value={i} />
                 Leave out
               </label>

@@ -9,6 +9,7 @@ import {
   EXPENSE_CATEGORIES,
   money,
 } from "@/domain/books/ledger";
+import { FormError } from "@/components/form-error";
 
 const input = "min-h-11 rounded-md border border-border bg-surface px-2 py-1";
 
@@ -78,11 +79,10 @@ export function ImportForm({
       </form>
 
       <div aria-live="polite" className="flex flex-col gap-3">
-        {state.kind === "error" && (
-          <p role="alert" className="rounded-lg border border-danger p-3">
-            {state.message}
-          </p>
-        )}
+        <FormError
+          message={state.kind === "error" ? state.message : null}
+          attempt={state}
+        />
         {state.kind === "preview" && (
           <section aria-labelledby="preview" className="flex flex-col gap-3">
             <h2 id="preview" className="text-h2">
@@ -135,7 +135,7 @@ export function ImportForm({
                         key={`${i}-${row.key}`}
                         className="flex flex-col gap-2 border-b border-border py-3"
                       >
-                        <label className="flex min-h-11 items-start gap-3">
+                        <label className="check-row-top">
                           <input
                             type="checkbox"
                             name="row"
