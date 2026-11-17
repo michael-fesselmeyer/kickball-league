@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 import { download } from "../support/seed-data";
+import { openMoreActions } from "../support/app-nav";
 
 /**
  * The owner dashboard and the season money summary (ADR 0038), at phone
@@ -43,6 +44,7 @@ test("an owner reads the dashboard, downloads its numbers and publishes a summar
   ).toBeVisible();
   await expectNoAxeViolations(page);
 
+  await openMoreActions(page, "Owner dashboard actions");
   const csv = await download(main.getByRole("link", { name: "Download CSV" }));
   expect(csv.name).toBe("fall-2026-dashboard.csv");
   expect(csv.text).toContain("Membership,Fall 2026,,Members,");

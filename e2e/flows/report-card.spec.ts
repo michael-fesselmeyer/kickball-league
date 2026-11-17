@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 import { download } from "../support/seed-data";
+import { openMoreActions } from "../support/app-nav";
 
 /**
  * The season report card (issue #371) at phone width. On the flows server
@@ -16,6 +17,7 @@ test("an owner reads the report card, downloads it and opens the version for spo
 }) => {
   const page = await pageAs(browser, "Admin");
   await page.goto("/app/owner/fall-2026");
+  await openMoreActions(page, "Owner dashboard actions");
   await page
     .getByRole("main")
     .getByRole("link", { name: "Report card" })

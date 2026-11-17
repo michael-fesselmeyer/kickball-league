@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
+import { openMoreActions } from "../support/app-nav";
 
 /**
  * The game-day command center (issue #257) at phone width: an admin keeps
@@ -24,6 +25,7 @@ test("an admin watches the ref check in on the game-day screen without reloading
   await admin.goto(`/app/admin/today?date=${DAY}`);
   await expect(admin.getByRole("heading", { level: 1 })).toHaveText("Game day");
   const screen = admin.getByRole("main");
+  await openMoreActions(admin, "Game day actions");
   await expect(
     screen.getByRole("link", { name: "Call a rain-out" }),
   ).toHaveAttribute("href", new RegExp(`/rainout\\?date=${DAY}$`));

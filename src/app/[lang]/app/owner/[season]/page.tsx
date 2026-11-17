@@ -24,6 +24,7 @@ import { cachedDashboard, ownerSeason } from "../load";
 import { SubmitButton } from "@/components/submit-button";
 import { LeagueLink } from "@/components/league-link";
 import { ScrollTable } from "@/components/scroll-table";
+import { MoreActions } from "@/components/more-actions";
 
 export const metadata: Metadata = { title: "Owner dashboard" };
 
@@ -100,35 +101,34 @@ async function Dashboard({
           topic="the owner dashboard"
         />
         <p className="text-text-muted">
-          How the league is doing, season by season. Owners only; admins
-          don&apos;t see this page.
+          How the league is doing, season by season. Only the league&apos;s
+          owners see this page.
         </p>
         {notice && (
           <p role="status" className="rounded-lg border border-success p-3">
             {notice}
           </p>
         )}
-        <div className="flex flex-wrap items-center gap-3">
-          <SeasonPicker
-            seasons={seasons}
-            current={season.slug}
-            path={(s) => `/app/owner/${s}`}
-          />
-          <a href={`${page}/dashboard.csv`} className="btn btn-secondary">
-            Download CSV
-          </a>
-          <Link href={`${page}/summary`} className="btn btn-secondary">
-            Money summary
-          </Link>
-          {REPORT_STATUSES.includes(season.status) && (
-            <Link href={`${page}/report`} className="btn btn-secondary">
-              Report card
-            </Link>
-          )}
-          <Link href="/app/owner/processing-fees" className="btn btn-secondary">
-            Processing fees
-          </Link>
-        </div>
+        <SeasonPicker
+          seasons={seasons}
+          current={season.slug}
+          path={(s) => `/app/owner/${s}`}
+        />
+        <MoreActions
+          label="Owner dashboard actions"
+          primary={{ href: `${page}/summary`, label: "Money summary" }}
+          more={[
+            ...(REPORT_STATUSES.includes(season.status)
+              ? [{ href: `${page}/report`, label: "Report card" }]
+              : []),
+            { href: "/app/owner/processing-fees", label: "Processing fees" },
+            {
+              href: `${page}/dashboard.csv`,
+              label: "Download CSV",
+              file: true,
+            },
+          ]}
+        />
         <form
           action={refreshDashboardAction.bind(null, season.slug)}
           className="flex flex-wrap items-center gap-3 text-small text-text-muted"
@@ -617,7 +617,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col rounded-lg border border-border bg-surface p-3">
       <dt className="text-small text-text-muted">{label}</dt>
-      <dd className="font-display text-h3 tabular-nums">{value}</dd>
+      <dd className="text-h3 font-extrabold tabular-nums">{value}</dd>
     </div>
   );
 }
