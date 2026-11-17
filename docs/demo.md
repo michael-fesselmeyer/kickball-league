@@ -52,7 +52,7 @@ Outside the demo, the same name and logo come from the `SITE_NAME`, `SITE_SHORT_
 
 About 15 minutes, grouped by who you're viewing as. The yellow banner at the top switches who you are: pick **Player**, **Captain**, **Ref** or **Admin** in its **Viewing as** picker and tap **Go**. It shows who you're viewing as, and takes one short row on a phone.
 
-Inside the app, the tab bar at the bottom (Home, Schedule, Team, Menu; Admin has **Admin** in place of Team) and the **Menu** groups change with the role: Captain adds a Captain group, Ref adds Referee, and Admin has League admin and Owner instead of the player's groups. In the demo, Admin also has the owners' screens (the books, the owner dashboard and processing fees) and the operator's page, which on the league's site belong to the owners and the operator alone. The whole app wears the league's retro rec look; the round button in the header switches between light and dark.
+Inside the app, the tab bar at the bottom (Home, Schedule, Team, Menu; Ref has **Reffing** and Admin has **Admin** in place of Team) and the **Menu** groups change with the role: Captain adds a Captain group, Ref adds Referee, and Admin has League admin and Owner instead of the player's groups. In the demo, Admin also has the owners' screens (the books, the owner dashboard and processing fees) and the operator's page, which on the league's site belong to the owners and the operator alone. The whole app wears the league's retro rec look; the round button in the header switches between light and dark.
 
 ### Anyone: the public site (2 minutes)
 
@@ -60,7 +60,7 @@ Inside the app, the tab bar at the bottom (Home, Schedule, Team, Menu; Admin has
 
 _Why it matters:_ players and new people find the schedule, standings and how to join without logging in or asking in the group chat, in the language they read best.
 
-**2. The rulebook.** In the footer, open **Rules** and search for _pitch_: every matching rule, highlighted, with its number. The demo uses an invented sample rulebook; the league's own rules are typed in by the owners.
+**2. The rulebook.** In the footer, open **Rules** and search for _pitch_: every matching rule, with its number, as you type. The demo uses an invented sample rulebook; the league's own rules are typed in by the owners.
 
 _Why it matters:_ an argument at the field ends with a search on a phone, not "I think the rule is...".
 
@@ -98,7 +98,7 @@ _Why it matters:_ a league decision gets one vote per team in a day, instead of 
 
 _Why it matters:_ players who aren't happy on a team move instead of quitting, and nobody's feelings get hurt in public.
 
-**10. Acting admin.** The admins are away, so the owners made Casey acting admin for two weeks, with game day, scores and rain-outs (the notice is in **Demo mail**). Open tonight's live game from Home and enter a half-inning, then open the rain-out screen at `/app/admin/seasons/fall-2026/rainout`. Everything else stays closed: the admin home still says the page isn't there.
+**10. Acting admin.** The admins are away, so the owners made Casey acting admin for two weeks, with game day, scores and rain-outs (the notice is in **Demo mail**). Open the rain-out screen at `/app/admin/seasons/fall-2026/rainout` and preview calling off next Tuesday: Casey can do it while the admins are away. Everything else stays closed (the admin home says the page isn't there), and Casey can't keep score of their own team's game.
 
 _Why it matters:_ the league runs on a vacation week without handing anyone the keys to the money or the members.
 
@@ -130,7 +130,7 @@ _Why it matters:_ one screen answers "is everything on track tonight?" from a ph
 
 _Why it matters:_ every team gets meaningful playoff games, and the bracket, its fields and its times are done in a minute.
 
-**17. Sharing the fields.** Open Fall 2026's **Fields and permits**: a soccer club that uses Field 1 just before the league has it later than usual next Tuesday, so the first game there starts late. The game-day crews see it in their handover, and **Start times** shows each game day's sunset and the permit's end, so the clock in step 12 starts from the right time.
+**17. Sharing the fields.** Open Fall 2026's **Fields and permits**: a soccer club that uses Field 1 just before the league has it later than usual next Tuesday, so the first game there starts late. The game-day crews see it in their handover. Then **Start times**: each team's starts, how many were late through their own doing and the minutes it cost, from the refs' first-pitch taps in step 12.
 
 _Why it matters:_ a clash with another group is known a week ahead, not discovered at the field.
 
