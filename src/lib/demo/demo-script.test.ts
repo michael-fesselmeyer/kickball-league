@@ -128,7 +128,8 @@ describe("the demo never sees .env files", () => {
         env: {
           ...env,
           NODE_PATH: path.resolve("node_modules"),
-        } as NodeJS.ProcessEnv,
+          NODE_ENV: "production",
+        },
       });
       return JSON.parse(result.stdout.trim().split("\n").at(-1) ?? "{}");
     } finally {
