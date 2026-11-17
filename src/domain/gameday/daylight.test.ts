@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  clearByOnGameDay,
   countdown,
   countdownMessage,
   DEFAULT_DAYLIGHT_MARGIN_MINUTES,
@@ -182,6 +183,81 @@ describe("endOfPlay", () => {
         sunsetAt: null,
         hasLights: false,
         marginMinutes: 0,
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("clearByOnGameDay", () => {
+  // A 7:50 pm game in New York on Monday, Nov 16 (00:50 UTC on the 17th).
+  const startsAt = new Date("2026-11-17T00:50:00Z");
+
+  it("keeps a clear-by on the game's own evening", () => {
+    const clearBy = new Date("2026-11-17T03:00:00Z"); // 10 pm Monday
+    expect(clearByOnGameDay(clearBy, startsAt, NY)).toEqual(clearBy);
+  });
+
+  it("keeps a permit that runs past midnight into the small hours", () => {
+    const clearBy = new Date("2026-11-17T05:30:00Z"); // 12:30 am Tuesday
+    expect(clearByOnGameDay(clearBy, startsAt, NY)).toEqual(clearBy);
+  });
+
+  it("drops the next evening's clear-by, a day-long countdown", () => {
+    const clearBy = new Date("2026-11-18T03:00:00Z"); // 10 pm Tuesday
+    expect(clearByOnGameDay(clearBy, startsAt, NY)).toBeNull();
+  });
+
+  it("drops a clear-by from an earlier day", () => {
+    const clearBy = new Date("2026-11-11T03:00:00Z"); // 10 pm last Tuesday
+    expect(clearByOnGameDay(clearBy, startsAt, NY)).toBeNull();
+  });
+
+  it("is null with no clear-by", () => {
+    expect(clearByOnGameDay(null, startsAt, NY)).toBeNull();
+  });
+});
+
+describe("endOfPlay on the game's own day", () => {
+  const gameDay = {
+    startsAt: new Date("2026-11-17T00:50:00Z"),
+    timeZone: NY,
+  };
+  const tomorrow = new Date("2026-11-18T03:00:00Z");
+
+  it("uses a clear-by on the game's day", () => {
+    const clearBy = new Date("2026-11-17T03:00:00Z");
+    expect(
+      endOfPlay({
+        clearBy,
+        sunsetAt: null,
+        hasLights: true,
+        marginMinutes: 15,
+        gameDay,
+      }),
+    ).toEqual({ endsAt: clearBy, reason: "field_time" });
+  });
+
+  it("falls back to daylight when the clear-by is on another day", () => {
+    const sunsetAt = new Date("2026-11-16T21:35:00Z");
+    expect(
+      endOfPlay({
+        clearBy: tomorrow,
+        sunsetAt,
+        hasLights: false,
+        marginMinutes: 0,
+        gameDay,
+      }),
+    ).toEqual({ endsAt: sunsetAt, reason: "daylight" });
+  });
+
+  it("has no end on a lit field whose only clear-by is another day's", () => {
+    expect(
+      endOfPlay({
+        clearBy: tomorrow,
+        sunsetAt: null,
+        hasLights: true,
+        marginMinutes: 15,
+        gameDay,
       }),
     ).toBeNull();
   });

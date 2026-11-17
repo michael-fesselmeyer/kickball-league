@@ -1,6 +1,7 @@
 import { and, eq, gt, inArray, or, sql } from "drizzle-orm";
 import type { FieldId, GameId } from "@/domain/ids";
 import {
+  clearByOnGameDay,
   daylightMargin,
   type EndOfPlay,
   endOfPlay,
@@ -129,8 +130,8 @@ export async function delayedStarts(
 
 /**
  * Clock info for each game with a slot. A game with no slot, or one on a
- * lit field with no permit window, has no end of play and is left out.
- * Windows on the field that touch the game's own window extend the field
+ * lit field with no permit window on its own day, has no end of play and
+ * is left out. Windows on the field that touch the game's own window extend the field
  * time; a lost window never counts. A crossover game uses its first team's
  * division for the rules. Three queries, whatever the number of games.
  */
@@ -194,13 +195,18 @@ export async function permitInfoFor(
             ),
           );
   for (const r of rows) {
-    const clearBy =
+    // A window on another day than the game's (one it has moved away
+    // from) says nothing about when this game must end.
+    const clearBy = clearByOnGameDay(
       r.windowStartsAt && r.windowEndsAt
         ? permitEndFor(
             { startsAt: r.windowStartsAt, endsAt: r.windowEndsAt },
             held.filter((h) => h.fieldId === r.fieldId),
           )
-        : null;
+        : null,
+      r.slotStartsAt,
+      r.timeZone,
+    );
     const sunsetAt = r.hasLights
       ? null
       : sunsetFor(
