@@ -75,6 +75,17 @@ export function withSlowdown(config, slowdown) {
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * A readable reason for a failure. Some errors arrive with an empty message,
+ * which logged as "failed ()"; their name or text is used instead.
+ */
+export function reasonOf(error) {
+  if (error instanceof Error)
+    return error.message || error.name || "unknown error";
+  const text = String(error ?? "");
+  return text || "unknown error";
+}
+
+/**
  * Runs `attempt` until it succeeds, at most `tries` times, waiting `delayMs`
  * between tries. If every try fails, throws one error that lists them all,
  * so a caller can stop loudly instead of carrying on without a result.
@@ -96,7 +107,7 @@ export async function withRetries(
     }
   }
   const reasons = errors
-    .map((e, i) => `try ${i + 1}: ${e instanceof Error ? e.message : e}`)
+    .map((e, i) => `try ${i + 1}: ${reasonOf(e)}`)
     .join("; ");
   throw new AggregateError(errors, `Failed ${tries} times (${reasons})`);
 }
@@ -130,4 +141,44 @@ export async function waitForUrl(
       throw new Error(`${url} did not answer within ${timeoutMs} ms (${last})`);
     await sleep(intervalMs);
   }
+}
+
+/**
+ * The samples left once the first `warmup` are dropped. The first benchmark
+ * in a fresh Chrome often reads far lower than the rest (429 then about
+ * 3,450 on one runner), because Chrome is still starting up, not because the
+ * runner is slow (ADR 0097).
+ */
+export function afterWarmup(samples, warmup) {
+  if (samples.length <= warmup)
+    throw new Error(
+      `Only ${samples.length} benchmark samples; ${warmup} are warm-up.`,
+    );
+  return samples.slice(warmup);
+}
+
+/**
+ * Settles with `promise`, or rejects with `message` once `ms` have passed.
+ * Calls `onTimeout` first, so a caller can close what the promise was
+ * waiting on. The timer never keeps the process alive.
+ */
+export function withTimeout(
+  promise,
+  ms,
+  message,
+  {
+    onTimeout = () => {},
+    setTimer = setTimeout,
+    clearTimer = clearTimeout,
+  } = {},
+) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimer(() => {
+      onTimeout();
+      reject(new Error(message));
+    }, ms);
+    timer?.unref?.();
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimer(timer));
 }
