@@ -23,7 +23,13 @@ describe("checkFielding", () => {
 
   it("names the lineup a short team can field", () => {
     expect(checkFielding({ women: 3, men: 6 }).message).toBe(
-      "Short-handed: you can field 7 (4 and 3), a lineup the rulebook allows.",
+      "Short-handed: only 3 women are in, so you can field 7 (4 men and 3 women), a lineup the rulebook allows.",
+    );
+    expect(checkFielding({ women: 4, men: 6 }).message).toBe(
+      "Short-handed: only 4 women are in, so you can field 9 (5 men and 4 women), a lineup the rulebook allows.",
+    );
+    expect(checkFielding({ women: 5, men: 5 }).message).toBe(
+      "Short-handed: 10 are in, so you can field 9 (5 women and 4 men), a lineup the rulebook allows.",
     );
   });
 
