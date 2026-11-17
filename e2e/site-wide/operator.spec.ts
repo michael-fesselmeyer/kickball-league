@@ -54,7 +54,7 @@ test("read-only keeps everything visible but refuses changes", async ({
 
   await eventually(visitor, "/seasons/fall-2026/standings", async () => {
     await expect(visitor.getByRole("heading", { level: 1 })).toHaveText(
-      "Standings",
+      "Fall 2026 standings",
     );
   });
   await eventually(player, "/app/profile", async () => {

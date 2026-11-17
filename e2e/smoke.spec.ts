@@ -69,7 +69,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     for (const [path, heading] of [
       ["/history", "League history"],
       ["/records", "League records"],
-      ["/seasons/fall-2026/bracket", "Playoffs"],
+      ["/seasons/fall-2026/bracket", "Fall 2026 playoffs"],
       ["/paused", "Everything is running"],
     ] as const) {
       test(`${path} is accessible`, async ({ page }) => {
