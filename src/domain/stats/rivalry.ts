@@ -17,6 +17,7 @@ import { messagesFor } from "@/i18n/messages";
 
 export type Meeting = {
   gameId: string;
+  seasonId: string;
   playedAt: Date;
   /** Null for a tie. */
   winner: string | null;
@@ -73,6 +74,7 @@ export function rivalry(
     result.runsY += side.runsAgainst ?? 0;
     result.history.unshift({
       gameId: game.id,
+      seasonId: game.seasonId,
       playedAt: game.playedAt,
       winner,
       runsX: side.runsFor,
