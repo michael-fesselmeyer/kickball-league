@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { db } from "@/db/client";
+import { leaguesOf } from "@/db/queries/leagues";
 import { myCurrentSeasons } from "@/db/queries/registration";
 import type { LeagueId, UserId } from "@/domain/ids";
 
@@ -11,3 +12,9 @@ import type { LeagueId, UserId } from "@/domain/ids";
 export const mySeasons = cache((userId: UserId, leagueId: LeagueId | null) =>
   myCurrentSeasons(db, userId, leagueId),
 );
+
+/**
+ * The leagues this person belongs to, for the menu's league switch and the
+ * home page's league line: one read per render.
+ */
+export const myLeagues = cache((userId: UserId) => leaguesOf(db, userId));

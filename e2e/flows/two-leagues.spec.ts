@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { goViaMenu, openAppMenu } from "../support/app-nav";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
 
@@ -94,27 +95,21 @@ test("a player in two leagues switches between them in the app", async ({
 }) => {
   const page = await pageAs(browser, "Player");
   await page.goto("/app");
-  const leagues = page.getByRole("navigation", { name: "Your leagues" });
-  await expect(leagues).toBeVisible();
-  await leagues
-    .getByRole("link", { name: `Switch to ${FOOTBALL_NAME}` })
-    .click();
+  // Home names the league on show; switching is in the menu's Account group.
+  await expect(
+    page.getByText(/^Kickball League \(demo\) · switch leagues/),
+  ).toBeVisible();
+  await goViaMenu(page, `Switch to ${FOOTBALL_NAME}`);
   await expect(page).toHaveURL(/\/app$/);
   await expect(
-    page
-      .getByRole("navigation", { name: "Your leagues" })
-      .getByText(FOOTBALL_NAME),
+    page.getByText(`${FOOTBALL_NAME} · switch leagues in the menu`),
   ).toBeVisible();
   await expectNoAxeViolations(page);
   // And back.
-  await page
-    .getByRole("navigation", { name: "Your leagues" })
-    .getByRole("link", { name: /Switch to Kickball League/ })
-    .click();
+  const menu = await openAppMenu(page);
+  await menu.getByRole("link", { name: /^Switch to Kickball League/ }).click();
   await expect(
-    page
-      .getByRole("navigation", { name: "Your leagues" })
-      .getByText("Kickball League (demo)"),
+    page.getByText("Kickball League (demo) · switch leagues in the menu"),
   ).toBeVisible();
   await page.context().close();
 });
