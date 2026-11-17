@@ -315,7 +315,9 @@ async function Dashboard({ searchParams }: PageProps<"/[lang]/app/admin">) {
       )}
 
       <Registrations summary={registrations} href={`${base}/registrations`} />
-      {signups.length > 0 && (
+      {/* Sign-ups matter while players can still join; mid-season the
+          registrations table above already says it. */}
+      {current.status === "registration_open" && signups.length > 0 && (
         <section aria-labelledby="signups" className="flex flex-col gap-3">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h2 id="signups" className="text-h2">
