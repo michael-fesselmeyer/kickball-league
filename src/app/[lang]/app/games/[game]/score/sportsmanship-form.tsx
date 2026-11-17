@@ -34,18 +34,26 @@ export function SportsmanshipForm({
       <form action={action} className="flex flex-col gap-3">
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1">Rating</legend>
-          <div className="flex flex-wrap gap-3">
+          {/* A segmented 1–5 control: each choice is a 48px segment over
+              its radio, which is still what's focused and checked. */}
+          <div className="grid grid-cols-5 gap-1">
             {[1, 2, 3, 4, 5].map((n) => (
-              <label key={n} className="flex items-center gap-1">
+              <label
+                key={n}
+                className="relative flex min-h-12 cursor-pointer flex-col items-center justify-center rounded-md border-2 border-border bg-surface px-1 text-center has-checked:border-text has-checked:bg-text has-checked:text-surface has-focus-visible:outline-3 has-focus-visible:outline-offset-2 has-focus-visible:outline-focus"
+              >
                 <input
                   type="radio"
                   name="score"
                   value={n}
                   required
                   defaultChecked={current?.score === n}
+                  // Covers the segment, so a tap anywhere on it is a tap on
+                  // the radio; the segment draws the state.
+                  className="absolute inset-0 m-0 size-full cursor-pointer appearance-none opacity-0"
                 />
-                {n}{" "}
-                <span className="text-small text-text-muted">{LABELS[n]}</span>
+                <span className="font-bold tabular-nums">{n}</span>{" "}
+                <span className="text-micro">{LABELS[n]}</span>
               </label>
             ))}
           </div>
@@ -56,7 +64,7 @@ export function SportsmanshipForm({
             name="note"
             maxLength={RATING_NOTE_MAX}
             defaultValue={current?.note ?? ""}
-            className="rounded-md border border-border bg-surface px-2 py-1"
+            className="min-h-11 rounded-md border border-border bg-surface px-3 py-2"
           />
         </label>
         <SubmitButton className="btn self-start btn-secondary">
