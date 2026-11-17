@@ -36,7 +36,7 @@ describe("looking-for-a-change emails", () => {
     if (!result.ok) throw new Error(result.error);
     expect(result.value.subject).toBe("Robin E. said yes to Kick Bottom");
     expect(result.value.text).toContain(
-      "https://league.example.test/app/seasons/spring-2027/team#recruiting",
+      "https://league.example.test/app/seasons/spring-2027/team?view=roster#recruiting",
     );
   });
 });
