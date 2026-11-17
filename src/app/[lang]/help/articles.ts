@@ -574,7 +574,7 @@ export const HELP_ROLES: readonly HelpRole[] = [
           "On the score screen, open live scoring and choose who kicks first.",
           'Tap "First pitch" when play starts. The game clock then counts down to when play must end: sunset less a margin, or the time the field must be clear, whichever comes first. If the start was late, say which team held it up.',
           "After each half-inning, tap its runs (0 to 7, or type a number). Fix any half by changing its runs, or take back the last one.",
-          'End with "Game over" to report every run, or "Called after the" Nth inning to report the score at the last complete inning (at least 4). When time runs out, pick daylight or field time as the reason.',
+          'Tap "End the game", check the score it asks about, then tap "Game over" to report every run, or "Called after the" Nth inning to report the score at the last complete inning (at least 4). When time runs out, pick daylight or field time as the reason. "Not yet, keep scoring" goes back.',
           "Either becomes the reported score, and the captains confirm it.",
         ],
         notes: [

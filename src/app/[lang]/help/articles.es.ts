@@ -582,7 +582,7 @@ export const HELP_ES: Readonly<
           "En la pantalla del marcador, abre el marcador en vivo y elige quién patea primero.",
           'Toca "First pitch" cuando empieza el juego. El reloj cuenta hacia atrás hasta la hora en que el juego debe terminar: el atardecer menos un margen, o la hora en que hay que dejar el campo, lo que llegue primero. Si se empezó tarde, di qué equipo lo demoró.',
           "Después de cada media entrada, toca sus carreras (de 0 a 7, o escribe un número). Corrige cualquier media entrada cambiando sus carreras, o deshaz la última.",
-          'Termina con "Game over" para reportar todas las carreras, o con "Called after the" y la entrada para reportar el marcador al final de la última entrada completa (mínimo la 4.ª). Si se acaba el tiempo, elige como motivo la luz del día o el horario del campo.',
+          'Toca "End the game", revisa el marcador que te muestra y luego toca "Game over" para reportar todas las carreras, o "Called after the" y la entrada para reportar el marcador al final de la última entrada completa (mínimo la 4.ª). Si se acaba el tiempo, elige como motivo la luz del día o el horario del campo. "Not yet, keep scoring" te devuelve al juego.',
           "Cualquiera de los dos queda como marcador reportado, y los capitanes lo confirman.",
         ],
         notes: [
