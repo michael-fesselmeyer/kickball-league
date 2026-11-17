@@ -44,6 +44,7 @@ import {
   clockAnnouncement,
   permitAnnouncement,
 } from "@/domain/gameday/announce";
+import { useEndConfirm } from "./use-end-confirm";
 import { useTally } from "./use-tally";
 
 /** Takes back the last tap, and says which. */
@@ -139,10 +140,17 @@ export function Scoring({
   const [stored, setTally] = useTally(gameId);
   const [notice, setNotice] = useState<string | null>(null);
   // Ending the game takes two taps, so a stray one mid-game doesn't end it.
-  const [confirmingEnd, setConfirmingEnd] = useState(false);
+  // The question outlives a save that lands just after the tap.
+  const [confirmingEnd, setConfirmingEnd] = useEndConfirm(gameId);
   const endQuestion = useRef<HTMLParagraphElement>(null);
+  // Focus moves to the question when the ref asks, not when a save
+  // re-renders the page under it.
+  const askedNow = useRef(false);
   useEffect(() => {
-    if (confirmingEnd) endQuestion.current?.focus();
+    if (confirmingEnd && askedNow.current) {
+      askedNow.current = false;
+      endQuestion.current?.focus();
+    }
   }, [confirmingEnd]);
   const [nextEndKey, setNextEndKey] = useState(endKey);
   const halves = withWaiting(snapshot.halves, outbox.entries);
@@ -212,6 +220,7 @@ export function Scoring({
     if (ending !== "normal" && ending !== "called") return;
     const key = nextEndKey;
     setNextEndKey(newKey());
+    setConfirmingEnd(false);
     // Nothing left to count on this phone.
     setTally(null);
     if (onPhone()) {
@@ -427,7 +436,10 @@ export function Scoring({
           {!confirmingEnd ? (
             <button
               type="button"
-              onClick={() => setConfirmingEnd(true)}
+              onClick={() => {
+                askedNow.current = true;
+                setConfirmingEnd(true);
+              }}
               className="btn self-start btn-secondary"
             >
               End the game
