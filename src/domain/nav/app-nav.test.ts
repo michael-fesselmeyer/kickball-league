@@ -170,6 +170,49 @@ describe("appNav", () => {
     });
   });
 
+  it("shows only the current team, as Your team, for a player on two seasons", () => {
+    const nav = appNav({
+      ...player,
+      seasons: [
+        fall(),
+        fall({ seasonSlug: "spring-2027", seasonName: "Spring 2027" }),
+      ],
+    });
+    const mySeason = nav.groups.find((g) => g.id === "my-season");
+    expect(mySeason?.links[0]).toEqual({
+      href: "/app/seasons/fall-2026/team",
+      label: "Your team",
+    });
+    expect(
+      hrefs({
+        ...player,
+        seasons: [fall(), fall({ seasonSlug: "spring-2027" })],
+      }),
+    ).not.toContain("/app/seasons/spring-2027/team");
+  });
+
+  it("puts a ref's stats under Account instead of a one-link My season", () => {
+    const ref: NavInput = { ...NOBODY, isReferee: true, plays: true };
+    expect(titles(ref)).not.toContain("My season");
+    expect(
+      appNav(ref)
+        .groups.find((g) => g.id === "account")
+        ?.links.map((l) => l.label),
+    ).toEqual(["Your profile", "Your stats"]);
+  });
+
+  it("offers the person's other leagues under Account", () => {
+    const account = appNav({
+      ...player,
+      otherLeagues: [{ slug: "flag-football", name: "Sunday Flag" }],
+    }).groups.find((g) => g.id === "account");
+    expect(account?.links.at(-1)).toEqual({
+      href: "/app/league/flag-football?next=%2Fapp",
+      label: "Switch to Sunday Flag",
+      document: true,
+    });
+  });
+
   it("keeps public links in the league on show", () => {
     const nav = appNav({ ...player, leagueBase: "/l/football" });
     expect(nav.tabs[1]?.href).toBe("/l/football/seasons/fall-2026/schedule");

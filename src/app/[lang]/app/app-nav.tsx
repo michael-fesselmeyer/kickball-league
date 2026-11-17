@@ -5,13 +5,16 @@ import { leagueBase } from "@/domain/league/paths";
 import { appNav, type NavIcon } from "@/domain/nav/app-nav";
 import { currentSubject } from "@/lib/auth/permission";
 import { activeLeague } from "@/lib/league/active";
-import { mySeasons } from "@/lib/nav/my-seasons";
+import { myLeagues, mySeasons } from "@/lib/nav/my-seasons";
 import { featureEnabled } from "@/lib/platform/site";
 import { signOut } from "./actions";
 import { CloseMenuOnLink, TabLink } from "./nav-client";
 import { SignOutForm } from "./offline-sync";
 
 const MENU_ID = "app-menu";
+
+const MENU_LINK =
+  "flex min-h-11 items-center border-b border-border font-bold hover:underline";
 
 /** A tab: icon over its word on a phone, side by side on a wider screen. */
 const TAB =
@@ -26,11 +29,12 @@ export async function AppNav() {
   const subject = await currentSubject();
   const userId = parseId<UserId>(subject.userId);
   if (!userId) return <NavPlaceholder />;
-  const [seasons, league, pickem, awards] = await Promise.all([
+  const [seasons, league, pickem, awards, leagues] = await Promise.all([
     mySeasons(userId, parseId<LeagueId>(subject.leagueId)),
     activeLeague(),
     featureEnabled("pickem"),
     featureEnabled("awards"),
+    myLeagues(userId),
   ]);
   const { tabs, groups } = appNav({
     seasons,
@@ -46,6 +50,7 @@ export async function AppNav() {
     pickem,
     awards,
     leagueBase: league ? leagueBase(league) : "",
+    otherLeagues: leagues.filter((l) => l.id !== league?.id),
   });
 
   return (
@@ -108,13 +113,19 @@ export async function AppNav() {
               <ul className="flex flex-col">
                 {group.links.map((link) => (
                   <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      prefetch={false}
-                      className="flex min-h-11 items-center border-b border-border font-bold hover:underline"
-                    >
-                      {link.label}
-                    </Link>
+                    {link.document ? (
+                      <a href={link.href} className={MENU_LINK}>
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        prefetch={false}
+                        className={MENU_LINK}
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
