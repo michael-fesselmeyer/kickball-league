@@ -47,11 +47,13 @@ export async function adminTool(page: Page, name: string): Promise<Locator> {
 export async function seasonTool(page: Page, name: string): Promise<Locator> {
   const tools = page.getByRole("navigation", { name: "Season tools" });
   const link = tools.getByRole("link", { name, exact: true });
-  const group = tools.locator("details", { has: link }).locator("summary");
-  await expect(async () => {
-    if (!(await link.isVisible())) await group.click();
-    await expect(link).toBeVisible({ timeout: 1_000 });
-  }).toPass();
+  const group = tools
+    .locator("details")
+    .filter({ has: page.getByRole("link", { name, exact: true }) });
+  await expect(group).toHaveCount(1);
+  if ((await group.getAttribute("open")) === null)
+    await group.locator("summary").click();
+  await expect(link).toBeVisible();
   return link;
 }
 

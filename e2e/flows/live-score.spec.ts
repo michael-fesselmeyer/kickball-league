@@ -125,6 +125,7 @@ test("a ref scores inning by inning and calls the game", async ({
   );
   await expectNoAxeViolations(spectator);
 
+  await ref.getByRole("button", { name: "End the game" }).click();
   await ref
     .getByRole("button", {
       name: "Called after the 4th: Red Rubber Ballers 3, Sun Kickers 6",
