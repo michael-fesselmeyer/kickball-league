@@ -20,6 +20,7 @@ import {
 import type { TicketPriceForm } from "@/domain/events/tickets";
 import { OVERRIDE_REASON_MAX } from "@/domain/permits/coverage";
 import type { EventFormState } from "./actions";
+import { FormError } from "@/components/form-error";
 
 const control =
   "min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body";
@@ -111,7 +112,7 @@ function AudienceFields({
       <legend className="px-1 font-bold">Who it&apos;s for</legend>
       <div className="flex flex-col gap-1">
         {AUDIENCE_KINDS.map((kind) => (
-          <label key={kind} className="flex min-h-11 items-start gap-2 py-1">
+          <label key={kind} className="check-row-top">
             <input
               type="radio"
               name="audience"
@@ -163,7 +164,7 @@ function AudienceFields({
                 {teams.map((t) => (
                   <label
                     key={t.id}
-                    className="flex min-h-11 items-center gap-2"
+                    className="check-row"
                   >
                     <input
                       type="checkbox"
@@ -245,11 +246,7 @@ export function EventFormFields({
   };
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      {state.error && (
-        <p role="alert" className="rounded-lg border border-danger p-3">
-          {state.error}
-        </p>
-      )}
+      <FormError message={state.error} attempt={state} />
       <Field label="Kind">
         {(props) => (
           <select
@@ -316,7 +313,7 @@ export function EventFormFields({
           )}
         </Field>
       )}
-      <label className="flex min-h-11 items-center gap-3" hidden={themeWeek}>
+      <label className="check-row" hidden={themeWeek}>
         <input
           type="checkbox"
           name="openPlay"
@@ -508,7 +505,7 @@ export function EventFormFields({
         )}
       </Field>
       <div className="flex flex-col gap-1" hidden={themeWeek}>
-        <label className="flex min-h-11 items-center gap-2">
+        <label className="check-row">
           <input
             type="checkbox"
             name="inAppRsvp"
@@ -537,7 +534,7 @@ export function EventFormFields({
           reach={state.reach}
         />
       </div>
-      <label className="flex min-h-11 items-center gap-2">
+      <label className="check-row">
         <input
           type="checkbox"
           name="announce"

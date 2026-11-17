@@ -9,6 +9,7 @@ import {
   MAX_WINNERS,
 } from "@/domain/drive/giveaway-limits";
 import type { GiveawayFormState } from "./actions";
+import { FormError } from "@/components/form-error";
 
 const control =
   "min-h-11 rounded-input border border-border-strong bg-surface px-3 text-body";
@@ -67,11 +68,7 @@ export function GiveawayFormFields({
       // Keyed by the values, so a failed save shows what was sent.
       key={JSON.stringify(v)}
     >
-      {state.error && (
-        <p role="alert" className="rounded-lg border border-danger p-3">
-          {state.error}
-        </p>
-      )}
+      <FormError message={state.error} attempt={state} />
       <Field
         label="Prize"
         hint="What the winners get, such as “A $50 bar tab”."

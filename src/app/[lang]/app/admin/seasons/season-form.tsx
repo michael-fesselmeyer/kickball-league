@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { SeasonField, SeasonForm } from "@/domain/season/settings";
 import type { SeasonFormState } from "./actions";
+import { FormError } from "@/components/form-error";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Draft (hidden from players)",
@@ -86,11 +87,7 @@ export function SeasonSettingsForm({
       className="flex flex-col gap-8"
       noValidate
     >
-      {state.message && (
-        <p role="alert" className="rounded-lg border border-danger p-3">
-          {state.message}
-        </p>
-      )}
+      <FormError message={state.message} attempt={state} />
 
       <fieldset className={fieldset}>
         <legend className="mb-2 text-h2">Season</legend>
@@ -125,7 +122,7 @@ export function SeasonSettingsForm({
               ["per_team", "Per team"],
             ] as const
           ).map(([value, label]) => (
-            <label key={value} className="flex items-center gap-2">
+            <label key={value} className="check-row">
               <input
                 type="radio"
                 name="feeModel"
