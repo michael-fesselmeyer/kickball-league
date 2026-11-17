@@ -9,16 +9,16 @@ const at = (time: string) => new Date(`2026-11-17T${time}:00-05:00`);
 const local = (d: Date) => `${localDate(d, NY)} ${localTime(d, NY)}`;
 
 describe("gameNight", () => {
-  it("puts a build in the small hours at 7 pm tonight, not at 1:20 am", () => {
+  it("puts a build in the small hours at 8 pm tonight, not at 1:20 am", () => {
     const { kickoff, clock } = gameNight(at("02:00"), NY);
-    expect(local(kickoff)).toBe("2026-11-17 19:00");
-    expect(local(clock)).toBe("2026-11-17 19:40");
+    expect(local(kickoff)).toBe("2026-11-17 20:00");
+    expect(local(clock)).toBe("2026-11-17 20:40");
   });
 
-  it("puts a morning build at 7 pm the same day", () => {
+  it("puts a morning build at 8 pm the same day", () => {
     const { kickoff, clock } = gameNight(at("10:00"), NY);
-    expect(local(kickoff)).toBe("2026-11-17 19:00");
-    expect(local(clock)).toBe("2026-11-17 19:40");
+    expect(local(kickoff)).toBe("2026-11-17 20:00");
+    expect(local(clock)).toBe("2026-11-17 20:40");
   });
 
   it("starts the game 40 minutes ago during the evening, on a five-minute mark", () => {
@@ -35,7 +35,7 @@ describe("gameNight", () => {
   });
 
   it("switches at 6 pm and 10:30 pm", () => {
-    expect(local(gameNight(at("17:59"), NY).kickoff)).toBe("2026-11-17 19:00");
+    expect(local(gameNight(at("17:59"), NY).kickoff)).toBe("2026-11-17 20:00");
     expect(local(gameNight(at("18:00"), NY).kickoff)).toBe("2026-11-17 17:20");
     expect(local(gameNight(at("22:29"), NY).kickoff)).toBe("2026-11-17 21:45");
     expect(local(gameNight(at("22:30"), NY).kickoff)).toBe("2026-11-17 21:50");

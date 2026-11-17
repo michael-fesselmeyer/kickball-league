@@ -7,8 +7,12 @@ export const STARTED_AGO = 40 * MINUTE;
 /** Between these local times, the live game simply started 40 minutes ago. */
 const EVENING_FROM = 18 * 60;
 const EVENING_TO = 22 * 60 + 30;
-/** Outside them, tonight's kickoff: 7 pm, or 9:50 pm late at night. */
-const DEFAULT_KICKOFF = "19:00";
+/**
+ * Outside them, tonight's kickoff: 8 pm, the seeded league's own first
+ * kickoff (after the shared-field soccer club's 6 to 8 pm), or 9:50 pm late
+ * at night.
+ */
+const DEFAULT_KICKOFF = "20:00";
 const LATE_KICKOFF = "21:50";
 
 /**
@@ -18,7 +22,7 @@ const LATE_KICKOFF = "21:50";
  * - 6 pm to 10:30 pm: 40 minutes before now, on a five-minute mark, so the
  *   clock is the real one;
  * - after 10:30 pm: 9:50 pm, so the game is still tonight's;
- * - before 6 pm (a build overnight or in the day): 7 pm tonight, ready for
+ * - before 6 pm (a build overnight or in the day): 8 pm tonight, ready for
  *   an evening demo, instead of a game in the small hours.
  */
 export function gameNight(

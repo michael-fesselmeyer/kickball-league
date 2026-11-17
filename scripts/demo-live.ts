@@ -43,7 +43,7 @@ async function main(): Promise<void> {
       return;
     }
     // Tonight's game is always an evening one: a demo built overnight or
-    // in the day plays it at 7 pm today, and this step reads that evening's
+    // in the day plays it at 8 pm today, and this step reads that evening's
     // clock as "now" for the live game, the reminders and the demo data.
     const now = gameNight(new Date(), league.timeZone).clock;
     // The database's own clock, which stamps the mail queued below.
