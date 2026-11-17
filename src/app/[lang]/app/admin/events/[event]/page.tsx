@@ -290,7 +290,7 @@ async function AdminEvent({
                 : `the ${attendees.length} people`}{" "}
               who RSVP&apos;d.
             </p>
-            <label className="flex min-h-11 items-center gap-2">
+            <label className="check-row">
               <input
                 type="checkbox"
                 name="confirm"
@@ -313,7 +313,7 @@ async function AdminEvent({
             Deleting takes it off every page without telling anyone. Use it for
             a mistake, not a change of plans.
           </p>
-          <label className="flex min-h-11 items-center gap-2">
+          <label className="check-row">
             <input
               type="checkbox"
               name="confirm"

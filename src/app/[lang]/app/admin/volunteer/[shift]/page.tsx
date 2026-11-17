@@ -92,7 +92,7 @@ async function EditShift({ params, searchParams }: Props) {
           action={deleteShiftAction.bind(null, shift.id)}
           className="flex flex-col gap-2"
         >
-          <label className="flex min-h-11 items-center gap-2">
+          <label className="check-row">
             <input
               type="checkbox"
               name="confirm"

@@ -189,7 +189,7 @@ async function Status({
                 ["off", "Off: chosen games, or all of them"],
               ] as const
             ).map(([value, label]) => (
-              <label key={value} className="flex min-h-11 items-center gap-2">
+              <label key={value} className="check-row">
                 <input
                   type="radio"
                   name="state"
@@ -233,7 +233,7 @@ async function Status({
 
           <fieldset className="flex flex-col gap-3">
             <legend className="text-h3">Games (Delayed or Off)</legend>
-            <label className="flex min-h-11 items-center gap-2">
+            <label className="check-row">
               <input type="checkbox" name="all" className="size-5" />
               All games this day
             </label>
@@ -245,7 +245,7 @@ async function Status({
                   key={g.id}
                   className="flex flex-col gap-2 rounded-card border border-border p-3"
                 >
-                  <label className="flex min-h-11 items-center gap-2">
+                  <label className="check-row">
                     <input
                       type="checkbox"
                       name={`game:${g.id}`}

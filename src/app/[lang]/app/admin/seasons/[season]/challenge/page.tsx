@@ -146,10 +146,7 @@ async function ChallengeAdmin({ params, searchParams }: Props) {
                   winner.
                 </legend>
                 {tied.map((t) => (
-                  <label
-                    key={t.teamSeasonId}
-                    className="flex min-h-11 items-center gap-2"
-                  >
+                  <label key={t.teamSeasonId} className="check-row">
                     <input
                       type="radio"
                       name="team"

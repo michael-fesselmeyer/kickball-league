@@ -262,7 +262,7 @@ function FormCard({
                         className={`${input} min-h-20`}
                       />
                     </label>
-                    <label className="flex min-h-11 items-center gap-2">
+                    <label className="check-row">
                       <input type="checkbox" name="confirm" value="yes" />
                       Yes, send it
                     </label>

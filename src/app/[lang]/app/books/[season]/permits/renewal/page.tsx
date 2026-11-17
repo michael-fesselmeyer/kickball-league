@@ -228,7 +228,7 @@ async function Renewal({
                     className="flex flex-col gap-2 border-t border-border pt-3"
                   >
                     <legend className="font-semibold">{label}</legend>
-                    <label className="flex min-h-11 items-center gap-2">
+                    <label className="check-row">
                       <input
                         type="checkbox"
                         name={`k${i}`}

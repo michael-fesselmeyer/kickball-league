@@ -80,7 +80,7 @@ export async function TournamentAdmin({
         action={saveTournamentAction.bind(null, e.slug)}
         className="flex flex-col gap-3"
       >
-        <label className="flex min-h-11 items-center gap-2">
+        <label className="check-row">
           <input
             type="checkbox"
             name="guestSignupsOpen"
@@ -221,7 +221,7 @@ export async function TournamentAdmin({
                 Draw a single-elimination bracket from the guest teams. Sign-ups
                 close once it&apos;s drawn.
               </p>
-              <label className="flex min-h-11 items-center gap-2">
+              <label className="check-row">
                 <input
                   type="radio"
                   name="order"
@@ -231,7 +231,7 @@ export async function TournamentAdmin({
                 />
                 Seed in the order teams signed up
               </label>
-              <label className="flex min-h-11 items-center gap-2">
+              <label className="check-row">
                 <input
                   type="radio"
                   name="order"

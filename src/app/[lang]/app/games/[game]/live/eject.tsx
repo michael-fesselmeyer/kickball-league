@@ -108,7 +108,7 @@ export async function EjectSection({
           of this game. The league reviews the report and decides on anything
           more.
         </p>
-        <label className="flex min-h-11 items-center gap-2">
+        <label className="check-row">
           <input
             type="checkbox"
             name="confirm"

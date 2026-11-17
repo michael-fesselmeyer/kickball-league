@@ -159,10 +159,7 @@ async function Rollover({
           <fieldset className="flex flex-col gap-1">
             <legend className="text-small">Teams to bring along</legend>
             {source.teams.map((t) => (
-              <label
-                key={t.teamSeasonId}
-                className="flex min-h-11 items-center gap-2"
-              >
+              <label key={t.teamSeasonId} className="check-row">
                 <input
                   type="checkbox"
                   name="team"
@@ -291,7 +288,7 @@ async function Rollover({
                 value={t.teamSeasonId}
               />
             ))}
-            <label className="flex min-h-11 items-center gap-2">
+            <label className="check-row">
               <input
                 type="checkbox"
                 name="checklist"

@@ -123,7 +123,7 @@ async function Summary({
           <input type="hidden" name="preview" value="1" />
           {FOLDABLE.filter((c) => spent.has(c) || folded.includes(c)).map(
             (c) => (
-              <label key={c} className="flex min-h-11 items-center gap-2">
+              <label key={c} className="check-row">
                 <input
                   type="checkbox"
                   name="fold"

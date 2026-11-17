@@ -425,10 +425,7 @@ export function Scoring({
                   If you call it, why?
                 </legend>
                 {(["daylight", "field_time", ""] as const).map((value) => (
-                  <label
-                    key={value || "other"}
-                    className="flex min-h-11 items-center gap-2"
-                  >
+                  <label key={value || "other"} className="check-row">
                     <input
                       type="radio"
                       name="callReason"

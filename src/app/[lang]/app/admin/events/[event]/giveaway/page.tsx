@@ -158,7 +158,7 @@ async function AdminGiveaway({ params, searchParams }: Props) {
                 at random from all {entries} entries. The draw and its result go
                 into the audit log.
               </p>
-              <label className="flex min-h-11 items-center gap-2">
+              <label className="check-row">
                 <input
                   type="checkbox"
                   name="confirm"
