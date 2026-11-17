@@ -118,8 +118,14 @@ export function CaptaincyPanel({
   cancel,
   setRole,
   stepDown,
+  folded = false,
 }: {
   idPrefix: string;
+  /**
+   * Fold the roster of buttons and the handover form into <details>, with
+   * who leads the team in one line above them (the team page's settings).
+   */
+  folded?: boolean;
   heading?: "h2" | "h3" | "h4";
   data: Captaincy;
   viewerId: string;
@@ -150,49 +156,101 @@ export function CaptaincyPanel({
         see who has paid and keep the team&apos;s private list. Only the captain
         hands the team over or changes co-captains.
       </p>
-      <ul className="flex flex-col">
-        {members.map((m) => (
-          <li
-            key={m.membershipId}
-            className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2"
-          >
-            <span>
-              {m.name}
-              {m.userId === viewerId && (
-                <span className="text-text-muted"> (you)</span>
-              )}{" "}
-              <span className="text-small text-text-muted">
-                · {ROLE[m.role]}
-              </span>
-            </span>
-            {manage && m.role !== "captain" && (
-              <form
-                action={setRole(
-                  m.userId,
-                  m.role === "co_captain" ? "player" : "co_captain",
-                )}
+      {folded && <p>{leadersLine(members)}</p>}
+      {folded ? (
+        <details>
+          <summary className="inline-flex min-h-11 cursor-pointer items-center font-bold underline">
+            {manage ? "Change co-captains" : "Everyone's role"}
+          </summary>
+          <ul className="flex flex-col">
+            {members.map((m) => (
+              <li
+                key={m.membershipId}
+                className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2"
               >
-                <SubmitButton className="inline-flex min-h-11 items-center underline">
-                  {m.role === "co_captain"
-                    ? "No longer co-captain"
-                    : "Make co-captain"}
-                  <span className="sr-only"> for {m.name}</span>
-                </SubmitButton>
-              </form>
-            )}
-            {!manage &&
-              stepDown &&
-              m.userId === viewerId &&
-              m.role === "co_captain" && (
-                <form action={stepDown}>
+                <span>
+                  {m.name}
+                  {m.userId === viewerId && (
+                    <span className="text-text-muted"> (you)</span>
+                  )}{" "}
+                  <span className="text-small text-text-muted">
+                    · {ROLE[m.role]}
+                  </span>
+                </span>
+                {manage && m.role !== "captain" && (
+                  <form
+                    action={setRole(
+                      m.userId,
+                      m.role === "co_captain" ? "player" : "co_captain",
+                    )}
+                  >
+                    <SubmitButton className="inline-flex min-h-11 items-center underline">
+                      {m.role === "co_captain"
+                        ? "No longer co-captain"
+                        : "Make co-captain"}
+                      <span className="sr-only"> for {m.name}</span>
+                    </SubmitButton>
+                  </form>
+                )}
+                {!manage &&
+                  stepDown &&
+                  m.userId === viewerId &&
+                  m.role === "co_captain" && (
+                    <form action={stepDown}>
+                      <SubmitButton className="inline-flex min-h-11 items-center underline">
+                        Step down as co-captain
+                      </SubmitButton>
+                    </form>
+                  )}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : (
+        <ul className="flex flex-col">
+          {members.map((m) => (
+            <li
+              key={m.membershipId}
+              className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2"
+            >
+              <span>
+                {m.name}
+                {m.userId === viewerId && (
+                  <span className="text-text-muted"> (you)</span>
+                )}{" "}
+                <span className="text-small text-text-muted">
+                  · {ROLE[m.role]}
+                </span>
+              </span>
+              {manage && m.role !== "captain" && (
+                <form
+                  action={setRole(
+                    m.userId,
+                    m.role === "co_captain" ? "player" : "co_captain",
+                  )}
+                >
                   <SubmitButton className="inline-flex min-h-11 items-center underline">
-                    Step down as co-captain
+                    {m.role === "co_captain"
+                      ? "No longer co-captain"
+                      : "Make co-captain"}
+                    <span className="sr-only"> for {m.name}</span>
                   </SubmitButton>
                 </form>
               )}
-          </li>
-        ))}
-      </ul>
+              {!manage &&
+                stepDown &&
+                m.userId === viewerId &&
+                m.role === "co_captain" && (
+                  <form action={stepDown}>
+                    <SubmitButton className="inline-flex min-h-11 items-center underline">
+                      Step down as co-captain
+                    </SubmitButton>
+                  </form>
+                )}
+            </li>
+          ))}
+        </ul>
+      )}
 
       {manage &&
         (pending ? (
@@ -208,29 +266,73 @@ export function CaptaincyPanel({
             </form>
           </div>
         ) : teammates.length > 0 ? (
-          <form action={offer} className="flex flex-col gap-2">
-            <label htmlFor={`${idPrefix}-to`}>Hand the team to</label>
-            <select
-              id={`${idPrefix}-to`}
-              name="toUserId"
-              required
-              className={field}
-            >
-              {teammates.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-            <p className="text-small text-text-muted">
-              They have to accept. Until they do, nothing changes; then the
-              current captain stays on as a co-captain.
-            </p>
-            <SubmitButton className="btn self-start btn-secondary">
-              Offer the captaincy
-            </SubmitButton>
-          </form>
+          folded ? (
+            <details>
+              <summary className="inline-flex min-h-11 cursor-pointer items-center font-bold underline">
+                Hand the team over
+              </summary>
+              <form action={offer} className="flex flex-col gap-2">
+                <label htmlFor={`${idPrefix}-to`}>Hand the team to</label>
+                <select
+                  id={`${idPrefix}-to`}
+                  name="toUserId"
+                  required
+                  className={field}
+                >
+                  {teammates.map((m) => (
+                    <option key={m.userId} value={m.userId}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-small text-text-muted">
+                  They have to accept. Until they do, nothing changes; then the
+                  current captain stays on as a co-captain.
+                </p>
+                <SubmitButton className="btn self-start btn-secondary">
+                  Offer the captaincy
+                </SubmitButton>
+              </form>
+            </details>
+          ) : (
+            <form action={offer} className="flex flex-col gap-2">
+              <label htmlFor={`${idPrefix}-to`}>Hand the team to</label>
+              <select
+                id={`${idPrefix}-to`}
+                name="toUserId"
+                required
+                className={field}
+              >
+                {teammates.map((m) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-small text-text-muted">
+                They have to accept. Until they do, nothing changes; then the
+                current captain stays on as a co-captain.
+              </p>
+              <SubmitButton className="btn self-start btn-secondary">
+                Offer the captaincy
+              </SubmitButton>
+            </form>
+          )
         ) : null)}
     </section>
   );
+}
+
+/** "Captain: Sam R. · Co-captains: Jo P., Lee K." (names end in a period). */
+function leadersLine(members: Captaincy["members"]): string {
+  const captain = members.find((m) => m.role === "captain");
+  const co = members.filter((m) => m.role === "co_captain").map((m) => m.name);
+  return [
+    captain ? `Captain: ${captain.name}` : "",
+    co.length > 0
+      ? `Co-captain${co.length === 1 ? "" : "s"}: ${co.join(", ")}`
+      : "No co-captains yet",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
