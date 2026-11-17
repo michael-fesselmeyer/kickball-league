@@ -1,14 +1,36 @@
 import type { Db } from "@/db/queries/schedule";
-import { game, season, slot, team, teamSeason } from "@/db/schema";
+import {
+  game,
+  registration,
+  rosterMembership,
+  season,
+  slot,
+  team,
+  teamSeason,
+  user,
+} from "@/db/schema";
 import type {
   GameId,
+  RegistrationId,
+  RosterMembershipId,
   SeasonId,
   SlotId,
   TeamId,
   TeamSeasonId,
+  UserId,
 } from "@/domain/ids";
 import { seededRandom } from "@/domain/random";
-import { newYorkTime, roundRobin, type SeedData } from "./generate";
+import {
+  FIRST_NAMES,
+  LAST_NAMES,
+  newYorkTime,
+  roundRobin,
+  SEED_EMAIL_DOMAIN,
+  type SeedData,
+} from "./generate";
+import { insertSeedFees, type SeedFee } from "./money-summary";
+import { insertSeedProfiles } from "./roles";
+import { seasonCardSeedRows } from "./season-cards";
 import { seedPublishedSchedule } from "./published-schedule";
 
 /**
@@ -223,6 +245,154 @@ export function generatePastSeasons(data: SeedData) {
   };
 }
 
+/** The past seasons whose rosters the seed fills in: all three. */
+export const ROSTERED_PAST_SEASONS = [
+  "fall-2025",
+  "spring-2026",
+  "summer-2026",
+] as const;
+
+/** Players on each past roster. */
+const PAST_ROSTER = 12;
+
+/** Fixed ids for past rosters, apart from the seasons' own. */
+const rosterId = <T extends string>(n: number) =>
+  `a15e1000-0000-4000-8000-${String(n).padStart(12, "0")}` as T;
+
+/**
+ * Who played in the completed seasons, so their history, books and
+ * dashboard count members: twelve on each team, its captain first. A team
+ * still playing brings twelve of its fall players (their captain leads);
+ * the retired teams' players are their own invented people, who have since
+ * stopped. Each paid the season's fee, most of them in the app. In Summer
+ * 2026 the season cards' six players (src/seed/season-cards.ts) already
+ * hold their team's first spots, captain included, so that team is topped
+ * up to twelve around them.
+ */
+export function pastSeasonMembers(data: SeedData) {
+  const past = generatePastSeasons(data);
+  const cards = seasonCardSeedRows(data);
+  const carded = new Set(cards.registrations.map((r) => r.userId));
+  const cardTeam = cards.memberships[0]?.teamSeasonId;
+  const random = seededRandom(2025);
+  let n = 0;
+  const next = <T extends string>() => rosterId<T>(++n);
+
+  // The fall roster of each team still playing, captain first.
+  const fallRoster = new Map<TeamId, UserId[]>();
+  for (const t of data.teamSeasons) {
+    const own = data.rosterMemberships
+      .filter((m) => m.teamSeasonId === t.id)
+      .sort(
+        (a, b) => Number(b.role === "captain") - Number(a.role === "captain"),
+      );
+    fallRoster.set(
+      t.teamId,
+      own.flatMap((m) => {
+        const r = data.registrations.find((x) => x.id === m.registrationId);
+        return r ? [r.userId] : [];
+      }),
+    );
+  }
+
+  // The retired teams' own players.
+  const taken = new Set(data.users.map((u) => u.name));
+  const users: {
+    id: UserId;
+    name: string;
+    email: string;
+    emailVerified: boolean;
+  }[] = [];
+  const profiles: {
+    userId: UserId;
+    firstName: string;
+    lastName: string;
+    gender: "woman" | "man";
+    lineupGender: "woman" | "man";
+    shirtSize: "m";
+    globalRole: "player";
+  }[] = [];
+  for (const t of past.teams) {
+    const roster: UserId[] = [];
+    while (roster.length < PAST_ROSTER) {
+      const first = random.pick(FIRST_NAMES);
+      const last = random.pick(LAST_NAMES);
+      const name = `${first} ${last}`;
+      if (taken.has(name)) continue;
+      taken.add(name);
+      const id = next<UserId>();
+      const side = roster.length % 2 === 0 ? "woman" : "man";
+      users.push({
+        id,
+        name,
+        email: `${first}.${last}.p${n}@${SEED_EMAIL_DOMAIN}`.toLowerCase(),
+        emailVerified: true,
+      });
+      profiles.push({
+        userId: id,
+        firstName: first,
+        lastName: last,
+        gender: side,
+        lineupGender: side,
+        shirtSize: "m",
+        globalRole: "player",
+      });
+      roster.push(id);
+    }
+    fallRoster.set(t.id, roster);
+  }
+
+  const registrations: (typeof registration.$inferInsert & {
+    id: RegistrationId;
+    seasonId: SeasonId;
+    userId: UserId;
+  })[] = [];
+  const memberships: (typeof rosterMembership.$inferInsert)[] = [];
+  const fees: SeedFee[] = [];
+  for (const p of past.seasons) {
+    if (!(ROSTERED_PAST_SEASONS as readonly string[]).includes(p.season.slug))
+      continue;
+    const signUp = new Date(`${p.season.startsOn}T16:00:00Z`);
+    signUp.setUTCDate(signUp.getUTCDate() - 21);
+    for (const entry of p.entries) {
+      const held = entry.id === cardTeam ? carded.size : 0;
+      const roster = (fallRoster.get(entry.teamId) ?? [])
+        .filter((u) => p.season.id !== cards.seasonId || !carded.has(u))
+        .slice(0, PAST_ROSTER - held);
+      for (const [i, userId] of roster.entries()) {
+        const spot = i + held;
+        const reg = {
+          id: next<RegistrationId>(),
+          seasonId: p.season.id,
+          userId,
+          kind: "team_member" as const,
+          status: "active" as const,
+        };
+        registrations.push(reg);
+        memberships.push({
+          id: next<RosterMembershipId>(),
+          teamSeasonId: entry.id,
+          registrationId: reg.id,
+          role: spot === 0 ? "captain" : "player",
+          status: "active",
+          startedAt: signUp,
+        });
+        fees.push({
+          userId,
+          seasonId: p.season.id,
+          registrationId: reg.id,
+          teamSeasonId: entry.id,
+          amountCents: p.season.playerFeeCents,
+          description: `${p.season.name} player fee`,
+          paidAt: new Date(signUp.getTime() + (spot % 7) * 86_400_000),
+          key: `${p.season.slug}_${registrations.length}`,
+        });
+      }
+    }
+  }
+  return { users, profiles, registrations, memberships, fees };
+}
+
 /** Adds the past seasons to a freshly seeded league, schedules published. */
 export async function addPastSeasons(db: Db, data: SeedData): Promise<void> {
   const past = generatePastSeasons(data);
@@ -234,4 +404,12 @@ export async function addPastSeasons(db: Db, data: SeedData): Promise<void> {
     await db.insert(game).values(p.games);
     await seedPublishedSchedule(db, p.season.id);
   }
+  const members = pastSeasonMembers(data);
+  await db.insert(user).values(members.users);
+  await insertSeedProfiles(db, data.league.id, members.profiles);
+  await db.insert(registration).values(members.registrations);
+  await db.insert(rosterMembership).values(members.memberships);
+  const admin = data.profiles.find((p) => p.globalRole === "admin");
+  if (admin)
+    await insertSeedFees(db, data.league.id, admin.userId, members.fees);
 }
