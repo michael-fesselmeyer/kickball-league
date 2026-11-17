@@ -9,10 +9,23 @@ import {
 } from "@/db/queries/rain-alerts";
 import type { Db } from "@/db/queries/schedule";
 import { queueScoreReminders } from "@/db/queries/score-reminders";
-import { game, gamePeriod, slot } from "@/db/schema/game";
+import {
+  game,
+  gamePeriod,
+  gameStart,
+  refereeAssignment,
+  slot,
+} from "@/db/schema/game";
+import { permitWindow } from "@/db/schema/schedule";
 import { league } from "@/db/schema/league";
 import { season } from "@/db/schema/season";
-import type { GameId, LeagueId } from "@/domain/ids";
+import type {
+  GameId,
+  LeagueId,
+  PermitWindowId,
+  SlotId,
+  UserId,
+} from "@/domain/ids";
 import { fixtureForecast } from "@/services/weather-fixture";
 import { PERSONA_IDS } from "./demo-personas";
 
@@ -60,10 +73,13 @@ export type LiveDemo = {
  * (docs/demo.md), after `demo:reset` has seeded it:
  *
  * 1. The next round still to play moves to today, so its first games
- *    started 40 minutes ago, and they are live: the team that kicks first
- *    is set, three and a half innings are entered by the demo ref (who
- *    referees that round and is checked in at the field), and the games
- *    are in progress. The round's later games haven't started.
+ *    started 40 minutes ago, and they are live: first pitch is recorded,
+ *    the team that kicks first is set, three and a half innings are
+ *    entered by the game's ref (the demo ref is checked in at the field),
+ *    and the games are in progress. The round's later games haven't
+ *    started. The permit windows the round's slots were cut from move with
+ *    them, with every other slot cut from those windows, so the field time
+ *    and the countdown read from today's permit.
  * 2. The league's own jobs run as they would have: the rain alert for the
  *    next game day (the weather fixture puts showers there), and any payment
  *    and missing-score reminders that are due. They wait in the outbox, for
@@ -165,45 +181,121 @@ async function startLiveRound(
     midnight,
     Math.floor((now.getTime() - STARTED_AGO) / (5 * MINUTE)) * 5 * MINUTE,
   );
-  const shift = `${target - first.startsAt.getTime()} milliseconds`;
-  await db
-    .update(slot)
-    .set({
-      startsAt: sql`${slot.startsAt} + ${shift}::interval`,
-      endsAt: sql`${slot.endsAt} + ${shift}::interval`,
-    })
-    .where(
-      inArray(
-        slot.id,
-        round.map((g) => g.slotId),
-      ),
-    );
+  await moveRoundSlots(
+    db,
+    round.map((g) => g.slotId),
+    target - first.startsAt.getTime(),
+  );
 
   // Every game in the round's first time slot is under way, each with its
   // own score; later ones haven't started.
   const playing = round.filter(
     (g) => g.startsAt.getTime() === first.startsAt.getTime(),
   );
+  // Each game's own ref keeps its score; the demo ref covers a game with none.
+  const refs = new Map(
+    (
+      await db
+        .select({
+          gameId: refereeAssignment.gameId,
+          userId: refereeAssignment.userId,
+        })
+        .from(refereeAssignment)
+        .where(
+          and(
+            inArray(
+              refereeAssignment.gameId,
+              playing.map((g) => g.id),
+            ),
+            eq(refereeAssignment.status, "accepted"),
+          ),
+        )
+    ).map((r) => [r.gameId, r.userId]),
+  );
   for (const [n, g] of playing.entries()) {
+    const ref = refs.get(g.id) ?? PERSONA_IDS.ref;
     await db
       .update(game)
       .set({ status: "in_progress", kicksFirst: g.teamAId })
       .where(eq(game.id, g.id));
     await db
       .insert(gamePeriod)
-      .values(halves(LINES[n % LINES.length] ?? [], g.id, target));
+      .values(halves(LINES[n % LINES.length] ?? [], g.id, target, ref));
+    // First pitch went on time, tapped at the field.
+    await db
+      .insert(gameStart)
+      .values({
+        gameId: g.id,
+        startedAt: new Date(target),
+        recordedBy: ref,
+        recordedAt: new Date(target),
+      })
+      .onConflictDoNothing();
   }
-  // The demo ref, who referees the round, is at the field.
-  await checkInReferee(db, {
-    gameId: first.id,
-    userId: PERSONA_IDS.ref,
-    now: new Date(target - 10 * MINUTE),
-  });
+  // The refs of the games under way are at the field, the demo ref among
+  // them, checked in for the rest of their games tonight too.
+  for (const userId of new Set([PERSONA_IDS.ref, ...refs.values()]))
+    await checkInReferee(db, {
+      gameId: playing.find((g) => refs.get(g.id) === userId)?.id ?? first.id,
+      userId,
+      now: new Date(target - 10 * MINUTE),
+    });
   return first.id;
 }
 
-/** A game's half-innings so far, entered by the demo ref every five minutes. */
-function halves(line: Line, gameId: GameId, startedAt: number) {
+/** Far enough to clear every real slot, for the two-step move. */
+const PARK = "100 years";
+
+/**
+ * Moves the round's slots by `ms`, with the permit windows they were cut
+ * from and every other slot cut from those windows, so a slot stays inside
+ * its window and the field time is today's. In two steps, far ahead and
+ * then back, so a slot never lands on another's start on the way.
+ */
+async function moveRoundSlots(
+  db: Db,
+  slotIds: readonly SlotId[],
+  ms: number,
+): Promise<void> {
+  const shift = `${ms} milliseconds`;
+  const windows = (
+    await db
+      .selectDistinct({ id: slot.permitWindowId })
+      .from(slot)
+      .where(inArray(slot.id, [...slotIds]))
+  ).flatMap((r) => (r.id ? [r.id] : [])) as PermitWindowId[];
+  const moving =
+    windows.length === 0
+      ? inArray(slot.id, [...slotIds])
+      : sql`(${inArray(slot.id, [...slotIds])} or ${inArray(slot.permitWindowId, windows)})`;
+  for (const by of [
+    sql`${shift}::interval + ${PARK}::interval`,
+    sql`- ${PARK}::interval`,
+  ])
+    await db
+      .update(slot)
+      .set({
+        startsAt: sql`${slot.startsAt} + ${by}`,
+        endsAt: sql`${slot.endsAt} + ${by}`,
+      })
+      .where(moving);
+  if (windows.length > 0)
+    await db
+      .update(permitWindow)
+      .set({
+        startsAt: sql`${permitWindow.startsAt} + ${shift}::interval`,
+        endsAt: sql`${permitWindow.endsAt} + ${shift}::interval`,
+      })
+      .where(inArray(permitWindow.id, windows));
+}
+
+/** A game's half-innings so far, entered by its ref every five minutes. */
+function halves(
+  line: Line,
+  gameId: GameId,
+  startedAt: number,
+  enteredBy: UserId,
+) {
   return [
     ...line.flatMap(([top, bottom], i) => [
       { periodNo: i + 1, half: "top" as const, runs: top },
@@ -213,7 +305,7 @@ function halves(line: Line, gameId: GameId, startedAt: number) {
   ].map((p, i) => ({
     ...p,
     gameId,
-    enteredBy: PERSONA_IDS.ref,
+    enteredBy,
     enteredAt: new Date(startedAt + (i + 1) * 5 * MINUTE),
   }));
 }
