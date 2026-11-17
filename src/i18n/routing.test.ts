@@ -114,6 +114,8 @@ describe("addresses in each language", () => {
       bn: "/bn/faq",
       ko: "/ko/faq",
       ht: "/ht/faq",
+      it: "/it/faq",
+      fr: "/fr/faq",
       "x-default": "/faq",
     });
     // The help center is in Spanish only so far.

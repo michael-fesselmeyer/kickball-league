@@ -2,9 +2,10 @@ import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "./support/axe";
 
 /**
- * One public page in each new language, one per script (issue 441): Han,
- * Cyrillic, Polish Latin, Bengali, Hangul and Creole Latin. Read on a phone
- * (this file runs in the phone project too) and checked with axe.
+ * One public page in each new language, one per script (issues 441 and
+ * 585): Han, Cyrillic, Polish Latin, Bengali, Hangul, Creole Latin, Italian
+ * and French. Read on a phone (this file runs in the phone project too)
+ * and checked with axe.
  * Read-only: it only opens pages the seed already has.
  */
 const PAGES = [
@@ -39,6 +40,8 @@ const PAGES = [
     script: "Apple SD Gothic Neo",
   },
   { path: "/ht/events", lang: "ht", heading: "Evènman" },
+  { path: "/it/sponsors", lang: "it", heading: "I nostri" },
+  { path: "/fr/parks/mccarren-park", lang: "fr", heading: "Le kickball à" },
 ] as const;
 
 for (const { path, lang, heading, ...rest } of PAGES)

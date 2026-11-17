@@ -42,7 +42,7 @@ describe("a person's language", () => {
   it("refuses a language the site doesn't have", async () => {
     await inRolledBackDb(async (db) => {
       const ana = await person(db);
-      await expect(saveLanguage(db, ana, "fr" as Locale)).rejects.toThrow();
+      await expect(saveLanguage(db, ana, "de" as Locale)).rejects.toThrow();
     });
   });
 
