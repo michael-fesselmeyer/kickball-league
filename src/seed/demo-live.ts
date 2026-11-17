@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, min, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, min, ne, sql } from "drizzle-orm";
 import { checkInReferee } from "@/db/queries/command-center";
 import { nextGameDayStart } from "@/db/queries/demo";
 import { queuePaymentReminders } from "@/db/queries/payment-reminders";
@@ -16,6 +16,7 @@ import {
   refereeAssignment,
   slot,
 } from "@/db/schema/game";
+import { refereeProfile } from "@/db/schema/referees";
 import { permitWindow } from "@/db/schema/schedule";
 import { league } from "@/db/schema/league";
 import { season } from "@/db/schema/season";
@@ -77,7 +78,8 @@ export type LiveDemo = {
  *    the team that kicks first is set, three and a half innings are
  *    entered by the game's ref (the demo ref is checked in at the field),
  *    and the games are in progress. The round's later games haven't
- *    started. The permit windows the round's slots were cut from move with
+ *    started. Where the demo ref has two games at one kickoff, the
+ *    league's other refs take all but one, so nobody refs two at once. The permit windows the round's slots were cut from move with
  *    them, with every other slot cut from those windows, so the field time
  *    and the countdown read from today's permit.
  * 2. The league's own jobs run as they would have: the rain alert for the
@@ -192,6 +194,8 @@ async function startLiveRound(
   const playing = round.filter(
     (g) => g.startsAt.getTime() === first.startsAt.getTime(),
   );
+  await spreadTheRefs(db, leagueId, round);
+
   // Each game's own ref keeps its score; the demo ref covers a game with none.
   const refs = new Map(
     (
@@ -241,6 +245,67 @@ async function startLiveRound(
       now: new Date(target - 10 * MINUTE),
     });
   return first.id;
+}
+
+/**
+ * A ref can't be at two games at once: where the demo ref has more than one
+ * game at the same kickoff tonight, they keep the first and the league's
+ * other pooled refs take the rest, in a fixed order. Games with no ref, and
+ * other refs' games, are left as they are.
+ */
+async function spreadTheRefs(
+  db: Db,
+  leagueId: LeagueId,
+  round: readonly { id: GameId; startsAt: Date }[],
+): Promise<void> {
+  const others = (
+    await db
+      .select({ userId: refereeProfile.userId })
+      .from(refereeProfile)
+      .where(
+        and(
+          eq(refereeProfile.leagueId, leagueId),
+          ne(refereeProfile.userId, PERSONA_IDS.ref),
+        ),
+      )
+      .orderBy(asc(refereeProfile.userId))
+  ).map((r) => r.userId);
+  if (others.length === 0) return;
+  const reeses = new Set(
+    (
+      await db
+        .select({ gameId: refereeAssignment.gameId })
+        .from(refereeAssignment)
+        .where(
+          and(
+            inArray(
+              refereeAssignment.gameId,
+              round.map((g) => g.id),
+            ),
+            eq(refereeAssignment.userId, PERSONA_IDS.ref),
+            eq(refereeAssignment.status, "accepted"),
+          ),
+        )
+    ).map((r) => r.gameId),
+  );
+  const kickoffs = Map.groupBy(
+    round.filter((g) => reeses.has(g.id)),
+    (g) => g.startsAt.getTime(),
+  );
+  for (const games of kickoffs.values())
+    for (const [i, g] of games.slice(1).entries()) {
+      const userId = others[i];
+      if (!userId) break;
+      await db
+        .update(refereeAssignment)
+        .set({ userId })
+        .where(
+          and(
+            eq(refereeAssignment.gameId, g.id),
+            eq(refereeAssignment.userId, PERSONA_IDS.ref),
+          ),
+        );
+    }
 }
 
 /** Far enough to clear every real slot, for the two-step move. */

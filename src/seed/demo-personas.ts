@@ -27,10 +27,10 @@ import { insertSeedProfiles } from "./roles";
  * - Pat Player and Casey Captain on the first team, Casey as its captain
  *   (the generated captain steps down to co-captain, and the team's target
  *   roster grows by two).
- * - Reese Ref referees the last played round and the next one, one game at
- *   each kickoff (never two at once), so there are finished games and games
- *   waiting for a score. The league's other refs take the rest
- *   (src/seed/referee-pool.ts).
+ * - Reese Ref referees the last played round and the next one, so there are
+ *   finished games and games waiting for a score. On the demo, tonight's
+ *   games at the same kickoff go to the league's other refs, so Reese is
+ *   never on two at once (src/seed/demo-live.ts).
  * - Every persona's profile is complete (an invented 555-01xx phone and a
  *   birth date), so each can sign up for the season that's open.
  * - Addie Admin runs the league.
@@ -114,32 +114,8 @@ export function demoPersonaRows(data: SeedData) {
     sharesContact: true,
   }));
 
-  // One game at each kickoff of the last played round and the next: the
-  // first field's game at that time.
   const refereedRounds = [PLAYED_ROUNDS, PLAYED_ROUNDS + 1];
-  const slotOf = new Map(data.slots.map((s) => [s.id, s]));
-  const fieldOrder = new Map(data.fields.map((f) => [f.id, f.sortOrder]));
-  const at = (g: (typeof data.games)[number]) => {
-    const s = slotOf.get(g.slotId);
-    return {
-      time: s?.startsAt.getTime() ?? 0,
-      field: s ? (fieldOrder.get(s.fieldId) ?? 0) : 0,
-    };
-  };
-  const refereed = data.games
-    .filter((g) => refereedRounds.includes(g.roundNo))
-    .sort(
-      (a, b) =>
-        a.roundNo - b.roundNo ||
-        at(a).time - at(b).time ||
-        at(a).field - at(b).field,
-    )
-    .filter(
-      (g, i, all) =>
-        i === 0 ||
-        all[i - 1]?.roundNo !== g.roundNo ||
-        at(all[i - 1] as typeof g).time !== at(g).time,
-    );
+  const refereed = data.games.filter((g) => refereedRounds.includes(g.roundNo));
   const refereeAssignments = refereed.map((g, i) => ({
     id: rowId<RefereeAssignmentId>(301 + i),
     gameId: g.id,

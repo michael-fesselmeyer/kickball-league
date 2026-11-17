@@ -15,6 +15,7 @@ import {
 } from "@/db/schema/game";
 import { message } from "@/db/schema/message";
 import { profile } from "@/db/schema/profile";
+import { refereeProfile } from "@/db/schema/referees";
 import {
   gamePlacement,
   permitWindow,
@@ -217,6 +218,51 @@ describe("liveDemo", () => {
         expect(c.checkedInAt !== null).toBe(
           [...first, w.nextSecond.gameId].includes(c.gameId),
         );
+    }));
+
+  it("gives the demo ref's second game at one kickoff to another pooled ref", () =>
+    inRolledBackDb(async (db) => {
+      const w = await nightWorld(db);
+      const other = await w.person("other-ref");
+      await db.insert(refereeProfile).values([
+        { leagueId: w.leagueId, userId: PERSONA_IDS.ref },
+        { leagueId: w.leagueId, userId: other.userId },
+      ]);
+      await liveDemo(db, w.leagueId, NOW);
+      const refs = await db
+        .select({
+          gameId: refereeAssignment.gameId,
+          userId: refereeAssignment.userId,
+          checkedInAt: refereeAssignment.checkedInAt,
+        })
+        .from(refereeAssignment)
+        .where(
+          inArray(refereeAssignment.gameId, [
+            w.nextFirst.gameId,
+            w.nextBeside.gameId,
+            w.nextSecond.gameId,
+          ]),
+        );
+      const byGame = new Map(refs.map((r) => [r.gameId, r]));
+      const early = [w.nextFirst.gameId, w.nextBeside.gameId].map(
+        (id) => byGame.get(id)?.userId,
+      );
+      // One early game each, and the demo ref keeps the later one.
+      expect(new Set(early)).toEqual(new Set([PERSONA_IDS.ref, other.userId]));
+      expect(byGame.get(w.nextSecond.gameId)?.userId).toBe(PERSONA_IDS.ref);
+      // Both are at the field, and each game's innings are its own ref's.
+      for (const r of refs) expect(r.checkedInAt).not.toBeNull();
+      const entered = await db
+        .selectDistinct({
+          gameId: gamePeriod.gameId,
+          enteredBy: gamePeriod.enteredBy,
+        })
+        .from(gamePeriod)
+        .where(
+          inArray(gamePeriod.gameId, [w.nextFirst.gameId, w.nextBeside.gameId]),
+        );
+      for (const e of entered)
+        expect(e.enteredBy).toBe(byGame.get(e.gameId)?.userId);
     }));
 
   it("records first pitch for the live games only", () =>
