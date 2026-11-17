@@ -170,12 +170,13 @@ test.describe
       browser,
       await captainEmail(DISCIPLINE_TEAM, "fall-2026"),
     );
-    await captain.goto("/app/seasons/fall-2026/team");
+    await captain.goto("/app/seasons/fall-2026/team?view=roster");
     await expect(
       captain.getByRole("row", { name: new RegExp(PLAYER) }),
     ).toContainText("Suspended, 1 more game");
     await expect(captain.getByText("Outside alcohol")).toHaveCount(0);
     // Rate the other team in the season's first game, which is final.
+    await captain.goto("/app/seasons/fall-2026/team");
     await captain.getByRole("link", { name: "See score" }).first().click();
     const rating = captain.getByRole("region", { name: /sportsmanship$/ });
     await rating.getByLabel("4").check();
