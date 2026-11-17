@@ -20,6 +20,28 @@ The first run needs the internet once, to install the packages, download Postgre
 
 Mid-demo, **Reset demo** in the yellow banner (as Admin) puts everything back the way it started and signs everyone out. From a terminal, `npm run demo:reset` does the same.
 
+## Show a league's own name, logo and teams
+
+The demo can wear the visiting league's own name, logo and team names. They stay on the laptop, never in the repository: put them in `private/brand/`, which git ignores, as a file named `demo-branding.json` with the logo beside it.
+
+```json
+{
+  "leagueName": "The league's full name",
+  "shortName": "A short form for phones (optional)",
+  "logo": "logo-file-in-this-folder.png",
+  "teams": ["First team", "Second team", "…"]
+}
+```
+
+- `leagueName` (required, up to 80 characters) replaces the generic name in the header, page titles, share images, the installed app's name and the league's row in the database.
+- `shortName` (optional, up to 24 characters) is shown in the header on a phone, where the full name would push the buttons onto a second line, and under the home-screen icon.
+- `logo` (optional) is a `.png`, `.webp` or `.jpg` file name in `private/brand/`. A square-ish logo on a transparent background looks best. At build time the demo resizes it with sharp into `public/brand/` (also ignored by git): a 120-pixel-tall copy for the header and a larger one for share images and home-screen icons. Without a logo the kickball mark stays.
+- `teams` (optional, up to 64 names) renames the seeded teams in order: Fall 2026's eight teams first (the first name takes The Big Kicks' place in the walkthrough below), then the two teams from past seasons. Extra names go unused; with fewer, the rest keep their invented names. Slugs, colors and every seeded game stay as they are.
+
+The next `npm run demo` notices the file (or a change to it) and rebuilds. If the file can't be used (bad JSON, a missing logo, a blank name), the demo says what is wrong and runs with the generic league instead. Without the file, the demo is exactly as described here.
+
+Outside the demo, the same name and logo come from the `SITE_NAME`, `SITE_SHORT_NAME`, `SITE_LOGO` (a path under `public/`) and `SITE_LOGO_SIZE` (`<width>x<height>`) variables (`src/lib/site.ts`); `demo:reset` also reads `DEMO_TEAM_NAMES`, a JSON list.
+
 ## Before the meeting
 
 - Run `npm run demo` once that morning, so the first start and its downloads are out of the way.

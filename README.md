@@ -168,7 +168,7 @@ To see the app with nothing to set up but Docker or a local Postgres:
 npm run demo
 ```
 
-It builds and starts the whole app in demo mode on this computer, offline, and opens the browser. To work on the code:
+It builds and starts the whole app in demo mode on this computer, offline, and opens the browser. An optional, git-ignored `private/brand/demo-branding.json` shows a league's own name, logo and team names instead of the invented ones ([how](docs/demo.md#show-a-leagues-own-name-logo-and-teams)). To work on the code:
 
 ```bash
 npm install
