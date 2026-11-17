@@ -31,7 +31,7 @@ export const PERSONAS = {
     firstName: "Addie",
     lastName: "Admin",
     email: "addie.admin@example.test",
-    landing: "/app/admin/seasons",
+    landing: "/app/admin",
   },
 } as const;
 
