@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useEffect, useState } from "react";
 import { shrink } from "@/lib/member-photos/shrink-client";
 import type { UploadState } from "./actions";
+import { FormError } from "@/components/form-error";
 
 const input =
   "min-h-11 rounded-input border border-border-strong bg-bg px-3 py-2";
@@ -86,11 +87,7 @@ function Form({
       }}
       className="flex flex-col gap-4 rounded-card border-2 border-text bg-surface p-4 shadow-sticker"
     >
-      {state.error && (
-        <p role="alert" className="font-bold text-danger">
-          {state.error}
-        </p>
-      )}
+      <FormError message={state.error} attempt={state} />
       {/* Hints sit outside the labels, so each field's name stays short. */}
       <div className="flex flex-col gap-1">
         <label className="flex flex-col gap-1 font-bold">
@@ -173,7 +170,7 @@ function Form({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="flex items-start gap-3">
+        <label className="check-row-top">
           <input
             type="checkbox"
             name="consent"

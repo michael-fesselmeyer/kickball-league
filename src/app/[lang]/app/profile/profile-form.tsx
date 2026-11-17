@@ -9,6 +9,7 @@ import {
 import type { ProfileField } from "@/domain/profile/profile-form";
 import { BIRTH_DATE_HINT } from "@/domain/registration/age";
 import { type ProfileFormState, saveProfileAction } from "./actions";
+import { FormError } from "@/components/form-error";
 
 const input =
   "rounded-md border border-border bg-surface px-2 py-1 aria-[invalid=true]:border-danger";
@@ -114,11 +115,7 @@ export function ProfileSettingsForm({
       className="flex flex-col gap-8"
       noValidate
     >
-      {state.message && (
-        <p role="alert" className="rounded-lg border border-danger p-3">
-          {state.message}
-        </p>
-      )}
+      <FormError message={state.message} attempt={state} />
       <fieldset className="flex flex-col gap-3">
         <legend className="mb-2 text-h2">About you</legend>
         <div className={row}>

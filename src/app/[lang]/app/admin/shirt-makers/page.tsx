@@ -207,7 +207,7 @@ async function ShirtMakers({
               action={removeMakerAction.bind(null, m.id)}
               className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-3"
             >
-              <label className="flex min-h-11 items-center gap-2">
+              <label className="check-row">
                 <input type="checkbox" name="confirm" value="yes" />
                 Yes, remove {m.name}
               </label>

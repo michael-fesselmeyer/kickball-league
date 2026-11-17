@@ -142,6 +142,9 @@ Accessibility requirements that shape components (WCAG 2.2 AA):
 - Dialogs and sheets trap focus, close on Escape and return focus to the control that opened them.
 - Form errors are text, tied to their field, and announced. Nothing the user already entered is asked for again in the same flow.
 - A notice or error that arrives through the address (`?saved=`, `?error=`) is shown with `FlashMessage`, which takes focus once so a screen reader reads it and the keyboard continues from it; a plain `role` on a message already in the page is not announced on load.
+- An error a form's action sends back ("Check the fields marked below.") is shown with `FormError`, which moves focus to the summary and scrolls it into view on every failed attempt, since the submit button is usually below it.
+- A checkbox or radio sits in a `check-row` label: a 44px row with a 20px box, the whole row tappable. Native 13px boxes on their own are not used.
+- A table wider than a phone sits in `ScrollTable`, a labelled region the keyboard can reach and scroll; a bare `overflow-x-auto` box around a table is not used.
 - A form can't be sent twice: its submit button (`SubmitButton`) is marked busy and ignores presses, Enter included, until the action finishes, and keeps focus.
 - A skip link is the first stop for the keyboard on every page, and jumps past the banner and header to the content.
 - Fields and selects are at least 44px tall from the base styles, whatever padding a page gives them.
