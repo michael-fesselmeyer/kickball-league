@@ -60,11 +60,16 @@ async function main(): Promise<void> {
       addDemoShowcase(tx, league.id, now),
     );
     // The mail this step queued is dated by the evening's clock too, so
-    // Demo mail doesn't show it written at the hour the demo was built.
+    // Demo mail doesn't show it written at the hour the demo was built:
+    // mail queued "now" shows the clock, and mail the step dated itself
+    // (earlier in the week) keeps that date. When it may be sent is left
+    // as it is.
+    const clock = sql`${now.toISOString()}::timestamptz`;
+    const queuedNow = sql`${message.sendAfter} >= ${queuedFrom.toISOString()}::timestamptz`;
     await db
       .update(message)
       .set({
-        createdAt: sql`least(${message.sendAfter}, ${now.toISOString()}::timestamptz)`,
+        createdAt: sql`case when ${queuedNow} then ${clock} else ${message.sendAfter} end`,
       })
       .where(gte(message.createdAt, queuedFrom));
     console.info(
