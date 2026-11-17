@@ -13,7 +13,8 @@ import {
   type StickerTone,
   type TeamCard,
 } from "@/domain/share/cards";
-import { SITE } from "@/lib/site";
+import { logoDataUrl } from "@/lib/brand-logo";
+import { BRAND, SITE } from "@/lib/site";
 
 /**
  * Share images (docs/design-system.md, section 8): 1200 × 630 PNGs in the
@@ -65,8 +66,11 @@ export async function renderShareImage(
   card: ShareCard,
   { cacheControl = SHORT_CACHE }: { cacheControl?: string | undefined } = {},
 ): Promise<ImageResponse> {
-  const [display, text] = await loadFonts();
-  return new ImageResponse(<Frame card={card} />, {
+  const [[display, text], logo] = await Promise.all([
+    loadFonts(),
+    logoDataUrl(),
+  ]);
+  return new ImageResponse(<Frame card={card} logo={logo} />, {
     ...SHARE_IMAGE_SIZE,
     fonts: [
       { name: "Display", data: display, weight: 800, style: "normal" },
@@ -76,7 +80,7 @@ export async function renderShareImage(
   });
 }
 
-function Frame({ card }: { card: ShareCard }) {
+function Frame({ card, logo }: { card: ShareCard; logo: string | null }) {
   return (
     <div
       style={{
@@ -98,7 +102,7 @@ function Frame({ card }: { card: ShareCard }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Pennant />
+          {logo && BRAND.logo ? <Logo src={logo} /> : <Pennant />}
           <span style={{ fontFamily: "Display", fontSize: 38, color: T.brand }}>
             {SITE.name}
           </span>
@@ -132,6 +136,15 @@ function Frame({ card }: { card: ShareCard }) {
       </div>
     </div>
   );
+}
+
+/** The configured league logo, 52 pixels tall and at most twice as wide. */
+function Logo({ src }: { src: string }) {
+  const { width, height } = BRAND.logo ?? { width: 1, height: 1 };
+  const w = Math.min(104, Math.round((52 * width) / height));
+  const h = Math.round((w * height) / width);
+  // eslint-disable-next-line @next/next/no-img-element -- drawn by the image engine, not the browser
+  return <img src={src} width={w} height={h} alt="" />;
 }
 
 /** The league mark placeholder: a pennant in the brand color. */

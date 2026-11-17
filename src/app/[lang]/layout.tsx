@@ -18,7 +18,7 @@ import { localeOf, messagesFor } from "@/i18n/messages";
 import { registerWorkerScript } from "@/lib/pwa/install";
 import { appIconPath } from "@/lib/pwa/icons";
 import { THEME_COLORS } from "@/lib/pwa/theme-colors";
-import { isIndexable, SITE, siteOrigin } from "@/lib/site";
+import { BRAND, brandName, isIndexable, SITE, siteOrigin } from "@/lib/site";
 import { applySavedThemeScript } from "@/lib/theme";
 import { themeSwitchScript } from "@/lib/theme-switch-script";
 import { closeMenuOnLinkScript } from "@/lib/close-menu-script";
@@ -55,7 +55,7 @@ export async function generateMetadata({
   params,
 }: LayoutProps<"/[lang]">): Promise<Metadata> {
   const locale = localeOf((await params).lang);
-  const brand = messagesFor(locale).shell.brand;
+  const brand = brandName(messagesFor(locale).shell.brand);
   return {
     ...METADATA,
     title: { default: brand, template: `%s · ${brand}` },
@@ -75,7 +75,11 @@ const METADATA: Metadata = {
   robots: isIndexable(process.env) ? undefined : { index: false },
   // The installable app (docs/architecture.md, section 14).
   icons: { apple: appIconPath("apple-touch-icon.png") },
-  appleWebApp: { capable: true, title: "Kickball", statusBarStyle: "default" },
+  appleWebApp: {
+    capable: true,
+    title: SITE.shortName,
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
@@ -148,9 +152,11 @@ export default async function RootLayout({
           <DemoBanner />
           <SiteHeader
             href={href}
+            logo={BRAND.logo}
+            shortBrand={BRAND.name ? BRAND.shortName : null}
             words={{
               ...shell.header,
-              brand: shell.brand,
+              brand: brandName(shell.brand),
               about: shell.footer.about,
               history: shell.footer.history,
               help: shell.footer.help,

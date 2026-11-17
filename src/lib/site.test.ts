@@ -4,8 +4,49 @@ import {
   HOME_PARK,
   homeParkMapUrl,
   isIndexable,
+  SITE,
+  siteBrand,
   siteOrigin,
 } from "./site";
+
+describe("siteBrand", () => {
+  it("keeps the default name, short name and mark when nothing is set", () => {
+    expect(siteBrand({})).toEqual({ name: null, shortName: null, logo: null });
+    expect(SITE.name).toBe("Kickball League");
+    expect(SITE.shortName).toBe("Kickball");
+  });
+
+  it("takes the league's name, short name and logo from configuration", () => {
+    expect(
+      siteBrand({
+        SITE_NAME: " Harbor Lights Kickball ",
+        SITE_SHORT_NAME: "HLK",
+        SITE_LOGO: "/brand/logo-1a2b.png",
+        SITE_LOGO_SIZE: "96x120",
+      }),
+    ).toEqual({
+      name: "Harbor Lights Kickball",
+      shortName: "HLK",
+      logo: { src: "/brand/logo-1a2b.png", width: 96, height: 120 },
+    });
+  });
+
+  it.each([
+    [{ SITE_LOGO: "/brand/logo.png" }],
+    [{ SITE_LOGO: "/brand/logo.png", SITE_LOGO_SIZE: "0x120" }],
+    [{ SITE_LOGO: "/brand/logo.png", SITE_LOGO_SIZE: "wide" }],
+    [{ SITE_LOGO: "https://elsewhere.test/logo.png", SITE_LOGO_SIZE: "9x9" }],
+    [{ SITE_LOGO: "/brand/../other.png", SITE_LOGO_SIZE: "9x9" }],
+    [{ SITE_LOGO: "/brand/logo.gif", SITE_LOGO_SIZE: "9x9" }],
+  ])("ignores a malformed logo %j", (source) => {
+    expect(siteBrand(source).logo).toBeNull();
+  });
+
+  it("ignores a blank or overlong name", () => {
+    expect(siteBrand({ SITE_NAME: "  " }).name).toBeNull();
+    expect(siteBrand({ SITE_NAME: "x".repeat(81) }).name).toBeNull();
+  });
+});
 
 describe("siteOrigin", () => {
   it.each([

@@ -2,7 +2,8 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { initials } from "@/domain/badge/badge";
-import { SITE } from "@/lib/site";
+import { logoDataUrl } from "@/lib/brand-logo";
+import { BRAND, SITE } from "@/lib/site";
 
 /**
  * Home-screen icons (docs/design-system.md, section 7, "App icon"). Until the
@@ -89,6 +90,29 @@ export async function renderMark(
   const unit = art / 100;
   const letters = initials(SITE.name, 3);
   const fontSize = (letters.length > 2 ? 22 : 28) * unit;
+  // A configured logo (src/lib/site.ts) takes the pennant's place.
+  const logo = art > 0 && BRAND.logo ? await logoDataUrl() : null;
+  if (logo && BRAND.logo) {
+    const scale = Math.min(art / BRAND.logo.width, art / BRAND.logo.height);
+    const w = Math.round(BRAND.logo.width * scale);
+    const h = Math.round(BRAND.logo.height * scale);
+    return new ImageResponse(
+      <div
+        style={{
+          width: size,
+          height: size,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: colors.background ?? "transparent",
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- drawn by the image engine */}
+        <img src={logo} width={w} height={h} alt="" />
+      </div>,
+      { width: size, height: size, headers },
+    );
+  }
   return new ImageResponse(
     <div
       style={{
