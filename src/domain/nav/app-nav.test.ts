@@ -71,6 +71,7 @@ describe("appNav", () => {
       const captain = nav.groups.find((g) => g.id === "captain");
       expect(captain?.links.map((l) => l.label)).toEqual([
         "Roster and payments",
+        "Team settings",
         "Message your team",
         "Attendance",
         "Find subs",

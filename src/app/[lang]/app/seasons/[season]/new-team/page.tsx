@@ -104,7 +104,7 @@ function RequestCard({
           players can join.
         </p>
         <Link
-          href={`/app/seasons/${slug}/team`}
+          href={`/app/seasons/${slug}/team?view=roster#invite`}
           className="btn self-start btn-primary"
         >
           Invite your players
