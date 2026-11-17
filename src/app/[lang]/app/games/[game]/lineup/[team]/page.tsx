@@ -98,6 +98,12 @@ async function Builder({
   const savedBreaks =
     typeof query.saved === "string" ? Number(query.saved) : null;
   const teamPage = `/app/seasons/${g.seasonSlug}/team`;
+  const subsHref =
+    can(subject, "sub_request.post", { teamSeasonId }) &&
+    g.kind !== "playoff" &&
+    started === false
+      ? `${teamPage}/subs?game=${g.id}#ask`
+      : null;
 
   return (
     <>
@@ -147,20 +153,25 @@ async function Builder({
           <Link href={`${teamPage}#game-${g.id}`} className="underline">
             See RSVPs
           </Link>
+          {subsHref && (
+            <>
+              {" · "}
+              <Link href={subsHref} className="font-semibold underline">
+                Ask for a sub
+              </Link>
+            </>
+          )}
         </p>
       )}
 
       {week && !over && (
         <WeekAvailabilityNote
-          week={week}
+          // Once players have answered, the RSVP check above says whether
+          // the team is short; the away weeks only name who's away.
+          week={fielding ? { ...week, short: false } : week}
           captain
-          subsHref={
-            can(subject, "sub_request.post", { teamSeasonId }) &&
-            g.kind !== "playoff" &&
-            started === false
-              ? `${teamPage}/subs?game=${g.id}#ask`
-              : null
-          }
+          showCount={false}
+          subsHref={subsHref}
           noSubs={
             started
               ? "Sub requests close when the game starts."
@@ -196,7 +207,13 @@ async function Builder({
           kickers={kickers}
           initial={start.order.map((k) => k.id)}
           previous={previous?.order ?? null}
-          saved={mine !== undefined}
+          // Someone dropped from, or added to, the saved order is an
+          // unsaved change.
+          saved={
+            mine !== undefined &&
+            start.dropped.length === 0 &&
+            start.added.length === 0
+          }
           save={saveLineupAction.bind(null, g.id, teamSeasonId)}
         />
       )}

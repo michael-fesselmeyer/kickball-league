@@ -11,6 +11,7 @@ export function WeekAvailabilityNote({
   captain,
   subsHref,
   noSubs = "Sub requests aren't open for playoff games.",
+  showCount = true,
 }: {
   week: WeekAvailability;
   /** The viewer captains the team, so may see who is away. */
@@ -19,17 +20,32 @@ export function WeekAvailabilityNote({
   subsHref: string | null;
   /** Why there is no link, when there isn't. */
   noSubs?: string;
+  /**
+   * Show how many haven't marked the week away. Off where RSVPs already
+   * say who's coming, so two different counts don't sit side by side.
+   */
+  showCount?: boolean;
 }) {
   const away = week.away.length;
   return (
     <div className="flex w-full flex-col gap-1 text-small">
-      <p className="text-text-muted">
-        {week.available} available that week
-        {away > 0 &&
-          (captain
-            ? ` · away: ${week.away.map((m) => m.name).join(", ")}`
-            : ` · ${away} away`)}
-      </p>
+      {showCount ? (
+        <p className="text-text-muted">
+          {week.available} available that week
+          {away > 0 &&
+            (captain
+              ? ` · away: ${week.away.map((m) => m.name).join(", ")}`
+              : ` · ${away} away`)}
+        </p>
+      ) : (
+        away > 0 && (
+          <p className="text-text-muted">
+            {captain
+              ? `Away that week: ${week.away.map((m) => m.name).join(", ")}`
+              : `${away} away that week`}
+          </p>
+        )
+      )}
       {captain && week.short && (
         <p className="rounded-lg border border-warning p-2 text-text">
           Short that week: {week.fielding.message}{" "}
