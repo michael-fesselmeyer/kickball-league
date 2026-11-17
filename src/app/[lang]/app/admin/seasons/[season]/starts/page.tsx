@@ -15,6 +15,7 @@ import {
 import { kickoff, shortDay } from "@/domain/schedule/format";
 import { requirePermission } from "@/lib/auth/permission";
 import { activeLeague, activeLeagueId } from "@/lib/league/active";
+import { ScrollTable } from "@/components/scroll-table";
 
 export const metadata: Metadata = { title: "Start times" };
 
@@ -92,7 +93,7 @@ async function Starts({ params }: Props) {
             <h2 id="by-team" className="text-h2">
               By team
             </h2>
-            <div className="overflow-x-auto">
+            <ScrollTable label="Start times by team">
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-border">
@@ -129,7 +130,7 @@ async function Starts({ params }: Props) {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollTable>
           </section>
 
           <section aria-labelledby="late" className="flex flex-col gap-3">

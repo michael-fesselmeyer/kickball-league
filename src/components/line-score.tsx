@@ -9,6 +9,7 @@ import { fill } from "@/i18n/catalog";
 import { DEFAULT_LOCALE, type Locale } from "@/i18n/locales";
 import { liveEn, type LiveWords } from "@/i18n/messages/live.en";
 import { Flip } from "./motion";
+import { ScrollTable } from "@/components/scroll-table";
 
 /** The page's words and language (ADR 0094); English unless given. */
 type Language = { words?: LiveWords | undefined; locale?: Locale | undefined };
@@ -56,7 +57,10 @@ export function LineScore({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto rounded-card border border-border bg-surface">
+      <ScrollTable
+        label={words.caption}
+        className="rounded-card border border-border bg-surface"
+      >
         <table className="w-full text-center tabular-nums">
           <caption className="sr-only">{words.caption}</caption>
           <thead className="text-small text-text-muted">
@@ -85,7 +89,7 @@ export function LineScore({
               <tr key={row.side} className="border-t border-border">
                 <th
                   scope="row"
-                  className="max-w-24 truncate px-2 py-2 text-left font-normal sm:max-w-48"
+                  className="max-w-32 min-w-20 px-2 py-2 text-left leading-tight font-normal break-words sm:max-w-48"
                 >
                   {row.name}
                 </th>
@@ -111,7 +115,7 @@ export function LineScore({
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
       {counted !== null && line.innings.some((i) => i.inning > counted) && (
         <p className="text-small text-text-muted">
           {fill(words.calledNote, { nth: inningOrdinal(counted, locale) })}

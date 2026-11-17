@@ -33,6 +33,7 @@ import {
   setSizesAction,
 } from "./actions";
 import { activeLeagueId } from "@/lib/league/active";
+import { ScrollTable } from "@/components/scroll-table";
 
 export const metadata: Metadata = { title: "Shirt order" };
 
@@ -322,7 +323,7 @@ async function ShirtOrder({
           action={`${page}/order.csv`}
           className="flex flex-wrap items-center gap-3"
         >
-          <label className="flex min-h-11 items-center gap-2">
+          <label className="check-row">
             <input
               type="checkbox"
               name="names"
@@ -345,7 +346,7 @@ async function ShirtOrder({
         <h2 id="counts" className="text-h2">
           Sizes
         </h2>
-        <div className="overflow-x-auto">
+        <ScrollTable label="Shirt sizes by team">
           <table className="w-full min-w-[32rem] text-left">
             <caption className="sr-only">
               Shirt sizes by team, with the whole league last
@@ -383,7 +384,7 @@ async function ShirtOrder({
               />
             </tfoot>
           </table>
-        </div>
+        </ScrollTable>
       </section>
 
       {board.ownShirtTeams.length > 0 && (
@@ -485,7 +486,7 @@ async function ShirtOrder({
             {SHIRT_SIZES.map((s) => (
               <label
                 key={s}
-                className="flex min-h-11 items-center gap-2 rounded-input border border-border-strong px-3"
+                className="check-row rounded-input border border-border-strong px-3"
               >
                 <input
                   type="checkbox"

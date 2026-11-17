@@ -8,6 +8,7 @@ import {
   show,
 } from "@/domain/dashboard/report-card";
 import { Legend, PairBars, SERIES_1, SERIES_2, StackBar } from "./charts";
+import { ScrollTable } from "@/components/scroll-table";
 
 const th = "py-2 pr-3 text-left font-normal";
 const num = "py-2 pl-3 text-right tabular-nums";
@@ -199,7 +200,7 @@ function Lines({
       <h2 id={id} className="text-h2">
         {section}
       </h2>
-      <div className="overflow-x-auto">
+      <ScrollTable label={`${section} by season`}>
         <table className="w-full">
           <caption className="sr-only">
             {section}: {currentName}
@@ -245,7 +246,7 @@ function Lines({
             })}
           </tbody>
         </table>
-      </div>
+      </ScrollTable>
     </section>
   );
 }
