@@ -166,11 +166,13 @@ async function ChangeTeam({
                 value={o.value}
                 required
                 defaultChecked={(mine?.audience ?? "both") === o.value}
+                // Named by its label alone; the hint describes it.
+                aria-labelledby={`audience-${o.value}-label`}
                 aria-describedby={`audience-${o.value}-hint`}
                 className="mt-0.5 size-5 shrink-0"
               />
               <span className="flex flex-col">
-                {o.label}
+                <span id={`audience-${o.value}-label`}>{o.label}</span>
                 <span
                   id={`audience-${o.value}-hint`}
                   className="text-small text-text-muted"

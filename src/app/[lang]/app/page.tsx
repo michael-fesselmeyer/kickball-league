@@ -550,15 +550,7 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
                 For all of today&apos;s games
               </span>
             </form>
-          ) : (
-            refereeing.some(
-              (g) => isGameDay(g.startsAt, now, timeZone) && g.checkedInAt,
-            ) && (
-              <p className="text-small text-success">
-                You&apos;re checked in for today&apos;s games.
-              </p>
-            )
-          )}
+          ) : null}
           {refereeing.length === 0 ? (
             <p className="text-text-muted">No games coming up.</p>
           ) : (
@@ -581,6 +573,11 @@ async function Account({ searchParams }: PageProps<"/[lang]/app">) {
                       ]}
                     />
                   </span>
+                  {isGameDay(g.startsAt, now, timeZone) && g.checkedInAt && (
+                    <span className="shrink-0 text-small text-success">
+                      Checked in
+                    </span>
+                  )}
                   {(g.startsAt <= now ||
                     isGameDay(g.startsAt, now, timeZone)) && (
                     // One button per game: scoring, the live score and the

@@ -63,6 +63,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { Rsvp } from "./rsvp";
 import { activeLeague } from "@/lib/league/active";
 import { leagueHref } from "@/domain/league/paths";
+import { isGameDay } from "@/domain/lineup/access";
 
 export const metadata: Metadata = { title: "Your team" };
 
@@ -326,13 +327,14 @@ async function Team({
     view === "all" || view === v;
   const base = `/app/seasons/${slug}/team`;
   // Games still to be played, soonest first; the first is the next game.
-  // One that started over three hours ago and has no result yet waits for
-  // its score under Results instead.
+  // One from an earlier day with no result yet waits for its score under
+  // Results instead; today's games stay here all day.
   const over = (g: (typeof games)[number]) =>
     ["final", "forfeit", "cancelled"].includes(g.status) ||
     (g.status !== "in_progress" &&
       g.startsAt !== null &&
-      g.startsAt.getTime() < now.getTime() - 3 * 60 * 60 * 1000);
+      g.startsAt < now &&
+      !isGameDay(g.startsAt, now, timeZone));
   const toPlay = games.filter((g) => !over(g));
   const [nextGame, ...later] = toPlay;
   // Results, newest first.
