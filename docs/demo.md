@@ -1,6 +1,6 @@
 # Show the league the app
 
-A 10-minute walkthrough of the app for the league's owners, run from one laptop. Everything runs on this computer: no accounts, no keys, nothing to pay for, and nothing leaves the laptop. Every person, team and payment in it is made up.
+A 15-minute walkthrough of the app for the league's owners, run from one laptop. Everything runs on this computer: no accounts, no keys, nothing to pay for, and nothing leaves the laptop. Every person, team and payment in it is made up.
 
 ## Start it
 
@@ -11,7 +11,7 @@ npm run demo
 The first run needs the internet once, to install the packages, download Postgres and stripe-mock into Docker and fetch the fonts. It takes about five minutes. After that it starts in seconds on the same day and works offline. The command:
 
 1. Finds Postgres: Docker if it is running (the demo keeps its own container, `kb-demo-postgres`), or a local Homebrew Postgres. With neither, it says how to install one.
-2. Creates the `kb_demo` database, migrates it and fills it with the demo league (`npm run demo:reset`). The season is current: tonight's first games are being played right now, the ref is at the field, and the next game day has a rain watch.
+2. Creates the `kb_demo` database, migrates it and fills it with the demo league (`npm run demo:reset`). The season is current: tonight's first games are being played right now, the ref is at the field, and the next game day has a rain watch. The reset also adds demo-only data for the newer features (`src/seed/demo-showcase.ts`): an open captains' poll, a drafted playoff bracket, a soccer club that shares a field, an acting admin, ref cards, a leadership check-in, players open to a new team, late-joiner shirts and more interest sign-ups. It takes a few seconds.
 3. Builds the app with `DEMO_MODE=true`, or reuses today's build when nothing changed. The banner's role picker and admin tools are compiled in only when a build has `DEMO_MODE=true` (`next.config.ts`), so the league's own site ships none of their code; a demo deployment needs the variable at build time as well as at run time.
 4. Starts [stripe-mock](https://github.com/stripe/stripe-mock) when it can (the `stripe-mock` binary, or Docker), so paying goes through a demo checkout page. Without it, the payment screen says it is a demo payment.
 5. Starts the app in demo mode on a free port, prints the address and opens the browser.
@@ -50,95 +50,103 @@ Outside the demo, the same name and logo come from the `SITE_NAME`, `SITE_SHORT_
 
 ## The walkthrough
 
-The yellow banner at the top switches who you are: pick **Player**, **Captain**, **Ref** or **Admin** in its **Viewing as** picker and tap **Go**. It shows who you're viewing as, and takes one short row on a phone. Inside the app, the tab bar (Home, Schedule, Team, Menu) and the **Menu** groups change with the role: Captain adds a Captain group, Ref adds Referee, and Admin has League admin and Owner instead of the player's groups. In the demo, Admin also has the owners' screens (the books and the owner dashboard), which on the league's site belong to the owners alone.
+About 15 minutes, grouped by who you're viewing as. The yellow banner at the top switches who you are: pick **Player**, **Captain**, **Ref** or **Admin** in its **Viewing as** picker and tap **Go**. It shows who you're viewing as, and takes one short row on a phone.
 
-### 1. The public site (1 minute)
+Inside the app, the tab bar at the bottom (Home, Schedule, Team, Menu; Admin has **Admin** in place of Team) and the **Menu** groups change with the role: Captain adds a Captain group, Ref adds Referee, and Admin has League admin and Owner instead of the player's groups. In the demo, Admin also has the owners' screens (the books, the owner dashboard and processing fees) and the operator's page, which on the league's site belong to the owners and the operator alone. The whole app wears the league's retro rec look; the round button in the header switches between light and dark.
 
-Open the home page, then **Schedule** and **Standings** for Fall 2026.
+### Anyone: the public site (2 minutes)
 
-_Why it matters:_ players and new people find the schedule, standings and how to join without logging in or asking in the group chat.
+**1. Schedule, standings and languages.** Open the home page, then **Schedule** and **Standings** for Fall 2026. On a phone-sized window, the header's menu button opens the same links as a sheet. At the bottom of any page, tap **Español** (or any of the ten languages): the public pages, and every email and push a player gets, come in their language.
 
-### 2. A player's game night (1 minute): Player
+_Why it matters:_ players and new people find the schedule, standings and how to join without logging in or asking in the group chat, in the language they read best.
 
-The home screen shows tonight's game, the RSVP buttons and anything owed. Tap **Going**.
+**2. The rulebook.** In the footer, open **Rules** and search for _pitch_: every matching rule, highlighted, with its number. The demo uses an invented sample rulebook; the league's own rules are typed in by the owners.
+
+_Why it matters:_ an argument at the field ends with a search on a phone, not "I think the rule is...".
+
+### Admin: growing the league (3 minutes)
+
+**3. Is there interest in a new night?** As **Admin**, on the admin home open **All admin tools → Interest sign-ups**. "Where should we grow?" has 40 answers: Thursday nights at Sample Park is marked **Enough to run** (11 of the 8 teams it needs, counting friends), Sunday nights isn't there yet. The public form is at `/interest`; nobody needs an account to answer. **Open Thursday nights ... as a new league** turns the option into a new league with a draft first season, for the owners and admins to finish. (**Reset demo** removes a league opened this way.)
+
+_Why it matters:_ the league books a permit for a new night only after people have said they'd play, and starting it takes one tap.
+
+**4. A second sport.** Open `/l/dodgeball`: Thursday Dodgeball, a second league on the same site with its own courts, admin and teams. Its standings count sets, not runs, with power rankings and a game of the week. The operator's page (`/operator`) lists every league (kickball, dodgeball and flag football) and where its pages live; the demo player also plays flag football and switches leagues from the menu.
+
+_Why it matters:_ one site, one account and the same tools can run more leagues and more sports without starting over.
+
+**5. A partner tournament for charity.** Open **Events** in the site header, then **Harbor Cup charity tournament**: a one-day tournament with another city league, playing for a food pantry with a donation goal (donations go to the charity's own page, never through the league). Four guest teams have signed up; their players sign the waiver from their captain's link, without accounts.
+
+_Why it matters:_ tournaments with other leagues bring in new players and goodwill, and the league never handles the money.
+
+### Player: a game night (2 minutes)
+
+**6. Tonight and next week.** As **Player**, Home shows tonight's game (live now) and the next one. Answer **In**, **Maybe** or **Out** for next week.
 
 _Why it matters:_ captains know who is coming before game day, without chasing anyone by text.
 
-### 3. Signing up and paying (1 minute): Ref
+**7. Alerts their way.** Open **Menu → Your profile** and scroll to **Fewer messages, not none**: only my team's news, league news as a weekly roundup, or snooze for two weeks. Rain-outs, game changes and payment deadlines still come right away. Just above, **Language** picks the language emails come in.
 
-Reese Ref doesn't play this fall, so they show a newcomer's sign-up. Open **Spring 2027: register**, join as a free agent at the early-bird price, sign the waiver, and pay on the demo checkout page. Then open **Demo mail** as Admin: the receipt is there. (Pat Player is already on The Big Kicks' spring roster, with the captain paying.)
+_Why it matters:_ players who feel spammed turn things down instead of unsubscribing, so the messages that matter still reach them.
 
-_Why it matters:_ nobody collects cash or Venmo; the app knows who has paid and sends the receipt.
+### Captain: running a team (3 minutes)
 
-### 4. Live scoring from the field (1 minute): Ref
+**8. The captains' poll.** As **Captain**, Home shows **Captains' poll waiting for your vote**. Open it ("Where should the end-of-season party be?"), vote, and the totals appear: five of the eight teams are already in.
 
-The ref's home lists tonight's games; the first ones are already in the fourth inning, first pitch recorded on time, with the minutes of play left before the field must be clear. Open one and enter the runs for the next half-inning.
+_Why it matters:_ a league decision gets one vote per team in a day, instead of a long group chat.
 
-_Why it matters:_ scores and standings are right the moment a game ends, with no texts or spreadsheets.
+**9. Recruiting quietly.** Open the team's **Spring 2027** page (Home → Spring 2027, then **Roster and payments**): "2 players open to a new team haven't had an invite". The captain invites them with a short pitch and never sees who they are until one says yes; their current teams never know.
 
-### 5. The game-day command center (1 minute): Admin
+_Why it matters:_ players who aren't happy on a team move instead of quitting, and nobody's feelings get hurt in public.
 
-Admin opens on the league admin home (`/app/admin`): tonight's games with each team's RSVPs, refs and what's next on the checklist. Open **Game day** (`/app/admin/today`): every game tonight, its field, its ref and whether they checked in, the live score with the inning, and the weather. It refreshes by itself.
+**10. Acting admin.** The admins are away, so the owners made Casey acting admin for two weeks, with game day, scores and rain-outs (the notice is in **Demo mail**). Open tonight's live game from Home and enter a half-inning, then open the rain-out screen at `/app/admin/seasons/fall-2026/rainout`. Everything else stays closed: the admin home still says the page isn't there.
+
+_Why it matters:_ the league runs on a vacation week without handing anyone the keys to the money or the members.
+
+**11. Shirts.** Open the Fall 2026 team page's **Team settings → Team shirts**: the team is on the league's order. Choosing **Our own shirts or jerseys** lists local shirt makers the league trusts.
+
+_Why it matters:_ teams that want their own look find a maker in one place, and late joiners still get a league shirt (step 16).
+
+### Ref: at the field (2 minutes)
+
+**12. Live scoring and the field clock.** As **Ref**, open one of tonight's games from Home. It shows when play must end so the field is clear by the end of the permit (or sunset on an unlit field), how many minutes are left, and the game clock: no new inning starts in the last 10 minutes. Enter the runs for the next half-inning.
+
+_Why it matters:_ games start on time and end before the permit or the light runs out, so the league keeps its permits.
+
+**13. A calm-down card.** On the game's **Enter score** page, **Cards**: give a yellow card to a player, with a note. Only admins see cards, and a card never suspends anyone.
+
+_Why it matters:_ the ref has a calm, visible way to cool a game down before it becomes an incident.
+
+**14. Leadership check-in.** Reese played on a team in Summer 2026, whose season-end check-in is open. Open **Summer 2026**'s team page from Home: put yourself forward or suggest a teammate, privately.
+
+_Why it matters:_ captains who are tired get a graceful handover, and nobody has to say it out loud.
+
+### Admin: the league office (3 minutes)
+
+**15. Game day and the seasons.** As **Admin**, the admin home starts with the current season's card and its main tools, then tonight's games with RSVPs and refs. **Menu → Seasons** shows every season as a card with its status, current first; **Manage** opens a season's tools, grouped. Open **Game day screen**: every game tonight, its ref, the live score and the weather. Then **All admin tools → Incidents → Cards**: the cards refs gave, including the one from step 13.
 
 _Why it matters:_ one screen answers "is everything on track tonight?" from a phone at the park.
 
-### 6. Rain-outs (1 minute): Admin
+**16. Playoffs.** Open Fall 2026's **Manage → Playoffs**: two draft brackets from today's standings. The top four play double elimination, with a grand final and an if-necessary game; the next four play single elimination with a third-place game. Tap **Publish the brackets**, then open the public **Bracket** page.
 
-The next game day shows a **rain watch**, and the admins' rain alert is already in **Demo mail**. Open the season's **Rain-out** screen, call off that day, and look at the proposed makeups. Back in **Demo mail**, every player has the notice.
+_Why it matters:_ every team gets meaningful playoff games, and the bracket, its fields and its times are done in a minute.
 
-_Why it matters:_ a rain-out is one decision, not an evening of messages; makeups are found, and everyone hears at once.
+**17. Sharing the fields.** Open Fall 2026's **Fields and permits**: a soccer club that uses Field 1 just before the league has it later than usual next Tuesday, so the first game there starts late. The game-day crews see it in their handover, and **Start times** shows each game day's sunset and the permit's end, so the clock in step 12 starts from the right time.
 
-### 7. The scheduler and the board (1 minute): Admin
+_Why it matters:_ a clash with another group is known a week ahead, not discovered at the field.
 
-Open **Spring 2027 → Schedule**, generate a schedule, look at its fairness numbers, then move a game on the board.
+**18. Leadership and processing fees.** Open Summer 2026's **Manage → Leadership check-ins**: each team's check-in, how many took part and how many a vote needs, without anyone's answers. Then **Owner dashboard → Processing fees**: it's off, so the league pays card fees as it does today. Turned on, card payers cover the card fee and cash, Zelle and check stay at the lower price.
 
-_Why it matters:_ a season's schedule takes minutes instead of a weekend, and it is fair: early and late games, fields and opponents are spread evenly.
+_Why it matters:_ the owners see the health of each team's leadership, and can stop losing about 3% of every card payment when they decide to.
 
-### 8. The free-agent matcher (1 minute): Admin
+### More to show, if there is time
 
-Open **Spring 2027 → Free agents**: suggested placements with the reasons, friend groups kept together. Apply one.
-
-_Why it matters:_ solo players get placed fast and well, so they sign up again.
-
-### 9. The books, permits and capacity (1 minute): Admin
-
-Open **Books**: money in and out by category for the season, and the receipts. Then **Permits → Capacity**: how many teams the permitted field time fits, how short it is of the teams that want in, and what to request from NYC Parks.
-
-_Why it matters:_ taxes and permit requests stop being a scramble, and the league knows how far it can grow before it asks for more field time.
-
-### 10. The owner dashboard (1 minute): Admin
-
-Open **Owner**: membership (new, returning, retention), money in and out, completed games and turnout, season by season.
-
-_Why it matters:_ the owners see how the league is doing at a glance, with the numbers to decide what to change.
-
-### More to show, in this order if there is time
-
-These use data the demo seeds for the newer features. The first two fit best right after step 5, the next two after step 8.
-
-### 11. Game-day checklist and check-in (1 minute): Captain, then Admin
-
-As Captain, open a played game from round 1: the **before play** checklist is ticked for both teams. As Admin, open that game's attendance: every player who played is listed, some checked in by scanning the game's rotating code and the rest ticked in by a captain. A team's page shows the games each player has played.
-
-_Why it matters:_ field set-up is shared fairly, and "who actually played" is a record, not an argument.
-
-### 12. Season cards (1 minute): Player, then Admin
-
-Open **Summer 2026**'s season card for the player's team: their season in kickball, with the sportsmanship shout-out and the league's superlatives. As Admin, the season's **Cards** screen builds and sends them.
-
-_Why it matters:_ players get something worth sharing at the end of a season, and each share brings in a friend.
-
-### 13. Concerns (1 minute): Admin, then Player
-
-As Admin, open **Concerns**: two are waiting, one from a player about a game and one from the public contact form about the park, with an admin-only note on the first. Reply, then close one with what was done. As Player, **My concerns** shows only their own.
-
-_Why it matters:_ hard conversations get a private, tracked place with a reply time, and park-rule problems are counted for the permit renewal.
-
-### 14. The shirt order (1 minute): Admin
-
-Open **Fall 2026 → Shirts**: the sizes players picked at sign-up, counted by team, with the order marked as placed with the vendor. Mark it received and add it to the **Books** as an expense.
-
-_Why it matters:_ ordering shirts stops being a spreadsheet chase, and the cost lands in the books on its own.
+- **Signing up and paying** (Ref): Reese doesn't play this fall, so they show a newcomer's sign-up. Open **Spring 2027: register**, join as a free agent at the early-bird price, sign the waiver, and pay on the demo checkout page. **Demo mail** (Admin) has the receipt. Nobody collects cash or Venmo.
+- **Rain-outs** (Admin): the next game day has a **rain watch**, and the rain alert is in **Demo mail**. Open the admin home's **Rain-out**, call off that day and look at the proposed makeups. A rain-out is one decision, and everyone hears at once; a few players get it in Spanish, Chinese or Russian.
+- **The scheduler and free agents** (Admin): **Spring 2027 → Schedule**, generate a schedule and look at its fairness numbers; **Spring 2027 → Free agents**, the suggested placements with their reasons.
+- **The books, permits and the owner dashboard** (Admin): **Books** by category with receipts; **Permits → Capacity**, how many teams the field time fits; **Owner**, membership, money and turnout season by season.
+- **Game-day check-in** (Captain, then Admin): open a game from round 1: the **before play** checklist is ticked for both teams. Its attendance lists who played; two players haven't signed this season's waiver and are flagged.
+- **Late-joiner shirts** (Admin): **All admin tools → Late-joiner shirts**: three players joined after the shirt order. Hand one a spare from stock; the rest wait until a reorder is worth it.
+- **Season cards and concerns**: **Summer 2026**'s season card for the player's team (Player); **Concerns**, two waiting, one with an admin-only note (Admin).
 
 ## What is real and what is pretend
 

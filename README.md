@@ -202,7 +202,7 @@ Environment variables are validated with Zod in [`src/lib/env.ts`](src/lib/env.t
 | `npm run db:studio`          | Browse the database in Drizzle Studio                                                                           |
 | `npm run seed`               | Replace the demo league and the small second league with fresh seed data; refuses production                    |
 | `npm run demo`               | Run the whole app locally in demo mode, offline, for showing the league ([walkthrough](docs/demo.md))           |
-| `npm run demo:reset`         | Reseed the demo deployment, bring its season up to today and start a game night; refuses unless demo mode is on |
+| `npm run demo:reset`         | Reseed the demo, bring it to today, start a game night, fill in newer features; refuses unless demo mode is on  |
 | `npm run push:keys`          | Add a new VAPID key pair for web push to `.env.local`                                                           |
 | `npm run mobile:ios`         | Run the iOS app in the Simulator; the other app scripts are in [docs/mobile.md](docs/mobile.md#scripts)         |
 | `scripts/backup-drill.sh`    | Back up a database, restore it to a scratch database and compare ([steps](docs/launch/backup-and-restore.md))   |
