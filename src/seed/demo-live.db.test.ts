@@ -1,19 +1,25 @@
 import { and, asc, desc, eq, inArray, like } from "drizzle-orm";
 import { afterAll, describe, expect, it } from "vitest";
 import { nextGameDayStart } from "@/db/queries/demo";
+import { permitInfoFor } from "@/db/queries/permit-watch";
 import { required } from "@/db/queries/rows";
 import type { Db } from "@/db/queries/schedule";
 import { user } from "@/db/schema/auth";
 import {
   game,
   gamePeriod,
+  gameStart,
   refereeAssignment,
   slot,
   venue,
 } from "@/db/schema/game";
 import { message } from "@/db/schema/message";
 import { profile } from "@/db/schema/profile";
-import { gamePlacement, scheduleVersion } from "@/db/schema/schedule";
+import {
+  gamePlacement,
+  permitWindow,
+  scheduleVersion,
+} from "@/db/schema/schedule";
 import { league } from "@/db/schema/league";
 import { season } from "@/db/schema/season";
 import { grantRole } from "@/db/test/leagues";
@@ -211,6 +217,106 @@ describe("liveDemo", () => {
         expect(c.checkedInAt !== null).toBe(
           [...first, w.nextSecond.gameId].includes(c.gameId),
         );
+    }));
+
+  it("records first pitch for the live games only", () =>
+    inRolledBackDb(async (db) => {
+      const w = await nightWorld(db);
+      await liveDemo(db, w.leagueId, NOW);
+      const starts = await db
+        .select({
+          gameId: gameStart.gameId,
+          startedAt: gameStart.startedAt,
+          recordedBy: gameStart.recordedBy,
+        })
+        .from(gameStart)
+        .where(
+          inArray(gameStart.gameId, [
+            w.nextFirst.gameId,
+            w.nextBeside.gameId,
+            w.nextSecond.gameId,
+          ]),
+        );
+      expect(starts.map((s) => s.gameId).sort()).toEqual(
+        [w.nextFirst.gameId, w.nextBeside.gameId].sort(),
+      );
+      for (const s of starts)
+        expect(s).toMatchObject({
+          startedAt: new Date("2027-05-10T17:20:00Z"),
+          recordedBy: PERSONA_IDS.ref,
+        });
+    }));
+
+  it("moves the round's permit windows, and the slots cut from them, with its games", () =>
+    inRolledBackDb(async (db) => {
+      const w = await nightWorld(db);
+      const [first] = await db
+        .select({ fieldId: slot.fieldId, seasonId: slot.seasonId })
+        .from(slot)
+        .where(eq(slot.id, w.nextFirst.slotId));
+      if (!first) throw new Error("no slot");
+      // Next Tuesday's 8 to 10 pm permit on the game's field, with an
+      // unused 9 pm slot cut from it.
+      const window = required(
+        (
+          await db
+            .insert(permitWindow)
+            .values({
+              fieldId: first.fieldId,
+              seasonId: first.seasonId,
+              startsAt: edt(11, 20),
+              endsAt: edt(11, 22),
+              status: "confirmed",
+            })
+            .returning({ id: permitWindow.id })
+        )[0],
+        "window",
+      );
+      const unused = required(
+        (
+          await db
+            .insert(slot)
+            .values({
+              seasonId: first.seasonId,
+              fieldId: first.fieldId,
+              permitWindowId: window.id,
+              startsAt: edt(11, 21),
+              endsAt: edt(11, 22),
+              timeIndex: 1,
+            })
+            .returning({ id: slot.id })
+        )[0],
+        "slot",
+      );
+      await db
+        .update(slot)
+        .set({ permitWindowId: window.id })
+        .where(eq(slot.id, w.nextFirst.slotId));
+
+      await liveDemo(db, w.leagueId, NOW);
+
+      // The game moved from 8 pm next Tuesday to 1:20 pm today; its window
+      // and the other slot cut from it moved by as much.
+      const moved = edt(11, 20).getTime() - Date.parse("2027-05-10T17:20:00Z");
+      const [after] = await db
+        .select({
+          startsAt: permitWindow.startsAt,
+          endsAt: permitWindow.endsAt,
+        })
+        .from(permitWindow)
+        .where(eq(permitWindow.id, window.id));
+      expect(after).toEqual({
+        startsAt: new Date("2027-05-10T17:20:00Z"),
+        endsAt: new Date(edt(11, 22).getTime() - moved),
+      });
+      expect(await startOf(db, unused.id)).toEqual(
+        new Date(edt(11, 21).getTime() - moved),
+      );
+      // The game's clock now reads from today's permit.
+      const info = (await permitInfoFor(db, [w.nextFirst.gameId])).get(
+        w.nextFirst.gameId,
+      );
+      expect(info?.clearBy).toEqual(new Date(edt(11, 22).getTime() - moved));
     }));
 
   it("keeps tonight's games on today just after midnight", () =>
