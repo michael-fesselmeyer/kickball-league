@@ -116,7 +116,8 @@ export default async function Home({
           <Link href={href("/faq")} className="btn btn-secondary">
             {home.questions}
           </Link>
-          <Kickball className="size-12 rotate-12" />
+          {/* A flourish beside the buttons; on a phone it would sit alone below them. */}
+          <Kickball className="hidden size-12 rotate-12 sm:block" />
         </div>
       </section>
 

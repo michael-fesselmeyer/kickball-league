@@ -19,7 +19,8 @@ export function DemoBanner() {
       aria-label="Demo"
       className="border-b-2 border-text bg-highlight text-on-highlight print:hidden"
     >
-      <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-1.5 md:px-6">
+      {/* Wraps the picker below the words on the narrowest screens. */}
+      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-1.5 md:px-6">
         <p className="text-small">
           <strong className="font-bold">
             Demo<span className="hidden sm:inline"> league.</span>
