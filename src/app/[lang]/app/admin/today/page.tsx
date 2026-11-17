@@ -23,6 +23,7 @@ import { DayFields } from "./fields";
 import { DayGear } from "./gear";
 import { loadCommand, parseDay } from "./load";
 import { activeLeague } from "@/lib/league/active";
+import { MoreActions } from "@/components/more-actions";
 
 export const metadata: Metadata = { title: "Game day" };
 
@@ -117,38 +118,29 @@ async function GameDay({ searchParams }: PageProps<"/[lang]/app/admin/today">) {
         >
           <DayWeather rows={rows} />
         </Suspense>
-        <nav aria-label="Game day actions" className="flex flex-wrap gap-2">
-          <Link
-            href={`${base}/status?date=${state.date}`}
-            className="btn btn-secondary"
-          >
-            Set the day&apos;s status
-          </Link>
-          <Link
-            href={`${base}/rainout?date=${state.date}`}
-            className="btn btn-secondary"
-          >
-            Call a rain-out
-          </Link>
-          <Link
-            href={`${base}/game-day-checklist`}
-            className="btn btn-secondary"
-          >
-            Game-day checklist
-          </Link>
-          <Link href={`${base}/announcements`} className="btn btn-secondary">
-            Send an announcement
-          </Link>
-          <Link href={`${base}/referees`} className="btn btn-secondary">
-            Assign refs
-          </Link>
-          <Link
-            href={`/app/admin/today/print?date=${state.date}`}
-            className="btn btn-secondary"
-          >
-            Print game-day pack
-          </Link>
-        </nav>
+        <MoreActions
+          label="Game day actions"
+          primary={{
+            href: `${base}/status?date=${state.date}`,
+            label: "Set the day's status",
+          }}
+          more={[
+            {
+              href: `${base}/rainout?date=${state.date}`,
+              label: "Call a rain-out",
+            },
+            { href: `${base}/referees`, label: "Assign refs" },
+            {
+              href: `${base}/announcements`,
+              label: "Send an announcement",
+            },
+            {
+              href: `/app/admin/today/print?date=${state.date}`,
+              label: "Print game-day pack",
+            },
+            { href: `${base}/game-day-checklist`, label: "Game-day checklist" },
+          ]}
+        />
       </header>
       {needRef.length > 0 && (
         <section

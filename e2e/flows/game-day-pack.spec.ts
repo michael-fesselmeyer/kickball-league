@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoAxeViolations } from "../support/axe";
 import { pageAs } from "../support/personas";
+import { openMoreActions } from "../support/app-nav";
 
 /**
  * The printable game-day pack (issue #377) for the seed's fifth round, on
@@ -15,6 +16,7 @@ test("an admin opens the game-day pack for a seeded game day", async ({
 }) => {
   const admin = await pageAs(browser, "Admin");
   await admin.goto(`/app/admin/today?date=${DAY}`);
+  await openMoreActions(admin, "Game day actions");
   await admin.getByRole("link", { name: "Print game-day pack" }).click();
   await expect(admin).toHaveURL(
     new RegExp(`/app/admin/today/print\\?date=${DAY}$`),
