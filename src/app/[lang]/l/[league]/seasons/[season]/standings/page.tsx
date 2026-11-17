@@ -309,7 +309,7 @@ function StandingsTable({
   );
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left tabular-nums">
+      <table className="w-full text-left tabular-nums [&_:is(td,th)+:is(td,th)]:pl-3">
         <caption className="sr-only">{caption}</caption>
         <thead className="text-small text-text-muted">
           <tr>
