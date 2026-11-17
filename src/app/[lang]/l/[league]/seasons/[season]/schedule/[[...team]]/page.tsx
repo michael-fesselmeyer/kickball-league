@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
 import { notFound } from "next/navigation";
 import { db } from "@/db/client";
+import { teamBySlug } from "@/db/queries/public-schedule";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import type { LeagueId } from "@/domain/ids";
 import { cachedLeague, publicLeague } from "@/lib/league/public";
-import { PUBLIC_PAGE_LIFE, seasonTag } from "@/lib/public-cache";
+import { PUBLIC_PAGE_LIFE, seasonTag, teamTag } from "@/lib/public-cache";
 import {
   type LeagueParams,
   NO_SEASON,
@@ -47,18 +48,31 @@ async function cachedSeason(leagueId: LeagueId, slug: string) {
   return season;
 }
 
+/** A team's name, for its filtered schedule's title. */
+async function cachedTeamName(leagueId: LeagueId, slug: string) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
+  cacheTag(teamTag(slug));
+  return (await teamBySlug(db, leagueId, slug))?.name ?? null;
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { league: segment, season: slug, lang } = await params;
+  const { league: segment, season: slug, lang, team } = await params;
   const locale = localeOf(lang);
   const words = messagesFor(locale).schedule;
   if (slug === NO_SEASON) return { title: words.title };
   const league = await cachedLeague(segment);
   const season = league ? await cachedSeason(league.id, slug) : null;
   const path = league ? leagueHref(league, `/seasons/${slug}/schedule`) : null;
+  const teamName =
+    league && team?.[0] ? await cachedTeamName(league.id, team[0]) : null;
   return {
+    // Unique per season and team (WCAG 2.4.2), and the same as the h1.
     title:
       season && isPublicSeason(season)
-        ? fill(words.seasonTitle, { season: season.name })
+        ? teamName
+          ? fill(words.namedTitle, { name: teamName, season: season.name })
+          : fill(words.seasonTitle, { season: season.name })
         : words.title,
     ...(path
       ? {

@@ -19,7 +19,7 @@ import type {
   TeamSeasonId,
 } from "@/domain/ids";
 import type { PublicGame } from "@/domain/schedule/public-game";
-import { field, game, slot, venue } from "../schema/game";
+import { field, game, gamePeriod, slot, venue } from "../schema/game";
 import { league } from "../schema/league";
 import { profile } from "../schema/profile";
 import { gamePlacement, scheduleVersion } from "../schema/schedule";
@@ -166,6 +166,34 @@ export function publishedSchedule(
   scope: Scope = "public",
 ): Promise<PublicGame[]> {
   return publishedGames(db, eq(game.seasonId, seasonId), scope);
+}
+
+/**
+ * The running score of each of a season's games being played, from the
+ * halves entered so far: the top halves are the kicking-first team's. A
+ * game with no halves yet, or no kicking-first team, counts 0–0. Only the
+ * schedule page reads it, and it is kept under `seasonLiveTag`, which every
+ * half entered expires.
+ */
+export async function liveScores(
+  db: Db,
+  seasonId: SeasonId,
+): Promise<Map<string, { scoreA: number; scoreB: number }>> {
+  const runsFor = (side: "A" | "B") =>
+    sql<number>`coalesce(sum(${gamePeriod.runs}) filter (where (${gamePeriod.half} = 'top') = (${game.kicksFirst} = ${side === "A" ? game.teamAId : game.teamBId})), 0)::int`;
+  const rows = await db
+    .select({
+      id: game.id,
+      scoreA: runsFor("A"),
+      scoreB: runsFor("B"),
+    })
+    .from(game)
+    .leftJoin(gamePeriod, eq(gamePeriod.gameId, game.id))
+    .where(and(eq(game.seasonId, seasonId), eq(game.status, "in_progress")))
+    .groupBy(game.id);
+  return new Map(
+    rows.map((r) => [r.id, { scoreA: r.scoreA, scoreB: r.scoreB }]),
+  );
 }
 
 /** Every published game a team plays, across its public seasons. */

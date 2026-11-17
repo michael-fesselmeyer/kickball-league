@@ -7,7 +7,7 @@ import { db } from "@/db/client";
 import { seasonDivisions, teamDivisions } from "@/db/queries/divisions";
 import { themeWeeks } from "@/db/queries/events";
 import { statusesFrom } from "@/db/queries/game-day-status";
-import { publishedSchedule } from "@/db/queries/public-schedule";
+import { liveScores, publishedSchedule } from "@/db/queries/public-schedule";
 import { seasonBySlug } from "@/db/queries/schedule-screen";
 import { themeFor } from "@/domain/events/event";
 import { dayLine, gameStatus, gameWords } from "@/domain/gameday/status";
@@ -21,6 +21,7 @@ import {
 import { ruleSetSummary } from "@/domain/season/divisions";
 import {
   PUBLIC_PAGE_LIFE,
+  seasonLiveTag,
   seasonTag,
   THEME_WEEKS_TAG,
 } from "@/lib/public-cache";
@@ -67,16 +68,19 @@ export async function SeasonSchedule({
   const season = await seasonBySlug(db, league.id, slug);
   // Drafts are the league's work in progress, not public.
   if (!season || !isPublicSeason(season)) notFound();
-  cacheTag(seasonTag(season.id), THEME_WEEKS_TAG);
+  // Each half-inning entered expires seasonLiveTag, for the running scores.
+  cacheTag(seasonTag(season.id), seasonLiveTag(season.id), THEME_WEEKS_TAG);
   // Setting a game day's status expires the season tag (issue #383).
   const today = localDay(new Date(), season.timeZone);
-  const [all, themes, divisions, divisionOf, statuses] = await Promise.all([
-    publishedSchedule(db, season.id),
-    themeWeeks(db, season.leagueId, season.timeZone),
-    seasonDivisions(db, season.id),
-    teamDivisions(db, season.id),
-    statusesFrom(db, season.id, today),
-  ]);
+  const [all, themes, divisions, divisionOf, statuses, live] =
+    await Promise.all([
+      publishedSchedule(db, season.id),
+      themeWeeks(db, season.leagueId, season.timeZone),
+      seasonDivisions(db, season.id),
+      teamDivisions(db, season.id),
+      statusesFrom(db, season.id, today),
+      liveScores(db, season.id),
+    ]);
   const division = divisionSlug
     ? divisions.find((d) => d.slug === divisionSlug)
     : null;
@@ -121,15 +125,23 @@ export async function SeasonSchedule({
     return line && dayCount > 0 ? [{ status: s, line }] : [];
   });
   const base = `/seasons/${season.slug}/schedule`;
+  // The first game day from today on, when earlier ones are above it.
+  const thisWeek = days.findIndex(({ day }) => day >= today);
 
   return (
     <>
       <header className="flex flex-col gap-2">
-        <p className="text-text-muted">{season.name}</p>
+        {division && <p className="text-text-muted">{season.name}</p>}
+        {/* The same as the page's title, so each one is unique (WCAG 2.4.2). */}
         <h1 className="text-h1">
           {division
             ? fill(words.divisionTitle, { division: division.name })
-            : words.title}
+            : picked
+              ? fill(words.namedTitle, {
+                  name: picked.name,
+                  season: season.name,
+                })
+              : fill(words.seasonTitle, { season: season.name })}
         </h1>
         {division?.ruleSet && ruleSetSummary(division.ruleSet, locale) && (
           <p className="text-text-muted">
@@ -152,6 +164,14 @@ export async function SeasonSchedule({
           >
             {words.playoffs}
           </Link>
+          {thisWeek > 0 && (
+            <a
+              href={`#day-${days[thisWeek]?.day}`}
+              className="inline-flex min-h-11 items-center font-bold text-brand underline"
+            >
+              {words.thisWeek}
+            </a>
+          )}
         </nav>
       </header>
 
@@ -251,7 +271,8 @@ export async function SeasonSchedule({
               <section
                 key={day}
                 aria-labelledby={`day-${day}`}
-                className="flex flex-col gap-3"
+                // Clear of the sticky team filter when "Jump to this week" lands here.
+                className="flex scroll-mt-32 flex-col gap-3"
               >
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <h2 id={`day-${day}`} className="text-h3">
@@ -273,6 +294,7 @@ export async function SeasonSchedule({
                     games={dayGames}
                     timeZone={season.timeZone}
                     note={note}
+                    live={live}
                     empty={division ? "–" : words.open}
                     locale={locale}
                   />
@@ -288,6 +310,7 @@ export async function SeasonSchedule({
                         timeZone={season.timeZone}
                         highlight={picked?.id}
                         note={note(g)}
+                        live={live.get(g.id)}
                         locale={locale}
                       />
                     </li>
@@ -334,6 +357,7 @@ function DayGrid({
   games,
   timeZone,
   note,
+  live,
   empty,
   locale,
 }: {
@@ -341,6 +365,7 @@ function DayGrid({
   games: PublicGame[];
   timeZone: string;
   note: (g: PublicGame) => string | undefined;
+  live: Map<string, { scoreA: number; scoreB: number }>;
   /** What an empty cell says: "Open", or a dash when other games may be there. */
   empty: string;
   locale: Locale;
@@ -391,6 +416,7 @@ function DayGrid({
                         compact
                         morph={false}
                         note={note(g)}
+                        live={live.get(g.id)}
                         locale={locale}
                       />
                     ) : (
