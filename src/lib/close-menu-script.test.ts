@@ -9,8 +9,7 @@ function menu() {
     <a id="outside" href="/about">About</a>`;
   const el = document.getElementById("m") as HTMLElement;
   // jsdom has no popover API: stand in for an open menu.
-  el.matches = ((selector: string) =>
-    selector === ":popover-open");
+  el.matches = (selector: string) => selector === ":popover-open";
   el.hidePopover = vi.fn();
   return el;
 }

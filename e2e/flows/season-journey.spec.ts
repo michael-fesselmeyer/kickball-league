@@ -274,7 +274,9 @@ test("a whole season, from setting it up to a rain-out", async ({
 
     const visitor = await (await browser.newContext()).newPage();
     await visitor.goto(`/seasons/${SLUG}/schedule`);
-    await expect(visitor.getByText(SEASON, { exact: true })).toBeVisible();
+    await expect(visitor.getByRole("heading", { level: 1 })).toHaveText(
+      `${SEASON} schedule`,
+    );
     await expect(visitor.getByRole("status")).toHaveText(
       "Showing all 3 games.",
     );

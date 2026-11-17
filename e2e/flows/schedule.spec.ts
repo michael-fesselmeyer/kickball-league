@@ -124,9 +124,8 @@ test("an admin splits a season into divisions and publishes its schedule", async
   // division rounds and a crossover round of four games each.
   await visitor.goto("/seasons/spring-2027/schedule");
   await expect(visitor.getByRole("heading", { level: 1 })).toHaveText(
-    "Schedule",
+    "Spring 2027 schedule",
   );
-  await expect(visitor.getByText("Spring 2027", { exact: true })).toBeVisible();
   await expect(visitor.getByRole("status")).toHaveText("Showing all 16 games.");
   await expectNoAxeViolations(visitor);
 
