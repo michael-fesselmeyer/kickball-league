@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
-import { PageLoading } from "@/components/page-loading";
 import { DealList } from "@/components/sponsors/deal-list";
 import { TeamOfWeekCard } from "@/components/sponsors/team-of-week";
 import { cachedSponsorDirectory } from "./directory";
@@ -14,13 +12,11 @@ import { languageAlternates, linkIn } from "@/i18n/routing";
 type Props = PageProps<"/[lang]/l/[league]/sponsors">;
 
 /**
- * The page reads its language from the path outside its <Suspense>
- * boundary, so its heading and loading words are in that language from the
- * first paint (ADR 0094). Every league and language is listed at build, so
- * it is still prerendered; only a navigation into a page the build didn't
- * list waits for it, as on the rules page.
+ * The whole page is static and painted in full (ADR 0029): with no
+ * <Suspense> boundary around the sponsors, they are part of the first paint
+ * instead of being revealed by a script after a loading state.
  */
-export const instant = false;
+export const ensureStatic = "navigation";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { lang, league: segment } = await params;
@@ -49,9 +45,7 @@ export default async function SponsorsPage({ params }: Props) {
         </h1>
         <p className="text-body-lg text-text-muted">{words.intro}</p>
       </header>
-      <Suspense fallback={<PageLoading>{words.loading}</PageLoading>}>
-        <Sponsors params={params} />
-      </Suspense>
+      <Sponsors params={params} />
     </main>
   );
 }
