@@ -56,7 +56,7 @@ test("a captain who opts out sees the shirt makers, and the history shows the te
   });
 
   await test.step("the captain opts out and sees the makers", async () => {
-    await captain.goto("/app/seasons/fall-2026/team");
+    await captain.goto("/app/seasons/fall-2026/team?view=settings");
     const section = captain.getByRole("region", { name: "Team shirts" });
     await expect(section).toBeVisible();
     await section
@@ -70,15 +70,17 @@ test("a captain who opts out sees the shirt makers, and the history shows the te
     await expect(link).toHaveAttribute("href", SITE);
     await expect(link).toHaveAttribute("rel", "noopener noreferrer");
     await expect(makers).toContainText("Minimum 10 pieces");
-    await expect(
-      captain.getByText("This team wears its own shirts or jerseys"),
-    ).toBeVisible();
     await expectNoAxeViolations(captain);
     await makers.getByLabel("What the shirt looks like").fill(DESIGN);
     await makers.getByRole("button", { name: "Save description" }).click();
     await expect(captain.getByRole("status").first()).toHaveText(
       "Shirt description saved.",
     );
+    // The roster says so too.
+    await captain.goto("/app/seasons/fall-2026/team?view=roster");
+    await expect(
+      captain.getByText("This team wears its own shirts or jerseys"),
+    ).toBeVisible();
   });
 
   await test.step("the league history's shirt archive shows the description", async () => {

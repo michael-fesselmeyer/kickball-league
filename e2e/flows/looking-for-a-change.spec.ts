@@ -67,7 +67,7 @@ test.describe.serial("a player quietly looks for a new team", () => {
 
   test("Mo's own captain sees nobody to invite", async ({ browser }) => {
     const captain = await phone(browser, "oldCaptain");
-    await captain.goto(`/app/seasons/${SEASON}/team`);
+    await captain.goto(`/app/seasons/${SEASON}/team?view=roster`);
     const recruiting = captain.getByRole("region", {
       name: "Players looking for a change",
     });
@@ -86,7 +86,7 @@ test.describe.serial("a player quietly looks for a new team", () => {
     browser,
   }) => {
     const captain = await phone(browser, "newCaptain");
-    await captain.goto(`/app/seasons/${SEASON}/team`);
+    await captain.goto(`/app/seasons/${SEASON}/team?view=roster`);
     const recruiting = captain.getByRole("region", {
       name: "Players looking for a change",
     });
