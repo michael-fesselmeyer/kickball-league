@@ -37,13 +37,13 @@ export function MoneySummaryView({
       <dl className="grid grid-cols-2 gap-3">
         <div className="flex flex-col rounded-lg border border-border bg-surface p-3">
           <dt className="text-small text-text-muted">Collected</dt>
-          <dd className="font-display text-h3 tabular-nums">
+          <dd className="text-h3 font-extrabold tabular-nums">
             {money(summary.collectedCents)}
           </dd>
         </div>
         <div className="flex flex-col rounded-lg border border-border bg-surface p-3">
           <dt className="text-small text-text-muted">Spent</dt>
-          <dd className="font-display text-h3 tabular-nums">
+          <dd className="text-h3 font-extrabold tabular-nums">
             {money(summary.spentCents)}
           </dd>
         </div>

@@ -158,10 +158,10 @@ async function Books({
     <>
       <header className="flex flex-col gap-2">
         <Link
-          href="/app/admin"
+          href={`/app/owner/${season.slug}`}
           className="inline-flex min-h-11 items-center self-start underline"
         >
-          League admin
+          Owner dashboard
         </Link>
         <h1 className="text-h1">Books: {season.name}</h1>
         <HelpLink audience="owner" article="books" topic="keeping the books" />
