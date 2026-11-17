@@ -36,7 +36,7 @@ The demo can wear the visiting league's own name, logo and team names. They stay
 - `leagueName` (required, up to 80 characters) replaces the generic name in the header, page titles, share images, the installed app's name and the league's row in the database.
 - `shortName` (optional, up to 24 characters) is shown in the header on a phone, where the full name would push the buttons onto a second line, and under the home-screen icon.
 - `logo` (optional) is a `.png`, `.webp` or `.jpg` file name in `private/brand/`. A square-ish logo on a transparent background looks best. At build time the demo resizes it with sharp into `public/brand/` (also ignored by git): a 120-pixel-tall copy for the header and a larger one for share images and home-screen icons. Without a logo the kickball mark stays.
-- `teams` (optional, up to 64 names) renames the seeded teams in order: Fall 2026's eight teams first (the first name takes The Big Kicks' place in the walkthrough below), then the two teams from past seasons. Extra names go unused; with fewer, the rest keep their invented names. Slugs, colors and every seeded game stay as they are.
+- `teams` (optional, up to 64 names) renames the seeded teams in order: Fall 2026's eight teams first (the first name goes to the team Pat Player and Casey Captain play on in the walkthrough below), then the two teams from past seasons. Extra names go unused; with fewer, the rest keep their invented names. Slugs, colors and every seeded game stay as they are.
 
 The next `npm run demo` notices the file (or a change to it) and rebuilds. If the file can't be used (bad JSON, a missing logo, a blank name), the demo says what is wrong and runs with the generic league instead. Without the file, the demo is exactly as described here.
 
