@@ -147,8 +147,8 @@ const JULES: Member = {
 
 /**
  * Puts the member on Kick Starters' roster in Spring 2026, a completed
- * season the seed's people never played in, and clears any survey a
- * previous run opened there, so the flow starts fresh.
+ * season, and clears any survey a previous run opened there, so the flow
+ * starts fresh.
  */
 async function rosterInSpring2026(email: string): Promise<void> {
   const db = new Client({ connectionString: process.env.DATABASE_URL });
@@ -223,7 +223,10 @@ test("a player answers the season survey once and the admin sees anonymous resul
       .getByRole("button", { name: "Open the survey and invite players" })
       .click();
     await expect(admin.getByRole("status")).toContainText("Survey opened.");
-    await expect(admin.getByText("0 of 1 player answered (0%)")).toBeVisible();
+    // Everyone on Spring 2026's rosters is invited; nobody has answered.
+    await expect(
+      admin.getByText(/^0 of \d+ players answered \(0%\)$/),
+    ).toBeVisible();
   });
 
   await test.step("the player answers from the home screen", async () => {
@@ -263,7 +266,7 @@ test("a player answers the season survey once and the admin sees anonymous resul
   await test.step("the admin sees totals and the comment, not who wrote it", async () => {
     await admin.goto(page);
     await expect(
-      admin.getByText("1 of 1 player answered (100%)"),
+      admin.getByText(/^1 of \d+ players answered \(\d+%\)$/),
     ).toBeVisible();
     await expect(admin.getByText("5.0 out of 5")).toBeVisible();
     await expect(

@@ -31,8 +31,9 @@ test.describe.serial("covering a game with no ref", () => {
     await game.getByLabel("Why? Admins see this.").fill("Twisted an ankle");
     await expectNoAxeViolations(ref);
     await game.getByRole("button", { name: "Drop this game" }).click();
+    // The league's two other refs are asked to take it.
     await expect(ref.getByRole("status")).toHaveText(
-      "You’re off that game. Admins can see it needs a ref.",
+      "You’re off that game. We asked 2 other refs to take it.",
     );
     await expect(ref.locator(`#game-${soon.gameId}`)).toHaveCount(0);
 

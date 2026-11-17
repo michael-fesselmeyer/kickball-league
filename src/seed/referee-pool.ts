@@ -7,11 +7,10 @@ import {
   refereeProfile,
 } from "@/db/schema";
 import { user } from "@/db/schema/auth";
-import type { RefereeAssignmentId, SeasonId, UserId } from "@/domain/ids";
+import type { SeasonId, UserId } from "@/domain/ids";
 import { PERSONAS } from "@/lib/demo/personas";
 import { demoPersonaRows } from "./demo-personas";
 import { PLAYED_ROUNDS, SEED_EMAIL_DOMAIN, type SeedData } from "./generate";
-import { seedLineupRows } from "./lineups";
 import { insertSeedProfiles } from "./roles";
 
 /** The fall season's per-game ref fee, in cents. */
@@ -29,14 +28,11 @@ const poolId = <T extends string>(n: number) =>
 /**
  * The ref pool and pay sheet for the demo (ADR 0053): Reese Ref and two
  * other refs make up the league's pool, the fall season pays $25 a game,
- * and Reese checked in for the games of the last played round, so the pay
- * sheet has something owed. Reese says nothing about times yet; the
- * "assign then pay" flow ticks them on the ref's own page.
- *
- * From the last played round on, every game has one ref and no ref has two
- * games at the same kickoff: Reese's (src/seed/demo-personas.ts and the
- * kicking-order demo, src/seed/lineups.ts), and the other two take the rest
- * of each kickoff in turn.
+ * and Reese checked in for the first two games of the last played round,
+ * so the pay sheet has something owed. Nobody says anything about times
+ * yet; the "assign then pay" flow ticks them on the ref's own page. The
+ * other two have no games of their own in the seed: on the demo, they take
+ * tonight's games Reese can't be at (src/seed/demo-live.ts).
  */
 export function seedRefereePoolRows(data: SeedData) {
   const rows = demoPersonaRows(data);
@@ -47,6 +43,7 @@ export function seedRefereePoolRows(data: SeedData) {
   );
   const checkedIn = rows.refereeAssignments
     .filter((a) => played.has(a.gameId))
+    .slice(0, 2)
     .map((a) => a.id);
 
   const pool = POOL_REFS.map((p, i) => ({
@@ -65,34 +62,6 @@ export function seedRefereePoolRows(data: SeedData) {
     globalRole: "player" as const,
   }));
 
-  const reeses = new Set([
-    ...rows.refereeAssignments.map((a) => a.gameId),
-    seedLineupRows(data).refereeAssignment.gameId,
-  ]);
-  const startOf = new Map(data.slots.map((s) => [s.id, s.startsAt.getTime()]));
-  const open = data.games
-    .filter((g) => g.roundNo >= PLAYED_ROUNDS && !reeses.has(g.id))
-    .sort(
-      (a, b) =>
-        (startOf.get(a.slotId) ?? 0) - (startOf.get(b.slotId) ?? 0) ||
-        a.id.localeCompare(b.id),
-    );
-  const kickoffs = Map.groupBy(open, (g) => startOf.get(g.slotId) ?? 0);
-  let n = 0;
-  const assignments = [...kickoffs.values()].flatMap((games) => {
-    if (games.length > pool.length)
-      throw new Error("More games at one kickoff than the pool has refs");
-    return games.map((g, i) => ({
-      id: poolId<RefereeAssignmentId>(101 + n++),
-      gameId: g.id,
-      userId: pool[i]?.id as UserId,
-      status: "accepted" as const,
-      respondedAt: new Date("2026-08-25T16:00:00Z"),
-      // They were at the field for the games already played.
-      checkedInAt: played.has(g.id) ? new Date("2026-10-06T23:40:00Z") : null,
-    }));
-  });
-
   return {
     profiles: [ref.id, ...pool.map((p) => p.id)].map((userId) => ({
       leagueId: data.league.id,
@@ -100,7 +69,6 @@ export function seedRefereePoolRows(data: SeedData) {
     })),
     poolUsers: pool,
     poolProfiles: profiles,
-    assignments,
     rate: { seasonId: data.season.id, feeCents: SEED_REF_FEE_CENTS },
     checkedIn,
     checkedInAt: new Date("2026-10-06T23:40:00Z"),
@@ -115,8 +83,6 @@ export async function addSeedRefereePool(
   await db.insert(user).values(rows.poolUsers);
   await insertSeedProfiles(db, data.league.id, rows.poolProfiles);
   await db.insert(refereeProfile).values(rows.profiles);
-  if (rows.assignments.length > 0)
-    await db.insert(refereeAssignment).values(rows.assignments);
   await db.insert(refereePayRate).values(rows.rate);
   if (rows.checkedIn.length > 0)
     await db
