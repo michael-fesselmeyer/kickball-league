@@ -10,6 +10,7 @@ import {
   seasonDivisionStandings,
   type StandingsTeam,
 } from "@/db/queries/standings";
+import type { LeagueId } from "@/domain/ids";
 import { ruleSetSummary } from "@/domain/season/divisions";
 import type { StandingsRow, Tiebreaker } from "@/domain/standings/standings";
 import { type SportRules, sportRules } from "@/domain/sports/sports";
@@ -34,18 +35,31 @@ type Props = PageProps<"/[lang]/l/[league]/seasons/[season]/standings">;
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { lang, league: segment, season: slug } = await params;
   const locale = localeOf(lang);
-  const title = messagesFor(locale).standings.title;
+  const words = messagesFor(locale).standings;
+  const title = words.title;
   if (slug === NO_SEASON) return { title };
   const league = await cachedLeague(segment);
   if (!league) return { title };
   const path = leagueHref(league, `/seasons/${slug}/standings`);
+  const season = await cachedSeasonName(league.id, slug);
   return {
-    title,
+    // Unique per season (WCAG 2.4.2), and the same as the h1.
+    title: season ? fill(words.seasonTitle, { season }) : title,
     alternates: {
       canonical: linkIn(locale, path),
       languages: languageAlternates(path),
     },
   };
+}
+
+/** A public season's name, for the title; null for a draft or none. */
+async function cachedSeasonName(leagueId: LeagueId, slug: string) {
+  "use cache";
+  cacheLife(PUBLIC_PAGE_LIFE);
+  const season = await seasonBySlug(db, leagueId, slug);
+  if (!season) return null;
+  cacheTag(seasonTag(season.id));
+  return isPublicSeason(season) ? season.name : null;
 }
 
 /**
@@ -130,8 +144,9 @@ async function SeasonStandings({
   return (
     <>
       <header className="flex flex-col gap-1">
-        <p className="text-text-muted">{season.name}</p>
-        <h1 className="text-h1">{words.title}</h1>
+        <h1 className="text-h1">
+          {fill(words.seasonTitle, { season: season.name })}
+        </h1>
         <nav
           aria-label={words.seasonNav}
           className="flex flex-wrap gap-x-4 gap-y-1"

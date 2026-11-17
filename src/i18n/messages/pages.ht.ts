@@ -158,6 +158,7 @@ export const pagesHt: Translation<
   },
   standings: {
     title: "Klasman",
+    seasonTitle: "Klasman {season}",
     seasonNav: "Sezon",
     schedule: "Orè",
     playoffs: "Playoff",

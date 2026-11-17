@@ -166,6 +166,7 @@ export const pagesPl: Translation<
   },
   standings: {
     title: "Tabela",
+    seasonTitle: "Tabela: {season}",
     seasonNav: "Sezon",
     schedule: "Terminarz",
     playoffs: "Play-offy",
