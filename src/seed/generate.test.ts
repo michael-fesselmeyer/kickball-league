@@ -181,13 +181,52 @@ describe("generateSeed", () => {
   });
 });
 
+describe("generateSeed: rosters", () => {
+  it("gives every team five or more of each fielding group, for a full side", () => {
+    const data = generateSeed();
+    const side = new Map<string, string>(
+      data.profiles.map((p) => [p.userId, p.lineupGender]),
+    );
+    const userOf = new Map<string, string>(
+      data.registrations.map((r) => [r.id, r.userId]),
+    );
+    for (const t of data.teamSeasons) {
+      const groups = data.rosterMemberships
+        .filter((m) => m.teamSeasonId === t.id)
+        .map((m) => side.get(userOf.get(m.registrationId) ?? ""));
+      expect(groups.filter((g) => g === "woman").length).toBeGreaterThanOrEqual(
+        5,
+      );
+      expect(groups.filter((g) => g === "man").length).toBeGreaterThanOrEqual(
+        5,
+      );
+    }
+  });
+});
+
 describe("generateSeed: next spring", () => {
   const data = generateSeed();
+
+  it("is open for sign-up, early-bird price on, closing before spring starts", () => {
+    const s = data.nextSeason;
+    // The seed's own "now" is the fall's next game day, Oct 13.
+    const fallNext = new Date("2026-10-13T16:00:00Z");
+    expect(s.registrationOpensAt.getTime()).toBeLessThan(fallNext.getTime());
+    expect(s.earlyBirdEndsAt.getTime()).toBeGreaterThan(fallNext.getTime());
+    expect(s.earlyBirdDiscountCents).toBeGreaterThan(0);
+    expect(s.registrationClosesAt.toISOString()).toBe(
+      "2027-03-29T03:59:00.000Z",
+    );
+    expect(s.registrationClosesAt < new Date(`${s.startsOn}T00:00:00Z`)).toBe(
+      true,
+    );
+    expect(s.waiverId).toBe(data.waiver.id);
+  });
 
   it("enters every team, with permits on Monday evenings and no games yet", () => {
     expect(data.nextSeason).toMatchObject({
       name: "Spring 2027",
-      status: "registration_closed",
+      status: "registration_open",
     });
     expect(data.nextTeamSeasons).toHaveLength(8);
     expect(data.permitWindows).toHaveLength(7 * 3);
